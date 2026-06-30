@@ -1,5 +1,6 @@
 pub mod canon;
 pub mod map;
+pub mod registry;
 
 #[cfg(test)]
 mod tests {

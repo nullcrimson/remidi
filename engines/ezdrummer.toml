@@ -1,0 +1,22 @@
+id = "ezdrummer"
+name = "EZdrummer (GM core)"
+notes = [
+  { note = 36, canon = "KickMain", primary = true },
+  { note = 38, canon = "SnareCenter", primary = true },
+  { note = 37, canon = "SnareSidestick", primary = true },
+  { note = 42, canon = "HatClosed", primary = true },
+  { note = 44, canon = "HatPedal", primary = true },
+  { note = 46, canon = "HatOpen1", primary = true },
+  { note = 41, canon = "TomF1", primary = true },
+  { note = 43, canon = "TomF2", primary = true },
+  { note = 45, canon = "TomR3", primary = true },
+  { note = 47, canon = "TomR2", primary = true },
+  { note = 48, canon = "TomR1", primary = true },
+  { note = 50, canon = "TomF3", primary = true },
+  { note = 49, canon = "CrashMain", primary = true },
+  { note = 57, canon = "CrashWide", primary = true },
+  { note = 51, canon = "Ride", primary = true },
+  { note = 53, canon = "RideBell", primary = true },
+  { note = 52, canon = "China", primary = true },
+  { note = 55, canon = "Splash", primary = true },
+]
