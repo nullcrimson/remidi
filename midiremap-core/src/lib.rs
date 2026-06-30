@@ -1,4 +1,5 @@
 pub mod canon;
+pub mod map;
 
 #[cfg(test)]
 mod tests {
