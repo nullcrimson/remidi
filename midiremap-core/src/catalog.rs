@@ -19,6 +19,7 @@ impl BuiltinMaps {
         for src in [
             include_str!("../../engines/ggd_invasion.toml"),
             include_str!("../../engines/ezdrummer.toml"),
+            include_str!("../../engines/addictive_drums2.toml"),
         ] {
             let m = from_toml(src).expect("embedded preset must be valid");
             maps.insert(m.id.clone(), m);
@@ -91,6 +92,17 @@ mod tests {
         let b = BuiltinMaps::new();
         assert!(b.get("ggd_invasion").is_some());
         assert!(b.get("ezdrummer").is_some());
+        assert!(b.get("addictive_drums2").is_some());
+    }
+
+    #[test]
+    fn addictive_drums2_native_layout() {
+        let b = BuiltinMaps::new();
+        let ad2 = b.get("addictive_drums2").unwrap();
+        // native AD2: closed hat is 49 (not GM 42), open A is 54, kick 36
+        assert_eq!(ad2.decode(49), Some(crate::canon::Canon::HatClosed));
+        assert_eq!(ad2.decode(36), Some(crate::canon::Canon::KickMain));
+        assert_eq!(ad2.encode(crate::canon::Canon::HatOpen1), Some(54));
     }
 
     #[test]
@@ -129,6 +141,7 @@ mod tests {
         assert!(ids.contains(&"ggd_invasion"));
         assert!(ids.contains(&"ezdrummer"));
         assert!(ids.contains(&"custom"));
-        assert_eq!(ids.len(), 3);
+        // 3 builtin engines + 1 user engine
+        assert_eq!(ids.len(), 4);
     }
 }

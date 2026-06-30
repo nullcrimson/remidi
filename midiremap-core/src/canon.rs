@@ -67,6 +67,8 @@ fn default_chain(c: Canon) -> &'static [Canon] {
         HatOpen1 => &[HatClosed],
         HatOpen2 => &[HatOpen1, HatClosed],
         HatOpen3 => &[HatOpen2, HatOpen1, HatClosed],
+        TomR3 => &[TomR2],
+        TomF3 => &[TomF2],
         CrashWide => &[CrashMain],
         CrashChoke => &[CrashMain],
         RideBell => &[Ride],

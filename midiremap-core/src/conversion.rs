@@ -227,6 +227,28 @@ mod tests {
     }
 
     #[test]
+    fn ggd_to_addictive_drums2_native() {
+        // GGD closed hat (43) -> HatClosed -> AD2 native closed tip (49)
+        let out = convert(
+            &smf_from(&[(0, on(43)), (48, off(43))]),
+            "ggd_invasion",
+            "addictive_drums2",
+        );
+        assert_eq!(note_on_keys(&out.bytes), vec![49]);
+    }
+
+    #[test]
+    fn addictive_drums2_to_ezd_uses_gm() {
+        // AD2 native closed tip (49) -> HatClosed -> EZD GM closed hat (42)
+        let out = convert(
+            &smf_from(&[(0, on(49)), (48, off(49))]),
+            "addictive_drums2",
+            "ezdrummer",
+        );
+        assert_eq!(note_on_keys(&out.bytes), vec![42]);
+    }
+
+    #[test]
     fn round_trip_stable_on_primary_subset() {
         let notes = [24u8, 26, 30, 33, 45];
         let mut events = Vec::new();
