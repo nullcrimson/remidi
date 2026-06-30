@@ -86,11 +86,9 @@ fn converts_a_file_end_to_end() {
         "stderr: {}",
         String::from_utf8_lossy(&out.stderr)
     );
-    // Report JSON goes to stderr.
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(err.contains("unmapped_source"), "report missing: {err}");
 
-    // The output file is a valid SMF whose kick was remapped 24 -> 36.
     let bytes = std::fs::read(&out_path).unwrap();
     let smf = Smf::parse(&bytes).unwrap();
     let key = smf.tracks[0]
