@@ -1,3 +1,5 @@
+pub mod canon;
+
 #[cfg(test)]
 mod tests {
     #[test]
