@@ -2,14 +2,35 @@ use serde::Deserialize;
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Deserialize)]
 pub enum Canon {
-    KickMain, KickAlt,
-    SnareCenter, SnareRim, SnareSidestick, SnareFlam, SnareRuff,
-    HatClosed, HatTight, HatOpen1, HatOpen2, HatOpen3, HatPedal,
-    TomR1, TomR2, TomR3, TomF1, TomF2, TomF3,
-    CrashMain, CrashWide, CrashChoke,
-    Ride, RideBell, RideEdge,
-    China, Splash,
-    XHatClosed, XHatOpen,
+    KickMain,
+    KickAlt,
+    SnareCenter,
+    SnareRim,
+    SnareSidestick,
+    SnareFlam,
+    SnareRuff,
+    HatClosed,
+    HatTight,
+    HatOpen1,
+    HatOpen2,
+    HatOpen3,
+    HatPedal,
+    TomR1,
+    TomR2,
+    TomR3,
+    TomF1,
+    TomF2,
+    TomF3,
+    CrashMain,
+    CrashWide,
+    CrashChoke,
+    Ride,
+    RideBell,
+    RideEdge,
+    China,
+    Splash,
+    XHatClosed,
+    XHatOpen,
     Stack,
 }
 
@@ -50,7 +71,10 @@ mod tests {
 
     #[test]
     fn snare_ruff_falls_back_to_center() {
-        assert_eq!(fallbacks(Canon::SnareRuff), &[Canon::SnareFlam, Canon::SnareCenter]);
+        assert_eq!(
+            fallbacks(Canon::SnareRuff),
+            &[Canon::SnareFlam, Canon::SnareCenter]
+        );
     }
 
     #[test]
