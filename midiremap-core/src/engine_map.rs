@@ -1,8 +1,18 @@
-use std::{collections::HashMap, fmt};
+use std::collections::HashMap;
 
 use serde::Deserialize;
 
 use crate::canon::Canon;
+
+/// engine note -> canonical meaning (reading a *source* performance).
+pub trait Decoder {
+    fn decode(&self, note: u8) -> Option<Canon>;
+}
+
+/// canonical meaning -> engine note (writing a *target* performance).
+pub trait Encoder {
+    fn encode(&self, canon: Canon) -> Option<u8>;
+}
 
 #[derive(Deserialize)]
 struct RawEntry {
@@ -19,31 +29,37 @@ struct RawMap {
     notes: Vec<RawEntry>,
 }
 
+/// A single engine's note layout. Implements both [`Decoder`] and [`Encoder`];
+/// which direction a consumer sees is fixed by the trait it depends on.
 #[derive(Debug)]
 pub struct EngineMap {
     pub id: String,
     pub name: String,
-    pub to_canon: HashMap<u8, Canon>,
-    pub from_canon: HashMap<Canon, u8>,
+    to_canon: HashMap<u8, Canon>,
+    from_canon: HashMap<Canon, u8>,
 }
 
-#[derive(Debug, PartialEq)]
-pub enum MapError {
-    DuplicatePrimary(Canon),
-    NoteOutOfRange(u16),
-    Parse(String),
-}
-
-impl fmt::Display for MapError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            MapError::DuplicatePrimary(c) => write!(f, "duplicate primary for {c:?}"),
-            MapError::NoteOutOfRange(n) => write!(f, "note {n} out of range 0..=127"),
-            MapError::Parse(e) => write!(f, "parse error: {e}"),
-        }
+impl Decoder for EngineMap {
+    fn decode(&self, note: u8) -> Option<Canon> {
+        self.to_canon.get(&note).copied()
     }
 }
-impl std::error::Error for MapError {}
+
+impl Encoder for EngineMap {
+    fn encode(&self, canon: Canon) -> Option<u8> {
+        self.from_canon.get(&canon).copied()
+    }
+}
+
+#[derive(thiserror::Error, Debug, PartialEq)]
+pub enum MapError {
+    #[error("note {0} out of range 0..=127")]
+    NoteOutOfRange(u16),
+    #[error("duplicate primary for {0:?}")]
+    DuplicatePrimary(Canon),
+    #[error("parse error: {0}")]
+    Parse(String),
+}
 
 fn build(raw: RawMap) -> Result<EngineMap, MapError> {
     let mut to_canon = HashMap::new();
@@ -90,7 +106,6 @@ pub fn from_json(s: &str) -> Result<EngineMap, MapError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::canon::Canon;
 
     const SAMPLE: &str = r#"
         id = "demo"
@@ -103,17 +118,19 @@ mod tests {
     "#;
 
     #[test]
-    fn parses_to_canon_for_every_note() {
+    fn decodes_every_note() {
         let m = from_toml(SAMPLE).unwrap();
-        assert_eq!(m.to_canon.get(&24), Some(&Canon::KickMain));
-        assert_eq!(m.to_canon.get(&23), Some(&Canon::KickMain));
-        assert_eq!(m.to_canon.get(&26), Some(&Canon::SnareCenter));
+        assert_eq!(m.decode(24), Some(Canon::KickMain));
+        assert_eq!(m.decode(23), Some(Canon::KickMain));
+        assert_eq!(m.decode(26), Some(Canon::SnareCenter));
+        assert_eq!(m.decode(99), None);
     }
 
     #[test]
-    fn from_canon_uses_primary_note() {
+    fn encode_uses_primary_note() {
         let m = from_toml(SAMPLE).unwrap();
-        assert_eq!(m.from_canon.get(&Canon::KickMain), Some(&24));
+        assert_eq!(m.encode(Canon::KickMain), Some(24));
+        assert_eq!(m.encode(Canon::SnareCenter), Some(26));
     }
 
     #[test]

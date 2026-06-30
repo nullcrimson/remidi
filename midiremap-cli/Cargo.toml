@@ -10,3 +10,6 @@ path = "src/main.rs"
 [dependencies]
 midiremap-core = { path = "../midiremap-core" }
 serde_json = "1"
+
+[dev-dependencies]
+midly = "0.5"
