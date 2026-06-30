@@ -46,16 +46,16 @@ fn one_kick_smf() -> Vec<u8> {
 }
 
 #[test]
-fn prints_usage_when_args_missing() {
+fn prints_usage_when_no_subcommand() {
     let out = Command::new(BIN).output().unwrap();
     assert!(!out.status.success());
-    let err = String::from_utf8_lossy(&out.stderr);
+    let err = String::from_utf8_lossy(&out.stderr).to_lowercase();
     assert!(err.contains("usage"), "stderr was: {err}");
 }
 
 #[test]
 fn lists_builtin_engines() {
-    let out = Command::new(BIN).arg("--list").output().unwrap();
+    let out = Command::new(BIN).arg("list").output().unwrap();
     assert!(out.status.success());
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("ggd_invasion"), "stdout was: {stdout}");
@@ -72,6 +72,7 @@ fn converts_a_file_end_to_end() {
 
     let out = Command::new(BIN)
         .args([
+            "convert",
             in_path.to_str().unwrap(),
             "ggd_invasion",
             "ezdrummer",
