@@ -1,0 +1,94 @@
+id = "superior_drummer3"
+name = "Superior Drummer 3 (Toontrack default)"
+# SD3's default map is GM-compatible in the 33-59 core, with a large native
+# articulation set in 60-127. Primaries (the reverse/encode direction) use the
+# GM-core notes so a converted groove plays on a standard SD3 kit; the native
+# notes are added as decode aliases so SD3-authored MIDI converts out well.
+# Caveats:
+#  - SD3 cymbals are generic "Cy 1-5" slots; the physical china/splash/stack is
+#    kit-dependent, so this map has no native china/splash note. Those canonical
+#    slots reach SD3 via fallback (China/Splash/Stack -> CrashMain).
+#  - SD3 reassigns GM 50/52/54/55/56/58 to cymbal crashes/mutes (NOT tom/china/
+#    splash), so they are decoded as crash / CrashChoke here, not their GM sense.
+#  - Source: SD3 default pitchlist + GM->SD3 remap tables. Extended-region exacts
+#    (open-hat level ordinals) are best-effort, pending in-app confirmation.
+notes = [
+  # Kick
+  { note = 36, canon = "KickMain", primary = true },
+  { note = 35, canon = "KickAlt", primary = true },
+  { note = 34, canon = "KickAlt" },
+
+  # Snare (SD3 has true rimshot/ruff/flam articulations)
+  { note = 38, canon = "SnareCenter", primary = true },
+  { note = 125, canon = "SnareCenter" },          # Mid Center
+  { note = 40, canon = "SnareRim", primary = true },   # Rimshot
+  { note = 71, canon = "SnareRim" },              # Rim Only
+  { note = 37, canon = "SnareSidestick", primary = true },
+  { note = 39, canon = "SnareRuff", primary = true },
+  { note = 69, canon = "SnareFlam", primary = true },
+
+  # Hi-hat (closed/tight, 3 open levels, pedal, foot-splash)
+  { note = 42, canon = "HatClosed", primary = true },
+  { note = 61, canon = "HatClosed" },             # Closed Tip (extended)
+  { note = 22, canon = "HatClosed" },             # Closed Edge
+  { note = 62, canon = "HatTight", primary = true },   # Tight Edge
+  { note = 63, canon = "HatTight" },              # Tight Tip
+  { note = 24, canon = "HatOpen1", primary = true },   # Open Edge 1
+  { note = 64, canon = "HatOpen1" },              # Open Edge 0 (least open)
+  { note = 46, canon = "HatOpen2", primary = true },   # Open Edge 2 (GM open)
+  { note = 25, canon = "HatOpen2" },
+  { note = 26, canon = "HatOpen3", primary = true },   # Open Edge 3
+  { note = 60, canon = "HatOpen3" },              # Open Edge 4 (most open)
+  { note = 44, canon = "HatPedal", primary = true },
+  { note = 23, canon = "HatPedal" },              # Open Pedal (foot splash)
+
+  # Toms (SD3 default = 3 rack + 2 floor; high -> low). NB note 50 is NOT a tom.
+  { note = 48, canon = "TomR1", primary = true },
+  { note = 81, canon = "TomR1" },
+  { note = 82, canon = "TomR1" },
+  { note = 47, canon = "TomR2", primary = true },
+  { note = 79, canon = "TomR2" },
+  { note = 80, canon = "TomR2" },
+  { note = 45, canon = "TomR3", primary = true },
+  { note = 77, canon = "TomR3" },
+  { note = 78, canon = "TomR3" },
+  { note = 43, canon = "TomF1", primary = true },
+  { note = 74, canon = "TomF1" },
+  { note = 75, canon = "TomF1" },
+  { note = 41, canon = "TomF2", primary = true },
+  { note = 72, canon = "TomF2" },
+  { note = 73, canon = "TomF2" },
+
+  # Ride
+  { note = 51, canon = "Ride", primary = true },  # Bow Tip
+  { note = 113, canon = "Ride" },
+  { note = 116, canon = "Ride" },                 # Bow Shank
+  { note = 53, canon = "RideBell", primary = true },
+  { note = 114, canon = "RideBell" },
+  { note = 117, canon = "RideBell" },
+  { note = 59, canon = "RideEdge", primary = true },   # Ride Crash
+  { note = 115, canon = "RideEdge" },
+
+  # Crashes (Cy 1-5 crash zones; GM crash1/2 land on 49/57)
+  { note = 49, canon = "CrashMain", primary = true },  # Cy2 crash / GM crash1
+  { note = 86, canon = "CrashMain" },             # Cy1 crash
+  { note = 91, canon = "CrashMain" },             # Cy2 crash (extended)
+  { note = 110, canon = "CrashMain" },            # Cy5 crash
+  { note = 52, canon = "CrashMain" },             # Cy5 crash (GM region)
+  { note = 57, canon = "CrashWide", primary = true },  # Cy4 crash / GM crash2
+  { note = 98, canon = "CrashWide" },             # Cy3 crash
+  { note = 103, canon = "CrashWide" },            # Cy4 crash (extended)
+  { note = 55, canon = "CrashWide" },             # Cy3 crash (GM region)
+
+  # Cymbal mutes/chokes (SD3 "Mute Hit" per cymbal)
+  { note = 50, canon = "CrashChoke", primary = true },
+  { note = 54, canon = "CrashChoke" },
+  { note = 56, canon = "CrashChoke" },
+  { note = 58, canon = "CrashChoke" },
+  { note = 83, canon = "CrashChoke" },
+  { note = 94, canon = "CrashChoke" },
+  { note = 95, canon = "CrashChoke" },
+  { note = 106, canon = "CrashChoke" },
+  { note = 107, canon = "CrashChoke" },
+  { note = 118, canon = "CrashChoke" },           # Ride mute
+]

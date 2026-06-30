@@ -20,6 +20,9 @@ impl BuiltinMaps {
             include_str!("../../engines/ggd_invasion.toml"),
             include_str!("../../engines/ezdrummer.toml"),
             include_str!("../../engines/addictive_drums2.toml"),
+            include_str!("../../engines/general_midi.toml"),
+            include_str!("../../engines/guitar_pro.toml"),
+            include_str!("../../engines/superior_drummer3.toml"),
         ] {
             let m = from_toml(src).expect("embedded preset must be valid");
             maps.insert(m.id.clone(), m);
@@ -88,11 +91,47 @@ mod tests {
     use crate::engine_map::{Decoder, Encoder};
 
     #[test]
-    fn builtin_has_both_engines() {
+    fn builtin_has_all_engines() {
         let b = BuiltinMaps::new();
-        assert!(b.get("ggd_invasion").is_some());
-        assert!(b.get("ezdrummer").is_some());
-        assert!(b.get("addictive_drums2").is_some());
+        for id in [
+            "ggd_invasion",
+            "ezdrummer",
+            "addictive_drums2",
+            "general_midi",
+            "guitar_pro",
+            "superior_drummer3",
+        ] {
+            assert!(b.get(id).is_some(), "missing builtin engine {id}");
+        }
+    }
+
+    #[test]
+    fn engine_specific_decodes() {
+        use crate::canon::Canon;
+        let b = BuiltinMaps::new();
+        // GM: classic percussion notes
+        assert_eq!(
+            b.get("general_midi").unwrap().decode(36),
+            Some(Canon::KickMain)
+        );
+        assert_eq!(
+            b.get("general_midi").unwrap().decode(42),
+            Some(Canon::HatClosed)
+        );
+        // Guitar Pro is pure GM
+        assert_eq!(
+            b.get("guitar_pro").unwrap().decode(38),
+            Some(Canon::SnareCenter)
+        );
+        // SD3 has real rimshot (40) and ruff (39) articulations
+        assert_eq!(
+            b.get("superior_drummer3").unwrap().decode(40),
+            Some(Canon::SnareRim)
+        );
+        assert_eq!(
+            b.get("superior_drummer3").unwrap().decode(39),
+            Some(Canon::SnareRuff)
+        );
     }
 
     #[test]
@@ -153,7 +192,7 @@ mod tests {
         assert!(ids.contains(&"ggd_invasion"));
         assert!(ids.contains(&"ezdrummer"));
         assert!(ids.contains(&"custom"));
-        // 3 builtin engines + 1 user engine
-        assert_eq!(ids.len(), 4);
+        // 6 builtin engines + 1 user engine
+        assert_eq!(ids.len(), 7);
     }
 }
