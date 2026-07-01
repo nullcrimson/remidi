@@ -30,7 +30,10 @@ jobs:
 
       - name: Read pinned wasm-bindgen version
         id: wb
-        run: echo "v=$(grep -A1 'name = \"wasm-bindgen\"' Cargo.lock | grep '^version' | head -1 | cut -d'\"' -f2)" >> "$GITHUB_OUTPUT"
+        run: |
+          ver=$(grep -A1 '^name = "wasm-bindgen"$' Cargo.lock | grep '^version' | head -1 | sed -E 's/version = "(.+)"/\1/')
+          echo "wasm-bindgen version: $ver"
+          echo "v=$ver" >> "$GITHUB_OUTPUT"
 
       - name: Install wasm-bindgen-cli (matching Cargo.lock)
         uses: taiki-e/install-action@v2
