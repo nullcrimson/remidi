@@ -2,6 +2,7 @@ use crate::{
     canon::{DefaultFallbacks, FallbackResolver},
     engine_map::{Decoder, Encoder, EngineMap, MapError},
     midi::{CodecError, EventRewriter, MidiCodec, StandardMidiCodec},
+    overrides::Overrides,
     translate::{Report, Translator},
 };
 
@@ -18,15 +19,12 @@ pub enum ConversionError {
     Map(#[from] MapError),
 }
 
-/// End-to-end conversion: bytes in, bytes + report out. Owns a [`Translator`]
-/// (the engine→engine logic) and a [`MidiCodec`] (the container I/O).
 pub struct Conversion<'a, C: MidiCodec = StandardMidiCodec> {
     translator: Translator<'a>,
     codec: C,
 }
 
 impl<'a> Conversion<'a, StandardMidiCodec> {
-    /// Build a conversion with the default SMF codec.
     pub fn new(
         src: &'a dyn Decoder,
         tgt: &'a dyn Encoder,
@@ -53,11 +51,21 @@ impl<'a, C: MidiCodec> Conversion<'a, C> {
     }
 }
 
-/// Convenience: convert `mid` from `src` to `tgt` with the default codec and
-/// fallback chains.
 pub fn remap(mid: &[u8], src: &EngineMap, tgt: &EngineMap) -> Result<Converted, ConversionError> {
     let fb = DefaultFallbacks;
     let conv = Conversion::new(src, tgt, &fb);
+    conv.run(mid)
+}
+
+pub fn remap_with_overrides(
+    mid: &[u8],
+    src: &EngineMap,
+    tgt: &EngineMap,
+    ov: &Overrides,
+) -> Result<Converted, ConversionError> {
+    let fb = DefaultFallbacks;
+    let enc = ov.encoder(tgt);
+    let conv = Conversion::new(src, &enc, &fb);
     conv.run(mid)
 }
 
@@ -110,7 +118,6 @@ mod tests {
         }
     }
 
-    /// Keys of all real note-ons (vel > 0), in order.
     fn note_on_keys(bytes: &[u8]) -> Vec<u8> {
         let smf = Smf::parse(bytes).unwrap();
         smf.tracks[0]
@@ -144,7 +151,6 @@ mod tests {
 
     #[test]
     fn lr_kicks_collide_to_one_note() {
-        // GGD 23 and 24 both -> KickMain -> EZD 36
         let out = convert(
             &smf_from(&[(0, on(23)), (10, off(23)), (0, on(24)), (10, off(24))]),
             "ggd_invasion",
@@ -154,14 +160,19 @@ mod tests {
     }
 
     #[test]
-    fn hat_open3_falls_back() {
+    fn china1_falls_back_to_crash() {
         let out = convert(
-            &smf_from(&[(0, on(47)), (48, off(47))]),
+            &smf_from(&[(0, on(65)), (48, off(65))]),
             "ggd_invasion",
             "ezdrummer",
         );
-        assert_eq!(note_on_keys(&out.bytes), vec![46]);
-        assert_eq!(out.report.fallback_used.get(&Canon::HatOpen3), Some(&1));
+        assert_eq!(note_on_keys(&out.bytes), vec![86]);
+        assert_eq!(
+            out.report
+                .fallback_used
+                .get(&"china.1.hit".parse::<Canon>().unwrap()),
+            Some(&1)
+        );
     }
 
     #[test]
@@ -197,7 +208,6 @@ mod tests {
 
     #[test]
     fn dropped_note_delta_folds_into_next_kept() {
-        // kept(24) on@0 off@100 ; dropped(99) on@50 off@10 ; kept(26) on@200
         let out = convert(
             &smf_from(&[
                 (0, on(24)),
@@ -222,30 +232,62 @@ mod tests {
                 }
             }
         }
-        // second kept note-on (38) absorbed the dropped 50+10 deltas: 200+60 = 260
         assert_eq!(acc, vec![(36, 0), (38, 260)]);
     }
 
     #[test]
     fn ggd_to_addictive_drums2_native() {
-        // GGD closed hat (43) -> HatClosed -> AD2 native closed tip (49)
         let out = convert(
             &smf_from(&[(0, on(43)), (48, off(43))]),
             "ggd_invasion",
             "addictive_drums2",
         );
-        assert_eq!(note_on_keys(&out.bytes), vec![49]);
+        assert_eq!(note_on_keys(&out.bytes), vec![51]);
     }
 
     #[test]
-    fn addictive_drums2_to_ezd_uses_gm() {
-        // AD2 native closed tip (49) -> HatClosed -> EZD GM closed hat (42)
+    fn addictive_drums2_to_ezd_native() {
         let out = convert(
             &smf_from(&[(0, on(49)), (48, off(49))]),
             "addictive_drums2",
             "ezdrummer",
         );
-        assert_eq!(note_on_keys(&out.bytes), vec![42]);
+        assert_eq!(note_on_keys(&out.bytes), vec![63]);
+    }
+
+    #[test]
+    fn empty_overrides_equal_plain_remap() {
+        let mid = smf_from(&[(0, on(24)), (48, off(24))]);
+        let b = BuiltinMaps::new();
+        let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
+        let plain = remap(&mid, src, tgt).unwrap();
+        let ov = crate::Overrides::default();
+        let with = remap_with_overrides(&mid, src, tgt, &ov).unwrap();
+        assert_eq!(note_on_keys(&plain.bytes), note_on_keys(&with.bytes));
+    }
+
+    #[test]
+    fn tgt_override_changes_output_note() {
+        let mid = smf_from(&[(0, on(24)), (48, off(24))]);
+        let b = BuiltinMaps::new();
+        let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
+        let ov: crate::Overrides =
+            serde_json::from_str(r#"{"tgt":[{"canon":"kick.main","note":35}]}"#).unwrap();
+        let out = remap_with_overrides(&mid, src, tgt, &ov).unwrap();
+        assert_eq!(note_on_keys(&out.bytes), vec![35]);
+    }
+
+    #[test]
+    fn ggd_china2_hit_reaches_a_crash_not_dropped() {
+        let out = convert(
+            &smf_from(&[(0, on(67)), (48, off(67))]),
+            "ggd_invasion",
+            "ezdrummer",
+        );
+        assert!(
+            !note_on_keys(&out.bytes).is_empty(),
+            "china2 hit must not drop"
+        );
     }
 
     #[test]

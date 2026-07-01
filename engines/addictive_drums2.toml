@@ -1,65 +1,58 @@
 id = "addictive_drums2"
-name = "Addictive Drums 2 (native)"
-# AD2's DEFAULT/native trigger layout — NOT General MIDI. Only Kick (36) and
-# Snare center (38) coincide with GM; everything else is AD2-specific.
-# Source: XLN Audio official "Addictive Drums 2 – Keymap" PDF (v02).
-# Notes:
-#  - `primary = true` is the note used when writing TO this engine (reverse).
-#  - AD2 has no fixed native China/Splash note (they ride on generic Cymbal
-#    slots), so those canonical slots are reached via fallback to CrashMain.
-#  - AD2 closed-hat shank/bell and the 2nd closed pair collapse to HatClosed;
-#    the 4 open levels A-D collapse onto our 3 (HatOpen1..3).
+name = "Addictive Drums 2"
 notes = [
-  # Kick
-  { note = 36, canon = "KickMain", primary = true },
-
-  # Snare
-  { note = 38, canon = "SnareCenter", primary = true },
-  { note = 39, canon = "SnareCenter" },          # open hit (dbl)
-  { note = 40, canon = "SnareCenter" },          # open lateral (dbl)
-  { note = 43, canon = "SnareCenter" },          # shallow hit
-  { note = 37, canon = "SnareRim", primary = true },
-  { note = 41, canon = "SnareRim" },             # shallow rimshot
-  { note = 42, canon = "SnareSidestick", primary = true },
-  { note = 44, canon = "SnareSidestick" },       # rimclick
-
-  # Hi-hat
-  { note = 48, canon = "HatPedal", primary = true },
-  { note = 59, canon = "HatPedal" },             # foot open / splash
-  { note = 49, canon = "HatClosed", primary = true },  # closed1 tip
-  { note = 50, canon = "HatClosed" },            # closed1 shank
-  { note = 51, canon = "HatClosed" },            # closed2 tip
-  { note = 52, canon = "HatClosed" },            # closed2 shank
-  { note = 53, canon = "HatClosed" },            # closed bell
-  { note = 54, canon = "HatOpen1", primary = true },   # open A (tightest)
-  { note = 55, canon = "HatOpen2", primary = true },   # open B
-  { note = 56, canon = "HatOpen3", primary = true },   # open C
-  { note = 57, canon = "HatOpen3" },             # open D (most open)
-  { note = 58, canon = "HatOpen3" },             # open bell
-
-  # Toms (high -> low; AD2 4-tom layout = 2 rack + 2 floor)
-  { note = 71, canon = "TomR1", primary = true },
-  { note = 72, canon = "TomR1" },                # rimshot
-  { note = 69, canon = "TomR2", primary = true },
-  { note = 70, canon = "TomR2" },
-  { note = 67, canon = "TomF1", primary = true },
-  { note = 68, canon = "TomF1" },
-  { note = 65, canon = "TomF2", primary = true },
-  { note = 66, canon = "TomF2" },
-
-  # Ride
-  { note = 60, canon = "Ride", primary = true }, # tip / bow
-  { note = 45, canon = "Ride" },                 # tip (dbl)
-  { note = 61, canon = "RideBell", primary = true },
-  { note = 62, canon = "RideEdge", primary = true },  # shaft / edge
-  { note = 63, canon = "RideEdge" },             # choke
-
-  # Cymbals / crashes (AD2 "Cymbal 1-6")
-  { note = 77, canon = "CrashMain", primary = true },
-  { note = 46, canon = "CrashMain" },            # cymbal1 (dbl)
-  { note = 79, canon = "CrashWide", primary = true },
-  { note = 81, canon = "CrashWide" },            # cymbal3
-  { note = 78, canon = "CrashChoke", primary = true },
-  { note = 80, canon = "CrashChoke" },
-  { note = 82, canon = "CrashChoke" },
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 37, canon = "snare1.rimshot", primary = true },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 39, canon = "snare1.rimshot" },
+  { note = 40, canon = "snare1.hit" },
+  { note = 41, canon = "snare1.rimshot" },
+  { note = 42, canon = "snare1.sidestick", primary = true },
+  { note = 43, canon = "snare1.hit" },
+  { note = 44, canon = "snare1.rim", primary = true },
+  { note = 45, canon = "ride.1" },
+  { note = 46, canon = "crash.1.hit" },
+  { note = 47, canon = "perc.cowbell", primary = true },
+  { note = 48, canon = "hat.pedal", primary = true },
+  { note = 49, canon = "hat.tight.tip", primary = true },
+  { note = 50, canon = "hat.tight.edge", primary = true },
+  { note = 51, canon = "hat.closed.tip", primary = true },
+  { note = 52, canon = "hat.closed.edge", primary = true },
+  { note = 53, canon = "hat.closed.bell", primary = true },
+  { note = 54, canon = "hat.loose", primary = true },
+  { note = 55, canon = "hat.open1", primary = true },
+  { note = 56, canon = "hat.open2", primary = true },
+  { note = 57, canon = "hat.open3", primary = true },
+  { note = 58, canon = "hat.open1.bell", primary = true },
+  { note = 59, canon = "hat.pedalsplash", primary = true },
+  { note = 60, canon = "ride.1", primary = true },
+  { note = 61, canon = "ride.1.bell", primary = true },
+  { note = 62, canon = "ride.1.edge", primary = true },
+  { note = 63, canon = "ride.1.mute", primary = true },
+  { note = 65, canon = "tom.floor1.hit", primary = true },
+  { note = 66, canon = "tom.floor1.rimshot", primary = true },
+  { note = 67, canon = "tom.rack3.hit", primary = true },
+  { note = 68, canon = "tom.rack3.rimshot", primary = true },
+  { note = 69, canon = "tom.rack2.hit", primary = true },
+  { note = 70, canon = "tom.rack2.rimshot", primary = true },
+  { note = 71, canon = "tom.rack1.hit", primary = true },
+  { note = 72, canon = "tom.rack1.rimshot", primary = true },
+  { note = 75, canon = "perc.sticks", primary = true },
+  { note = 77, canon = "crash.1.hit", primary = true },
+  { note = 78, canon = "crash.1.mute", primary = true },
+  { note = 79, canon = "crash.2.hit", primary = true },
+  { note = 80, canon = "crash.2.mute", primary = true },
+  { note = 81, canon = "crash.3.hit", primary = true },
+  { note = 82, canon = "crash.3.mute", primary = true },
+  { note = 84, canon = "ride.2", primary = true },
+  { note = 85, canon = "ride.2.bell", primary = true },
+  { note = 86, canon = "ride.2.edge", primary = true },
+  { note = 87, canon = "ride.2.mute", primary = true },
+  { note = 89, canon = "crash.4.hit", primary = true },
+  { note = 90, canon = "crash.4.mute", primary = true },
+  { note = 91, canon = "china.1.hit", primary = true },
+  { note = 92, canon = "china.1.mute", primary = true },
+  { note = 93, canon = "crash.6.hit", primary = true },
+  { note = 94, canon = "crash.6.mute", primary = true },
+  { note = 101, canon = "snare1.hit" },
 ]

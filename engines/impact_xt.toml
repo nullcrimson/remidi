@@ -1,0 +1,20 @@
+id = "impact_xt"
+name = "Impact XT (PreSonus Studio One)"
+notes = [
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 37, canon = "snare1.rim", primary = true },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 39, canon = "perc.clap", primary = true },
+  { note = 40, canon = "kick.main" },
+  { note = 41, canon = "perc.misc", primary = true },
+  { note = 42, canon = "hat.closed", primary = true },
+  { note = 43, canon = "hat.closed" },
+  { note = 44, canon = "perc.misc" },
+  { note = 45, canon = "perc.misc" },
+  { note = 46, canon = "hat.closed" },
+  { note = 47, canon = "crash.1.hit", primary = true },
+  { note = 48, canon = "perc.misc" },
+  { note = 49, canon = "perc.misc" },
+  { note = 50, canon = "snare1.hit" },
+  { note = 51, canon = "crash.2.hit", primary = true },
+]

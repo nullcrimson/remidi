@@ -1,0 +1,20 @@
+id = "ml_drums_free"
+name = "ML Drums Free"
+notes = [
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 37, canon = "snare1.sidestick", primary = true },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 42, canon = "hat.closed.edge", primary = true },
+  { note = 43, canon = "tom.floor1.hit", primary = true },
+  { note = 44, canon = "hat.pedal", primary = true },
+  { note = 46, canon = "hat.open3", primary = true },
+  { note = 47, canon = "tom.rack2.hit", primary = true },
+  { note = 49, canon = "crash.1.hit", primary = true },
+  { note = 52, canon = "ride.1", primary = true },
+  { note = 53, canon = "ride.1.bell", primary = true },
+  { note = 57, canon = "china.2.hit", primary = true },
+  { note = 61, canon = "crash.1.mute", primary = true },
+  { note = 65, canon = "china.2.mute", primary = true },
+  { note = 66, canon = "hat.closed.tip", primary = true },
+  { note = 70, canon = "hat.open1", primary = true },
+]

@@ -1,0 +1,20 @@
+id = "ni_butchvig"
+name = "Native Instruments Butch Vig Drums"
+notes = [
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 37, canon = "snare1.hit", primary = true },
+  { note = 38, canon = "hat.closed", primary = true },
+  { note = 39, canon = "hat.open2", primary = true },
+  { note = 40, canon = "kick.main" },
+  { note = 41, canon = "snare1.hit" },
+  { note = 42, canon = "snare1.hit" },
+  { note = 43, canon = "hat.closed" },
+  { note = 44, canon = "snare1.hit" },
+  { note = 45, canon = "tom.rack2.hit", primary = true },
+  { note = 46, canon = "tom.rack1.hit", primary = true },
+  { note = 47, canon = "tom.floor1.hit", primary = true },
+  { note = 48, canon = "crash.1.hit", primary = true },
+  { note = 49, canon = "crash.2.hit", primary = true },
+  { note = 50, canon = "ride.1", primary = true },
+  { note = 51, canon = "ride.1.bell", primary = true },
+]

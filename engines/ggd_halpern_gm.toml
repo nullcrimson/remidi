@@ -1,0 +1,22 @@
+id = "ggd_halpern_gm"
+name = "GetGood Drums Matt Halpern (Mapping 'GM')"
+notes = [
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 41, canon = "tom.floor1.hit", primary = true },
+  { note = 42, canon = "hat.tight.tip", primary = true },
+  { note = 43, canon = "tom.rack3.hit", primary = true },
+  { note = 44, canon = "hat.pedal", primary = true },
+  { note = 46, canon = "hat.open2.edge", primary = true },
+  { note = 48, canon = "tom.rack2.hit", primary = true },
+  { note = 49, canon = "crash.1.hit", primary = true },
+  { note = 50, canon = "tom.rack1.hit", primary = true },
+  { note = 51, canon = "ride.1.bowtip", primary = true },
+  { note = 52, canon = "china.1.hit", primary = true },
+  { note = 53, canon = "ride.1.belltip", primary = true },
+  { note = 54, canon = "hat.closed.tip", primary = true },
+  { note = 55, canon = "splash.1.hit", primary = true },
+  { note = 56, canon = "hat.pedalsplash", primary = true },
+  { note = 57, canon = "crash.2.hit", primary = true },
+  { note = 58, canon = "hat.open2.tip", primary = true },
+]

@@ -7,23 +7,19 @@ use crate::{
     engine_map::{Decoder, Encoder},
 };
 
-/// Outcome of resolving one source note through source -> canon -> target.
-/// Pure data; recording it in a [`Report`] is the caller's concern.
 #[derive(Debug, PartialEq)]
-pub enum Resolution {
-    /// Target plays this canonical slot directly.
+pub enum CanonResolution {
     Direct { note: u8 },
-    /// Approximated via a fallback chain.
     Fallback { canon: Canon, note: u8 },
-    /// Source note has no canonical meaning.
-    Unmapped,
-    /// Canon exists but the target can't play it and no fallback applied.
     Dropped { canon: Canon },
 }
 
-/// A directed engine→engine note translator: source decoder + target encoder +
-/// fallback resolver. This *is* the hub-and-spoke pipeline, with no MIDI
-/// knowledge and no side effects.
+#[derive(Debug, PartialEq)]
+pub enum Resolution {
+    Resolved(CanonResolution),
+    Unmapped,
+}
+
 pub struct Translator<'a> {
     decoder: &'a dyn Decoder,
     encoder: &'a dyn Encoder,
@@ -43,25 +39,26 @@ impl<'a> Translator<'a> {
         }
     }
 
-    /// Reads as the spec sentence: note → canon → target → fallback walk → drop.
     pub fn translate(&self, note: u8) -> Resolution {
         let Some(canon) = self.decoder.decode(note) else {
             return Resolution::Unmapped;
         };
+        Resolution::Resolved(self.resolve_canon(canon))
+    }
+
+    pub fn resolve_canon(&self, canon: Canon) -> CanonResolution {
         if let Some(n) = self.encoder.encode(canon) {
-            return Resolution::Direct { note: n };
+            return CanonResolution::Direct { note: n };
         }
-        for &alt in self.resolver.chain(canon) {
+        for alt in self.resolver.chain(canon) {
             if let Some(n) = self.encoder.encode(alt) {
-                return Resolution::Fallback { canon, note: n };
+                return CanonResolution::Fallback { canon, note: n };
             }
         }
-        Resolution::Dropped { canon }
+        CanonResolution::Dropped { canon }
     }
 }
 
-/// Observer for lossy/approximated translations. Counting policy lives here, in
-/// one place, decoupled from the translation decision.
 pub trait ReportSink {
     fn record(&mut self, source_note: u8, resolution: &Resolution);
 }
@@ -76,12 +73,14 @@ pub struct Report {
 impl ReportSink for Report {
     fn record(&mut self, source_note: u8, resolution: &Resolution) {
         match resolution {
-            Resolution::Unmapped => *self.unmapped_source.entry(source_note).or_insert(0) += 1,
-            Resolution::Fallback { canon, .. } => {
-                *self.fallback_used.entry(*canon).or_insert(0) += 1
+            Resolution::Unmapped => *self.unmapped_source.entry(source_note).or_default() += 1,
+            Resolution::Resolved(CanonResolution::Fallback { canon, .. }) => {
+                *self.fallback_used.entry(*canon).or_default() += 1
             }
-            Resolution::Dropped { canon } => *self.dropped.entry(*canon).or_insert(0) += 1,
-            Resolution::Direct { .. } => {}
+            Resolution::Resolved(CanonResolution::Dropped { canon }) => {
+                *self.dropped.entry(*canon).or_default() += 1
+            }
+            Resolution::Resolved(CanonResolution::Direct { .. }) => {}
         }
     }
 }
@@ -89,25 +88,26 @@ impl ReportSink for Report {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{canon::DefaultFallbacks, engine_map::from_toml};
+    use crate::{
+        canon::{DefaultFallbacks, HatOpen, HatZone, SnareArtic},
+        engine_map::from_toml,
+    };
 
-    // Synthetic source: 10=SnareCenter (empty chain), 11=HatOpen3, 12=KickMain.
     const SRC: &str = r#"
         id = "src"
         name = "Src"
         notes = [
-          { note = 10, canon = "SnareCenter", primary = true },
-          { note = 11, canon = "HatOpen3", primary = true },
-          { note = 12, canon = "KickMain", primary = true },
+          { note = 10, canon = "snare1.hit", primary = true },
+          { note = 11, canon = "hat.open3", primary = true },
+          { note = 12, canon = "kick.main", primary = true },
         ]
     "#;
-    // Target that can play KickMain (50) and HatClosed (60) only.
     const TGT: &str = r#"
         id = "tgt"
         name = "Tgt"
         notes = [
-          { note = 50, canon = "KickMain", primary = true },
-          { note = 60, canon = "HatClosed", primary = true },
+          { note = 50, canon = "kick.main", primary = true },
+          { note = 60, canon = "hat.closed", primary = true },
         ]
     "#;
 
@@ -128,7 +128,7 @@ mod tests {
         );
         assert_eq!(
             translator(&src, &tgt, &fb).translate(12),
-            Resolution::Direct { note: 50 }
+            Resolution::Resolved(CanonResolution::Direct { note: 50 })
         );
     }
 
@@ -139,13 +139,12 @@ mod tests {
             from_toml(TGT).unwrap(),
             DefaultFallbacks,
         );
-        // HatOpen3 -> HatOpen2 -> HatOpen1 -> HatClosed (60)
         assert_eq!(
             translator(&src, &tgt, &fb).translate(11),
-            Resolution::Fallback {
-                canon: Canon::HatOpen3,
+            Resolution::Resolved(CanonResolution::Fallback {
+                canon: Canon::Hat(HatOpen::Open(3), HatZone::Plain),
                 note: 60
-            }
+            })
         );
     }
 
@@ -169,11 +168,30 @@ mod tests {
             from_toml(TGT).unwrap(),
             DefaultFallbacks,
         );
-        // SnareCenter has an empty chain and the target lacks it.
         assert_eq!(
             translator(&src, &tgt, &fb).translate(10),
-            Resolution::Dropped {
-                canon: Canon::SnareCenter
+            Resolution::Resolved(CanonResolution::Dropped {
+                canon: Canon::Snare(1, SnareArtic::Hit)
+            })
+        );
+    }
+
+    #[test]
+    fn resolve_canon_matches_translate_on_decoded_notes() {
+        let (src, tgt, fb) = (
+            from_toml(SRC).unwrap(),
+            from_toml(TGT).unwrap(),
+            DefaultFallbacks,
+        );
+        let t = Translator::new(&src, &tgt, &fb);
+        assert_eq!(
+            Resolution::Resolved(t.resolve_canon(Canon::Hat(HatOpen::Open(3), HatZone::Plain))),
+            t.translate(11)
+        );
+        assert_eq!(
+            t.resolve_canon(Canon::Snare(1, SnareArtic::Hit)),
+            CanonResolution::Dropped {
+                canon: Canon::Snare(1, SnareArtic::Hit)
             }
         );
     }
@@ -184,22 +202,28 @@ mod tests {
         r.record(99, &Resolution::Unmapped);
         r.record(
             11,
-            &Resolution::Fallback {
-                canon: Canon::HatOpen3,
+            &Resolution::Resolved(CanonResolution::Fallback {
+                canon: Canon::Hat(HatOpen::Open(3), HatZone::Plain),
                 note: 60,
-            },
+            }),
         );
         r.record(
             10,
-            &Resolution::Dropped {
-                canon: Canon::SnareCenter,
-            },
+            &Resolution::Resolved(CanonResolution::Dropped {
+                canon: Canon::Snare(1, SnareArtic::Hit),
+            }),
         );
-        r.record(12, &Resolution::Direct { note: 50 });
+        r.record(
+            12,
+            &Resolution::Resolved(CanonResolution::Direct { note: 50 }),
+        );
         assert_eq!(r.unmapped_source.get(&99), Some(&1));
-        assert_eq!(r.fallback_used.get(&Canon::HatOpen3), Some(&1));
-        assert_eq!(r.dropped.get(&Canon::SnareCenter), Some(&1));
-        // Direct hits are not recorded.
+        assert_eq!(
+            r.fallback_used
+                .get(&Canon::Hat(HatOpen::Open(3), HatZone::Plain)),
+            Some(&1)
+        );
+        assert_eq!(r.dropped.get(&Canon::Snare(1, SnareArtic::Hit)), Some(&1));
         assert!(!r.unmapped_source.contains_key(&12));
     }
 }

@@ -1,15 +1,13 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use serde::Deserialize;
 
 use crate::canon::Canon;
 
-/// engine note -> canonical meaning (reading a *source* performance).
 pub trait Decoder {
     fn decode(&self, note: u8) -> Option<Canon>;
 }
 
-/// canonical meaning -> engine note (writing a *target* performance).
 pub trait Encoder {
     fn encode(&self, canon: Canon) -> Option<u8>;
 }
@@ -29,8 +27,6 @@ struct RawMap {
     notes: Vec<RawEntry>,
 }
 
-/// A single engine's note layout. Implements both [`Decoder`] and [`Encoder`];
-/// which direction a consumer sees is fixed by the trait it depends on.
 #[derive(Debug)]
 pub struct EngineMap {
     pub id: String,
@@ -64,23 +60,21 @@ pub enum MapError {
 fn build(raw: RawMap) -> Result<EngineMap, MapError> {
     let mut to_canon = HashMap::new();
     let mut from_canon: HashMap<Canon, u8> = HashMap::new();
-    let mut primaries: HashMap<Canon, ()> = HashMap::new();
+    let mut primaries: HashSet<Canon> = HashSet::new();
 
     for e in raw.notes {
-        if e.note > 127 {
-            return Err(MapError::NoteOutOfRange(e.note));
-        }
-        let note = e.note as u8;
+        let note = u8::try_from(e.note)
+            .ok()
+            .filter(|n| *n <= 127)
+            .ok_or(MapError::NoteOutOfRange(e.note))?;
         to_canon.insert(note, e.canon);
 
         if e.primary {
-            if primaries.insert(e.canon, ()).is_some() {
+            if !primaries.insert(e.canon) {
                 return Err(MapError::DuplicatePrimary(e.canon));
             }
-            // primary always wins the reverse direction
             from_canon.insert(e.canon, note);
         } else {
-            // first non-primary wins only if no primary has claimed the slot
             from_canon.entry(e.canon).or_insert(note);
         }
     }
@@ -106,31 +100,32 @@ pub fn from_json(s: &str) -> Result<EngineMap, MapError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::canon::{KickKind, SnareArtic};
 
     const SAMPLE: &str = r#"
         id = "demo"
         name = "Demo Kit"
         notes = [
-          { note = 24, canon = "KickMain", primary = true },
-          { note = 23, canon = "KickMain" },
-          { note = 26, canon = "SnareCenter", primary = true },
+          { note = 24, canon = "kick.main", primary = true },
+          { note = 23, canon = "kick.main" },
+          { note = 26, canon = "snare1.hit", primary = true },
         ]
     "#;
 
     #[test]
     fn decodes_every_note() {
         let m = from_toml(SAMPLE).unwrap();
-        assert_eq!(m.decode(24), Some(Canon::KickMain));
-        assert_eq!(m.decode(23), Some(Canon::KickMain));
-        assert_eq!(m.decode(26), Some(Canon::SnareCenter));
+        assert_eq!(m.decode(24), Some(Canon::Kick(KickKind::Main)));
+        assert_eq!(m.decode(23), Some(Canon::Kick(KickKind::Main)));
+        assert_eq!(m.decode(26), Some(Canon::Snare(1, SnareArtic::Hit)));
         assert_eq!(m.decode(99), None);
     }
 
     #[test]
     fn encode_uses_primary_note() {
         let m = from_toml(SAMPLE).unwrap();
-        assert_eq!(m.encode(Canon::KickMain), Some(24));
-        assert_eq!(m.encode(Canon::SnareCenter), Some(26));
+        assert_eq!(m.encode(Canon::Kick(KickKind::Main)), Some(24));
+        assert_eq!(m.encode(Canon::Snare(1, SnareArtic::Hit)), Some(26));
     }
 
     #[test]
@@ -139,13 +134,13 @@ mod tests {
             id = "x"
             name = "X"
             notes = [
-              { note = 24, canon = "KickMain", primary = true },
-              { note = 23, canon = "KickMain", primary = true },
+              { note = 24, canon = "kick.main", primary = true },
+              { note = 23, canon = "kick.main", primary = true },
             ]
         "#;
         assert!(matches!(
             from_toml(bad),
-            Err(MapError::DuplicatePrimary(Canon::KickMain))
+            Err(MapError::DuplicatePrimary(Canon::Kick(KickKind::Main)))
         ));
     }
 
@@ -154,7 +149,7 @@ mod tests {
         let bad = r#"
             id = "x"
             name = "X"
-            notes = [ { note = 200, canon = "KickMain", primary = true } ]
+            notes = [ { note = 200, canon = "kick.main", primary = true } ]
         "#;
         assert!(matches!(from_toml(bad), Err(MapError::NoteOutOfRange(200))));
     }

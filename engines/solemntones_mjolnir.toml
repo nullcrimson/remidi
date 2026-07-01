@@ -1,0 +1,16 @@
+id = "solemntones_mjolnir"
+name = "Solemn Tones MjÃ¶lnir Drums"
+notes = [
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 43, canon = "tom.floor3.hit", primary = true },
+  { note = 45, canon = "hat.open1", primary = true },
+  { note = 47, canon = "tom.rack2.hit", primary = true },
+  { note = 48, canon = "tom.rack1.hit", primary = true },
+  { note = 49, canon = "crash.1.hit", primary = true },
+  { note = 51, canon = "bell.1.hit", primary = true },
+  { note = 52, canon = "china.1.hit", primary = true },
+  { note = 53, canon = "ride.1", primary = true },
+  { note = 55, canon = "splash.1.hit", primary = true },
+  { note = 57, canon = "crash.2.hit", primary = true },
+]

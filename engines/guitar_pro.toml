@@ -1,40 +1,43 @@
 id = "guitar_pro"
-name = "Guitar Pro (drums)"
-# Guitar Pro plays/exports drum tracks as STANDARD General MIDI percussion
-# (channel 10) — note numbers are identical to GM. Verified against alphaTab's
-# PercussionMapper (the reference GP-format parser): rim shot, half-open hat,
-# ride edge, and cymbal chokes are distinct GP *articulations* but collapse onto
-# the base GM note, so there are no extra note numbers to map.
-# GP labels 35 as the primary "Kick (hit)" and 36 as "Kick 2".
+name = "Guitar Pro"
 notes = [
-  # Kick
-  { note = 36, canon = "KickMain", primary = true },
-  { note = 35, canon = "KickAlt", primary = true },
-
-  # Snare (rim shot also plays 38; side stick 37)
-  { note = 38, canon = "SnareCenter", primary = true },
-  { note = 40, canon = "SnareCenter" },
-  { note = 37, canon = "SnareSidestick", primary = true },
-
-  # Hi-hat (half-open also plays 46)
-  { note = 42, canon = "HatClosed", primary = true },
-  { note = 44, canon = "HatPedal", primary = true },
-  { note = 46, canon = "HatOpen1", primary = true },
-
-  # Toms (high -> low)
-  { note = 50, canon = "TomR1", primary = true },
-  { note = 48, canon = "TomR2", primary = true },
-  { note = 47, canon = "TomR3", primary = true },
-  { note = 45, canon = "TomF1", primary = true },
-  { note = 43, canon = "TomF2", primary = true },
-  { note = 41, canon = "TomF3", primary = true },
-
-  # Cymbals (chokes/edge collapse onto these base notes)
-  { note = 49, canon = "CrashMain", primary = true },
-  { note = 57, canon = "CrashWide", primary = true },
-  { note = 51, canon = "Ride", primary = true },
-  { note = 53, canon = "RideBell", primary = true },
-  { note = 59, canon = "RideEdge", primary = true },
-  { note = 52, canon = "China", primary = true },
-  { note = 55, canon = "Splash", primary = true },
+  { note = 31, canon = "snare1.sidestick", primary = true },
+  { note = 35, canon = "kick.left", primary = true },
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 37, canon = "snare1.sidestick" },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 40, canon = "snare1.hit" },
+  # PATCH: mapping.js guitarpro toms are inconsistent (50=Floortom1); standard GM used.
+  { note = 41, canon = "tom.floor3.hit", primary = true },
+  { note = 42, canon = "hat.closed", primary = true },
+  { note = 43, canon = "tom.floor2.hit", primary = true },
+  { note = 44, canon = "hat.pedal", primary = true },
+  { note = 45, canon = "tom.floor1.hit", primary = true },
+  { note = 46, canon = "hat.open2", primary = true },
+  { note = 47, canon = "tom.rack3.hit", primary = true },
+  { note = 48, canon = "tom.rack2.hit", primary = true },
+  { note = 49, canon = "crash.1.hit", primary = true },
+  { note = 50, canon = "tom.rack1.hit", primary = true },
+  { note = 51, canon = "ride.1", primary = true },
+  { note = 52, canon = "china.1.hit", primary = true },
+  { note = 53, canon = "ride.1.bell", primary = true },
+  { note = 55, canon = "splash.1.hit", primary = true },
+  { note = 56, canon = "perc.cowbell", primary = true },
+  { note = 57, canon = "crash.2.hit", primary = true },
+  { note = 59, canon = "ride.1.edge", primary = true },
+  { note = 91, canon = "snare1.rimshot", primary = true },
+  { note = 92, canon = "hat.open1", primary = true },
+  { note = 93, canon = "ride.1.edge" },
+  { note = 94, canon = "ride.1.mute", primary = true },
+  { note = 95, canon = "splash.1.mute", primary = true },
+  { note = 96, canon = "china.1.mute", primary = true },
+  { note = 97, canon = "crash.1.mute", primary = true },
+  { note = 98, canon = "crash.2.mute", primary = true },
+  { note = 99, canon = "perc.cowbell" },
+  { note = 100, canon = "perc.cowbell" },
+  { note = 101, canon = "perc.cowbell" },
+  { note = 102, canon = "perc.cowbell" },
+  { note = 103, canon = "perc.cowbell" },
+  { note = 126, canon = "ride.1" },
+  { note = 127, canon = "ride.1.bell" },
 ]
