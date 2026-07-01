@@ -1,11 +1,11 @@
+import { useEffect, useMemo } from 'react';
+import type { Conv } from '../hooks/useRemapper';
 import { zipFiles } from '../lib/zip';
-
-type Conv = 'idle' | 'running' | 'done' | 'error';
+import { Button } from './Button';
 
 export function ConvertButton({
   conv,
   canConvert,
-  results,
   targetShort,
   summary,
   onConvert,
@@ -13,16 +13,28 @@ export function ConvertButton({
 }: {
   conv: Conv;
   canConvert: boolean;
-  results: { name: string; url: string; bytes: Uint8Array }[];
   targetShort: string;
   summary: string;
   onConvert: () => void;
   onReset: () => void;
 }) {
-  if (conv === 'done' && results.length > 0) {
+  const results = useMemo(() => (conv.kind === 'done' ? conv.results : []), [conv]);
+  const multi = results.length > 1;
+  const zipUrl = useMemo(
+    () => (multi ? URL.createObjectURL(zipFiles(results)) : null),
+    [multi, results],
+  );
+
+  useEffect(() => {
+    if (!zipUrl) return;
+    return () => URL.revokeObjectURL(zipUrl);
+  }, [zipUrl]);
+
+  if (conv.kind === 'done' && results.length > 0) {
     const single = results.length === 1;
-    const href = single ? results[0].url : URL.createObjectURL(zipFiles(results));
+    const href = single ? results[0].url : zipUrl;
     const name = single ? results[0].name : `remapped-${targetShort}.zip`;
+    if (!href) return null;
     return (
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-0.75">
@@ -42,7 +54,7 @@ export function ConvertButton({
       </div>
     );
   }
-  if (conv === 'running') {
+  if (conv.kind === 'running') {
     return (
       <div>
         <div className="
@@ -58,18 +70,8 @@ export function ConvertButton({
     );
   }
   return (
-    <button
-      type="button"
-      disabled={!canConvert}
-      onClick={onConvert}
-      className="
-        rounded-[11px] border border-accent py-3.5 text-center font-display
-        text-[13.5px] font-semibold text-accent transition-colors
-        enabled:hover:bg-accent enabled:hover:text-ink
-        disabled:opacity-40
-      "
-    >
+    <Button variant="outline" disabled={!canConvert} onClick={onConvert}>
       Convert &amp; download
-    </button>
+    </Button>
   );
 }

@@ -1,13 +1,11 @@
+import type { Overrides } from './midiremap';
+
 export type Edits = Record<string, number>;
 
 interface VoiceLike {
   canon: string;
   srcNote: number;
   tgtNote: number | null;
-}
-
-export interface Overrides {
-  tgt: { canon: string; note: number }[];
 }
 
 export function editsToOverrides(edits: Edits): Overrides {

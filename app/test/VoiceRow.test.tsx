@@ -5,14 +5,8 @@ import { VoiceRow } from '../src/components/VoiceRow';
 
 const base = {
   base: 'c1' as const,
-  drums: [],
   expanded: false,
-  pickOctIndex: 3,
-  onOpen: () => {},
-  onSetOct: () => {},
-  onPick: () => {},
-  onPickDrum: () => {},
-  onClose: () => {},
+  onToggle: () => {},
 };
 
 describe('VoiceRow', () => {
@@ -29,18 +23,18 @@ describe('VoiceRow', () => {
     expect(screen.getByRole('button', { name: 'C2' })).toBeInTheDocument();
   });
 
-  it('opens the target picker (source chip is not a button)', async () => {
-    const onOpen = vi.fn();
+  it('toggles the picker (source chip is not a button)', async () => {
+    const onToggle = vi.fn();
     render(
       <VoiceRow
         row={{ canon: 'KickMain', label: 'Kick', srcNote: 24, tgtNote: 36, status: 'direct' }}
         effectiveTgt={36}
         {...base}
-        onOpen={onOpen}
+        onToggle={onToggle}
       />,
     );
     await userEvent.click(screen.getByRole('button', { name: 'C2' }));
-    expect(onOpen).toHaveBeenCalledOnce();
+    expect(onToggle).toHaveBeenCalledOnce();
     expect(screen.queryByRole('button', { name: 'C1' })).toBeNull();
   });
 
@@ -66,21 +60,27 @@ describe('VoiceRow', () => {
     expect(screen.getByRole('button', { name: 'C2' })).toHaveAttribute('data-notepick-trigger');
   });
 
-  it('toggles closed when the target button is clicked while expanded', async () => {
-    const onOpen = vi.fn();
-    const onClose = vi.fn();
-    render(
+  it('renders the picker slot only when expanded', () => {
+    const { rerender } = render(
+      <VoiceRow
+        row={{ canon: 'KickMain', label: 'Kick', srcNote: 24, tgtNote: 36, status: 'direct' }}
+        effectiveTgt={36}
+        {...base}
+      >
+        <div data-testid="picker-slot" />
+      </VoiceRow>,
+    );
+    expect(screen.queryByTestId('picker-slot')).toBeNull();
+    rerender(
       <VoiceRow
         row={{ canon: 'KickMain', label: 'Kick', srcNote: 24, tgtNote: 36, status: 'direct' }}
         effectiveTgt={36}
         {...base}
         expanded
-        onOpen={onOpen}
-        onClose={onClose}
-      />,
+      >
+        <div data-testid="picker-slot" />
+      </VoiceRow>,
     );
-    await userEvent.click(screen.getByRole('button', { name: 'C2' }));
-    expect(onClose).toHaveBeenCalledOnce();
-    expect(onOpen).not.toHaveBeenCalled();
+    expect(screen.getByTestId('picker-slot')).toBeInTheDocument();
   });
 });

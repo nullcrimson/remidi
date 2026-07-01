@@ -1,5 +1,5 @@
 import { useRef, type ReactNode } from 'react';
-import type { LoadedFile } from '../hooks/useRemapper';
+import { loadFiles, type LoadedFile } from '../lib/files';
 
 export function FilePicker({
   onFiles,
@@ -13,12 +13,7 @@ export function FilePicker({
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handle(list: FileList) {
-    const loaded = await Promise.all(
-      Array.from(list).map(async (f) => ({
-        bytes: new Uint8Array(await f.arrayBuffer()),
-        name: f.name,
-      })),
-    );
+    const loaded = await loadFiles(Array.from(list));
     if (loaded.length) onFiles(loaded);
   }
 

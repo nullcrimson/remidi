@@ -4,11 +4,14 @@ import initWasm, {
   plan as wasmPlan,
   remap as wasmRemap,
 } from '@wasm';
-import type { Overrides } from './overrides';
 
 export interface Engine {
   id: string;
   name: string;
+}
+
+export interface Overrides {
+  tgt: { canon: string; note: number }[];
 }
 
 export interface Drum {

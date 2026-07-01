@@ -15,8 +15,8 @@ describe('NotePicker', () => {
         base="c2"
         drums={[]}
         onSetOct={() => {}}
-        onPick={() => {}}
-        onPickDrum={() => {}}
+        onPickSemitone={() => {}}
+        onPickNote={() => {}}
         onClose={() => {}}
       />,
     );
@@ -35,14 +35,14 @@ describe('NotePicker', () => {
         base="c1"
         drums={[]}
         onSetOct={onSetOct}
-        onPick={() => {}}
-        onPickDrum={() => {}}
+        onPickSemitone={() => {}}
+        onPickNote={() => {}}
         onClose={onClose}
       />,
     );
     await userEvent.click(screen.getByRole('button', { name: '2' }));
     expect(onSetOct).toHaveBeenCalledWith(2);
-    await userEvent.click(screen.getByRole('button', { name: '×' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenCalledOnce();
   });
 
@@ -56,8 +56,8 @@ describe('NotePicker', () => {
         base="c1"
         drums={[]}
         onSetOct={() => {}}
-        onPick={() => {}}
-        onPickDrum={() => {}}
+        onPickSemitone={() => {}}
+        onPickNote={() => {}}
         onClose={onClose}
       />,
     );
@@ -75,8 +75,8 @@ describe('NotePicker', () => {
         base="c1"
         drums={[]}
         onSetOct={() => {}}
-        onPick={() => {}}
-        onPickDrum={() => {}}
+        onPickSemitone={() => {}}
+        onPickNote={() => {}}
         onClose={onClose}
       />,
     );
@@ -94,8 +94,8 @@ describe('NotePicker', () => {
         base="c1"
         drums={[]}
         onSetOct={() => {}}
-        onPick={() => {}}
-        onPickDrum={() => {}}
+        onPickSemitone={() => {}}
+        onPickNote={() => {}}
         onClose={onClose}
       />,
     );
@@ -113,8 +113,8 @@ describe('NotePicker', () => {
         base="c1"
         drums={DRUMS}
         onSetOct={() => {}}
-        onPick={() => {}}
-        onPickDrum={onPickDrum}
+        onPickSemitone={() => {}}
+        onPickNote={onPickDrum}
         onClose={() => {}}
       />,
     );

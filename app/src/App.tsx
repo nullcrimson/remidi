@@ -8,6 +8,7 @@ import { OctaveToggle } from "./components/OctaveToggle";
 import { SummaryRow } from "./components/SummaryRow";
 import { useFavorites } from "./hooks/useFavorites";
 import { useRemapper } from "./hooks/useRemapper";
+import { shortCode } from "./lib/format";
 
 function Card({ children }: { children: ReactNode }) {
   return (
@@ -16,14 +17,14 @@ function Card({ children }: { children: ReactNode }) {
         flex min-h-screen items-start justify-center px-5 pt-[6vh] pb-16
       "
     >
-      <div
+      <main
         className="
-          w-200 max-w-full overflow-hidden rounded-[18px] border border-white/6
+          w-200 max-w-full overflow-hidden rounded-card border border-hairline
           bg-card
         "
       >
         {children}
-      </div>
+      </main>
     </div>
   );
 }
@@ -47,13 +48,27 @@ export default function App() {
   if (c.view === "edit") {
     return (
       <Card>
-        <EditView c={c} />
+        <EditView
+          src={c.src}
+          tgt={c.tgt}
+          oct={c.oct}
+          rows={c.rows}
+          edits={c.edits}
+          pick={c.pick}
+          targetDrums={c.targetDrums}
+          setView={c.setView}
+          openPick={c.openPick}
+          setPickOct={c.setPickOct}
+          chooseNote={c.chooseNote}
+          chooseNoteAbsolute={c.chooseNoteAbsolute}
+          closePick={c.closePick}
+        />
       </Card>
     );
   }
 
   const bothSelected = c.src !== "" && c.tgt !== "";
-  const targetShort = c.tgt.toUpperCase().slice(0, 3);
+  const targetShort = shortCode(c.tgt);
   const failedSuffix = c.failures.length > 0 ? ` · ${c.failures.length} failed` : "";
   const summary = `${c.results.length} file${
     c.results.length === 1 ? "" : "s"
@@ -64,15 +79,15 @@ export default function App() {
       <CardDropzone onFiles={c.addFiles}>
         <div className="flex flex-col gap-7 p-[34px_34px_30px]">
           <div className="flex items-baseline justify-between">
-          <span className="
-            font-display text-[15px] font-semibold tracking-[0.02em] text-t2
-          ">
-            Remidi
-          </span>
-          <span className="font-mono text-[11px] text-t6">
-            free in-browser converter
-          </span>
-        </div>
+            <h1 className="
+              font-display text-[15px] font-semibold tracking-[0.02em] text-t2
+            ">
+              Remidi
+            </h1>
+            <span className="font-mono text-[11px] text-t6">
+              free in-browser converter
+            </span>
+          </div>
 
         <FileChips
           files={c.files}
@@ -115,15 +130,14 @@ export default function App() {
         <ConvertButton
           conv={c.conv}
           canConvert={c.files.length > 0 && bothSelected}
-          results={c.results}
           targetShort={targetShort}
           summary={summary}
           onConvert={c.convert}
           onReset={c.reset}
         />
 
-        {c.conv === "error" && c.error && (
-          <p className="rounded-sm bg-red-950 p-3 text-[12px] text-red-300">
+        {c.conv.kind === "error" && c.error && (
+          <p className="rounded-sm bg-danger/10 p-3 text-[12px] text-danger">
             Error: {c.error}
           </p>
         )}

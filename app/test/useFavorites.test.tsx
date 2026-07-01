@@ -16,16 +16,16 @@ describe('useFavorites', () => {
   it('loads an existing list from its scoped key', () => {
     localStorage.setItem(FROM_KEY, JSON.stringify(['ggd_invasion']));
     const { result } = renderHook(() => useFavorites('from'));
-    expect(result.current.isFavorite('ggd_invasion')).toBe(true);
+    expect(result.current.favorites.has('ggd_invasion')).toBe(true);
   });
 
   it('toggles a favourite on then off and persists to the scoped key', () => {
     const { result } = renderHook(() => useFavorites('from'));
     act(() => result.current.toggleFavorite('ezdrummer'));
-    expect(result.current.isFavorite('ezdrummer')).toBe(true);
+    expect(result.current.favorites.has('ezdrummer')).toBe(true);
     expect(JSON.parse(localStorage.getItem(FROM_KEY)!)).toEqual(['ezdrummer']);
     act(() => result.current.toggleFavorite('ezdrummer'));
-    expect(result.current.isFavorite('ezdrummer')).toBe(false);
+    expect(result.current.favorites.has('ezdrummer')).toBe(false);
     expect(JSON.parse(localStorage.getItem(FROM_KEY)!)).toEqual([]);
   });
 
@@ -41,12 +41,12 @@ describe('useFavorites', () => {
     act(() => from.result.current.toggleFavorite('x'));
     expect(JSON.parse(localStorage.getItem(FROM_KEY)!)).toEqual(['x']);
     expect(JSON.parse(localStorage.getItem(TO_KEY)!)).toEqual([]);
-    expect(to.result.current.isFavorite('x')).toBe(false);
+    expect(to.result.current.favorites.has('x')).toBe(false);
   });
 
   it('does not read the legacy shared key', () => {
     localStorage.setItem('midiremap:favorites', JSON.stringify(['legacy']));
     const { result } = renderHook(() => useFavorites('from'));
-    expect(result.current.isFavorite('legacy')).toBe(false);
+    expect(result.current.favorites.has('legacy')).toBe(false);
   });
 });

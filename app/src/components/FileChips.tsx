@@ -1,5 +1,6 @@
-import type { LoadedFile } from '../hooks/useRemapper';
+import type { FileFailure, LoadedFile } from '../lib/files';
 import { FilePicker } from './FilePicker';
+import { MidBadge } from './MidBadge';
 
 export function FileChips({
   files,
@@ -9,7 +10,7 @@ export function FileChips({
   onClear,
 }: {
   files: LoadedFile[];
-  failures: { name: string }[];
+  failures: FileFailure[];
   onFiles: (files: LoadedFile[]) => void;
   onRemove: (name: string) => void;
   onClear: () => void;
@@ -17,8 +18,8 @@ export function FileChips({
   if (files.length === 0) {
     return (
       <FilePicker onFiles={onFiles}>
-        <div className="flex items-center gap-3 border-b border-white/6 pb-4.5">
-          <span className="font-mono text-[11px] font-semibold text-accent">MID</span>
+        <div className="flex items-center gap-3 border-b border-hairline pb-4.5">
+          <MidBadge />
           <span className="flex-1 text-[14px] text-t4">
             Drop a .mid anywhere, or click to choose
           </span>
@@ -26,27 +27,30 @@ export function FileChips({
       </FilePicker>
     );
   }
-  const failed = new Set(failures.map((f) => f.name));
+  const failed = new Map(failures.map((f) => [f.name, f.error]));
   return (
     <div className="
-      flex flex-wrap items-center gap-2 border-b border-white/6 pb-4.5
+      flex flex-wrap items-center gap-2 border-b border-hairline pb-4.5
     ">
       {files.map((f) => {
-        const bad = failed.has(f.name);
+        const error = failed.get(f.name);
+        const bad = error !== undefined;
         return (
           <div
             key={f.name}
+            data-state={bad ? 'failed' : 'ok'}
+            title={error}
             className={`
               flex max-w-full items-center gap-1.5 rounded-[7px] border py-1
               pr-1.5 pl-2.5
               ${
                 bad
                   ? 'border-danger/40 bg-danger/5'
-                  : `border-white/8 bg-white/2.5`
+                  : `border-field-border bg-field`
               }
             `}
           >
-            <span className="font-mono text-[11px] font-semibold text-accent">MID</span>
+            <MidBadge />
             <span className="h-3.5 w-px shrink-0 bg-white/12" />
             <span className="min-w-0 truncate text-[12px] text-t1">{f.name}</span>
             <button

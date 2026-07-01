@@ -12,7 +12,7 @@ const DRUMS = [
 describe('DrumList', () => {
   it('renders family headers and picks a drum note', async () => {
     const onPick = vi.fn();
-    render(<DrumList drums={DRUMS} currentNote={38} base="c1" onPick={onPick} />);
+    render(<DrumList drums={DRUMS} currentNote={38} base="c1" onPickNote={onPick} />);
     expect(screen.getByText('Cymbals')).toBeInTheDocument();
     expect(screen.getAllByText('Kick')).toHaveLength(2);
     await userEvent.click(screen.getByRole('button', { name: /Crash 1/ }));
@@ -20,7 +20,7 @@ describe('DrumList', () => {
   });
 
   it('marks the row matching the current note', () => {
-    render(<DrumList drums={DRUMS} currentNote={38} base="c1" onPick={() => {}} />);
+    render(<DrumList drums={DRUMS} currentNote={38} base="c1" onPickNote={() => {}} />);
     expect(screen.getByRole('button', { name: /Snare/ })).toHaveAttribute('aria-pressed', 'true');
   });
 });

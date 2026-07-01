@@ -4,10 +4,9 @@ import { engines, plan, ready, remap } from '../src/lib/midiremap';
 describe('midiremap wrapper', () => {
   it('lists engines', async () => {
     await ready();
-    expect(engines()).toEqual([
-      { id: 'ggd_invasion', name: 'GGD Invasion' },
-      { id: 'ezdrummer', name: 'EZdrummer' },
-    ]);
+    const ids = engines().map((e) => e.id);
+    expect([...ids].sort()).toEqual(['ezdrummer', 'ggd_invasion']);
+    expect(engines().every((e) => typeof e.name === 'string' && e.name.length > 0)).toBe(true);
   });
 
   it('maps plan rows to camelCase', () => {

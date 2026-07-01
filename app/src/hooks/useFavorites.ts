@@ -4,7 +4,6 @@ export type FavoritesScope = 'from' | 'to';
 
 export interface Favorites {
   favorites: Set<string>;
-  isFavorite: (id: string) => boolean;
   toggleFavorite: (id: string) => void;
 }
 
@@ -28,11 +27,10 @@ export function useFavorites(scope: FavoritesScope): Favorites {
     try {
       localStorage.setItem(key, JSON.stringify([...favorites]));
     } catch {
-      // storage blocked (e.g. Safari private mode) — favourites stay session-only
+      void 0;
     }
   }, [key, favorites]);
 
-  const isFavorite = (id: string) => favorites.has(id);
   const toggleFavorite = (id: string) =>
     setFavorites((prev) => {
       const next = new Set(prev);
@@ -41,5 +39,5 @@ export function useFavorites(scope: FavoritesScope): Favorites {
       return next;
     });
 
-  return { favorites, isFavorite, toggleFavorite };
+  return { favorites, toggleFavorite };
 }

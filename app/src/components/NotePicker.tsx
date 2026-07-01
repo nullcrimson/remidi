@@ -1,11 +1,10 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useDismiss } from "../hooks/useDismiss";
 import type { Drum } from "../lib/midiremap";
-import { noteName, octaveTabLabel, type OctaveBase } from "../lib/notes";
+import { noteName, type OctaveBase } from "../lib/notes";
 import { DrumList } from "./DrumList";
+import { OctaveTabs } from "./OctaveTabs";
 import { PianoKeyboard } from "./PianoKeyboard";
-
-const OCT_INDICES = [-1, 0, 1, 2, 3, 4, 5, 6, 7];
 
 export function NotePicker({
   voiceLabel,
@@ -14,8 +13,8 @@ export function NotePicker({
   base,
   drums,
   onSetOct,
-  onPick,
-  onPickDrum,
+  onPickSemitone,
+  onPickNote,
   onClose,
 }: {
   voiceLabel: string;
@@ -24,18 +23,26 @@ export function NotePicker({
   base: OctaveBase;
   drums: Drum[];
   onSetOct: (octIndex: number) => void;
-  onPick: (semitone: number) => void;
-  onPickDrum: (note: number) => void;
+  onPickSemitone: (semitone: number) => void;
+  onPickNote: (note: number) => void;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useDismiss(ref, onClose);
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null;
+    ref.current?.focus();
+    return () => prev?.focus();
+  }, []);
   return (
     <div
       ref={ref}
+      role="dialog"
+      aria-label={`Target note for ${voiceLabel}`}
+      tabIndex={-1}
       className="
-        my-0.5 mb-3 rounded-[10px] border border-accent/18 bg-white/[0.018]
-        p-[13px_14px_16px]
+        my-0.5 mb-3 rounded-[10px] border border-accent/18 bg-inset
+        p-[13px_14px_16px] outline-none
       "
     >
       <div className="mb-3 flex items-center justify-between">
@@ -49,6 +56,7 @@ export function NotePicker({
         </div>
         <button
           type="button"
+          aria-label="Close"
           onClick={onClose}
           className="
             flex size-5 items-center justify-center rounded-[5px] bg-white/5
@@ -60,38 +68,15 @@ export function NotePicker({
       </div>
       <div className="flex gap-4">
         <div className="min-w-0 flex-1">
-          <DrumList
-            drums={drums}
-            currentNote={currentNote}
-            base={base}
-            onPick={onPickDrum}
-          />
+          <DrumList drums={drums} currentNote={currentNote} base={base} onPickNote={onPickNote} />
         </div>
         <div className="flex w-105 shrink-0 flex-col gap-3.25">
-          <div className="flex flex-wrap justify-end gap-1.5">
-            {OCT_INDICES.map((o) => (
-              <button
-                key={o}
-                type="button"
-                onClick={() => onSetOct(o)}
-                className={`
-                  rounded-md border px-2.75 py-1.25 font-mono text-[11px]
-                  font-semibold
-                  ${
-                    o === octIndex
-                      ? "border-accent bg-accent/15 text-t1"
-                      : `border-white/8 text-t4`
-                  }
-                `}
-              >
-                {octaveTabLabel(o, base)}
-              </button>
-            ))}
-          </div>
+          <OctaveTabs value={octIndex} base={base} onChange={onSetOct} />
           <PianoKeyboard
             octIndex={octIndex}
             currentNote={currentNote}
-            onPick={onPick}
+            base={base}
+            onPickSemitone={onPickSemitone}
           />
         </div>
       </div>

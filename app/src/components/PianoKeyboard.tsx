@@ -1,4 +1,4 @@
-import { noteInOctave } from "../lib/notes";
+import { noteInOctave, noteName, type OctaveBase } from "../lib/notes";
 
 const WHITE = [
   { s: 0, l: "C" },
@@ -20,22 +20,26 @@ const BLACK = [
 export function PianoKeyboard({
   octIndex,
   currentNote,
-  onPick,
+  base,
+  onPickSemitone,
 }: {
   octIndex: number;
   currentNote: number;
-  onPick: (semitone: number) => void;
+  base: OctaveBase;
+  onPickSemitone: (semitone: number) => void;
 }) {
   return (
     <div className="relative flex w-full">
       {WHITE.map((w) => {
-        const active = noteInOctave(octIndex, w.s) === currentNote;
+        const note = noteInOctave(octIndex, w.s);
+        const active = note === currentNote;
         return (
           <button
             key={w.s}
             type="button"
+            aria-label={noteName(note, base)}
             aria-pressed={active}
-            onClick={() => onPick(w.s)}
+            onClick={() => onPickSemitone(w.s)}
             className={`
               flex h-21.5 flex-1 items-end justify-center rounded-b-[5px] border
               border-t-0 border-keyborder pb-1.75 font-mono text-[10px] text-ink
@@ -43,7 +47,7 @@ export function PianoKeyboard({
               active
                 ? `
                   bg-accent
-                  shadow-[0_0_10px_rgba(199,192,173,0.45),inset_0_0_0_2px_#8c8473]
+                  shadow-[0_0_10px_rgba(199,192,173,0.45),inset_0_0_0_2px_var(--color-keyinset)]
                 `
                 : "bg-keywhite"
             }
@@ -54,15 +58,16 @@ export function PianoKeyboard({
         );
       })}
       {BLACK.map((b) => {
-        const active = noteInOctave(octIndex, b.s) === currentNote;
+        const note = noteInOctave(octIndex, b.s);
+        const active = note === currentNote;
         return (
           <button
             key={b.s}
             type="button"
             data-testid={`black-${b.s}`}
-            aria-label={`black ${b.s}`}
+            aria-label={noteName(note, base)}
             aria-pressed={active}
-            onClick={() => onPick(b.s)}
+            onClick={() => onPickSemitone(b.s)}
             style={{ left: `${b.left}%` }}
             className={`
               absolute top-0 z-10 h-13.5 w-[8.6%] rounded-b-sm border

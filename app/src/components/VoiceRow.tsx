@@ -1,31 +1,21 @@
-import type { Drum, VoiceRow as VoiceRowData } from '../lib/midiremap';
+import type { ReactNode } from 'react';
+import type { VoiceRow as VoiceRowData } from '../lib/midiremap';
 import { noteName, type OctaveBase } from '../lib/notes';
-import { NotePicker } from './NotePicker';
 
 export function VoiceRow({
   row,
   effectiveTgt,
   base,
-  drums,
   expanded,
-  pickOctIndex,
-  onOpen,
-  onSetOct,
-  onPick,
-  onPickDrum,
-  onClose,
+  onToggle,
+  children,
 }: {
   row: VoiceRowData;
   effectiveTgt: number | null;
   base: OctaveBase;
-  drums: Drum[];
   expanded: boolean;
-  pickOctIndex: number;
-  onOpen: () => void;
-  onSetOct: (octIndex: number) => void;
-  onPick: (semitone: number) => void;
-  onPickDrum: (note: number) => void;
-  onClose: () => void;
+  onToggle: () => void;
+  children?: ReactNode;
 }) {
   const dropped = row.status === 'dropped' || effectiveTgt === null;
   const changed = !dropped && effectiveTgt !== row.srcNote;
@@ -50,7 +40,9 @@ export function VoiceRow({
           <button
             type="button"
             data-notepick-trigger
-            onClick={expanded ? onClose : onOpen}
+            aria-haspopup="dialog"
+            aria-expanded={expanded}
+            onClick={onToggle}
             className={`
               justify-self-end rounded-md border px-2.25 py-0.75 font-mono
               text-[12px] font-semibold transition-colors
@@ -59,7 +51,7 @@ export function VoiceRow({
                 ? 'border-accent bg-accent/18 text-t1'
                 : changed
                   ? 'border-accent/28 bg-accent/6 text-t1'
-                  : 'border-white/8 bg-white/2.5 text-t3'
+                  : 'border-field-border bg-field text-t3'
             }
             `}
           >
@@ -67,19 +59,7 @@ export function VoiceRow({
           </button>
         )}
       </div>
-      {expanded && effectiveTgt !== null && (
-        <NotePicker
-          voiceLabel={row.label}
-          currentNote={effectiveTgt}
-          octIndex={pickOctIndex}
-          base={base}
-          drums={drums}
-          onSetOct={onSetOct}
-          onPick={onPick}
-          onPickDrum={onPickDrum}
-          onClose={onClose}
-        />
-      )}
+      {expanded && children}
     </div>
   );
 }

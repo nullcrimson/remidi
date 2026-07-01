@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import type { LoadedFile } from '../hooks/useRemapper';
-
-const isMid = (name: string) => /\.midi?$/i.test(name);
+import { isMid, loadFiles, type LoadedFile } from '../lib/files';
 
 export function CardDropzone({
   onFiles,
@@ -33,12 +31,7 @@ export function CardDropzone({
       setOver(false);
       const dropped = Array.from(e.dataTransfer?.files ?? []).filter((f) => isMid(f.name));
       if (!dropped.length) return;
-      void Promise.all(
-        dropped.map(async (f) => ({
-          bytes: new Uint8Array(await f.arrayBuffer()),
-          name: f.name,
-        })),
-      ).then(onFiles);
+      void loadFiles(dropped).then(onFiles);
     };
     window.addEventListener('dragenter', onEnter);
     window.addEventListener('dragover', onOver);
@@ -61,7 +54,7 @@ export function CardDropzone({
           justify-center gap-3.5 bg-page/80 backdrop-blur-[3px]
         ">
           <div className="
-            flex flex-col items-center gap-3.5 rounded-[18px] border-2
+            flex flex-col items-center gap-3.5 rounded-card border-2
             border-dashed border-accent/45 px-16 py-12
           ">
             <span className="

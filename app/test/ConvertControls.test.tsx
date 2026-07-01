@@ -1,8 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConvertButton } from '../src/components/ConvertButton';
 import { SummaryRow } from '../src/components/SummaryRow';
+
+const REPORT = { unmapped_source: {}, fallback_used: {}, dropped: {} };
+
+type Res = { name: string; url: string; bytes: Uint8Array; report: typeof REPORT };
+const done = (results: Res[]) => ({ kind: 'done' as const, results, failures: [] });
 
 describe('SummaryRow', () => {
   it('shows counts and fires edit', async () => {
@@ -18,9 +23,8 @@ describe('ConvertButton', () => {
   it('disables convert without a file', () => {
     render(
       <ConvertButton
-        conv="idle"
+        conv={{ kind: 'idle' }}
         canConvert={false}
-        results={[]}
         targetShort=""
         summary=""
         onConvert={() => {}}
@@ -34,9 +38,8 @@ describe('ConvertButton', () => {
     const onConvert = vi.fn();
     render(
       <ConvertButton
-        conv="idle"
+        conv={{ kind: 'idle' }}
         canConvert
-        results={[]}
         targetShort=""
         summary=""
         onConvert={onConvert}
@@ -47,12 +50,26 @@ describe('ConvertButton', () => {
     expect(onConvert).toHaveBeenCalledOnce();
   });
 
+  it('shows progress while running', () => {
+    render(
+      <ConvertButton
+        conv={{ kind: 'running' }}
+        canConvert
+        targetShort="EZD"
+        summary=""
+        onConvert={() => {}}
+        onReset={() => {}}
+      />,
+    );
+    expect(screen.getByText(/remapping/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Convert & download/i })).toBeNull();
+  });
+
   it('renders a single .mid link for one result', () => {
     render(
       <ConvertButton
-        conv="done"
+        conv={done([{ name: 'groove-ezd.mid', url: 'blob:x', bytes: new Uint8Array([1]), report: REPORT }])}
         canConvert
-        results={[{ name: 'groove-ezd.mid', url: 'blob:x', bytes: new Uint8Array([1]) }]}
         targetShort="EZD"
         summary="1 file · 3 remapped → EZD"
         onConvert={() => {}}
@@ -67,12 +84,11 @@ describe('ConvertButton', () => {
   it('renders a zip link for multiple results', () => {
     render(
       <ConvertButton
-        conv="done"
+        conv={done([
+          { name: 'a.mid', url: 'blob:a', bytes: new Uint8Array([1]), report: REPORT },
+          { name: 'b.mid', url: 'blob:b', bytes: new Uint8Array([2]), report: REPORT },
+        ])}
         canConvert
-        results={[
-          { name: 'a.mid', url: 'blob:a', bytes: new Uint8Array([1]) },
-          { name: 'b.mid', url: 'blob:b', bytes: new Uint8Array([2]) },
-        ]}
         targetShort="EZD"
         summary="2 files · 6 remapped → EZD"
         onConvert={() => {}}
@@ -83,5 +99,75 @@ describe('ConvertButton', () => {
       'download',
       'remapped-EZD.zip',
     );
+  });
+
+  describe('zip object-URL lifecycle', () => {
+    beforeEach(() => {
+      vi.mocked(URL.createObjectURL).mockClear();
+      vi.mocked(URL.revokeObjectURL).mockClear();
+    });
+    afterEach(() => {
+      vi.mocked(URL.createObjectURL).mockReturnValue('blob:mock-url');
+    });
+
+    const multi = done([
+      { name: 'a.mid', url: 'blob:a', bytes: new Uint8Array([1]), report: REPORT },
+      { name: 'b.mid', url: 'blob:b', bytes: new Uint8Array([2]), report: REPORT },
+    ]);
+
+    it('creates one zip URL per render pass, not one per render', () => {
+      const { rerender } = render(
+        <ConvertButton
+          conv={multi}
+          canConvert
+          targetShort="EZD"
+          summary="2 files"
+          onConvert={() => {}}
+          onReset={() => {}}
+        />,
+      );
+      expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+      rerender(
+        <ConvertButton
+          conv={multi}
+          canConvert
+          targetShort="EZD"
+          summary="2 files (rerendered)"
+          onConvert={() => {}}
+          onReset={() => {}}
+        />,
+      );
+      expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+    });
+
+    it('revokes the zip URL on unmount', () => {
+      vi.mocked(URL.createObjectURL).mockReturnValueOnce('blob:zip-1');
+      const { unmount } = render(
+        <ConvertButton
+          conv={multi}
+          canConvert
+          targetShort="EZD"
+          summary="2 files"
+          onConvert={() => {}}
+          onReset={() => {}}
+        />,
+      );
+      unmount();
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:zip-1');
+    });
+
+    it('does not create a zip URL for a single result', () => {
+      render(
+        <ConvertButton
+          conv={done([{ name: 'a.mid', url: 'blob:a', bytes: new Uint8Array([1]), report: REPORT }])}
+          canConvert
+          targetShort="EZD"
+          summary="1 file"
+          onConvert={() => {}}
+          onReset={() => {}}
+        />,
+      );
+      expect(URL.createObjectURL).not.toHaveBeenCalled();
+    });
   });
 });

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
   engineDrums,
   engines as listEngines,
@@ -7,65 +7,137 @@ import {
   remap,
   type Drum,
   type Engine,
-  type RemapReport,
   type VoiceRow,
 } from '../lib/midiremap';
+import { MID_EXT, type FileFailure, type FileResult, type LoadedFile } from '../lib/files';
 import { editsToOverrides, effectiveTgt, type Edits } from '../lib/overrides';
 import { noteInOctave, octaveIndexOf } from '../lib/notes';
 
-export interface LoadedFile {
-  bytes: Uint8Array;
-  name: string;
-}
-
 type Status = 'loading' | 'ready' | 'error';
-type Conv = 'idle' | 'running' | 'done' | 'error';
 type View = 'convert' | 'edit';
 type Oct = 'c1' | 'c2';
 
-export interface FileResult {
-  name: string;
-  url: string;
-  bytes: Uint8Array;
-  report: RemapReport;
+export type Conv =
+  | { kind: 'idle' }
+  | { kind: 'running' }
+  | { kind: 'done'; results: FileResult[]; failures: FileFailure[] }
+  | { kind: 'error'; failures: FileFailure[]; message: string };
+
+interface Pick {
+  canon: string;
+  octIndex: number;
 }
 
-export interface FileFailure {
-  name: string;
-  error: string;
+interface State {
+  src: string;
+  tgt: string;
+  oct: Oct;
+  view: View;
+  files: LoadedFile[];
+  conv: Conv;
+  edits: Edits;
+  pick: Pick | null;
+}
+
+type Action =
+  | { type: 'CHOOSE_SRC'; id: string }
+  | { type: 'CHOOSE_TGT'; id: string }
+  | { type: 'SWAP' }
+  | { type: 'TOGGLE_OCT' }
+  | { type: 'SET_VIEW'; view: View }
+  | { type: 'ADD_FILES'; files: LoadedFile[] }
+  | { type: 'REMOVE_FILE'; name: string }
+  | { type: 'CLEAR_FILES' }
+  | { type: 'OPEN_PICK'; canon: string; octIndex: number }
+  | { type: 'SET_PICK_OCT'; octIndex: number }
+  | { type: 'CHOOSE_NOTE'; semitone: number }
+  | { type: 'CHOOSE_NOTE_ABS'; note: number }
+  | { type: 'CLOSE_PICK' }
+  | { type: 'CONVERT_DONE'; results: FileResult[]; failures: FileFailure[] }
+  | { type: 'CONVERT_ERROR'; failures: FileFailure[]; message: string }
+  | { type: 'RESET' };
+
+const INITIAL: State = {
+  src: '',
+  tgt: '',
+  oct: 'c1',
+  view: 'convert',
+  files: [],
+  conv: { kind: 'idle' },
+  edits: {},
+  pick: null,
+};
+
+const engineReset = { conv: { kind: 'idle' } as Conv, edits: {} as Edits, pick: null };
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case 'CHOOSE_SRC':
+      return { ...state, src: action.id, ...engineReset };
+    case 'CHOOSE_TGT':
+      return { ...state, tgt: action.id, ...engineReset };
+    case 'SWAP':
+      return { ...state, src: state.tgt, tgt: state.src, ...engineReset };
+    case 'TOGGLE_OCT':
+      return { ...state, oct: state.oct === 'c1' ? 'c2' : 'c1' };
+    case 'SET_VIEW':
+      return { ...state, view: action.view };
+    case 'ADD_FILES': {
+      const names = new Set(state.files.map((f) => f.name));
+      const merged = [...state.files, ...action.files.filter((f) => !names.has(f.name))];
+      return { ...state, files: merged, conv: { kind: 'idle' } };
+    }
+    case 'REMOVE_FILE':
+      return {
+        ...state,
+        files: state.files.filter((f) => f.name !== action.name),
+        conv: { kind: 'idle' },
+      };
+    case 'CLEAR_FILES':
+      return { ...state, files: [], conv: { kind: 'idle' } };
+    case 'OPEN_PICK':
+      return { ...state, pick: { canon: action.canon, octIndex: action.octIndex } };
+    case 'SET_PICK_OCT':
+      return state.pick ? { ...state, pick: { ...state.pick, octIndex: action.octIndex } } : state;
+    case 'CHOOSE_NOTE':
+      return state.pick
+        ? {
+            ...state,
+            edits: {
+              ...state.edits,
+              [state.pick.canon]: noteInOctave(state.pick.octIndex, action.semitone),
+            },
+            pick: null,
+          }
+        : state;
+    case 'CHOOSE_NOTE_ABS':
+      return state.pick
+        ? { ...state, edits: { ...state.edits, [state.pick.canon]: action.note }, pick: null }
+        : state;
+    case 'CLOSE_PICK':
+      return { ...state, pick: null };
+    case 'CONVERT_DONE':
+      return { ...state, conv: { kind: 'done', results: action.results, failures: action.failures } };
+    case 'CONVERT_ERROR':
+      return {
+        ...state,
+        conv: { kind: 'error', failures: action.failures, message: action.message },
+      };
+    case 'RESET':
+      return { ...state, conv: { kind: 'idle' } };
+  }
 }
 
 function baseName(name: string): string {
-  return name.replace(/\.midi?$/i, '');
+  return name.replace(MID_EXT, '');
 }
 
 export function useRemapper() {
   const [status, setStatus] = useState<Status>('loading');
   const [engines, setEngines] = useState<Engine[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [src, setSrc] = useState('');
-  const [tgt, setTgt] = useState('');
-  const [oct, setOct] = useState<Oct>('c1');
-  const [files, setFiles] = useState<LoadedFile[]>([]);
-  const [view, setView] = useState<View>('convert');
-  const [conv, setConv] = useState<Conv>('idle');
-  const [results, setResults] = useState<FileResult[]>([]);
-  const [failures, setFailures] = useState<FileFailure[]>([]);
-  const [rows, setRows] = useState<VoiceRow[]>([]);
-  const [edits, setEdits] = useState<Edits>({});
-  const [pick, setPick] = useState<{ canon: string; octIndex: number } | null>(null);
-
-  const clearResults = useCallback(() => {
-    setResults((rs) => {
-      rs.forEach((r) => URL.revokeObjectURL(r.url));
-      return [];
-    });
-    setFailures([]);
-  }, []);
-
-  const refreshPlan = useCallback((s: string, t: string) => {
-    if (s && t) setRows(computePlan(s, t));
-  }, []);
+  const [initError, setInitError] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(reducer, INITIAL);
+  const { src, tgt, oct, view, files, conv, edits, pick } = state;
 
   useEffect(() => {
     let cancelled = false;
@@ -77,7 +149,7 @@ export function useRemapper() {
       })
       .catch((e) => {
         if (!cancelled) {
-          setError(String(e));
+          setInitError(String(e));
           setStatus('error');
         }
       });
@@ -86,84 +158,62 @@ export function useRemapper() {
     };
   }, []);
 
+  const liveUrls = useRef<string[]>([]);
   useEffect(() => {
-    return () => {
-      setResults((rs) => {
-        rs.forEach((r) => URL.revokeObjectURL(r.url));
-        return rs;
-      });
-    };
-  }, []);
-
-  const chooseSrc = useCallback(
-    (id: string) => {
-      clearResults();
-      setConv('idle');
-      setEdits({});
-      setPick(null);
-      setSrc(id);
-      refreshPlan(id, tgt);
+    const urls = conv.kind === 'done' ? conv.results.map((r) => r.url) : [];
+    for (const u of liveUrls.current) if (!urls.includes(u)) URL.revokeObjectURL(u);
+    liveUrls.current = urls;
+  }, [conv]);
+  useEffect(
+    () => () => {
+      liveUrls.current.forEach((u) => URL.revokeObjectURL(u));
     },
-    [clearResults, refreshPlan, tgt],
+    [],
   );
 
-  const chooseTgt = useCallback(
-    (id: string) => {
-      clearResults();
-      setConv('idle');
-      setEdits({});
-      setPick(null);
-      setTgt(id);
-      refreshPlan(src, id);
-    },
-    [clearResults, refreshPlan, src],
+  const rows = useMemo<VoiceRow[]>(
+    () => (status === 'ready' && src && tgt ? computePlan(src, tgt) : []),
+    [status, src, tgt],
   );
 
-  const swap = useCallback(() => {
-    clearResults();
-    setConv('idle');
-    setEdits({});
-    setPick(null);
-    setSrc(tgt);
-    setTgt(src);
-    refreshPlan(tgt, src);
-  }, [clearResults, refreshPlan, src, tgt]);
-
-  const toggleOct = useCallback(() => setOct((o) => (o === 'c1' ? 'c2' : 'c1')), []);
-
+  const chooseSrc = useCallback((id: string) => dispatch({ type: 'CHOOSE_SRC', id }), []);
+  const chooseTgt = useCallback((id: string) => dispatch({ type: 'CHOOSE_TGT', id }), []);
+  const swap = useCallback(() => dispatch({ type: 'SWAP' }), []);
+  const toggleOct = useCallback(() => dispatch({ type: 'TOGGLE_OCT' }), []);
+  const setView = useCallback((v: View) => dispatch({ type: 'SET_VIEW', view: v }), []);
   const addFiles = useCallback(
-    (incoming: LoadedFile[]) => {
-      clearResults();
-      setError(null);
-      setConv('idle');
-      setFiles((prev) => {
-        const names = new Set(prev.map((f) => f.name));
-        return [...prev, ...incoming.filter((f) => !names.has(f.name))];
-      });
-    },
-    [clearResults],
+    (incoming: LoadedFile[]) => dispatch({ type: 'ADD_FILES', files: incoming }),
+    [],
   );
-
-  const removeFile = useCallback(
-    (name: string) => {
-      clearResults();
-      setConv('idle');
-      setFiles((prev) => prev.filter((f) => f.name !== name));
-    },
-    [clearResults],
+  const removeFile = useCallback((name: string) => dispatch({ type: 'REMOVE_FILE', name }), []);
+  const clearFiles = useCallback(() => dispatch({ type: 'CLEAR_FILES' }), []);
+  const setPickOct = useCallback(
+    (octIndex: number) => dispatch({ type: 'SET_PICK_OCT', octIndex }),
+    [],
   );
+  const chooseNote = useCallback(
+    (semitone: number) => dispatch({ type: 'CHOOSE_NOTE', semitone }),
+    [],
+  );
+  const chooseNoteAbsolute = useCallback(
+    (note: number) => dispatch({ type: 'CHOOSE_NOTE_ABS', note }),
+    [],
+  );
+  const closePick = useCallback(() => dispatch({ type: 'CLOSE_PICK' }), []);
+  const reset = useCallback(() => dispatch({ type: 'RESET' }), []);
 
-  const clearFiles = useCallback(() => {
-    clearResults();
-    setConv('idle');
-    setFiles([]);
-  }, [clearResults]);
+  const openPick = useCallback(
+    (canon: string) => {
+      const row = rows.find((r) => r.canon === canon);
+      if (!row) return;
+      const note = edits[canon] ?? row.tgtNote ?? row.srcNote;
+      dispatch({ type: 'OPEN_PICK', canon, octIndex: octaveIndexOf(note) });
+    },
+    [edits, rows],
+  );
 
   const convert = useCallback(() => {
     if (files.length === 0 || !src || !tgt) return;
-    clearResults();
-    setConv('running');
-    setError(null);
     const ov = editsToOverrides(edits);
     const ok: FileResult[] = [];
     const bad: FileFailure[] = [];
@@ -176,50 +226,9 @@ export function useRemapper() {
         bad.push({ name: f.name, error: String(e) });
       }
     }
-    setResults(ok);
-    setFailures(bad);
-    if (bad.length > 0 && ok.length === 0) setError(bad[0].error);
-    setConv(ok.length > 0 ? 'done' : 'error');
-  }, [clearResults, edits, files, src, tgt]);
-
-  const reset = useCallback(() => {
-    clearResults();
-    setConv('idle');
-  }, [clearResults]);
-
-  const openPick = useCallback(
-    (canon: string) => {
-      const row = rows.find((r) => r.canon === canon);
-      if (!row) return;
-      const note = edits[canon] ?? row.tgtNote ?? row.srcNote;
-      setPick({ canon, octIndex: octaveIndexOf(note) });
-    },
-    [edits, rows],
-  );
-
-  const setPickOct = useCallback((octIndex: number) => {
-    setPick((p) => (p ? { ...p, octIndex } : p));
-  }, []);
-
-  const chooseNote = useCallback(
-    (semitone: number) => {
-      if (!pick) return;
-      setEdits((e) => ({ ...e, [pick.canon]: noteInOctave(pick.octIndex, semitone) }));
-      setPick(null);
-    },
-    [pick],
-  );
-
-  const chooseNoteAbsolute = useCallback(
-    (note: number) => {
-      if (!pick) return;
-      setEdits((e) => ({ ...e, [pick.canon]: note }));
-      setPick(null);
-    },
-    [pick],
-  );
-
-  const closePick = useCallback(() => setPick(null), []);
+    if (ok.length > 0) dispatch({ type: 'CONVERT_DONE', results: ok, failures: bad });
+    else dispatch({ type: 'CONVERT_ERROR', failures: bad, message: bad[0]?.error ?? 'conversion failed' });
+  }, [edits, files, src, tgt]);
 
   const remappedCount = useMemo(
     () => rows.filter((r) => r.status !== 'dropped' && effectiveTgt(r, edits) !== r.srcNote).length,
@@ -235,11 +244,15 @@ export function useRemapper() {
     }
   }, [status, tgt]);
 
+  const results = conv.kind === 'done' ? conv.results : [];
+  const failures = conv.kind === 'done' || conv.kind === 'error' ? conv.failures : [];
+  const convError = conv.kind === 'error' ? conv.message : null;
+
   return {
     status,
     engines,
     targetDrums,
-    error,
+    error: initError ?? convError,
     src,
     tgt,
     oct,

@@ -46,17 +46,18 @@ describe('FileChips', () => {
     expect(onClear).toHaveBeenCalledOnce();
   });
 
-  it('marks a failed file with danger styling', () => {
+  it('marks a failed file with danger state', () => {
     render(
       <FileChips
         files={[{ bytes: new Uint8Array(1), name: 'bad.mid' }]}
-        failures={[{ name: 'bad.mid' }]}
+        failures={[{ name: 'bad.mid', error: 'parse failed' }]}
         onFiles={() => {}}
         onRemove={() => {}}
         onClear={() => {}}
       />,
     );
-    const chip = screen.getByText('bad.mid').closest('div');
-    expect(chip?.className).toContain('border-danger/40');
+    const chip = screen.getByText('bad.mid').closest('[data-state]');
+    expect(chip).toHaveAttribute('data-state', 'failed');
+    expect(chip).toHaveAttribute('title', 'parse failed');
   });
 });

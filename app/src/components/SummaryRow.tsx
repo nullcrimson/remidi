@@ -11,7 +11,7 @@ export function SummaryRow({
 }) {
   return (
     <div className="
-      flex items-center justify-between border-t border-white/6 pt-4.5
+      flex items-center justify-between border-t border-hairline pt-4.5
     ">
       <span className="text-[12px] text-t4">
         <span className="font-semibold text-accent">{remapped}</span> of {total}{" "}
