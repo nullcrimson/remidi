@@ -43,7 +43,8 @@ export function VoiceRow({
         ) : (
           <button
             type="button"
-            onClick={onOpen}
+            data-notepick-trigger
+            onClick={expanded ? onClose : onOpen}
             className={`
               justify-self-end rounded-md border px-2.25 py-0.75 font-mono
               text-[12px] transition-colors

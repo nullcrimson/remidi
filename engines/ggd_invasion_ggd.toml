@@ -1,5 +1,5 @@
 id = "ggd_invasion_ggd"
-name = "GetGood Drums Invasion (Mapping 'GGD')"
+name = "GGD Invasion (Mapping 'GGD')"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.hit", primary = true },

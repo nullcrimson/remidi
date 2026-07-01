@@ -1,5 +1,5 @@
 id = "ggd_p4_halpern"
-name = "GetGood Drums P4 Matt Halpern (Default Mapping 'Invasion')"
+name = "GGD P4 Matt Halpern (Default Mapping 'Invasion')"
 notes = [
   { note = 17, canon = "hat.cc", primary = true },
   { note = 24, canon = "kick.main", primary = true },

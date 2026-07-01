@@ -23,7 +23,9 @@ import App from '../src/App';
 describe('App edit view', () => {
   it('navigates to edit and back', async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByText('midiremap')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Remidi')).toBeInTheDocument());
+    await userEvent.click(screen.getAllByRole('button', { name: 'GGD Invasion' })[0]);
+    await userEvent.click(screen.getAllByRole('button', { name: 'EZdrummer' })[1]);
     await userEvent.click(screen.getByText(/Edit individual notes/));
     expect(screen.getByText('Edit mapping')).toBeInTheDocument();
     expect(screen.getByText('Kick')).toBeInTheDocument();

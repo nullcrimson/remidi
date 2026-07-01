@@ -14,15 +14,24 @@ vi.mock('../src/lib/midiremap', () => ({
   }),
 }));
 
+import userEvent from '@testing-library/user-event';
+
 import App from '../src/App';
 
 describe('App convert view', () => {
-  it('renders the converter after load', async () => {
+  it('disables convert and edit until both engines are chosen', async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByText('midiremap')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Remidi')).toBeInTheDocument());
     expect(screen.getByText('FROM')).toBeInTheDocument();
     expect(screen.getByText('TO')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Convert & download/i })).toBeInTheDocument();
-    expect(screen.getByText(/Edit individual notes/)).toBeInTheDocument();
+
+    const editButton = () => screen.getByRole('button', { name: /Edit individual notes/i });
+    expect(editButton()).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Convert & download/i })).toBeDisabled();
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'GGD Invasion' })[0]);
+    await userEvent.click(screen.getAllByRole('button', { name: 'EZdrummer' })[1]);
+
+    expect(editButton()).toBeEnabled();
   });
 });

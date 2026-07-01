@@ -1,3 +1,5 @@
+import { useRef } from 'react';
+import { useDismiss } from '../hooks/useDismiss';
 import { noteName, octaveTabLabel, type OctaveBase } from '../lib/notes';
 import { PianoKeyboard } from './PianoKeyboard';
 
@@ -20,11 +22,16 @@ export function NotePicker({
   onPick: (semitone: number) => void;
   onClose: () => void;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useDismiss(ref, onClose);
   return (
-    <div className="
-      my-0.5 mb-3 rounded-[10px] border border-accent/18 bg-white/[0.018]
-      p-[13px_14px_16px]
-    ">
+    <div
+      ref={ref}
+      className="
+        my-0.5 mb-3 rounded-[10px] border border-accent/18 bg-white/[0.018]
+        p-[13px_14px_16px]
+      "
+    >
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-baseline gap-2.25">
           <span className="font-mono text-[9.5px] tracking-[0.12em] text-t4">

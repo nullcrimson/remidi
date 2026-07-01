@@ -2,10 +2,12 @@ export function SummaryRow({
   remapped,
   total,
   onEdit,
+  disabled,
 }: {
   remapped: number;
   total: number;
   onEdit: () => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="
@@ -18,9 +20,11 @@ export function SummaryRow({
       <button
         type="button"
         onClick={onEdit}
+        disabled={disabled}
         className="
-          inline-flex items-center gap-1.5 text-[12px] text-t4
-          hover:text-accent
+          inline-flex items-center gap-1.5 text-[12px] text-t4 transition-colors
+          enabled:hover:text-accent
+          disabled:cursor-not-allowed disabled:opacity-40
         "
       >
         <span>✎</span>

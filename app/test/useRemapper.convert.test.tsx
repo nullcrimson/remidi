@@ -29,24 +29,36 @@ describe('useRemapper convert path', () => {
     });
   });
 
-  it('initializes ready with defaults and a base plan', async () => {
+  it('initializes ready with no default selection', async () => {
     const { result } = renderHook(() => useRemapper());
     await waitFor(() => expect(result.current.status).toBe('ready'));
-    expect(result.current.src).toBe('ggd_invasion');
-    expect(result.current.tgt).toBe('ezdrummer');
-    expect(result.current.rows).toHaveLength(2);
-    expect(result.current.droppedCount).toBe(1);
-    expect(result.current.voiceCount).toBe(2);
+    expect(result.current.src).toBe('');
+    expect(result.current.tgt).toBe('');
+    expect(result.current.rows).toHaveLength(0);
+    expect(result.current.voiceCount).toBe(0);
+    expect(planMock).not.toHaveBeenCalled();
   });
 
-  it('converts a loaded file to a download', async () => {
+  it('converts a loaded file to a download once both engines are chosen', async () => {
     const { result } = renderHook(() => useRemapper());
     await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
     act(() => result.current.setFile({ bytes: new Uint8Array([9]), name: 'groove.mid' }));
     act(() => result.current.convert());
     await waitFor(() => expect(result.current.conv).toBe('done'));
     expect(result.current.result?.name).toBe('groove-ezdrummer.mid');
     expect(result.current.result?.url).toBe('blob:mock-url');
+  });
+
+  it('does not convert until both engines are chosen', async () => {
+    const { result } = renderHook(() => useRemapper());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.setFile({ bytes: new Uint8Array([9]), name: 'groove.mid' }));
+    act(() => result.current.convert());
+    expect(result.current.conv).toBe('idle');
+    expect(remapMock).not.toHaveBeenCalled();
   });
 
   it('captures a conversion error', async () => {
@@ -55,6 +67,8 @@ describe('useRemapper convert path', () => {
     });
     const { result } = renderHook(() => useRemapper());
     await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
     act(() => result.current.setFile({ bytes: new Uint8Array([9]), name: 'g.mid' }));
     act(() => result.current.convert());
     await waitFor(() => expect(result.current.conv).toBe('error'));
@@ -64,6 +78,8 @@ describe('useRemapper convert path', () => {
   it('swaps and recomputes plan', async () => {
     const { result } = renderHook(() => useRemapper());
     await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
     planMock.mockClear();
     act(() => result.current.swap());
     expect(result.current.src).toBe('ezdrummer');

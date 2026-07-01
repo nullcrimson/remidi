@@ -1,5 +1,5 @@
 import type { LoadedFile } from '../hooks/useRemapper';
-import { Dropzone } from './Dropzone';
+import { FilePicker } from './FilePicker';
 
 export function FileRow({
   file,
@@ -12,14 +12,14 @@ export function FileRow({
 }) {
   if (!file) {
     return (
-      <Dropzone onFile={onFile}>
+      <FilePicker onFile={onFile}>
         <div className="flex items-center gap-3 border-b border-white/6 pb-4.5">
           <span className="font-mono text-[11px] font-semibold text-accent">MID</span>
           <span className="flex-1 text-[14px] text-t4">
-            Drop a .mid file here, or click to choose
+            Drop a .mid anywhere, or click to choose
           </span>
         </div>
-      </Dropzone>
+      </FilePicker>
     );
   }
   return (

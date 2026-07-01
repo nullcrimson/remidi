@@ -1,5 +1,5 @@
 id = "ggd_modernmassive_gm"
-name = "GetGood Drums Modern & Massive (Mapping 'GM')"
+name = "GGD Modern & Massive (Mapping 'GM')"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 38, canon = "snare1.hit", primary = true },

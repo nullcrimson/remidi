@@ -203,6 +203,5 @@ the payload serializes to plain JS objects.
 - **Object-safe traits behind `&dyn`**, except `MidiCodec` (lifetime-generic
   `parse`), which is a generic bound.
 - **Standard crates over hand-rolled** parsing, error handling, and serialization.
-- See `the engineering guidelines` for the full engineering rules (formatting, proof-by-test,
-  comment policy) and the verify gate (`fmt` + `test` + `clippy`).
+- The verify gate before every change is `fmt` + `test` + `clippy`, all clean.
 ```

@@ -62,14 +62,7 @@ export function useRemapper() {
     ready()
       .then(() => {
         if (cancelled) return;
-        const list = listEngines();
-        const ids = list.map((e) => e.id);
-        const s = ids.includes('ggd_invasion') ? 'ggd_invasion' : (ids[0] ?? '');
-        const t = ids.includes('ezdrummer') ? 'ezdrummer' : (ids[1] ?? ids[0] ?? '');
-        setEngines(list);
-        setSrc(s);
-        setTgt(t);
-        setRows(s && t ? computePlan(s, t) : []);
+        setEngines(listEngines());
         setStatus('ready');
       })
       .catch((e) => {
@@ -145,7 +138,7 @@ export function useRemapper() {
   }, [clearResult]);
 
   const convert = useCallback(() => {
-    if (!file) return;
+    if (!file || !src || !tgt) return;
     setConv('running');
     setError(null);
     try {

@@ -52,4 +52,33 @@ describe('VoiceRow', () => {
     );
     expect(screen.getByText('—')).toBeInTheDocument();
   });
+
+  it('tags the target button as a note-pick trigger', () => {
+    render(
+      <VoiceRow
+        row={{ canon: 'KickMain', label: 'Kick', srcNote: 24, tgtNote: 36, status: 'direct' }}
+        effectiveTgt={36}
+        {...base}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'C2' })).toHaveAttribute('data-notepick-trigger');
+  });
+
+  it('toggles closed when the target button is clicked while expanded', async () => {
+    const onOpen = vi.fn();
+    const onClose = vi.fn();
+    render(
+      <VoiceRow
+        row={{ canon: 'KickMain', label: 'Kick', srcNote: 24, tgtNote: 36, status: 'direct' }}
+        effectiveTgt={36}
+        {...base}
+        expanded
+        onOpen={onOpen}
+        onClose={onClose}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'C2' }));
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(onOpen).not.toHaveBeenCalled();
+  });
 });

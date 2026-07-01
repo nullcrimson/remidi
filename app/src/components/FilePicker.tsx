@@ -1,14 +1,13 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import type { LoadedFile } from '../hooks/useRemapper';
 
-export function Dropzone({
+export function FilePicker({
   onFile,
   children,
 }: {
   onFile: (f: LoadedFile) => void;
   children: ReactNode;
 }) {
-  const [over, setOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handle(file: File) {
@@ -17,20 +16,7 @@ export function Dropzone({
   }
 
   return (
-    <div
-      onDragOver={(e) => {
-        e.preventDefault();
-        setOver(true);
-      }}
-      onDragLeave={() => setOver(false)}
-      onDrop={(e) => {
-        e.preventDefault();
-        setOver(false);
-        const f = e.dataTransfer.files[0];
-        if (f) void handle(f);
-      }}
-      className={over ? 'opacity-80' : undefined}
-    >
+    <>
       <button type="button" className="w-full text-left" onClick={() => inputRef.current?.click()}>
         {children}
       </button>
@@ -45,6 +31,6 @@ export function Dropzone({
           if (f) void handle(f);
         }}
       />
-    </div>
+    </>
   );
 }

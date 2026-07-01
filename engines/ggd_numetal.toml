@@ -1,5 +1,5 @@
 id = "ggd_numetal"
-name = "GetGood Drums One Kit Wonder: Nu Metal (Default Mapping 'Invasion')"
+name = "GGD One Kit Wonder: Nu Metal (Default Mapping 'Invasion')"
 notes = [
   { note = 17, canon = "hat.cc", primary = true },
   { note = 24, canon = "kick.main", primary = true },

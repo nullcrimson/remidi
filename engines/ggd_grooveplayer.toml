@@ -1,5 +1,5 @@
 id = "ggd_grooveplayer"
-name = "GetGood Drums Groove Player/MIDI Pack Format"
+name = "GGD Groove Player/MIDI Pack Format"
 notes = [
   { note = 5, canon = "hat.open3" },
   { note = 10, canon = "hat.closed.tip", primary = true },

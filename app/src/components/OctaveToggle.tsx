@@ -10,7 +10,7 @@ export function OctaveToggle({
   const label = value === "c1" ? "C-1" : "C-2";
   const daws =
     value === "c1"
-      ? "Reaper · Logic · Ableton"
+      ? "Reaper · Logic · Ableton · Guitar Pro"
       : "Studio One · Cubase · FL Studio";
   return (
     <div className="flex flex-col gap-1.25">

@@ -27,6 +27,8 @@ describe('useRemapper edit path', () => {
   it('opens a picker, sets octave, and picks a target note', async () => {
     const { result } = renderHook(() => useRemapper());
     await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
 
     act(() => result.current.openPick('KickMain'));
     expect(result.current.pick).toEqual({ canon: 'KickMain', octIndex: 2 });
@@ -41,6 +43,8 @@ describe('useRemapper edit path', () => {
   it('clears edits when the target engine changes', async () => {
     const { result } = renderHook(() => useRemapper());
     await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
     act(() => result.current.openPick('KickMain'));
     act(() => result.current.chooseNote(0));
     expect(Object.keys(result.current.edits)).toHaveLength(1);

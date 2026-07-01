@@ -1,5 +1,5 @@
 id = "ggd_bennygreb"
-name = "GetGood Drums Benny Greb (Default Mapping 'Benny')"
+name = "GGD Benny Greb (Default Mapping 'Benny')"
 notes = [
   { note = 8, canon = "hat.open4.bell" },
   { note = 9, canon = "hat.open4.bell", primary = true },

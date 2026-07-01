@@ -1,5 +1,5 @@
 id = "solemntones_mjolnir"
-name = "Solemn Tones MjÃ¶lnir Drums"
+name = "Solemn Tones Mjölnir Drums"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 38, canon = "snare1.hit", primary = true },

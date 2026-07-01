@@ -1,5 +1,5 @@
 id = "ggd_classicrock_halpern"
-name = "GetGood Drums One Kit Wonder: Classic Rock (Mapping 'Halpern')"
+name = "GGD One Kit Wonder: Classic Rock (Mapping 'Halpern')"
 notes = [
   { note = 24, canon = "kick.main", primary = true },
   { note = 26, canon = "snare1.hit", primary = true },

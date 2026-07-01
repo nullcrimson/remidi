@@ -1,5 +1,5 @@
 id = "ggd_dryfunky_ggd"
-name = "GetGood Drums One Kit Wonder: Dry and Funky (Mapping 'GGD')"
+name = "GGD One Kit Wonder: Dry and Funky (Mapping 'GGD')"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.hit", primary = true },

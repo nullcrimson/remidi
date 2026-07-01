@@ -1,5 +1,5 @@
 id = "ggd_halpern_ggd"
-name = "GetGood Drums Matt Halpern (Mapping 'GGD')"
+name = "GGD Matt Halpern (Mapping 'GGD')"
 notes = [
   { note = 34, canon = "tom.floor1.rim", primary = true },
   { note = 35, canon = "tom.rack3.rim", primary = true },

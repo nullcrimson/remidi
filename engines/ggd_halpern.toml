@@ -1,5 +1,5 @@
 id = "ggd_halpern"
-name = "GetGood Drums Matt Halpern (Default Mapping 'Halpern')"
+name = "GGD Matt Halpern (Default Mapping 'Halpern')"
 notes = [
   { note = 24, canon = "kick.main", primary = true },
   { note = 25, canon = "snare1.sidestick" },
