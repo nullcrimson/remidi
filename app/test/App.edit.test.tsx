@@ -14,7 +14,7 @@ vi.mock('../src/lib/midiremap', () => ({
   ],
   remap: () => ({
     bytes: new Uint8Array([1]),
-    report: { unmapped_source: {}, fallback_used: {}, dropped: {} },
+    report: { unmappedSource: {}, fallbackUsed: {}, dropped: {} },
   }),
 }));
 
@@ -23,7 +23,7 @@ import App from '../src/App';
 describe('App edit view', () => {
   it('navigates to edit and back', async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByText('Remidi')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
     await userEvent.click(screen.getAllByRole('button', { name: 'GGD Invasion' })[0]);
     await userEvent.click(screen.getAllByRole('button', { name: 'EZdrummer' })[1]);
     await userEvent.click(screen.getByText(/Edit individual notes/));

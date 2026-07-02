@@ -65,7 +65,8 @@ pub fn remap_with_overrides(
 ) -> Result<Converted, ConversionError> {
     let fb = DefaultFallbacks;
     let enc = ov.encoder(tgt);
-    let conv = Conversion::new(src, &enc, &fb);
+    let dec = ov.decoder(src);
+    let conv = Conversion::new(&dec, &enc, &fb);
     conv.run(mid)
 }
 
@@ -275,6 +276,29 @@ mod tests {
             serde_json::from_str(r#"{"tgt":[{"canon":"kick.main","note":35}]}"#).unwrap();
         let out = remap_with_overrides(&mid, src, tgt, &ov).unwrap();
         assert_eq!(note_on_keys(&out.bytes), vec![35]);
+    }
+
+    #[test]
+    fn src_override_rescues_unmapped_note() {
+        let mid = smf_from(&[(0, on(99)), (48, off(99))]);
+        let b = BuiltinMaps::new();
+        let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
+        let ov: crate::Overrides =
+            serde_json::from_str(r#"{"src":[{"note":99,"canon":"kick.main"}]}"#).unwrap();
+        let out = remap_with_overrides(&mid, src, tgt, &ov).unwrap();
+        assert_eq!(note_on_keys(&out.bytes), vec![36]);
+        assert!(out.report.unmapped_source.is_empty());
+    }
+
+    #[test]
+    fn src_override_reassigns_mapped_note() {
+        let mid = smf_from(&[(0, on(24)), (48, off(24))]);
+        let b = BuiltinMaps::new();
+        let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
+        let ov: crate::Overrides =
+            serde_json::from_str(r#"{"src":[{"note":24,"canon":"snare1.hit"}]}"#).unwrap();
+        let out = remap_with_overrides(&mid, src, tgt, &ov).unwrap();
+        assert_eq!(note_on_keys(&out.bytes), vec![38]);
     }
 
     #[test]

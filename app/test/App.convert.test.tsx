@@ -10,7 +10,7 @@ vi.mock('../src/lib/midiremap', () => ({
   plan: () => [{ canon: 'KickMain', label: 'Kick', srcNote: 24, tgtNote: 36, status: 'direct' }],
   remap: () => ({
     bytes: new Uint8Array([1]),
-    report: { unmapped_source: {}, fallback_used: {}, dropped: {} },
+    report: { unmappedSource: {}, fallbackUsed: {}, dropped: {} },
   }),
 }));
 
@@ -21,8 +21,8 @@ import App from '../src/App';
 describe('App convert view', () => {
   it('disables convert and edit until both engines are chosen', async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByText('Remidi')).toBeInTheDocument());
-    expect(screen.getByText('FROM')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
+    expect(screen.getByRole('heading', { name: 'Remidi' })).toBeInTheDocument();
     expect(screen.getByText('TO')).toBeInTheDocument();
 
     const editButton = () => screen.getByRole('button', { name: /Edit individual notes/i });

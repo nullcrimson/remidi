@@ -10,6 +10,7 @@ export function ConvertButton({
   summary,
   onConvert,
   onReset,
+  onViewReport,
 }: {
   conv: Conv;
   canConvert: boolean;
@@ -17,6 +18,7 @@ export function ConvertButton({
   summary: string;
   onConvert: () => void;
   onReset: () => void;
+  onViewReport: () => void;
 }) {
   const results = useMemo(() => (conv.kind === 'done' ? conv.results : []), [conv]);
   const multi = results.length > 1;
@@ -38,11 +40,23 @@ export function ConvertButton({
     return (
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-0.75">
-          <a href={href} download={name} className="
-            text-[13.5px] font-semibold text-t1
-          ">
-            {single ? '↓ download .mid' : '↓ download all (.zip)'}
-          </a>
+          <div className="flex items-center gap-2.5">
+            <a href={href} download={name} className="
+              text-[13.5px] font-semibold text-t1
+            ">
+              {single ? '↓ download .mid' : '↓ download all (.zip)'}
+            </a>
+            <button
+              type="button"
+              onClick={onViewReport}
+              className="
+                text-[12px] text-t4 transition-colors
+                hover:text-accent
+              "
+            >
+              View report →
+            </button>
+          </div>
           <span className="font-mono text-[11px] text-t4">{summary}</span>
         </div>
         <button type="button" onClick={onReset} className="

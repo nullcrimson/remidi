@@ -14,7 +14,7 @@ vi.mock('../src/lib/midiremap', () => ({
   plan: (...a: unknown[]) => planMock(...a),
   remap: () => ({
     bytes: new Uint8Array([1]),
-    report: { unmapped_source: {}, fallback_used: {}, dropped: {} },
+    report: { unmappedSource: {}, fallbackUsed: {}, dropped: {} },
   }),
 }));
 
@@ -33,14 +33,23 @@ describe('useRemapper edit path', () => {
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
 
-    act(() => result.current.openPick('KickMain'));
-    expect(result.current.pick).toEqual({ canon: 'KickMain', octIndex: 2 });
+    act(() => result.current.editor.openPick('KickMain'));
+    expect(result.current.editor.pick).toEqual({
+      canon: 'KickMain',
+      octIndex: 2,
+      side: 'tgt',
+      defaultNote: 36,
+    });
 
-    act(() => result.current.setPickOct(3));
-    act(() => result.current.chooseNote(2));
-    expect(result.current.pick).toBeNull();
-    expect(result.current.edits.KickMain).toBe(50);
-    expect(result.current.remappedCount).toBe(1);
+    act(() => result.current.editor.setPickOct(3));
+    act(() => result.current.editor.chooseNote(2));
+    expect(result.current.editor.pick).toBeNull();
+    expect(result.current.editor.edits.KickMain).toBe(50);
+    expect(result.current.editor.remappedCount).toBe(1);
+    expect(planMock).toHaveBeenCalledWith('ggd_invasion', 'ezdrummer', {
+      tgt: [{ canon: 'KickMain', note: 50 }],
+      src: [],
+    });
   });
 
   it('sets an absolute target note from the drum list', async () => {
@@ -48,11 +57,26 @@ describe('useRemapper edit path', () => {
     await waitFor(() => expect(result.current.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
-    expect(result.current.targetDrums).toHaveLength(1);
-    act(() => result.current.openPick('KickMain'));
-    act(() => result.current.chooseNoteAbsolute(50));
-    expect(result.current.pick).toBeNull();
-    expect(result.current.edits.KickMain).toBe(50);
+    expect(result.current.editor.targetDrums).toHaveLength(1);
+    act(() => result.current.editor.openPick('KickMain'));
+    act(() => result.current.editor.chooseNoteAbsolute(50));
+    expect(result.current.editor.pick).toBeNull();
+    expect(result.current.editor.edits.KickMain).toBe(50);
+  });
+
+  it('drops the edit when the target is set back to its default note', async () => {
+    const { result } = renderHook(() => useRemapper());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
+
+    act(() => result.current.editor.openPick('KickMain'));
+    act(() => result.current.editor.chooseNoteAbsolute(50));
+    expect(result.current.editor.edits.KickMain).toBe(50);
+
+    act(() => result.current.editor.openPick('KickMain'));
+    act(() => result.current.editor.chooseNoteAbsolute(36));
+    expect(result.current.editor.edits).toEqual({});
   });
 
   it('clears edits when the target engine changes', async () => {
@@ -60,10 +84,10 @@ describe('useRemapper edit path', () => {
     await waitFor(() => expect(result.current.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
-    act(() => result.current.openPick('KickMain'));
-    act(() => result.current.chooseNote(0));
-    expect(Object.keys(result.current.edits)).toHaveLength(1);
+    act(() => result.current.editor.openPick('KickMain'));
+    act(() => result.current.editor.chooseNote(2));
+    expect(Object.keys(result.current.editor.edits)).toHaveLength(1);
     act(() => result.current.chooseTgt('ggd_invasion'));
-    expect(result.current.edits).toEqual({});
+    expect(result.current.editor.edits).toEqual({});
   });
 });

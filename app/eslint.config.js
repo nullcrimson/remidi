@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import stylistic from '@stylistic/eslint-plugin';
 import globals from 'globals';
 import betterTailwind from 'eslint-plugin-better-tailwindcss';
 import reactHooks from 'eslint-plugin-react-hooks';
@@ -40,6 +41,16 @@ export default tseslint.config(
     extends: [js.configs.recommended, tseslint.configs.recommended],
     languageOptions: {
       globals: globals.node,
+    },
+  },
+  {
+    plugins: { '@stylistic': stylistic },
+    rules: {
+      '@stylistic/quotes': [
+        'error',
+        'single',
+        { avoidEscape: true, allowTemplateLiterals: 'always' },
+      ],
     },
   },
   {

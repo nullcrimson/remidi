@@ -69,6 +69,21 @@ impl EngineMap {
         out.sort_by_key(|d| d.note);
         out
     }
+
+    pub fn source_notes(&self) -> Vec<Drum> {
+        let mut out: Vec<Drum> = self
+            .to_canon
+            .iter()
+            .map(|(&note, &canon)| Drum {
+                note,
+                canon,
+                label: canon.label(),
+                family: canon.family(),
+            })
+            .collect();
+        out.sort_by_key(|d| d.note);
+        out
+    }
 }
 
 #[derive(thiserror::Error, Debug, PartialEq)]
@@ -162,6 +177,18 @@ mod tests {
         assert_eq!(d[0].family, "Kick");
         assert_eq!(d[1].note, 26);
         assert_eq!(d[1].family, "Snare");
+    }
+
+    #[test]
+    fn source_notes_lists_every_decodable_note_sorted() {
+        let m = from_toml(SAMPLE).unwrap();
+        let notes = m.source_notes();
+        assert_eq!(
+            notes.iter().map(|d| d.note).collect::<Vec<_>>(),
+            vec![23, 24, 26]
+        );
+        assert_eq!(notes[0].canon, Canon::Kick(KickKind::Main));
+        assert_eq!(notes[2].canon, Canon::Snare(1, SnareArtic::Hit));
     }
 
     #[test]

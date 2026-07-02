@@ -1,9 +1,9 @@
-import type { Engine } from "../lib/midiremap";
-import { useFilter } from "../hooks/useFilter";
-import { useTruncationTooltip } from "../hooks/useTruncationTooltip";
-import { FilterInput } from "./FilterInput";
-import { ListRow } from "./ListRow";
-import { MonoLabel } from "./MonoLabel";
+import type { Engine } from '../lib/midiremap';
+import { useFilter } from '../hooks/useFilter';
+import { useTruncationTooltip } from '../hooks/useTruncationTooltip';
+import { FilterInput } from './FilterInput';
+import { ListRow } from './ListRow';
+import { MonoLabel } from './MonoLabel';
 
 export function LibraryList({
   label,
@@ -49,13 +49,13 @@ export function LibraryList({
           <button
             type="button"
             aria-pressed={fav}
-            aria-label={`${fav ? "Unfavorite" : "Favorite"} ${e.name}`}
+            aria-label={`${fav ? 'Unfavorite' : 'Favorite'} ${e.name}`}
             onClick={() => onToggleFavorite(e.id)}
             className={`
               shrink-0 px-2 text-[13px] transition-colors
               ${
                 fav
-                  ? "text-star"
+                  ? 'text-star [text-shadow:0_0_8px_rgba(224,196,106,0.55)]'
                   : `
                     text-t5
                     hover:text-t2
@@ -63,7 +63,7 @@ export function LibraryList({
               }
             `}
           >
-            {fav ? "★" : "☆"}
+            {fav ? '★' : '☆'}
           </button>
         }
       >

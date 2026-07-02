@@ -20,6 +20,22 @@ export function engine_drums(_tgt: string): unknown {
   ];
 }
 
+export function engine_notes(_src: string): unknown {
+  return [
+    { note: 24, canon: 'kick.main', label: 'Kick', family: 'Kick' },
+    { note: 26, canon: 'snare1.hit', label: 'Snare', family: 'Snare' },
+    { note: 60, canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
+  ];
+}
+
+export function canon_catalog(): unknown {
+  return [
+    { canon: 'kick.main', label: 'Kick', family: 'Kick' },
+    { canon: 'snare1.hit', label: 'Snare', family: 'Snare' },
+    { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
+  ];
+}
+
 const BASE_ROWS = [
   { canon: 'kick.main', label: 'Kick', src_note: 24, tgt_note: 36, status: 'direct' },
   { canon: 'snare1.hit', label: 'Snare', src_note: 26, tgt_note: 38, status: 'direct' },
@@ -30,10 +46,17 @@ const BASE_ROWS = [
 export function plan(_src: string, _tgt: string, overridesJson?: string): unknown {
   const rows = BASE_ROWS.map((r) => ({ ...r }));
   if (overridesJson) {
-    const ov = JSON.parse(overridesJson) as { tgt?: { canon: string; note: number }[] };
+    const ov = JSON.parse(overridesJson) as {
+      tgt?: { canon: string; note: number }[];
+      src?: { note: number; canon: string }[];
+    };
     for (const o of ov.tgt ?? []) {
       const row = rows.find((r) => r.canon === o.canon);
       if (row) row.tgt_note = o.note;
+    }
+    for (const s of ov.src ?? []) {
+      const row = rows.find((r) => r.canon === s.canon);
+      if (row) row.src_note = s.note;
     }
   }
   return rows;

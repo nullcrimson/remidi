@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConvertButton } from '../src/components/ConvertButton';
 import { SummaryRow } from '../src/components/SummaryRow';
 
-const REPORT = { unmapped_source: {}, fallback_used: {}, dropped: {} };
+const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {} };
 
 type Res = { name: string; url: string; bytes: Uint8Array; report: typeof REPORT };
 const done = (results: Res[]) => ({ kind: 'done' as const, results, failures: [] });
@@ -29,6 +29,7 @@ describe('ConvertButton', () => {
         summary=""
         onConvert={() => {}}
         onReset={() => {}}
+        onViewReport={() => {}}
       />,
     );
     expect(screen.getByRole('button', { name: /Convert & download/i })).toBeDisabled();
@@ -44,6 +45,7 @@ describe('ConvertButton', () => {
         summary=""
         onConvert={onConvert}
         onReset={() => {}}
+        onViewReport={() => {}}
       />,
     );
     await userEvent.click(screen.getByRole('button', { name: /Convert & download/i }));
@@ -59,6 +61,7 @@ describe('ConvertButton', () => {
         summary=""
         onConvert={() => {}}
         onReset={() => {}}
+        onViewReport={() => {}}
       />,
     );
     expect(screen.getByText(/remapping/i)).toBeInTheDocument();
@@ -74,11 +77,29 @@ describe('ConvertButton', () => {
         summary="1 file · 3 remapped → EZD"
         onConvert={() => {}}
         onReset={() => {}}
+        onViewReport={() => {}}
       />,
     );
     const link = screen.getByRole('link', { name: /download .mid/i });
     expect(link).toHaveAttribute('href', 'blob:x');
     expect(link).toHaveAttribute('download', 'groove-ezd.mid');
+  });
+
+  it('opens the report via the View report link', async () => {
+    const onViewReport = vi.fn();
+    render(
+      <ConvertButton
+        conv={done([{ name: 'groove-ezd.mid', url: 'blob:x', bytes: new Uint8Array([1]), report: REPORT }])}
+        canConvert
+        targetShort="EZD"
+        summary="1 file · 3 remapped → EZD"
+        onConvert={() => {}}
+        onReset={() => {}}
+        onViewReport={onViewReport}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /View report/i }));
+    expect(onViewReport).toHaveBeenCalledOnce();
   });
 
   it('renders a zip link for multiple results', () => {
@@ -93,6 +114,7 @@ describe('ConvertButton', () => {
         summary="2 files · 6 remapped → EZD"
         onConvert={() => {}}
         onReset={() => {}}
+        onViewReport={() => {}}
       />,
     );
     expect(screen.getByRole('link', { name: /download all \(\.zip\)/i })).toHaveAttribute(
@@ -124,6 +146,7 @@ describe('ConvertButton', () => {
           summary="2 files"
           onConvert={() => {}}
           onReset={() => {}}
+        onViewReport={() => {}}
         />,
       );
       expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
@@ -135,6 +158,7 @@ describe('ConvertButton', () => {
           summary="2 files (rerendered)"
           onConvert={() => {}}
           onReset={() => {}}
+        onViewReport={() => {}}
         />,
       );
       expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
@@ -150,6 +174,7 @@ describe('ConvertButton', () => {
           summary="2 files"
           onConvert={() => {}}
           onReset={() => {}}
+        onViewReport={() => {}}
         />,
       );
       unmount();
@@ -165,6 +190,7 @@ describe('ConvertButton', () => {
           summary="1 file"
           onConvert={() => {}}
           onReset={() => {}}
+        onViewReport={() => {}}
         />,
       );
       expect(URL.createObjectURL).not.toHaveBeenCalled();

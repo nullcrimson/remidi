@@ -1,9 +1,4 @@
-import initWasm, {
-  engine_catalog,
-  engine_drums,
-  plan as wasmPlan,
-  remap as wasmRemap,
-} from '@wasm';
+type WasmModule = typeof import('@wasm');
 
 export interface Engine {
   id: string;
@@ -12,6 +7,13 @@ export interface Engine {
 
 export interface Overrides {
   tgt: { canon: string; note: number }[];
+  src: { note: number; canon: string }[];
+}
+
+export interface CanonInfo {
+  canon: string;
+  label: string;
+  family: string;
 }
 
 export interface Drum {
@@ -29,13 +31,19 @@ export interface VoiceRow {
   status: VoiceStatus;
 }
 export interface RemapReport {
-  unmapped_source: Record<string, number>;
-  fallback_used: Record<string, number>;
+  unmappedSource: Record<string, number>;
+  fallbackUsed: Record<string, number>;
   dropped: Record<string, number>;
 }
 export interface RemapResult {
   bytes: Uint8Array<ArrayBuffer>;
   report: RemapReport;
+}
+
+interface RawRemapReport {
+  unmapped_source: Record<string, number>;
+  fallback_used: Record<string, number>;
+  dropped: Record<string, number>;
 }
 
 interface RawVoiceRow {
@@ -46,26 +54,43 @@ interface RawVoiceRow {
   status: VoiceStatus;
 }
 
+let wasm: WasmModule | null = null;
 let initPromise: Promise<void> | null = null;
 
-/** Initialize the WASM module once; safe to call repeatedly. */
+/** Load and initialize the WASM module once; safe to call repeatedly. */
 export function ready(): Promise<void> {
   if (!initPromise) {
-    initPromise = Promise.resolve(initWasm()).then(() => undefined);
+    initPromise = import('@wasm').then(async (m) => {
+      await m.default();
+      wasm = m;
+    });
   }
   return initPromise;
 }
 
+function mod(): WasmModule {
+  if (!wasm) throw new Error('WASM module not initialized; await ready() first');
+  return wasm;
+}
+
 export function engines(): Engine[] {
-  return engine_catalog() as Engine[];
+  return mod().engine_catalog() as Engine[];
 }
 
 export function engineDrums(tgtId: string): Drum[] {
-  return engine_drums(tgtId) as Drum[];
+  return mod().engine_drums(tgtId) as Drum[];
+}
+
+export function engineNotes(srcId: string): Drum[] {
+  return mod().engine_notes(srcId) as Drum[];
+}
+
+export function canonCatalog(): CanonInfo[] {
+  return mod().canon_catalog() as CanonInfo[];
 }
 
 export function plan(src: string, tgt: string, ov?: Overrides): VoiceRow[] {
-  const raw = wasmPlan(src, tgt, ov ? JSON.stringify(ov) : undefined) as RawVoiceRow[];
+  const raw = mod().plan(src, tgt, ov ? JSON.stringify(ov) : undefined) as RawVoiceRow[];
   return raw.map((r) => ({
     canon: r.canon,
     label: r.label,
@@ -76,9 +101,16 @@ export function plan(src: string, tgt: string, ov?: Overrides): VoiceRow[] {
 }
 
 export function remap(mid: Uint8Array, src: string, tgt: string, ov?: Overrides): RemapResult {
-  const r = wasmRemap(mid, src, tgt, ov ? JSON.stringify(ov) : undefined) as {
+  const r = mod().remap(mid, src, tgt, ov ? JSON.stringify(ov) : undefined) as {
     bytes: number[];
-    report: RemapReport;
+    report: RawRemapReport;
   };
-  return { bytes: new Uint8Array(r.bytes), report: r.report };
+  return {
+    bytes: new Uint8Array(r.bytes),
+    report: {
+      unmappedSource: r.report.unmapped_source,
+      fallbackUsed: r.report.fallback_used,
+      dropped: r.report.dropped,
+    },
+  };
 }

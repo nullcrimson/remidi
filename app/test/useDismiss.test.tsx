@@ -3,9 +3,9 @@ import { useRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { useDismiss } from '../src/hooks/useDismiss';
 
-function Probe({ onDismiss }: { onDismiss: () => void }) {
+function Probe({ onDismiss, active }: { onDismiss: () => void; active?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  useDismiss(ref, onDismiss);
+  useDismiss(ref, onDismiss, active);
   return (
     <div>
       <div ref={ref} data-testid="box">
@@ -13,9 +13,6 @@ function Probe({ onDismiss }: { onDismiss: () => void }) {
           inside
         </button>
       </div>
-      <button type="button" data-notepick-trigger data-testid="trigger">
-        trigger
-      </button>
       <button type="button" data-testid="outside">
         outside
       </button>
@@ -38,10 +35,11 @@ describe('useDismiss', () => {
     expect(onDismiss).not.toHaveBeenCalled();
   });
 
-  it('ignores mousedown on a note-pick trigger', () => {
+  it('does not listen when inactive', () => {
     const onDismiss = vi.fn();
-    render(<Probe onDismiss={onDismiss} />);
-    fireEvent.mouseDown(screen.getByTestId('trigger'));
+    render(<Probe onDismiss={onDismiss} active={false} />);
+    fireEvent.mouseDown(screen.getByTestId('outside'));
+    fireEvent.keyDown(document, { key: 'Escape' });
     expect(onDismiss).not.toHaveBeenCalled();
   });
 

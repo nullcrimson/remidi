@@ -1,10 +1,10 @@
-import { useEffect, useRef } from "react";
-import { useDismiss } from "../hooks/useDismiss";
-import type { Drum } from "../lib/midiremap";
-import { noteName, type OctaveBase } from "../lib/notes";
-import { DrumList } from "./DrumList";
-import { OctaveTabs } from "./OctaveTabs";
-import { PianoKeyboard } from "./PianoKeyboard";
+import { useRef } from 'react';
+import { useRestoreFocus } from '../hooks/useRestoreFocus';
+import type { Drum } from '../lib/midiremap';
+import { noteName, type OctaveBase } from '../lib/notes';
+import { DrumList } from './DrumList';
+import { OctaveTabs } from './OctaveTabs';
+import { PianoKeyboard } from './PianoKeyboard';
 
 export function NotePicker({
   voiceLabel,
@@ -28,12 +28,7 @@ export function NotePicker({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  useDismiss(ref, onClose);
-  useEffect(() => {
-    const prev = document.activeElement as HTMLElement | null;
-    ref.current?.focus();
-    return () => prev?.focus();
-  }, []);
+  useRestoreFocus(ref);
   return (
     <div
       ref={ref}
@@ -70,7 +65,7 @@ export function NotePicker({
         <div className="min-w-0 flex-1">
           <DrumList drums={drums} currentNote={currentNote} base={base} onPickNote={onPickNote} />
         </div>
-        <div className="flex w-105 shrink-0 flex-col gap-3.25">
+        <div className="flex w-96 shrink-0 flex-col gap-3.25">
           <OctaveTabs value={octIndex} base={base} onChange={onSetOct} />
           <PianoKeyboard
             octIndex={octIndex}

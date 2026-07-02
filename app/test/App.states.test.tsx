@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const REPORT = { unmapped_source: {}, fallback_used: {}, dropped: {} };
+const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {} };
 
 describe('App states', () => {
   beforeEach(() => vi.resetModules());
@@ -18,6 +18,7 @@ describe('App states', () => {
     }));
     const { default: App } = await import('../src/App');
     render(<App />);
+    expect(screen.getByRole('heading', { name: 'Remidi' })).toBeInTheDocument();
     expect(screen.getByText(/Loading converter/i)).toBeInTheDocument();
   });
 
@@ -31,6 +32,7 @@ describe('App states', () => {
     }));
     const { default: App } = await import('../src/App');
     render(<App />);
+    expect(screen.getByRole('heading', { name: 'Remidi' })).toBeInTheDocument();
     expect(await screen.findByText(/Failed to load converter/i)).toBeInTheDocument();
     expect(screen.getByText(/wasm boom/)).toBeInTheDocument();
   });
@@ -50,7 +52,7 @@ describe('App states', () => {
     }));
     const { default: App } = await import('../src/App');
     render(<App />);
-    await screen.findByText('Remidi');
+    await screen.findByText('FROM');
     await userEvent.click(screen.getAllByRole('button', { name: 'GGD Invasion' })[0]);
     await userEvent.click(screen.getAllByRole('button', { name: 'EZdrummer' })[1]);
     await userEvent.upload(

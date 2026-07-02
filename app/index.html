@@ -45,6 +45,93 @@
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
       }
     </script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "HowTo",
+        "name": "How to convert drum MIDI",
+        "step": [
+          {
+            "@type": "HowToStep",
+            "name": "Add your files",
+            "text": "Drop one or more .mid files anywhere on the page, or click to choose."
+          },
+          {
+            "@type": "HowToStep",
+            "name": "Pick source and target",
+            "text": "Choose the engine your MIDI was written for and the engine you want it mapped to."
+          },
+          {
+            "@type": "HowToStep",
+            "name": "Fine-tune (optional)",
+            "text": "Open the editor to remap individual drums by note or from the drum list."
+          },
+          {
+            "@type": "HowToStep",
+            "name": "Download",
+            "text": "Get a single .mid, or a .zip when you convert several at once."
+          }
+        ]
+      }
+    </script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Is Remidi free?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. It runs entirely in your browser, with no account and no cost."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do my MIDI files get uploaded?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Conversion happens locally in your browser; files never leave your device."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I convert GetGood Drums MIDI to EZdrummer?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Add the .mid, set the source to GetGood Drums and the target to EZdrummer, then download the remapped file."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Which DAWs and octave conventions are supported?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Both common note-octave conventions are covered — toggle between C-1 (Reaper, Logic, Ableton, Guitar Pro) and C-2 (Studio One, Cubase, FL Studio) so note names match your DAW."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I convert multiple files at once?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Queue several .mid files and download them all as a single .zip."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What if a drum has no equivalent in the target engine?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Remidi uses per-slot fallback chains to pick the closest available voice, and reports anything it couldn't map."
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

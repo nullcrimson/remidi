@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use midiremap_core::{
-    plan as core_plan, remap_with_overrides, BuiltinMaps, MapProvider, Overrides, PlanStatus,
-    Report,
+    plan as core_plan, remap_with_overrides, BuiltinMaps, Canon, MapProvider, Overrides,
+    PlanStatus, Report,
 };
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
@@ -146,6 +146,45 @@ pub fn engine_drums(tgt_id: &str) -> Result<JsValue, JsValue> {
         })
         .collect();
     serde_wasm_bindgen::to_value(&drums).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+#[wasm_bindgen]
+pub fn engine_notes(src_id: &str) -> Result<JsValue, JsValue> {
+    let provider = BuiltinMaps::new();
+    let src = provider
+        .get(src_id)
+        .ok_or_else(|| JsValue::from_str("unknown source engine"))?;
+    let notes: Vec<DrumView> = src
+        .source_notes()
+        .into_iter()
+        .map(|d| DrumView {
+            note: d.note,
+            canon: d.canon.to_string(),
+            label: d.label,
+            family: d.family.to_string(),
+        })
+        .collect();
+    serde_wasm_bindgen::to_value(&notes).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+#[derive(Serialize)]
+struct CanonView {
+    canon: String,
+    label: String,
+    family: String,
+}
+
+#[wasm_bindgen]
+pub fn canon_catalog() -> Result<JsValue, JsValue> {
+    let items: Vec<CanonView> = Canon::all()
+        .into_iter()
+        .map(|c| CanonView {
+            canon: c.to_string(),
+            label: c.label(),
+            family: c.family().to_string(),
+        })
+        .collect();
+    serde_wasm_bindgen::to_value(&items).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
 #[derive(Serialize)]

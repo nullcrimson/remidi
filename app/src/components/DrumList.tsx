@@ -1,10 +1,10 @@
+import { useEffect, useRef } from 'react';
 import type { Drum } from '../lib/midiremap';
 import { noteName, type OctaveBase } from '../lib/notes';
 import { useTruncationTooltip } from '../hooks/useTruncationTooltip';
+import { FAMILY_ORDER } from '../lib/families';
 import { ListRow } from './ListRow';
 import { MonoLabel } from './MonoLabel';
-
-const FAMILY_ORDER = ['Kick', 'Snare', 'Toms', 'Hi-Hat', 'Cymbals', 'Percussion', 'Aux'];
 
 export function DrumList({
   drums,
@@ -18,13 +18,22 @@ export function DrumList({
   onPickNote: (note: number) => void;
 }) {
   const { show, hide, tooltip } = useTruncationTooltip();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const groups = FAMILY_ORDER.map((family) => ({
     family,
     items: drums.filter((d) => d.family === family),
   })).filter((g) => g.items.length > 0);
 
+  useEffect(() => {
+    const c = scrollRef.current;
+    const el = c?.querySelector<HTMLElement>('button[aria-pressed="true"]');
+    if (!c || !el) return;
+    c.scrollTop += el.getBoundingClientRect().top - c.getBoundingClientRect().top
+      - (c.clientHeight - el.clientHeight) / 2;
+  }, []);
+
   return (
-    <div className="mr-scroll flex max-h-64 flex-col gap-2 pr-1">
+    <div ref={scrollRef} className="mr-scroll flex max-h-64 flex-col gap-2 pr-1">
       {groups.map((g) => (
         <div key={g.family}>
           <MonoLabel className="mb-1">{g.family}</MonoLabel>

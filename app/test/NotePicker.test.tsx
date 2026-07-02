@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { NotePicker } from '../src/components/NotePicker';
@@ -43,44 +43,6 @@ describe('NotePicker', () => {
     await userEvent.click(screen.getByRole('button', { name: '2' }));
     expect(onSetOct).toHaveBeenCalledWith(2);
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
-    expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it('closes on outside mousedown', () => {
-    const onClose = vi.fn();
-    render(
-      <NotePicker
-        voiceLabel="Kick"
-        currentNote={60}
-        octIndex={4}
-        base="c1"
-        drums={[]}
-        onSetOct={() => {}}
-        onPickSemitone={() => {}}
-        onPickNote={() => {}}
-        onClose={onClose}
-      />,
-    );
-    fireEvent.mouseDown(document.body);
-    expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it('closes on Escape', () => {
-    const onClose = vi.fn();
-    render(
-      <NotePicker
-        voiceLabel="Kick"
-        currentNote={60}
-        octIndex={4}
-        base="c1"
-        drums={[]}
-        onSetOct={() => {}}
-        onPickSemitone={() => {}}
-        onPickNote={() => {}}
-        onClose={onClose}
-      />,
-    );
-    fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledOnce();
   });
 

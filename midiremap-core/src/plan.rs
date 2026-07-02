@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     canon::{Canon, DefaultFallbacks},
     engine_map::{Encoder, EngineMap},
@@ -24,9 +26,17 @@ pub fn plan(src: &EngineMap, tgt: &EngineMap, ov: &Overrides) -> Vec<VoicePlan> 
     let fb = DefaultFallbacks;
     let enc = ov.encoder(tgt);
     let translator = Translator::new(src, &enc, &fb);
+    let mut src_overrides: HashMap<Canon, u8> = HashMap::new();
+    for cn in &ov.src {
+        src_overrides.entry(cn.canon).or_insert(cn.note);
+    }
     let mut rows = Vec::new();
     for canon in Canon::all() {
-        let Some(src_note) = src.encode(canon) else {
+        let Some(src_note) = src_overrides
+            .get(&canon)
+            .copied()
+            .or_else(|| src.encode(canon))
+        else {
             continue;
         };
         let (tgt_note, status) = match translator.resolve_canon(canon) {
@@ -50,6 +60,7 @@ mod tests {
     use crate::{
         canon::{KickKind, SnareArtic},
         catalog::{BuiltinMaps, MapProvider},
+        engine_map::from_toml,
         Overrides,
     };
 
@@ -106,5 +117,47 @@ mod tests {
             &ov,
         );
         assert_eq!(find(&rows, "kick.main").tgt_note, Some(35));
+    }
+
+    #[test]
+    fn src_override_sets_row_src_note() {
+        let b = BuiltinMaps::new();
+        let ov: Overrides =
+            serde_json::from_str(r#"{"src":[{"canon":"kick.main","note":99}]}"#).unwrap();
+        let rows = plan(
+            b.get("ggd_invasion").unwrap(),
+            b.get("ezdrummer").unwrap(),
+            &ov,
+        );
+        assert_eq!(find(&rows, "kick.main").src_note, 99);
+    }
+
+    #[test]
+    fn src_override_introduces_row_absent_from_engine() {
+        let src = from_toml(
+            r#"
+                id = "s"
+                name = "S"
+                notes = [ { note = 24, canon = "kick.main", primary = true } ]
+            "#,
+        )
+        .unwrap();
+        let tgt = from_toml(
+            r#"
+                id = "t"
+                name = "T"
+                notes = [
+                  { note = 36, canon = "kick.main", primary = true },
+                  { note = 38, canon = "snare1.hit", primary = true },
+                ]
+            "#,
+        )
+        .unwrap();
+        let ov: Overrides =
+            serde_json::from_str(r#"{"src":[{"canon":"snare1.hit","note":60}]}"#).unwrap();
+        let rows = plan(&src, &tgt, &ov);
+        let snare = find(&rows, "snare1.hit");
+        assert_eq!(snare.src_note, 60);
+        assert_eq!(snare.tgt_note, Some(38));
     }
 }
