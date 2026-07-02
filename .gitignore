@@ -3,4 +3,7 @@
 /app/dist
 /app/src/wasm
 /tmp
+/mockups
+/CLAUDE.md
+/.claude
 *.mid
