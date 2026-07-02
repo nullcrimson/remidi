@@ -3,27 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Remidi — free in-browser drum MIDI converter</title>
+    <title>Remidi — free drum MIDI remapper & converter</title>
     <meta
       name="description"
-      content="Free in-browser tool that remaps drum MIDI between sample-engine note layouts — GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums, General MIDI, Guitar Pro."
+      content="Free in-browser drum MIDI remapper: remap and convert drum MIDI between sample-engine note layouts — GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums, General MIDI, Guitar Pro. MIDI remapping with per-slot fallbacks."
     />
     <meta name="robots" content="index,follow" />
     <link rel="canonical" href="https://nullcrimson.github.io/remidi/" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Remidi" />
-    <meta property="og:title" content="Remidi — free in-browser drum MIDI converter" />
+    <meta property="og:title" content="Remidi — free drum MIDI remapper & converter" />
     <meta
       property="og:description"
-      content="Free in-browser tool that remaps drum MIDI between sample-engine note layouts — GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums, General MIDI, Guitar Pro."
+      content="Free in-browser drum MIDI remapper: remap and convert drum MIDI between sample-engine note layouts — GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums, General MIDI, Guitar Pro."
     />
     <meta property="og:url" content="https://nullcrimson.github.io/remidi/" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Remidi — free in-browser drum MIDI converter" />
+    <meta name="twitter:title" content="Remidi — free drum MIDI remapper & converter" />
     <meta
       name="twitter:description"
-      content="Free in-browser tool that remaps drum MIDI between sample-engine note layouts."
+      content="Free in-browser drum MIDI remapper — remap drum MIDI between sample-engine note layouts."
     />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -136,12 +136,13 @@
   <body>
     <div id="root"></div>
     <noscript>
-      <h1>Remidi — free in-browser drum MIDI converter</h1>
+      <h1>Remidi — free drum MIDI remapper &amp; converter</h1>
       <p>
-        Remidi remaps a drum MIDI file written for one sample engine's note layout into another's —
-        for example GetGood Drums to EZdrummer, Superior Drummer, Addictive Drums, General MIDI, or
-        Guitar Pro — using a canonical drum vocabulary with per-slot fallbacks. Enable JavaScript to
-        use the converter.
+        Remidi is a free drum MIDI remapper. It remaps a drum MIDI file written for one sample
+        engine's note layout into another's — for example remapping GetGood Drums to EZdrummer,
+        Superior Drummer, Addictive Drums, General MIDI, or Guitar Pro — using a canonical drum
+        vocabulary with per-slot fallbacks. This MIDI remapping runs entirely in your browser;
+        enable JavaScript to use the converter.
       </p>
     </noscript>
     <script type="module" src="/src/main.tsx"></script>
