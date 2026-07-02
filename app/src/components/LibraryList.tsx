@@ -45,7 +45,7 @@ export function LibraryList({
           onFocus: (ev) => show(ev.currentTarget, e.name),
           onBlur: hide,
         }}
-        trailing={
+        trailing={(
           <button
             type="button"
             aria-pressed={fav}
@@ -54,18 +54,18 @@ export function LibraryList({
             className={`
               shrink-0 px-2 text-[13px] transition-colors
               ${
-                fav
-                  ? 'text-star [text-shadow:0_0_8px_rgba(224,196,106,0.55)]'
-                  : `
-                    text-t5
-                    hover:text-t2
-                  `
-              }
+          fav
+            ? 'text-star [text-shadow:0_0_8px_rgba(224,196,106,0.55)]'
+            : `
+              text-t5
+              hover:text-t2
+            `
+          }
             `}
           >
             {fav ? '★' : '☆'}
           </button>
-        }
+        )}
       >
         {e.name}
       </ListRow>
@@ -77,19 +77,22 @@ export function LibraryList({
       <MonoLabel className="mb-3">{label}</MonoLabel>
       <FilterInput value={q} onChange={setQ} ariaLabel={`Filter ${label} engines`} />
       <div className="mr-scroll flex max-h-60 flex-col">
-        {filtered.length === 0 ? (
-          <span className="py-1.75 pl-3 font-mono text-[11px] text-t5">no matches</span>
-        ) : (
-          <>
-            {starred.map(row)}
-            {starred.length > 0 && rest.length > 0 && (
-              <div data-testid="fav-divider" className="
-                my-1 border-t border-hairline
-              " />
+        {filtered.length === 0
+          ? (
+              <span className="py-1.75 pl-3 font-mono text-[11px] text-t5">no matches</span>
+            )
+          : (
+              <>
+                {starred.map(row)}
+                {starred.length > 0 && rest.length > 0 && (
+                  <div
+                    data-testid="fav-divider"
+                    className="my-1 border-t border-hairline"
+                  />
+                )}
+                {rest.map(row)}
+              </>
             )}
-            {rest.map(row)}
-          </>
-        )}
       </div>
       {tooltip}
     </div>

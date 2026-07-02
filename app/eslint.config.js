@@ -8,6 +8,17 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   { ignores: ['dist', 'coverage', 'src/wasm'] },
+  stylistic.configs.customize({
+    indent: 2,
+    quotes: 'single',
+    semi: true,
+    jsx: true,
+    commaDangle: 'always-multiline',
+    arrowParens: true,
+    braceStyle: '1tbs',
+    blockSpacing: true,
+    quoteProps: 'as-needed',
+  }),
   {
     files: ['src/**/*.{ts,tsx}'],
     extends: [
@@ -51,6 +62,7 @@ export default tseslint.config(
         'single',
         { avoidEscape: true, allowTemplateLiterals: 'always' },
       ],
+      '@stylistic/jsx-one-expression-per-line': 'off',
     },
   },
   {

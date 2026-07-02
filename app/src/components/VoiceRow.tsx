@@ -53,7 +53,8 @@ export function VoiceRow({
     >
       <div className="
         grid grid-cols-[1fr_auto_16px_auto] items-center gap-3 py-2
-      ">
+      "
+      >
         <span className="truncate text-[12.5px] text-t2">{row.label}</span>
         <button
           type="button"

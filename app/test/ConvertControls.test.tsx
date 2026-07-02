@@ -146,7 +146,7 @@ describe('ConvertButton', () => {
           summary="2 files"
           onConvert={() => {}}
           onReset={() => {}}
-        onViewReport={() => {}}
+          onViewReport={() => {}}
         />,
       );
       expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
@@ -158,7 +158,7 @@ describe('ConvertButton', () => {
           summary="2 files (rerendered)"
           onConvert={() => {}}
           onReset={() => {}}
-        onViewReport={() => {}}
+          onViewReport={() => {}}
         />,
       );
       expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
@@ -174,7 +174,7 @@ describe('ConvertButton', () => {
           summary="2 files"
           onConvert={() => {}}
           onReset={() => {}}
-        onViewReport={() => {}}
+          onViewReport={() => {}}
         />,
       );
       unmount();
@@ -190,7 +190,7 @@ describe('ConvertButton', () => {
           summary="1 file"
           onConvert={() => {}}
           onReset={() => {}}
-        onViewReport={() => {}}
+          onViewReport={() => {}}
         />,
       );
       expect(URL.createObjectURL).not.toHaveBeenCalled();

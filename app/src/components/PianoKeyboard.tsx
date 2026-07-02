@@ -45,16 +45,16 @@ export function PianoKeyboard({
               border-t-0 border-keyborder pb-1.75 font-mono text-[10px] text-ink
               transition
               ${
-              active
-                ? `
-                  bg-accent
-                  shadow-[0_0_10px_rgba(199,192,173,0.45),inset_0_0_0_2px_var(--color-keyinset)]
-                `
-                : `
-                  bg-keywhite
-                  hover:shadow-[0_0_14px_rgba(236,232,224,0.6)]
-                `
-            }
+          active
+            ? `
+              bg-accent
+              shadow-[0_0_10px_rgba(199,192,173,0.45),inset_0_0_0_2px_var(--color-keyinset)]
+            `
+            : `
+              bg-keywhite
+              hover:shadow-[0_0_14px_rgba(236,232,224,0.6)]
+            `
+          }
             `}
           >
             {w.l}
@@ -77,13 +77,13 @@ export function PianoKeyboard({
               absolute top-0 z-10 h-13.5 w-[8.6%] rounded-b-sm border
               border-black transition
               ${
-              active
-                ? 'bg-keyactive shadow-[0_0_10px_rgba(199,192,173,0.45)]'
-                : `
-                  bg-keyblack shadow-[0_2px_3px_rgba(0,0,0,0.5)]
-                  hover:shadow-[0_0_14px_rgba(236,232,224,0.55)]
-                `
-            }
+          active
+            ? 'bg-keyactive shadow-[0_0_10px_rgba(199,192,173,0.45)]'
+            : `
+              bg-keyblack shadow-[0_2px_3px_rgba(0,0,0,0.5)]
+              hover:shadow-[0_0_14px_rgba(236,232,224,0.55)]
+            `
+          }
             `}
           />
         );

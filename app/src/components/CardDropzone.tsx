@@ -52,15 +52,18 @@ export function CardDropzone({
         <div className="
           pointer-events-none fixed inset-0 z-50 flex flex-col items-center
           justify-center gap-3.5 bg-page/80 backdrop-blur-[3px]
-        ">
+        "
+        >
           <div className="
             flex flex-col items-center gap-3.5 rounded-card border-2
             border-dashed border-accent/45 px-16 py-12
-          ">
+          "
+          >
             <span className="
               flex size-12 items-center justify-center rounded-full border
               border-accent/40 font-display text-3xl leading-none text-accent
-            ">
+            "
+            >
               +
             </span>
             <span className="font-mono text-[10px] tracking-[0.18em] text-t3">

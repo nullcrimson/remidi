@@ -43,12 +43,12 @@ function parseOne(value: unknown): SavedMapping | null {
   if (typeof value !== 'object' || value === null) return null;
   const v = value as Record<string, unknown>;
   if (
-    typeof v.id !== 'string' ||
-    typeof v.name !== 'string' ||
-    typeof v.src !== 'string' ||
-    typeof v.tgt !== 'string' ||
-    typeof v.updatedAt !== 'number' ||
-    !Number.isFinite(v.updatedAt)
+    typeof v.id !== 'string'
+    || typeof v.name !== 'string'
+    || typeof v.src !== 'string'
+    || typeof v.tgt !== 'string'
+    || typeof v.updatedAt !== 'number'
+    || !Number.isFinite(v.updatedAt)
   ) {
     return null;
   }

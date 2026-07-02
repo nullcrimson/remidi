@@ -16,13 +16,13 @@ interface Selection {
   view: View;
 }
 
-type SelectionAction =
-  | { type: 'CHOOSE_SRC'; id: string }
-  | { type: 'CHOOSE_TGT'; id: string }
-  | { type: 'SWAP' }
-  | { type: 'TOGGLE_OCT' }
-  | { type: 'SET_VIEW'; view: View }
-  | { type: 'LOAD'; src: string; tgt: string };
+type SelectionAction
+  = | { type: 'CHOOSE_SRC'; id: string }
+    | { type: 'CHOOSE_TGT'; id: string }
+    | { type: 'SWAP' }
+    | { type: 'TOGGLE_OCT' }
+    | { type: 'SET_VIEW'; view: View }
+    | { type: 'LOAD'; src: string; tgt: string };
 
 const INITIAL: Selection = { src: '', tgt: '', oct: 'c1', view: 'convert' };
 

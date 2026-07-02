@@ -36,15 +36,15 @@ export function ListRow({
           ${className}
           border-l-2 text-left transition-colors
           ${
-            disabled
-              ? 'cursor-not-allowed border-transparent text-t6 opacity-40'
-              : selected
-                ? 'border-accent font-semibold text-t1'
-                : `
-                  border-transparent text-t4
-                  hover:text-t1
-                `
-          }
+    disabled
+      ? 'cursor-not-allowed border-transparent text-t6 opacity-40'
+      : selected
+        ? 'border-accent font-semibold text-t1'
+        : `
+          border-transparent text-t4
+          hover:text-t1
+        `
+    }
         `}
       >
         {children}

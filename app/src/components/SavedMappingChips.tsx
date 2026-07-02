@@ -25,7 +25,11 @@ export function SavedMappingChips({
   const known = (id: string) => engines.some((e) => e.id === id);
 
   return (
-    <div role="group" aria-label="Saved mappings" className="flex flex-col gap-2">
+    <div
+      role="group"
+      aria-label="Saved mappings"
+      className="flex flex-col gap-2"
+    >
       <span className="font-mono text-[10px] tracking-[0.14em] text-t5">
         SAVED
       </span>

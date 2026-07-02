@@ -41,9 +41,11 @@ export function ConvertButton({
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-0.75">
           <div className="flex items-center gap-2.5">
-            <a href={href} download={name} className="
-              text-[13.5px] font-semibold text-t1
-            ">
+            <a
+              href={href}
+              download={name}
+              className="text-[13.5px] font-semibold text-t1"
+            >
               {single ? '↓ download .mid' : '↓ download all (.zip)'}
             </a>
             <button
@@ -59,10 +61,14 @@ export function ConvertButton({
           </div>
           <span className="font-mono text-[11px] text-t4">{summary}</span>
         </div>
-        <button type="button" onClick={onReset} className="
-          text-[12px] text-t4
-          hover:text-t1
-        ">
+        <button
+          type="button"
+          onClick={onReset}
+          className="
+            text-[12px] text-t4
+            hover:text-t1
+          "
+        >
           again
         </button>
       </div>
@@ -73,7 +79,8 @@ export function ConvertButton({
       <div>
         <div className="
           mb-2.25 flex justify-between font-mono text-[11px] text-t4
-        ">
+        "
+        >
           <span>remapping</span>
           <span className="text-accent">…</span>
         </div>

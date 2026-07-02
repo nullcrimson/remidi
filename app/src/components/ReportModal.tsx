@@ -68,7 +68,8 @@ function Group({
       <div className={`
         font-mono text-[10px] tracking-[0.12em] uppercase
         ${color}
-      `}>
+      `}
+      >
         {title} <span className="text-t6">· {hint}</span>
       </div>
       {entries.map((e) => (
@@ -109,27 +110,32 @@ export function ReportModal({
   return (
     <Modal open={open} heading="Conversion report" onClose={onClose}>
       <div className="flex flex-col gap-5">
-        {view.clean ? (
-          <p>
-            <span className="font-semibold text-t1">Clean conversion</span> — every drum mapped
-            directly to {targetName}.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-5">
-            <p className="font-mono text-[11.5px] text-t4">{summaryLine(view)}</p>
-            <GroupList groups={view.groups} />
-            {view.files.length > 1 && (
-              <div className="flex flex-col gap-4 border-t border-hairline pt-4">
-                {lossyFiles.map((f) => (
-                  <div key={f.name} className="flex flex-col gap-2">
-                    <div className="font-mono text-[11px] text-t2">{f.name}</div>
-                    <GroupList groups={f.groups} />
+        {view.clean
+          ? (
+              <p>
+                <span className="font-semibold text-t1">Clean conversion</span> — every drum mapped
+                directly to {targetName}.
+              </p>
+            )
+          : (
+              <div className="flex flex-col gap-5">
+                <p className="font-mono text-[11.5px] text-t4">{summaryLine(view)}</p>
+                <GroupList groups={view.groups} />
+                {view.files.length > 1 && (
+                  <div className="
+                    flex flex-col gap-4 border-t border-hairline pt-4
+                  "
+                  >
+                    {lossyFiles.map((f) => (
+                      <div key={f.name} className="flex flex-col gap-2">
+                        <div className="font-mono text-[11px] text-t2">{f.name}</div>
+                        <GroupList groups={f.groups} />
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             )}
-          </div>
-        )}
         <ContactFooter />
       </div>
     </Modal>

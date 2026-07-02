@@ -2,25 +2,25 @@ import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { remap, type Overrides } from '../lib/midiremap';
 import { MID_EXT, type FileFailure, type FileResult, type LoadedFile } from '../lib/files';
 
-export type Conv =
-  | { kind: 'idle' }
-  | { kind: 'running' }
-  | { kind: 'done'; results: FileResult[]; failures: FileFailure[] }
-  | { kind: 'error'; failures: FileFailure[]; message: string };
+export type Conv
+  = | { kind: 'idle' }
+    | { kind: 'running' }
+    | { kind: 'done'; results: FileResult[]; failures: FileFailure[] }
+    | { kind: 'error'; failures: FileFailure[]; message: string };
 
 interface State {
   files: LoadedFile[];
   conv: Conv;
 }
 
-type Action =
-  | { type: 'ADD_FILES'; files: LoadedFile[] }
-  | { type: 'REMOVE_FILE'; name: string }
-  | { type: 'CLEAR_FILES' }
-  | { type: 'RESET_CONV' }
-  | { type: 'CONVERT_START' }
-  | { type: 'CONVERT_DONE'; results: FileResult[]; failures: FileFailure[] }
-  | { type: 'CONVERT_ERROR'; failures: FileFailure[]; message: string };
+type Action
+  = | { type: 'ADD_FILES'; files: LoadedFile[] }
+    | { type: 'REMOVE_FILE'; name: string }
+    | { type: 'CLEAR_FILES' }
+    | { type: 'RESET_CONV' }
+    | { type: 'CONVERT_START' }
+    | { type: 'CONVERT_DONE'; results: FileResult[]; failures: FileFailure[] }
+    | { type: 'CONVERT_ERROR'; failures: FileFailure[]; message: string };
 
 const INITIAL: State = { files: [], conv: { kind: 'idle' } };
 

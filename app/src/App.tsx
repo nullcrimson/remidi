@@ -88,11 +88,9 @@ export default function App() {
                 tgt: c.tgt,
                 edits: c.editor.edits,
                 srcEdits: c.editor.srcEdits,
-              })
-            }
+              })}
             onUpdatePreset={(id, name) =>
-              saved.update(id, { name, edits: c.editor.edits, srcEdits: c.editor.srcEdits })
-            }
+              saved.update(id, { name, edits: c.editor.edits, srcEdits: c.editor.srcEdits })}
           />
         </Card>
       </Page>
@@ -169,8 +167,7 @@ export default function App() {
                       tgt: m.tgt,
                       edits: m.edits,
                       srcEdits: m.srcEdits,
-                    })
-                  }
+                    })}
                   onDelete={saved.remove}
                 />
 
@@ -196,7 +193,8 @@ export default function App() {
                 {c.conv.kind === 'error' && c.error && (
                   <p className="
                     rounded-sm bg-danger/10 p-3 text-[12px] text-danger
-                  ">
+                  "
+                  >
                     Error: {c.error}
                   </p>
                 )}

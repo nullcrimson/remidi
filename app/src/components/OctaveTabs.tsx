@@ -21,9 +21,9 @@ export function OctaveTabs({
           className={`
             rounded-md border px-2.75 py-1.25 font-mono text-[11px]
             font-semibold
-            ${o === value ? 'border-accent bg-accent/15 text-t1' : `
-              border-field-border text-t4
-            `}
+            ${o === value
+          ? 'border-accent bg-accent/15 text-t1'
+          : `border-field-border text-t4`}
           `}
         >
           {octaveTabLabel(o, base)}

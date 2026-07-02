@@ -5,6 +5,8 @@ export function MonoLabel({ children, className = '' }: { children: ReactNode; c
     <div className={`
       ${className}
       font-mono text-[10px] tracking-[0.14em] text-t5
-    `}>{children}</div>
+    `}
+    >{children}
+    </div>
   );
 }

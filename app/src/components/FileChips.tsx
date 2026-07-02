@@ -31,7 +31,8 @@ export function FileChips({
   return (
     <div className="
       flex flex-wrap items-center gap-2 border-b border-hairline pb-4.5
-    ">
+    "
+    >
       {files.map((f) => {
         const error = failed.get(f.name);
         const bad = error !== undefined;
@@ -44,10 +45,10 @@ export function FileChips({
               flex max-w-full items-center gap-1.5 rounded-[7px] border py-1
               pr-1.5 pl-2.5
               ${
-                bad
-                  ? 'border-danger/40 bg-danger/5'
-                  : `border-field-border bg-field`
-              }
+          bad
+            ? 'border-danger/40 bg-danger/5'
+            : `border-field-border bg-field`
+          }
             `}
           >
             <MidBadge />
@@ -73,7 +74,8 @@ export function FileChips({
           <span className="
             text-[11px] text-t5
             hover:text-accent
-          ">
+          "
+          >
             + add more
           </span>
         </FilePicker>

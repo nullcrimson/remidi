@@ -73,7 +73,8 @@ function GuideBody() {
       <ol className="
         flex list-decimal flex-col gap-2 pl-5
         marker:text-t6
-      ">
+      "
+      >
         {STEPS.map((step) => (
           <li key={step.title}>
             <span className="font-medium text-t2">{step.title}</span> {step.body}
@@ -97,7 +98,8 @@ function EnginesBody() {
       <ul className="
         flex list-disc flex-col gap-1 pl-5
         marker:text-t6
-      ">
+      "
+      >
         {ENGINES.map((engine) => (
           <li key={engine}>{engine}</li>
         ))}
@@ -273,7 +275,8 @@ export function AboutContent() {
     <section className="flex w-full flex-col px-1">
       <div className="
         flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[12px]
-      ">
+      "
+      >
         {SECTIONS.map((s, i) => (
           <Fragment key={s.key}>
             {i > 0 && (

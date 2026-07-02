@@ -27,7 +27,7 @@ describe('buildReport', () => {
         result('a.mid', {
           dropped: { 'china.1.hit': 4 },
           fallbackUsed: { 'ride.1.bell': 3 },
-          unmappedSource: { '63': 1 },
+          unmappedSource: { 63: 1 },
         }),
       ],
       rows,

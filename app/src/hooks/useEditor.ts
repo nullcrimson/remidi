@@ -27,17 +27,17 @@ interface State {
   pick: Pick | null;
 }
 
-type Action =
-  | { type: 'OPEN_PICK'; canon: string; octIndex: number; side: PickSide; defaultNote: number | null }
-  | { type: 'SET_PICK_OCT'; octIndex: number }
-  | { type: 'CHOOSE_NOTE'; semitone: number }
-  | { type: 'CHOOSE_NOTE_ABS'; note: number }
-  | { type: 'CHOOSE_SRC_NOTE'; semitone: number }
-  | { type: 'SET_SRC_CANON'; note: number; canon: string }
-  | { type: 'CLEAR_SRC_CANON'; note: number }
-  | { type: 'CLOSE_PICK' }
-  | { type: 'RESET' }
-  | { type: 'LOAD'; edits: Edits; srcEdits: SrcEdits };
+type Action
+  = | { type: 'OPEN_PICK'; canon: string; octIndex: number; side: PickSide; defaultNote: number | null }
+    | { type: 'SET_PICK_OCT'; octIndex: number }
+    | { type: 'CHOOSE_NOTE'; semitone: number }
+    | { type: 'CHOOSE_NOTE_ABS'; note: number }
+    | { type: 'CHOOSE_SRC_NOTE'; semitone: number }
+    | { type: 'SET_SRC_CANON'; note: number; canon: string }
+    | { type: 'CLEAR_SRC_CANON'; note: number }
+    | { type: 'CLOSE_PICK' }
+    | { type: 'RESET' }
+    | { type: 'LOAD'; edits: Edits; srcEdits: SrcEdits };
 
 const INITIAL: State = { edits: {}, srcEdits: {}, pick: null };
 

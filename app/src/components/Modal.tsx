@@ -55,10 +55,12 @@ export function Modal({
       >
         <div className="
           flex items-center justify-between border-b border-hairline px-6 py-4
-        ">
+        "
+        >
           <h2 className="
             font-display text-[15px] font-semibold tracking-[0.01em] text-t1
-          ">
+          "
+          >
             {heading}
           </h2>
           <button
@@ -77,7 +79,8 @@ export function Modal({
         <div className="
           mr-scroll overflow-y-auto px-6 py-5 text-[13px] leading-relaxed
           text-t4
-        ">
+        "
+        >
           {children}
         </div>
       </div>

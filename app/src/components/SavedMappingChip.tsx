@@ -89,7 +89,8 @@ export function SavedMappingChip({
       <li className="
         flex items-stretch overflow-hidden rounded-[9px] border border-hairline
         bg-field
-      ">
+      "
+      >
         <div className="flex items-center gap-1 p-1">
           <input
             value={draft}
@@ -102,7 +103,8 @@ export function SavedMappingChip({
             }}
             className="
               w-32 min-w-0 rounded-md border border-field-border bg-field px-2
-              py-1.25 font-mono text-[11px] text-t2 transition-colors outline-none
+              py-1.25 font-mono text-[11px] text-t2 transition-colors
+              outline-none
               focus:border-accent/40
             "
           />
@@ -139,14 +141,16 @@ export function SavedMappingChip({
     <li className="
       flex items-stretch overflow-hidden rounded-[9px] border border-hairline
       bg-field
-    ">
+    "
+    >
       <button
         type="button"
         disabled={!known}
         onClick={() => onLoad(mapping)}
         title={known ? `${overrideCount} overrides` : 'engine unavailable'}
         className="
-          flex min-w-0 items-center gap-2 py-1.5 pr-2 pl-2.5 text-left text-[12px]
+          flex min-w-0 items-center gap-2 py-1.5 pr-2 pl-2.5 text-left
+          text-[12px]
           enabled:hover:bg-white/3
           disabled:opacity-40
         "
@@ -161,7 +165,11 @@ export function SavedMappingChip({
         aria-label={`Edit notes for ${mapping.name}`}
         disabled={!known}
         onClick={() => onEdit(mapping)}
-        className={`${ICON_BTN} enabled:hover:bg-white/5 enabled:hover:text-accent disabled:opacity-40`}
+        className={`
+          ${ICON_BTN}
+          enabled:hover:bg-white/5 enabled:hover:text-accent
+          disabled:opacity-40
+        `}
       >
         ✎
       </button>
@@ -172,7 +180,10 @@ export function SavedMappingChip({
         aria-haspopup="menu"
         aria-expanded={menuOpen}
         {...getReferenceProps()}
-        className={`${ICON_BTN} hover:bg-white/5 hover:text-t2`}
+        className={`
+          ${ICON_BTN}
+          hover:bg-white/5 hover:text-t2
+        `}
       >
         ⋯
       </button>
@@ -185,8 +196,9 @@ export function SavedMappingChip({
               style={floatingStyles}
               {...getFloatingProps()}
               className="
-                z-50 min-w-36 overflow-hidden rounded-[9px] border border-hairline
-                bg-ink p-1 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.7)]
+                z-50 min-w-36 overflow-hidden rounded-[9px] border
+                border-hairline bg-ink p-1
+                shadow-[0_10px_30px_-8px_rgba(0,0,0,0.7)]
               "
             >
               {items.map((it, i) => (
@@ -213,7 +225,15 @@ export function SavedMappingChip({
                       flex w-full items-center rounded-[6px] px-2.5 py-1.5
                       text-left text-[12px] transition-colors
                       disabled:opacity-40
-                      ${it.danger ? 'text-t3 hover:bg-danger/10 hover:text-danger' : 'text-t3 hover:bg-white/5 hover:text-t1'}
+                      ${it.danger
+                  ? `
+                    text-t3
+                    hover:bg-danger/10 hover:text-danger
+                  `
+                  : `
+                    text-t3
+                    hover:bg-white/5 hover:text-t1
+                  `}
                       ${i === activeIndex ? 'bg-white/5 text-t1' : ''}
                     `}
                   >

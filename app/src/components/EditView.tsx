@@ -63,12 +63,12 @@ function SavePreset({
   if (!naming) {
     return (
       <Tooltip
-        content={
+        content={(
           <TooltipBody title="Reuse this mapping">
             Saves the FROM→TO pair and your note overrides as a chip on the main
             screen — one click reloads it. Kept in this browser only.
           </TooltipBody>
-        }
+        )}
       >
         <button
           type="button"
@@ -107,50 +107,52 @@ function SavePreset({
             px-2.5 py-1.5 text-[13px] text-t1 outline-none
           "
         />
-        {existingPreset ? (
-          <>
-            <button
-              type="button"
-              onClick={saveUpdate}
-              disabled={!trimmed}
-              className="
-                rounded-[7px] bg-accent px-3 py-1.5 text-[12px] font-semibold
-                text-ink transition
-                enabled:hover:brightness-110
-                disabled:opacity-40
-              "
-            >
-              Update
-            </button>
-            <button
-              type="button"
-              onClick={saveNew}
-              disabled={!trimmed || atCap}
-              className="
-                rounded-[7px] border border-field-border px-3 py-1.5 text-[12px]
-                text-t3 transition-colors
-                enabled:hover:text-t1
-                disabled:opacity-40
-              "
-            >
-              Save new
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={saveNew}
-            disabled={!trimmed || atCap}
-            className="
-              rounded-[7px] bg-accent px-3 py-1.5 text-[12px] font-semibold
-              text-ink transition
-              enabled:hover:brightness-110
-              disabled:opacity-40
-            "
-          >
-            Save
-          </button>
-        )}
+        {existingPreset
+          ? (
+              <>
+                <button
+                  type="button"
+                  onClick={saveUpdate}
+                  disabled={!trimmed}
+                  className="
+                    rounded-[7px] bg-accent px-3 py-1.5 text-[12px]
+                    font-semibold text-ink transition
+                    enabled:hover:brightness-110
+                    disabled:opacity-40
+                  "
+                >
+                  Update
+                </button>
+                <button
+                  type="button"
+                  onClick={saveNew}
+                  disabled={!trimmed || atCap}
+                  className="
+                    rounded-[7px] border border-field-border px-3 py-1.5
+                    text-[12px] text-t3 transition-colors
+                    enabled:hover:text-t1
+                    disabled:opacity-40
+                  "
+                >
+                  Save new
+                </button>
+              </>
+            )
+          : (
+              <button
+                type="button"
+                onClick={saveNew}
+                disabled={!trimmed || atCap}
+                className="
+                  rounded-[7px] bg-accent px-3 py-1.5 text-[12px] font-semibold
+                  text-ink transition
+                  enabled:hover:brightness-110
+                  disabled:opacity-40
+                "
+              >
+                Save
+              </button>
+            )}
         <button
           type="button"
           aria-label="Cancel"
@@ -207,7 +209,8 @@ export function EditView({
     setSrcCanon,
     clearSrcCanon,
   } = editor;
-  const canSave = Object.keys(edits).length > 0 || Object.keys(srcEdits).length > 0;
+  const canSave
+    = Object.keys(edits).length > 0 || Object.keys(srcEdits).length > 0;
   const [advanced, setAdvanced] = useState(false);
   const srcOverridden = new Set(Object.values(srcEdits));
 
@@ -235,16 +238,22 @@ export function EditView({
       </div>
 
       <div className="grid grid-cols-[1fr_auto_16px_auto] gap-3 pb-1">
-        <span className="font-mono text-[9.5px] tracking-[0.14em] text-t5">DRUM</span>
-        <span className="
-          justify-self-end font-mono text-[9.5px] tracking-[0.14em] text-t5
-        ">
+        <span className="font-mono text-[9.5px] tracking-[0.14em] text-t5">
+          DRUM
+        </span>
+        <span
+          className="
+            justify-self-end font-mono text-[9.5px] tracking-[0.14em] text-t5
+          "
+        >
           SOURCE
         </span>
         <span />
-        <span className="
-          justify-self-end font-mono text-[9.5px] tracking-[0.14em] text-t5
-        ">
+        <span
+          className="
+            justify-self-end font-mono text-[9.5px] tracking-[0.14em] text-t5
+          "
+        >
           TARGET
         </span>
       </div>
@@ -264,7 +273,8 @@ export function EditView({
               tgtChanged={row.canon in edits}
               srcExpanded={srcExpanded}
               tgtExpanded={tgtExpanded}
-              onSrcToggle={() => (srcExpanded ? closePick() : openSrcPick(row.canon))}
+              onSrcToggle={() =>
+                srcExpanded ? closePick() : openSrcPick(row.canon)}
               onToggle={() => (tgtExpanded ? closePick() : openPick(row.canon))}
               onDismiss={closePick}
             >

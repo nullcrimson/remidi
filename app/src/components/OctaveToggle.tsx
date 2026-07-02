@@ -9,8 +9,8 @@ export function OctaveToggle({
   onToggle: () => void;
 }) {
   const label = value === 'c1' ? 'C-1' : 'C-2';
-  const daws =
-    value === 'c1'
+  const daws
+    = value === 'c1'
       ? 'Reaper · Logic · Ableton · Guitar Pro'
       : 'Studio One · Cubase · FL Studio';
   return (
@@ -18,13 +18,13 @@ export function OctaveToggle({
       <div className="flex items-center gap-2 text-[12.5px] text-t4">
         <span className="whitespace-nowrap">Octaves start at</span>
         <Tooltip
-          content={
+          content={(
             <TooltipBody title="Octave naming only">
               Sets which octave MIDI note 0 sits in, so note names match your
               DAW. Display label only — the notes written to the file never
               change.
             </TooltipBody>
-          }
+          )}
         >
           <button
             type="button"
