@@ -19,23 +19,26 @@ source .mid ──decode──▶ Canon ──encode──▶ target .mid
 ```
 
 When the target engine cannot play a canon directly, a **fallback chain** walks
-toward a coarser articulation it can play (e.g. `HatOpen3 → HatOpen2 → HatOpen1 →
-HatClosed`). If the chain is exhausted, the hit is **dropped** and recorded in a
-loss report. A source note with no canonical meaning is **unmapped** and dropped.
+toward a coarser articulation it can play (e.g. an open hi-hat steps toward a
+closed one: `hat.loose → hat.closed → hat.tight`). If the chain is exhausted, the
+hit is **dropped** and recorded in a loss report. A source note with no canonical
+meaning is **unmapped** and dropped.
 
 ## Workspace
 
-Three crates plus embedded engine presets:
+Three crates, a web app, and embedded engine presets:
 
-| Crate | Role | Depends on |
+| Component | Role | Depends on |
 |-------|------|------------|
-| `midiremap-core` | Pure engine. No I/O beyond parsing bytes handed to it. All the logic below. | `midly`, `serde`, `toml`, `serde_json`, `thiserror`, `strum` |
+| `midiremap-core` | Pure engine. No I/O beyond parsing bytes handed to it. All the logic below. | `midly`, `serde`, `toml`, `serde_json`, `thiserror` |
 | `midiremap-cli` | Offline `convert` / `list` binary. | core, `clap`, `anyhow` |
-| `midiremap-wasm` | Browser bindings for the React UI. | core, `wasm-bindgen`, `serde-wasm-bindgen` |
-| `engines/*.toml` | Preset note↔canon maps, embedded into core via `include_str!`. | — |
+| `midiremap-wasm` | Browser bindings for the web app. | core, `wasm-bindgen`, `serde-wasm-bindgen` |
+| `app/` | Vite + React + TypeScript converter UI over the WASM bindings. | Vite, React, Tailwind, Vitest |
+| `engines/*.toml` | Preset note↔canon maps, embedded into core via a generated `include_str!` slice. | — |
 
 `midiremap-core` never learns that `midly` or `std::fs` exist above its own
-`midi` module; the CLI and WASM layers own all real-world I/O and presentation.
+`midi` module; the CLI, WASM, and app layers own all real-world I/O and
+presentation.
 
 ## Core modules (`midiremap-core/src`)
 
@@ -53,16 +56,21 @@ conversion   ── end-to-end facade: bytes in → bytes + report out
    │             └── canon       ── Canon enum + FallbackResolver
 
 catalog     ── MapProvider: BuiltinMaps (embedded) + LayeredMaps (user maps)
-overrides   ── per-voice target note overrides, layered over an Encoder
+overrides   ── per-voice retargeting, layered over an Encoder and a Decoder
 plan        ── per-voice source→target table (for UI display), no MIDI
 ```
 
 ### `canon` — the hub vocabulary
 
-- `Canon`: a `Copy` fieldless enum of ~30 drum articulations (kicks, snare
-  variants, hats, toms, cymbals, aux). Derives `serde` (variant-name
-  (de)serialization), `strum::EnumIter` (exhaustiveness tests), and
-  `strum::IntoStaticStr` (stable string keys for JSON, used by the WASM layer).
+- `Canon`: a `Copy` hierarchical enum whose variants carry sub-enums and indices —
+  `Kick(KickKind)`, `Snare(u8, SnareArtic)`, `Tom(TomPos, TomArtic)`,
+  `Hat(HatOpen, HatZone)`, `Aux(u8, HatOpen, HatZone)`, cymbals, `Ride(u8, …)`,
+  and aux percussion. Each `Canon` serializes to a stable **dotted lowercase key**
+  via a hand-written `Serialize`/`Deserialize` (e.g. `kick.main`, `snare1.hit`,
+  `tom.rack1.hit`, `hat.closed`, `crash.1.bell`, `ride.1`); these keys are the
+  contract shared with the presets, JSON overrides, and the web app.
+- `Canon::all()` enumerates every variant (used by exhaustiveness tests and to
+  build the canon catalog), replacing an external iteration derive.
 - `FallbackResolver` trait + `DefaultFallbacks`: given a canon, returns its
   ordered, nearest-first list of usable alternatives.
 
@@ -124,25 +132,35 @@ empty chain. The `chains_terminate` test enforces this.
 ### `catalog` — where engine maps come from
 
 - `MapProvider` trait: `get(id)` / `ids()`.
-- `BuiltinMaps`: the six presets, embedded at compile time via `include_str!` and
-  parsed once. A malformed embedded preset is a startup panic (covered by tests).
+- `BuiltinMaps`: every `engines/*.toml` (dozens of presets), embedded at compile
+  time as a generated `embedded_engines::EMBEDDED` slice of `include_str!` sources
+  and parsed once into a map keyed by engine id. A malformed embedded preset is a
+  startup panic (covered by tests).
 - `LayeredMaps<P>`: user-supplied JSON maps layered over a base provider. Lookups
   hit overrides first, then the base — a user map *shadows* a builtin, never
   mutates it. `ids()` returns the union.
 
 ### `overrides` — per-voice retargeting
 
-- `Overrides { tgt: Vec<CanonNote> }` — "encode this canon as this note",
-  deserialized from `{ "tgt": [{ "canon", "note" }] }`.
+- `Overrides { tgt: Vec<CanonNote>, src: Vec<CanonNote> }`, deserialized from
+  `{ "tgt": [{ "canon", "note" }], "src": [{ "canon", "note" }] }`. `tgt` retargets
+  the *encode* side ("encode this canon as this note"); `src` retargets the
+  *decode* side ("read this source note as this canon"), which lets a note the
+  source engine doesn't map be rescued to a canon. Note values validate to
+  `0..=127`.
 - `OverrideEncoder` wraps a base `Encoder`: an overridden canon uses the override
-  note, everything else falls through to the base engine.
+  note; everything else falls through to the base engine.
+- `OverrideDecoder` wraps a base `Decoder`: an overridden source note decodes to
+  the chosen canon; everything else falls through to the base engine.
 
 ### `plan` — the source→target table (UI, no MIDI)
 
 - `plan(src, tgt, ov) → Vec<VoicePlan>`: one row per canon the *source* can
-  encode, in `Canon` declaration order, giving `{ canon, src_note, tgt_note,
-  status }` where status is `Direct | Fallback | Dropped`. Powers the converter
-  UI's mapping preview without touching a `.mid`.
+  produce, in `Canon::all()` order, giving `{ canon, src_note, tgt_note, status }`
+  where status is `Direct | Fallback | Dropped`. `ov` is the same `Overrides`
+  (`tgt` + `src`) used by conversion, so the preview matches the file the app
+  would download. Powers the converter UI's mapping preview without touching a
+  `.mid`.
 
 ## Engine preset format
 
@@ -152,20 +170,23 @@ Each `engines/*.toml` (and any user map, as JSON) is one engine:
 id   = "ggd_invasion"
 name = "GetGood Drums Invasion"
 notes = [
-  { note = 24, canon = "KickMain",    primary = true },
-  { note = 23, canon = "KickMain"                    },  # L kick, decode-only
-  { note = 26, canon = "SnareCenter", primary = true },
-  { note = 43, canon = "HatClosed",   primary = true },
+  { note = 24, canon = "kick.main",   primary = true },
+  { note = 25, canon = "kick.main"                    },  # duplicate note, decode-only
+  { note = 26, canon = "snare1.hit",  primary = true },
+  { note = 43, canon = "hat.closed",  primary = true },
 ]
 ```
 
 - `note` — MIDI note number `0..=127`.
-- `canon` — a `Canon` variant name.
+- `canon` — a canon's dotted string key (see the `canon` module).
 - `primary` — optional (default `false`); the note used when *encoding* this
   canon. Multiple notes may decode to the same canon; exactly one may be primary.
 
-Built-in engines: `ggd_invasion`, `ezdrummer`, `addictive_drums2`, `general_midi`,
-`guitar_pro`, `superior_drummer3`.
+Built-in presets: dozens of engines spanning GetGood Drums, Toontrack EZdrummer /
+Superior Drummer, Addictive Drums 2, BFD3, Steven Slate SSD5, Native Instruments,
+MixWave, ML Drums / Perfect Drums, e-kit and DAW-native drummers, General MIDI, and
+Guitar Pro. The full set is whatever `engines/*.toml` ships; `list` (CLI) and
+`engine_catalog` (WASM) enumerate the ids at runtime.
 
 ## Consumer surfaces
 
@@ -189,9 +210,44 @@ stderr. `list` prints available engine ids.
 - `remap(mid, src_id, tgt_id, overrides_json?) → { bytes, report }`
 - `plan(src_id, tgt_id, overrides_json?) → [{ canon, label, src_note, tgt_note, status }]`
 - `engine_catalog() → [{ id, name }]`
+- `engine_drums(tgt_id) → [{ note, canon, label, family }]` — the target's playable
+  voices, for the note editor's drum list.
+- `engine_notes(src_id) → [{ note, canon, label, family }]` — the source's notes,
+  for reassigning source notes.
+- `canon_catalog() → [{ canon, label, family }]` — the full canon vocabulary, for
+  the source-note canon picker.
 
-`Report`'s `Canon`/`u8` map keys are re-keyed to strings (via `IntoStaticStr`) so
-the payload serializes to plain JS objects.
+Because each `Canon` serializes directly to its dotted string key, `Report`'s
+`Canon`-keyed maps serialize to plain JS objects (the serializer is configured to
+emit maps as objects); no separate re-keying step is needed.
+
+### Web app (`app/`)
+
+Vite + React + TypeScript + Tailwind, tested with Vitest/Testing-Library. It never
+touches `.mid` bytes or the WASM edge directly; both are isolated so the rest of
+the UI is pure data.
+
+- **`lib/`** — framework-free logic and the boundary. `midiremap.ts` is the sole
+  WASM adapter: a single init promise, `unknown → typed` casts confined here, and
+  snake→camel normalization of the report and plan so the app never sees raw
+  bindings. Sibling pure modules cover notes, mapping (de)serialization, the loss
+  report builder, override assembly, file naming, and zipping.
+- **`hooks/`** — `useRemapper` is the facade the UI consumes. It composes
+  `useEngineCatalog` (load status + engine list), `useConverter` (files → results
+  + report), and `useEditor` (per-note edits, the live `plan` preview, and derived
+  counts) behind a stable return contract, plus a small selection reducer for
+  source/target/octave/view. `useEditor`'s result is exposed as one nested
+  `editor` bundle rather than a flat prop wall. Persistence lives in focused hooks
+  (`useSavedMappings`, `useFavorites`).
+- **`components/`** — the converter card (engine pickers, file chips, convert
+  button, summary), the note editor (`EditView` + note/source pickers), and shared
+  controlled-overlay modals (about/FAQ/engines/contact/terms, loss report). Modals
+  are controlled overlays, not `<dialog>`, because the test environment lacks
+  `showModal`.
+
+Edit preview and downloaded output share one source of truth: the editor's rows
+come from the core `plan` with the full overrides, so per-row target notes and
+fallback propagation match the converted file exactly.
 
 ## Design rules (enforced)
 

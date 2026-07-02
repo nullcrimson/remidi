@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MAPPINGS_KEY } from '../src/lib/mappings';
 
 vi.mock('../src/lib/midiremap', () => ({
   ready: () => Promise.resolve(),
@@ -21,6 +22,30 @@ vi.mock('../src/lib/midiremap', () => ({
 import App from '../src/App';
 
 describe('App edit view', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('edits a saved preset straight from its chip', async () => {
+    localStorage.setItem(
+      MAPPINGS_KEY,
+      JSON.stringify([
+        {
+          id: 'p1',
+          name: 'My kit',
+          src: 'ggd_invasion',
+          tgt: 'ezdrummer',
+          edits: { 'kick.main': 40 },
+          srcEdits: {},
+          updatedAt: 1,
+        },
+      ]),
+    );
+    render(<App />);
+    await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: 'Edit notes for My kit' }));
+    expect(screen.getByText('Edit mapping')).toBeInTheDocument();
+    expect(screen.getByText('GGD → EZD')).toBeInTheDocument();
+  });
+
   it('navigates to edit and back', async () => {
     render(<App />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());

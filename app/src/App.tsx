@@ -155,9 +155,23 @@ export default function App() {
                 <SavedMappingChips
                   mappings={saved.mappings}
                   engines={c.engines}
+                  atCap={saved.atCap}
                   onLoad={c.loadMapping}
-                  onDelete={saved.remove}
+                  onEdit={(m) => {
+                    c.loadMapping(m);
+                    c.setView('edit');
+                  }}
                   onRename={saved.rename}
+                  onDuplicate={(m) =>
+                    saved.save({
+                      name: `${m.name} copy`,
+                      src: m.src,
+                      tgt: m.tgt,
+                      edits: m.edits,
+                      srcEdits: m.srcEdits,
+                    })
+                  }
+                  onDelete={saved.remove}
                 />
 
                 <OctaveToggle value={c.oct} onToggle={c.toggleOct} />

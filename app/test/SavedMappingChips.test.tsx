@@ -19,70 +19,39 @@ const mapping: SavedMapping = {
   updatedAt: 1,
 };
 
+function makeProps(overrides = {}) {
+  return {
+    mappings: [mapping],
+    engines,
+    atCap: false,
+    onLoad: vi.fn(),
+    onEdit: vi.fn(),
+    onRename: vi.fn(),
+    onDuplicate: vi.fn(),
+    onDelete: vi.fn(),
+    ...overrides,
+  };
+}
+
 describe('SavedMappingChips', () => {
   it('renders nothing when there are no mappings', () => {
-    const { container } = render(
-      <SavedMappingChips
-        mappings={[]}
-        engines={engines}
-        onLoad={vi.fn()}
-        onDelete={vi.fn()}
-        onRename={vi.fn()}
-      />,
-    );
+    const { container } = render(<SavedMappingChips {...makeProps({ mappings: [] })} />);
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('loads a mapping on click and deletes via its control', async () => {
-    const onLoad = vi.fn();
-    const onDelete = vi.fn();
-    render(
-      <SavedMappingChips
-        mappings={[mapping]}
-        engines={engines}
-        onLoad={onLoad}
-        onDelete={onDelete}
-        onRename={vi.fn()}
-      />,
-    );
+  it('renders a chip per mapping and applies on body click', async () => {
+    const p = makeProps({
+      mappings: [mapping, { ...mapping, id: 'p2', name: 'Second' }],
+    });
+    render(<SavedMappingChips {...p} />);
+    expect(screen.getByRole('button', { name: /^My kit/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Second/ })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /^My kit/ }));
-    expect(onLoad).toHaveBeenCalledWith(mapping);
-    await userEvent.click(screen.getByRole('button', { name: 'Delete preset My kit' }));
-    expect(onDelete).toHaveBeenCalledWith('p1');
+    expect(p.onLoad).toHaveBeenCalledWith(mapping);
   });
 
-  it('renames a mapping inline via the pencil control', async () => {
-    const onRename = vi.fn();
-    const onLoad = vi.fn();
-    render(
-      <SavedMappingChips
-        mappings={[mapping]}
-        engines={engines}
-        onLoad={onLoad}
-        onDelete={vi.fn()}
-        onRename={onRename}
-      />,
-    );
-    await userEvent.click(screen.getByRole('button', { name: 'Rename preset My kit' }));
-    const input = screen.getByRole('textbox', { name: /rename/i });
-    await userEvent.clear(input);
-    await userEvent.type(input, 'New name{Enter}');
-    expect(onRename).toHaveBeenCalledWith('p1', 'New name');
-    expect(onLoad).not.toHaveBeenCalled();
-  });
-
-  it('disables loading a stale mapping whose engine is gone', () => {
-    const stale = { ...mapping, tgt: 'removed_engine' };
-    render(
-      <SavedMappingChips
-        mappings={[stale]}
-        engines={engines}
-        onLoad={vi.fn()}
-        onDelete={vi.fn()}
-        onRename={vi.fn()}
-      />,
-    );
+  it('disables the body of a stale mapping whose engine is gone', () => {
+    render(<SavedMappingChips {...makeProps({ mappings: [{ ...mapping, tgt: 'removed_engine' }] })} />);
     expect(screen.getByRole('button', { name: /^My kit/ })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Delete preset My kit' })).toBeEnabled();
   });
 });

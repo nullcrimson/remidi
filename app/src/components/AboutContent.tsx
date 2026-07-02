@@ -211,8 +211,10 @@ function TermsBody() {
         are used only to identify layout compatibility.
       </p>
       <p>
-        Conversion runs entirely in your browser — files are not uploaded or stored. Remidi may
-        change or shut down at any time. Using it means you accept these terms.
+        Conversion runs entirely in your browser — files are not uploaded or stored. Remidi
+        collects only anonymous, cookieless usage statistics (such as page views) to gauge
+        whether the tool is useful; your MIDI never leaves your device. Remidi may change or shut
+        down at any time. Using it means you accept these terms.
       </p>
     </div>
   );
