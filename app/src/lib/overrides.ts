@@ -1,7 +1,8 @@
 import type { Overrides } from './midiremap';
 
 export type Edits = Record<string, number>;
-export type SrcEdits = Record<number, string>;
+/** Source note → canon it plays, or null when the note is unassigned. */
+export type SrcEdits = Record<number, string | null>;
 
 export function editsToOverrides(edits: Edits, srcEdits: SrcEdits = {}): Overrides {
   return {

@@ -4,22 +4,37 @@ import { describe, expect, it, vi } from 'vitest';
 import { OctaveToggle } from '../src/components/OctaveToggle';
 
 describe('OctaveToggle', () => {
-  it('shows the current base and its DAWs', () => {
-    render(<OctaveToggle value="c1" onToggle={() => {}} />);
-    expect(screen.getByText('C-1')).toBeInTheDocument();
+  it('shows both bases with the current one checked, and its DAWs', () => {
+    render(<OctaveToggle value="c1" onChange={() => {}} />);
+    expect(screen.getByRole('radiogroup', { name: 'Octaves start at' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'C-1' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'C-2' })).not.toBeChecked();
     expect(screen.getByText(/Reaper/)).toBeInTheDocument();
   });
 
   it('shows c2 DAWs', () => {
-    render(<OctaveToggle value="c2" onToggle={() => {}} />);
-    expect(screen.getByText('C-2')).toBeInTheDocument();
+    render(<OctaveToggle value="c2" onChange={() => {}} />);
+    expect(screen.getByRole('radio', { name: 'C-2' })).toBeChecked();
     expect(screen.getByText(/Cubase/)).toBeInTheDocument();
   });
 
-  it('toggles on click', async () => {
-    const onToggle = vi.fn();
-    render(<OctaveToggle value="c1" onToggle={onToggle} />);
-    await userEvent.click(screen.getByText('C-1'));
-    expect(onToggle).toHaveBeenCalledOnce();
+  it('reports the clicked base', async () => {
+    const onChange = vi.fn();
+    render(<OctaveToggle value="c1" onChange={onChange} />);
+    await userEvent.click(screen.getByText('C-2'));
+    expect(onChange).toHaveBeenCalledWith('c2');
+  });
+
+  it('switches with the arrow keys', async () => {
+    const onChange = vi.fn();
+    render(<OctaveToggle value="c1" onChange={onChange} />);
+    screen.getByRole('radio', { name: 'C-1' }).focus();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(onChange).toHaveBeenCalledWith('c2');
+  });
+
+  it('has no separate switch button', () => {
+    render(<OctaveToggle value="c1" onChange={() => {}} />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });

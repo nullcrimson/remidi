@@ -12,11 +12,11 @@ import {
 export interface SavedMappings {
   mappings: SavedMapping[];
   atCap: boolean;
-  save: (input: { name: string; src: string; tgt: string; edits: Edits; srcEdits: SrcEdits }) => void;
+  /** Stores a new preset and returns its id, or null at the cap. */
+  save: (input: { name: string; src: string; tgt: string; edits: Edits; srcEdits: SrcEdits }) => string | null;
   update: (id: string, patch: { name?: string; edits?: Edits; srcEdits?: SrcEdits }) => void;
   rename: (id: string, name: string) => void;
   remove: (id: string) => void;
-  findPair: (src: string, tgt: string) => SavedMapping | undefined;
 }
 
 function load(): SavedMapping[] {
@@ -38,11 +38,13 @@ export function useSavedMappings(): SavedMappings {
     }
   }, [mappings]);
 
-  const save: SavedMappings['save'] = (input) =>
+  const save: SavedMappings['save'] = (input) => {
+    if (mappings.length >= MAPPINGS_CAP) return null;
+    const id = crypto.randomUUID();
     setMappings((prev) => {
       if (prev.length >= MAPPINGS_CAP) return prev;
       const created: SavedMapping = {
-        id: crypto.randomUUID(),
+        id,
         name: input.name,
         src: input.src,
         tgt: input.tgt,
@@ -52,6 +54,8 @@ export function useSavedMappings(): SavedMappings {
       };
       return sortByRecent([created, ...prev]);
     });
+    return id;
+  };
 
   const update: SavedMappings['update'] = (id, patch) =>
     setMappings((prev) =>
@@ -76,8 +80,5 @@ export function useSavedMappings(): SavedMappings {
   const remove: SavedMappings['remove'] = (id) =>
     setMappings((prev) => prev.filter((m) => m.id !== id));
 
-  const findPair: SavedMappings['findPair'] = (src, tgt) =>
-    mappings.find((m) => m.src === src && m.tgt === tgt);
-
-  return { mappings, atCap: mappings.length >= MAPPINGS_CAP, save, update, rename, remove, findPair };
+  return { mappings, atCap: mappings.length >= MAPPINGS_CAP, save, update, rename, remove };
 }

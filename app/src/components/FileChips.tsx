@@ -1,30 +1,43 @@
-import type { FileFailure, LoadedFile } from '../lib/files';
+import type { FileFailure, LoadedFile, OnFiles } from '../lib/files';
 import { FilePicker } from './FilePicker';
 import { MidBadge } from './MidBadge';
 
 export function FileChips({
   files,
   failures,
+  skipped = [],
   onFiles,
   onRemove,
   onClear,
 }: {
   files: LoadedFile[];
   failures: FileFailure[];
-  onFiles: (files: LoadedFile[]) => void;
+  skipped?: string[];
+  onFiles: OnFiles;
   onRemove: (name: string) => void;
   onClear: () => void;
 }) {
+  const skippedLine = skipped.length > 0 && (
+    <p role="status" className="w-full text-[12.5px] text-t4">
+      Skipped {skipped.join(', ')} — only .mid and .midi files
+    </p>
+  );
   if (files.length === 0) {
     return (
-      <FilePicker onFiles={onFiles}>
-        <div className="flex items-center gap-3 border-b border-hairline pb-4.5">
-          <MidBadge />
-          <span className="flex-1 text-[16px] text-t4">
-            Drop a .mid anywhere, or click to choose
-          </span>
-        </div>
-      </FilePicker>
+      <div className="flex flex-col gap-2">
+        <FilePicker onFiles={onFiles}>
+          <div className="
+            flex items-center gap-3 border-b border-hairline pb-4.5
+          "
+          >
+            <MidBadge />
+            <span className="flex-1 text-[16px] text-t4">
+              Drop a .mid anywhere, or click to choose
+            </span>
+          </div>
+        </FilePicker>
+        {skippedLine}
+      </div>
     );
   }
   const failed = new Map(failures.map((f) => [f.name, f.error]));
@@ -90,6 +103,7 @@ export function FileChips({
           clear all
         </button>
       </div>
+      {skippedLine}
     </div>
   );
 }

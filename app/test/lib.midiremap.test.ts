@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { engines, plan, ready, remap } from '../src/lib/midiremap';
+import * as stub from './stubs/wasm';
 import { REMAP_BYTES } from './stubs/wasm';
 
 describe('midiremap wrapper', () => {
@@ -17,6 +18,12 @@ describe('midiremap wrapper', () => {
     expect(kick.tgtNote).toBe(36);
     expect(kick.defaultTgtNote).toBe(36);
     expect(rows.find((r) => r.canon === 'china.1.hit')!.tgtNote).toBeNull();
+  });
+
+  it('turns missing notes into null', () => {
+    const cc = plan('ggd_invasion', 'ezdrummer').find((r) => r.canon === 'hat.cc')!;
+    expect(cc.tgtNote).toBeNull();
+    expect(cc.defaultTgtNote).toBeNull();
   });
 
   it('applies a target override to the plan', () => {
@@ -42,5 +49,14 @@ describe('midiremap wrapper', () => {
     expect(out.report.dropped).toEqual({ 'china.1.hit': 1 });
     expect(out.report.fallbackUsed).toEqual({ 'hat.open3': { note: 46, count: 2 } });
     expect(out.report.unmappedSource).toEqual({});
+    expect(out.report.untouched).toBe(5);
+    expect(out.report.converted).toBe(40);
+  });
+
+  it('passes the channel to the converter', () => {
+    remap(new Uint8Array([0]), 'ggd_invasion', 'ezdrummer', undefined, '10');
+    expect(stub.lastRemapChannel).toBe('10');
+    remap(new Uint8Array([0]), 'ggd_invasion', 'ezdrummer');
+    expect(stub.lastRemapChannel).toBeUndefined();
   });
 });

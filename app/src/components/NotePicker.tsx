@@ -61,11 +61,19 @@ export function NotePicker({
           ×
         </button>
       </div>
-      <div className="flex gap-4">
+      <div className="
+        flex flex-col gap-4
+        sm:flex-row
+      "
+      >
         <div className="min-w-0 flex-1">
           <DrumList drums={drums} currentNote={currentNote} base={base} onPickNote={onPickNote} />
         </div>
-        <div className="flex w-96 shrink-0 flex-col gap-3.25">
+        <div className="
+          flex w-full shrink-0 flex-col gap-3.25
+          sm:w-96
+        "
+        >
           <OctaveTabs value={octIndex} base={base} onChange={onSetOct} />
           <PianoKeyboard
             octIndex={octIndex}

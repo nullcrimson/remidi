@@ -240,3 +240,49 @@ fn channel_scope_parses_cli_values() {
         assert!(bad.parse::<ChannelScope>().is_err(), "{bad:?}");
     }
 }
+
+#[test]
+fn untouched_counts_hits_in_skipped_tracks() {
+    let bass: &[Ev] = &[
+        (0, BASS, on(24)),
+        (0, BASS, silent_on(24)),
+        (0, BASS, choke(24)),
+        (0, BASS, off(24)),
+        (0, BASS, on(99)),
+    ];
+    let midi = smf_tracks(&[&[(0, DRUMS, on(24))], bass]);
+    assert_eq!(ggd_to_ezd(&midi, ChannelScope::Auto).report.untouched, 2);
+}
+
+#[test]
+fn untouched_counts_hits_on_rejected_channels() {
+    let midi = smf_from(&[
+        (0, DRUMS, on(24)),
+        (0, DRUMS, silent_on(24)),
+        (0, DRUMS, off(24)),
+        (0, BASS, on(24)),
+    ]);
+    let out = ggd_to_ezd(&midi, "1".parse().unwrap());
+    assert_eq!(out.report.untouched, 1);
+}
+
+#[test]
+fn nothing_is_untouched_when_every_channel_is_converted() {
+    let midi = smf_tracks(&[&[(0, DRUMS, on(24))], &[(0, BASS, on(24))]]);
+    let out = ggd_to_ezd(&midi, ChannelScope::All);
+    assert_eq!(out.report.untouched, 0);
+    let json = serde_json::to_value(&out.report).unwrap();
+    assert_eq!(json["untouched"], 0);
+}
+
+#[test]
+fn converted_counts_hits_written_to_the_output() {
+    let midi = smf_from(&[
+        (0, DRUMS, on(24)),
+        (0, DRUMS, silent_on(24)),
+        (0, DRUMS, on(99)),
+        (0, BASS, on(24)),
+    ]);
+    assert_eq!(ggd_to_ezd(&midi, ChannelScope::Auto).report.converted, 2);
+    assert_eq!(ggd_to_ezd(&midi, "2".parse().unwrap()).report.converted, 0);
+}

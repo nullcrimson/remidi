@@ -90,6 +90,10 @@ pub struct Report {
     pub unmapped_source: BTreeMap<Note, u32>,
     pub fallback_used: BTreeMap<Canon, FallbackTally>,
     pub dropped: BTreeMap<Canon, u32>,
+    /// Note hits left as they were because the channel scope did not select them.
+    pub untouched: u32,
+    /// Note hits written to the output, directly or on a substitute.
+    pub converted: u32,
 }
 
 fn string_keys<S: Serializer>(map: &BTreeMap<Note, u32>, s: S) -> Result<S::Ok, S::Error> {
@@ -97,11 +101,12 @@ fn string_keys<S: Serializer>(map: &BTreeMap<Note, u32>, s: S) -> Result<S::Ok, 
 }
 
 impl Report {
-    /// Tallies one source hit; direct hits are not recorded.
+    /// Tallies one source hit; direct hits only count as converted.
     pub fn record(&mut self, source_note: Note, resolution: &Resolution) {
         match resolution {
             Resolution::Unmapped => *self.unmapped_source.entry(source_note).or_default() += 1,
             Resolution::Resolved(CanonResolution::Fallback { canon, note }) => {
+                self.converted += 1;
                 self.fallback_used
                     .entry(*canon)
                     .or_insert(FallbackTally {
@@ -113,7 +118,7 @@ impl Report {
             Resolution::Resolved(CanonResolution::Dropped { canon }) => {
                 *self.dropped.entry(*canon).or_default() += 1
             }
-            Resolution::Resolved(CanonResolution::Direct { .. }) => {}
+            Resolution::Resolved(CanonResolution::Direct { .. }) => self.converted += 1,
         }
     }
 }
@@ -245,6 +250,7 @@ mod tests {
             Some(&1)
         );
         assert!(!r.unmapped_source.contains_key(&n(12)));
+        assert_eq!(r.converted, 2);
     }
 
     #[test]
@@ -263,7 +269,7 @@ mod tests {
         }
         assert_eq!(
             serde_json::to_string(&r).unwrap(),
-            r#"{"unmapped_source":{"5":2,"12":1,"99":1},"fallback_used":{},"dropped":{"china.1.hit":1,"splash.1.hit":1}}"#
+            r#"{"unmapped_source":{"5":2,"12":1,"99":1},"fallback_used":{},"dropped":{"china.1.hit":1,"splash.1.hit":1},"untouched":0,"converted":0}"#
         );
     }
 }

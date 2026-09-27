@@ -1,3 +1,5 @@
+import type { Channel } from './channel';
+
 type WasmModule = typeof import('@wasm');
 
 export interface Engine {
@@ -7,7 +9,7 @@ export interface Engine {
 
 export interface Overrides {
   tgt: { canon: string; note: number }[];
-  src: { note: number; canon: string }[];
+  src: { note: number; canon: string | null }[];
 }
 
 export interface CanonInfo {
@@ -39,6 +41,8 @@ export interface RemapReport {
   unmappedSource: Record<string, number>;
   fallbackUsed: Record<string, FallbackTally>;
   dropped: Record<string, number>;
+  untouched: number;
+  converted: number;
 }
 export interface RemapResult {
   bytes: Uint8Array<ArrayBuffer>;
@@ -49,14 +53,16 @@ interface RawRemapReport {
   unmapped_source: Record<string, number>;
   fallback_used: Record<string, FallbackTally>;
   dropped: Record<string, number>;
+  untouched: number;
+  converted: number;
 }
 
 interface RawVoiceRow {
   canon: string;
   label: string;
   src_notes: number[];
-  tgt_note: number | null;
-  default_tgt_note: number | null;
+  tgt_note?: number | null;
+  default_tgt_note?: number | null;
   status: VoiceStatus;
 }
 
@@ -101,14 +107,20 @@ export function plan(src: string, tgt: string, ov?: Overrides): VoiceRow[] {
     canon: r.canon,
     label: r.label,
     srcNotes: r.src_notes,
-    tgtNote: r.tgt_note,
-    defaultTgtNote: r.default_tgt_note,
+    tgtNote: r.tgt_note ?? null,
+    defaultTgtNote: r.default_tgt_note ?? null,
     status: r.status,
   }));
 }
 
-export function remap(mid: Uint8Array, src: string, tgt: string, ov?: Overrides): RemapResult {
-  const r = mod().remap(mid, src, tgt, ov ? JSON.stringify(ov) : undefined) as {
+export function remap(
+  mid: Uint8Array,
+  src: string,
+  tgt: string,
+  ov?: Overrides,
+  channel?: Channel,
+): RemapResult {
+  const r = mod().remap(mid, src, tgt, ov ? JSON.stringify(ov) : undefined, channel) as {
     bytes: Uint8Array<ArrayBuffer>;
     report: RawRemapReport;
   };
@@ -118,6 +130,8 @@ export function remap(mid: Uint8Array, src: string, tgt: string, ov?: Overrides)
       unmappedSource: r.report.unmapped_source,
       fallbackUsed: r.report.fallback_used,
       dropped: r.report.dropped,
+      untouched: r.report.untouched,
+      converted: r.report.converted,
     },
   };
 }

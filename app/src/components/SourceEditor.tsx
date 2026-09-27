@@ -61,7 +61,7 @@ function SourceEditorRow({
                   : `truncate text-danger`
             }
           >
-            {current ? label : 'unmapped'}
+            {current ? label : changed ? '— unassigned' : 'unmapped'}
           </span>
         </button>
         {changed && (
@@ -143,7 +143,7 @@ export function SourceEditor({
     <div className="flex flex-col gap-1">
       {rowNotes.map((note) => {
         const override = srcEdits[note];
-        const current = override ?? baseCanon.get(note) ?? null;
+        const current = override === undefined ? (baseCanon.get(note) ?? null) : override;
         return (
           <SourceEditorRow
             key={note}

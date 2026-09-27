@@ -102,9 +102,9 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
   - `from_canon: HashMap<Canon, Note>` — encode direction. A note flagged
     `primary` wins the reverse mapping; a duplicate primary for one canon is a
     build error. Non-primary notes fill a canon only if no primary claimed it.
-- `with_source_overrides(&[CanonNote])` / `with_target_overrides(&[CanonNote])`
+- `with_source_overrides(&[SrcNote])` / `with_target_overrides(&[CanonNote])`
   return a patched copy (decode or encode side); the last entry for a note or canon
-  wins.
+  wins. A source entry without a canon removes the note from the decode side.
 
 ### `translate` — the pipeline, no MIDI
 
@@ -121,7 +121,9 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
   - Every `CanonResolution` carries the canon it resolved.
 - `Report::record` keeps the counting policy in one place: it tallies unmapped
   source notes, fallbacks used (with the target note each one landed on), and
-  dropped canons; direct hits are not recorded. Its `BTreeMap`s serialize in a
+  dropped canons; direct hits are not recorded. `converted` counts hits written to
+  the output (direct or approximated); `untouched` counts note-ons the channel scope
+  left alone, which are not loss. Its `BTreeMap`s serialize in a
   stable order, note keys as strings, so the CLI and WASM print the same JSON.
 
 ### `table` — the single source of truth
@@ -151,7 +153,8 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
     deltas saturate at the `u28` maximum instead of wrapping.
   - Every other event, and every event on a rejected channel, passes through
     untouched.
-  - Each real note-on (velocity > 0) is reported once.
+  - Each real note-on (velocity > 0) is reported once; those on a rejected
+    channel or skipped track count as `untouched`.
 
   No active `(channel, note)` tracking is needed: translation is a pure function
   of the note number, so a note-on and its note-off resolve identically and stay
@@ -180,12 +183,13 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
 
 ### `overrides` — per-voice retargeting
 
-- `Overrides { tgt: Vec<CanonNote>, src: Vec<CanonNote> }`, deserialized from
-  `{ "tgt": [{ "canon", "note" }], "src": [{ "canon", "note" }] }`. `tgt` retargets
+- `Overrides { tgt: Vec<CanonNote>, src: Vec<SrcNote> }`, deserialized from
+  `{ "tgt": [{ "canon", "note" }], "src": [{ "note", "canon" | null }] }`. `tgt` retargets
   the *encode* side ("encode this canon as this note"); `src` retargets the
   *decode* side ("read this source note as this canon"), which lets a note the
-  source engine doesn't map be rescued to a canon. Notes are `Note`s, so an
-  out-of-range value fails deserialization.
+  source engine doesn't map be rescued to a canon, or (with `canon: null`) a note it
+  does map be unassigned — how the editor replaces a drum's source note. Notes are
+  `Note`s, so an out-of-range value fails deserialization.
 - `Mapping::new` applies them through `EngineMap::with_source_overrides` and
   `with_target_overrides`; anything not overridden falls through to the engine.
 
@@ -251,7 +255,8 @@ available engine ids.
 
 `wasm-bindgen` exports for the browser app:
 
-- `remap(mid, src_id, tgt_id, overrides_json?) → { bytes, report }`
+- `remap(mid, src_id, tgt_id, overrides_json?, channel?) → { bytes, report }` —
+  `channel` is `auto` (the default), `all` or `1`-`16`.
 - `plan(src_id, tgt_id, overrides_json?) → [{ canon, label, src_notes, tgt_note, default_tgt_note, status }]`
 - `engine_catalog() → [{ id, name }]`
 - `engine_drums(tgt_id) → [{ note, canon, label, family }]` — the target's playable
@@ -261,7 +266,8 @@ available engine ids.
 - `canon_catalog() → [{ canon, label, family }]` — the full canon vocabulary, for
   the source-note canon picker.
 
-`remap` calls `convert` with `ChannelScope::Auto` and serializes `Report` directly:
+Every export serializes through one helper that writes maps as objects and missing
+values as `null`. `remap` calls `convert` with the parsed `ChannelScope` and serializes `Report` directly:
 canons serialize to their dotted keys and notes to strings, so every map becomes a
 plain JS object (the serializer emits maps as objects), and converted bytes arrive
 as a `Uint8Array`.
@@ -287,7 +293,7 @@ the UI is pure data.
   `useEngineCatalog` (load status + engine list), `useConverter` (files → results
   + report), and `useEditor` (per-note edits, the live `plan` preview, and derived
   counts) behind a stable return contract, plus a small selection reducer for
-  source/target/octave/view. `useEditor`'s result is exposed as one nested
+  source/target/octave/channel/view. `useEditor`'s result is exposed as one nested
   `editor` bundle rather than a flat prop wall. Persistence lives in focused hooks
   (`useSavedMappings`, `useFavorites`).
 - **`components/`** — the converter card (engine pickers, file chips, convert
@@ -300,7 +306,10 @@ Edit preview and downloaded output share one source of truth: the editor's rows
 come from the core `plan`, a view of the same `NoteTable` the converter uses, so
 per-row target notes and fallback propagation match the converted file exactly.
 The loss report labels substitutes from the target note recorded during
-conversion, not from the live rows.
+conversion, not from the live rows. The drum channel picker beside the octave
+picker (Auto by default, not saved with mappings) is passed to every conversion;
+notes it leaves alone are shown on the done card and in the report as unchanged,
+not as loss.
 
 ## Design rules (enforced)
 

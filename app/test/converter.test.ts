@@ -8,7 +8,7 @@ vi.mock('../src/lib/midiremap', () => ({
 
 import { createConverter, type BatchRequest } from '../src/lib/converter';
 
-const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {} };
+const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 };
 const FILES = [{ name: 'a.mid', bytes: new Uint8Array([1]) }];
 
 class FakeWorker {
@@ -42,11 +42,12 @@ describe('createConverter', () => {
     const { convert } = createConverter(make);
     expect(make).not.toHaveBeenCalled();
 
-    const first = convert(FILES, 'ggd_invasion', 'ezdrummer');
-    const second = convert(FILES, 'ggd_invasion', 'superior_drummer3');
+    const first = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto');
+    const second = convert(FILES, 'ggd_invasion', 'superior_drummer3', undefined, '10');
     expect(make).toHaveBeenCalledOnce();
     expect(worker.sent.map((m) => m.tgt)).toEqual(['ezdrummer', 'superior_drummer3']);
     expect(worker.sent[0].files).toEqual(FILES);
+    expect(worker.sent.map((m) => m.channel)).toEqual(['auto', '10']);
 
     worker.reply(worker.sent[1].id, 'second');
     worker.reply(worker.sent[0].id, 'first');
@@ -59,9 +60,10 @@ describe('createConverter', () => {
     const { convert } = createConverter(() => {
       throw new ReferenceError('Worker is not defined');
     });
-    const result = await convert(FILES, 'ggd_invasion', 'ezdrummer');
+    const result = await convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'all');
     expect(Array.from(result.ok[0].bytes)).toEqual([7]);
     expect(remapMock).toHaveBeenCalledOnce();
+    expect(remapMock.mock.calls[0][4]).toBe('all');
   });
 
   it('finishes pending and later batches on the main thread after a worker error', async () => {
@@ -69,12 +71,13 @@ describe('createConverter', () => {
     const make = vi.fn(() => worker as unknown as Worker);
     const { convert } = createConverter(make);
 
-    const pending = convert(FILES, 'ggd_invasion', 'ezdrummer');
+    const pending = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, '3');
     worker.onerror?.(new Event('error'));
     expect(Array.from((await pending).ok[0].bytes)).toEqual([7]);
+    expect(remapMock.mock.calls[0][4]).toBe('3');
     expect(worker.terminated).toBe(true);
 
-    await convert(FILES, 'ggd_invasion', 'ezdrummer');
+    await convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto');
     expect(make).toHaveBeenCalledOnce();
     expect(remapMock).toHaveBeenCalledTimes(2);
   });

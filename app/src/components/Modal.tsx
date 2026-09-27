@@ -1,5 +1,23 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
+
+function keepFocusInside(dialog: HTMLElement, e: KeyboardEvent) {
+  const items = [...dialog.querySelectorAll<HTMLElement>(FOCUSABLE)];
+  if (items.length === 0) return;
+  const first = items[0];
+  const last = items[items.length - 1];
+  const active = document.activeElement;
+  const outside = !dialog.contains(active);
+  if (e.shiftKey && (active === first || active === dialog || outside)) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && (active === last || outside)) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
 export function Modal({
   open,
   heading,
@@ -18,6 +36,7 @@ export function Modal({
     ref.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
+      if (e.key === 'Tab' && ref.current) keepFocusInside(ref.current, e);
     };
     document.addEventListener('keydown', onKey);
     return () => {

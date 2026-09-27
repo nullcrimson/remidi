@@ -39,6 +39,14 @@ describe('parseMappings', () => {
     expect(parsed[0].srcEdits).toEqual({});
   });
 
+  it('keeps unassigned source notes (null) through a round trip', () => {
+    const withNull = { ...sample, srcEdits: { 38: null, 41: 'tom.floor3.hit' } };
+    expect(parseMappings(serializeMappings([withNull]))[0].srcEdits).toEqual({
+      38: null,
+      41: 'tom.floor3.hit',
+    });
+  });
+
   it('drops entries whose srcEdits keys are not valid notes', () => {
     expect(parseMappings(JSON.stringify([{ ...sample, srcEdits: { abc: 'kick.main' } }]))).toEqual(
       [],

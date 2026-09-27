@@ -1,6 +1,6 @@
 use midiremap_core::{
-    convert, plan as core_plan, Canon, Catalog, ChannelScope, Mapping, Note, Overrides, PlanStatus,
-    Report,
+    convert, plan as core_plan, Canon, Catalog, ChannelScope, ChannelScopeError, Mapping, Note,
+    Overrides, PlanStatus, Report,
 };
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
@@ -19,12 +19,29 @@ fn parse_overrides(overrides_json: Option<String>) -> Result<Overrides, JsValue>
     )
 }
 
+fn to_js<T: Serialize>(value: &T) -> Result<JsValue, JsValue> {
+    let serializer = serde_wasm_bindgen::Serializer::new()
+        .serialize_maps_as_objects(true)
+        .serialize_missing_as_null(true);
+    value
+        .serialize(&serializer)
+        .map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+fn parse_channel(channel: Option<String>) -> Result<ChannelScope, JsValue> {
+    channel.map_or(Ok(ChannelScope::Auto), |s| {
+        s.parse()
+            .map_err(|e: ChannelScopeError| JsValue::from_str(&e.to_string()))
+    })
+}
+
 #[wasm_bindgen]
 pub fn remap(
     mid: &[u8],
     src_id: &str,
     tgt_id: &str,
     overrides_json: Option<String>,
+    channel: Option<String>,
 ) -> Result<JsValue, JsValue> {
     let provider = Catalog::shared();
     let src = provider
@@ -34,16 +51,14 @@ pub fn remap(
         .get(tgt_id)
         .ok_or_else(|| JsValue::from_str("unknown target engine"))?;
     let ov = parse_overrides(overrides_json)?;
-    let out = convert(mid, &Mapping::new(src, tgt, &ov), ChannelScope::Auto)
+    let scope = parse_channel(channel)?;
+    let out = convert(mid, &Mapping::new(src, tgt, &ov), scope)
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
     let payload = Output {
         bytes: out.bytes,
         report: out.report,
     };
-    let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
-    payload
-        .serialize(&serializer)
-        .map_err(|e| JsValue::from_str(&e.to_string()))
+    to_js(&payload)
 }
 
 #[derive(Serialize)]
@@ -85,7 +100,7 @@ pub fn plan(
             },
         })
         .collect();
-    serde_wasm_bindgen::to_value(&rows).map_err(|e| JsValue::from_str(&e.to_string()))
+    to_js(&rows)
 }
 
 #[derive(Serialize)]
@@ -112,7 +127,7 @@ pub fn engine_drums(tgt_id: &str) -> Result<JsValue, JsValue> {
             family: d.family.to_string(),
         })
         .collect();
-    serde_wasm_bindgen::to_value(&drums).map_err(|e| JsValue::from_str(&e.to_string()))
+    to_js(&drums)
 }
 
 #[wasm_bindgen]
@@ -131,7 +146,7 @@ pub fn engine_notes(src_id: &str) -> Result<JsValue, JsValue> {
             family: d.family.to_string(),
         })
         .collect();
-    serde_wasm_bindgen::to_value(&notes).map_err(|e| JsValue::from_str(&e.to_string()))
+    to_js(&notes)
 }
 
 #[derive(Serialize)]
@@ -151,7 +166,7 @@ pub fn canon_catalog() -> Result<JsValue, JsValue> {
             family: c.family().to_string(),
         })
         .collect();
-    serde_wasm_bindgen::to_value(&items).map_err(|e| JsValue::from_str(&e.to_string()))
+    to_js(&items)
 }
 
 #[derive(Serialize)]
@@ -175,5 +190,5 @@ pub fn engine_catalog() -> Result<JsValue, JsValue> {
             }
         })
         .collect();
-    serde_wasm_bindgen::to_value(&infos).map_err(|e| JsValue::from_str(&e.to_string()))
+    to_js(&infos)
 }

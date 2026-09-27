@@ -30,11 +30,16 @@ export function SourceNotePicker({
       aria-label={`Source note for ${voiceLabel}`}
       tabIndex={-1}
       className="
-        my-0.5 mb-3 ml-auto w-max rounded-[10px] border border-accent/18
-        bg-inset p-[13px_14px_16px] outline-none
+        my-0.5 mb-3 w-full rounded-[10px] border border-accent/18 bg-inset
+        p-[13px_14px_16px] outline-none
+        sm:ml-auto sm:w-max
       "
     >
-      <div className="flex w-96 flex-col gap-3.25">
+      <div className="
+        flex w-full flex-col gap-3.25
+        sm:w-96
+      "
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2.25">
             <span className="font-mono text-[9.5px] tracking-[0.12em] text-t4">

@@ -2,7 +2,11 @@ use std::collections::{HashMap, HashSet};
 
 use serde::Deserialize;
 
-use crate::{canon::Canon, note::Note, overrides::CanonNote};
+use crate::{
+    canon::Canon,
+    note::Note,
+    overrides::{CanonNote, SrcNote},
+};
 
 #[derive(Deserialize)]
 struct RawEntry {
@@ -48,12 +52,16 @@ impl EngineMap {
         self.from_canon.get(&canon).copied()
     }
 
-    /// A copy that reads each overridden source note as its canon; the last entry for a
-    /// note wins.
-    pub fn with_source_overrides(&self, overrides: &[CanonNote]) -> Self {
+    /// A copy that reads each overridden source note as its canon, or as no drum when the
+    /// canon is `None`; the last entry for a note wins.
+    pub fn with_source_overrides(&self, overrides: &[SrcNote]) -> Self {
         let mut map = self.clone();
-        map.to_canon
-            .extend(overrides.iter().map(|cn| (cn.note, cn.canon)));
+        for sn in overrides {
+            match sn.canon {
+                Some(canon) => map.to_canon.insert(sn.note, canon),
+                None => map.to_canon.remove(&sn.note),
+            };
+        }
         map
     }
 

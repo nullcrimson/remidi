@@ -8,6 +8,7 @@ const editor = {
   edits: {},
   srcEdits: {},
   pick: null,
+  notice: null,
   targetDrums: [],
   sourceNotes: [{ note: 24, canon: 'kick.main', label: 'Kick', family: 'Kick' }],
   canonOptions: [{ canon: 'kick.main', label: 'Kick', family: 'Kick' }],
@@ -39,6 +40,16 @@ const props = {
 };
 
 describe('EditView', () => {
+  it('tells which drum a picked source note came from', () => {
+    render(
+      <EditView
+        {...props}
+        editor={{ ...editor, notice: { canon: 'KickMain', note: 26, from: 'Snare' } }}
+      />,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('D1 was Snare — now plays Kick');
+  });
+
   it('renders rows and returns to convert view', async () => {
     const setView = vi.fn();
     render(<EditView {...props} setView={setView} />);
@@ -66,7 +77,7 @@ describe('EditView', () => {
     render(
       <EditView
         {...props}
-        editor={{ ...editor, pick: { canon: 'KickMain', octIndex: 2, side: 'tgt', defaultNote: null } }}
+        editor={{ ...editor, pick: { canon: 'KickMain', octIndex: 2, side: 'tgt', defaultNote: null, prevNote: null } }}
       />,
     );
     expect(screen.getByRole('dialog', { name: /Target note for Kick/i })).toBeInTheDocument();
@@ -76,7 +87,7 @@ describe('EditView', () => {
     render(
       <EditView
         {...props}
-        editor={{ ...editor, pick: { canon: 'KickMain', octIndex: 2, side: 'src', defaultNote: null } }}
+        editor={{ ...editor, pick: { canon: 'KickMain', octIndex: 2, side: 'src', defaultNote: null, prevNote: 24 } }}
       />,
     );
     expect(screen.getByRole('dialog', { name: /Source note for Kick/i })).toBeInTheDocument();
@@ -154,7 +165,7 @@ describe('EditView', () => {
         {...props}
         editor={{
           ...editor,
-          pick: { canon: 'China', octIndex: 3, side: 'tgt' as const, defaultNote: null },
+          pick: { canon: 'China', octIndex: 3, side: 'tgt' as const, defaultNote: null, prevNote: null },
           rows: [{ canon: 'China', label: 'China', srcNotes: [59], tgtNote: null, defaultTgtNote: null, status: 'dropped' as const }],
         }}
       />,

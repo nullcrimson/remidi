@@ -15,10 +15,17 @@ export interface ReportGroups {
 export interface ReportFile {
   name: string;
   groups: ReportGroups;
+  untouched: number;
 }
 export interface ReportView {
   clean: boolean;
-  totals: { dropped: number; approximated: number; unrecognized: number };
+  totals: {
+    dropped: number;
+    approximated: number;
+    unrecognized: number;
+    untouched: number;
+    converted: number;
+  };
   groups: ReportGroups;
   files: ReportFile[];
 }
@@ -57,7 +64,11 @@ export function buildReport(
     ),
   });
 
-  const files: ReportFile[] = results.map((r) => ({ name: r.name, groups: groupsOf(r.report) }));
+  const files: ReportFile[] = results.map((r) => ({
+    name: r.name,
+    groups: groupsOf(r.report),
+    untouched: r.report.untouched,
+  }));
 
   const merge = (acc: Map<string, ReportEntry>, entries: ReportEntry[]) => {
     for (const e of entries) {
@@ -87,8 +98,14 @@ export function buildReport(
     dropped: sum(groups.dropped),
     approximated: sum(groups.approximated),
     unrecognized: sum(groups.unrecognized),
+    untouched: files.reduce((n, f) => n + f.untouched, 0),
+    converted: results.reduce((n, r) => n + r.report.converted, 0),
   };
-  const clean = totals.dropped === 0 && totals.approximated === 0 && totals.unrecognized === 0;
+  const clean
+    = totals.converted > 0
+      && totals.dropped === 0
+      && totals.approximated === 0
+      && totals.unrecognized === 0;
 
   return { clean, totals, groups, files };
 }

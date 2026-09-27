@@ -12,6 +12,13 @@ describe('overrides', () => {
     });
   });
 
+  it('passes unassigned source notes as null', () => {
+    expect(editsToOverrides({}, { 38: null, 41: 'tom.floor3.hit' }).src).toEqual([
+      { note: 38, canon: null },
+      { note: 41, canon: 'tom.floor3.hit' },
+    ]);
+  });
+
   it('builds src overrides (note → canon) from source edits', () => {
     expect(editsToOverrides({}, { 60: 'china.1.hit', 61: 'kick.main' })).toEqual({
       tgt: [],

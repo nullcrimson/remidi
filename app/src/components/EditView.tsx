@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import type { OctaveBase } from '../lib/notes';
+import { Fragment, useState } from 'react';
+import { noteName, type OctaveBase } from '../lib/notes';
 import type { Editor } from '../hooks/useEditor';
 import { MAPPINGS_CAP, type SavedMapping } from '../lib/mappings';
 import { shortCode } from '../lib/format';
@@ -196,6 +196,7 @@ export function EditView({
     edits,
     srcEdits,
     pick,
+    notice,
     targetDrums,
     sourceNotes,
     canonOptions,
@@ -264,45 +265,51 @@ export function EditView({
           const srcExpanded = pick?.canon === row.canon && pick.side === 'src';
           const tgtExpanded = pick?.canon === row.canon && pick.side === 'tgt';
           return (
-            <VoiceRow
-              key={row.canon}
-              row={row}
-              effectiveTgt={tgtNote}
-              base={oct}
-              srcChanged={srcOverridden.has(row.canon) || row.srcNotes.length === 0}
-              tgtChanged={row.canon in edits}
-              srcExpanded={srcExpanded}
-              tgtExpanded={tgtExpanded}
-              onSrcToggle={() =>
-                srcExpanded ? closePick() : openSrcPick(row.canon)}
-              onToggle={() => (tgtExpanded ? closePick() : openPick(row.canon))}
-              onDismiss={closePick}
-            >
-              {srcExpanded && pick && (
-                <SourceNotePicker
-                  voiceLabel={row.label}
-                  currentNote={row.srcNotes[0] ?? null}
-                  octIndex={pick.octIndex}
-                  base={oct}
-                  onSetOct={setPickOct}
-                  onPickSemitone={chooseSrcNote}
-                  onClose={closePick}
-                />
+            <Fragment key={row.canon}>
+              <VoiceRow
+                row={row}
+                effectiveTgt={tgtNote}
+                base={oct}
+                srcChanged={srcOverridden.has(row.canon) || row.srcNotes.length === 0}
+                tgtChanged={row.canon in edits}
+                srcExpanded={srcExpanded}
+                tgtExpanded={tgtExpanded}
+                onSrcToggle={() =>
+                  srcExpanded ? closePick() : openSrcPick(row.canon)}
+                onToggle={() => (tgtExpanded ? closePick() : openPick(row.canon))}
+                onDismiss={closePick}
+              >
+                {srcExpanded && pick && (
+                  <SourceNotePicker
+                    voiceLabel={row.label}
+                    currentNote={row.srcNotes[0] ?? null}
+                    octIndex={pick.octIndex}
+                    base={oct}
+                    onSetOct={setPickOct}
+                    onPickSemitone={chooseSrcNote}
+                    onClose={closePick}
+                  />
+                )}
+                {tgtExpanded && pick && (
+                  <NotePicker
+                    voiceLabel={row.label}
+                    currentNote={tgtNote}
+                    octIndex={pick.octIndex}
+                    base={oct}
+                    drums={targetDrums}
+                    onSetOct={setPickOct}
+                    onPickSemitone={chooseNote}
+                    onPickNote={chooseNoteAbsolute}
+                    onClose={closePick}
+                  />
+                )}
+              </VoiceRow>
+              {notice?.canon === row.canon && (
+                <p role="status" className="px-1 pb-2 text-[12.5px] text-t4">
+                  {noteName(notice.note, oct)} was {notice.from} — now plays {row.label}
+                </p>
               )}
-              {tgtExpanded && pick && (
-                <NotePicker
-                  voiceLabel={row.label}
-                  currentNote={tgtNote}
-                  octIndex={pick.octIndex}
-                  base={oct}
-                  drums={targetDrums}
-                  onSetOct={setPickOct}
-                  onPickSemitone={chooseNote}
-                  onPickNote={chooseNoteAbsolute}
-                  onClose={closePick}
-                />
-              )}
-            </VoiceRow>
+            </Fragment>
           );
         })}
       </div>

@@ -11,6 +11,22 @@ describe('FileChips', () => {
     expect(screen.getByText(/drop a .mid/i)).toBeInTheDocument();
   });
 
+  it('names files that were skipped for not being MIDI', () => {
+    render(
+      <FileChips
+        files={[{ bytes: new Uint8Array(1), name: 'a.mid' }]}
+        failures={[]}
+        skipped={['notes.txt', 'cover.png']}
+        onFiles={() => {}}
+        onRemove={() => {}}
+        onClear={() => {}}
+      />,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Skipped notes.txt, cover.png — only .mid and .midi files',
+    );
+  });
+
   it('renders a rectangle per file and removes one', async () => {
     const onRemove = vi.fn();
     render(

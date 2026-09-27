@@ -1,20 +1,20 @@
 import { useRef, type ReactNode } from 'react';
-import { loadFiles, type LoadedFile } from '../lib/files';
+import { loadFiles, splitMid, type OnFiles } from '../lib/files';
 
 export function FilePicker({
   onFiles,
   children,
   fullWidth = true,
 }: {
-  onFiles: (files: LoadedFile[]) => void;
+  onFiles: OnFiles;
   children: ReactNode;
   fullWidth?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handle(list: FileList) {
-    const loaded = await loadFiles(Array.from(list));
-    if (loaded.length) onFiles(loaded);
+    const { mid, skipped } = splitMid(Array.from(list));
+    if (mid.length || skipped.length) onFiles(await loadFiles(mid), skipped);
   }
 
   return (

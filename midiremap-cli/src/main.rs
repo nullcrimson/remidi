@@ -32,7 +32,7 @@ struct ConvertArgs {
     output: PathBuf,
     #[arg(long, value_name = "FILE")]
     user_map: Option<PathBuf>,
-    /// Channels to convert: auto (10 if used, else all), all, or 1-16
+    /// Channels to convert: auto (tracks with channel-10 hits, else every track), all, or 1-16
     #[arg(long, value_name = "CHANNEL", default_value = "auto")]
     channel: ChannelScope,
     /// Note edits as JSON, in the same shape the web app saves

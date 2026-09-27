@@ -153,6 +153,15 @@ pub fn rewrite(smf: &mut Smf, table: &NoteTable, scope: ChannelScope, report: &m
                         _ => true,
                     }
                 }
+                TrackEventKind::Midi {
+                    message: MidiMessage::NoteOn { vel, .. },
+                    ..
+                } => {
+                    if vel.as_int() > 0 {
+                        report.untouched += 1;
+                    }
+                    true
+                }
                 _ => true,
             };
 

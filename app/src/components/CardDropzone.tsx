@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { isMid, loadFiles, type LoadedFile } from '../lib/files';
+import { loadFiles, splitMid, type OnFiles } from '../lib/files';
 
 export function CardDropzone({
   onFiles,
   children,
 }: {
-  onFiles: (files: LoadedFile[]) => void;
+  onFiles: OnFiles;
   children: ReactNode;
 }) {
   const [over, setOver] = useState(false);
@@ -29,9 +29,9 @@ export function CardDropzone({
       e.preventDefault();
       depth.current = 0;
       setOver(false);
-      const dropped = Array.from(e.dataTransfer?.files ?? []).filter((f) => isMid(f.name));
-      if (!dropped.length) return;
-      void loadFiles(dropped).then(onFiles);
+      const { mid, skipped } = splitMid(Array.from(e.dataTransfer?.files ?? []));
+      if (!mid.length && !skipped.length) return;
+      void loadFiles(mid).then((loaded) => onFiles(loaded, skipped));
     };
     window.addEventListener('dragenter', onEnter);
     window.addEventListener('dragover', onOver);

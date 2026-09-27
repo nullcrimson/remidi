@@ -1,3 +1,4 @@
+import type { Channel } from './channel';
 import type { LoadedFile } from './files';
 import type { Overrides, RemapReport, RemapResult } from './midiremap';
 
@@ -17,7 +18,13 @@ export interface BatchResult {
   failed: FailedFile[];
 }
 
-export type Remap = (mid: Uint8Array, src: string, tgt: string, ov?: Overrides) => RemapResult;
+export type Remap = (
+  mid: Uint8Array,
+  src: string,
+  tgt: string,
+  ov?: Overrides,
+  channel?: Channel,
+) => RemapResult;
 
 /** Converts every file independently; one bad file never stops the batch. */
 export function runBatch(
@@ -25,13 +32,14 @@ export function runBatch(
   src: string,
   tgt: string,
   ov: Overrides | undefined,
+  channel: Channel,
   remap: Remap,
 ): BatchResult {
   const ok: ConvertedFile[] = [];
   const failed: FailedFile[] = [];
   for (const f of files) {
     try {
-      const { bytes, report } = remap(f.bytes, src, tgt, ov);
+      const { bytes, report } = remap(f.bytes, src, tgt, ov, channel);
       ok.push({ name: f.name, bytes, report });
     } catch (e) {
       failed.push({ name: f.name, error: String(e) });

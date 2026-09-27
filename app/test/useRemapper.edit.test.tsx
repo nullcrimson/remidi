@@ -39,6 +39,7 @@ describe('useRemapper edit path', () => {
       octIndex: 2,
       side: 'tgt',
       defaultNote: 36,
+      prevNote: null,
     });
 
     act(() => result.current.editor.setPickOct(3));

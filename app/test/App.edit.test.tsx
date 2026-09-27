@@ -46,6 +46,47 @@ describe('App edit view', () => {
     expect(screen.getByText('GGD → EZD')).toBeInTheDocument();
   });
 
+  it('updates the preset opened from its chip, not the newest one for the pair', async () => {
+    const preset = (id: string, name: string, updatedAt: number) => ({
+      id,
+      name,
+      src: 'ggd_invasion',
+      tgt: 'ezdrummer',
+      edits: { KickMain: 40 },
+      srcEdits: {},
+      updatedAt,
+    });
+    localStorage.setItem(
+      MAPPINGS_KEY,
+      JSON.stringify([preset('p1', 'Original', 1), preset('p2', 'Original copy', 2)]),
+    );
+    render(<App />);
+    await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: 'Edit notes for Original' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Update preset' }));
+    expect(screen.getByRole('textbox', { name: 'Preset name' })).toHaveValue('Original');
+    await userEvent.click(screen.getByRole('button', { name: 'Update' }));
+    const stored = JSON.parse(localStorage.getItem(MAPPINGS_KEY)!) as { id: string; updatedAt: number }[];
+    expect(stored.find((m) => m.id === 'p1')!.updatedAt).toBeGreaterThan(2);
+    expect(stored.find((m) => m.id === 'p2')!.updatedAt).toBe(2);
+  });
+
+  it('offers a new preset, not an update, when engines were picked by hand', async () => {
+    localStorage.setItem(
+      MAPPINGS_KEY,
+      JSON.stringify([
+        { id: 'p1', name: 'Mine', src: 'ggd_invasion', tgt: 'ezdrummer', edits: {}, srcEdits: {}, updatedAt: 1 },
+      ]),
+    );
+    render(<App />);
+    await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
+    await userEvent.click(screen.getAllByRole('button', { name: 'GGD Invasion' })[0]);
+    await userEvent.click(screen.getAllByRole('button', { name: 'EZdrummer' })[1]);
+    await userEvent.click(screen.getByText(/Edit individual notes/));
+    expect(screen.getByRole('button', { name: 'Save preset' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Update preset' })).not.toBeInTheDocument();
+  });
+
   it('navigates to edit and back', async () => {
     render(<App />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());

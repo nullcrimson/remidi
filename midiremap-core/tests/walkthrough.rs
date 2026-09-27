@@ -273,3 +273,18 @@ fn walkthrough_hits_general_midi_anchor_notes() {
         );
     }
 }
+
+#[test]
+fn ride_bow_approximates_to_a_bow_tip_before_a_crash() {
+    let catalog = Catalog::builtin();
+    let mapping = Mapping::new(
+        catalog.get("addictive_drums2").unwrap(),
+        catalog.get("ezdrummer").unwrap(),
+        &Overrides::default(),
+    );
+    let ride = Note::new(45).unwrap();
+    match mapping.translate(ride) {
+        midiremap_core::Resolution::Resolved(r) => assert_eq!(r.note(), Note::new(51)),
+        other => panic!("ride must resolve, got {other:?}"),
+    }
+}

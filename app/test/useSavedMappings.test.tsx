@@ -33,11 +33,13 @@ describe('useSavedMappings', () => {
     expect(stored()).toHaveLength(1);
   });
 
-  it('finds an existing preset by src/tgt pair', () => {
+  it('returns the id of a saved preset', () => {
     const { result } = renderHook(() => useSavedMappings());
-    act(() => result.current.save(base));
-    expect(result.current.findPair('ggd_invasion', 'ezdrummer')?.name).toBe('GGD→EZ');
-    expect(result.current.findPair('ggd_invasion', 'superior_drummer3')).toBeUndefined();
+    let id: string | null = null;
+    act(() => {
+      id = result.current.save(base);
+    });
+    expect(id).toBe(result.current.mappings[0].id);
   });
 
   it('updates name and edits of an existing preset', () => {

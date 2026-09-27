@@ -33,7 +33,7 @@ function parseSrcEdits(value: unknown): SrcEdits | null {
   const out: SrcEdits = {};
   for (const [note, canon] of Object.entries(value)) {
     const n = Number(note);
-    if (!isNote(n) || typeof canon !== 'string') return null;
+    if (!isNote(n) || (typeof canon !== 'string' && canon !== null)) return null;
     out[n] = canon;
   }
   return out;

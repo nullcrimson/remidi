@@ -10,7 +10,7 @@ const options = [
   { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
 ];
 
-function setup(srcEdits: Record<number, string> = {}) {
+function setup(srcEdits: Record<number, string | null> = {}) {
   const onSet = vi.fn();
   const onClear = vi.fn();
   render(
@@ -37,6 +37,15 @@ describe('SourceEditor', () => {
 
   it('clears an existing source override', async () => {
     const { onClear } = setup({ 24: 'china.1.hit' });
+    await userEvent.click(screen.getByRole('button', { name: /Clear source note/i }));
+    expect(onClear).toHaveBeenCalledWith(24);
+  });
+
+  it('shows an unassigned default note as unassigned, with a way back', async () => {
+    const { onClear } = setup({ 24: null });
+    const row = screen.getByRole('button', { name: /^C1/ });
+    expect(row).toHaveTextContent('— unassigned');
+    expect(row).not.toHaveTextContent('Kick');
     await userEvent.click(screen.getByRole('button', { name: /Clear source note/i }));
     expect(onClear).toHaveBeenCalledWith(24);
   });

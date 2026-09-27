@@ -1,5 +1,5 @@
 import { Modal } from './Modal';
-import type { ReportEntry, ReportGroups, ReportView } from '../lib/report';
+import type { ReportEntry, ReportFile, ReportGroups, ReportView } from '../lib/report';
 
 const GROUPS = [
   { key: 'dropped', title: 'Dropped', hint: "target can't play", color: 'text-danger' },
@@ -85,14 +85,46 @@ function Group({
   );
 }
 
-function GroupList({ groups }: { groups: ReportGroups }) {
+function GroupList({ groups, untouched }: { groups: ReportGroups; untouched: number }) {
   return (
     <div className="flex flex-col gap-3">
       {GROUPS.map((g) => (
         <Group key={g.key} title={g.title} hint={g.hint} color={g.color} entries={groups[g.key]} />
       ))}
+      <Group
+        title="Unchanged"
+        hint="other tracks / channels"
+        color="text-t4"
+        entries={untouched > 0 ? [{ label: 'Notes not converted', count: untouched }] : []}
+      />
     </div>
   );
+}
+
+function hasDetail(file: ReportFile): boolean {
+  return hasLoss(file.groups) || file.untouched > 0;
+}
+
+function Headline({ view, targetName }: { view: ReportView; targetName: string }) {
+  if (view.totals.converted === 0) {
+    return (
+      <p>
+        <span className="font-semibold text-t1">Nothing was converted</span>
+        {view.totals.untouched > 0
+          ? ' — no notes on the selected drum channel. Pick another drum channel or All.'
+          : ' — no drum notes found in this file.'}
+      </p>
+    );
+  }
+  if (view.clean) {
+    return (
+      <p>
+        <span className="font-semibold text-t1">Clean conversion</span> — every drum mapped
+        directly to {targetName}.
+      </p>
+    );
+  }
+  return <p className="font-mono text-[11.5px] text-t4">{summaryLine(view)}</p>;
 }
 
 export function ReportModal({
@@ -106,36 +138,24 @@ export function ReportModal({
   view: ReportView;
   targetName: string;
 }) {
-  const lossyFiles = view.files.filter((f) => hasLoss(f.groups));
+  const detailFiles = view.files.filter(hasDetail);
   return (
     <Modal open={open} heading="Conversion report" onClose={onClose}>
       <div className="flex flex-col gap-5">
-        {view.clean
-          ? (
-              <p>
-                <span className="font-semibold text-t1">Clean conversion</span> — every drum mapped
-                directly to {targetName}.
-              </p>
-            )
-          : (
-              <div className="flex flex-col gap-5">
-                <p className="font-mono text-[11.5px] text-t4">{summaryLine(view)}</p>
-                <GroupList groups={view.groups} />
-                {view.files.length > 1 && (
-                  <div className="
-                    flex flex-col gap-4 border-t border-hairline pt-4
-                  "
-                  >
-                    {lossyFiles.map((f) => (
-                      <div key={f.name} className="flex flex-col gap-2">
-                        <div className="font-mono text-[13px] text-t2">{f.name}</div>
-                        <GroupList groups={f.groups} />
-                      </div>
-                    ))}
-                  </div>
-                )}
+        <Headline view={view} targetName={targetName} />
+        {(hasLoss(view.groups) || view.totals.untouched > 0) && (
+          <GroupList groups={view.groups} untouched={view.totals.untouched} />
+        )}
+        {view.files.length > 1 && detailFiles.length > 0 && (
+          <div className="flex flex-col gap-4 border-t border-hairline pt-4">
+            {detailFiles.map((f) => (
+              <div key={f.name} className="flex flex-col gap-2">
+                <div className="font-mono text-[13px] text-t2">{f.name}</div>
+                <GroupList groups={f.groups} untouched={f.untouched} />
               </div>
-            )}
+            ))}
+          </div>
+        )}
         <ContactFooter />
       </div>
     </Modal>

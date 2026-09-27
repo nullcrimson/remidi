@@ -65,6 +65,6 @@ describe('useRemapper source edits', () => {
     act(() => result.current.editor.openSrcPick('kick.main'));
     act(() => result.current.editor.chooseSrcNote(3));
 
-    expect(result.current.editor.srcEdits).toEqual({ 27: 'kick.main', 70: 'snare1.hit' });
+    expect(result.current.editor.srcEdits).toEqual({ 24: null, 27: 'kick.main', 70: 'snare1.hit' });
   });
 });

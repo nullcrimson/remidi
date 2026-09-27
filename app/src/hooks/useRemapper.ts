@@ -1,5 +1,7 @@
-import { useCallback, useReducer } from 'react';
+import { useCallback, useMemo, useReducer } from 'react';
+import type { Channel } from '../lib/channel';
 import type { Engine } from '../lib/midiremap';
+import type { OctaveBase } from '../lib/notes';
 import { editsToOverrides, type Edits, type SrcEdits } from '../lib/overrides';
 import { preselection } from '../lib/preselect';
 import { useConverter } from './useConverter';
@@ -9,54 +11,85 @@ import { useEngineCatalog } from './useEngineCatalog';
 export type { Conv } from './useConverter';
 
 type View = 'convert' | 'edit';
-type Oct = 'c1' | 'c2';
 
 interface Selection {
   src: string;
   tgt: string;
-  oct: Oct;
+  oct: OctaveBase;
+  channel: Channel;
   view: View;
+  presetId: string | null;
 }
 
 type SelectionAction
   = | { type: 'CHOOSE_SRC'; id: string }
     | { type: 'CHOOSE_TGT'; id: string }
     | { type: 'SWAP' }
-    | { type: 'TOGGLE_OCT' }
+    | { type: 'SET_OCT'; oct: OctaveBase }
+    | { type: 'SET_CHANNEL'; channel: Channel }
     | { type: 'SET_VIEW'; view: View }
-    | { type: 'LOAD'; src: string; tgt: string }
+    | { type: 'LOAD'; src: string; tgt: string; presetId: string | null }
+    | { type: 'SET_PRESET'; presetId: string | null }
     | { type: 'PRESELECT'; src?: string; tgt?: string };
 
-const INITIAL: Selection = { src: '', tgt: '', oct: 'c1', view: 'convert' };
+const INITIAL: Selection = {
+  src: '',
+  tgt: '',
+  oct: 'c1',
+  channel: 'auto',
+  view: 'convert',
+  presetId: null,
+};
 
 function selectionReducer(state: Selection, action: SelectionAction): Selection {
   switch (action.type) {
     case 'CHOOSE_SRC':
-      return { ...state, src: action.id };
+      return { ...state, src: action.id, presetId: null };
     case 'CHOOSE_TGT':
-      return { ...state, tgt: action.id };
+      return { ...state, tgt: action.id, presetId: null };
     case 'SWAP':
-      return { ...state, src: state.tgt, tgt: state.src };
-    case 'TOGGLE_OCT':
-      return { ...state, oct: state.oct === 'c1' ? 'c2' : 'c1' };
+      return { ...state, src: state.tgt, tgt: state.src, presetId: null };
+    case 'SET_OCT':
+      return { ...state, oct: action.oct };
+    case 'SET_CHANNEL':
+      return { ...state, channel: action.channel };
     case 'SET_VIEW':
       return { ...state, view: action.view };
     case 'LOAD':
-      return { ...state, src: action.src, tgt: action.tgt, view: 'convert' };
+      return {
+        ...state,
+        src: action.src,
+        tgt: action.tgt,
+        view: 'convert',
+        presetId: action.presetId,
+      };
+    case 'SET_PRESET':
+      return { ...state, presetId: action.presetId };
     case 'PRESELECT':
-      return { ...state, src: action.src ?? state.src, tgt: action.tgt ?? state.tgt };
+      return {
+        ...state,
+        src: action.src ?? state.src,
+        tgt: action.tgt ?? state.tgt,
+        presetId: null,
+      };
   }
 }
 
 export function useRemapper() {
-  const [{ src, tgt, oct, view }, dispatch] = useReducer(selectionReducer, INITIAL);
+  const [{ src, tgt, oct, channel, view, presetId }, dispatch] = useReducer(selectionReducer, INITIAL);
   const onCatalogReady = useCallback((list: Engine[]) => {
     const picked = preselection(window.location.search, list);
     if (picked) dispatch({ type: 'PRESELECT', ...picked });
   }, []);
   const { status, engines, error: initError } = useEngineCatalog(onCatalogReady);
   const editor = useEditor(status, src, tgt);
-  const converter = useConverter(src, tgt);
+  const { edits, srcEdits } = editor;
+  const overrides = useMemo(() => editsToOverrides(edits, srcEdits), [edits, srcEdits]);
+  const settingsKey = useMemo(
+    () => JSON.stringify({ src, tgt, channel, overrides }),
+    [src, tgt, channel, overrides],
+  );
+  const converter = useConverter(src, tgt, settingsKey);
 
   const { reset: resetEditor, load: loadEditor } = editor;
   const { resetConv, convert: runConvert } = converter;
@@ -82,22 +115,32 @@ export function useRemapper() {
     resetEditor();
     resetConv();
   }, [resetEditor, resetConv]);
-  const toggleOct = useCallback(() => dispatch({ type: 'TOGGLE_OCT' }), []);
+  const setOct = useCallback((o: OctaveBase) => dispatch({ type: 'SET_OCT', oct: o }), []);
+  const setChannel = useCallback(
+    (c: Channel) => {
+      dispatch({ type: 'SET_CHANNEL', channel: c });
+      resetConv();
+    },
+    [resetConv],
+  );
   const setView = useCallback((v: View) => dispatch({ type: 'SET_VIEW', view: v }), []);
 
   const loadMapping = useCallback(
-    (m: { src: string; tgt: string; edits: Edits; srcEdits?: SrcEdits }) => {
-      dispatch({ type: 'LOAD', src: m.src, tgt: m.tgt });
+    (m: { id?: string; src: string; tgt: string; edits: Edits; srcEdits?: SrcEdits }) => {
+      dispatch({ type: 'LOAD', src: m.src, tgt: m.tgt, presetId: m.id ?? null });
       loadEditor(m.edits, m.srcEdits ?? {});
       resetConv();
     },
     [loadEditor, resetConv],
   );
+  const setPreset = useCallback(
+    (id: string | null) => dispatch({ type: 'SET_PRESET', presetId: id }),
+    [],
+  );
 
-  const { edits, srcEdits } = editor;
   const convert = useCallback(
-    () => runConvert(editsToOverrides(edits, srcEdits)),
-    [runConvert, edits, srcEdits],
+    () => runConvert(overrides, channel),
+    [runConvert, overrides, channel],
   );
 
   return {
@@ -107,7 +150,10 @@ export function useRemapper() {
     src,
     tgt,
     oct,
+    channel,
+    presetId,
     files: converter.files,
+    skipped: converter.skipped,
     view,
     conv: converter.conv,
     results: converter.results,
@@ -116,7 +162,8 @@ export function useRemapper() {
     chooseSrc,
     chooseTgt,
     swap,
-    toggleOct,
+    setOct,
+    setChannel,
     addFiles: converter.addFiles,
     removeFile: converter.removeFile,
     clearFiles: converter.clearFiles,
@@ -124,5 +171,6 @@ export function useRemapper() {
     convert,
     reset: resetConv,
     loadMapping,
+    setPreset,
   };
 }

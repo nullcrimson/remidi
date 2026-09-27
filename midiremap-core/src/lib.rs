@@ -15,7 +15,7 @@ pub use conversion::{convert, ConversionError, Converted};
 pub use engine_map::{Drum, EngineMap, MapError};
 pub use midi::{ChannelFilter, ChannelScope, ChannelScopeError, CodecError};
 pub use note::{Note, NoteOutOfRange};
-pub use overrides::{CanonNote, Overrides};
+pub use overrides::{CanonNote, Overrides, SrcNote};
 pub use plan::{plan, PlanStatus, VoicePlan};
 pub use table::NoteTable;
 pub use translate::{resolve, CanonResolution, FallbackTally, Mapping, Report, Resolution};

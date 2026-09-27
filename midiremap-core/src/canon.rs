@@ -554,7 +554,7 @@ fn ride_artic_step(a: RideArtic) -> Option<RideArtic> {
         BowTip => Some(Bow),
         Edge => Some(Bow),
         Mute => Some(Bow),
-        Bow => None,
+        Bow => Some(BowTip),
     }
 }
 fn hat_zone_step(z: HatZone) -> Option<HatZone> {
@@ -793,7 +793,16 @@ mod tests {
         );
         assert_eq!(
             fallback(k("ride.1.belltip")),
-            vec![k("ride.1.bell"), k("ride.1"), k("crash.1.hit")]
+            vec![
+                k("ride.1.bell"),
+                k("ride.1"),
+                k("ride.1.bowtip"),
+                k("crash.1.hit")
+            ]
+        );
+        assert_eq!(
+            fallback(k("ride.1")),
+            vec![k("ride.1.bowtip"), k("crash.1.hit")]
         );
         assert_eq!(fallback(k("kick.left")), vec![k("kick.main")]);
         assert_eq!(fallback(k("stack.1.hit")), vec![k("crash.1.hit")]);

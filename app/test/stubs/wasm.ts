@@ -41,6 +41,7 @@ const BASE_ROWS = [
   { canon: 'snare1.hit', label: 'Snare', src_notes: [26], tgt_note: 38, default_tgt_note: 38, status: 'direct' },
   { canon: 'hat.open3', label: 'Hi-Hat Open 3', src_notes: [47], tgt_note: 46, default_tgt_note: 46, status: 'fallback' },
   { canon: 'china.1.hit', label: 'China 1', src_notes: [59], tgt_note: null, default_tgt_note: null, status: 'dropped' },
+  { canon: 'hat.cc', label: 'Hi-Hat CC', src_notes: [4], tgt_note: undefined, default_tgt_note: undefined, status: 'dropped' },
 ];
 
 export function plan(_src: string, _tgt: string, overridesJson?: string): unknown {
@@ -63,6 +64,8 @@ export function plan(_src: string, _tgt: string, overridesJson?: string): unknow
   return rows;
 }
 
+export let lastRemapChannel: string | undefined;
+
 export const REMAP_BYTES = new Uint8Array([77, 84, 104, 100]);
 
 export function remap(
@@ -70,9 +73,17 @@ export function remap(
   _src: string,
   _tgt: string,
   _overridesJson?: string,
+  channel?: string,
 ): unknown {
+  lastRemapChannel = channel;
   return {
     bytes: REMAP_BYTES,
-    report: { unmapped_source: {}, fallback_used: { 'hat.open3': { note: 46, count: 2 } }, dropped: { 'china.1.hit': 1 } },
+    report: {
+      unmapped_source: {},
+      fallback_used: { 'hat.open3': { note: 46, count: 2 } },
+      dropped: { 'china.1.hit': 1 },
+      untouched: 5,
+      converted: 40,
+    },
   };
 }

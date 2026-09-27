@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { AboutContent } from './components/AboutContent';
 import { CardDropzone } from './components/CardDropzone';
+import { ChannelSelect } from './components/ChannelSelect';
 import { ConvertButton } from './components/ConvertButton';
 import { EditView } from './components/EditView';
 import { FileChips } from './components/FileChips';
@@ -89,17 +90,19 @@ export default function App() {
             src={c.src}
             tgt={c.tgt}
             oct={c.oct}
-            existingPreset={saved.findPair(c.src, c.tgt)}
+            existingPreset={saved.mappings.find((m) => m.id === c.presetId)}
             presetsAtCap={saved.atCap}
             setView={c.setView}
-            onSavePreset={(name) =>
-              saved.save({
+            onSavePreset={(name) => {
+              const id = saved.save({
                 name,
                 src: c.src,
                 tgt: c.tgt,
                 edits: c.editor.edits,
                 srcEdits: c.editor.srcEdits,
-              })}
+              });
+              if (id) c.setPreset(id);
+            }}
             onUpdatePreset={(id, name) =>
               saved.update(id, { name, edits: c.editor.edits, srcEdits: c.editor.srcEdits })}
           />
@@ -111,9 +114,16 @@ export default function App() {
   const bothSelected = c.src !== '' && c.tgt !== '';
   const targetShort = shortCode(c.tgt);
   const failedSuffix = c.failures.length > 0 ? ` · ${c.failures.length} failed` : '';
+  const nothingSuffix
+    = c.results.length > 0 && reportView.totals.converted === 0 ? ' · nothing converted' : '';
+  const untouched = reportView.totals.untouched;
+  const untouchedSuffix
+    = untouched > 0
+      ? ` · ${untouched} note${untouched === 1 ? '' : 's'} on other channels unchanged`
+      : '';
   const summary = `${c.results.length} file${
     c.results.length === 1 ? '' : 's'
-  } · ${c.editor.remappedCount} remapped → ${c.tgt}${failedSuffix}`;
+  } · ${c.editor.remappedCount} remapped → ${c.tgt}${nothingSuffix}${failedSuffix}${untouchedSuffix}`;
 
   return (
     <Page>
@@ -139,6 +149,7 @@ export default function App() {
                 <FileChips
                   files={c.files}
                   failures={c.failures}
+                  skipped={c.skipped}
                   onFiles={c.addFiles}
                   onRemove={c.removeFile}
                   onClear={c.clearFiles}
@@ -190,7 +201,14 @@ export default function App() {
                   onDelete={saved.remove}
                 />
 
-                <OctaveToggle value={c.oct} onToggle={c.toggleOct} />
+                <div className="
+                  grid grid-cols-1 gap-5.5
+                  sm:grid-cols-2
+                "
+                >
+                  <OctaveToggle value={c.oct} onChange={c.setOct} />
+                  <ChannelSelect value={c.channel} onChange={c.setChannel} />
+                </div>
 
                 <SummaryRow
                   remapped={c.editor.remappedCount}

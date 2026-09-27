@@ -3,8 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const remapMock = vi.fn();
 const planMock = vi.fn();
+const readyMock = vi.fn(() => Promise.resolve());
 vi.mock('../src/lib/midiremap', () => ({
-  ready: () => Promise.resolve(),
+  ready: () => readyMock(),
   engines: () => [
     { id: 'ggd_invasion', name: 'GGD Invasion' },
     { id: 'ezdrummer', name: 'EZdrummer' },
@@ -23,6 +24,7 @@ const ROWS = [
 describe('useRemapper convert path', () => {
   beforeEach(() => {
     planMock.mockReset().mockReturnValue(ROWS);
+    readyMock.mockReset().mockImplementation(() => Promise.resolve());
     remapMock.mockReset().mockReturnValue({
       bytes: new Uint8Array([1, 2, 3]),
       report: { unmappedSource: {}, fallbackUsed: {}, dropped: {} },
@@ -128,6 +130,28 @@ describe('useRemapper convert path', () => {
     expect(result.current.error).toContain('unknown source engine');
   });
 
+  it('remembers skipped files until the next add', async () => {
+    const { result } = renderHook(() => useRemapper());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.addFiles([{ bytes: new Uint8Array([1]), name: 'a.mid' }], ['notes.txt']));
+    expect(result.current.files).toHaveLength(1);
+    expect(result.current.skipped).toEqual(['notes.txt']);
+    act(() => result.current.addFiles([{ bytes: new Uint8Array([1]), name: 'b.mid' }], []));
+    expect(result.current.skipped).toEqual([]);
+  });
+
+  it('keeps finished results when only non-MIDI files were added', async () => {
+    const { result } = renderHook(() => useRemapper());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
+    act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
+    await act(() => result.current.convert());
+    act(() => result.current.addFiles([], ['notes.txt']));
+    expect(result.current.conv.kind).toBe('done');
+    expect(result.current.skipped).toEqual(['notes.txt']);
+  });
+
   it('dedupes by name and removes files', async () => {
     const { result } = renderHook(() => useRemapper());
     await waitFor(() => expect(result.current.status).toBe('ready'));
@@ -136,6 +160,82 @@ describe('useRemapper convert path', () => {
     expect(result.current.files).toHaveLength(1);
     act(() => result.current.removeFile('a.mid'));
     expect(result.current.files).toHaveLength(0);
+  });
+
+  it('starts on auto and converts with the chosen channel', async () => {
+    const { result } = renderHook(() => useRemapper());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    expect(result.current.channel).toBe('auto');
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
+    act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
+    await act(() => result.current.convert());
+    expect(remapMock.mock.calls[0][4]).toBe('auto');
+    act(() => result.current.setChannel('10'));
+    await act(() => result.current.convert());
+    expect(remapMock.mock.calls[1][4]).toBe('10');
+  });
+
+  it('clears finished results when the channel changes', async () => {
+    const { result } = renderHook(() => useRemapper());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
+    act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
+    await act(() => result.current.convert());
+    expect(result.current.conv.kind).toBe('done');
+    act(() => result.current.setChannel('all'));
+    expect(result.current.channel).toBe('all');
+    expect(result.current.conv.kind).toBe('idle');
+    expect(result.current.files).toHaveLength(1);
+  });
+
+  it('sets the octave base', async () => {
+    const { result } = renderHook(() => useRemapper());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    expect(result.current.oct).toBe('c1');
+    act(() => result.current.setOct('c2'));
+    expect(result.current.oct).toBe('c2');
+    act(() => result.current.setOct('c1'));
+    expect(result.current.oct).toBe('c1');
+  });
+
+  it('clears finished results when a note is edited', async () => {
+    const { result } = renderHook(() => useRemapper());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
+    act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
+    await act(() => result.current.convert());
+    expect(result.current.conv.kind).toBe('done');
+    act(() => result.current.editor.openPick('KickMain'));
+    act(() => result.current.editor.chooseNoteAbsolute(40));
+    expect(result.current.conv.kind).toBe('idle');
+    expect(result.current.results).toHaveLength(0);
+  });
+
+  it('discards a run that finishes after the settings changed', async () => {
+    const { result } = renderHook(() => useRemapper());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
+    act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
+    let release = () => {};
+    readyMock.mockImplementation(() => new Promise<void>((r) => (release = r)));
+    const urls = vi.mocked(URL.createObjectURL);
+    urls.mockClear();
+    let pending: Promise<void> | undefined;
+    act(() => {
+      pending = result.current.convert();
+    });
+    act(() => result.current.swap());
+    act(() => result.current.swap());
+    await act(async () => {
+      release();
+      await pending;
+    });
+    expect(result.current.conv.kind).toBe('idle');
+    expect(urls).not.toHaveBeenCalled();
   });
 
   it('swaps and recomputes plan', async () => {

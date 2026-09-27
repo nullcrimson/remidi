@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Convert {{ page.src.name }} MIDI to {{ page.tgt.name }}</h1>
+<h1>{{ heading }}</h1>
 <p class="lead">{{ summary }}</p>
 <div class="cta">
   <a href="/?from={{ page.src.id }}&amp;to={{ page.tgt.id }}">Open the converter</a>

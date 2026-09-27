@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConvertButton } from '../src/components/ConvertButton';
 import { SummaryRow } from '../src/components/SummaryRow';
 
-const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {} };
+const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 };
 
 type Res = { name: string; url: string; bytes: Uint8Array; report: typeof REPORT };
 const done = (results: Res[]) => ({ kind: 'done' as const, results, failures: [] });

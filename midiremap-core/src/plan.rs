@@ -155,6 +155,15 @@ mod tests {
     }
 
     #[test]
+    fn src_override_can_replace_the_primary() {
+        let rows =
+            ggd_to_ezd(r#"{"src":[{"note":24,"canon":null},{"canon":"kick.main","note":99}]}"#);
+        assert_eq!(find(&rows, "kick.main").src_notes, vec![n(99)]);
+        let rows = ggd_to_ezd(r#"{"src":[{"note":24,"canon":null}]}"#);
+        assert!(find(&rows, "kick.main").src_notes.is_empty());
+    }
+
+    #[test]
     fn reassigned_note_moves_between_rows() {
         let rows = ggd_to_ezd(r#"{"src":[{"canon":"snare1.hit","note":24}]}"#);
         let kick = find(&rows, "kick.main");

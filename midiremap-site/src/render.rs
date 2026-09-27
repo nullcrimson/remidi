@@ -38,10 +38,19 @@ fn fit(first: &[String], rest: &[String], max: usize) -> String {
     out
 }
 
+/// `name` followed by "MIDI", unless the name already ends with it ("General MIDI").
+fn with_midi(name: &str) -> String {
+    if name.ends_with("MIDI") {
+        name.to_string()
+    } else {
+        format!("{name} MIDI")
+    }
+}
+
 pub fn engine_meta(p: &EnginePage) -> Meta {
     let n = &p.engine.name;
     let title = if n.chars().count() <= TITLE_NAME_MAX {
-        format!("{n} MIDI Note Map & Drum Mapping | Drumverter")
+        format!("{} Note Map & Drum Mapping | Drumverter", with_midi(n))
     } else {
         format!("MIDI Note Map: {n} | Drumverter")
     };
@@ -55,7 +64,7 @@ pub fn engine_meta(p: &EnginePage) -> Meta {
                 ),
                 format!("{n} drum MIDI note map with C-1 and C-2 note names."),
             ],
-            &[format!("Convert {n} MIDI to any engine, free.")],
+            &[format!("Convert {} to any engine, free.", with_midi(n))],
             DESCRIPTION_MAX,
         ),
         canonical: format!("{ORIGIN}{}", p.engine.href()),
@@ -86,10 +95,14 @@ pub fn pair_summary(
     )
 }
 
+fn pair_heading(p: &PairPage) -> String {
+    format!("Convert {} to {}", with_midi(&p.src.name), p.tgt.name)
+}
+
 pub fn pair_meta(p: &PairPage) -> Meta {
     let (s, t) = (&p.src.name, &p.tgt.name);
     Meta {
-        title: format!("Convert {s} MIDI to {t} | Drumverter"),
+        title: format!("{} | Drumverter", pair_heading(p)),
         description: fit(
             &[format!(
                 "Convert {s} drum MIDI to {t}: {} {} exactly, {} approximated, {} dropped.",
@@ -134,6 +147,7 @@ struct EngineHtml<'a> {
 #[template(path = "pair.html")]
 struct PairHtml<'a> {
     meta: Meta,
+    heading: String,
     summary: String,
     page: &'a PairPage,
 }
@@ -169,6 +183,7 @@ pub fn render_site(site: &Site) -> Result<Vec<(String, String)>, askama::Error> 
             format!("convert/{}/index.html", p.slug),
             PairHtml {
                 meta: pair_meta(p),
+                heading: pair_heading(p),
                 summary: pair_summary(
                     &p.src.name,
                     &p.tgt.name,
@@ -262,6 +277,13 @@ mod tests {
             );
             let canonical = format!(r#"<link rel="canonical" href="{ORIGIN}{}""#, url_of(&path));
             assert!(html.contains(&canonical), "{path}");
+        }
+    }
+
+    #[test]
+    fn midi_is_never_doubled_after_an_engine_name() {
+        for (path, html) in rendered() {
+            assert!(!html.contains("MIDI MIDI"), "{path}");
         }
     }
 

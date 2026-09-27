@@ -9,13 +9,20 @@ pub struct Overrides {
     #[serde(default)]
     pub tgt: Vec<CanonNote>,
     #[serde(default)]
-    pub src: Vec<CanonNote>,
+    pub src: Vec<SrcNote>,
 }
 
 #[derive(Deserialize)]
 pub struct CanonNote {
     pub canon: Canon,
     pub note: Note,
+}
+
+/// A source note played as `canon`, or no drum at all when `canon` is `None`.
+#[derive(Deserialize)]
+pub struct SrcNote {
+    pub note: Note,
+    pub canon: Option<Canon>,
 }
 
 #[cfg(test)]
@@ -93,6 +100,31 @@ mod tests {
         let enc = base.with_target_overrides(&ov.tgt);
         assert_eq!(enc.encode(Canon::Kick(KickKind::Main)), Some(n(35)));
         assert_eq!(enc.encode(Canon::Snare(idx(1), SnareArtic::Hit)), None);
+    }
+
+    #[test]
+    fn source_override_with_null_canon_unassigns_the_note() {
+        let base = from_toml(TGT).unwrap();
+        let ov: Overrides = serde_json::from_str(
+            r#"{"src":[{"note":36,"canon":null},{"note":40,"canon":"kick.main"}]}"#,
+        )
+        .unwrap();
+        let dec = base.with_source_overrides(&ov.src);
+        assert_eq!(dec.decode(n(36)), None);
+        assert_eq!(dec.decode(n(40)), Some(Canon::Kick(KickKind::Main)));
+    }
+
+    #[test]
+    fn a_later_source_override_reassigns_an_unassigned_note() {
+        let base = from_toml(TGT).unwrap();
+        let ov: Overrides = serde_json::from_str(
+            r#"{"src":[{"note":36,"canon":null},{"note":36,"canon":"kick.main"}]}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            base.with_source_overrides(&ov.src).decode(n(36)),
+            Some(Canon::Kick(KickKind::Main))
+        );
     }
 
     #[test]
