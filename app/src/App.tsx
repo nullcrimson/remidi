@@ -40,19 +40,30 @@ function Card({ children }: { children: ReactNode }) {
 
 function Header() {
   return (
-    <div className="flex items-baseline justify-between">
-      <div className="flex items-baseline gap-2">
-        <h1
-          className="
-            font-display text-[17px] font-semibold tracking-[0.02em] text-t2
-            [text-shadow:0_0_12px_rgba(236,232,224,0.3)]
-          "
-        >
-          Remidi
+    <div className="flex flex-col gap-2">
+      <div className="
+        flex flex-col gap-1
+        sm:flex-row sm:items-baseline sm:justify-between
+      "
+      >
+        <h1 className="flex flex-wrap items-baseline gap-x-2">
+          <span
+            className="
+              font-display text-[17px] font-semibold tracking-[0.02em] text-t2
+              [text-shadow:0_0_12px_rgba(236,232,224,0.3)]
+            "
+          >
+            Remidi
+          </span>
+          <span className="text-[14px] font-normal text-t5">— drum MIDI converter & remapper</span>
         </h1>
-        <span className="text-[14px] text-t5">— any kit, any engine</span>
+        <span className="font-mono text-[13px] text-t6">free in-browser converter</span>
       </div>
-      <span className="font-mono text-[13px] text-t6">free in-browser converter</span>
+      <p className="text-[14px] leading-relaxed text-t4">
+        Convert drum MIDI between GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2,
+        General MIDI, Guitar Pro and 80+ other engine layouts. Runs in your browser; files are never
+        uploaded.
+      </p>
     </div>
   );
 }
@@ -108,7 +119,11 @@ export default function App() {
     <Page>
       <Card>
         <CardDropzone onFiles={c.addFiles}>
-          <div className="flex flex-col gap-7 p-[34px_34px_30px]">
+          <div className="
+            flex flex-col gap-7 p-5
+            sm:p-[34px_34px_30px]
+          "
+          >
             <Header />
 
             {c.status === 'loading' && (
@@ -129,7 +144,11 @@ export default function App() {
                   onClear={c.clearFiles}
                 />
 
-                <div className="grid grid-cols-2 gap-5.5">
+                <div className="
+                  grid grid-cols-1 gap-5.5
+                  sm:grid-cols-2
+                "
+                >
                   <LibraryList
                     label="FROM"
                     value={c.src}

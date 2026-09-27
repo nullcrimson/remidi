@@ -22,7 +22,7 @@ describe('App convert view', () => {
   it('disables convert and edit until both engines are chosen', async () => {
     render(<App />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
-    expect(screen.getByRole('heading', { name: 'Remidi' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^Remidi/ })).toBeInTheDocument();
     expect(screen.getByText('TO')).toBeInTheDocument();
 
     const editButton = () => screen.getByRole('button', { name: /Edit individual notes/i });
