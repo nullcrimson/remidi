@@ -1,5 +1,6 @@
 id = "ezdrummer"
 name = "Toontrack EZdrummer 3"
+short_name = "EZdrummer 3"
 notes = [
   { note = 1, canon = "perc.clap", primary = true },
   { note = 2, canon = "perc.shaker", primary = true },

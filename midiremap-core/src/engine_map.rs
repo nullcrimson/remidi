@@ -24,6 +24,8 @@ struct RawEntry {
 struct RawMap {
     id: String,
     name: String,
+    #[serde(default)]
+    short_name: Option<String>,
     notes: Vec<RawEntry>,
 }
 
@@ -31,6 +33,7 @@ struct RawMap {
 pub struct EngineMap {
     pub id: String,
     pub name: String,
+    short_name: Option<String>,
     to_canon: HashMap<u8, Canon>,
     from_canon: HashMap<Canon, u8>,
 }
@@ -55,6 +58,10 @@ pub struct Drum {
 }
 
 impl EngineMap {
+    pub fn display_name(&self) -> &str {
+        self.short_name.as_deref().unwrap_or(&self.name)
+    }
+
     pub fn drums(&self) -> Vec<Drum> {
         let mut out: Vec<Drum> = self
             .from_canon
@@ -94,9 +101,18 @@ pub enum MapError {
     DuplicatePrimary(Canon),
     #[error("parse error: {0}")]
     Parse(String),
+    #[error("blank short_name for engine {0}")]
+    BlankShortName(String),
 }
 
 fn build(raw: RawMap) -> Result<EngineMap, MapError> {
+    if raw
+        .short_name
+        .as_deref()
+        .is_some_and(|s| s.trim().is_empty())
+    {
+        return Err(MapError::BlankShortName(raw.id));
+    }
     let mut to_canon = HashMap::new();
     let mut from_canon: HashMap<Canon, u8> = HashMap::new();
     let mut primaries: HashSet<Canon> = HashSet::new();
@@ -121,6 +137,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
     Ok(EngineMap {
         id: raw.id,
         name: raw.name,
+        short_name: raw.short_name,
         to_canon,
         from_canon,
     })
@@ -189,6 +206,41 @@ mod tests {
         );
         assert_eq!(notes[0].canon, Canon::Kick(KickKind::Main));
         assert_eq!(notes[2].canon, Canon::Snare(1, SnareArtic::Hit));
+    }
+
+    #[test]
+    fn display_name_falls_back_to_name() {
+        let m = from_toml(SAMPLE).unwrap();
+        assert_eq!(m.display_name(), "Demo Kit");
+    }
+
+    #[test]
+    fn display_name_prefers_short_name() {
+        let m = from_toml(
+            r#"
+            id = "x"
+            name = "Very Long Official Name"
+            short_name = "Short"
+            notes = [ { note = 36, canon = "kick.main", primary = true } ]
+        "#,
+        )
+        .unwrap();
+        assert_eq!(m.display_name(), "Short");
+        assert_eq!(m.name, "Very Long Official Name");
+    }
+
+    #[test]
+    fn blank_short_name_is_error() {
+        let bad = r#"
+            id = "x"
+            name = "X"
+            short_name = "  "
+            notes = [ { note = 36, canon = "kick.main", primary = true } ]
+        "#;
+        assert!(matches!(
+            from_toml(bad),
+            Err(MapError::BlankShortName(id)) if id == "x"
+        ));
     }
 
     #[test]

@@ -1,5 +1,6 @@
 id = "guitar_pro"
 name = "Guitar Pro"
+short_name = "Guitar Pro"
 notes = [
   { note = 31, canon = "snare1.sidestick", primary = true },
   { note = 35, canon = "kick.left", primary = true },

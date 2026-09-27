@@ -1,5 +1,6 @@
 id = "general_midi"
 name = "GM (General Midi Standard)"
+short_name = "General MIDI"
 notes = [
   { note = 35, canon = "kick.main" },
   { note = 36, canon = "kick.main", primary = true },

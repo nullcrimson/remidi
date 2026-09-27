@@ -1,5 +1,6 @@
 id = "addictive_drums2"
 name = "Addictive Drums 2"
+short_name = "Addictive Drums 2"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.rimshot", primary = true },
