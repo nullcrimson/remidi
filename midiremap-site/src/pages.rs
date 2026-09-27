@@ -1,8 +1,7 @@
 use std::collections::HashSet;
 
 use midiremap_core::{
-    Canon, CanonResolution, Decoder, DefaultFallbacks, EngineMap, MapProvider, Note, Resolution,
-    Translator,
+    Canon, CanonResolution, Catalog, EngineMap, Mapping, Note, Overrides, Resolution,
 };
 
 use crate::{
@@ -152,7 +151,7 @@ pub struct Site {
     pub pairs: Vec<PairPage>,
 }
 
-fn lookup<'a>(provider: &'a dyn MapProvider, id: &str) -> Result<&'a EngineMap, SiteError> {
+fn lookup<'a>(provider: &'a Catalog, id: &str) -> Result<&'a EngineMap, SiteError> {
     provider
         .get(id)
         .ok_or_else(|| SiteError::UnknownEngine(id.to_string()))
@@ -168,11 +167,11 @@ fn target(tgt: &EngineMap, note: Note, fallback: Canon) -> Target {
 }
 
 fn pair_rows(src: &EngineMap, tgt: &EngineMap) -> Vec<PairRow> {
-    let translator = Translator::new(src, tgt, &DefaultFallbacks);
+    let mapping = Mapping::new(src, tgt, &Overrides::default());
     src.source_notes()
         .into_iter()
         .map(|d| {
-            let outcome = match translator.translate(d.note) {
+            let outcome = match mapping.translate(d.note) {
                 Resolution::Resolved(CanonResolution::Direct { note, .. }) => {
                     Outcome::Exact(target(tgt, note, d.canon))
                 }
@@ -253,7 +252,7 @@ pub fn sort_by_name(maps: &mut [&EngineMap]) {
 }
 
 impl Site {
-    pub fn build(provider: &dyn MapProvider) -> Result<Site, SiteError> {
+    pub fn build(provider: &Catalog) -> Result<Site, SiteError> {
         let majors = MAJOR_IDS
             .iter()
             .map(|id| lookup(provider, id))
@@ -313,7 +312,7 @@ impl Site {
 mod tests {
     use std::collections::{HashMap, HashSet};
 
-    use midiremap_core::{remap, BuiltinMaps, EngineMap};
+    use midiremap_core::{convert, ChannelScope};
     use midly::{
         num::{u15, u28, u4, u7},
         Format, Header, MidiMessage, Smf, Timing, Track, TrackEvent, TrackEventKind,
@@ -322,12 +321,12 @@ mod tests {
     use super::*;
 
     fn site() -> Site {
-        Site::build(&BuiltinMaps::new()).unwrap()
+        Site::build(&Catalog::builtin()).unwrap()
     }
 
     #[test]
     fn one_page_per_engine_except_excluded() {
-        let maps = BuiltinMaps::new();
+        let maps = Catalog::builtin();
         let s = site();
         assert_eq!(s.engines.len(), maps.ids().len() - EXCLUDED_IDS.len());
         assert!(s
@@ -423,7 +422,7 @@ mod tests {
 
     #[test]
     fn pair_rows_agree_with_the_converter() {
-        let maps = BuiltinMaps::new();
+        let maps = Catalog::builtin();
         let by_id: HashMap<&str, &EngineMap> = maps
             .ids()
             .into_iter()
@@ -432,7 +431,12 @@ mod tests {
         for p in site().pairs {
             let (src, tgt) = (by_id[p.src.id.as_str()], by_id[p.tgt.id.as_str()]);
             for row in &p.rows {
-                let out = remap(&one_note(row.note), src, tgt).unwrap();
+                let out = convert(
+                    &one_note(row.note),
+                    &Mapping::new(src, tgt, &Overrides::default()),
+                    ChannelScope::Auto,
+                )
+                .unwrap();
                 assert_eq!(
                     converted_note(&out.bytes),
                     row.outcome.target().map(|t| t.note),
@@ -461,20 +465,9 @@ mod tests {
         );
     }
 
-    struct Only(HashMap<String, EngineMap>);
-
-    impl MapProvider for Only {
-        fn get(&self, id: &str) -> Option<&EngineMap> {
-            self.0.get(id)
-        }
-        fn ids(&self) -> Vec<&str> {
-            self.0.keys().map(String::as_str).collect()
-        }
-    }
-
     #[test]
     fn missing_major_engine_is_an_error() {
-        let empty = Only(HashMap::new());
+        let empty = Catalog::from_maps([]);
         assert!(
             matches!(Site::build(&empty), Err(SiteError::UnknownEngine(id)) if id == "general_midi")
         );

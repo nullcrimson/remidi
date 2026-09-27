@@ -188,7 +188,7 @@ pub fn render_site(site: &Site) -> Result<Vec<(String, String)>, askama::Error> 
 mod tests {
     use std::collections::HashSet;
 
-    use midiremap_core::{BuiltinMaps, MapProvider};
+    use midiremap_core::Catalog;
 
     use super::*;
     use crate::pages::Site;
@@ -202,7 +202,7 @@ mod tests {
     ];
 
     fn rendered() -> Vec<(String, String)> {
-        render_site(&Site::build(&BuiltinMaps::new()).unwrap()).unwrap()
+        render_site(&Site::build(&Catalog::builtin()).unwrap()).unwrap()
     }
 
     fn url_of(path: &str) -> String {
@@ -230,7 +230,7 @@ mod tests {
 
     #[test]
     fn engine_titles_lead_with_the_keyword() {
-        let site = Site::build(&BuiltinMaps::new()).unwrap();
+        let site = Site::build(&Catalog::builtin()).unwrap();
         for p in &site.engines {
             let title = engine_meta(p).title;
             let head: String = title.chars().take(60).collect();
@@ -240,7 +240,7 @@ mod tests {
 
     #[test]
     fn descriptions_end_on_a_whole_sentence() {
-        let site = Site::build(&BuiltinMaps::new()).unwrap();
+        let site = Site::build(&Catalog::builtin()).unwrap();
         let descriptions = site
             .engines
             .iter()
@@ -311,7 +311,7 @@ mod tests {
 
     #[test]
     fn converter_links_carry_known_distinct_engine_ids() {
-        let maps = BuiltinMaps::new();
+        let maps = Catalog::builtin();
         let ids: HashSet<&str> = maps.ids().into_iter().collect();
         let mut checked = 0;
         for (path, html) in rendered() {
@@ -359,7 +359,7 @@ mod tests {
 
     #[test]
     fn descriptions_fit() {
-        let site = Site::build(&BuiltinMaps::new()).unwrap();
+        let site = Site::build(&Catalog::builtin()).unwrap();
         for p in &site.engines {
             assert!(engine_meta(p).description.chars().count() <= DESCRIPTION_MAX);
         }

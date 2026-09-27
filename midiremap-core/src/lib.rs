@@ -9,16 +9,13 @@ pub mod plan;
 pub mod table;
 pub mod translate;
 
-pub use canon::{Canon, DefaultFallbacks, FallbackResolver};
-pub use catalog::{BuiltinMaps, LayeredMaps, MapProvider};
-pub use conversion::{remap, remap_with_overrides, Conversion, ConversionError, Converted};
-pub use engine_map::{Decoder, Drum, Encoder, EngineMap, MapError};
-pub use midi::{
-    ChannelFilter, ChannelScope, ChannelScopeError, CodecError, EventRewriter, MidiCodec,
-    StandardMidiCodec,
-};
+pub use canon::Canon;
+pub use catalog::Catalog;
+pub use conversion::{convert, ConversionError, Converted};
+pub use engine_map::{Drum, EngineMap, MapError};
+pub use midi::{ChannelFilter, ChannelScope, ChannelScopeError, CodecError};
 pub use note::{Note, NoteOutOfRange};
-pub use overrides::Overrides;
+pub use overrides::{CanonNote, Overrides};
 pub use plan::{plan, PlanStatus, VoicePlan};
 pub use table::NoteTable;
-pub use translate::{CanonResolution, FallbackTally, Report, ReportSink, Resolution, Translator};
+pub use translate::{resolve, CanonResolution, FallbackTally, Mapping, Report, Resolution};

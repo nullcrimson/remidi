@@ -2,9 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand};
-use midiremap_core::{
-    BuiltinMaps, ChannelScope, Conversion, DefaultFallbacks, LayeredMaps, MapProvider,
-};
+use midiremap_core::{convert, Catalog, ChannelScope, Mapping, Overrides};
 
 #[derive(Parser)]
 #[command(
@@ -37,10 +35,13 @@ struct ConvertArgs {
     /// Channels to convert: auto (10 if used, else all), all, or 1-16
     #[arg(long, value_name = "CHANNEL", default_value = "auto")]
     channel: ChannelScope,
+    /// Note edits as JSON, in the same shape the web app saves
+    #[arg(long, value_name = "FILE")]
+    overrides: Option<PathBuf>,
 }
 
-fn build_provider(user_map: Option<PathBuf>) -> Result<LayeredMaps<BuiltinMaps>> {
-    let mut provider = LayeredMaps::new(BuiltinMaps::new());
+fn build_catalog(user_map: Option<PathBuf>) -> Result<Catalog> {
+    let mut provider = Catalog::builtin();
     if let Some(path) = user_map {
         let json = std::fs::read_to_string(&path)
             .with_context(|| format!("cannot read user map {}", path.display()))?;
@@ -51,8 +52,17 @@ fn build_provider(user_map: Option<PathBuf>) -> Result<LayeredMaps<BuiltinMaps>>
     Ok(provider)
 }
 
+fn read_overrides(path: Option<PathBuf>) -> Result<Overrides> {
+    let Some(path) = path else {
+        return Ok(Overrides::default());
+    };
+    let json = std::fs::read_to_string(&path)
+        .with_context(|| format!("cannot read overrides {}", path.display()))?;
+    serde_json::from_str(&json).with_context(|| format!("invalid overrides {}", path.display()))
+}
+
 fn run_list(user_map: Option<PathBuf>) -> Result<()> {
-    let provider = build_provider(user_map)?;
+    let provider = build_catalog(user_map)?;
     let mut ids = provider.ids();
     ids.sort_unstable();
     for id in ids {
@@ -62,7 +72,7 @@ fn run_list(user_map: Option<PathBuf>) -> Result<()> {
 }
 
 fn run_convert(a: ConvertArgs) -> Result<()> {
-    let provider = build_provider(a.user_map)?;
+    let provider = build_catalog(a.user_map)?;
 
     let src = provider
         .get(&a.src)
@@ -74,9 +84,9 @@ fn run_convert(a: ConvertArgs) -> Result<()> {
     let mid =
         std::fs::read(&a.input).with_context(|| format!("cannot read {}", a.input.display()))?;
 
-    let fb = DefaultFallbacks;
-    let conv = Conversion::new(src, tgt, &fb).with_scope(a.channel);
-    let out = conv.run(&mid).context("remap failed")?;
+    let overrides = read_overrides(a.overrides)?;
+    let out =
+        convert(&mid, &Mapping::new(src, tgt, &overrides), a.channel).context("remap failed")?;
 
     std::fs::write(&a.output, &out.bytes)
         .with_context(|| format!("cannot write {}", a.output.display()))?;

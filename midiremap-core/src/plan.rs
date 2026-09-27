@@ -1,12 +1,12 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    canon::{Canon, DefaultFallbacks},
-    engine_map::{Encoder, EngineMap},
+    canon::Canon,
+    engine_map::EngineMap,
     note::Note,
     overrides::Overrides,
     table::NoteTable,
-    translate::{CanonResolution, Resolution, Translator},
+    translate::{resolve, CanonResolution, Mapping, Resolution},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -41,12 +41,8 @@ pub struct VoicePlan {
 
 /// Duplicate overrides resolve last-wins, exactly as in conversion.
 pub fn plan(src: &EngineMap, tgt: &EngineMap, ov: &Overrides) -> Vec<VoicePlan> {
-    let fb = DefaultFallbacks;
-    let dec = ov.decoder(src);
-    let enc = ov.encoder(tgt);
-    let translator = Translator::new(&dec, &enc, &fb);
-    let base = Translator::new(src, tgt, &fb);
-    let table = NoteTable::compile(&translator);
+    let mapping = Mapping::new(src, tgt, ov);
+    let table = NoteTable::compile(&mapping);
     let overridden: HashSet<Note> = ov.src.iter().map(|cn| cn.note).collect();
 
     let mut notes_by_canon: HashMap<Canon, Vec<Note>> = HashMap::new();
@@ -74,12 +70,12 @@ pub fn plan(src: &EngineMap, tgt: &EngineMap, ov: &Overrides) -> Vec<VoicePlan> 
                 };
                 (rank, n)
             });
-            let resolved = translator.resolve_canon(canon);
+            let resolved = mapping.resolve_canon(canon);
             Some(VoicePlan {
                 canon,
                 src_notes,
                 tgt_note: resolved.note(),
-                default_tgt_note: base.resolve_canon(canon).note(),
+                default_tgt_note: resolve(canon, tgt).note(),
                 status: PlanStatus::from(&resolved),
             })
         })
@@ -91,7 +87,7 @@ mod tests {
     use super::*;
     use crate::{
         canon::{idx, KickKind, SnareArtic},
-        catalog::{BuiltinMaps, MapProvider},
+        catalog::Catalog,
         engine_map::from_toml,
         note::n,
         Overrides,
@@ -104,7 +100,7 @@ mod tests {
     }
 
     fn ggd_to_ezd(ov: &str) -> Vec<VoicePlan> {
-        let b = BuiltinMaps::new();
+        let b = Catalog::builtin();
         let ov: Overrides = serde_json::from_str(ov).unwrap();
         plan(
             b.get("ggd_invasion").unwrap(),
@@ -127,7 +123,7 @@ mod tests {
 
     #[test]
     fn rows_follow_canon_declaration_order() {
-        let b = BuiltinMaps::new();
+        let b = Catalog::builtin();
         let rows = plan(
             b.get("ggd_invasion").unwrap(),
             b.get("ggd_invasion").unwrap(),
@@ -243,7 +239,7 @@ mod tests {
     #[test]
     fn every_builtin_canon_is_listed_by_canon_all() {
         let all: HashSet<Canon> = Canon::all().iter().copied().collect();
-        let b = BuiltinMaps::new();
+        let b = Catalog::builtin();
         for id in b.ids() {
             for drum in b.get(id).unwrap().source_notes() {
                 assert!(all.contains(&drum.canon), "{id}: {} missing", drum.canon);

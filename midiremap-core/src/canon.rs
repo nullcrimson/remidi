@@ -51,7 +51,7 @@ pub type RackIdx = Idx<8>;
 pub type FloorIdx = Idx<4>;
 pub type OpenLevel = Idx<6>;
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum Canon {
     Kick(KickKind),
     Snare(SnareIdx, SnareArtic),
@@ -63,13 +63,13 @@ pub enum Canon {
     Perc(PercKind),
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum KickKind {
     Main,
     Alt,
     Left,
 }
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum SnareArtic {
     Hit,
     Rim,
@@ -80,18 +80,18 @@ pub enum SnareArtic {
     Off,
     Side,
 }
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum TomPos {
     Rack(RackIdx),
     Floor(FloorIdx),
 }
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum TomArtic {
     Hit,
     Rim,
     Rimshot,
 }
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum HatOpen {
     Tight,
     Closed,
@@ -101,7 +101,7 @@ pub enum HatOpen {
     Pedal,
     PedalSplash,
 }
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum HatZone {
     Plain,
     Tip,
@@ -109,7 +109,7 @@ pub enum HatZone {
     Bell,
 }
 /// A cymbal and its position; each kind has its own number of positions.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum CymSlot {
     Crash(Idx<6>),
     China(Idx<3>),
@@ -117,7 +117,7 @@ pub enum CymSlot {
     Stack(Idx<4>),
     Bell(Idx<2>),
 }
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum CymArtic {
     Hit,
     Mute,
@@ -127,7 +127,7 @@ pub enum CymArtic {
     BowTip,
     Edge,
 }
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum RideArtic {
     Bow,
     Bell,
@@ -136,7 +136,7 @@ pub enum RideArtic {
     Edge,
     Mute,
 }
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum PercKind {
     Cowbell,
     Clap,
@@ -511,21 +511,6 @@ impl Canon {
             Canon::Ride(..) => "Cymbals",
             Canon::Perc(_) => "Percussion",
         }
-    }
-}
-
-/// Resolves the ordered, nearest-first list of alternative canonical slots to
-/// try when a target engine cannot play a given slot directly.
-pub trait FallbackResolver {
-    fn chain(&self, canon: Canon) -> Vec<Canon>;
-}
-
-/// The curated default fallback chains.
-pub struct DefaultFallbacks;
-
-impl FallbackResolver for DefaultFallbacks {
-    fn chain(&self, canon: Canon) -> Vec<Canon> {
-        fallback(canon)
     }
 }
 

@@ -1,13 +1,9 @@
-use std::collections::HashMap;
-
 use serde::Deserialize;
 
-use crate::{
-    canon::Canon,
-    engine_map::{Decoder, Encoder},
-    note::Note,
-};
+use crate::{canon::Canon, note::Note};
 
+/// Edits layered over a source and a target engine; the last entry for a note or canon
+/// wins.
 #[derive(Deserialize, Default)]
 pub struct Overrides {
     #[serde(default)]
@@ -22,60 +18,12 @@ pub struct CanonNote {
     pub note: Note,
 }
 
-impl Overrides {
-    /// Target overrides; when a canon appears more than once, the last entry wins.
-    pub fn encoder<'a>(&self, base: &'a dyn Encoder) -> OverrideEncoder<'a> {
-        let mut extra = HashMap::new();
-        for cn in &self.tgt {
-            extra.insert(cn.canon, cn.note);
-        }
-        OverrideEncoder { base, extra }
-    }
-
-    /// Source overrides; when a note appears more than once, the last entry wins.
-    pub fn decoder<'a>(&self, base: &'a dyn Decoder) -> OverrideDecoder<'a> {
-        let mut extra = HashMap::new();
-        for cn in &self.src {
-            extra.insert(cn.note, cn.canon);
-        }
-        OverrideDecoder { base, extra }
-    }
-}
-
-pub struct OverrideEncoder<'a> {
-    base: &'a dyn Encoder,
-    extra: HashMap<Canon, Note>,
-}
-
-impl Encoder for OverrideEncoder<'_> {
-    fn encode(&self, canon: Canon) -> Option<Note> {
-        self.extra
-            .get(&canon)
-            .copied()
-            .or_else(|| self.base.encode(canon))
-    }
-}
-
-pub struct OverrideDecoder<'a> {
-    base: &'a dyn Decoder,
-    extra: HashMap<Note, Canon>,
-}
-
-impl Decoder for OverrideDecoder<'_> {
-    fn decode(&self, note: Note) -> Option<Canon> {
-        self.extra
-            .get(&note)
-            .copied()
-            .or_else(|| self.base.decode(note))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{
         canon::{idx, Canon, KickKind, SnareArtic},
-        engine_map::{from_toml, Decoder, Encoder},
+        engine_map::from_toml,
         note::n,
     };
 
@@ -127,31 +75,32 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            ov.encoder(&base).encode(Canon::Kick(KickKind::Main)),
+            base.with_target_overrides(&ov.tgt)
+                .encode(Canon::Kick(KickKind::Main)),
             Some(n(40))
         );
         assert_eq!(
-            ov.decoder(&base).decode(n(99)),
+            base.with_source_overrides(&ov.src).decode(n(99)),
             Some(Canon::Snare(idx(1), SnareArtic::Hit))
         );
     }
 
     #[test]
-    fn encoder_override_beats_base_and_falls_through() {
+    fn target_override_beats_base_and_falls_through() {
         let base = from_toml(TGT).unwrap();
         let ov: Overrides =
             serde_json::from_str(r#"{"tgt":[{"canon":"kick.main","note":35}]}"#).unwrap();
-        let enc = ov.encoder(&base);
+        let enc = base.with_target_overrides(&ov.tgt);
         assert_eq!(enc.encode(Canon::Kick(KickKind::Main)), Some(n(35)));
         assert_eq!(enc.encode(Canon::Snare(idx(1), SnareArtic::Hit)), None);
     }
 
     #[test]
-    fn decoder_override_rescues_and_falls_through() {
+    fn source_override_rescues_and_falls_through() {
         let base = from_toml(TGT).unwrap();
         let ov: Overrides =
             serde_json::from_str(r#"{"src":[{"note":99,"canon":"kick.main"}]}"#).unwrap();
-        let dec = ov.decoder(&base);
+        let dec = base.with_source_overrides(&ov.src);
         assert_eq!(dec.decode(n(99)), Some(Canon::Kick(KickKind::Main)));
         assert_eq!(dec.decode(n(36)), Some(Canon::Kick(KickKind::Main)));
         assert_eq!(dec.decode(n(50)), None);

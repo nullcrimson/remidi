@@ -1,7 +1,4 @@
-use midiremap_core::{
-    catalog::{BuiltinMaps, MapProvider},
-    remap, ChannelScope, Conversion, Converted, DefaultFallbacks,
-};
+use midiremap_core::{convert, Catalog, ChannelScope, Converted, Mapping, Overrides};
 use midly::{
     num::{u15, u28, u4, u7},
     Format, Header, MidiMessage, Smf, Timing, Track, TrackEvent, TrackEventKind,
@@ -99,12 +96,9 @@ fn track_events(bytes: &[u8], index: usize) -> Vec<Ev> {
 }
 
 fn ggd_to_ezd(midi: &[u8], scope: ChannelScope) -> Converted {
-    let b = BuiltinMaps::new();
+    let b = Catalog::builtin();
     let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
-    Conversion::new(src, tgt, &DefaultFallbacks)
-        .with_scope(scope)
-        .run(midi)
-        .unwrap()
+    convert(midi, &Mapping::new(src, tgt, &Overrides::default()), scope).unwrap()
 }
 
 #[test]
@@ -138,15 +132,10 @@ fn auto_converts_every_channel_of_a_track_with_channel_10_hits() {
 }
 
 #[test]
-fn remap_defaults_to_auto() {
-    let b = BuiltinMaps::new();
+fn default_scope_is_auto() {
+    assert_eq!(ChannelScope::default(), ChannelScope::Auto);
     let midi = smf_tracks(&[&[(0, DRUMS, on(24))], &[(0, BASS, on(24))]]);
-    let out = remap(
-        &midi,
-        b.get("ggd_invasion").unwrap(),
-        b.get("ezdrummer").unwrap(),
-    )
-    .unwrap();
+    let out = ggd_to_ezd(&midi, ChannelScope::default());
     assert_eq!(track_events(&out.bytes, 0), vec![(0, DRUMS, on(36))]);
     assert_eq!(track_events(&out.bytes, 1), vec![(0, BASS, on(24))]);
 }

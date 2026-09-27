@@ -1,10 +1,8 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use midiremap_core::{
     canon::{fallback, Canon},
-    catalog::{BuiltinMaps, MapProvider},
-    engine_map::{Decoder, Encoder, EngineMap},
-    remap, FallbackTally, Note,
+    convert, Catalog, ChannelScope, EngineMap, FallbackTally, Mapping, Note, Overrides,
 };
 use midly::{
     num::{u15, u24, u28, u4, u7},
@@ -90,7 +88,7 @@ fn expected_resolution(canon: Canon, tgt: &EngineMap) -> Expected {
     Expected::Dropped
 }
 
-fn richest_engine(maps: &BuiltinMaps) -> &str {
+fn richest_engine(maps: &Catalog) -> &str {
     let mut ids = maps.ids();
     ids.sort_unstable();
     ids.into_iter()
@@ -100,7 +98,7 @@ fn richest_engine(maps: &BuiltinMaps) -> &str {
 
 #[test]
 fn ezdrummer2_is_the_richest_source_kit() {
-    let maps = BuiltinMaps::new();
+    let maps = Catalog::builtin();
     let src_id = richest_engine(&maps);
     assert_eq!(
         src_id, "ezdrummer2",
@@ -115,7 +113,7 @@ fn ezdrummer2_is_the_richest_source_kit() {
 
 #[test]
 fn walkthrough_is_ninety_bpm_quarter_notes_one_per_drum() {
-    let maps = BuiltinMaps::new();
+    let maps = Catalog::builtin();
     let src = maps.get(richest_engine(&maps)).unwrap();
     let notes: Vec<Note> = src.source_notes().iter().map(|d| d.note).collect();
     let midi = walkthrough_smf(&notes);
@@ -159,7 +157,7 @@ fn walkthrough_is_ninety_bpm_quarter_notes_one_per_drum() {
 
 #[test]
 fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
-    let maps = BuiltinMaps::new();
+    let maps = Catalog::builtin();
     let src_id = richest_engine(&maps);
     let src = maps.get(src_id).unwrap();
     let notes: Vec<Note> = src.source_notes().iter().map(|d| d.note).collect();
@@ -172,8 +170,8 @@ fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
         let tgt = maps.get(tgt_id).unwrap();
 
         let mut expected_keys: Vec<u8> = Vec::new();
-        let mut expected_fallback: HashMap<Canon, FallbackTally> = HashMap::new();
-        let mut expected_dropped: HashMap<Canon, u32> = HashMap::new();
+        let mut expected_fallback: BTreeMap<Canon, FallbackTally> = BTreeMap::new();
+        let mut expected_dropped: BTreeMap<Canon, u32> = BTreeMap::new();
         for &note in &notes {
             let canon = src
                 .decode(note)
@@ -193,7 +191,12 @@ fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
             }
         }
 
-        let out = remap(&midi, src, tgt).unwrap();
+        let out = convert(
+            &midi,
+            &Mapping::new(src, tgt, &Overrides::default()),
+            ChannelScope::Auto,
+        )
+        .unwrap();
 
         assert_eq!(
             note_on_keys(&out.bytes),
@@ -225,13 +228,18 @@ fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
 
 #[test]
 fn same_engine_conversion_is_all_direct() {
-    let maps = BuiltinMaps::new();
+    let maps = Catalog::builtin();
     let src_id = richest_engine(&maps);
     let src = maps.get(src_id).unwrap();
     let notes: Vec<Note> = src.source_notes().iter().map(|d| d.note).collect();
     let midi = walkthrough_smf(&notes);
 
-    let out = remap(&midi, src, src).unwrap();
+    let out = convert(
+        &midi,
+        &Mapping::new(src, src, &Overrides::default()),
+        ChannelScope::Auto,
+    )
+    .unwrap();
 
     assert_eq!(note_on_keys(&out.bytes).len(), notes.len());
     assert!(out.report.unmapped_source.is_empty());
@@ -244,7 +252,7 @@ fn same_engine_conversion_is_all_direct() {
 
 #[test]
 fn walkthrough_hits_general_midi_anchor_notes() {
-    let maps = BuiltinMaps::new();
+    let maps = Catalog::builtin();
     let gm = maps.get("general_midi").unwrap();
     for (key, note) in [
         ("kick.main", 36),

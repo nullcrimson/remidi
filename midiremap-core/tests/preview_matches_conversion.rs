@@ -1,9 +1,7 @@
 use std::collections::BTreeMap;
 
 use midiremap_core::{
-    catalog::{BuiltinMaps, MapProvider},
-    plan::{plan, PlanStatus},
-    remap_with_overrides, EngineMap, Note, Overrides,
+    convert, plan, Catalog, ChannelScope, EngineMap, Mapping, Note, Overrides, PlanStatus,
 };
 use midly::{
     num::{u15, u28, u4, u7},
@@ -114,7 +112,7 @@ fn previewed_by_source_note(src: &EngineMap, tgt: &EngineMap, ov: &Overrides) ->
 }
 
 fn assert_preview_matches_conversion(ov_json: &str) {
-    let maps = BuiltinMaps::new();
+    let maps = Catalog::builtin();
     let ov: Overrides = serde_json::from_str(ov_json).unwrap();
     let midi = every_note_smf();
     let mut ids = maps.ids();
@@ -123,7 +121,8 @@ fn assert_preview_matches_conversion(ov_json: &str) {
         let src = maps.get(src_id).unwrap();
         for tgt_id in &ids {
             let tgt = maps.get(tgt_id).unwrap();
-            let converted = remap_with_overrides(&midi, src, tgt, &ov).unwrap();
+            let converted =
+                convert(&midi, &Mapping::new(src, tgt, &ov), ChannelScope::Auto).unwrap();
             assert_eq!(
                 converted_by_source_note(&converted.bytes),
                 previewed_by_source_note(src, tgt, &ov),
@@ -145,14 +144,19 @@ fn preview_matches_conversion_with_overrides_for_every_builtin_pair() {
 
 #[test]
 fn reassigned_note_converts_as_its_new_drum() {
-    let maps = BuiltinMaps::new();
+    let maps = Catalog::builtin();
     let (src, tgt) = (
         maps.get("ggd_invasion").unwrap(),
         maps.get("ezdrummer").unwrap(),
     );
     let ov: Overrides =
         serde_json::from_str(r#"{"src":[{"note":24,"canon":"snare1.hit"}]}"#).unwrap();
-    let converted = remap_with_overrides(&every_note_smf(), src, tgt, &ov).unwrap();
+    let converted = convert(
+        &every_note_smf(),
+        &Mapping::new(src, tgt, &ov),
+        ChannelScope::Auto,
+    )
+    .unwrap();
     let snare = plan(src, tgt, &ov)
         .into_iter()
         .find(|r| r.canon.to_string() == "snare1.hit")

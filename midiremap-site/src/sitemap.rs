@@ -21,7 +21,7 @@ pub fn robots() -> String {
 mod tests {
     use std::collections::HashSet;
 
-    use midiremap_core::BuiltinMaps;
+    use midiremap_core::Catalog;
 
     use super::*;
 
@@ -35,7 +35,7 @@ mod tests {
 
     #[test]
     fn lists_every_page_once_on_the_canonical_origin() {
-        let site = Site::build(&BuiltinMaps::new()).unwrap();
+        let site = Site::build(&Catalog::builtin()).unwrap();
         let xml = sitemap(&site);
         let doc = roxmltree::Document::parse(&xml).unwrap();
         let locs: Vec<&str> = doc

@@ -46,21 +46,23 @@ The dependency direction runs top to bottom; nothing lower depends on anything
 higher.
 
 ```
-conversion   ── end-to-end facade: bytes in → bytes + report out
+conversion   ── convert(bytes, &Mapping, ChannelScope) → bytes + report
    │
-   ├── midi        ── MidiCodec (midly) + EventRewriter over the SMF stream
+   ├── midi        ── parse / write (midly) + rewrite over the SMF stream
    │      │
    │      └── table      ── NoteTable: every source note's Resolution, compiled once
    │
-   └── translate   ── Translator: note → Resolution; Report/ReportSink
-          │              (used by table, midi and conversion)
-          ├── engine_map  ── Decoder / Encoder / EngineMap
-          └── canon       ── Canon enum + FallbackResolver
+   └── translate   ── Mapping: note → Resolution; Report
+          │              (used by table, midi, conversion and plan)
+          ├── engine_map  ── EngineMap (+ override patching), Note
+          └── canon       ── Canon enum + fallback chains
 
-catalog     ── MapProvider: BuiltinMaps (embedded) + LayeredMaps (user maps)
-overrides   ── per-voice retargeting, layered over an Encoder and a Decoder
+catalog     ── Catalog: builtin presets (embedded) + user maps
+overrides   ── Overrides: per-note / per-drum edits, applied by EngineMap
 plan        ── per-drum view of the NoteTable (for UI display), no MIDI
 ```
+
+Every concept is one concrete type or function; the core defines no traits.
 
 ### `canon` — the hub vocabulary
 
@@ -80,8 +82,8 @@ plan        ── per-drum view of the NoteTable (for UI display), no MIDI
 - `Canon::all()` is every slot, built once. `FromStr` is a lookup table built from
   `all()` and `Display` (plus the alias `ride.N.bow`), so every key round-trips by
   construction.
-- `FallbackResolver` trait + `DefaultFallbacks`: given a canon, returns its
-  ordered, nearest-first list of usable alternatives.
+- `fallback(canon)`: the ordered, nearest-first list of alternatives to try when a
+  target cannot play a slot.
 
 **Fallback invariant.** `single_step` gives a slot's immediate, nearest
 alternatives; `fallback` is the breadth-first closure of that relation, so a chain
@@ -94,44 +96,45 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
   deserializes from a plain number, rejecting anything larger, and converts to and
   from `midly`'s `u7` at the MIDI boundary. Every note in the core — engine maps,
   overrides, the note table, the report and the plan — is a `Note`.
-- `Decoder` (`Note → Option<Canon>`) and `Encoder` (`Canon → Option<Note>`) traits.
-- `EngineMap` implements both. Built from a TOML/JSON document (see below):
+- `EngineMap::decode(Note) → Option<Canon>` and `encode(Canon) → Option<Note>`.
+  Built from a TOML/JSON document (see below):
   - `to_canon: HashMap<Note, Canon>` — decode direction, one entry per listed note.
   - `from_canon: HashMap<Canon, Note>` — encode direction. A note flagged
     `primary` wins the reverse mapping; a duplicate primary for one canon is a
     build error. Non-primary notes fill a canon only if no primary claimed it.
+- `with_source_overrides(&[CanonNote])` / `with_target_overrides(&[CanonNote])`
+  return a patched copy (decode or encode side); the last entry for a note or canon
+  wins.
 
 ### `translate` — the pipeline, no MIDI
 
-- `Translator { decoder, encoder, resolver }` — the hub-and-spoke pipeline as a
-  pure function of one note number, with no side effects.
+- `Mapping::new(src, tgt, &Overrides)` owns the source and target maps with the
+  overrides applied: the hub-and-spoke pipeline as a pure function of one note.
+  `resolve(canon, &EngineMap)` resolves a canon against any target.
 - Two result types keep partial cases unrepresentable:
   - `CanonResolution { Direct | Fallback | Dropped }` — total result of resolving
     a *canon* against the target. Cannot be "unmapped".
   - `Resolution { Resolved(CanonResolution) | Unmapped }` — result of resolving a
     *source note*, which may not decode at all.
   - `translate(note)` decodes then wraps `resolve_canon` in `Resolved`;
-    `resolve_canon(canon)` is used directly by `plan` with no panic arm.
+    `resolve_canon(canon)` is used directly by `plan`.
   - Every `CanonResolution` carries the canon it resolved.
-- `Report` + `ReportSink`: counting policy lives in one place, decoupled from the
-  translation decision. `Report` tallies unmapped source notes, fallbacks used
-  (with the target note each one landed on), and dropped canons; direct hits are
-  not recorded.
+- `Report::record` keeps the counting policy in one place: it tallies unmapped
+  source notes, fallbacks used (with the target note each one landed on), and
+  dropped canons; direct hits are not recorded. Its `BTreeMap`s serialize in a
+  stable order, note keys as strings, so the CLI and WASM print the same JSON.
 
 ### `table` — the single source of truth
 
 - `NoteTable` holds the `Resolution` of all 128 source notes, compiled once per
-  (source, target, overrides) by calling `Translator::translate` for each note.
+  `Mapping` by calling `Mapping::translate` for each note.
 - The converter, the edit preview (`plan`) and therefore the report all read the
   same table, so the fallback search never runs per MIDI event and the preview
   cannot disagree with the downloaded file.
 
 ### `midi` — the only module that knows `midly`
 
-- `MidiCodec` trait + `StandardMidiCodec` (backed by `midly`). Used as a generic
-  bound `C: MidiCodec`, never as `&dyn MidiCodec`, because `parse` is
-  lifetime-generic (`Smf<'a>` borrows the input) and thus not object-safe. Every
-  other trait in the crate *is* object-safe and is used behind `&dyn`.
+- `parse(bytes)` / `write(&smf)`: the `midly` codec.
 - `ChannelScope { Auto | Only(u4) | All }` chooses which channels a conversion
   rewrites; `resolve(&smf)` turns it into one `ChannelFilter { Only | All | Skip }`
   per track. `Auto` (the default) converts every channel of each track that has a
@@ -139,7 +142,8 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
   everything. Multi-track song exports keep their bass and keys, drum tracks split
   across channels convert whole, and files with drums elsewhere convert as before.
   Parses from `auto`, `all` or `1`..=`16`.
-- `EventRewriter` applies a `NoteTable` to the events each track's filter accepts:
+- `rewrite(&mut smf, &NoteTable, ChannelScope, &mut Report)` applies the table to
+  the events each track's filter accepts:
   - Note-on/off and poly aftertouch keys are rewritten to the resolved target
     note, so cymbal chokes follow their cymbal.
   - Unmapped / dropped notes (and their aftertouch) are removed; a removed event's
@@ -156,26 +160,23 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
 
 ### `conversion` — end-to-end facade
 
-- `Conversion { table, codec, scope }` with `run(bytes) → Converted { bytes, report }`;
-  `Conversion::new(src, tgt, resolver)` compiles the table up front and uses
-  `ChannelScope::Auto`; `with_scope(scope)` overrides it (the CLI's `--channel`).
-- Free functions: `remap(mid, src, tgt)` and `remap_with_overrides(mid, src, tgt,
-  ov)`. Empty overrides behave identically to `remap`.
+- `convert(midi, &Mapping, ChannelScope) → Converted { bytes, report }`: parse,
+  compile the `NoteTable`, rewrite, write. The single entry point for the CLI and
+  the WASM.
 
 ### `catalog` — where engine maps come from
 
-- `MapProvider` trait: `get(id)` / `ids()`.
-- `BuiltinMaps`: every `engines/*.toml` (dozens of presets). Core's `build.rs`
+- `Catalog`: engine maps keyed by id, with `get(id)` / `ids()`.
+- `Catalog::builtin()`: every `engines/*.toml` (dozens of presets). Core's `build.rs`
   globs the directory, parses each file with `toml`, rejects invalid TOML or a
   duplicate engine id as a build error naming the file, and writes one JSON table
   that is embedded with `include_str!`. Adding a preset needs no code change, and
-  `toml` stays out of the runtime (and the WASM). `new()` parses the table into a
-  map keyed by engine id; `shared()` is a process-wide `LazyLock` instance, so the
+  `toml` stays out of the runtime (and the WASM). `builtin()` parses the table;
+  `Catalog::shared()` is a process-wide `LazyLock` instance, so the
   WASM parses presets once per page instead of once per call. A semantically invalid
   preset (unknown canon, duplicate primary) is a startup panic caught by tests.
-- `LayeredMaps<P>`: user-supplied JSON maps layered over a base provider. Lookups
-  hit overrides first, then the base — a user map *shadows* a builtin, never
-  mutates it. `ids()` returns the union.
+- `with_user_json(json)` adds a user map that *shadows* a builtin with the same id;
+  `from_maps(maps)` builds a catalog from any maps (tests, generators).
 
 ### `overrides` — per-voice retargeting
 
@@ -185,10 +186,8 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
   *decode* side ("read this source note as this canon"), which lets a note the
   source engine doesn't map be rescued to a canon. Notes are `Note`s, so an
   out-of-range value fails deserialization.
-- `OverrideEncoder` wraps a base `Encoder`: an overridden canon uses the override
-  note; everything else falls through to the base engine.
-- `OverrideDecoder` wraps a base `Decoder`: an overridden source note decodes to
-  the chosen canon; everything else falls through to the base engine.
+- `Mapping::new` applies them through `EngineMap::with_source_overrides` and
+  `with_target_overrides`; anything not overridden falls through to the engine.
 
 ### `plan` — the source→target table (UI, no MIDI)
 
@@ -239,12 +238,14 @@ Guitar Pro. The full set is whatever `engines/*.toml` ships; `list` (CLI) and
 stderr and exits non-zero):
 
 ```
-midiremap convert <input.mid> <src_id> <tgt_id> <output.mid> [--user-map map.json]
+midiremap convert <input.mid> <src_id> <tgt_id> <output.mid>
+                  [--user-map map.json] [--overrides edits.json] [--channel auto|all|1-16]
 midiremap list [--user-map map.json]
 ```
 
 `convert` writes the remapped `.mid` and prints the loss report as pretty JSON to
-stderr. `list` prints available engine ids.
+stderr. `--overrides` takes the same edit JSON the web app saves. `list` prints
+available engine ids.
 
 ### WASM (`midiremap-wasm`)
 
@@ -260,9 +261,10 @@ stderr. `list` prints available engine ids.
 - `canon_catalog() → [{ canon, label, family }]` — the full canon vocabulary, for
   the source-note canon picker.
 
-Because each `Canon` serializes directly to its dotted string key, `Report`'s
-`Canon`-keyed maps serialize to plain JS objects (the serializer is configured to
-emit maps as objects); no separate re-keying step is needed.
+`remap` calls `convert` with `ChannelScope::Auto` and serializes `Report` directly:
+canons serialize to their dotted keys and notes to strings, so every map becomes a
+plain JS object (the serializer emits maps as objects), and converted bytes arrive
+as a `Uint8Array`.
 
 ### Web app (`app/`)
 
@@ -298,11 +300,11 @@ conversion, not from the live rows.
 
 - **Pure core.** All logic is I/O-free and unit-tested; the outer crates own bytes
   and presentation.
-- **Make invalid states unrepresentable.** Trait direction (`Decoder` vs
-  `Encoder`), the `Resolution` / `CanonResolution` split, and exhaustive `Canon`
-  matches remove whole classes of error instead of documenting them.
-- **Object-safe traits behind `&dyn`**, except `MidiCodec` (lifetime-generic
-  `parse`), which is a generic bound.
+- **Make invalid states unrepresentable.** `Note`, `Idx<MAX>` / `CymSlot`, the
+  `Resolution` / `CanonResolution` split, and exhaustive `Canon` matches remove
+  whole classes of error instead of documenting them.
+- **Concrete types, no single-implementation traits.** One conversion entry point
+  (`convert`), one catalog type, one mapping type.
 - **Standard crates over hand-rolled** parsing, error handling, and serialization.
 - The verify gate before every change is `fmt` + `test` + `clippy`, all clean.
 ```

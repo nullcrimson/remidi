@@ -6,7 +6,7 @@ mod sitemap;
 use std::{fs, path::PathBuf, process::ExitCode};
 
 use clap::Parser;
-use midiremap_core::BuiltinMaps;
+use midiremap_core::Catalog;
 
 use crate::pages::Site;
 
@@ -43,7 +43,7 @@ fn write(path: PathBuf, contents: &str) -> Result<(), SiteError> {
 }
 
 fn run(args: Args) -> Result<Site, SiteError> {
-    let site = Site::build(&BuiltinMaps::new())?;
+    let site = Site::build(&Catalog::builtin())?;
     for (rel, html) in render::render_site(&site)? {
         write(args.out_dir.join(rel), &html)?;
     }

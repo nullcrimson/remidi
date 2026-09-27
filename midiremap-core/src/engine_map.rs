@@ -2,15 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use serde::Deserialize;
 
-use crate::{canon::Canon, note::Note};
-
-pub trait Decoder {
-    fn decode(&self, note: Note) -> Option<Canon>;
-}
-
-pub trait Encoder {
-    fn encode(&self, canon: Canon) -> Option<Note>;
-}
+use crate::{canon::Canon, note::Note, overrides::CanonNote};
 
 #[derive(Deserialize)]
 struct RawEntry {
@@ -29,25 +21,13 @@ struct RawMap {
     notes: Vec<RawEntry>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EngineMap {
     pub id: String,
     pub name: String,
     short_name: Option<String>,
     to_canon: HashMap<Note, Canon>,
     from_canon: HashMap<Canon, Note>,
-}
-
-impl Decoder for EngineMap {
-    fn decode(&self, note: Note) -> Option<Canon> {
-        self.to_canon.get(&note).copied()
-    }
-}
-
-impl Encoder for EngineMap {
-    fn encode(&self, canon: Canon) -> Option<Note> {
-        self.from_canon.get(&canon).copied()
-    }
 }
 
 pub struct Drum {
@@ -58,6 +38,34 @@ pub struct Drum {
 }
 
 impl EngineMap {
+    /// The drum a source note plays.
+    pub fn decode(&self, note: Note) -> Option<Canon> {
+        self.to_canon.get(&note).copied()
+    }
+
+    /// The note that plays a drum on this engine.
+    pub fn encode(&self, canon: Canon) -> Option<Note> {
+        self.from_canon.get(&canon).copied()
+    }
+
+    /// A copy that reads each overridden source note as its canon; the last entry for a
+    /// note wins.
+    pub fn with_source_overrides(&self, overrides: &[CanonNote]) -> Self {
+        let mut map = self.clone();
+        map.to_canon
+            .extend(overrides.iter().map(|cn| (cn.note, cn.canon)));
+        map
+    }
+
+    /// A copy that plays each overridden canon on its note; the last entry for a canon
+    /// wins.
+    pub fn with_target_overrides(&self, overrides: &[CanonNote]) -> Self {
+        let mut map = self.clone();
+        map.from_canon
+            .extend(overrides.iter().map(|cn| (cn.canon, cn.note)));
+        map
+    }
+
     pub fn display_name(&self) -> &str {
         self.short_name.as_deref().unwrap_or(&self.name)
     }

@@ -1,6 +1,6 @@
 use crate::{
     note::Note,
-    translate::{Resolution, Translator},
+    translate::{Mapping, Resolution},
 };
 
 const NOTES: usize = Note::MAX as usize + 1;
@@ -9,12 +9,12 @@ const NOTES: usize = Note::MAX as usize + 1;
 pub struct NoteTable([Resolution; NOTES]);
 
 impl NoteTable {
-    pub fn compile(translator: &Translator) -> Self {
+    pub fn compile(mapping: &Mapping) -> Self {
         let mut notes = Note::all();
         Self(std::array::from_fn(|_| {
             notes
                 .next()
-                .map_or(Resolution::Unmapped, |n| translator.translate(n))
+                .map_or(Resolution::Unmapped, |n| mapping.translate(n))
         }))
     }
 
@@ -30,15 +30,11 @@ impl NoteTable {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        canon::DefaultFallbacks,
-        catalog::{BuiltinMaps, MapProvider},
-        overrides::Overrides,
-    };
+    use crate::{catalog::Catalog, overrides::Overrides};
 
     #[test]
     fn agrees_with_translate_for_every_note() {
-        let b = BuiltinMaps::new();
+        let b = Catalog::builtin();
         let ov: Overrides = serde_json::from_str(
             r#"{"src":[{"note":24,"canon":"snare1.hit"}],"tgt":[{"canon":"kick.main","note":35}]}"#,
         )
@@ -52,10 +48,9 @@ mod tests {
         for src_id in ids {
             for tgt_id in ids {
                 let (src, tgt) = (b.get(src_id).unwrap(), b.get(tgt_id).unwrap());
-                let (dec, enc) = (ov.decoder(src), ov.encoder(tgt));
                 for t in [
-                    Translator::new(src, tgt, &DefaultFallbacks),
-                    Translator::new(&dec, &enc, &DefaultFallbacks),
+                    Mapping::new(src, tgt, &Overrides::default()),
+                    Mapping::new(src, tgt, &ov),
                 ] {
                     let table = NoteTable::compile(&t);
                     for note in Note::all() {
@@ -72,9 +67,9 @@ mod tests {
 
     #[test]
     fn iter_yields_each_note_once_in_order() {
-        let b = BuiltinMaps::new();
+        let b = Catalog::builtin();
         let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
-        let table = NoteTable::compile(&Translator::new(src, tgt, &DefaultFallbacks));
+        let table = NoteTable::compile(&Mapping::new(src, tgt, &Overrides::default()));
         let notes: Vec<u8> = table.iter().map(|(n, _)| n.get()).collect();
         assert_eq!(notes, (0..128).collect::<Vec<u8>>());
     }

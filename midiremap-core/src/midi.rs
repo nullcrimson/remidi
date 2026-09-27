@@ -8,7 +8,7 @@ use midly::{
 use crate::{
     note::Note,
     table::NoteTable,
-    translate::{CanonResolution, ReportSink, Resolution},
+    translate::{CanonResolution, Report, Resolution},
 };
 
 #[derive(thiserror::Error, Debug)]
@@ -19,23 +19,15 @@ pub enum CodecError {
     Write(String),
 }
 
-pub trait MidiCodec {
-    fn parse<'a>(&self, bytes: &'a [u8]) -> Result<Smf<'a>, CodecError>;
-    fn write(&self, smf: &Smf) -> Result<Vec<u8>, CodecError>;
+pub fn parse(bytes: &[u8]) -> Result<Smf<'_>, CodecError> {
+    Smf::parse(bytes).map_err(|e| CodecError::Parse(e.to_string()))
 }
 
-pub struct StandardMidiCodec;
-
-impl MidiCodec for StandardMidiCodec {
-    fn parse<'a>(&self, bytes: &'a [u8]) -> Result<Smf<'a>, CodecError> {
-        Smf::parse(bytes).map_err(|e| CodecError::Parse(e.to_string()))
-    }
-    fn write(&self, smf: &Smf) -> Result<Vec<u8>, CodecError> {
-        let mut bytes = Vec::new();
-        smf.write_std(&mut bytes)
-            .map_err(|e| CodecError::Write(e.to_string()))?;
-        Ok(bytes)
-    }
+pub fn write(smf: &Smf) -> Result<Vec<u8>, CodecError> {
+    let mut bytes = Vec::new();
+    smf.write_std(&mut bytes)
+        .map_err(|e| CodecError::Write(e.to_string()))?;
+    Ok(bytes)
 }
 
 const DRUM_CHANNEL: u4 = u4::new(9);
@@ -133,56 +125,46 @@ impl ChannelFilter {
     }
 }
 
-pub struct EventRewriter<'a> {
-    table: &'a NoteTable,
-    scope: ChannelScope,
-}
+/// Rewrites every note event the scope accepts through `table`, removing dropped and
+/// unmapped notes (their deltas fold into the next kept event) and tallying `report`.
+pub fn rewrite(smf: &mut Smf, table: &NoteTable, scope: ChannelScope, report: &mut Report) {
+    let filters = scope.resolve(smf);
+    for (track, filter) in smf.tracks.iter_mut().zip(filters) {
+        let events = std::mem::take(track);
+        let mut out = Vec::with_capacity(events.len());
+        let mut pending_delta: u32 = 0;
 
-impl<'a> EventRewriter<'a> {
-    pub fn new(table: &'a NoteTable, scope: ChannelScope) -> Self {
-        Self { table, scope }
-    }
-
-    pub fn rewrite(&self, smf: &mut Smf, sink: &mut dyn ReportSink) {
-        let filters = self.scope.resolve(smf);
-        for (track, filter) in smf.tracks.iter_mut().zip(filters) {
-            let events = std::mem::take(track);
-            let mut out = Vec::with_capacity(events.len());
-            let mut pending_delta: u32 = 0;
-
-            for mut ev in events {
-                let this_delta = pending_delta.saturating_add(ev.delta.as_int());
-                let keep = match &mut ev.kind {
-                    TrackEventKind::Midi { channel, message } if filter.accepts(*channel) => {
-                        match message {
-                            MidiMessage::NoteOn { key, vel } => {
-                                let note = Note::from(*key);
-                                let res = self.table.get(note);
-                                if vel.as_int() > 0 {
-                                    sink.record(note, res);
-                                }
-                                apply(res, key)
+        for mut ev in events {
+            let this_delta = pending_delta.saturating_add(ev.delta.as_int());
+            let keep = match &mut ev.kind {
+                TrackEventKind::Midi { channel, message } if filter.accepts(*channel) => {
+                    match message {
+                        MidiMessage::NoteOn { key, vel } => {
+                            let note = Note::from(*key);
+                            let res = table.get(note);
+                            if vel.as_int() > 0 {
+                                report.record(note, res);
                             }
-                            MidiMessage::NoteOff { key, .. }
-                            | MidiMessage::Aftertouch { key, .. } => {
-                                apply(self.table.get(Note::from(*key)), key)
-                            }
-                            _ => true,
+                            apply(res, key)
                         }
+                        MidiMessage::NoteOff { key, .. } | MidiMessage::Aftertouch { key, .. } => {
+                            apply(table.get(Note::from(*key)), key)
+                        }
+                        _ => true,
                     }
-                    _ => true,
-                };
-
-                if keep {
-                    ev.delta = u28::try_from(this_delta).unwrap_or(u28::max_value());
-                    out.push(ev);
-                    pending_delta = 0;
-                } else {
-                    pending_delta = this_delta;
                 }
+                _ => true,
+            };
+
+            if keep {
+                ev.delta = u28::try_from(this_delta).unwrap_or(u28::max_value());
+                out.push(ev);
+                pending_delta = 0;
+            } else {
+                pending_delta = this_delta;
             }
-            *track = out;
         }
+        *track = out;
     }
 }
 

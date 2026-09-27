@@ -1,11 +1,12 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 
 use crate::{
-    canon::{Canon, FallbackResolver},
-    engine_map::{Decoder, Encoder},
+    canon::{fallback, Canon},
+    engine_map::EngineMap,
     note::Note,
+    overrides::Overrides,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -38,47 +39,43 @@ pub enum Resolution {
     Unmapped,
 }
 
-pub struct Translator<'a> {
-    decoder: &'a dyn Decoder,
-    encoder: &'a dyn Encoder,
-    resolver: &'a dyn FallbackResolver,
+/// A source and a target engine with overrides applied: the hub-and-spoke pipeline for
+/// one conversion.
+pub struct Mapping {
+    src: EngineMap,
+    tgt: EngineMap,
 }
 
-impl<'a> Translator<'a> {
-    pub fn new(
-        decoder: &'a dyn Decoder,
-        encoder: &'a dyn Encoder,
-        resolver: &'a dyn FallbackResolver,
-    ) -> Self {
+impl Mapping {
+    pub fn new(src: &EngineMap, tgt: &EngineMap, overrides: &Overrides) -> Self {
         Self {
-            decoder,
-            encoder,
-            resolver,
+            src: src.with_source_overrides(&overrides.src),
+            tgt: tgt.with_target_overrides(&overrides.tgt),
         }
     }
 
     pub fn translate(&self, note: Note) -> Resolution {
-        let Some(canon) = self.decoder.decode(note) else {
-            return Resolution::Unmapped;
-        };
-        Resolution::Resolved(self.resolve_canon(canon))
+        self.src.decode(note).map_or(Resolution::Unmapped, |canon| {
+            Resolution::Resolved(self.resolve_canon(canon))
+        })
     }
 
     pub fn resolve_canon(&self, canon: Canon) -> CanonResolution {
-        if let Some(n) = self.encoder.encode(canon) {
-            return CanonResolution::Direct { canon, note: n };
-        }
-        for alt in self.resolver.chain(canon) {
-            if let Some(n) = self.encoder.encode(alt) {
-                return CanonResolution::Fallback { canon, note: n };
-            }
-        }
-        CanonResolution::Dropped { canon }
+        resolve(canon, &self.tgt)
     }
 }
 
-pub trait ReportSink {
-    fn record(&mut self, source_note: Note, resolution: &Resolution);
+/// Resolves a canon against a target: directly, else the nearest fallback it can play.
+pub fn resolve(canon: Canon, tgt: &EngineMap) -> CanonResolution {
+    if let Some(note) = tgt.encode(canon) {
+        return CanonResolution::Direct { canon, note };
+    }
+    fallback(canon)
+        .into_iter()
+        .find_map(|alt| tgt.encode(alt))
+        .map_or(CanonResolution::Dropped { canon }, |note| {
+            CanonResolution::Fallback { canon, note }
+        })
 }
 
 #[derive(Serialize, Debug, PartialEq, Eq)]
@@ -89,13 +86,19 @@ pub struct FallbackTally {
 
 #[derive(Default, Serialize, Debug)]
 pub struct Report {
-    pub unmapped_source: HashMap<Note, u32>,
-    pub fallback_used: HashMap<Canon, FallbackTally>,
-    pub dropped: HashMap<Canon, u32>,
+    #[serde(serialize_with = "string_keys")]
+    pub unmapped_source: BTreeMap<Note, u32>,
+    pub fallback_used: BTreeMap<Canon, FallbackTally>,
+    pub dropped: BTreeMap<Canon, u32>,
 }
 
-impl ReportSink for Report {
-    fn record(&mut self, source_note: Note, resolution: &Resolution) {
+fn string_keys<S: Serializer>(map: &BTreeMap<Note, u32>, s: S) -> Result<S::Ok, S::Error> {
+    s.collect_map(map.iter().map(|(note, count)| (note.to_string(), count)))
+}
+
+impl Report {
+    /// Tallies one source hit; direct hits are not recorded.
+    pub fn record(&mut self, source_note: Note, resolution: &Resolution) {
         match resolution {
             Resolution::Unmapped => *self.unmapped_source.entry(source_note).or_default() += 1,
             Resolution::Resolved(CanonResolution::Fallback { canon, note }) => {
@@ -119,7 +122,7 @@ impl ReportSink for Report {
 mod tests {
     use super::*;
     use crate::{
-        canon::{idx, DefaultFallbacks, HatOpen, HatZone, KickKind, SnareArtic},
+        canon::{idx, HatOpen, HatZone, KickKind, SnareArtic},
         engine_map::from_toml,
         note::n,
     };
@@ -142,23 +145,18 @@ mod tests {
         ]
     "#;
 
-    fn translator<'a>(
-        src: &'a crate::engine_map::EngineMap,
-        tgt: &'a crate::engine_map::EngineMap,
-        fb: &'a DefaultFallbacks,
-    ) -> Translator<'a> {
-        Translator::new(src, tgt, fb)
+    fn mapping() -> Mapping {
+        Mapping::new(
+            &from_toml(SRC).unwrap(),
+            &from_toml(TGT).unwrap(),
+            &Overrides::default(),
+        )
     }
 
     #[test]
     fn direct_hit() {
-        let (src, tgt, fb) = (
-            from_toml(SRC).unwrap(),
-            from_toml(TGT).unwrap(),
-            DefaultFallbacks,
-        );
         assert_eq!(
-            translator(&src, &tgt, &fb).translate(n(12)),
+            mapping().translate(n(12)),
             Resolution::Resolved(CanonResolution::Direct {
                 canon: Canon::Kick(KickKind::Main),
                 note: n(50)
@@ -168,13 +166,8 @@ mod tests {
 
     #[test]
     fn fallback_walks_chain() {
-        let (src, tgt, fb) = (
-            from_toml(SRC).unwrap(),
-            from_toml(TGT).unwrap(),
-            DefaultFallbacks,
-        );
         assert_eq!(
-            translator(&src, &tgt, &fb).translate(n(11)),
+            mapping().translate(n(11)),
             Resolution::Resolved(CanonResolution::Fallback {
                 canon: Canon::Hat(HatOpen::Open(idx(3)), HatZone::Plain),
                 note: n(60)
@@ -184,26 +177,13 @@ mod tests {
 
     #[test]
     fn unmapped_when_source_lacks_note() {
-        let (src, tgt, fb) = (
-            from_toml(SRC).unwrap(),
-            from_toml(TGT).unwrap(),
-            DefaultFallbacks,
-        );
-        assert_eq!(
-            translator(&src, &tgt, &fb).translate(n(99)),
-            Resolution::Unmapped
-        );
+        assert_eq!(mapping().translate(n(99)), Resolution::Unmapped);
     }
 
     #[test]
     fn dropped_when_target_and_chain_empty() {
-        let (src, tgt, fb) = (
-            from_toml(SRC).unwrap(),
-            from_toml(TGT).unwrap(),
-            DefaultFallbacks,
-        );
         assert_eq!(
-            translator(&src, &tgt, &fb).translate(n(10)),
+            mapping().translate(n(10)),
             Resolution::Resolved(CanonResolution::Dropped {
                 canon: Canon::Snare(idx(1), SnareArtic::Hit)
             })
@@ -212,12 +192,7 @@ mod tests {
 
     #[test]
     fn resolve_canon_matches_translate_on_decoded_notes() {
-        let (src, tgt, fb) = (
-            from_toml(SRC).unwrap(),
-            from_toml(TGT).unwrap(),
-            DefaultFallbacks,
-        );
-        let t = Translator::new(&src, &tgt, &fb);
+        let t = mapping();
         assert_eq!(
             Resolution::Resolved(
                 t.resolve_canon(Canon::Hat(HatOpen::Open(idx(3)), HatZone::Plain))
@@ -270,5 +245,25 @@ mod tests {
             Some(&1)
         );
         assert!(!r.unmapped_source.contains_key(&n(12)));
+    }
+
+    #[test]
+    fn report_serializes_sorted_with_string_note_keys() {
+        let mut r = Report::default();
+        for note in [99, 5, 12, 5] {
+            r.record(n(note), &Resolution::Unmapped);
+        }
+        for key in ["splash.1.hit", "china.1.hit"] {
+            r.record(
+                n(1),
+                &Resolution::Resolved(CanonResolution::Dropped {
+                    canon: key.parse().unwrap(),
+                }),
+            );
+        }
+        assert_eq!(
+            serde_json::to_string(&r).unwrap(),
+            r#"{"unmapped_source":{"5":2,"12":1,"99":1},"fallback_used":{},"dropped":{"china.1.hit":1,"splash.1.hit":1}}"#
+        );
     }
 }

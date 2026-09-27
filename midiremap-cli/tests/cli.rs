@@ -106,3 +106,65 @@ fn converts_a_file_end_to_end() {
     let _ = std::fs::remove_file(&in_path);
     let _ = std::fs::remove_file(&out_path);
 }
+
+fn first_note_on(bytes: &[u8]) -> u8 {
+    Smf::parse(bytes).unwrap().tracks[0]
+        .iter()
+        .find_map(|ev| match ev.kind {
+            TrackEventKind::Midi {
+                message: MidiMessage::NoteOn { key, vel },
+                ..
+            } if vel.as_int() > 0 => Some(key.as_int()),
+            _ => None,
+        })
+        .expect("a note-on")
+}
+
+fn convert_with_overrides(name: &str, overrides: &str) -> (std::process::Output, Vec<u8>) {
+    let dir = std::env::temp_dir();
+    let pid = std::process::id();
+    let in_path = dir.join(format!("midiremap_{name}_in_{pid}.mid"));
+    let out_path = dir.join(format!("midiremap_{name}_out_{pid}.mid"));
+    let ov_path = dir.join(format!("midiremap_{name}_ov_{pid}.json"));
+    std::fs::write(&in_path, one_kick_smf()).unwrap();
+    std::fs::write(&ov_path, overrides).unwrap();
+    let out = Command::new(BIN)
+        .args([
+            "convert",
+            in_path.to_str().unwrap(),
+            "ggd_invasion",
+            "ezdrummer",
+            out_path.to_str().unwrap(),
+            "--overrides",
+            ov_path.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    let bytes = std::fs::read(&out_path).unwrap_or_default();
+    for p in [in_path, out_path, ov_path] {
+        let _ = std::fs::remove_file(p);
+    }
+    (out, bytes)
+}
+
+#[test]
+fn overrides_file_retargets_a_drum() {
+    let (out, bytes) =
+        convert_with_overrides("ov_ok", r#"{"tgt":[{"canon":"kick.main","note":35}]}"#);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(first_note_on(&bytes), 35);
+}
+
+#[test]
+fn invalid_overrides_file_fails_with_its_path() {
+    let (out, _) =
+        convert_with_overrides("ov_bad", r#"{"tgt":[{"canon":"kick.main","note":200}]}"#);
+    assert!(!out.status.success());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("invalid overrides"), "stderr: {err}");
+    assert!(err.contains("0..=127"), "stderr: {err}");
+}
