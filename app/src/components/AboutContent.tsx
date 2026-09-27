@@ -35,7 +35,7 @@ const STEPS: { title: string; body: string }[] = [
 
 const FAQ: { q: string; a: string }[] = [
   {
-    q: 'Is Remidi free?',
+    q: 'Is Drumverter free?',
     a: 'Yes. It runs entirely in your browser, with no account and no cost.',
   },
   {
@@ -56,7 +56,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'What if a drum has no equivalent in the target engine?',
-    a: "Remidi uses per-slot fallback chains to pick the closest available voice, and reports anything it couldn't map.",
+    a: "Drumverter uses per-slot fallback chains to pick the closest available voice, and reports anything it couldn't map.",
   },
 ];
 
@@ -64,7 +64,7 @@ function GuideBody() {
   return (
     <div className="flex flex-col gap-3">
       <p>
-        Remidi is a free drum MIDI remapper for every sample engine. It converts a drum MIDI groove
+        Drumverter is a free drum MIDI remapper for every sample engine. It converts a drum MIDI groove
         written for one sample engine&apos;s note layout into another&apos;s — entirely in your
         browser. Drop in a .mid from GetGood Drums, remap it to EZdrummer, Superior Drummer 3,
         Addictive Drums 2, General MIDI, or Guitar Pro, and download a ready-to-use file. No upload,
@@ -94,7 +94,7 @@ function GuideBody() {
 function EnginesBody() {
   return (
     <div className="flex flex-col gap-3">
-      <p>Remidi maps between dozens of drum-engine note layouts, in any direction — including:</p>
+      <p>Drumverter maps between dozens of drum-engine note layouts, in any direction — including:</p>
       <ul className="
         flex list-disc flex-col gap-1 pl-5
         marker:text-t6
@@ -195,7 +195,7 @@ function TermsBody() {
   return (
     <div className="flex flex-col gap-3">
       <p>
-        Remidi is a free tool provided “as is” and “as available”, without warranties of any
+        Drumverter is a free tool provided “as is” and “as available”, without warranties of any
         kind. The author makes no guarantee that it is accurate, error-free, or uninterrupted.
       </p>
       <p>
@@ -205,17 +205,17 @@ function TermsBody() {
       </p>
       <p>
         To the maximum extent permitted by law, the author is not liable for any damages or
-        data loss arising from use of, or inability to use, Remidi.
+        data loss arising from use of, or inability to use, Drumverter.
       </p>
       <p>
-        All engine and product names are trademarks of their respective owners. Remidi is
+        All engine and product names are trademarks of their respective owners. Drumverter is
         independent and not affiliated with, endorsed by, or sponsored by any of them; names
         are used only to identify layout compatibility.
       </p>
       <p>
-        Conversion runs entirely in your browser — files are not uploaded or stored. Remidi
+        Conversion runs entirely in your browser — files are not uploaded or stored. Drumverter
         collects only anonymous, cookieless usage statistics (such as page views) to gauge
-        whether the tool is useful; your MIDI never leaves your device. Remidi may change or shut
+        whether the tool is useful; your MIDI never leaves your device. Drumverter may change or shut
         down at any time. Using it means you accept these terms.
       </p>
     </div>

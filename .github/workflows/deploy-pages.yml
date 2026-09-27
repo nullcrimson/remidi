@@ -53,8 +53,6 @@ jobs:
 
       - name: Build (wasm + vite)
         working-directory: app
-        env:
-          VITE_BASE: "/${{ github.event.repository.name }}/"
         run: npm run build
 
       - name: Upload Pages artifact
@@ -76,4 +74,4 @@ jobs:
       - name: Notify IndexNow
         run: |
           curl -sS -o /dev/null -w "IndexNow: %{http_code}\n" \
-            "https://api.indexnow.org/indexnow?url=https://nullcrimson.github.io/remidi/&key=b70482caafc9bdd6b2cc45b7fd07ddae&keyLocation=https://nullcrimson.github.io/remidi/b70482caafc9bdd6b2cc45b7fd07ddae.txt"
+            "https://api.indexnow.org/indexnow?url=https://drumverter.com/&key=b70482caafc9bdd6b2cc45b7fd07ddae&keyLocation=https://drumverter.com/b70482caafc9bdd6b2cc45b7fd07ddae.txt"

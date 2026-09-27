@@ -18,7 +18,7 @@ describe('App states', () => {
     }));
     const { default: App } = await import('../src/App');
     render(<App />);
-    expect(screen.getByRole('heading', { name: /^Remidi/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^Drumverter/ })).toBeInTheDocument();
     expect(screen.getByText(/Loading converter/i)).toBeInTheDocument();
   });
 
@@ -32,7 +32,7 @@ describe('App states', () => {
     }));
     const { default: App } = await import('../src/App');
     render(<App />);
-    expect(screen.getByRole('heading', { name: /^Remidi/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^Drumverter/ })).toBeInTheDocument();
     expect(await screen.findByText(/Failed to load converter/i)).toBeInTheDocument();
     expect(screen.getByText(/wasm boom/)).toBeInTheDocument();
   });

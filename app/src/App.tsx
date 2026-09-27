@@ -53,7 +53,7 @@ function Header() {
               [text-shadow:0_0_12px_rgba(236,232,224,0.3)]
             "
           >
-            Remidi
+            Drumverter
           </span>
           <span className="text-[14px] font-normal text-t5">— drum MIDI converter & remapper</span>
         </h1>

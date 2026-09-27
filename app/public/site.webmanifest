@@ -1,6 +1,6 @@
 {
-  "name": "Remidi — drum MIDI remapper",
-  "short_name": "Remidi",
+  "name": "Drumverter — drum MIDI remapper",
+  "short_name": "Drumverter",
   "description": "Free in-browser drum MIDI remapper and converter.",
   "start_url": "./",
   "scope": "./",

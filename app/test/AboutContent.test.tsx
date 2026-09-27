@@ -56,7 +56,7 @@ describe('AboutContent', () => {
     await userEvent.click(screen.getByRole('button', { name: /FAQ/i }));
     const dialog = screen.getByRole('dialog', { name: 'Frequently asked questions' });
     expect(dialog).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'Is Remidi free?' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Is Drumverter free?' })).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
