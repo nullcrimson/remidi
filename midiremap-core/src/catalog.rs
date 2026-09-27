@@ -1,6 +1,13 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::LazyLock,
+};
 
-use crate::engine_map::{from_json, from_toml, EngineMap, MapError};
+use crate::engine_map::{from_json, many_from_json, EngineMap, MapError};
+
+const EMBEDDED: &str = include_str!(concat!(env!("OUT_DIR"), "/engines.json"));
+
+static SHARED: LazyLock<BuiltinMaps> = LazyLock::new(BuiltinMaps::new);
 
 pub trait MapProvider {
     fn get(&self, id: &str) -> Option<&EngineMap>;
@@ -12,13 +19,19 @@ pub struct BuiltinMaps {
 }
 
 impl BuiltinMaps {
+    /// Parses every `engines/*.toml`, embedded at build time.
     pub fn new() -> Self {
-        let mut maps = HashMap::new();
-        for src in crate::embedded_engines::EMBEDDED {
-            let m = from_toml(src).expect("embedded preset must be valid");
-            maps.insert(m.id.clone(), m);
-        }
+        let maps = many_from_json(EMBEDDED)
+            .expect("embedded presets must be valid")
+            .into_iter()
+            .map(|m| (m.id.clone(), m))
+            .collect();
         Self { maps }
+    }
+
+    /// The builtin maps, parsed once per process.
+    pub fn shared() -> &'static Self {
+        &SHARED
     }
 }
 
@@ -188,5 +201,32 @@ mod tests {
         let n = BuiltinMaps::new().ids().len();
         assert_eq!(p.ids().len(), n + 1);
         assert!(p.get("custom").is_some());
+    }
+
+    #[test]
+    fn every_engine_file_is_builtin() {
+        let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../engines");
+        let mut stems: Vec<String> = std::fs::read_dir(dir)
+            .unwrap()
+            .filter_map(|e| {
+                let path = e.unwrap().path();
+                (path.extension()? == "toml")
+                    .then(|| path.file_stem()?.to_str().map(str::to_owned))?
+            })
+            .collect();
+        stems.sort_unstable();
+        let b = BuiltinMaps::new();
+        let mut ids = b.ids();
+        ids.sort_unstable();
+        assert_eq!(ids, stems);
+    }
+
+    #[test]
+    fn shared_is_parsed_once() {
+        assert!(std::ptr::eq(BuiltinMaps::shared(), BuiltinMaps::shared()));
+        assert_eq!(
+            BuiltinMaps::shared().ids().len(),
+            BuiltinMaps::new().ids().len()
+        );
     }
 }

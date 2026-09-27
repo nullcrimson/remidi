@@ -109,11 +109,11 @@ export function plan(src: string, tgt: string, ov?: Overrides): VoiceRow[] {
 
 export function remap(mid: Uint8Array, src: string, tgt: string, ov?: Overrides): RemapResult {
   const r = mod().remap(mid, src, tgt, ov ? JSON.stringify(ov) : undefined) as {
-    bytes: number[];
+    bytes: Uint8Array<ArrayBuffer>;
     report: RawRemapReport;
   };
   return {
-    bytes: new Uint8Array(r.bytes),
+    bytes: r.bytes,
     report: {
       unmappedSource: r.report.unmapped_source,
       fallbackUsed: r.report.fallback_used,

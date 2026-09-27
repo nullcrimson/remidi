@@ -143,6 +143,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
     })
 }
 
+#[cfg(test)]
 pub fn from_toml(s: &str) -> Result<EngineMap, MapError> {
     let raw: RawMap = toml::from_str(s).map_err(|e| MapError::Parse(e.to_string()))?;
     build(raw)
@@ -151,6 +152,11 @@ pub fn from_toml(s: &str) -> Result<EngineMap, MapError> {
 pub fn from_json(s: &str) -> Result<EngineMap, MapError> {
     let raw: RawMap = serde_json::from_str(s).map_err(|e| MapError::Parse(e.to_string()))?;
     build(raw)
+}
+
+pub(crate) fn many_from_json(s: &str) -> Result<Vec<EngineMap>, MapError> {
+    let raws: Vec<RawMap> = serde_json::from_str(s).map_err(|e| MapError::Parse(e.to_string()))?;
+    raws.into_iter().map(build).collect()
 }
 
 #[cfg(test)]

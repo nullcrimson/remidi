@@ -30,11 +30,11 @@ Three crates, a web app, and embedded engine presets:
 
 | Component | Role | Depends on |
 |-------|------|------------|
-| `midiremap-core` | Pure engine. No I/O beyond parsing bytes handed to it. All the logic below. | `midly`, `serde`, `toml`, `serde_json`, `thiserror` |
+| `midiremap-core` | Pure engine. No I/O beyond parsing bytes handed to it. All the logic below. | `midly`, `serde`, `serde_json`, `thiserror` (`toml` at build time only) |
 | `midiremap-cli` | Offline `convert` / `list` binary. | core, `clap`, `anyhow` |
 | `midiremap-wasm` | Browser bindings for the web app. | core, `wasm-bindgen`, `serde-wasm-bindgen` |
 | `app/` | Vite + React + TypeScript converter UI over the WASM bindings. | Vite, React, Tailwind, Vitest |
-| `engines/*.toml` | Preset note↔canon maps, embedded into core via a generated `include_str!` slice. | — |
+| `engines/*.toml` | Preset note↔canon maps; core's `build.rs` converts them to one embedded JSON table. | — |
 
 `midiremap-core` never learns that `midly` or `std::fs` exist above its own
 `midi` module; the CLI, WASM, and app layers own all real-world I/O and
@@ -156,10 +156,14 @@ empty chain. The `chains_terminate` test enforces this.
 ### `catalog` — where engine maps come from
 
 - `MapProvider` trait: `get(id)` / `ids()`.
-- `BuiltinMaps`: every `engines/*.toml` (dozens of presets), embedded at compile
-  time as a generated `embedded_engines::EMBEDDED` slice of `include_str!` sources
-  and parsed once into a map keyed by engine id. A malformed embedded preset is a
-  startup panic (covered by tests).
+- `BuiltinMaps`: every `engines/*.toml` (dozens of presets). Core's `build.rs`
+  globs the directory, parses each file with `toml`, rejects invalid TOML or a
+  duplicate engine id as a build error naming the file, and writes one JSON table
+  that is embedded with `include_str!`. Adding a preset needs no code change, and
+  `toml` stays out of the runtime (and the WASM). `new()` parses the table into a
+  map keyed by engine id; `shared()` is a process-wide `LazyLock` instance, so the
+  WASM parses presets once per page instead of once per call. A semantically invalid
+  preset (unknown canon, duplicate primary) is a startup panic caught by tests.
 - `LayeredMaps<P>`: user-supplied JSON maps layered over a base provider. Lookups
   hit overrides first, then the base — a user map *shadows* a builtin, never
   mutates it. `ids()` returns the union.

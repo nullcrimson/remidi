@@ -63,6 +63,8 @@ export function plan(_src: string, _tgt: string, overridesJson?: string): unknow
   return rows;
 }
 
+export const REMAP_BYTES = new Uint8Array([77, 84, 104, 100]);
+
 export function remap(
   _mid: Uint8Array,
   _src: string,
@@ -70,7 +72,7 @@ export function remap(
   _overridesJson?: string,
 ): unknown {
   return {
-    bytes: [77, 84, 104, 100],
+    bytes: REMAP_BYTES,
     report: { unmapped_source: {}, fallback_used: { 'hat.open3': { note: 46, count: 2 } }, dropped: { 'china.1.hit': 1 } },
   };
 }

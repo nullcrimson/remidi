@@ -1,7 +1,6 @@
 pub mod canon;
 pub mod catalog;
 pub mod conversion;
-mod embedded_engines;
 pub mod engine_map;
 pub mod midi;
 pub mod overrides;

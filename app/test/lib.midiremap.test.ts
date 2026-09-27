@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { engines, plan, ready, remap } from '../src/lib/midiremap';
+import { REMAP_BYTES } from './stubs/wasm';
 
 describe('midiremap wrapper', () => {
   it('lists engines', async () => {
@@ -34,9 +35,9 @@ describe('midiremap wrapper', () => {
     expect(rows.find((r) => r.canon === 'china.1.hit')!.srcNotes[0]).toBe(60);
   });
 
-  it('normalizes remap bytes and camelCases the report', () => {
+  it('passes remap bytes through and camelCases the report', () => {
     const out = remap(new Uint8Array([0]), 'ggd_invasion', 'ezdrummer');
-    expect(out.bytes).toBeInstanceOf(Uint8Array);
+    expect(out.bytes).toBe(REMAP_BYTES);
     expect(Array.from(out.bytes)).toEqual([77, 84, 104, 100]);
     expect(out.report.dropped).toEqual({ 'china.1.hit': 1 });
     expect(out.report.fallbackUsed).toEqual({ 'hat.open3': { note: 46, count: 2 } });

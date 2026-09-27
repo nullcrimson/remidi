@@ -38,6 +38,7 @@ impl From<Report> for ReportView {
 
 #[derive(Serialize)]
 struct Output {
+    #[serde(with = "serde_bytes")]
     bytes: Vec<u8>,
     report: ReportView,
 }
@@ -56,7 +57,7 @@ pub fn remap(
     tgt_id: &str,
     overrides_json: Option<String>,
 ) -> Result<JsValue, JsValue> {
-    let provider = BuiltinMaps::new();
+    let provider = BuiltinMaps::shared();
     let src = provider
         .get(src_id)
         .ok_or_else(|| JsValue::from_str("unknown source engine"))?;
@@ -92,7 +93,7 @@ pub fn plan(
     tgt_id: &str,
     overrides_json: Option<String>,
 ) -> Result<JsValue, JsValue> {
-    let provider = BuiltinMaps::new();
+    let provider = BuiltinMaps::shared();
     let src = provider
         .get(src_id)
         .ok_or_else(|| JsValue::from_str("unknown source engine"))?;
@@ -128,7 +129,7 @@ struct DrumView {
 
 #[wasm_bindgen]
 pub fn engine_drums(tgt_id: &str) -> Result<JsValue, JsValue> {
-    let provider = BuiltinMaps::new();
+    let provider = BuiltinMaps::shared();
     let tgt = provider
         .get(tgt_id)
         .ok_or_else(|| JsValue::from_str("unknown target engine"))?;
@@ -147,7 +148,7 @@ pub fn engine_drums(tgt_id: &str) -> Result<JsValue, JsValue> {
 
 #[wasm_bindgen]
 pub fn engine_notes(src_id: &str) -> Result<JsValue, JsValue> {
-    let provider = BuiltinMaps::new();
+    let provider = BuiltinMaps::shared();
     let src = provider
         .get(src_id)
         .ok_or_else(|| JsValue::from_str("unknown source engine"))?;
@@ -192,7 +193,7 @@ struct EngineInfo {
 
 #[wasm_bindgen]
 pub fn engine_catalog() -> Result<JsValue, JsValue> {
-    let b = BuiltinMaps::new();
+    let b = BuiltinMaps::shared();
     let mut ids = b.ids();
     ids.sort_unstable();
     let infos: Vec<EngineInfo> = ids

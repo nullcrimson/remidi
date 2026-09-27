@@ -447,8 +447,8 @@ mod tests {
     #[test]
     fn engines_with_equal_names_sort_by_id() {
         let map = |id: &str| {
-            midiremap_core::engine_map::from_toml(&format!(
-                "id = \"{id}\"\nname = \"Same\"\nnotes = [ {{ note = 36, canon = \"kick.main\", primary = true }} ]"
+            midiremap_core::engine_map::from_json(&format!(
+                r#"{{"id":"{id}","name":"Same","notes":[{{"note":36,"canon":"kick.main","primary":true}}]}}"#
             ))
             .unwrap()
         };
