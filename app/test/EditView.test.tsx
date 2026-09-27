@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { EditView } from '../src/components/EditView';
@@ -14,6 +14,9 @@ const editor = {
   canonOptions: [{ canon: 'kick.main', label: 'Kick', family: 'Kick' }],
   remappedCount: 0,
   droppedCount: 0,
+  changed: new Set<string>(),
+  changedSrc: new Set<string>(),
+  resetRow: vi.fn(),
   openPick: vi.fn(),
   openSrcPick: vi.fn(),
   setPickOct: vi.fn(),
@@ -31,6 +34,8 @@ const props = {
   editor,
   src: 'ggd_invasion',
   tgt: 'ezdrummer',
+  srcName: 'GGD Invasion',
+  tgtName: 'EZdrummer 3',
   oct: 'c1' as const,
   existingPreset: undefined,
   presetsAtCap: false,
@@ -54,7 +59,7 @@ describe('EditView', () => {
     const setView = vi.fn();
     render(<EditView {...props} setView={setView} />);
     expect(screen.getByText('Kick')).toBeInTheDocument();
-    expect(screen.getByText('GGD → EZD')).toBeInTheDocument();
+    expect(screen.getByText('GGD Invasion → EZdrummer 3')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /back/i }));
     expect(setView).toHaveBeenCalledWith('convert');
   });
@@ -93,9 +98,9 @@ describe('EditView', () => {
     expect(screen.getByRole('dialog', { name: /Source note for Kick/i })).toBeInTheDocument();
   });
 
-  it('disables Save preset when there are no edits', () => {
+  it('disables Save as preset when there are no edits', () => {
     render(<EditView {...props} editor={{ ...editor, edits: {} }} />);
-    expect(screen.getByRole('button', { name: 'Save preset' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save as preset' })).toBeDisabled();
   });
 
   it('reveals the advanced source editor on demand', async () => {
@@ -105,9 +110,9 @@ describe('EditView', () => {
     expect(screen.getByLabelText('Add source note')).toBeInTheDocument();
   });
 
-  it('enables Save preset when only source edits exist', () => {
+  it('enables Save as preset when only source edits exist', () => {
     render(<EditView {...props} editor={{ ...editor, edits: {}, srcEdits: { 60: 'china.1.hit' } }} />);
-    expect(screen.getByRole('button', { name: 'Save preset' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Save as preset' })).toBeEnabled();
   });
 
   it('saves a new preset with the prefilled pair name', async () => {
@@ -115,7 +120,7 @@ describe('EditView', () => {
     render(
       <EditView {...props} editor={{ ...editor, edits: { KickMain: 40 } }} onSavePreset={onSavePreset} />,
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Save preset' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save as preset' }));
     expect(screen.getByLabelText('Preset name')).toHaveValue('GGD→EZD');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(onSavePreset).toHaveBeenCalledWith('GGD→EZD');
@@ -152,6 +157,7 @@ describe('EditView', () => {
         {...props}
         editor={{
           ...editor,
+          changedSrc: new Set(['KickMain']),
           rows: [{ canon: 'KickMain', label: 'Kick', srcNotes: [], tgtNote: 36, defaultTgtNote: 36, status: 'direct' as const }],
         }}
       />,
@@ -172,5 +178,95 @@ describe('EditView', () => {
     );
     const picker = screen.getByRole('dialog', { name: 'Target note for China' });
     expect(picker).toHaveTextContent('TARGET · China—');
+  });
+
+  const CATALOG = [
+    { canon: 'kick.main', label: 'Kick', family: 'Kick' },
+    { canon: 'snare.main', label: 'Snare', family: 'Snare' },
+    { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals' },
+    { canon: 'china.1', label: 'China 1', family: 'Cymbals' },
+    { canon: 'hat.cc', label: 'Hi-Hat CC', family: 'Hi-Hat' },
+  ];
+  const ROWS = [
+    { canon: 'ride.bell', label: 'Ride Bell', srcNotes: [53], tgtNote: 51, defaultTgtNote: 51, status: 'fallback' as const },
+    { canon: 'kick.main', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct' as const },
+    { canon: 'china.1', label: 'China 1', srcNotes: [52], tgtNote: null, defaultTgtNote: null, status: 'dropped' as const },
+    { canon: 'snare.main', label: 'Snare', srcNotes: [26], tgtNote: 40, defaultTgtNote: 38, status: 'direct' as const },
+    { canon: 'hat.cc', label: 'Hi-Hat CC', srcNotes: [], tgtNote: null, defaultTgtNote: null, status: 'dropped' as const },
+  ];
+  const full = {
+    ...editor,
+    rows: ROWS,
+    canonOptions: CATALOG,
+    edits: { 'snare.main': 40 },
+    changed: new Set(['snare.main']),
+  };
+  const drumNames = () =>
+    screen.getAllByTestId('drum-label').map((e) => e.textContent);
+
+  it('groups drums by family in kit order', () => {
+    render(<EditView {...props} editor={full} />);
+    const headings = screen.getAllByTestId('family').map((e) => e.textContent);
+    expect(headings).toEqual(['Kick', 'Snare', 'Hi-Hat', 'Cymbals']);
+    expect(drumNames()).toEqual(['Kick', 'Snare', 'Hi-Hat CC', 'Ride Bell', 'China 1']);
+  });
+
+  it('says what happens to each drum', () => {
+    render(<EditView {...props} editor={full} />);
+    const result = (drum: string) =>
+      screen.getAllByTestId('drum-label').find((e) => e.textContent === drum)!.closest('[data-row]')!
+        .querySelector('[data-testid=result]')!;
+    expect(result('Kick')).toHaveTextContent('direct');
+    expect(result('Snare')).toHaveTextContent('edited');
+    expect(result('Ride Bell')).toHaveTextContent('approx');
+    expect(result('Ride Bell')).toHaveClass('text-star');
+    expect(result('China 1')).toHaveTextContent('dropped');
+    expect(result('Hi-Hat CC')).toHaveTextContent('no source');
+  });
+
+  it('filters to changed drums and to drums with issues', async () => {
+    render(<EditView {...props} editor={full} />);
+    const show = screen.getByRole('radiogroup', { name: 'Show' });
+    expect(within(show).getByRole('radio', { name: 'All 5' })).toBeChecked();
+    await userEvent.click(within(show).getByText('Changed 1'));
+    expect(drumNames()).toEqual(['Snare']);
+    await userEvent.click(within(show).getByText('Issues 2'));
+    expect(drumNames()).toEqual(['Ride Bell', 'China 1']);
+  });
+
+  it('filters by drum name and says when nothing matches', async () => {
+    render(<EditView {...props} editor={full} />);
+    await userEvent.type(screen.getByRole('textbox', { name: 'Filter drums' }), 'ri');
+    expect(drumNames()).toEqual(['Ride Bell']);
+    await userEvent.type(screen.getByRole('textbox', { name: 'Filter drums' }), 'zz');
+    expect(screen.getByText('No drums match')).toBeInTheDocument();
+  });
+
+  it('resets a changed drum from its row', async () => {
+    const resetRow = vi.fn();
+    render(<EditView {...props} editor={{ ...full, resetRow }} />);
+    expect(screen.queryByRole('button', { name: 'Reset Kick' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Reset Snare' }));
+    expect(resetRow).toHaveBeenCalledWith('snare.main');
+  });
+
+  it('keeps the change count and actions in a sticky footer', async () => {
+    const reset = vi.fn();
+    const setView = vi.fn();
+    render(<EditView {...props} setView={setView} editor={{ ...full, reset }} />);
+    const footer = screen.getByRole('region', { name: 'Edit actions' });
+    expect(footer).toHaveClass('sticky', 'bottom-0');
+    expect(footer).toHaveTextContent('1 change');
+    await userEvent.click(within(footer).getByRole('button', { name: 'Reset all' }));
+    expect(reset).toHaveBeenCalledOnce();
+    await userEvent.click(within(footer).getByRole('button', { name: 'Done' }));
+    expect(setView).toHaveBeenCalledWith('convert');
+    expect(screen.queryByText(/= remapped/)).not.toBeInTheDocument();
+  });
+
+  it('cannot reset all when nothing changed', () => {
+    render(<EditView {...props} />);
+    expect(screen.getByRole('button', { name: 'Reset all' })).toBeDisabled();
+    expect(screen.getByRole('region', { name: 'Edit actions' })).toHaveTextContent('No changes');
   });
 });

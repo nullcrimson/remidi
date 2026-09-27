@@ -1,10 +1,9 @@
-import { useRef } from 'react';
-import { useRestoreFocus } from '../hooks/useRestoreFocus';
 import { FAMILY_ORDER } from '../lib/families';
 import type { CanonInfo } from '../lib/midiremap';
 import { IconButton } from './IconButton';
 import { ListRow } from './ListRow';
 import { MonoLabel } from './MonoLabel';
+import { PickerShell } from './PickerShell';
 
 export function CanonPicker({
   noteLabel,
@@ -19,25 +18,13 @@ export function CanonPicker({
   onPick: (canon: string) => void;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useRestoreFocus(ref);
-
   const groups = FAMILY_ORDER.map((family) => ({
     family,
     items: options.filter((o) => o.family === family),
   })).filter((g) => g.items.length > 0);
 
   return (
-    <div
-      ref={ref}
-      role="dialog"
-      aria-label={`Canon for ${noteLabel}`}
-      tabIndex={-1}
-      className="
-        my-0.5 mb-2 rounded-panel border border-accent/18 bg-inset
-        p-[13px_14px_16px] outline-none
-      "
-    >
+    <PickerShell label={`Canon for ${noteLabel}`} onClose={onClose}>
       <div className="mb-3 flex items-center justify-between">
         <MonoLabel tone="text-t4">SOURCE · {noteLabel}</MonoLabel>
         <IconButton label="Close" onClick={onClose}>×</IconButton>
@@ -63,6 +50,6 @@ export function CanonPicker({
           </div>
         ))}
       </div>
-    </div>
+    </PickerShell>
   );
 }

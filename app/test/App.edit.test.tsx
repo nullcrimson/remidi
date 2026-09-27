@@ -42,8 +42,8 @@ describe('App edit view', () => {
     render(<App />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
     await userEvent.click(screen.getByRole('button', { name: 'Edit notes for My kit' }));
-    expect(screen.getByText('Edit mapping')).toBeInTheDocument();
-    expect(screen.getByText('GGD → EZD')).toBeInTheDocument();
+    expect(screen.getByText('Edit notes')).toBeInTheDocument();
+    expect(screen.getByText('GGD Invasion → EZdrummer')).toBeInTheDocument();
   });
 
   it('updates the preset opened from its chip, not the newest one for the pair', async () => {
@@ -83,7 +83,7 @@ describe('App edit view', () => {
     await userEvent.click(screen.getAllByRole('button', { name: 'GGD Invasion' })[0]);
     await userEvent.click(screen.getAllByRole('button', { name: 'EZdrummer' })[1]);
     await userEvent.click(screen.getByText(/Edit individual notes/));
-    expect(screen.getByRole('button', { name: 'Save preset' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save as preset' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Update preset' })).not.toBeInTheDocument();
   });
 
@@ -93,10 +93,10 @@ describe('App edit view', () => {
     await userEvent.click(screen.getAllByRole('button', { name: 'GGD Invasion' })[0]);
     await userEvent.click(screen.getAllByRole('button', { name: 'EZdrummer' })[1]);
     await userEvent.click(screen.getByText(/Edit individual notes/));
-    expect(screen.getByText('Edit mapping')).toBeInTheDocument();
+    expect(screen.getByText('Edit notes')).toBeInTheDocument();
     expect(screen.getByText('Kick')).toBeInTheDocument();
     expect(screen.getByText('—')).toBeInTheDocument();
-    await userEvent.click(screen.getByText(/Save mapping/));
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
   });
 });

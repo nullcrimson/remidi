@@ -2,8 +2,14 @@ import { useRef, type ReactNode } from 'react';
 import type { VoiceRow as VoiceRowData } from '../lib/midiremap';
 import { useDismiss } from '../hooks/useDismiss';
 import { noteName, type OctaveBase } from '../lib/notes';
-import { chip } from './styles';
+import { IconButton } from './IconButton';
+import { chip, ROW_GRID } from './styles';
 import { Tooltip } from './Tooltip';
+
+export interface RowResult {
+  text: string;
+  tone: string;
+}
 
 function noteChip(active: boolean, changed: boolean): string {
   return chip(active ? 'on' : changed ? 'changed' : 'off', 'md');
@@ -20,6 +26,8 @@ export function VoiceRow({
   onSrcToggle,
   onToggle,
   onDismiss,
+  result,
+  onReset,
   children,
 }: {
   row: VoiceRowData;
@@ -32,6 +40,8 @@ export function VoiceRow({
   onSrcToggle: () => void;
   onToggle: () => void;
   onDismiss: () => void;
+  result: RowResult;
+  onReset?: () => void;
   children?: ReactNode;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -43,16 +53,22 @@ export function VoiceRow({
   return (
     <div
       ref={rowRef}
+      data-row
       className={`
         border-b border-white/4.5
         ${dropped || silent ? 'opacity-60' : ''}
       `}
     >
-      <div className="
-        grid grid-cols-[1fr_auto_16px_auto] items-center gap-3 py-2
-      "
+      <div className={`
+        ${ROW_GRID}
+        py-2
+      `}
       >
-        <span className="truncate text-label text-t2">{row.label}</span>
+        <span
+          data-testid="drum-label"
+          className="line-clamp-2 text-label text-t2"
+        >{row.label}
+        </span>
         <span className="flex items-center gap-1.5 justify-self-end">
           {extraNotes.length > 0 && (
             <Tooltip content={`Also ${extraNames}`}>
@@ -95,6 +111,20 @@ export function VoiceRow({
         >
           {effectiveTgt === null ? '—' : noteName(effectiveTgt, base)}
         </button>
+        <span
+          data-testid="result"
+          className={`
+            truncate text-label
+            ${result.tone}
+          `}
+        >
+          {result.text}
+        </span>
+        {onReset
+          ? (
+              <IconButton label={`Reset ${row.label}`} size="sm" onClick={onReset}>↺</IconButton>
+            )
+          : <span />}
       </div>
       {(srcExpanded || tgtExpanded) && children}
     </div>

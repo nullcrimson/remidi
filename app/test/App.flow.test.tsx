@@ -73,6 +73,23 @@ describe('App convert flow', () => {
     expect(screen.getByText(/drums remapped/)).toBeInTheDocument();
   });
 
+  it('keeps both engine columns inside the card and spaces the tagline dash', async () => {
+    await start();
+    expect(screen.getByRole('group', { name: 'FROM engine' }).parentElement).toHaveClass(
+      'sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]',
+    );
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('— drum MIDI converter');
+  });
+
+  it('widens the converter on large screens but keeps the editor narrow', async () => {
+    await start();
+    expect(screen.getByTestId('page-column')).toHaveClass('w-200', 'lg:w-240', 'xl:w-280');
+    await pickEngines();
+    await userEvent.click(screen.getByRole('button', { name: /Edit individual notes/ }));
+    expect(screen.getByTestId('page-column')).toHaveClass('w-200');
+    expect(screen.getByTestId('page-column')).not.toHaveClass('lg:w-240');
+  });
+
   it('names the chosen engines in the list headings and swaps them', async () => {
     await start();
     const swap = screen.getByRole('button', { name: 'Swap FROM and TO' });
@@ -105,7 +122,7 @@ describe('App convert flow', () => {
   it('opens the target picker of a dropped drum from the report', async () => {
     const dialog = await convertAndOpenReport();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Pick a target →' }));
-    expect(screen.getByText('Edit mapping')).toBeInTheDocument();
+    expect(screen.getByText('Edit notes')).toBeInTheDocument();
     expect(screen.getByRole('dialog', { name: 'Target note for China 1' })).toBeInTheDocument();
   });
 

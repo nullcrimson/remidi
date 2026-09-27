@@ -55,4 +55,26 @@ describe('SourceEditor', () => {
     await userEvent.type(screen.getByLabelText('Add source note'), '96{Enter}');
     expect(screen.getByRole('dialog', { name: /Canon for/i })).toBeInTheDocument();
   });
+
+  it('rejects a note outside 0–127 visibly', async () => {
+    setup();
+    const input = screen.getByRole('textbox', { name: 'Add source note' });
+    await userEvent.type(input, '200{Enter}');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAccessibleDescription('Enter a note number from 0 to 127');
+    expect(screen.queryByRole('dialog', { name: /Canon for/i })).not.toBeInTheDocument();
+    await userEvent.clear(input);
+    expect(input).not.toHaveAttribute('aria-invalid');
+    expect(screen.queryByText('Enter a note number from 0 to 127')).not.toBeInTheDocument();
+    await userEvent.type(input, '60{Enter}');
+    expect(screen.getByRole('dialog', { name: /Canon for/i })).toBeInTheDocument();
+  });
+
+  it('rejects text that is not a whole number', async () => {
+    setup();
+    const input = screen.getByRole('textbox', { name: 'Add source note' });
+    await userEvent.type(input, '4.5');
+    await userEvent.click(screen.getByRole('button', { name: 'add' }));
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+  });
 });

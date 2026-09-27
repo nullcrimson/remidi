@@ -54,8 +54,11 @@ npm run test     # Vitest; WASM is stubbed, no build required
   drum channel, convert. A single file downloads straight away; a batch offers a zip.
   The report groups dropped / approximated / unrecognized / unchanged notes with links to
   fix each one.
-- **Edit mapping**: per-voice target-note editor via an octave-tabbed piano picker;
-  Save returns to Convert. The source note is read-only in v1.
+- **Edit notes**: drums grouped by family with a filter and All / Changed / Issues chips;
+  each row shows source → target and the result (direct, approx, dropped, edited) and can
+  be reset. Target and source notes are picked from the drum list or an octave-tabbed
+  piano (a bottom sheet on phones); Advanced reassigns raw source notes. A sticky footer
+  holds the change count, Reset all, Save as preset and Done.
 
 ## Engine catalog
 

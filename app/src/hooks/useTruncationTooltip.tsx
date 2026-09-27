@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface Tip {
   name: string;
@@ -17,7 +18,7 @@ export function useTruncationTooltip() {
   const hide = () => setTip(null);
 
   const tooltip = tip
-    ? (
+    ? createPortal(
         <div
           role="tooltip"
           style={{ left: tip.x, top: tip.y + 6 }}
@@ -28,7 +29,8 @@ export function useTruncationTooltip() {
           "
         >
           {tip.name}
-        </div>
+        </div>,
+        document.body,
       )
     : null;
 

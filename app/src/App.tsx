@@ -19,12 +19,25 @@ import { convertBlocker } from './lib/blocker';
 import { shortCode } from './lib/format';
 import { buildReport } from './lib/report';
 
-function Page({ children }: { children: ReactNode }) {
+function Page({ wide = false, children }: { wide?: boolean; children: ReactNode }) {
   return (
     <div
       className="flex min-h-screen flex-col items-center px-5 pt-[6vh] pb-16"
     >
-      <div className="flex w-200 max-w-full flex-col gap-5">{children}</div>
+      <div
+        data-testid="page-column"
+        className={`
+          flex w-200 max-w-full flex-col gap-5
+          ${wide
+      ? `
+        lg:w-240
+        xl:w-280
+      `
+      : ''}
+        `}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -33,7 +46,7 @@ function Card({ children }: { children: ReactNode }) {
   return (
     <main
       className="
-        w-full overflow-hidden rounded-card border border-hairline bg-card
+        w-full overflow-clip rounded-card border border-hairline bg-card
         shadow-[0_0_64px_-16px_rgba(199,192,173,0.09),0_18px_48px_-28px_rgba(0,0,0,0.6)]
       "
     >
@@ -63,7 +76,7 @@ function Header() {
           </span>drum MIDI converter & remapper
         </span>
       </h1>
-      <p className="text-ui/relaxed text-t4">
+      <p className="max-w-[72ch] text-ui/relaxed text-t4">
         Convert drum MIDI between GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2,
         General MIDI, Guitar Pro and 80+ other engine layouts. Runs in your browser; files are never
         uploaded.
@@ -94,6 +107,8 @@ export default function App() {
             editor={c.editor}
             src={c.src}
             tgt={c.tgt}
+            srcName={sourceName}
+            tgtName={targetName}
             oct={c.oct}
             existingPreset={saved.mappings.find((m) => m.id === c.presetId)}
             presetsAtCap={saved.atCap}
@@ -124,7 +139,7 @@ export default function App() {
   const targetShort = shortCode(c.tgt);
 
   return (
-    <Page>
+    <Page wide>
       <Card>
         <CardDropzone onFiles={c.addFiles}>
           <div className="

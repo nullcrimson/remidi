@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 import type { CanonInfo, Drum } from '../lib/midiremap';
 import type { SrcEdits } from '../lib/overrides';
 import { useDismiss } from '../hooks/useDismiss';
@@ -112,6 +112,8 @@ export function SourceEditor({
   const [openNote, setOpenNote] = useState<number | null>(initialNote);
   const [extra, setExtra] = useState<number[]>(initialNote === null ? [] : [initialNote]);
   const [addValue, setAddValue] = useState('');
+  const [invalid, setInvalid] = useState(false);
+  const errorId = useId();
 
   const labelOf = useMemo(() => {
     const m = new Map(options.map((o) => [o.canon, o.label]));
@@ -133,7 +135,10 @@ export function SourceEditor({
 
   const addNote = () => {
     const n = Number(addValue);
-    if (!Number.isInteger(n) || n < 0 || n > 127) return;
+    if (addValue.trim() === '' || !Number.isInteger(n) || n < 0 || n > 127) {
+      setInvalid(true);
+      return;
+    }
     setExtra((prev) => (prev.includes(n) ? prev : [...prev, n]));
     setAddValue('');
     setOpenNote(n);
@@ -166,7 +171,12 @@ export function SourceEditor({
         <TextField
           mono
           value={addValue}
-          onChange={(e) => setAddValue(e.target.value)}
+          onChange={(e) => {
+            setAddValue(e.target.value);
+            setInvalid(false);
+          }}
+          aria-invalid={invalid || undefined}
+          aria-describedby={invalid ? errorId : undefined}
           onKeyDown={(e) => {
             if (e.key === 'Enter') addNote();
           }}
@@ -177,6 +187,11 @@ export function SourceEditor({
         />
         <Button variant="secondary" size="sm" onClick={addNote}>add</Button>
       </div>
+      {invalid && (
+        <p id={errorId} className="text-caption text-danger">
+          Enter a note number from 0 to 127
+        </p>
+      )}
     </div>
   );
 }

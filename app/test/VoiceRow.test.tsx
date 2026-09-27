@@ -12,6 +12,7 @@ const base = {
   onSrcToggle: () => {},
   onToggle: () => {},
   onDismiss: () => {},
+  result: { text: 'direct', tone: 'text-t5' },
 };
 
 const kick = { canon: 'KickMain', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct' as const };

@@ -1,10 +1,9 @@
-import { useRef } from 'react';
-import { useRestoreFocus } from '../hooks/useRestoreFocus';
 import { noteName, type OctaveBase } from '../lib/notes';
 import { IconButton } from './IconButton';
 import { MonoLabel } from './MonoLabel';
 import { OctaveTabs } from './OctaveTabs';
 import { PianoKeyboard } from './PianoKeyboard';
+import { PickerShell } from './PickerShell';
 
 export function SourceNotePicker({
   voiceLabel,
@@ -23,19 +22,11 @@ export function SourceNotePicker({
   onPickSemitone: (semitone: number) => void;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useRestoreFocus(ref);
   return (
-    <div
-      ref={ref}
-      role="dialog"
-      aria-label={`Source note for ${voiceLabel}`}
-      tabIndex={-1}
-      className="
-        my-0.5 mb-3 w-full rounded-panel border border-accent/18 bg-inset
-        p-[13px_14px_16px] outline-none
-        sm:ml-auto sm:w-max
-      "
+    <PickerShell
+      label={`Source note for ${voiceLabel}`}
+      onClose={onClose}
+      className="sm:ml-auto sm:w-max"
     >
       <div className="
         flex w-full flex-col gap-3.25
@@ -59,6 +50,6 @@ export function SourceNotePicker({
           onPickSemitone={onPickSemitone}
         />
       </div>
-    </div>
+    </PickerShell>
   );
 }

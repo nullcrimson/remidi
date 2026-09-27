@@ -52,6 +52,7 @@ type Action
   | { type: 'SET_SRC_CANON'; note: number; canon: string }
   | { type: 'CLEAR_SRC_CANON'; note: number }
   | { type: 'CLOSE_PICK' }
+  | { type: 'RESET_ROW'; canon: string; defaultNotes: number[] }
   | { type: 'RESET' }
   | { type: 'LOAD'; edits: Edits; srcEdits: SrcEdits };
 
@@ -140,6 +141,16 @@ function reducer(state: State, action: Action): State {
     }
     case 'CLOSE_PICK':
       return { ...state, pick: null };
+    case 'RESET_ROW': {
+      const edits = { ...state.edits };
+      delete edits[action.canon];
+      const srcEdits = Object.fromEntries(
+        Object.entries(withoutCanon(state.srcEdits, action.canon)).filter(
+          ([note]) => !action.defaultNotes.includes(Number(note)),
+        ),
+      );
+      return { edits, srcEdits, pick: null, notice: null };
+    }
     case 'RESET':
       return INITIAL;
     case 'LOAD':
@@ -250,6 +261,32 @@ export function useEditor(status: CatalogStatus, src: string, tgt: string) {
       return [];
     }
   }, [status, src]);
+  const defaultCanon = useMemo(
+    () => new Map(sourceNotes.map((n) => [n.note, n.canon])),
+    [sourceNotes],
+  );
+  const changedSrc = useMemo(() => {
+    const set = new Set<string>();
+    for (const [note, canon] of Object.entries(srcEdits)) {
+      if (canon !== null) set.add(canon);
+      const owner = defaultCanon.get(Number(note));
+      if (owner !== undefined && owner !== canon) set.add(owner);
+    }
+    return set;
+  }, [srcEdits, defaultCanon]);
+  const changed = useMemo(
+    () => new Set([...changedSrc, ...Object.keys(edits)]),
+    [changedSrc, edits],
+  );
+  const resetRow = useCallback(
+    (canon: string) =>
+      dispatch({
+        type: 'RESET_ROW',
+        canon,
+        defaultNotes: sourceNotes.filter((n) => n.canon === canon).map((n) => n.note),
+      }),
+    [sourceNotes],
+  );
   const canonOptions = useMemo<CanonInfo[]>(() => {
     if (status !== 'ready') return [];
     try {
@@ -270,6 +307,9 @@ export function useEditor(status: CatalogStatus, src: string, tgt: string) {
     targetDrums,
     sourceNotes,
     canonOptions,
+    changed,
+    changedSrc,
+    resetRow,
     openPick,
     openSrcPick,
     setPickOct,

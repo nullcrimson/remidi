@@ -100,4 +100,24 @@ describe('NotePicker', () => {
     );
     expect(screen.getByText('—')).toBeInTheDocument();
   });
+
+  it('puts the drum list beside the piano only when the picker itself is wide enough', () => {
+    render(
+      <NotePicker
+        voiceLabel="Kick"
+        currentNote={36}
+        octIndex={2}
+        base="c1"
+        drums={DRUMS}
+        onSetOct={() => {}}
+        onPickSemitone={() => {}}
+        onPickNote={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    const layout = screen.getByTestId('picker-layout');
+    expect(layout.parentElement).toHaveClass('@container');
+    expect(layout).toHaveClass('flex-col', '@2xl:flex-row');
+    expect(layout).not.toHaveClass('sm:flex-row');
+  });
 });

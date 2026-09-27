@@ -5,7 +5,7 @@ const CHIP_BASE = 'rounded-chip border font-mono font-semibold transition-colors
 
 const CHIP_SIZE: Record<ChipSize, string> = {
   sm: 'px-2 py-0.5 text-label',
-  md: 'px-2.5 py-1 text-ui',
+  md: 'min-w-14 px-2.5 py-1 text-ui',
 };
 
 const CHIP_STATE: Record<ChipState, string> = {
@@ -64,6 +64,13 @@ export function field(mono: boolean): string {
     text-t2 transition-colors outline-none
     placeholder:text-t5
     focus:border-accent/40
+    aria-invalid:border-danger/60
     ${mono ? 'font-mono sm:text-label' : 'sm:text-ui'}
   `;
 }
+
+/** Column template shared by the edit view's rows and their header. */
+export const ROW_GRID = `
+  grid grid-cols-[minmax(0,1fr)_auto_12px_auto_4.5rem_1.25rem] items-center gap-2
+  sm:grid-cols-[minmax(0,1fr)_auto_16px_auto_5rem_1.25rem] sm:gap-3
+`;

@@ -113,6 +113,7 @@ describe('ReportModal', () => {
     const approx = screen.getAllByText(/^Approximated/)[0];
     expect(approx).toHaveClass('text-star');
     expect(approx).toHaveTextContent('played on the nearest drum');
+    expect(screen.getAllByText(/played on the nearest drum/)[0]).toHaveClass('normal-case');
     expect(screen.getAllByText(/^Dropped/)[0]).toHaveTextContent('EZdrummer has no such drum');
     expect(screen.getAllByText(/^Unrecognized/)[0]).toHaveTextContent(
       'not in the GGD Invasion map — removed from the file',
