@@ -1,5 +1,5 @@
 import type { FileResult } from './files';
-import type { Drum, RemapReport, VoiceRow } from './midiremap';
+import type { CanonInfo, Drum, RemapReport } from './midiremap';
 import { noteName, type OctaveBase } from './notes';
 
 export interface ReportEntry {
@@ -29,31 +29,25 @@ function sortEntries(entries: ReportEntry[]): ReportEntry[] {
 
 export function buildReport(
   results: FileResult[],
-  rows: VoiceRow[],
+  canons: CanonInfo[],
   targetDrums: Drum[],
   oct: OctaveBase,
 ): ReportView {
-  const labelByCanon = new Map(rows.map((r) => [r.canon, r.label]));
-  const tgtNoteByCanon = new Map(rows.map((r) => [r.canon, r.tgtNote]));
+  const labelByCanon = new Map(canons.map((c) => [c.canon, c.label]));
   const drumByNote = new Map(targetDrums.map((d) => [d.note, d.label]));
 
   const canonLabel = (canon: string) => labelByCanon.get(canon) ?? canon;
-  const subLabel = (canon: string): string | undefined => {
-    const note = tgtNoteByCanon.get(canon);
-    return note == null ? undefined : drumByNote.get(note);
-  };
 
   const groupsOf = (report: RemapReport): ReportGroups => ({
     dropped: sortEntries(
       Object.entries(report.dropped).map(([canon, count]) => ({ label: canonLabel(canon), count })),
     ),
     approximated: sortEntries(
-      Object.entries(report.fallbackUsed).map(([canon, count]) => {
-        const sub = subLabel(canon);
-        return sub === undefined
-          ? { label: canonLabel(canon), count }
-          : { label: canonLabel(canon), sub, count };
-      }),
+      Object.entries(report.fallbackUsed).map(([canon, { note, count }]) => ({
+        label: canonLabel(canon),
+        sub: drumByNote.get(note) ?? noteName(note, oct),
+        count,
+      })),
     ),
     unrecognized: sortEntries(
       Object.entries(report.unmappedSource).map(([note, count]) => ({

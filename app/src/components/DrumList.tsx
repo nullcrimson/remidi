@@ -13,7 +13,7 @@ export function DrumList({
   onPickNote,
 }: {
   drums: Drum[];
-  currentNote: number;
+  currentNote: number | null;
   base: OctaveBase;
   onPickNote: (note: number) => void;
 }) {

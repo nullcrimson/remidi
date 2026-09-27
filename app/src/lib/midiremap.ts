@@ -26,13 +26,18 @@ export type VoiceStatus = 'direct' | 'fallback' | 'dropped';
 export interface VoiceRow {
   canon: string;
   label: string;
-  srcNote: number;
+  srcNotes: number[];
   tgtNote: number | null;
+  defaultTgtNote: number | null;
   status: VoiceStatus;
+}
+export interface FallbackTally {
+  note: number;
+  count: number;
 }
 export interface RemapReport {
   unmappedSource: Record<string, number>;
-  fallbackUsed: Record<string, number>;
+  fallbackUsed: Record<string, FallbackTally>;
   dropped: Record<string, number>;
 }
 export interface RemapResult {
@@ -42,15 +47,16 @@ export interface RemapResult {
 
 interface RawRemapReport {
   unmapped_source: Record<string, number>;
-  fallback_used: Record<string, number>;
+  fallback_used: Record<string, FallbackTally>;
   dropped: Record<string, number>;
 }
 
 interface RawVoiceRow {
   canon: string;
   label: string;
-  src_note: number;
+  src_notes: number[];
   tgt_note: number | null;
+  default_tgt_note: number | null;
   status: VoiceStatus;
 }
 
@@ -94,8 +100,9 @@ export function plan(src: string, tgt: string, ov?: Overrides): VoiceRow[] {
   return raw.map((r) => ({
     canon: r.canon,
     label: r.label,
-    srcNote: r.src_note,
+    srcNotes: r.src_notes,
     tgtNote: r.tgt_note,
+    defaultTgtNote: r.default_tgt_note,
     status: r.status,
   }));
 }

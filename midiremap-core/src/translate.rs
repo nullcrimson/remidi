@@ -7,14 +7,31 @@ use crate::{
     engine_map::{Decoder, Encoder},
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum CanonResolution {
-    Direct { note: u8 },
+    Direct { canon: Canon, note: u8 },
     Fallback { canon: Canon, note: u8 },
     Dropped { canon: Canon },
 }
 
-#[derive(Debug, PartialEq)]
+impl CanonResolution {
+    pub fn canon(&self) -> Canon {
+        match self {
+            Self::Direct { canon, .. } | Self::Fallback { canon, .. } | Self::Dropped { canon } => {
+                *canon
+            }
+        }
+    }
+
+    pub fn note(&self) -> Option<u8> {
+        match self {
+            Self::Direct { note, .. } | Self::Fallback { note, .. } => Some(*note),
+            Self::Dropped { .. } => None,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Resolution {
     Resolved(CanonResolution),
     Unmapped,
@@ -48,7 +65,7 @@ impl<'a> Translator<'a> {
 
     pub fn resolve_canon(&self, canon: Canon) -> CanonResolution {
         if let Some(n) = self.encoder.encode(canon) {
-            return CanonResolution::Direct { note: n };
+            return CanonResolution::Direct { canon, note: n };
         }
         for alt in self.resolver.chain(canon) {
             if let Some(n) = self.encoder.encode(alt) {
@@ -63,10 +80,16 @@ pub trait ReportSink {
     fn record(&mut self, source_note: u8, resolution: &Resolution);
 }
 
+#[derive(Serialize, Debug, PartialEq, Eq)]
+pub struct FallbackTally {
+    pub note: u8,
+    pub count: u32,
+}
+
 #[derive(Default, Serialize, Debug)]
 pub struct Report {
     pub unmapped_source: HashMap<u8, u32>,
-    pub fallback_used: HashMap<Canon, u32>,
+    pub fallback_used: HashMap<Canon, FallbackTally>,
     pub dropped: HashMap<Canon, u32>,
 }
 
@@ -74,8 +97,14 @@ impl ReportSink for Report {
     fn record(&mut self, source_note: u8, resolution: &Resolution) {
         match resolution {
             Resolution::Unmapped => *self.unmapped_source.entry(source_note).or_default() += 1,
-            Resolution::Resolved(CanonResolution::Fallback { canon, .. }) => {
-                *self.fallback_used.entry(*canon).or_default() += 1
+            Resolution::Resolved(CanonResolution::Fallback { canon, note }) => {
+                self.fallback_used
+                    .entry(*canon)
+                    .or_insert(FallbackTally {
+                        note: *note,
+                        count: 0,
+                    })
+                    .count += 1
             }
             Resolution::Resolved(CanonResolution::Dropped { canon }) => {
                 *self.dropped.entry(*canon).or_default() += 1
@@ -89,7 +118,7 @@ impl ReportSink for Report {
 mod tests {
     use super::*;
     use crate::{
-        canon::{DefaultFallbacks, HatOpen, HatZone, SnareArtic},
+        canon::{DefaultFallbacks, HatOpen, HatZone, KickKind, SnareArtic},
         engine_map::from_toml,
     };
 
@@ -128,7 +157,10 @@ mod tests {
         );
         assert_eq!(
             translator(&src, &tgt, &fb).translate(12),
-            Resolution::Resolved(CanonResolution::Direct { note: 50 })
+            Resolution::Resolved(CanonResolution::Direct {
+                canon: Canon::Kick(KickKind::Main),
+                note: 50
+            })
         );
     }
 
@@ -215,13 +247,16 @@ mod tests {
         );
         r.record(
             12,
-            &Resolution::Resolved(CanonResolution::Direct { note: 50 }),
+            &Resolution::Resolved(CanonResolution::Direct {
+                canon: Canon::Kick(KickKind::Main),
+                note: 50,
+            }),
         );
         assert_eq!(r.unmapped_source.get(&99), Some(&1));
         assert_eq!(
             r.fallback_used
                 .get(&Canon::Hat(HatOpen::Open(3), HatZone::Plain)),
-            Some(&1)
+            Some(&FallbackTally { note: 60, count: 1 })
         );
         assert_eq!(r.dropped.get(&Canon::Snare(1, SnareArtic::Hit)), Some(&1));
         assert!(!r.unmapped_source.contains_key(&12));

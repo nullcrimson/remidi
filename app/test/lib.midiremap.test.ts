@@ -12,8 +12,9 @@ describe('midiremap wrapper', () => {
   it('maps plan rows to camelCase', () => {
     const rows = plan('ggd_invasion', 'ezdrummer');
     const kick = rows.find((r) => r.canon === 'kick.main')!;
-    expect(kick.srcNote).toBe(24);
+    expect(kick.srcNotes).toEqual([24]);
     expect(kick.tgtNote).toBe(36);
+    expect(kick.defaultTgtNote).toBe(36);
     expect(rows.find((r) => r.canon === 'china.1.hit')!.tgtNote).toBeNull();
   });
 
@@ -30,7 +31,7 @@ describe('midiremap wrapper', () => {
       tgt: [],
       src: [{ note: 60, canon: 'china.1.hit' }],
     });
-    expect(rows.find((r) => r.canon === 'china.1.hit')!.srcNote).toBe(60);
+    expect(rows.find((r) => r.canon === 'china.1.hit')!.srcNotes[0]).toBe(60);
   });
 
   it('normalizes remap bytes and camelCases the report', () => {
@@ -38,7 +39,7 @@ describe('midiremap wrapper', () => {
     expect(out.bytes).toBeInstanceOf(Uint8Array);
     expect(Array.from(out.bytes)).toEqual([77, 84, 104, 100]);
     expect(out.report.dropped).toEqual({ 'china.1.hit': 1 });
-    expect(out.report.fallbackUsed).toEqual({ 'hat.open3': 2 });
+    expect(out.report.fallbackUsed).toEqual({ 'hat.open3': { note: 46, count: 2 } });
     expect(out.report.unmappedSource).toEqual({});
   });
 });

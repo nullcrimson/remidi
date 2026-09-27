@@ -10,9 +10,9 @@ vi.mock('../src/lib/midiremap', () => ({
   ],
   engineDrums: () => [],
   engineNotes: () => [],
-  canonCatalog: () => [],
+  canonCatalog: () => [{ canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' }],
   plan: () => [
-    { canon: 'china.1.hit', label: 'China 1', srcNote: 60, tgtNote: null, status: 'dropped' },
+    { canon: 'china.1.hit', label: 'China 1', srcNotes: [60], tgtNote: null, defaultTgtNote: null, status: 'dropped' },
   ],
   remap: () => ({
     bytes: new Uint8Array([1]),

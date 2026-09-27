@@ -8,7 +8,7 @@ vi.mock('../src/lib/midiremap', () => ({
     { id: 'ezdrummer', name: 'EZdrummer' },
   ],
   engineDrums: () => [],
-  plan: () => [{ canon: 'kick.main', label: 'Kick', srcNote: 24, tgtNote: 36, status: 'direct' }],
+  plan: () => [{ canon: 'kick.main', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct' }],
   remap: () => ({
     bytes: new Uint8Array([1]),
     report: { unmappedSource: {}, fallbackUsed: {}, dropped: {} },
@@ -51,5 +51,20 @@ describe('useRemapper source edits', () => {
       }),
     );
     expect(result.current.editor.srcEdits).toEqual({ 60: 'china.1.hit' });
+  });
+
+  it('replaces the earlier picked note when a row pick is corrected', async () => {
+    const { result } = renderHook(() => useRemapper());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
+    act(() => result.current.editor.setSrcCanon(70, 'snare1.hit'));
+
+    act(() => result.current.editor.openSrcPick('kick.main'));
+    act(() => result.current.editor.chooseSrcNote(1));
+    act(() => result.current.editor.openSrcPick('kick.main'));
+    act(() => result.current.editor.chooseSrcNote(3));
+
+    expect(result.current.editor.srcEdits).toEqual({ 27: 'kick.main', 70: 'snare1.hit' });
   });
 });

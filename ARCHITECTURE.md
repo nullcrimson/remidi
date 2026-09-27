@@ -50,14 +50,16 @@ conversion   ── end-to-end facade: bytes in → bytes + report out
    │
    ├── midi        ── MidiCodec (midly) + EventRewriter over the SMF stream
    │      │
-   │      └── translate  ── Translator: note → Resolution; Report/ReportSink
-   │             │
-   │             ├── engine_map  ── Decoder / Encoder / EngineMap
-   │             └── canon       ── Canon enum + FallbackResolver
+   │      └── table      ── NoteTable: every source note's Resolution, compiled once
+   │
+   └── translate   ── Translator: note → Resolution; Report/ReportSink
+          │              (used by table, midi and conversion)
+          ├── engine_map  ── Decoder / Encoder / EngineMap
+          └── canon       ── Canon enum + FallbackResolver
 
 catalog     ── MapProvider: BuiltinMaps (embedded) + LayeredMaps (user maps)
 overrides   ── per-voice retargeting, layered over an Encoder and a Decoder
-plan        ── per-voice source→target table (for UI display), no MIDI
+plan        ── per-drum view of the NoteTable (for UI display), no MIDI
 ```
 
 ### `canon` — the hub vocabulary
@@ -101,9 +103,19 @@ empty chain. The `chains_terminate` test enforces this.
     *source note*, which may not decode at all.
   - `translate(note)` decodes then wraps `resolve_canon` in `Resolved`;
     `resolve_canon(canon)` is used directly by `plan` with no panic arm.
+  - Every `CanonResolution` carries the canon it resolved.
 - `Report` + `ReportSink`: counting policy lives in one place, decoupled from the
-  translation decision. `Report` tallies unmapped source notes, fallbacks used,
-  and dropped canons; direct hits are not recorded.
+  translation decision. `Report` tallies unmapped source notes, fallbacks used
+  (with the target note each one landed on), and dropped canons; direct hits are
+  not recorded.
+
+### `table` — the single source of truth
+
+- `NoteTable` holds the `Resolution` of all 128 source notes, compiled once per
+  (source, target, overrides) by calling `Translator::translate` for each note.
+- The converter, the edit preview (`plan`) and therefore the report all read the
+  same table, so the fallback search never runs per MIDI event and the preview
+  cannot disagree with the downloaded file.
 
 ### `midi` — the only module that knows `midly`
 
@@ -111,7 +123,7 @@ empty chain. The `chains_terminate` test enforces this.
   bound `C: MidiCodec`, never as `&dyn MidiCodec`, because `parse` is
   lifetime-generic (`Smf<'a>` borrows the input) and thus not object-safe. Every
   other trait in the crate *is* object-safe and is used behind `&dyn`.
-- `EventRewriter` applies a `Translator` across the SMF event stream:
+- `EventRewriter` applies a `NoteTable` across the SMF event stream:
   - Note-on/off keys are rewritten to the resolved target note.
   - Unmapped / dropped notes are removed; a dropped event's delta is folded into
     the next kept event so timing does not shift.
@@ -125,7 +137,8 @@ empty chain. The `chains_terminate` test enforces this.
 
 ### `conversion` — end-to-end facade
 
-- `Conversion { translator, codec }` with `run(bytes) → Converted { bytes, report }`.
+- `Conversion { table, codec }` with `run(bytes) → Converted { bytes, report }`;
+  `Conversion::new(src, tgt, resolver)` compiles the table up front.
 - Free functions: `remap(mid, src, tgt)` and `remap_with_overrides(mid, src, tgt,
   ov)`. Empty overrides behave identically to `remap`.
 
@@ -155,12 +168,18 @@ empty chain. The `chains_terminate` test enforces this.
 
 ### `plan` — the source→target table (UI, no MIDI)
 
-- `plan(src, tgt, ov) → Vec<VoicePlan>`: one row per canon the *source* can
-  produce, in `Canon::all()` order, giving `{ canon, src_note, tgt_note, status }`
-  where status is `Direct | Fallback | Dropped`. `ov` is the same `Overrides`
-  (`tgt` + `src`) used by conversion, so the preview matches the file the app
-  would download. Powers the converter UI's mapping preview without touching a
-  `.mid`.
+- `plan(src, tgt, ov) → Vec<VoicePlan>`: a per-drum view of the `NoteTable`
+  compiled with the same `Overrides` conversion uses. One row per canon the source
+  engine defines or any note decodes to, in `Canon::all()` order, giving
+  `{ canon, src_notes, tgt_note, default_tgt_note, status }`:
+  - `src_notes`: every source note that plays this drum — overridden notes first,
+    then the engine's primary note, then the rest. Empty for a *silent* drum (its
+    notes were reassigned); the row stays so its target remains editable.
+  - `tgt_note` / `status` (`Direct | Fallback | Dropped`): the drum resolved with
+    target overrides; `default_tgt_note`: without them.
+  - Duplicate overrides resolve last-wins, as in conversion.
+  A property test converts every note for every builtin pair and checks the
+  preview against the output.
 
 ## Engine preset format
 
@@ -208,7 +227,7 @@ stderr. `list` prints available engine ids.
 `wasm-bindgen` exports for the browser app:
 
 - `remap(mid, src_id, tgt_id, overrides_json?) → { bytes, report }`
-- `plan(src_id, tgt_id, overrides_json?) → [{ canon, label, src_note, tgt_note, status }]`
+- `plan(src_id, tgt_id, overrides_json?) → [{ canon, label, src_notes, tgt_note, default_tgt_note, status }]`
 - `engine_catalog() → [{ id, name }]`
 - `engine_drums(tgt_id) → [{ note, canon, label, family }]` — the target's playable
   voices, for the note editor's drum list.
@@ -246,8 +265,10 @@ the UI is pure data.
   `showModal`.
 
 Edit preview and downloaded output share one source of truth: the editor's rows
-come from the core `plan` with the full overrides, so per-row target notes and
-fallback propagation match the converted file exactly.
+come from the core `plan`, a view of the same `NoteTable` the converter uses, so
+per-row target notes and fallback propagation match the converted file exactly.
+The loss report labels substitutes from the target note recorded during
+conversion, not from the live rows.
 
 ## Design rules (enforced)
 

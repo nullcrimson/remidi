@@ -6,6 +6,7 @@ pub mod engine_map;
 pub mod midi;
 pub mod overrides;
 pub mod plan;
+pub mod table;
 pub mod translate;
 
 pub use canon::{Canon, DefaultFallbacks, FallbackResolver};
@@ -15,4 +16,5 @@ pub use engine_map::{Decoder, Drum, Encoder, EngineMap, MapError};
 pub use midi::{CodecError, EventRewriter, MidiCodec, StandardMidiCodec};
 pub use overrides::Overrides;
 pub use plan::{plan, PlanStatus, VoicePlan};
-pub use translate::{CanonResolution, Report, ReportSink, Resolution, Translator};
+pub use table::NoteTable;
+pub use translate::{CanonResolution, FallbackTally, Report, ReportSink, Resolution, Translator};

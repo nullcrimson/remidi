@@ -173,7 +173,7 @@ fn pair_rows(src: &EngineMap, tgt: &EngineMap) -> Vec<PairRow> {
         .into_iter()
         .map(|d| {
             let outcome = match translator.translate(d.note) {
-                Resolution::Resolved(CanonResolution::Direct { note }) => {
+                Resolution::Resolved(CanonResolution::Direct { note, .. }) => {
                     Outcome::Exact(target(tgt, note, d.canon))
                 }
                 Resolution::Resolved(CanonResolution::Fallback { note, .. }) => {

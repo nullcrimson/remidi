@@ -40,6 +40,7 @@ type Action
     | { type: 'LOAD'; edits: Edits; srcEdits: SrcEdits };
 
 const INITIAL: State = { edits: {}, srcEdits: {}, pick: null };
+const DEFAULT_PICK_NOTE = 36;
 
 function withEdit(edits: Edits, canon: string, note: number, defaultNote: number | null): Edits {
   if (note === defaultNote) {
@@ -48,6 +49,10 @@ function withEdit(edits: Edits, canon: string, note: number, defaultNote: number
     return next;
   }
   return { ...edits, [canon]: note };
+}
+
+function withoutCanon(srcEdits: SrcEdits, canon: string): SrcEdits {
+  return Object.fromEntries(Object.entries(srcEdits).filter(([, c]) => c !== canon));
 }
 
 function reducer(state: State, action: Action): State {
@@ -90,7 +95,7 @@ function reducer(state: State, action: Action): State {
         ? {
             ...state,
             srcEdits: {
-              ...state.srcEdits,
+              ...withoutCanon(state.srcEdits, state.pick.canon),
               [noteInOctave(state.pick.octIndex, action.semitone)]: state.pick.canon,
             },
             pick: null,
@@ -122,13 +127,6 @@ export function useEditor(status: CatalogStatus, src: string, tgt: string) {
         : [],
     [status, src, tgt, edits, srcEdits],
   );
-
-  const baseTgtByCanon = useMemo<Record<string, number | null>>(() => {
-    if (status !== 'ready' || !src || !tgt) return {};
-    const map: Record<string, number | null> = {};
-    for (const r of computePlan(src, tgt, editsToOverrides({}, srcEdits))) map[r.canon] = r.tgtNote;
-    return map;
-  }, [status, src, tgt, srcEdits]);
 
   const setPickOct = useCallback(
     (octIndex: number) => dispatch({ type: 'SET_PICK_OCT', octIndex }),
@@ -163,16 +161,16 @@ export function useEditor(status: CatalogStatus, src: string, tgt: string) {
     (canon: string) => {
       const row = rows.find((r) => r.canon === canon);
       if (!row) return;
-      const note = edits[canon] ?? row.tgtNote ?? row.srcNote;
+      const note = edits[canon] ?? row.tgtNote ?? row.srcNotes[0] ?? DEFAULT_PICK_NOTE;
       dispatch({
         type: 'OPEN_PICK',
         canon,
         octIndex: octaveIndexOf(note),
         side: 'tgt',
-        defaultNote: baseTgtByCanon[canon] ?? null,
+        defaultNote: row.defaultTgtNote,
       });
     },
-    [edits, rows, baseTgtByCanon],
+    [edits, rows],
   );
   const openSrcPick = useCallback(
     (canon: string) => {
@@ -181,7 +179,7 @@ export function useEditor(status: CatalogStatus, src: string, tgt: string) {
       dispatch({
         type: 'OPEN_PICK',
         canon,
-        octIndex: octaveIndexOf(row.srcNote),
+        octIndex: octaveIndexOf(row.srcNotes[0] ?? row.tgtNote ?? DEFAULT_PICK_NOTE),
         side: 'src',
         defaultNote: null,
       });
@@ -190,10 +188,15 @@ export function useEditor(status: CatalogStatus, src: string, tgt: string) {
   );
 
   const remappedCount = useMemo(
-    () => rows.filter((r) => r.status !== 'dropped' && r.tgtNote !== r.srcNote).length,
+    () =>
+      rows.filter((r) => r.status !== 'dropped' && r.srcNotes.length > 0 && r.srcNotes[0] !== r.tgtNote)
+        .length,
     [rows],
   );
-  const droppedCount = useMemo(() => rows.filter((r) => r.status === 'dropped').length, [rows]);
+  const droppedCount = useMemo(
+    () => rows.filter((r) => r.status === 'dropped' && r.srcNotes.length > 0).length,
+    [rows],
+  );
   const targetDrums = useMemo<Drum[]>(() => {
     if (status !== 'ready' || !tgt) return [];
     try {

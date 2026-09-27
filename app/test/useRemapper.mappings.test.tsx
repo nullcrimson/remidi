@@ -8,7 +8,7 @@ vi.mock('../src/lib/midiremap', () => ({
     { id: 'ezdrummer', name: 'EZdrummer' },
   ],
   engineDrums: () => [],
-  plan: () => [{ canon: 'kick.main', label: 'Kick', srcNote: 24, tgtNote: 36, status: 'direct' }],
+  plan: () => [{ canon: 'kick.main', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct' }],
   remap: () => ({
     bytes: new Uint8Array([1]),
     report: { unmappedSource: {}, fallbackUsed: {}, dropped: {} },

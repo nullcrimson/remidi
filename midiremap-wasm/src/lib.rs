@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use midiremap_core::{
-    plan as core_plan, remap_with_overrides, BuiltinMaps, Canon, MapProvider, Overrides,
-    PlanStatus, Report,
+    plan as core_plan, remap_with_overrides, BuiltinMaps, Canon, FallbackTally, MapProvider,
+    Overrides, PlanStatus, Report,
 };
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
@@ -10,7 +10,7 @@ use wasm_bindgen::prelude::*;
 #[derive(Serialize)]
 struct ReportView {
     unmapped_source: BTreeMap<String, u32>,
-    fallback_used: BTreeMap<String, u32>,
+    fallback_used: BTreeMap<String, FallbackTally>,
     dropped: BTreeMap<String, u32>,
 }
 
@@ -43,15 +43,10 @@ struct Output {
 }
 
 fn parse_overrides(overrides_json: Option<String>) -> Result<Overrides, JsValue> {
-    let ov = match overrides_json {
-        Some(s) => {
-            serde_json::from_str::<Overrides>(&s).map_err(|e| JsValue::from_str(&e.to_string()))?
-        }
-        None => Overrides::default(),
-    };
-    ov.validate()
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
-    Ok(ov)
+    overrides_json.map_or_else(
+        || Ok(Overrides::default()),
+        |s| serde_json::from_str(&s).map_err(|e| JsValue::from_str(&e.to_string())),
+    )
 }
 
 #[wasm_bindgen]
@@ -85,8 +80,9 @@ pub fn remap(
 struct VoiceRow {
     canon: String,
     label: String,
-    src_note: u8,
+    src_notes: Vec<u8>,
     tgt_note: Option<u8>,
+    default_tgt_note: Option<u8>,
     status: &'static str,
 }
 
@@ -109,8 +105,9 @@ pub fn plan(
         .map(|v| VoiceRow {
             canon: v.canon.to_string(),
             label: v.canon.label(),
-            src_note: v.src_note,
+            src_notes: v.src_notes,
             tgt_note: v.tgt_note,
+            default_tgt_note: v.default_tgt_note,
             status: match v.status {
                 PlanStatus::Direct => "direct",
                 PlanStatus::Fallback => "fallback",

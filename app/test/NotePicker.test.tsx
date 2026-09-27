@@ -83,4 +83,21 @@ describe('NotePicker', () => {
     await userEvent.click(screen.getByRole('button', { name: /Kick/ }));
     expect(onPickDrum).toHaveBeenCalledWith(36);
   });
+
+  it('shows a dash when there is no current note', () => {
+    render(
+      <NotePicker
+        voiceLabel="Kick"
+        currentNote={null}
+        octIndex={2}
+        base="c1"
+        drums={DRUMS}
+        onSetOct={() => {}}
+        onPickSemitone={() => {}}
+        onPickNote={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    expect(screen.getByText('—')).toBeInTheDocument();
+  });
 });

@@ -37,14 +37,14 @@ export function canon_catalog(): unknown {
 }
 
 const BASE_ROWS = [
-  { canon: 'kick.main', label: 'Kick', src_note: 24, tgt_note: 36, status: 'direct' },
-  { canon: 'snare1.hit', label: 'Snare', src_note: 26, tgt_note: 38, status: 'direct' },
-  { canon: 'hat.open3', label: 'Hi-Hat Open 3', src_note: 47, tgt_note: 46, status: 'fallback' },
-  { canon: 'china.1.hit', label: 'China 1', src_note: 59, tgt_note: null, status: 'dropped' },
+  { canon: 'kick.main', label: 'Kick', src_notes: [24], tgt_note: 36, default_tgt_note: 36, status: 'direct' },
+  { canon: 'snare1.hit', label: 'Snare', src_notes: [26], tgt_note: 38, default_tgt_note: 38, status: 'direct' },
+  { canon: 'hat.open3', label: 'Hi-Hat Open 3', src_notes: [47], tgt_note: 46, default_tgt_note: 46, status: 'fallback' },
+  { canon: 'china.1.hit', label: 'China 1', src_notes: [59], tgt_note: null, default_tgt_note: null, status: 'dropped' },
 ];
 
 export function plan(_src: string, _tgt: string, overridesJson?: string): unknown {
-  const rows = BASE_ROWS.map((r) => ({ ...r }));
+  const rows = BASE_ROWS.map((r) => ({ ...r, src_notes: [...r.src_notes] }));
   if (overridesJson) {
     const ov = JSON.parse(overridesJson) as {
       tgt?: { canon: string; note: number }[];
@@ -55,8 +55,9 @@ export function plan(_src: string, _tgt: string, overridesJson?: string): unknow
       if (row) row.tgt_note = o.note;
     }
     for (const s of ov.src ?? []) {
+      for (const r of rows) r.src_notes = r.src_notes.filter((n) => n !== s.note);
       const row = rows.find((r) => r.canon === s.canon);
-      if (row) row.src_note = s.note;
+      if (row) row.src_notes = [s.note, ...row.src_notes];
     }
   }
   return rows;
@@ -70,6 +71,6 @@ export function remap(
 ): unknown {
   return {
     bytes: [77, 84, 104, 100],
-    report: { unmapped_source: {}, fallback_used: { 'hat.open3': 2 }, dropped: { 'china.1.hit': 1 } },
+    report: { unmapped_source: {}, fallback_used: { 'hat.open3': { note: 46, count: 2 } }, dropped: { 'china.1.hit': 1 } },
   };
 }

@@ -24,7 +24,7 @@ export function PianoKeyboard({
   onPickSemitone,
 }: {
   octIndex: number;
-  currentNote: number;
+  currentNote: number | null;
   base: OctaveBase;
   onPickSemitone: (semitone: number) => void;
 }) {

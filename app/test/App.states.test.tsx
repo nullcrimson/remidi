@@ -44,7 +44,7 @@ describe('App states', () => {
         { id: 'ggd_invasion', name: 'GGD Invasion' },
         { id: 'ezdrummer', name: 'EZdrummer' },
       ],
-      plan: () => [{ canon: 'KickMain', label: 'Kick', srcNote: 24, tgtNote: 36, status: 'direct' }],
+      plan: () => [{ canon: 'KickMain', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct' }],
       remap: () => {
         throw new Error('bad midi');
       },

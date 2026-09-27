@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { EditView } from '../src/components/EditView';
 
 const editor = {
-  rows: [{ canon: 'KickMain', label: 'Kick', srcNote: 24, tgtNote: 36, status: 'direct' as const }],
+  rows: [{ canon: 'KickMain', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct' as const }],
   edits: {},
   srcEdits: {},
   pick: null,
@@ -133,5 +133,33 @@ describe('EditView', () => {
     expect(screen.getByLabelText('Preset name')).toHaveValue('mine');
     await userEvent.click(screen.getByRole('button', { name: 'Update' }));
     expect(onUpdatePreset).toHaveBeenCalledWith('p1', 'mine');
+  });
+
+  it('marks the source chip of a silent row as changed', () => {
+    render(
+      <EditView
+        {...props}
+        editor={{
+          ...editor,
+          rows: [{ canon: 'KickMain', label: 'Kick', srcNotes: [], tgtNote: 36, defaultTgtNote: 36, status: 'direct' as const }],
+        }}
+      />,
+    );
+    expect(screen.getByRole('button', { name: '—' })).toHaveClass('border-accent/28');
+  });
+
+  it('shows a dash in the target picker of a dropped row', () => {
+    render(
+      <EditView
+        {...props}
+        editor={{
+          ...editor,
+          pick: { canon: 'China', octIndex: 3, side: 'tgt' as const, defaultNote: null },
+          rows: [{ canon: 'China', label: 'China', srcNotes: [59], tgtNote: null, defaultTgtNote: null, status: 'dropped' as const }],
+        }}
+      />,
+    );
+    const picker = screen.getByRole('dialog', { name: 'Target note for China' });
+    expect(picker).toHaveTextContent('TARGET · China—');
   });
 });

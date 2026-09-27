@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { buildReport } from '../src/lib/report';
 import type { FileResult } from '../src/lib/files';
-import type { Drum, VoiceRow } from '../src/lib/midiremap';
+import type { CanonInfo, Drum } from '../src/lib/midiremap';
 
-const rows: VoiceRow[] = [
-  { canon: 'china.1.hit', label: 'China 1', srcNote: 60, tgtNote: null, status: 'dropped' },
-  { canon: 'ride.1.bell', label: 'Ride Bell', srcNote: 51, tgtNote: 51, status: 'fallback' },
+const canons: CanonInfo[] = [
+  { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
+  { canon: 'ride.1.bell', label: 'Ride Bell', family: 'Cymbals' },
+  { canon: 'splash.2.hit', label: 'Splash 2', family: 'Cymbals' },
 ];
-const drums: Drum[] = [{ note: 51, canon: 'ride.1', label: 'Ride', family: 'Cymbals' }];
+const drums: Drum[] = [
+  { note: 51, canon: 'ride.1', label: 'Ride', family: 'Cymbals' },
+  { note: 57, canon: 'crash.2.hit', label: 'Crash 2', family: 'Cymbals' },
+];
 
 function result(name: string, report: FileResult['report']): FileResult {
   return { name, url: 'blob:x', bytes: new Uint8Array(), report };
@@ -16,7 +20,7 @@ const empty = { unmappedSource: {}, fallbackUsed: {}, dropped: {} };
 
 describe('buildReport', () => {
   it('reports a clean conversion when nothing is lost', () => {
-    const view = buildReport([result('a.mid', empty)], rows, drums, 'c1');
+    const view = buildReport([result('a.mid', empty)], canons, drums, 'c1');
     expect(view.clean).toBe(true);
     expect(view.totals).toEqual({ dropped: 0, approximated: 0, unrecognized: 0 });
   });
@@ -26,11 +30,11 @@ describe('buildReport', () => {
       [
         result('a.mid', {
           dropped: { 'china.1.hit': 4 },
-          fallbackUsed: { 'ride.1.bell': 3 },
+          fallbackUsed: { 'ride.1.bell': { note: 51, count: 3 } },
           unmappedSource: { 63: 1 },
         }),
       ],
-      rows,
+      canons,
       drums,
       'c1',
     );
@@ -48,7 +52,7 @@ describe('buildReport', () => {
         result('a.mid', { dropped: { 'china.1.hit': 4 }, fallbackUsed: {}, unmappedSource: {} }),
         result('b.mid', { dropped: { 'china.1.hit': 2 }, fallbackUsed: {}, unmappedSource: {} }),
       ],
-      rows,
+      canons,
       drums,
       'c1',
     );
@@ -66,23 +70,40 @@ describe('buildReport', () => {
           unmappedSource: {},
         }),
       ],
-      [
-        ...rows,
-        { canon: 'splash.2.hit', label: 'Splash 2', srcNote: 55, tgtNote: null, status: 'dropped' },
-      ],
+      canons,
       drums,
       'c1',
     );
     expect(view.groups.dropped.map((e) => e.count)).toEqual([5, 1]);
   });
 
-  it('omits the substitute when the target drum is unknown', () => {
+  it('labels the substitute with the note the conversion actually used', () => {
     const view = buildReport(
-      [result('a.mid', { dropped: {}, fallbackUsed: { 'ride.1.bell': 2 }, unmappedSource: {} })],
-      rows,
-      [],
+      [result('a.mid', { dropped: {}, fallbackUsed: { 'ride.1.bell': { note: 57, count: 2 } }, unmappedSource: {} })],
+      canons,
+      drums,
       'c1',
     );
-    expect(view.groups.approximated).toEqual([{ label: 'Ride Bell', count: 2 }]);
+    expect(view.groups.approximated).toEqual([{ label: 'Ride Bell', sub: 'Crash 2', count: 2 }]);
+  });
+
+  it('falls back to the canon id when the catalog lacks it', () => {
+    const view = buildReport(
+      [result('a.mid', { dropped: { 'tom.floor9.hit': 1 }, fallbackUsed: {}, unmappedSource: {} })],
+      canons,
+      drums,
+      'c1',
+    );
+    expect(view.groups.dropped).toEqual([{ label: 'tom.floor9.hit', count: 1 }]);
+  });
+
+  it('names the substitute note when it is not a known target drum', () => {
+    const view = buildReport(
+      [result('a.mid', { dropped: {}, fallbackUsed: { 'ride.1.bell': { note: 60, count: 1 } }, unmappedSource: {} })],
+      canons,
+      drums,
+      'c1',
+    );
+    expect(view.groups.approximated).toEqual([{ label: 'Ride Bell', sub: 'C4', count: 1 }]);
   });
 });

@@ -16,8 +16,8 @@ vi.mock('../src/lib/midiremap', () => ({
 import { useRemapper } from '../src/hooks/useRemapper';
 
 const ROWS = [
-  { canon: 'KickMain', label: 'Kick', srcNote: 24, tgtNote: 36, status: 'direct' },
-  { canon: 'China', label: 'China', srcNote: 59, tgtNote: null, status: 'dropped' },
+  { canon: 'KickMain', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct' },
+  { canon: 'China', label: 'China', srcNotes: [59], tgtNote: null, defaultTgtNote: null, status: 'dropped' },
 ];
 
 describe('useRemapper convert path', () => {

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use serde::Deserialize;
+use serde::{de, Deserialize, Deserializer};
 
 use crate::{
     canon::Canon,
@@ -18,25 +18,23 @@ pub struct Overrides {
 #[derive(Deserialize)]
 pub struct CanonNote {
     pub canon: Canon,
+    #[serde(deserialize_with = "midi_note")]
     pub note: u8,
 }
 
-#[derive(thiserror::Error, Debug, PartialEq)]
-pub enum OverrideError {
-    #[error("override note {0} out of range 0..=127")]
-    NoteOutOfRange(u8),
+fn midi_note<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
+    let note = u8::deserialize(d)?;
+    if note > 127 {
+        return Err(de::Error::invalid_value(
+            de::Unexpected::Unsigned(u64::from(note)),
+            &"a MIDI note in 0..=127",
+        ));
+    }
+    Ok(note)
 }
 
 impl Overrides {
-    pub fn validate(&self) -> Result<(), OverrideError> {
-        for cn in self.tgt.iter().chain(&self.src) {
-            if cn.note > 127 {
-                return Err(OverrideError::NoteOutOfRange(cn.note));
-            }
-        }
-        Ok(())
-    }
-
+    /// Target overrides; when a canon appears more than once, the last entry wins.
     pub fn encoder<'a>(&self, base: &'a dyn Encoder) -> OverrideEncoder<'a> {
         let mut extra = HashMap::new();
         for cn in &self.tgt {
@@ -45,6 +43,7 @@ impl Overrides {
         OverrideEncoder { base, extra }
     }
 
+    /// Source overrides; when a note appears more than once, the last entry wins.
     pub fn decoder<'a>(&self, base: &'a dyn Decoder) -> OverrideDecoder<'a> {
         let mut extra = HashMap::new();
         for cn in &self.src {
@@ -105,16 +104,46 @@ mod tests {
 
     #[test]
     fn note_over_127_is_rejected() {
-        let ov: Overrides =
-            serde_json::from_str(r#"{"tgt":[{"canon":"kick.main","note":200}]}"#).unwrap();
-        assert_eq!(ov.validate(), Err(OverrideError::NoteOutOfRange(200)));
+        let err =
+            serde_json::from_str::<Overrides>(r#"{"tgt":[{"canon":"kick.main","note":200}]}"#)
+                .err()
+                .unwrap();
+        assert!(err.to_string().contains("0..=127"), "{err}");
     }
 
     #[test]
     fn src_note_over_127_is_rejected() {
+        assert!(
+            serde_json::from_str::<Overrides>(r#"{"src":[{"note":128,"canon":"kick.main"}]}"#)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn note_127_is_accepted() {
         let ov: Overrides =
-            serde_json::from_str(r#"{"src":[{"note":200,"canon":"kick.main"}]}"#).unwrap();
-        assert_eq!(ov.validate(), Err(OverrideError::NoteOutOfRange(200)));
+            serde_json::from_str(r#"{"src":[{"note":127,"canon":"kick.main"}]}"#).unwrap();
+        assert_eq!(ov.src[0].note, 127);
+    }
+
+    #[test]
+    fn duplicate_overrides_last_wins() {
+        let base = from_toml(TGT).unwrap();
+        let ov: Overrides = serde_json::from_str(
+            r#"{
+                "tgt":[{"canon":"kick.main","note":35},{"canon":"kick.main","note":40}],
+                "src":[{"note":99,"canon":"kick.main"},{"note":99,"canon":"snare1.hit"}]
+            }"#,
+        )
+        .unwrap();
+        assert_eq!(
+            ov.encoder(&base).encode(Canon::Kick(KickKind::Main)),
+            Some(40)
+        );
+        assert_eq!(
+            ov.decoder(&base).decode(99),
+            Some(Canon::Snare(1, SnareArtic::Hit))
+        );
     }
 
     #[test]

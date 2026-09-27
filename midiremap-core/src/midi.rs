@@ -1,6 +1,9 @@
 use midly::{num::u7, MidiMessage, Smf, TrackEventKind};
 
-use crate::translate::{CanonResolution, ReportSink, Resolution, Translator};
+use crate::{
+    table::NoteTable,
+    translate::{CanonResolution, ReportSink, Resolution},
+};
 
 #[derive(thiserror::Error, Debug)]
 pub enum CodecError {
@@ -30,12 +33,12 @@ impl MidiCodec for StandardMidiCodec {
 }
 
 pub struct EventRewriter<'a> {
-    translator: &'a Translator<'a>,
+    table: &'a NoteTable,
 }
 
 impl<'a> EventRewriter<'a> {
-    pub fn new(translator: &'a Translator<'a>) -> Self {
-        Self { translator }
+    pub fn new(table: &'a NoteTable) -> Self {
+        Self { table }
     }
 
     pub fn rewrite(&self, smf: &mut Smf, sink: &mut dyn ReportSink) {
@@ -49,15 +52,14 @@ impl<'a> EventRewriter<'a> {
                 let keep = match &mut ev.kind {
                     TrackEventKind::Midi { message, .. } => match message {
                         MidiMessage::NoteOn { key, vel } => {
-                            let res = self.translator.translate(key.as_int());
+                            let res = self.table.get(key.as_int());
                             if vel.as_int() > 0 {
-                                sink.record(key.as_int(), &res);
+                                sink.record(key.as_int(), res);
                             }
-                            apply(&res, key)
+                            apply(res, key)
                         }
                         MidiMessage::NoteOff { key, .. } => {
-                            let res = self.translator.translate(key.as_int());
-                            apply(&res, key)
+                            apply(self.table.get(key.as_int()), key)
                         }
                         _ => true,
                     },
@@ -79,7 +81,7 @@ impl<'a> EventRewriter<'a> {
 
 fn apply(res: &Resolution, key: &mut u7) -> bool {
     match res {
-        Resolution::Resolved(CanonResolution::Direct { note })
+        Resolution::Resolved(CanonResolution::Direct { note, .. })
         | Resolution::Resolved(CanonResolution::Fallback { note, .. }) => {
             *key = u7::from_int_lossy(*note);
             true

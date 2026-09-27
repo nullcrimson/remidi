@@ -4,7 +4,7 @@ use midiremap_core::{
     canon::{fallback, Canon},
     catalog::{BuiltinMaps, MapProvider},
     engine_map::{Decoder, Encoder, EngineMap},
-    remap,
+    remap, FallbackTally,
 };
 use midly::{
     num::{u15, u24, u28, u4, u7},
@@ -172,7 +172,7 @@ fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
         let tgt = maps.get(tgt_id).unwrap();
 
         let mut expected_keys: Vec<u8> = Vec::new();
-        let mut expected_fallback: HashMap<Canon, u32> = HashMap::new();
+        let mut expected_fallback: HashMap<Canon, FallbackTally> = HashMap::new();
         let mut expected_dropped: HashMap<Canon, u32> = HashMap::new();
         for &note in &notes {
             let canon = src
@@ -182,7 +182,10 @@ fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
                 Expected::Direct(n) => expected_keys.push(n),
                 Expected::Fallback(n) => {
                     expected_keys.push(n);
-                    *expected_fallback.entry(canon).or_default() += 1;
+                    expected_fallback
+                        .entry(canon)
+                        .or_insert(FallbackTally { note: n, count: 0 })
+                        .count += 1;
                 }
                 Expected::Dropped => {
                     *expected_dropped.entry(canon).or_default() += 1;

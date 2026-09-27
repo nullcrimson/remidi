@@ -75,8 +75,8 @@ export default function App() {
   const saved = useSavedMappings();
   const [reportOpen, setReportOpen] = useState(false);
   const reportView = useMemo(
-    () => buildReport(c.results, c.editor.rows, c.editor.targetDrums, c.oct),
-    [c.results, c.editor.rows, c.editor.targetDrums, c.oct],
+    () => buildReport(c.results, c.editor.canonOptions, c.editor.targetDrums, c.oct),
+    [c.results, c.editor.canonOptions, c.editor.targetDrums, c.oct],
   );
   const targetName = c.engines.find((e) => e.id === c.tgt)?.name ?? c.tgt;
 

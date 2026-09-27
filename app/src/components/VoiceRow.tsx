@@ -2,6 +2,7 @@ import { useRef, type ReactNode } from 'react';
 import type { VoiceRow as VoiceRowData } from '../lib/midiremap';
 import { useDismiss } from '../hooks/useDismiss';
 import { noteName, type OctaveBase } from '../lib/notes';
+import { Tooltip } from './Tooltip';
 
 const CHIP = `
   justify-self-end rounded-md border px-2.25 py-0.75 font-mono text-[14px]
@@ -43,12 +44,15 @@ export function VoiceRow({
   const rowRef = useRef<HTMLDivElement>(null);
   useDismiss(rowRef, onDismiss, srcExpanded || tgtExpanded);
   const dropped = row.status === 'dropped' || effectiveTgt === null;
+  const [srcNote, ...extraNotes] = row.srcNotes;
+  const silent = srcNote === undefined;
+  const extraNames = extraNotes.map((n) => noteName(n, base)).join(', ');
   return (
     <div
       ref={rowRef}
       className={`
         border-b border-white/4.5
-        ${dropped ? 'opacity-60' : ''}
+        ${dropped || silent ? 'opacity-60' : ''}
       `}
     >
       <div className="
@@ -56,18 +60,31 @@ export function VoiceRow({
       "
       >
         <span className="truncate text-[12.5px] text-t2">{row.label}</span>
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded={srcExpanded}
-          onClick={onSrcToggle}
-          className={`
-            ${CHIP}
-            ${chipState(srcExpanded, srcChanged)}
-          `}
-        >
-          {noteName(row.srcNote, base)}
-        </button>
+        <span className="flex items-center gap-1.5 justify-self-end">
+          {extraNotes.length > 0 && (
+            <Tooltip content={`Also ${extraNames}`}>
+              <span
+                tabIndex={0}
+                aria-label={`Also plays ${extraNames}`}
+                className="font-mono text-[11px] text-t5"
+              >
+                +{extraNotes.length}
+              </span>
+            </Tooltip>
+          )}
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded={srcExpanded}
+            onClick={onSrcToggle}
+            className={`
+              ${CHIP}
+              ${chipState(srcExpanded, srcChanged)}
+            `}
+          >
+            {silent ? '—' : noteName(srcNote, base)}
+          </button>
+        </span>
         <span className="text-center text-t6">→</span>
         <button
           type="button"

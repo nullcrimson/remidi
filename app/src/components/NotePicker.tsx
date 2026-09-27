@@ -18,7 +18,7 @@ export function NotePicker({
   onClose,
 }: {
   voiceLabel: string;
-  currentNote: number;
+  currentNote: number | null;
   octIndex: number;
   base: OctaveBase;
   drums: Drum[];
@@ -46,7 +46,7 @@ export function NotePicker({
             TARGET · {voiceLabel}
           </span>
           <span className="font-mono text-[17px] font-bold text-accent">
-            {noteName(currentNote, base)}
+            {currentNote === null ? '—' : noteName(currentNote, base)}
           </span>
         </div>
         <button

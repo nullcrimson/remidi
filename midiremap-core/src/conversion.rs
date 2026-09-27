@@ -3,6 +3,7 @@ use crate::{
     engine_map::{Decoder, Encoder, EngineMap, MapError},
     midi::{CodecError, EventRewriter, MidiCodec, StandardMidiCodec},
     overrides::Overrides,
+    table::NoteTable,
     translate::{Report, Translator},
 };
 
@@ -19,33 +20,29 @@ pub enum ConversionError {
     Map(#[from] MapError),
 }
 
-pub struct Conversion<'a, C: MidiCodec = StandardMidiCodec> {
-    translator: Translator<'a>,
+pub struct Conversion<C: MidiCodec = StandardMidiCodec> {
+    table: NoteTable,
     codec: C,
 }
 
-impl<'a> Conversion<'a, StandardMidiCodec> {
-    pub fn new(
-        src: &'a dyn Decoder,
-        tgt: &'a dyn Encoder,
-        resolver: &'a dyn FallbackResolver,
-    ) -> Self {
-        Self {
-            translator: Translator::new(src, tgt, resolver),
-            codec: StandardMidiCodec,
-        }
+impl Conversion<StandardMidiCodec> {
+    pub fn new(src: &dyn Decoder, tgt: &dyn Encoder, resolver: &dyn FallbackResolver) -> Self {
+        Self::with_codec(
+            NoteTable::compile(&Translator::new(src, tgt, resolver)),
+            StandardMidiCodec,
+        )
     }
 }
 
-impl<'a, C: MidiCodec> Conversion<'a, C> {
-    pub fn with_codec(translator: Translator<'a>, codec: C) -> Self {
-        Self { translator, codec }
+impl<C: MidiCodec> Conversion<C> {
+    pub fn with_codec(table: NoteTable, codec: C) -> Self {
+        Self { table, codec }
     }
 
     pub fn run(&self, midi: &[u8]) -> Result<Converted, ConversionError> {
         let mut smf = self.codec.parse(midi)?;
         let mut report = Report::default();
-        EventRewriter::new(&self.translator).rewrite(&mut smf, &mut report);
+        EventRewriter::new(&self.table).rewrite(&mut smf, &mut report);
         let bytes = self.codec.write(&smf)?;
         Ok(Converted { bytes, report })
     }
@@ -81,6 +78,7 @@ mod tests {
     use crate::{
         canon::Canon,
         catalog::{BuiltinMaps, MapProvider},
+        translate::FallbackTally,
     };
 
     fn smf_from(events: &[(u32, MidiMessage)]) -> Vec<u8> {
@@ -172,7 +170,7 @@ mod tests {
             out.report
                 .fallback_used
                 .get(&"china.1.hit".parse::<Canon>().unwrap()),
-            Some(&1)
+            Some(&FallbackTally { note: 86, count: 1 })
         );
     }
 

@@ -20,7 +20,7 @@ vi.mock('../src/lib/midiremap', () => ({
 
 import { useRemapper } from '../src/hooks/useRemapper';
 
-const ROWS = [{ canon: 'KickMain', label: 'Kick', srcNote: 24, tgtNote: 36, status: 'direct' }];
+const ROWS = [{ canon: 'KickMain', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct' }];
 
 describe('useRemapper edit path', () => {
   beforeEach(() => {
@@ -89,5 +89,47 @@ describe('useRemapper edit path', () => {
     expect(Object.keys(result.current.editor.edits)).toHaveLength(1);
     act(() => result.current.chooseTgt('ggd_invasion'));
     expect(result.current.editor.edits).toEqual({});
+  });
+
+  it('takes the reset note from the row default, not the edited target', async () => {
+    planMock.mockReturnValue([
+      { canon: 'KickMain', label: 'Kick', srcNotes: [24], tgtNote: 50, defaultTgtNote: 36, status: 'direct' },
+    ]);
+    const { result } = renderHook(() => useRemapper());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
+    act(() => result.current.editor.openPick('KickMain'));
+    expect(result.current.editor.pick?.defaultNote).toBe(36);
+    expect(result.current.editor.pick?.octIndex).toBe(3);
+  });
+
+  it('opens pickers on a silent row and leaves it out of the counts', async () => {
+    planMock.mockReturnValue([
+      { canon: 'KickMain', label: 'Kick', srcNotes: [], tgtNote: 36, defaultTgtNote: 36, status: 'direct' },
+      { canon: 'China', label: 'China', srcNotes: [], tgtNote: null, defaultTgtNote: null, status: 'dropped' },
+    ]);
+    const { result } = renderHook(() => useRemapper());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
+    expect(result.current.editor.remappedCount).toBe(0);
+    expect(result.current.editor.droppedCount).toBe(0);
+    act(() => result.current.editor.openSrcPick('KickMain'));
+    expect(result.current.editor.pick?.octIndex).toBe(2);
+    act(() => result.current.editor.openSrcPick('China'));
+    expect(result.current.editor.pick?.canon).toBe('China');
+  });
+
+  it('counts a row as remapped only when its shown source note moves', async () => {
+    planMock.mockReturnValue([
+      { canon: 'KickMain', label: 'Kick', srcNotes: [36, 35], tgtNote: 36, defaultTgtNote: 36, status: 'direct' },
+      { canon: 'Snare', label: 'Snare', srcNotes: [26], tgtNote: 38, defaultTgtNote: 38, status: 'direct' },
+    ]);
+    const { result } = renderHook(() => useRemapper());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
+    expect(result.current.editor.remappedCount).toBe(1);
   });
 });

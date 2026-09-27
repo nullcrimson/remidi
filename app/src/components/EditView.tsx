@@ -269,7 +269,7 @@ export function EditView({
               row={row}
               effectiveTgt={tgtNote}
               base={oct}
-              srcChanged={srcOverridden.has(row.canon)}
+              srcChanged={srcOverridden.has(row.canon) || row.srcNotes.length === 0}
               tgtChanged={row.canon in edits}
               srcExpanded={srcExpanded}
               tgtExpanded={tgtExpanded}
@@ -281,7 +281,7 @@ export function EditView({
               {srcExpanded && pick && (
                 <SourceNotePicker
                   voiceLabel={row.label}
-                  currentNote={row.srcNote}
+                  currentNote={row.srcNotes[0] ?? null}
                   octIndex={pick.octIndex}
                   base={oct}
                   onSetOct={setPickOct}
@@ -292,7 +292,7 @@ export function EditView({
               {tgtExpanded && pick && (
                 <NotePicker
                   voiceLabel={row.label}
-                  currentNote={tgtNote ?? row.srcNote}
+                  currentNote={tgtNote}
                   octIndex={pick.octIndex}
                   base={oct}
                   drums={targetDrums}
