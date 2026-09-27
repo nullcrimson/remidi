@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=block"
+      rel="stylesheet"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        background: #0c0e11;
+      }
+      .frame {
+        box-sizing: border-box;
+        width: 1200px;
+        height: 630px;
+        padding: 48px;
+      }
+      .card {
+        box-sizing: border-box;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        gap: 64px;
+        padding: 0 72px;
+        border-radius: 32px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: #100f0d;
+        box-shadow: 0 0 120px -30px rgba(199, 192, 173, 0.14);
+      }
+      .icon {
+        width: 280px;
+        height: 280px;
+        flex-shrink: 0;
+        border-radius: 56px;
+        box-shadow: 0 0 80px -10px rgba(224, 196, 106, 0.25);
+      }
+      .text {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .name {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        font-size: 96px;
+        line-height: 1;
+        letter-spacing: 0.01em;
+        color: #f2eee6;
+        text-shadow: 0 0 28px rgba(236, 232, 224, 0.25);
+      }
+      .tagline {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        font-size: 44px;
+        line-height: 1.15;
+        color: #e0c46a;
+      }
+      .engines {
+        font-family: 'IBM Plex Sans', sans-serif;
+        font-size: 24px;
+        line-height: 1.45;
+        color: #b0a897;
+      }
+      .meta {
+        margin-top: 8px;
+        font-family: 'IBM Plex Mono', monospace;
+        font-weight: 500;
+        font-size: 20px;
+        letter-spacing: 0.04em;
+        color: #6d675c;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <div class="card">
+        <img class="icon" src="../public/icon-512.png" alt="" />
+        <div class="text">
+          <div class="name">Remidi</div>
+          <div class="tagline">Drum MIDI converter<br />&amp; remapper</div>
+          <div class="engines">
+            GetGood Drums · EZdrummer · Superior Drummer 3<br />
+            Addictive Drums 2 · General MIDI · Guitar Pro · 80+ more
+          </div>
+          <div class="meta">FREE · IN-BROWSER · NOTHING UPLOADED</div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
