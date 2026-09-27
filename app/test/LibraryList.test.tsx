@@ -137,6 +137,40 @@ describe('LibraryList', () => {
     expect(screen.getByTestId('fav-divider')).toBeInTheDocument();
   });
 
+  it('scrolls the list to the selected engine when it is out of view', () => {
+    const props = ['offsetTop', 'offsetHeight', 'clientHeight'] as const;
+    const saved = props.map((p) => Object.getOwnPropertyDescriptor(HTMLElement.prototype, p));
+    const layout: Record<(typeof props)[number], (el: HTMLElement) => number> = {
+      offsetTop: (el) => (el.getAttribute('aria-pressed') === 'true' ? 600 : 0),
+      offsetHeight: () => 30,
+      clientHeight: () => 240,
+    };
+    for (const p of props) {
+      Object.defineProperty(HTMLElement.prototype, p, {
+        configurable: true,
+        get(this: HTMLElement) {
+          return layout[p](this);
+        },
+      });
+    }
+    try {
+      const { rerender } = render(
+        <LibraryList label="FROM" value="" engines={engines} onChange={() => {}} {...noFav} />,
+      );
+      const list = screen.getByRole('button', { name: 'EZdrummer' }).closest('.mr-scroll') as HTMLElement;
+      expect(list.scrollTop).toBe(0);
+      rerender(
+        <LibraryList label="FROM" value="ezdrummer" engines={engines} onChange={() => {}} {...noFav} />,
+      );
+      expect(list.scrollTop).toBe(495);
+    } finally {
+      props.forEach((p, i) => {
+        const d = saved[i];
+        if (d) Object.defineProperty(HTMLElement.prototype, p, d);
+      });
+    }
+  });
+
   it('omits the divider when none or all are starred', () => {
     const { rerender } = render(
       <LibraryList

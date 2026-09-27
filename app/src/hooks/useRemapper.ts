@@ -1,5 +1,7 @@
 import { useCallback, useReducer } from 'react';
+import type { Engine } from '../lib/midiremap';
 import { editsToOverrides, type Edits, type SrcEdits } from '../lib/overrides';
+import { preselection } from '../lib/preselect';
 import { useConverter } from './useConverter';
 import { useEditor } from './useEditor';
 import { useEngineCatalog } from './useEngineCatalog';
@@ -22,7 +24,8 @@ type SelectionAction
     | { type: 'SWAP' }
     | { type: 'TOGGLE_OCT' }
     | { type: 'SET_VIEW'; view: View }
-    | { type: 'LOAD'; src: string; tgt: string };
+    | { type: 'LOAD'; src: string; tgt: string }
+    | { type: 'PRESELECT'; src?: string; tgt?: string };
 
 const INITIAL: Selection = { src: '', tgt: '', oct: 'c1', view: 'convert' };
 
@@ -40,12 +43,18 @@ function selectionReducer(state: Selection, action: SelectionAction): Selection 
       return { ...state, view: action.view };
     case 'LOAD':
       return { ...state, src: action.src, tgt: action.tgt, view: 'convert' };
+    case 'PRESELECT':
+      return { ...state, src: action.src ?? state.src, tgt: action.tgt ?? state.tgt };
   }
 }
 
 export function useRemapper() {
-  const { status, engines, error: initError } = useEngineCatalog();
   const [{ src, tgt, oct, view }, dispatch] = useReducer(selectionReducer, INITIAL);
+  const onCatalogReady = useCallback((list: Engine[]) => {
+    const picked = preselection(window.location.search, list);
+    if (picked) dispatch({ type: 'PRESELECT', ...picked });
+  }, []);
+  const { status, engines, error: initError } = useEngineCatalog(onCatalogReady);
   const editor = useEditor(status, src, tgt);
   const converter = useConverter(src, tgt);
 

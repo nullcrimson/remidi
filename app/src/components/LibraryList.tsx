@@ -1,4 +1,6 @@
+import { useEffect, useRef } from 'react';
 import type { Engine } from '../lib/midiremap';
+import { revealScrollTop } from '../lib/reveal';
 import { useFilter } from '../hooks/useFilter';
 import { useTruncationTooltip } from '../hooks/useTruncationTooltip';
 import { FilterInput } from './FilterInput';
@@ -24,6 +26,18 @@ export function LibraryList({
 }) {
   const { q, setQ, filtered } = useFilter(engines, (e) => e.name);
   const { show, hide, tooltip } = useTruncationTooltip();
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const list = listRef.current;
+    const row = list?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!list || !row) return;
+    const next = revealScrollTop(
+      { top: row.offsetTop, height: row.offsetHeight },
+      { scrollTop: list.scrollTop, height: list.clientHeight },
+    );
+    if (next !== null) list.scrollTop = next;
+  }, [value]);
 
   const starred = filtered.filter((e) => favorites.has(e.id));
   const rest = filtered.filter((e) => !favorites.has(e.id));
@@ -76,7 +90,7 @@ export function LibraryList({
     <div role="group" aria-label={`${label} engine`}>
       <MonoLabel className="mb-3">{label}</MonoLabel>
       <FilterInput value={q} onChange={setQ} ariaLabel={`Filter ${label} engines`} />
-      <div className="mr-scroll flex max-h-60 flex-col">
+      <div ref={listRef} className="mr-scroll relative flex max-h-60 flex-col">
         {filtered.length === 0
           ? (
               <span className="py-1.75 pl-3 font-mono text-[13px] text-t5">no matches</span>

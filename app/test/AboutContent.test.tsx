@@ -14,6 +14,14 @@ describe('AboutContent', () => {
     expect(screen.getByRole('button', { name: 'Terms' })).toBeInTheDocument();
   });
 
+  it('links to the engine note maps', () => {
+    render(<AboutContent />);
+    expect(screen.getByRole('link', { name: 'Engine note maps' })).toHaveAttribute(
+      'href',
+      '/engines/',
+    );
+  });
+
   it('opens a terms dialog disclaiming warranty and liability', async () => {
     render(<AboutContent />);
     await userEvent.click(screen.getByRole('button', { name: 'Terms' }));

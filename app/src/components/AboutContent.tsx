@@ -300,6 +300,21 @@ export function AboutContent() {
             </button>
           </Fragment>
         ))}
+        <span aria-hidden="true" className="text-t6">
+          ·
+        </span>
+        <a
+          href="/engines/"
+          className="
+            text-star/85 underline decoration-star/30 decoration-1
+            underline-offset-4 transition
+            [text-shadow:0_0_10px_rgba(224,196,106,0.35)]
+            hover:text-star hover:decoration-star/60
+            hover:[text-shadow:0_0_15px_rgba(224,196,106,0.6)]
+          "
+        >
+          Engine note maps
+        </a>
       </div>
 
       {SECTIONS.map((s) => (
