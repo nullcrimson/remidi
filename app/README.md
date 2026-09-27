@@ -43,13 +43,17 @@ npm run test     # Vitest; WASM is stubbed, no build required
 - `src/lib/notes.ts` — note-name / octave helpers (octave base is display-only).
 - `src/lib/overrides.ts` — per-voice target edits → overrides doc.
 - `src/hooks/useRemapper.ts` — screen state (Convert + Edit).
-- `src/components/*` — FileRow/Dropzone, LibraryList, OctaveToggle, SummaryRow,
-  ConvertButton (Convert); EditView, VoiceRow, NotePicker, PianoKeyboard (Edit).
+- `src/components/*` — FileChips/CardDropzone, LibraryList, OctaveToggle, ChannelSelect,
+  SummaryRow, ConvertButton, DonePanel, ReportModal (Convert); EditView, VoiceRow,
+  NotePicker, SourceEditor, PianoKeyboard (Edit). Shared primitives: `styles.ts`, Button,
+  TextButton, IconButton, ChipRadioGroup, ChipSelect, TextField, MonoLabel, ProseLink.
 
 ## Views
 
-- **Convert**: drop a `.mid`, pick From/To engines, set octave numbering, convert &
-  download with a loss report (direct / fallback / dropped).
+- **Convert**: drop `.mid` files, pick From/To engines (⇄ swaps), set octave naming and
+  drum channel, convert. A single file downloads straight away; a batch offers a zip.
+  The report groups dropped / approximated / unrecognized / unchanged notes with links to
+  fix each one.
 - **Edit mapping**: per-voice target-note editor via an octave-tabbed piano picker;
   Save returns to Convert. The source note is read-only in v1.
 

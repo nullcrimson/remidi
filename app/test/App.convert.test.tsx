@@ -19,14 +19,14 @@ import userEvent from '@testing-library/user-event';
 import App from '../src/App';
 
 describe('App convert view', () => {
-  it('disables convert and edit until both engines are chosen', async () => {
+  it('disables convert and hides edit until both engines are chosen', async () => {
     render(<App />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
     expect(screen.getByRole('heading', { name: /^Drumverter/ })).toBeInTheDocument();
     expect(screen.getByText('TO')).toBeInTheDocument();
 
-    const editButton = () => screen.getByRole('button', { name: /Edit individual notes/i });
-    expect(editButton()).toBeDisabled();
+    const editButton = () => screen.queryByRole('button', { name: /Edit individual notes/i });
+    expect(editButton()).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Convert & download/i })).toBeDisabled();
 
     await userEvent.click(screen.getAllByRole('button', { name: 'GGD Invasion' })[0]);

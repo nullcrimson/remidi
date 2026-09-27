@@ -1,58 +1,15 @@
-import { useEffect, useMemo } from 'react';
 import type { Conv } from '../hooks/useRemapper';
-import { zipFiles } from '../lib/zip';
 import { Button } from './Button';
-import { TextButton } from './TextButton';
 
 export function ConvertButton({
   conv,
   blockedBy,
-  targetShort,
-  summary,
   onConvert,
-  onReset,
-  onViewReport,
 }: {
   conv: Conv;
   blockedBy: string | null;
-  targetShort: string;
-  summary: string;
   onConvert: () => void;
-  onReset: () => void;
-  onViewReport: () => void;
 }) {
-  const results = useMemo(() => (conv.kind === 'done' ? conv.results : []), [conv]);
-  const multi = results.length > 1;
-  const zipUrl = useMemo(
-    () => (multi ? URL.createObjectURL(zipFiles(results)) : null),
-    [multi, results],
-  );
-
-  useEffect(() => {
-    if (!zipUrl) return;
-    return () => URL.revokeObjectURL(zipUrl);
-  }, [zipUrl]);
-
-  if (conv.kind === 'done' && results.length > 0) {
-    const single = results.length === 1;
-    const href = single ? results[0].url : zipUrl;
-    const name = single ? results[0].name : `remapped-${targetShort}.zip`;
-    if (!href) return null;
-    return (
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-0.75">
-          <div className="flex items-center gap-2.5">
-            <TextButton href={href} download={name}>
-              {single ? '↓ download .mid' : '↓ download all (.zip)'}
-            </TextButton>
-            <TextButton onClick={onViewReport}>View report →</TextButton>
-          </div>
-          <span className="font-mono text-label text-t4">{summary}</span>
-        </div>
-        <TextButton onClick={onReset}>again</TextButton>
-      </div>
-    );
-  }
   if (conv.kind === 'running') {
     return (
       <div>

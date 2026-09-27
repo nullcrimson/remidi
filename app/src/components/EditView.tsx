@@ -22,6 +22,7 @@ export interface EditViewProps {
   oct: OctaveBase;
   existingPreset: SavedMapping | undefined;
   presetsAtCap: boolean;
+  assignNote?: number | null;
   setView: (v: 'convert' | 'edit') => void;
   onSavePreset: (name: string) => void;
   onUpdatePreset: (id: string, name: string) => void;
@@ -139,6 +140,7 @@ export function EditView({
   oct,
   existingPreset,
   presetsAtCap,
+  assignNote = null,
   setView,
   onSavePreset,
   onUpdatePreset,
@@ -164,7 +166,7 @@ export function EditView({
   } = editor;
   const canSave
     = Object.keys(edits).length > 0 || Object.keys(srcEdits).length > 0;
-  const [advanced, setAdvanced] = useState(false);
+  const [advanced, setAdvanced] = useState(assignNote !== null);
   const srcOverridden = new Set(Object.values(srcEdits));
 
   return (
@@ -261,6 +263,7 @@ export function EditView({
             srcEdits={srcEdits}
             options={canonOptions}
             base={oct}
+            initialNote={assignNote}
             onSet={setSrcCanon}
             onClear={clearSrcCanon}
           />

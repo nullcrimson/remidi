@@ -28,6 +28,19 @@ export const proseLink = `
   hover:[text-shadow:0_0_15px_rgba(224,196,106,0.6)]
 `;
 
+export type TagTone = 'neutral' | 'gold' | 'danger';
+
+const TAG_TONE: Record<TagTone, string> = {
+  neutral: 'border-white/12 text-t3',
+  gold: 'border-star/40 text-star',
+  danger: 'border-danger/40 text-danger',
+};
+
+/** Classes for a read-only outcome tag: counts on the done card and per file. */
+export function tag(tone: TagTone): string {
+  return `rounded-chip border px-2 py-0.5 font-mono text-label ${TAG_TONE[tone]}`;
+}
+
 export type TextTone = 'default' | 'danger';
 
 const TEXT_TONE: Record<TextTone, string> = {

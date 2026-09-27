@@ -97,6 +97,7 @@ export function SourceEditor({
   srcEdits,
   options,
   base,
+  initialNote = null,
   onSet,
   onClear,
 }: {
@@ -104,11 +105,12 @@ export function SourceEditor({
   srcEdits: SrcEdits;
   options: CanonInfo[];
   base: OctaveBase;
+  initialNote?: number | null;
   onSet: (note: number, canon: string) => void;
   onClear: (note: number) => void;
 }) {
-  const [openNote, setOpenNote] = useState<number | null>(null);
-  const [extra, setExtra] = useState<number[]>([]);
+  const [openNote, setOpenNote] = useState<number | null>(initialNote);
+  const [extra, setExtra] = useState<number[]>(initialNote === null ? [] : [initialNote]);
   const [addValue, setAddValue] = useState('');
 
   const labelOf = useMemo(() => {

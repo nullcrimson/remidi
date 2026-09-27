@@ -3,6 +3,7 @@ import { ChipSelect } from './ChipSelect';
 import { SettingRow } from './SettingRow';
 
 export function SettingSelect<T extends string>({
+  id,
   label,
   value,
   options,
@@ -11,6 +12,7 @@ export function SettingSelect<T extends string>({
   tip,
   hint,
 }: {
+  id?: string;
   label: string;
   value: T;
   options: readonly { value: T; label: string }[];
@@ -21,7 +23,7 @@ export function SettingSelect<T extends string>({
 }) {
   return (
     <SettingRow label={label} tipTitle={tipTitle} tip={tip} hint={hint}>
-      {(ids) => <ChipSelect {...ids} options={options} value={value} onChange={onChange} />}
+      {(ids) => <ChipSelect id={id} {...ids} options={options} value={value} onChange={onChange} />}
     </SettingRow>
   );
 }

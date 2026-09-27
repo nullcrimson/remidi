@@ -1,10 +1,12 @@
 export function ChipSelect<T extends string>({
+  id,
   labelledBy,
   describedBy,
   options,
   value,
   onChange,
 }: {
+  id?: string;
   labelledBy: string;
   describedBy?: string;
   options: readonly { value: T; label: string }[];
@@ -14,6 +16,7 @@ export function ChipSelect<T extends string>({
   return (
     <span className="relative inline-flex">
       <select
+        id={id}
         aria-labelledby={labelledBy}
         aria-describedby={describedBy}
         value={value}

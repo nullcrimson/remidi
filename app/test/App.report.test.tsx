@@ -62,29 +62,29 @@ describe('App loss report', () => {
     expect(dialog).toBeVisible();
     expect(screen.getByText('China 1')).toBeInTheDocument();
     expect(screen.getByText('×2')).toBeInTheDocument();
-    expect(screen.queryByText(/Notes not converted/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/left as they were/)).not.toBeInTheDocument();
   });
 
   it('counts notes left on other channels on the done card and in the report', async () => {
     remapMock.mockReturnValue(reportWith(168));
     await convertOneFile();
-    expect(screen.getByText(/· 168 notes on other channels unchanged$/)).toBeInTheDocument();
+    expect(screen.getByText('168 on other channels unchanged')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /View report/i }));
     await screen.findByRole('dialog', { name: 'Conversion report' });
-    expect(screen.getByText('Notes not converted')).toBeInTheDocument();
+    expect(screen.getByText('Notes on other tracks or channels, left as they were')).toBeInTheDocument();
     expect(screen.getByText('×168')).toBeInTheDocument();
   });
 
   it('says nothing was converted on the done card', async () => {
     remapMock.mockReturnValue(reportWith(1188, 0));
     await convertOneFile();
-    expect(screen.getByText(/· nothing converted/)).toBeInTheDocument();
+    expect(screen.getByText('nothing converted')).toBeInTheDocument();
   });
 
-  it('uses the singular for one unchanged note', async () => {
-    remapMock.mockReturnValue(reportWith(1));
+  it('uses the singular for one converted note', async () => {
+    remapMock.mockReturnValue(reportWith(0, 1));
     await convertOneFile();
-    expect(screen.getByText(/· 1 note on other channels unchanged$/)).toBeInTheDocument();
+    expect(screen.getByText('1 note converted')).toBeInTheDocument();
   });
 
   it('converts with the drum channel picked under the octave toggle', async () => {

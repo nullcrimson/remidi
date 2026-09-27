@@ -1,8 +1,11 @@
 import { useId, type ReactNode } from 'react';
 
 const VARIANT = {
-  primary: 'bg-accent text-ink enabled:hover:brightness-110',
-  secondary: 'border border-accent/40 text-accent enabled:hover:border-accent enabled:hover:bg-accent/8',
+  primary: 'bg-accent text-ink enabled:hover:brightness-110 [&[href]]:hover:brightness-110',
+  secondary: `
+    border border-accent/40 text-accent
+    enabled:hover:border-accent enabled:hover:bg-accent/8
+  `,
 };
 
 const SIZE = {
@@ -11,36 +14,40 @@ const SIZE = {
   lg: 'w-full rounded-panel py-3.5',
 };
 
-export function Button({
-  variant,
-  size,
-  disabled = false,
-  reason,
-  onClick,
-  children,
-}: {
+type Props = {
   variant: keyof typeof VARIANT;
   size: keyof typeof SIZE;
-  disabled?: boolean;
-  reason?: string;
-  onClick: () => void;
   children: ReactNode;
-}) {
+} & (
+  | { href: string; download?: string; onClick?: never; disabled?: never; reason?: never }
+  | { href?: never; download?: never; onClick: () => void; disabled?: boolean; reason?: string }
+);
+
+export function Button({ variant, size, children, ...rest }: Props) {
   const reasonId = useId();
-  const explained = disabled && reason !== undefined;
+  const className = `
+    inline-flex items-center justify-center gap-1.75 font-display text-ui
+    font-semibold transition
+    disabled:cursor-not-allowed disabled:opacity-40
+    ${VARIANT[variant]}
+    ${SIZE[size]}
+  `;
+  if (rest.href !== undefined) {
+    return (
+      <a href={rest.href} download={rest.download} className={className}>
+        {children}
+      </a>
+    );
+  }
+  const disabled = rest.disabled ?? false;
+  const explained = disabled && rest.reason !== undefined;
   const button = (
     <button
       type="button"
       disabled={disabled}
       aria-describedby={explained ? reasonId : undefined}
-      onClick={onClick}
-      className={`
-        inline-flex items-center justify-center gap-1.75 font-display text-ui
-        font-semibold transition
-        disabled:cursor-not-allowed disabled:opacity-40
-        ${VARIANT[variant]}
-        ${SIZE[size]}
-      `}
+      onClick={rest.onClick}
+      className={className}
     >
       {children}
     </button>
@@ -49,7 +56,7 @@ export function Button({
   return (
     <div className="flex flex-col items-center gap-2">
       {button}
-      <p id={reasonId} className="text-caption text-t4">{reason}</p>
+      <p id={reasonId} className="text-caption text-t4">{rest.reason}</p>
     </div>
   );
 }

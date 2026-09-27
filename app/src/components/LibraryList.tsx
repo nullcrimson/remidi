@@ -39,6 +39,7 @@ export function LibraryList({
     if (next !== null) list.scrollTop = next;
   }, [value]);
 
+  const chosen = engines.find((e) => e.id === value);
   const starred = filtered.filter((e) => favorites.has(e.id));
   const rest = filtered.filter((e) => !favorites.has(e.id));
 
@@ -86,7 +87,20 @@ export function LibraryList({
 
   return (
     <div role="group" aria-label={`${label} engine`}>
-      <MonoLabel className="mb-3">{label}</MonoLabel>
+      <div className="mb-3 flex min-w-0 items-baseline gap-2">
+        <MonoLabel>{label}</MonoLabel>
+        {chosen && (
+          <>
+            <span aria-hidden="true" className="text-caption text-decor">·</span>
+            <span
+              data-testid="chosen-engine"
+              className="min-w-0 truncate text-label text-t2"
+            >
+              {chosen.name}
+            </span>
+          </>
+        )}
+      </div>
       <FilterInput value={q} onChange={setQ} ariaLabel={`Filter ${label} engines`} />
       <div ref={listRef} className="mr-scroll relative flex max-h-60 flex-col">
         {filtered.length === 0

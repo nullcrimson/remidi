@@ -109,14 +109,14 @@ export function useConverter(src: string, tgt: string, settingsKey: string) {
   }, []);
 
   const convert = useCallback(
-    async (ov: Overrides, channel: Channel) => {
-      if (files.length === 0 || !src || !tgt) return;
+    async (ov: Overrides, channel: Channel): Promise<FileResult[] | null> => {
+      if (files.length === 0 || !src || !tgt) return null;
       const run = ++nextRun.current;
       activeRun.current = run;
       const key = settingsKey;
       dispatch({ type: 'CONVERT_START', key });
       const batch = await convertBatch(files, src, tgt, ov, channel);
-      if (activeRun.current !== run) return;
+      if (activeRun.current !== run) return null;
       const ok: FileResult[] = batch.ok.map(({ name, bytes, report }) => ({
         name: `${baseName(name)}-${tgt}.mid`,
         url: URL.createObjectURL(new Blob([bytes], { type: 'audio/midi' })),
@@ -132,6 +132,7 @@ export function useConverter(src: string, tgt: string, settingsKey: string) {
           failures: bad,
           message: bad[0]?.error ?? 'conversion failed',
         });
+      return ok;
     },
     [files, src, tgt, settingsKey],
   );

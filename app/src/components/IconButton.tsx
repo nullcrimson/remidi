@@ -14,12 +14,14 @@ export function IconButton({
   label,
   size = 'md',
   tone = 'default',
+  disabled = false,
   onClick,
   children,
 }: {
   label: string;
   size?: keyof typeof SIZE;
   tone?: keyof typeof TONE;
+  disabled?: boolean;
   onClick: () => void;
   children: ReactNode;
 }) {
@@ -27,9 +29,11 @@ export function IconButton({
     <button
       type="button"
       aria-label={label}
+      disabled={disabled}
       onClick={onClick}
       className={`
         flex shrink-0 items-center justify-center leading-none transition-colors
+        disabled:cursor-not-allowed disabled:opacity-40
         ${SIZE[size]}
         ${TONE[tone]}
       `}

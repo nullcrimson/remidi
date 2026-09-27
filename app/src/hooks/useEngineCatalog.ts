@@ -18,7 +18,9 @@ export function useEngineCatalog(onReady?: (engines: Engine[]) => void) {
     ready()
       .then(() => {
         if (cancelled) return;
-        const list = listEngines();
+        const list = [...listEngines()].sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+        );
         setEngines(list);
         setStatus('ready');
         onReadyRef.current?.(list);

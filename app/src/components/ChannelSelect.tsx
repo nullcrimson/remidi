@@ -1,6 +1,8 @@
 import { CHANNELS, channelHint, type Channel } from '../lib/channel';
 import { SettingSelect } from './SettingSelect';
 
+export const CHANNEL_SELECT_ID = 'drum-channel';
+
 export function ChannelSelect({
   value,
   onChange,
@@ -10,6 +12,7 @@ export function ChannelSelect({
 }) {
   return (
     <SettingSelect
+      id={CHANNEL_SELECT_ID}
       label="Drum channel"
       value={value}
       options={CHANNELS}

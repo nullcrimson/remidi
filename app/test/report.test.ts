@@ -65,8 +65,10 @@ describe('buildReport', () => {
       'c1',
     );
     expect(view.clean).toBe(false);
-    expect(view.groups.dropped).toEqual([{ label: 'China 1', count: 4 }]);
-    expect(view.groups.approximated).toEqual([{ label: 'Ride Bell', sub: 'Ride', count: 3 }]);
+    expect(view.groups.dropped).toEqual([{ label: 'China 1', count: 4, canon: 'china.1.hit' }]);
+    expect(view.groups.approximated).toEqual([{ label: 'Ride Bell', sub: 'Ride', count: 3, canon: 'ride.1.bell' }]);
+    expect(view.groups.unrecognized[0].note).toBe(63);
+    expect(view.files[0].converted).toBe(10);
     expect(view.groups.unrecognized[0].count).toBe(1);
     expect(view.groups.unrecognized[0].label).toMatch(/^[A-G]/);
     expect(view.totals).toEqual({ dropped: 4, approximated: 3, unrecognized: 1, untouched: 0, converted: 10 });
@@ -82,9 +84,9 @@ describe('buildReport', () => {
       drums,
       'c1',
     );
-    expect(view.groups.dropped).toEqual([{ label: 'China 1', count: 6 }]);
+    expect(view.groups.dropped).toEqual([{ label: 'China 1', count: 6, canon: 'china.1.hit' }]);
     expect(view.files.map((f) => f.name)).toEqual(['a.mid', 'b.mid']);
-    expect(view.files[1].groups.dropped).toEqual([{ label: 'China 1', count: 2 }]);
+    expect(view.files[1].groups.dropped).toEqual([{ label: 'China 1', count: 2, canon: 'china.1.hit' }]);
   });
 
   it('sorts entries by descending count then label', () => {
@@ -112,7 +114,7 @@ describe('buildReport', () => {
       drums,
       'c1',
     );
-    expect(view.groups.approximated).toEqual([{ label: 'Ride Bell', sub: 'Crash 2', count: 2 }]);
+    expect(view.groups.approximated).toEqual([{ label: 'Ride Bell', sub: 'Crash 2', count: 2, canon: 'ride.1.bell' }]);
   });
 
   it('falls back to the canon id when the catalog lacks it', () => {
@@ -122,7 +124,7 @@ describe('buildReport', () => {
       drums,
       'c1',
     );
-    expect(view.groups.dropped).toEqual([{ label: 'tom.floor9.hit', count: 1 }]);
+    expect(view.groups.dropped).toEqual([{ label: 'tom.floor9.hit', count: 1, canon: 'tom.floor9.hit' }]);
   });
 
   it('names the substitute note when it is not a known target drum', () => {
@@ -132,6 +134,6 @@ describe('buildReport', () => {
       drums,
       'c1',
     );
-    expect(view.groups.approximated).toEqual([{ label: 'Ride Bell', sub: 'C4', count: 1 }]);
+    expect(view.groups.approximated).toEqual([{ label: 'Ride Bell', sub: 'C4', count: 1, canon: 'ride.1.bell' }]);
   });
 });

@@ -1,10 +1,12 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { AboutContent } from './components/AboutContent';
 import { CardDropzone } from './components/CardDropzone';
-import { ChannelSelect } from './components/ChannelSelect';
+import { CHANNEL_SELECT_ID, ChannelSelect } from './components/ChannelSelect';
 import { ConvertButton } from './components/ConvertButton';
+import { DonePanel } from './components/DonePanel';
 import { EditView } from './components/EditView';
 import { FileChips } from './components/FileChips';
+import { IconButton } from './components/IconButton';
 import { LibraryList } from './components/LibraryList';
 import { OctaveToggle } from './components/OctaveToggle';
 import { ReportModal } from './components/ReportModal';
@@ -52,7 +54,14 @@ function Header() {
         >
           Drumverter
         </span>
-        <span className="text-ui font-normal text-t5">— drum MIDI converter & remapper</span>
+        <span className="text-ui font-normal text-t5">
+          <span className="
+            hidden
+            sm:inline
+          "
+          >{'— '}
+          </span>drum MIDI converter & remapper
+        </span>
       </h1>
       <p className="text-ui/relaxed text-t4">
         Convert drum MIDI between GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2,
@@ -69,11 +78,13 @@ export default function App() {
   const favTo = useFavorites('to');
   const saved = useSavedMappings();
   const [reportOpen, setReportOpen] = useState(false);
+  const [assignNote, setAssignNote] = useState<number | null>(null);
   const reportView = useMemo(
     () => buildReport(c.results, c.editor.canonOptions, c.editor.targetDrums, c.oct),
     [c.results, c.editor.canonOptions, c.editor.targetDrums, c.oct],
   );
   const targetName = c.engines.find((e) => e.id === c.tgt)?.name ?? c.tgt;
+  const sourceName = c.engines.find((e) => e.id === c.src)?.name ?? c.src;
 
   if (c.view === 'edit') {
     return (
@@ -86,7 +97,11 @@ export default function App() {
             oct={c.oct}
             existingPreset={saved.mappings.find((m) => m.id === c.presetId)}
             presetsAtCap={saved.atCap}
-            setView={c.setView}
+            assignNote={assignNote}
+            setView={(v) => {
+              setAssignNote(null);
+              c.setView(v);
+            }}
             onSavePreset={(name) => {
               const id = saved.save({
                 name,
@@ -107,17 +122,6 @@ export default function App() {
 
   const bothSelected = c.src !== '' && c.tgt !== '';
   const targetShort = shortCode(c.tgt);
-  const failedSuffix = c.failures.length > 0 ? ` · ${c.failures.length} failed` : '';
-  const nothingSuffix
-    = c.results.length > 0 && reportView.totals.converted === 0 ? ' · nothing converted' : '';
-  const untouched = reportView.totals.untouched;
-  const untouchedSuffix
-    = untouched > 0
-      ? ` · ${untouched} note${untouched === 1 ? '' : 's'} on other channels unchanged`
-      : '';
-  const summary = `${c.results.length} file${
-    c.results.length === 1 ? '' : 's'
-  } · ${c.editor.remappedCount} remapped → ${c.tgt}${nothingSuffix}${failedSuffix}${untouchedSuffix}`;
 
   return (
     <Page>
@@ -150,8 +154,8 @@ export default function App() {
                 />
 
                 <div className="
-                  grid grid-cols-1 gap-5.5
-                  sm:grid-cols-2
+                  grid grid-cols-1 gap-3
+                  sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-4
                 "
                 >
                   <LibraryList
@@ -163,6 +167,20 @@ export default function App() {
                     favorites={favFrom.favorites}
                     onToggleFavorite={favFrom.toggleFavorite}
                   />
+                  <div className="
+                    flex justify-center
+                    sm:pt-8
+                  "
+                  >
+                    <IconButton label="Swap FROM and TO" disabled={!c.src && !c.tgt} onClick={c.swap}>
+                      <span className="
+                        inline-block rotate-90
+                        sm:rotate-0
+                      "
+                      >⇄
+                      </span>
+                    </IconButton>
+                  </div>
                   <LibraryList
                     label="TO"
                     value={c.tgt}
@@ -204,22 +222,33 @@ export default function App() {
                   <ChannelSelect value={c.channel} onChange={c.setChannel} />
                 </div>
 
-                <SummaryRow
-                  remapped={c.editor.remappedCount}
-                  total={c.editor.rows.length}
-                  onEdit={() => c.setView('edit')}
-                  disabled={!bothSelected}
-                />
+                {bothSelected && (
+                  <SummaryRow
+                    remapped={c.editor.remappedCount}
+                    total={c.editor.rows.length}
+                    onEdit={() => c.setView('edit')}
+                  />
+                )}
 
-                <ConvertButton
-                  conv={c.conv}
-                  blockedBy={convertBlocker({ files: c.files.length, src: c.src, tgt: c.tgt })}
-                  targetShort={targetShort}
-                  summary={summary}
-                  onConvert={c.convert}
-                  onReset={c.reset}
-                  onViewReport={() => setReportOpen(true)}
-                />
+                {c.conv.kind === 'done' && c.results.length > 0
+                  ? (
+                      <DonePanel
+                        results={c.results}
+                        failures={c.failures}
+                        view={reportView}
+                        targetName={targetName}
+                        targetShort={targetShort}
+                        onViewReport={() => setReportOpen(true)}
+                        onConvertMore={c.clearFiles}
+                      />
+                    )
+                  : (
+                      <ConvertButton
+                        conv={c.conv}
+                        blockedBy={convertBlocker({ files: c.files.length, src: c.src, tgt: c.tgt })}
+                        onConvert={() => void c.convert()}
+                      />
+                    )}
 
                 {c.conv.kind === 'error' && c.error && (
                   <p className="
@@ -241,7 +270,17 @@ export default function App() {
         open={reportOpen}
         onClose={() => setReportOpen(false)}
         view={reportView}
+        sourceName={sourceName}
         targetName={targetName}
+        onPickTarget={(canon) => {
+          c.setView('edit');
+          c.editor.openPick(canon);
+        }}
+        onAssignSource={(note) => {
+          setAssignNote(note);
+          c.setView('edit');
+        }}
+        onChannel={() => document.getElementById(CHANNEL_SELECT_ID)?.focus()}
       />
     </Page>
   );

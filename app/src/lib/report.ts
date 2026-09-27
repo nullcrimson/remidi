@@ -6,6 +6,10 @@ export interface ReportEntry {
   label: string;
   sub?: string;
   count: number;
+  /** The drum an entry is about, for dropped and approximated notes. */
+  canon?: string;
+  /** The source note an entry is about, for unrecognized notes. */
+  note?: number;
 }
 export interface ReportGroups {
   dropped: ReportEntry[];
@@ -16,6 +20,7 @@ export interface ReportFile {
   name: string;
   groups: ReportGroups;
   untouched: number;
+  converted: number;
 }
 export interface ReportView {
   clean: boolean;
@@ -47,19 +52,21 @@ export function buildReport(
 
   const groupsOf = (report: RemapReport): ReportGroups => ({
     dropped: sortEntries(
-      Object.entries(report.dropped).map(([canon, count]) => ({ label: canonLabel(canon), count })),
+      Object.entries(report.dropped).map(([canon, count]) => ({ label: canonLabel(canon), count, canon })),
     ),
     approximated: sortEntries(
       Object.entries(report.fallbackUsed).map(([canon, { note, count }]) => ({
         label: canonLabel(canon),
         sub: drumByNote.get(note) ?? noteName(note, oct),
         count,
+        canon,
       })),
     ),
     unrecognized: sortEntries(
       Object.entries(report.unmappedSource).map(([note, count]) => ({
         label: noteName(Number(note), oct),
         count,
+        note: Number(note),
       })),
     ),
   });
@@ -68,6 +75,7 @@ export function buildReport(
     name: r.name,
     groups: groupsOf(r.report),
     untouched: r.report.untouched,
+    converted: r.report.converted,
   }));
 
   const merge = (acc: Map<string, ReportEntry>, entries: ReportEntry[]) => {

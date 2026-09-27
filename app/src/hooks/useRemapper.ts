@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useReducer } from 'react';
 import type { Channel } from '../lib/channel';
+import { saveFile } from '../lib/download';
 import type { Engine } from '../lib/midiremap';
 import type { OctaveBase } from '../lib/notes';
 import { editsToOverrides, type Edits, type SrcEdits } from '../lib/overrides';
@@ -138,10 +139,10 @@ export function useRemapper() {
     [],
   );
 
-  const convert = useCallback(
-    () => runConvert(overrides, channel),
-    [runConvert, overrides, channel],
-  );
+  const convert = useCallback(async () => {
+    const results = await runConvert(overrides, channel);
+    if (results?.length === 1) saveFile(results[0].url, results[0].name);
+  }, [runConvert, overrides, channel]);
 
   return {
     status,

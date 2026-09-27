@@ -32,17 +32,19 @@ export function Modal({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!open) return;
+    const dialog = ref.current;
+    if (!open || !dialog) return;
     const prev = document.activeElement as HTMLElement | null;
-    ref.current?.focus();
+    dialog.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
-      if (e.key === 'Tab' && ref.current) keepFocusInside(ref.current, e);
+      if (e.key === 'Tab') keepFocusInside(dialog, e);
     };
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
-      prev?.focus();
+      const active = document.activeElement;
+      if (!active || active === document.body || dialog.contains(active)) prev?.focus();
     };
   }, [open, onClose]);
 
