@@ -1,0 +1,40 @@
+import { describe, expect, it } from 'vitest';
+import { runBatch } from '../src/lib/batch';
+import type { RemapResult } from '../src/lib/midiremap';
+
+const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {} };
+
+describe('runBatch', () => {
+  it('converts each file in order and collects failures by name', () => {
+    const remap = (mid: Uint8Array): RemapResult => {
+      if (mid[0] === 0) throw new Error('bad midi');
+      return { bytes: new Uint8Array([mid[0] + 1]), report: REPORT };
+    };
+    const result = runBatch(
+      [
+        { name: 'a.mid', bytes: new Uint8Array([1]) },
+        { name: 'broken.mid', bytes: new Uint8Array([0]) },
+        { name: 'b.mid', bytes: new Uint8Array([5]) },
+      ],
+      'ggd_invasion',
+      'ezdrummer',
+      undefined,
+      remap,
+    );
+    expect(result.ok.map((c) => [c.name, Array.from(c.bytes)])).toEqual([
+      ['a.mid', [2]],
+      ['b.mid', [6]],
+    ]);
+    expect(result.failed).toEqual([{ name: 'broken.mid', error: 'Error: bad midi' }]);
+  });
+
+  it('passes engines and overrides through to remap', () => {
+    const calls: unknown[][] = [];
+    const ov = { tgt: [{ canon: 'kick.main', note: 35 }], src: [] };
+    runBatch([{ name: 'a.mid', bytes: new Uint8Array([1]) }], 's', 't', ov, (...args) => {
+      calls.push(args.slice(1));
+      return { bytes: new Uint8Array(), report: REPORT };
+    });
+    expect(calls).toEqual([['s', 't', ov]]);
+  });
+});

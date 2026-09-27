@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { remap, type Overrides } from '../lib/midiremap';
+import { convertBatch } from '../lib/converter';
+import type { Overrides } from '../lib/midiremap';
 import { MID_EXT, type FileFailure, type FileResult, type LoadedFile } from '../lib/files';
 
 export type Conv
@@ -78,18 +79,14 @@ export function useConverter(src: string, tgt: string) {
     async (ov: Overrides) => {
       if (files.length === 0 || !src || !tgt) return;
       dispatch({ type: 'CONVERT_START' });
-      await new Promise((resolve) => setTimeout(resolve, 0));
-      const ok: FileResult[] = [];
-      const bad: FileFailure[] = [];
-      for (const f of files) {
-        try {
-          const { bytes, report } = remap(f.bytes, src, tgt, ov);
-          const url = URL.createObjectURL(new Blob([bytes], { type: 'audio/midi' }));
-          ok.push({ name: `${baseName(f.name)}-${tgt}.mid`, url, bytes, report });
-        } catch (e) {
-          bad.push({ name: f.name, error: String(e) });
-        }
-      }
+      const batch = await convertBatch(files, src, tgt, ov);
+      const ok: FileResult[] = batch.ok.map(({ name, bytes, report }) => ({
+        name: `${baseName(name)}-${tgt}.mid`,
+        url: URL.createObjectURL(new Blob([bytes], { type: 'audio/midi' })),
+        bytes,
+        report,
+      }));
+      const bad: FileFailure[] = batch.failed;
       if (ok.length > 0) dispatch({ type: 'CONVERT_DONE', results: ok, failures: bad });
       else
         dispatch({

@@ -277,6 +277,12 @@ the UI is pure data.
   snake→camel normalization of the report and plan so the app never sees raw
   bindings. Sibling pure modules cover notes, mapping (de)serialization, the loss
   report builder, override assembly, file naming, and zipping.
+- **Conversion off the main thread.** `converter.ts` sends each batch to one module
+  Web Worker (`convertWorker.ts`), which loads the WASM itself and runs the shared
+  `runBatch` (`batch.ts`); converted bytes come back as transferred buffers, so the
+  page and the spinner stay responsive. If a worker cannot be created or fails, the
+  same batch runs on the main thread, so conversion always completes. The editor's
+  `plan` preview stays on the main thread (it takes well under a millisecond).
 - **`hooks/`** — `useRemapper` is the facade the UI consumes. It composes
   `useEngineCatalog` (load status + engine list), `useConverter` (files → results
   + report), and `useEditor` (per-note edits, the live `plan` preview, and derived
