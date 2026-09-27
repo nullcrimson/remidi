@@ -22,9 +22,9 @@ export function useTruncationTooltip() {
           role="tooltip"
           style={{ left: tip.x, top: tip.y + 6 }}
           className="
-            pointer-events-none fixed z-50 max-w-70 rounded-md border
-            border-accent/25 bg-ink px-2.5 py-1.5 font-sans text-[14px]
-            leading-tight text-t1 shadow-[0_8px_24px_rgba(0,0,0,0.55)]
+            pointer-events-none fixed z-50 max-w-70 rounded-panel border
+            border-accent/25 bg-ink px-2.5 py-1.5 font-sans text-ui/tight
+            text-t1 shadow-[0_8px_24px_rgba(0,0,0,0.55)]
           "
         >
           {tip.name}

@@ -44,7 +44,7 @@ export function DrumList({
               onSelect={() => onPickNote(d.note)}
               className="
                 flex w-full items-center justify-between py-1 pr-2 pl-2.5
-                text-[14px] leading-tight
+                text-ui/tight
               "
               hoverProps={{
                 onMouseEnter: (e) => show(e.currentTarget.querySelector('span') ?? e.currentTarget, d.label),
@@ -54,7 +54,7 @@ export function DrumList({
               }}
             >
               <span className="min-w-0 truncate">{d.label}</span>
-              <span className="ml-2 shrink-0 font-mono text-[13px] text-t5">
+              <span className="ml-2 shrink-0 font-mono text-label text-t5">
                 {noteName(d.note, base)}
               </span>
             </ListRow>

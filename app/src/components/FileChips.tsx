@@ -1,6 +1,9 @@
 import type { FileFailure, LoadedFile, OnFiles } from '../lib/files';
 import { FilePicker } from './FilePicker';
+import { IconButton } from './IconButton';
 import { MidBadge } from './MidBadge';
+import { textAction } from './styles';
+import { TextButton } from './TextButton';
 
 export function FileChips({
   files,
@@ -18,7 +21,7 @@ export function FileChips({
   onClear: () => void;
 }) {
   const skippedLine = skipped.length > 0 && (
-    <p role="status" className="w-full text-[12.5px] text-t4">
+    <p role="status" className="w-full text-label text-t4">
       Skipped {skipped.join(', ')} — only .mid and .midi files
     </p>
   );
@@ -31,7 +34,7 @@ export function FileChips({
           "
           >
             <MidBadge />
-            <span className="flex-1 text-[16px] text-t4">
+            <span className="flex-1 text-body text-t4">
               Drop a .mid anywhere, or click to choose
             </span>
           </div>
@@ -55,7 +58,7 @@ export function FileChips({
             data-state={bad ? 'failed' : 'ok'}
             title={error}
             className={`
-              flex max-w-full items-center gap-1.5 rounded-[7px] border py-1
+              flex max-w-full items-center gap-1.5 rounded-chip border py-1
               pr-1.5 pl-2.5
               ${
           bad
@@ -66,42 +69,18 @@ export function FileChips({
           >
             <MidBadge />
             <span className="h-3.5 w-px shrink-0 bg-white/12" />
-            <span className="min-w-0 truncate text-[14px] text-t1">{f.name}</span>
-            <button
-              type="button"
-              aria-label={`Remove ${f.name}`}
-              onClick={() => onRemove(f.name)}
-              className="
-                flex size-4 shrink-0 items-center justify-center rounded-full
-                text-[14px] leading-none text-t5
-                hover:bg-white/8 hover:text-danger
-              "
-            >
+            <span className="min-w-0 truncate text-ui text-t1">{f.name}</span>
+            <IconButton label={`Remove ${f.name}`} size="sm" tone="danger" onClick={() => onRemove(f.name)}>
               ×
-            </button>
+            </IconButton>
           </div>
         );
       })}
       <div className="flex w-full items-center justify-between pt-0.5">
         <FilePicker onFiles={onFiles} fullWidth={false}>
-          <span className="
-            text-[13px] text-t5
-            hover:text-accent
-          "
-          >
-            + add more
-          </span>
+          <span className={textAction()}>+ add more</span>
         </FilePicker>
-        <button
-          type="button"
-          onClick={onClear}
-          className="
-            text-[13px] text-danger/60 transition-colors
-            hover:text-danger
-          "
-        >
-          clear all
-        </button>
+        <TextButton tone="danger" onClick={onClear}>clear all</TextButton>
       </div>
       {skippedLine}
     </div>

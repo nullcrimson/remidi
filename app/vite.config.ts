@@ -17,6 +17,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./test/setup.ts'],
+    css: { include: [/src\/index\.css/] },
     alias: {
       '@wasm': fileURLToPath(new URL('./test/stubs/wasm.ts', import.meta.url)),
     },

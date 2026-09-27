@@ -15,10 +15,12 @@ import {
 } from '@floating-ui/react';
 import type { SavedMapping } from '../lib/mappings';
 import { shortCode } from '../lib/format';
+import { IconButton } from './IconButton';
+import { TextField } from './TextField';
 
 const ICON_BTN = `
   flex w-6 shrink-0 items-center justify-center border-l border-hairline
-  text-[13px] text-t5 transition-colors
+  text-label text-t5 transition-colors
 `;
 
 export function SavedMappingChip({
@@ -87,12 +89,13 @@ export function SavedMappingChip({
   if (renaming) {
     return (
       <li className="
-        flex items-stretch overflow-hidden rounded-[9px] border border-hairline
+        flex items-stretch overflow-hidden rounded-panel border border-hairline
         bg-field
       "
       >
         <div className="flex items-center gap-1 p-1">
-          <input
+          <TextField
+            mono
             value={draft}
             autoFocus
             aria-label={`Rename ${mapping.name}`}
@@ -101,37 +104,10 @@ export function SavedMappingChip({
               if (e.key === 'Enter') commitRename();
               if (e.key === 'Escape') setRenaming(false);
             }}
-            className="
-              w-32 min-w-0 rounded-md border border-field-border bg-field px-2
-              py-1.25 font-mono text-[13px] text-t2 transition-colors
-              outline-none
-              focus:border-accent/40
-            "
+            className="w-32 min-w-0"
           />
-          <button
-            type="button"
-            aria-label="Save name"
-            onClick={commitRename}
-            className="
-              flex size-6 shrink-0 items-center justify-center rounded-md
-              text-[14px] text-star
-              hover:bg-white/5
-            "
-          >
-            ✓
-          </button>
-          <button
-            type="button"
-            aria-label="Cancel rename"
-            onClick={() => setRenaming(false)}
-            className="
-              flex size-6 shrink-0 items-center justify-center rounded-md
-              text-[14px] text-t5
-              hover:bg-white/5 hover:text-t2
-            "
-          >
-            ×
-          </button>
+          <IconButton label="Save name" size="sm" onClick={commitRename}>✓</IconButton>
+          <IconButton label="Cancel rename" size="sm" onClick={() => setRenaming(false)}>×</IconButton>
         </div>
       </li>
     );
@@ -139,7 +115,7 @@ export function SavedMappingChip({
 
   return (
     <li className="
-      flex items-stretch overflow-hidden rounded-[9px] border border-hairline
+      flex items-stretch overflow-hidden rounded-panel border border-hairline
       bg-field
     "
     >
@@ -149,14 +125,13 @@ export function SavedMappingChip({
         onClick={() => onLoad(mapping)}
         title={known ? `${overrideCount} overrides` : 'engine unavailable'}
         className="
-          flex min-w-0 items-center gap-2 py-1.5 pr-2 pl-2.5 text-left
-          text-[14px]
+          flex min-w-0 items-center gap-2 py-1.5 pr-2 pl-2.5 text-left text-ui
           enabled:hover:bg-white/3
           disabled:opacity-40
         "
       >
         <span className="max-w-40 truncate text-t2">{mapping.name}</span>
-        <span className="shrink-0 font-mono text-[12px] text-t5">
+        <span className="shrink-0 font-mono text-label text-t5">
           {shortCode(mapping.src)}→{shortCode(mapping.tgt)}
         </span>
       </button>
@@ -196,7 +171,7 @@ export function SavedMappingChip({
               style={floatingStyles}
               {...getFloatingProps()}
               className="
-                z-50 min-w-36 overflow-hidden rounded-[9px] border
+                z-50 min-w-36 overflow-hidden rounded-panel border
                 border-hairline bg-ink p-1
                 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.7)]
               "
@@ -222,8 +197,8 @@ export function SavedMappingChip({
                       },
                     })}
                     className={`
-                      flex w-full items-center rounded-md px-2.5 py-1.5
-                      text-left text-[14px] transition-colors
+                      flex w-full items-center rounded-chip px-2.5 py-1.5
+                      text-left text-ui transition-colors
                       disabled:opacity-40
                       ${it.danger
                   ? `

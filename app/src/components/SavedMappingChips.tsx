@@ -1,5 +1,6 @@
 import type { Engine } from '../lib/midiremap';
 import type { SavedMapping } from '../lib/mappings';
+import { MonoLabel } from './MonoLabel';
 import { SavedMappingChip } from './SavedMappingChip';
 
 export function SavedMappingChips({
@@ -30,9 +31,7 @@ export function SavedMappingChips({
       aria-label="Saved mappings"
       className="flex flex-col gap-2"
     >
-      <span className="font-mono text-[12px] tracking-[0.14em] text-t5">
-        SAVED
-      </span>
+      <MonoLabel>SAVED</MonoLabel>
       <ul className="flex flex-wrap gap-2">
         {mappings.map((m) => (
           <SavedMappingChip

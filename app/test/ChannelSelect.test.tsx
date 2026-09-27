@@ -10,6 +10,8 @@ describe('ChannelSelect', () => {
     expect(select).toHaveValue('auto');
     expect(screen.getAllByRole('option')).toHaveLength(18);
     expect(screen.getByText('tracks with channel-10 hits · others unchanged')).toBeInTheDocument();
+    expect(select).toHaveClass('rounded-chip');
+    expect(select).toHaveAccessibleDescription(/tracks with channel-10 hits/);
   });
 
   it('shows the hint for a numbered channel', () => {

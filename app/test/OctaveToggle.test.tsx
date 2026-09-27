@@ -33,6 +33,12 @@ describe('OctaveToggle', () => {
     expect(onChange).toHaveBeenCalledWith('c2');
   });
 
+  it('wears the chip, with the checked base on', () => {
+    render(<OctaveToggle value="c2" onChange={() => {}} />);
+    expect(screen.getByText('C-2').closest('label')).toHaveClass('rounded-chip', 'bg-accent/15');
+    expect(screen.getByText('C-1').closest('label')).not.toHaveClass('bg-accent/15');
+  });
+
   it('has no separate switch button', () => {
     render(<OctaveToggle value="c1" onChange={() => {}} />);
     expect(screen.queryByRole('button')).not.toBeInTheDocument();

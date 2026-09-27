@@ -1,4 +1,5 @@
 import { octaveTabLabel, type OctaveBase } from '../lib/notes';
+import { chip } from './styles';
 
 const OCT_INDICES = [-1, 0, 1, 2, 3, 4, 5, 6, 7];
 
@@ -17,14 +18,9 @@ export function OctaveTabs({
         <button
           key={o}
           type="button"
+          aria-pressed={o === value}
           onClick={() => onChange(o)}
-          className={`
-            rounded-md border px-2.75 py-1.25 font-mono text-[13px]
-            font-semibold
-            ${o === value
-          ? 'border-accent bg-accent/15 text-t1'
-          : `border-field-border text-t4`}
-          `}
+          className={chip(o === value ? 'on' : 'off', 'sm')}
         >
           {octaveTabLabel(o, base)}
         </button>

@@ -24,7 +24,7 @@ describe('ConvertButton', () => {
     render(
       <ConvertButton
         conv={{ kind: 'idle' }}
-        canConvert={false}
+        blockedBy="Add a .mid file to convert"
         targetShort=""
         summary=""
         onConvert={() => {}}
@@ -32,7 +32,24 @@ describe('ConvertButton', () => {
         onViewReport={() => {}}
       />,
     );
-    expect(screen.getByRole('button', { name: /Convert & download/i })).toBeDisabled();
+    const button = screen.getByRole('button', { name: /Convert & download/i });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAccessibleDescription('Add a .mid file to convert');
+  });
+
+  it('is the solid primary action', () => {
+    render(
+      <ConvertButton
+        conv={{ kind: 'idle' }}
+        blockedBy={null}
+        targetShort=""
+        summary=""
+        onConvert={() => {}}
+        onReset={() => {}}
+        onViewReport={() => {}}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /Convert & download/i })).toHaveClass('bg-accent', 'w-full');
   });
 
   it('fires convert when enabled', async () => {
@@ -40,7 +57,7 @@ describe('ConvertButton', () => {
     render(
       <ConvertButton
         conv={{ kind: 'idle' }}
-        canConvert
+        blockedBy={null}
         targetShort=""
         summary=""
         onConvert={onConvert}
@@ -56,7 +73,7 @@ describe('ConvertButton', () => {
     render(
       <ConvertButton
         conv={{ kind: 'running' }}
-        canConvert
+        blockedBy={null}
         targetShort="EZD"
         summary=""
         onConvert={() => {}}
@@ -72,7 +89,7 @@ describe('ConvertButton', () => {
     render(
       <ConvertButton
         conv={done([{ name: 'groove-ezd.mid', url: 'blob:x', bytes: new Uint8Array([1]), report: REPORT }])}
-        canConvert
+        blockedBy={null}
         targetShort="EZD"
         summary="1 file · 3 remapped → EZD"
         onConvert={() => {}}
@@ -90,7 +107,7 @@ describe('ConvertButton', () => {
     render(
       <ConvertButton
         conv={done([{ name: 'groove-ezd.mid', url: 'blob:x', bytes: new Uint8Array([1]), report: REPORT }])}
-        canConvert
+        blockedBy={null}
         targetShort="EZD"
         summary="1 file · 3 remapped → EZD"
         onConvert={() => {}}
@@ -109,7 +126,7 @@ describe('ConvertButton', () => {
           { name: 'a.mid', url: 'blob:a', bytes: new Uint8Array([1]), report: REPORT },
           { name: 'b.mid', url: 'blob:b', bytes: new Uint8Array([2]), report: REPORT },
         ])}
-        canConvert
+        blockedBy={null}
         targetShort="EZD"
         summary="2 files · 6 remapped → EZD"
         onConvert={() => {}}
@@ -141,7 +158,7 @@ describe('ConvertButton', () => {
       const { rerender } = render(
         <ConvertButton
           conv={multi}
-          canConvert
+          blockedBy={null}
           targetShort="EZD"
           summary="2 files"
           onConvert={() => {}}
@@ -153,7 +170,7 @@ describe('ConvertButton', () => {
       rerender(
         <ConvertButton
           conv={multi}
-          canConvert
+          blockedBy={null}
           targetShort="EZD"
           summary="2 files (rerendered)"
           onConvert={() => {}}
@@ -169,7 +186,7 @@ describe('ConvertButton', () => {
       const { unmount } = render(
         <ConvertButton
           conv={multi}
-          canConvert
+          blockedBy={null}
           targetShort="EZD"
           summary="2 files"
           onConvert={() => {}}
@@ -185,7 +202,7 @@ describe('ConvertButton', () => {
       render(
         <ConvertButton
           conv={done([{ name: 'a.mid', url: 'blob:a', bytes: new Uint8Array([1]), report: REPORT }])}
-          canConvert
+          blockedBy={null}
           targetShort="EZD"
           summary="1 file"
           onConvert={() => {}}

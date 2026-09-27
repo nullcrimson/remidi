@@ -50,9 +50,7 @@ export function LibraryList({
         selected={e.id === value}
         disabled={e.id === disabledId}
         onSelect={() => onChange(e.id)}
-        className="
-          min-w-0 flex-1 truncate py-1.75 pl-3 text-[15px] leading-tight
-        "
+        className="min-w-0 flex-1 truncate py-1.75 pl-3 text-ui/tight"
         hoverProps={{
           onMouseEnter: (ev) => show(ev.currentTarget, e.name),
           onMouseLeave: hide,
@@ -66,7 +64,7 @@ export function LibraryList({
             aria-label={`${fav ? 'Unfavorite' : 'Favorite'} ${e.name}`}
             onClick={() => onToggleFavorite(e.id)}
             className={`
-              shrink-0 px-2 text-[15px] transition-colors
+              shrink-0 px-2 text-ui transition-colors
               ${
           fav
             ? 'text-star [text-shadow:0_0_8px_rgba(224,196,106,0.55)]'
@@ -93,7 +91,7 @@ export function LibraryList({
       <div ref={listRef} className="mr-scroll relative flex max-h-60 flex-col">
         {filtered.length === 0
           ? (
-              <span className="py-1.75 pl-3 font-mono text-[13px] text-t5">no matches</span>
+              <span className="py-1.75 pl-3 font-mono text-label text-t5">no matches</span>
             )
           : (
               <>

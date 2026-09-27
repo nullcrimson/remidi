@@ -1,34 +1,55 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 
-const VARIANTS = {
-  solid: `
-    inline-flex items-center gap-1.75 rounded-[9px] bg-accent px-4 py-2 font-display
-    text-[15px] font-semibold text-ink
-    hover:brightness-110
-  `,
-  outline: `
-    rounded-[11px] border border-accent py-3.5 text-center font-display
-    text-[13.5px] font-semibold text-accent transition
-    enabled:hover:bg-accent enabled:hover:text-ink
-    enabled:hover:shadow-[0_0_24px_-4px_rgba(199,192,173,0.55)]
-    disabled:opacity-40
-  `,
+const VARIANT = {
+  primary: 'bg-accent text-ink enabled:hover:brightness-110',
+  secondary: 'border border-accent/40 text-accent enabled:hover:border-accent enabled:hover:bg-accent/8',
+};
+
+const SIZE = {
+  sm: 'rounded-chip px-3 py-1.5',
+  md: 'rounded-panel px-4 py-2',
+  lg: 'w-full rounded-panel py-3.5',
 };
 
 export function Button({
   variant,
-  disabled,
+  size,
+  disabled = false,
+  reason,
   onClick,
   children,
 }: {
-  variant: 'solid' | 'outline';
+  variant: keyof typeof VARIANT;
+  size: keyof typeof SIZE;
   disabled?: boolean;
+  reason?: string;
   onClick: () => void;
   children: ReactNode;
 }) {
-  return (
-    <button type="button" disabled={disabled} onClick={onClick} className={VARIANTS[variant]}>
+  const reasonId = useId();
+  const explained = disabled && reason !== undefined;
+  const button = (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-describedby={explained ? reasonId : undefined}
+      onClick={onClick}
+      className={`
+        inline-flex items-center justify-center gap-1.75 font-display text-ui
+        font-semibold transition
+        disabled:cursor-not-allowed disabled:opacity-40
+        ${VARIANT[variant]}
+        ${SIZE[size]}
+      `}
+    >
       {children}
     </button>
+  );
+  if (!explained) return button;
+  return (
+    <div className="flex flex-col items-center gap-2">
+      {button}
+      <p id={reasonId} className="text-caption text-t4">{reason}</p>
+    </div>
   );
 }

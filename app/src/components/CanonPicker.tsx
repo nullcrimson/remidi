@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useRestoreFocus } from '../hooks/useRestoreFocus';
 import { FAMILY_ORDER } from '../lib/families';
 import type { CanonInfo } from '../lib/midiremap';
+import { IconButton } from './IconButton';
 import { ListRow } from './ListRow';
 import { MonoLabel } from './MonoLabel';
 
@@ -33,23 +34,13 @@ export function CanonPicker({
       aria-label={`Canon for ${noteLabel}`}
       tabIndex={-1}
       className="
-        my-0.5 mb-2 rounded-[10px] border border-accent/18 bg-inset
+        my-0.5 mb-2 rounded-panel border border-accent/18 bg-inset
         p-[13px_14px_16px] outline-none
       "
     >
       <div className="mb-3 flex items-center justify-between">
-        <span className="font-mono text-[9.5px] tracking-[0.12em] text-t4">SOURCE · {noteLabel}</span>
-        <button
-          type="button"
-          aria-label="Close"
-          onClick={onClose}
-          className="
-            flex size-5 items-center justify-center rounded-[5px] bg-white/5
-            text-[16px] text-t4
-          "
-        >
-          ×
-        </button>
+        <MonoLabel tone="text-t4">SOURCE · {noteLabel}</MonoLabel>
+        <IconButton label="Close" onClick={onClose}>×</IconButton>
       </div>
       <div className="mr-scroll flex max-h-64 flex-col gap-2 pr-1">
         {groups.map((g) => (
@@ -62,11 +53,11 @@ export function CanonPicker({
                 onSelect={() => onPick(o.canon)}
                 className="
                   flex w-full items-center justify-between py-1 pr-2 pl-2.5
-                  text-[14px] leading-tight
+                  text-ui/tight
                 "
               >
                 <span className="min-w-0 truncate">{o.label}</span>
-                <span className="ml-2 shrink-0 font-mono text-[12px] text-t6">{o.canon}</span>
+                <span className="ml-2 shrink-0 font-mono text-caption text-t5">{o.canon}</span>
               </ListRow>
             ))}
           </div>

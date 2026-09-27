@@ -4,9 +4,14 @@ import type { Editor } from '../hooks/useEditor';
 import { MAPPINGS_CAP, type SavedMapping } from '../lib/mappings';
 import { shortCode } from '../lib/format';
 import { Button } from './Button';
+import { IconButton } from './IconButton';
+import { MonoLabel } from './MonoLabel';
 import { NotePicker } from './NotePicker';
 import { SourceEditor } from './SourceEditor';
 import { SourceNotePicker } from './SourceNotePicker';
+import { textAction } from './styles';
+import { TextButton } from './TextButton';
+import { TextField } from './TextField';
 import { Tooltip, TooltipBody } from './Tooltip';
 import { VoiceRow } from './VoiceRow';
 
@@ -70,16 +75,7 @@ function SavePreset({
           </TooltipBody>
         )}
       >
-        <button
-          type="button"
-          onClick={open}
-          disabled={!canSave}
-          className="
-            text-[14px] text-t4 transition-colors
-            enabled:hover:text-accent
-            disabled:opacity-40
-          "
-        >
+        <button type="button" onClick={open} disabled={!canSave} className={textAction()}>
           {existingPreset ? 'Update preset' : 'Save preset'}
         </button>
       </Tooltip>
@@ -89,11 +85,11 @@ function SavePreset({
   return (
     <div
       className="
-        flex flex-col gap-2 rounded-[10px] border border-hairline bg-inset p-3
+        flex flex-col gap-2 rounded-panel border border-hairline bg-inset p-3
       "
     >
       <div className="flex items-center gap-2">
-        <input
+        <TextField
           value={name}
           autoFocus
           aria-label="Preset name"
@@ -102,77 +98,33 @@ function SavePreset({
             if (e.key === 'Enter') primary();
             if (e.key === 'Escape') setNaming(false);
           }}
-          className="
-            min-w-0 flex-1 rounded-[7px] border border-field-border bg-field
-            px-2.5 py-1.5 text-[15px] text-t1 outline-none
-          "
+          className="min-w-0 flex-1"
         />
         {existingPreset
           ? (
               <>
-                <button
-                  type="button"
-                  onClick={saveUpdate}
-                  disabled={!trimmed}
-                  className="
-                    rounded-[7px] bg-accent px-3 py-1.5 text-[14px]
-                    font-semibold text-ink transition
-                    enabled:hover:brightness-110
-                    disabled:opacity-40
-                  "
-                >
+                <Button variant="primary" size="sm" onClick={saveUpdate} disabled={!trimmed}>
                   Update
-                </button>
-                <button
-                  type="button"
-                  onClick={saveNew}
-                  disabled={!trimmed || atCap}
-                  className="
-                    rounded-[7px] border border-field-border px-3 py-1.5
-                    text-[14px] text-t3 transition-colors
-                    enabled:hover:text-t1
-                    disabled:opacity-40
-                  "
-                >
+                </Button>
+                <Button variant="secondary" size="sm" onClick={saveNew} disabled={!trimmed || atCap}>
                   Save new
-                </button>
+                </Button>
               </>
             )
           : (
-              <button
-                type="button"
-                onClick={saveNew}
-                disabled={!trimmed || atCap}
-                className="
-                  rounded-[7px] bg-accent px-3 py-1.5 text-[14px] font-semibold
-                  text-ink transition
-                  enabled:hover:brightness-110
-                  disabled:opacity-40
-                "
-              >
+              <Button variant="primary" size="sm" onClick={saveNew} disabled={!trimmed || atCap}>
                 Save
-              </button>
+              </Button>
             )}
-        <button
-          type="button"
-          aria-label="Cancel"
-          onClick={() => setNaming(false)}
-          className="
-            flex size-6 items-center justify-center rounded-md bg-white/5
-            text-[16px] text-t4
-            hover:text-t2
-          "
-        >
-          ×
-        </button>
+        <IconButton label="Cancel" onClick={() => setNaming(false)}>×</IconButton>
       </div>
       {existingPreset && (
-        <p className="text-[13px] text-t5">
+        <p className="text-label text-t5">
           A preset for {pairLabel} already exists.
         </p>
       )}
       {atCap && !existingPreset && (
-        <p className="text-[13px] text-danger">
+        <p className="text-label text-danger">
           Preset limit reached ({MAPPINGS_CAP}).
         </p>
       )}
@@ -219,44 +171,21 @@ export function EditView({
     <div className="flex flex-col gap-5 p-[26px_30px_24px]">
       <div className="flex items-center justify-between">
         <div className="flex items-baseline gap-2.5">
-          <button
-            type="button"
-            onClick={() => setView('convert')}
-            className="
-              text-[14px] text-t4
-              hover:text-accent
-            "
-          >
-            ← back
-          </button>
-          <span className="text-[16px] font-semibold text-t1">
+          <TextButton onClick={() => setView('convert')}>← back</TextButton>
+          <span className="text-body font-semibold text-t1">
             Edit mapping
           </span>
         </div>
-        <span className="font-mono text-[13px] text-t4">
+        <span className="font-mono text-label text-t4">
           {shortCode(src)} → {shortCode(tgt)}
         </span>
       </div>
 
       <div className="grid grid-cols-[1fr_auto_16px_auto] gap-3 pb-1">
-        <span className="font-mono text-[9.5px] tracking-[0.14em] text-t5">
-          DRUM
-        </span>
-        <span
-          className="
-            justify-self-end font-mono text-[9.5px] tracking-[0.14em] text-t5
-          "
-        >
-          SOURCE
-        </span>
+        <MonoLabel>DRUM</MonoLabel>
+        <MonoLabel className="justify-self-end">SOURCE</MonoLabel>
         <span />
-        <span
-          className="
-            justify-self-end font-mono text-[9.5px] tracking-[0.14em] text-t5
-          "
-        >
-          TARGET
-        </span>
+        <MonoLabel className="justify-self-end">TARGET</MonoLabel>
       </div>
 
       <div>
@@ -305,7 +234,7 @@ export function EditView({
                 )}
               </VoiceRow>
               {notice?.canon === row.canon && (
-                <p role="status" className="px-1 pb-2 text-[12.5px] text-t4">
+                <p role="status" className="px-1 pb-2 text-label text-t4">
                   {noteName(notice.note, oct)} was {notice.from} — now plays {row.label}
                 </p>
               )}
@@ -319,10 +248,10 @@ export function EditView({
           type="button"
           onClick={() => setAdvanced((v) => !v)}
           aria-expanded={advanced}
-          className="
-            self-start text-[13px] text-t5 transition-colors
-            hover:text-t3
-          "
+          className={`
+            self-start
+            ${textAction()}
+          `}
         >
           {advanced ? '▾' : '▸'} Advanced — reassign source notes
         </button>
@@ -339,7 +268,7 @@ export function EditView({
       </div>
 
       <div className="flex items-center justify-between gap-3 pt-0.5">
-        <span className="font-mono text-[13px] text-t5">
+        <span className="font-mono text-label text-t5">
           <span className="text-accent">●</span> = remapped
         </span>
         <div className="flex items-center gap-3">
@@ -352,7 +281,7 @@ export function EditView({
             onSave={onSavePreset}
             onUpdate={onUpdatePreset}
           />
-          <Button variant="solid" onClick={() => setView('convert')}>
+          <Button variant="primary" size="md" onClick={() => setView('convert')}>
             <span>✓</span>Save mapping
           </Button>
         </div>

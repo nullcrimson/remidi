@@ -1,3 +1,6 @@
+import { IconButton } from './IconButton';
+import { TextField } from './TextField';
+
 export function FilterInput({
   value,
   onChange,
@@ -14,12 +17,13 @@ export function FilterInput({
       <span
         className="
           pointer-events-none absolute top-1/2 left-2 -translate-y-1/2
-          text-[13px] text-t5
+          text-label text-t5
         "
       >
         ⌕
       </span>
-      <input
+      <TextField
+        mono
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -32,25 +36,12 @@ export function FilterInput({
         }}
         aria-label={ariaLabel}
         placeholder={placeholder}
-        className="
-          w-full rounded-md border border-field-border bg-field py-1.25 pr-6
-          pl-6.5 font-mono text-[13px] text-t2 transition-colors outline-none
-          placeholder:text-t5
-          focus:border-accent/40
-        "
+        className="w-full pr-6 pl-6.5"
       />
       {value && (
-        <button
-          type="button"
-          aria-label="Clear filter"
-          onClick={() => onChange('')}
-          className="
-            absolute top-1/2 right-1.5 -translate-y-1/2 text-[14px] text-t5
-            hover:text-t2
-          "
-        >
-          ×
-        </button>
+        <span className="absolute top-1/2 right-1 -translate-y-1/2">
+          <IconButton label="Clear filter" size="sm" onClick={() => onChange('')}>×</IconButton>
+        </span>
       )}
     </div>
   );

@@ -1,3 +1,4 @@
+import { textAction } from './styles';
 import { Tooltip, TooltipBody } from './Tooltip';
 
 export function SummaryRow({
@@ -16,7 +17,7 @@ export function SummaryRow({
       flex items-center justify-between border-t border-hairline pt-4.5
     "
     >
-      <span className="text-[14px] text-t4">
+      <span className="text-ui text-t4">
         <span className="font-semibold text-accent">{remapped}</span> of {total}{' '}
         drums remapped
       </span>
@@ -32,17 +33,13 @@ export function SummaryRow({
           type="button"
           onClick={onEdit}
           disabled={disabled}
-          className="
-            inline-flex items-center gap-1.5 text-[14px] text-t4
-            transition-colors
-            enabled:hover:text-accent
-            disabled:cursor-not-allowed disabled:opacity-40
-          "
+          className={`
+            whitespace-nowrap
+            ${textAction()}
+          `}
         >
-          <span>✎</span>
-          <span className="border-b border-dashed border-t5 pb-px">
-            Edit individual notes →
-          </span>
+          <span aria-hidden="true">✎</span>
+          Edit individual notes →
         </button>
       </Tooltip>
     </div>

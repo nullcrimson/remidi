@@ -61,12 +61,13 @@ export function CardDropzone({
           >
             <span className="
               flex size-12 items-center justify-center rounded-full border
-              border-accent/40 font-display text-3xl leading-none text-accent
+              border-accent/40 font-display text-display leading-none
+              text-accent
             "
             >
               +
             </span>
-            <span className="font-mono text-[12px] tracking-[0.18em] text-t3">
+            <span className="font-mono text-label tracking-[0.18em] text-t3">
               DROP .MID
             </span>
           </div>

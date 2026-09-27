@@ -156,7 +156,7 @@ describe('EditView', () => {
         }}
       />,
     );
-    expect(screen.getByRole('button', { name: '—' })).toHaveClass('border-accent/28');
+    expect(screen.getByRole('button', { name: '—' })).toHaveClass('border-accent/40');
   });
 
   it('shows a dash in the target picker of a dropped row', () => {

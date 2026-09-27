@@ -1,10 +1,19 @@
 import type { ReactNode } from 'react';
 
-export function MonoLabel({ children, className = '' }: { children: ReactNode; className?: string }) {
+export function MonoLabel({
+  children,
+  tone = 'text-t5',
+  className = '',
+}: {
+  children: ReactNode;
+  tone?: string;
+  className?: string;
+}) {
   return (
     <div className={`
       ${className}
-      font-mono text-[12px] tracking-[0.14em] text-t5
+      ${tone}
+      font-mono text-caption tracking-[0.14em]
     `}
     >{children}
     </div>

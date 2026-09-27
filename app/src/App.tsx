@@ -13,6 +13,7 @@ import { SummaryRow } from './components/SummaryRow';
 import { useFavorites } from './hooks/useFavorites';
 import { useRemapper } from './hooks/useRemapper';
 import { useSavedMappings } from './hooks/useSavedMappings';
+import { convertBlocker } from './lib/blocker';
 import { shortCode } from './lib/format';
 import { buildReport } from './lib/report';
 
@@ -42,25 +43,18 @@ function Card({ children }: { children: ReactNode }) {
 function Header() {
   return (
     <div className="flex flex-col gap-2">
-      <div className="
-        flex flex-col gap-1
-        sm:flex-row sm:items-baseline sm:justify-between
-      "
-      >
-        <h1 className="flex flex-wrap items-baseline gap-x-2">
-          <span
-            className="
-              font-display text-[17px] font-semibold tracking-[0.02em] text-t2
-              [text-shadow:0_0_12px_rgba(236,232,224,0.3)]
-            "
-          >
-            Drumverter
-          </span>
-          <span className="text-[14px] font-normal text-t5">— drum MIDI converter & remapper</span>
-        </h1>
-        <span className="font-mono text-[13px] text-t6">free in-browser converter</span>
-      </div>
-      <p className="text-[14px] leading-relaxed text-t4">
+      <h1 className="flex flex-wrap items-baseline gap-x-2">
+        <span
+          className="
+            font-display text-brand font-semibold tracking-[0.02em] text-t2
+            [text-shadow:0_0_12px_rgba(236,232,224,0.3)]
+          "
+        >
+          Drumverter
+        </span>
+        <span className="text-ui font-normal text-t5">— drum MIDI converter & remapper</span>
+      </h1>
+      <p className="text-ui/relaxed text-t4">
         Convert drum MIDI between GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2,
         General MIDI, Guitar Pro and 80+ other engine layouts. Runs in your browser; files are never
         uploaded.
@@ -137,11 +131,11 @@ export default function App() {
             <Header />
 
             {c.status === 'loading' && (
-              <p className="text-[15px] text-t3">Loading converter…</p>
+              <p className="text-ui text-t3">Loading converter…</p>
             )}
 
             {c.status === 'error' && (
-              <p className="text-[15px] text-danger">Failed to load converter: {c.error}</p>
+              <p className="text-ui text-danger">Failed to load converter: {c.error}</p>
             )}
 
             {c.status === 'ready' && (
@@ -219,7 +213,7 @@ export default function App() {
 
                 <ConvertButton
                   conv={c.conv}
-                  canConvert={c.files.length > 0 && bothSelected}
+                  blockedBy={convertBlocker({ files: c.files.length, src: c.src, tgt: c.tgt })}
                   targetShort={targetShort}
                   summary={summary}
                   onConvert={c.convert}
@@ -229,7 +223,7 @@ export default function App() {
 
                 {c.conv.kind === 'error' && c.error && (
                   <p className="
-                    rounded-sm bg-danger/10 p-3 text-[14px] text-danger
+                    rounded-chip bg-danger/10 p-3 text-ui text-danger
                   "
                   >
                     Error: {c.error}

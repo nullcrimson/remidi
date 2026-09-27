@@ -1,0 +1,56 @@
+export type ChipState = 'on' | 'changed' | 'off';
+export type ChipSize = 'sm' | 'md';
+
+const CHIP_BASE = 'rounded-chip border font-mono font-semibold transition-colors';
+
+const CHIP_SIZE: Record<ChipSize, string> = {
+  sm: 'px-2 py-0.5 text-label',
+  md: 'px-2.5 py-1 text-ui',
+};
+
+const CHIP_STATE: Record<ChipState, string> = {
+  on: 'border-accent bg-accent/15 text-t1',
+  changed: 'border-accent/40 bg-accent/6 text-t1 hover:border-accent',
+  off: 'border-white/12 text-t4 hover:border-accent/40 hover:text-t1',
+};
+
+/** Classes for the one chip every picker, tab and note badge wears. */
+export function chip(state: ChipState, size: ChipSize): string {
+  return `${CHIP_BASE} ${CHIP_SIZE[size]} ${CHIP_STATE[state]}`;
+}
+
+/** Gold underlined link for prose: about pages, report footer, site copy. */
+export const proseLink = `
+  text-star/85 underline decoration-star/30 decoration-1 underline-offset-4
+  transition
+  [text-shadow:0_0_10px_rgba(224,196,106,0.35)]
+  hover:text-star hover:decoration-star/60
+  hover:[text-shadow:0_0_15px_rgba(224,196,106,0.6)]
+`;
+
+export type TextTone = 'default' | 'danger';
+
+const TEXT_TONE: Record<TextTone, string> = {
+  default: 'text-t2 hover:text-accent disabled:hover:text-t2',
+  danger: 'text-t4 hover:text-danger',
+};
+
+/** In-app action link: quiet text that lights up to the accent. */
+export function textAction(tone: TextTone = 'default'): string {
+  return `
+    inline-flex items-center gap-1.5 text-ui transition-colors
+    disabled:cursor-not-allowed disabled:opacity-40
+    ${TEXT_TONE[tone]}
+  `;
+}
+
+/** Text input; 16px below `sm` so phones do not zoom on focus. */
+export function field(mono: boolean): string {
+  return `
+    rounded-chip border border-field-border bg-field px-2 py-1.25 text-body
+    text-t2 transition-colors outline-none
+    placeholder:text-t5
+    focus:border-accent/40
+    ${mono ? 'font-mono sm:text-label' : 'sm:text-ui'}
+  `;
+}

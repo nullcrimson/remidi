@@ -10,8 +10,8 @@
   --color-t2: #c6c0b1;
   --color-t3: #b0a897;
   --color-t4: #9b9284;
-  --color-t5: #6d675c;
-  --color-t6: #565046;
+  --color-t5: #8a8375;
+  --color-decor: #565046;
   --color-monodim: #837c66;
   --color-star: #e0c46a;
   --color-keyactive: #857c66;
@@ -23,10 +23,28 @@
   --color-hairline: rgba(255, 255, 255, 0.06);
   --color-field: rgba(255, 255, 255, 0.025);
   --color-field-border: rgba(255, 255, 255, 0.08);
+  --text-*: initial;
+  --text-caption: 11.5px;
+  --text-label: 12.5px;
+  --text-ui: 14px;
+  --text-body: 16px;
+  --text-brand: 17px;
+  --text-title: 20px;
+  --text-display: 28px;
+  --radius-*: initial;
+  --radius-chip: 6px;
+  --radius-panel: 10px;
   --radius-card: 18px;
   --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+@layer base {
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--color-accent) 60%, transparent);
+    outline-offset: 2px;
+  }
 }
 
 body {

@@ -1,6 +1,8 @@
 import { useRef } from 'react';
 import { useRestoreFocus } from '../hooks/useRestoreFocus';
 import { noteName, type OctaveBase } from '../lib/notes';
+import { IconButton } from './IconButton';
+import { MonoLabel } from './MonoLabel';
 import { OctaveTabs } from './OctaveTabs';
 import { PianoKeyboard } from './PianoKeyboard';
 
@@ -30,7 +32,7 @@ export function SourceNotePicker({
       aria-label={`Source note for ${voiceLabel}`}
       tabIndex={-1}
       className="
-        my-0.5 mb-3 w-full rounded-[10px] border border-accent/18 bg-inset
+        my-0.5 mb-3 w-full rounded-panel border border-accent/18 bg-inset
         p-[13px_14px_16px] outline-none
         sm:ml-auto sm:w-max
       "
@@ -42,24 +44,12 @@ export function SourceNotePicker({
       >
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2.25">
-            <span className="font-mono text-[9.5px] tracking-[0.12em] text-t4">
-              INCOMING · {voiceLabel}
-            </span>
-            <span className="font-mono text-[17px] font-bold text-accent">
+            <MonoLabel tone="text-t4">INCOMING · {voiceLabel}</MonoLabel>
+            <span className="font-mono text-brand font-bold text-accent">
               {currentNote === null ? '—' : noteName(currentNote, base)}
             </span>
           </div>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            className="
-              flex size-5 items-center justify-center rounded-[5px] bg-white/5
-              text-[16px] text-t4
-            "
-          >
-            ×
-          </button>
+          <IconButton label="Close" onClick={onClose}>×</IconButton>
         </div>
         <OctaveTabs value={octIndex} base={base} onChange={onSetOct} />
         <PianoKeyboard

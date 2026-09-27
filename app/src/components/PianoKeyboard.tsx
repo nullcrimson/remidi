@@ -41,8 +41,8 @@ export function PianoKeyboard({
             aria-pressed={active}
             onClick={() => onPickSemitone(w.s)}
             className={`
-              flex h-21.5 flex-1 items-end justify-center rounded-b-[5px] border
-              border-t-0 border-keyborder pb-1.75 font-mono text-[12px] text-ink
+              flex h-21.5 flex-1 items-end justify-center rounded-b-chip border
+              border-t-0 border-keyborder pb-1.75 font-mono text-label text-ink
               transition
               ${
           active
@@ -74,7 +74,7 @@ export function PianoKeyboard({
             onClick={() => onPickSemitone(b.s)}
             style={{ left: `${b.left}%` }}
             className={`
-              absolute top-0 z-10 h-13.5 w-[8.6%] rounded-b-sm border
+              absolute top-0 z-10 h-13.5 w-[8.6%] rounded-b-chip border
               border-black transition
               ${
           active

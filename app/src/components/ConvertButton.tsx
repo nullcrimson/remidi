@@ -2,10 +2,11 @@ import { useEffect, useMemo } from 'react';
 import type { Conv } from '../hooks/useRemapper';
 import { zipFiles } from '../lib/zip';
 import { Button } from './Button';
+import { TextButton } from './TextButton';
 
 export function ConvertButton({
   conv,
-  canConvert,
+  blockedBy,
   targetShort,
   summary,
   onConvert,
@@ -13,7 +14,7 @@ export function ConvertButton({
   onViewReport,
 }: {
   conv: Conv;
-  canConvert: boolean;
+  blockedBy: string | null;
   targetShort: string;
   summary: string;
   onConvert: () => void;
@@ -41,40 +42,14 @@ export function ConvertButton({
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-0.75">
           <div className="flex items-center gap-2.5">
-            <a
-              href={href}
-              download={name}
-              className="
-                text-[13.5px] font-semibold text-t1 transition
-                hover:text-star
-                hover:[text-shadow:0_0_14px_rgba(224,196,106,0.6)]
-              "
-            >
+            <TextButton href={href} download={name}>
               {single ? '↓ download .mid' : '↓ download all (.zip)'}
-            </a>
-            <button
-              type="button"
-              onClick={onViewReport}
-              className="
-                text-[14px] text-t4 transition-colors
-                hover:text-accent
-              "
-            >
-              View report →
-            </button>
+            </TextButton>
+            <TextButton onClick={onViewReport}>View report →</TextButton>
           </div>
-          <span className="font-mono text-[13px] text-t4">{summary}</span>
+          <span className="font-mono text-label text-t4">{summary}</span>
         </div>
-        <button
-          type="button"
-          onClick={onReset}
-          className="
-            text-[14px] text-t4
-            hover:text-t1
-          "
-        >
-          again
-        </button>
+        <TextButton onClick={onReset}>again</TextButton>
       </div>
     );
   }
@@ -82,7 +57,7 @@ export function ConvertButton({
     return (
       <div>
         <div className="
-          mb-2.25 flex justify-between font-mono text-[13px] text-t4
+          mb-2.25 flex justify-between font-mono text-label text-t4
         "
         >
           <span>remapping</span>
@@ -95,7 +70,13 @@ export function ConvertButton({
     );
   }
   return (
-    <Button variant="outline" disabled={!canConvert} onClick={onConvert}>
+    <Button
+      variant="primary"
+      size="lg"
+      disabled={blockedBy !== null}
+      reason={blockedBy ?? undefined}
+      onClick={onConvert}
+    >
       Convert &amp; download
     </Button>
   );

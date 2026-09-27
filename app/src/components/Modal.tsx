@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { IconButton } from './IconButton';
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
 
@@ -77,27 +78,15 @@ export function Modal({
         "
         >
           <h2 className="
-            font-display text-[17px] font-semibold tracking-[0.01em] text-t1
+            font-display text-brand font-semibold tracking-[0.01em] text-t1
           "
           >
             {heading}
           </h2>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            className="
-              flex size-7 items-center justify-center rounded-[7px] bg-white/5
-              text-[18px] text-t4 transition-colors
-              hover:bg-white/10 hover:text-t2
-            "
-          >
-            ×
-          </button>
+          <IconButton label="Close" onClick={onClose}>×</IconButton>
         </div>
         <div className="
-          mr-scroll overflow-y-auto px-6 py-5 text-[15px] leading-relaxed
-          text-t4
+          mr-scroll overflow-y-auto px-6 py-5 text-body/relaxed text-t4
         "
         >
           {children}

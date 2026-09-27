@@ -3,6 +3,8 @@ import { useRestoreFocus } from '../hooks/useRestoreFocus';
 import type { Drum } from '../lib/midiremap';
 import { noteName, type OctaveBase } from '../lib/notes';
 import { DrumList } from './DrumList';
+import { IconButton } from './IconButton';
+import { MonoLabel } from './MonoLabel';
 import { OctaveTabs } from './OctaveTabs';
 import { PianoKeyboard } from './PianoKeyboard';
 
@@ -36,30 +38,18 @@ export function NotePicker({
       aria-label={`Target note for ${voiceLabel}`}
       tabIndex={-1}
       className="
-        my-0.5 mb-3 rounded-[10px] border border-accent/18 bg-inset
+        my-0.5 mb-3 rounded-panel border border-accent/18 bg-inset
         p-[13px_14px_16px] outline-none
       "
     >
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-baseline gap-2.25">
-          <span className="font-mono text-[9.5px] tracking-[0.12em] text-t4">
-            TARGET · {voiceLabel}
-          </span>
-          <span className="font-mono text-[17px] font-bold text-accent">
+          <MonoLabel tone="text-t4">TARGET · {voiceLabel}</MonoLabel>
+          <span className="font-mono text-brand font-bold text-accent">
             {currentNote === null ? '—' : noteName(currentNote, base)}
           </span>
         </div>
-        <button
-          type="button"
-          aria-label="Close"
-          onClick={onClose}
-          className="
-            flex size-5 items-center justify-center rounded-[5px] bg-white/5
-            text-[16px] text-t4
-          "
-        >
-          ×
-        </button>
+        <IconButton label="Close" onClick={onClose}>×</IconButton>
       </div>
       <div className="
         flex flex-col gap-4

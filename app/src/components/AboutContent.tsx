@@ -1,5 +1,7 @@
 import { Fragment, useState, type ReactNode } from 'react';
 import { Modal } from './Modal';
+import { ProseLink } from './ProseLink';
+import { proseLink } from './styles';
 
 const ENGINES = [
   'GetGood Drums (Invasion, Modern & Massive, and more)',
@@ -72,7 +74,7 @@ function GuideBody() {
       </p>
       <ol className="
         flex list-decimal flex-col gap-2 pl-5
-        marker:text-t6
+        marker:text-decor
       "
       >
         {STEPS.map((step) => (
@@ -97,7 +99,7 @@ function EnginesBody() {
       <p>Drumverter maps between dozens of drum-engine note layouts, in any direction — including:</p>
       <ul className="
         flex list-disc flex-col gap-1 pl-5
-        marker:text-t6
+        marker:text-decor
       "
       >
         {ENGINES.map((engine) => (
@@ -117,7 +119,7 @@ function FaqBody() {
     <div className="flex flex-col gap-4">
       {FAQ.map((item) => (
         <div key={item.q} className="flex flex-col gap-1">
-          <h3 className="text-[15px] font-semibold text-t2">{item.q}</h3>
+          <h3 className="text-body font-semibold text-t2">{item.q}</h3>
           <p>{item.a}</p>
         </div>
       ))}
@@ -130,38 +132,12 @@ function IssueBody() {
     <div className="flex flex-col gap-3">
       <p>
         Hit a wrong mapping, or want an engine added? Open a{' '}
-        <a
-          href="https://github.com/nullcrimson/remidi/issues"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="
-            text-star/85 underline decoration-star/30 decoration-1
-            underline-offset-4 transition
-            [text-shadow:0_0_10px_rgba(224,196,106,0.35)]
-            hover:text-star hover:decoration-star/60
-            hover:[text-shadow:0_0_15px_rgba(224,196,106,0.6)]
-          "
-        >
-          GitHub issue
-        </a>{' '}
+        <ProseLink href="https://github.com/nullcrimson/remidi/issues">GitHub issue</ProseLink>{' '}
         with the details.
       </p>
       <p>
         Prefer email? Reach me at{' '}
-        <a
-          href="mailto:null.crimson.dev@gmail.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="
-            text-star/85 underline decoration-star/30 decoration-1
-            underline-offset-4 transition
-            [text-shadow:0_0_10px_rgba(224,196,106,0.35)]
-            hover:text-star hover:decoration-star/60
-            hover:[text-shadow:0_0_15px_rgba(224,196,106,0.6)]
-          "
-        >
-          null.crimson.dev@gmail.com
-        </a>
+        <ProseLink href="mailto:null.crimson.dev@gmail.com">null.crimson.dev@gmail.com</ProseLink>
         .
       </p>
     </div>
@@ -172,20 +148,7 @@ function ContactBody() {
   return (
     <p>
       Questions, feedback, or engine requests? Email me at{' '}
-      <a
-        href="mailto:null.crimson.dev@gmail.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="
-          text-star/85 underline decoration-star/30 decoration-1
-          underline-offset-4 transition
-          [text-shadow:0_0_10px_rgba(224,196,106,0.35)]
-          hover:text-star hover:decoration-star/60
-          hover:[text-shadow:0_0_15px_rgba(224,196,106,0.6)]
-        "
-      >
-        null.crimson.dev@gmail.com
-      </a>
+      <ProseLink href="mailto:null.crimson.dev@gmail.com">null.crimson.dev@gmail.com</ProseLink>
       .
     </p>
   );
@@ -274,13 +237,13 @@ export function AboutContent() {
   return (
     <section className="flex w-full flex-col px-1">
       <div className="
-        flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[14px]
+        flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-ui
       "
       >
         {SECTIONS.map((s, i) => (
           <Fragment key={s.key}>
             {i > 0 && (
-              <span aria-hidden="true" className="text-t6">
+              <span aria-hidden="true" className="text-decor">
                 ·
               </span>
             )}
@@ -288,30 +251,18 @@ export function AboutContent() {
               type="button"
               onClick={() => setOpen(s.key)}
               aria-haspopup="dialog"
-              className="
-                text-star/85 underline decoration-star/30 decoration-1
-                underline-offset-4 transition
-                [text-shadow:0_0_10px_rgba(224,196,106,0.35)]
-                hover:text-star hover:decoration-star/60
-                hover:[text-shadow:0_0_15px_rgba(224,196,106,0.6)]
-              "
+              className={proseLink}
             >
               {s.label}
             </button>
           </Fragment>
         ))}
-        <span aria-hidden="true" className="text-t6">
+        <span aria-hidden="true" className="text-decor">
           ·
         </span>
         <a
           href="/engines/"
-          className="
-            text-star/85 underline decoration-star/30 decoration-1
-            underline-offset-4 transition
-            [text-shadow:0_0_10px_rgba(224,196,106,0.35)]
-            hover:text-star hover:decoration-star/60
-            hover:[text-shadow:0_0_15px_rgba(224,196,106,0.6)]
-          "
+          className={proseLink}
         >
           Engine note maps
         </a>

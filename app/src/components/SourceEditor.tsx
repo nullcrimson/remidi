@@ -3,7 +3,10 @@ import type { CanonInfo, Drum } from '../lib/midiremap';
 import type { SrcEdits } from '../lib/overrides';
 import { useDismiss } from '../hooks/useDismiss';
 import { noteName, type OctaveBase } from '../lib/notes';
+import { Button } from './Button';
 import { CanonPicker } from './CanonPicker';
+import { IconButton } from './IconButton';
+import { TextField } from './TextField';
 
 function SourceEditorRow({
   note,
@@ -36,7 +39,7 @@ function SourceEditorRow({
     <div ref={rowRef}>
       <div
         className="
-          flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5
+          flex items-center justify-between gap-2 rounded-chip px-2.5 py-1.5
           hover:bg-white/2
         "
       >
@@ -45,11 +48,9 @@ function SourceEditorRow({
           onClick={onToggle}
           aria-haspopup="dialog"
           aria-expanded={open}
-          className="
-            flex min-w-0 flex-1 items-center gap-3 text-left text-[14px]
-          "
+          className="flex min-w-0 flex-1 items-center gap-3 text-left text-ui"
         >
-          <span className="w-10 shrink-0 font-mono text-[13px] text-t4">
+          <span className="w-10 shrink-0 font-mono text-label text-t4">
             {noteName(note, base)}
           </span>
           <span
@@ -65,17 +66,14 @@ function SourceEditorRow({
           </span>
         </button>
         {changed && (
-          <button
-            type="button"
-            aria-label={`Clear source note ${noteName(note, base)}`}
+          <IconButton
+            label={`Clear source note ${noteName(note, base)}`}
+            size="sm"
+            tone="danger"
             onClick={() => onClear(note)}
-            className="
-              shrink-0 rounded-[5px] px-1.5 text-[15px] text-t5
-              hover:text-danger
-            "
           >
             ×
-          </button>
+          </IconButton>
         )}
       </div>
       {open && (
@@ -163,7 +161,8 @@ export function SourceEditor({
       })}
 
       <div className="mt-2 flex items-center gap-2">
-        <input
+        <TextField
+          mono
           value={addValue}
           onChange={(e) => setAddValue(e.target.value)}
           onKeyDown={(e) => {
@@ -172,24 +171,9 @@ export function SourceEditor({
           inputMode="numeric"
           aria-label="Add source note"
           placeholder="add note 0–127"
-          className="
-            w-32 rounded-md border border-field-border bg-field px-2 py-1.25
-            font-mono text-[13px] text-t2 transition-colors outline-none
-            placeholder:text-t5
-            focus:border-accent/40
-          "
+          className="w-32"
         />
-        <button
-          type="button"
-          onClick={addNote}
-          className="
-            rounded-md border border-field-border px-2.5 py-1.25 text-[13px]
-            text-t3 transition-colors
-            hover:text-t1
-          "
-        >
-          add
-        </button>
+        <Button variant="secondary" size="sm" onClick={addNote}>add</Button>
       </div>
     </div>
   );

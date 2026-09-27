@@ -50,8 +50,8 @@ export function Tooltip({
             style={floatingStyles}
             {...getFloatingProps()}
             className="
-              z-50 w-max max-w-64 rounded-[9px] border border-accent/25 bg-ink
-              px-3 py-2 text-left text-[11.5px] leading-snug text-t4
+              z-50 w-max max-w-64 rounded-panel border border-accent/25 bg-ink
+              px-3 py-2 text-left text-caption/snug text-t4
               shadow-[0_10px_30px_-8px_rgba(0,0,0,0.7)]
             "
           >

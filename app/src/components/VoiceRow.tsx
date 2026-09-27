@@ -2,18 +2,11 @@ import { useRef, type ReactNode } from 'react';
 import type { VoiceRow as VoiceRowData } from '../lib/midiremap';
 import { useDismiss } from '../hooks/useDismiss';
 import { noteName, type OctaveBase } from '../lib/notes';
+import { chip } from './styles';
 import { Tooltip } from './Tooltip';
 
-const CHIP = `
-  justify-self-end rounded-md border px-2.25 py-0.75 font-mono text-[14px]
-  font-semibold transition
-  hover:shadow-[0_0_12px_-2px_rgba(199,192,173,0.45)]
-`;
-
-function chipState(active: boolean, changed: boolean): string {
-  if (active) return 'border-accent bg-accent/18 text-t1';
-  if (changed) return 'border-accent/28 bg-accent/6 text-t1 hover:border-accent';
-  return 'border-field-border bg-field text-t3 hover:border-accent/40 hover:text-t1';
+function noteChip(active: boolean, changed: boolean): string {
+  return chip(active ? 'on' : changed ? 'changed' : 'off', 'md');
 }
 
 export function VoiceRow({
@@ -59,14 +52,14 @@ export function VoiceRow({
         grid grid-cols-[1fr_auto_16px_auto] items-center gap-3 py-2
       "
       >
-        <span className="truncate text-[12.5px] text-t2">{row.label}</span>
+        <span className="truncate text-label text-t2">{row.label}</span>
         <span className="flex items-center gap-1.5 justify-self-end">
           {extraNotes.length > 0 && (
             <Tooltip content={`Also ${extraNames}`}>
               <span
                 tabIndex={0}
                 aria-label={`Also plays ${extraNames}`}
-                className="font-mono text-[11px] text-t5"
+                className="font-mono text-caption text-t5"
               >
                 +{extraNotes.length}
               </span>
@@ -77,15 +70,12 @@ export function VoiceRow({
             aria-haspopup="dialog"
             aria-expanded={srcExpanded}
             onClick={onSrcToggle}
-            className={`
-              ${CHIP}
-              ${chipState(srcExpanded, srcChanged)}
-            `}
+            className={noteChip(srcExpanded, srcChanged)}
           >
             {silent ? '—' : noteName(srcNote, base)}
           </button>
         </span>
-        <span className="text-center text-t6">→</span>
+        <span aria-hidden="true" className="text-center text-decor">→</span>
         <button
           type="button"
           aria-haspopup="dialog"
@@ -94,13 +84,12 @@ export function VoiceRow({
           className={
             dropped && effectiveTgt === null
               ? `
-                ${CHIP}
-                border-dashed border-field-border bg-transparent text-t5
-                hover:border-accent/40 hover:text-t2
+                ${chip('off', 'md')}
+                justify-self-end border-dashed
               `
               : `
-                ${CHIP}
-                ${chipState(tgtExpanded, tgtChanged)}
+                ${noteChip(tgtExpanded, tgtChanged)}
+                justify-self-end
               `
           }
         >

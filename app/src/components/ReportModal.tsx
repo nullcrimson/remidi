@@ -1,4 +1,6 @@
 import { Modal } from './Modal';
+import { MonoLabel } from './MonoLabel';
+import { ProseLink } from './ProseLink';
 import type { ReportEntry, ReportFile, ReportGroups, ReportView } from '../lib/report';
 
 const GROUPS = [
@@ -19,33 +21,13 @@ function hasLoss(groups: ReportGroups): boolean {
   return groups.dropped.length + groups.approximated.length + groups.unrecognized.length > 0;
 }
 
-const CONTACT_LINK = `
-  text-star/85 underline decoration-star/30 decoration-1 underline-offset-4
-  transition
-  hover:text-star hover:decoration-star/60
-`;
-
 function ContactFooter() {
   return (
-    <p className="border-t border-hairline pt-4 text-[14px] text-t5">
+    <p className="border-t border-hairline pt-4 text-ui text-t5">
       Wrong mapping or missing engine? Open a{' '}
-      <a
-        href="https://github.com/nullcrimson/remidi/issues"
-        target="_blank"
-        rel="noopener noreferrer"
-        className={CONTACT_LINK}
-      >
-        GitHub issue
-      </a>{' '}
+      <ProseLink href="https://github.com/nullcrimson/remidi/issues">GitHub issue</ProseLink>{' '}
       or email{' '}
-      <a
-        href="mailto:null.crimson.dev@gmail.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        className={CONTACT_LINK}
-      >
-        null.crimson.dev@gmail.com
-      </a>
+      <ProseLink href="mailto:null.crimson.dev@gmail.com">null.crimson.dev@gmail.com</ProseLink>
       .
     </p>
   );
@@ -65,17 +47,13 @@ function Group({
   if (entries.length === 0) return null;
   return (
     <div className="flex flex-col gap-1">
-      <div className={`
-        font-mono text-[12px] tracking-[0.12em] uppercase
-        ${color}
-      `}
-      >
-        {title} <span className="text-t6">· {hint}</span>
-      </div>
+      <MonoLabel tone={color} className="uppercase">
+        {title} <span className="text-t5">· {hint}</span>
+      </MonoLabel>
       {entries.map((e) => (
         <div
           key={`${e.label}-${e.sub ?? ''}`}
-          className="flex items-center justify-between text-[12.5px] text-t3"
+          className="flex items-center justify-between text-label text-t3"
         >
           <span>{e.sub ? `${e.label} → ${e.sub}` : e.label}</span>
           <span className="font-mono text-t5">×{e.count}</span>
@@ -124,7 +102,7 @@ function Headline({ view, targetName }: { view: ReportView; targetName: string }
       </p>
     );
   }
-  return <p className="font-mono text-[11.5px] text-t4">{summaryLine(view)}</p>;
+  return <p className="font-mono text-caption text-t4">{summaryLine(view)}</p>;
 }
 
 export function ReportModal({
@@ -150,7 +128,7 @@ export function ReportModal({
           <div className="flex flex-col gap-4 border-t border-hairline pt-4">
             {detailFiles.map((f) => (
               <div key={f.name} className="flex flex-col gap-2">
-                <div className="font-mono text-[13px] text-t2">{f.name}</div>
+                <div className="font-mono text-label text-t2">{f.name}</div>
                 <GroupList groups={f.groups} untouched={f.untouched} />
               </div>
             ))}
