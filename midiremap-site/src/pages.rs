@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use midiremap_core::{
-    Canon, CanonResolution, Decoder, DefaultFallbacks, EngineMap, MapProvider, Resolution,
+    Canon, CanonResolution, Decoder, DefaultFallbacks, EngineMap, MapProvider, Note, Resolution,
     Translator,
 };
 
@@ -158,11 +158,11 @@ fn lookup<'a>(provider: &'a dyn MapProvider, id: &str) -> Result<&'a EngineMap, 
         .ok_or_else(|| SiteError::UnknownEngine(id.to_string()))
 }
 
-fn target(tgt: &EngineMap, note: u8, fallback: Canon) -> Target {
+fn target(tgt: &EngineMap, note: Note, fallback: Canon) -> Target {
     Target {
-        note,
-        name_c1: note_name(note, OctaveBase::C1),
-        name_c2: note_name(note, OctaveBase::C2),
+        note: note.get(),
+        name_c1: note_name(note.get(), OctaveBase::C1),
+        name_c2: note_name(note.get(), OctaveBase::C2),
         drum: tgt.decode(note).unwrap_or(fallback).label(),
     }
 }
@@ -184,9 +184,9 @@ fn pair_rows(src: &EngineMap, tgt: &EngineMap) -> Vec<PairRow> {
                 }
             };
             PairRow {
-                note: d.note,
-                name_c1: note_name(d.note, OctaveBase::C1),
-                name_c2: note_name(d.note, OctaveBase::C2),
+                note: d.note.get(),
+                name_c1: note_name(d.note.get(), OctaveBase::C1),
+                name_c2: note_name(d.note.get(), OctaveBase::C2),
                 drum: d.label,
                 outcome,
             }
@@ -238,9 +238,9 @@ fn engine_page(map: &EngineMap, majors: &[&EngineMap]) -> EnginePage {
             .source_notes()
             .into_iter()
             .map(|d| EngineRow {
-                note: d.note,
-                name_c1: note_name(d.note, OctaveBase::C1),
-                name_c2: note_name(d.note, OctaveBase::C2),
+                note: d.note.get(),
+                name_c1: note_name(d.note.get(), OctaveBase::C1),
+                name_c2: note_name(d.note.get(), OctaveBase::C2),
                 drum: d.label,
             })
             .collect(),

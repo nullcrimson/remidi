@@ -3,6 +3,7 @@ pub mod catalog;
 pub mod conversion;
 pub mod engine_map;
 pub mod midi;
+pub mod note;
 pub mod overrides;
 pub mod plan;
 pub mod table;
@@ -16,6 +17,7 @@ pub use midi::{
     ChannelFilter, ChannelScope, ChannelScopeError, CodecError, EventRewriter, MidiCodec,
     StandardMidiCodec,
 };
+pub use note::{Note, NoteOutOfRange};
 pub use overrides::Overrides;
 pub use plan::{plan, PlanStatus, VoicePlan};
 pub use table::NoteTable;

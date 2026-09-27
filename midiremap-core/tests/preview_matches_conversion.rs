@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use midiremap_core::{
     catalog::{BuiltinMaps, MapProvider},
     plan::{plan, PlanStatus},
-    remap_with_overrides, EngineMap, Overrides,
+    remap_with_overrides, EngineMap, Note, Overrides,
 };
 use midly::{
     num::{u15, u28, u4, u7},
@@ -106,7 +106,7 @@ fn previewed_by_source_note(src: &EngineMap, tgt: &EngineMap, ov: &Overrides) ->
                 );
             }
             if let Some(tgt_note) = row.tgt_note {
-                out.insert(note, tgt_note);
+                out.insert(note.get(), tgt_note.get());
             }
         }
     }
@@ -157,8 +157,8 @@ fn reassigned_note_converts_as_its_new_drum() {
         .into_iter()
         .find(|r| r.canon.to_string() == "snare1.hit")
         .unwrap();
-    assert_eq!(snare.tgt_note, Some(38));
-    assert_eq!(snare.src_notes.first(), Some(&24));
+    assert_eq!(snare.tgt_note.map(Note::get), Some(38));
+    assert_eq!(snare.src_notes.first().map(|n| n.get()), Some(24));
     assert_eq!(
         converted_by_source_note(&converted.bytes).get(&24),
         Some(&38)

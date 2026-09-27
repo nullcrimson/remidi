@@ -64,33 +64,42 @@ plan        ── per-drum view of the NoteTable (for UI display), no MIDI
 
 ### `canon` — the hub vocabulary
 
-- `Canon`: a `Copy` hierarchical enum whose variants carry sub-enums and indices —
-  `Kick(KickKind)`, `Snare(u8, SnareArtic)`, `Tom(TomPos, TomArtic)`,
-  `Hat(HatOpen, HatZone)`, `Aux(u8, HatOpen, HatZone)`, cymbals, `Ride(u8, …)`,
-  and aux percussion. Each `Canon` serializes to a stable **dotted lowercase key**
-  via a hand-written `Serialize`/`Deserialize` (e.g. `kick.main`, `snare1.hit`,
-  `tom.rack1.hit`, `hat.closed`, `crash.1.bell`, `ride.1`); these keys are the
-  contract shared with the presets, JSON overrides, and the web app.
-- `Canon::all()` enumerates every variant (used by exhaustiveness tests and to
-  build the canon catalog), replacing an external iteration derive.
+- `Canon`: a `Copy` hierarchical enum whose variants carry sub-enums and bounded
+  positions — `Kick(KickKind)`, `Snare(SnareIdx, SnareArtic)`, `Tom(TomPos, TomArtic)`,
+  `Hat(HatOpen, HatZone)`, `Aux(AuxIdx, HatOpen, HatZone)`,
+  `Cymbal(CymSlot, CymArtic)`, `Ride(RideIdx, RideArtic)` and percussion.
+- `Idx<const MAX: u8>` holds a 1-based position that is always in `1..=MAX`
+  (`SnareIdx = Idx<2>`, `RackIdx = Idx<8>`, `FloorIdx = Idx<4>`, `OpenLevel = Idx<6>`,
+  …); `CymSlot { Crash(Idx<6>) | China(Idx<3>) | Splash(Idx<3>) | Stack(Idx<4>) |
+  Bell(Idx<2>) }` gives each cymbal kind its own range. Every valid range is written
+  once, as a type, so an out-of-range slot cannot be constructed.
+- Each `Canon` displays and serializes to a stable **dotted lowercase key**
+  (e.g. `kick.main`, `snare1.hit`, `tom.rack1.hit`, `hat.closed`, `crash.1.bell`,
+  `ride.1`); these keys are the contract shared with the presets, JSON overrides,
+  and the web app.
+- `Canon::all()` is every slot, built once. `FromStr` is a lookup table built from
+  `all()` and `Display` (plus the alias `ride.N.bow`), so every key round-trips by
+  construction.
 - `FallbackResolver` trait + `DefaultFallbacks`: given a canon, returns its
   ordered, nearest-first list of usable alternatives.
 
-**Fallback invariant.** The resolver walk is *non-recursive*: it tries each slot
-in the returned chain exactly once and does not expand that slot's own chain.
-Therefore every chain must list the full transitive closure of alternatives,
-nearest first, and the last element of any non-empty chain must itself have an
-empty chain. The `chains_terminate` test enforces this.
+**Fallback invariant.** `single_step` gives a slot's immediate, nearest
+alternatives; `fallback` is the breadth-first closure of that relation, so a chain
+lists every reachable alternative once, nearest first, never the slot itself. The
+`chain_is_closed_no_self_no_dupes` test enforces this.
 
 ### `engine_map` — one engine's note table
 
-- `Decoder` (`note → Option<Canon>`) and `Encoder` (`Canon → Option<u8>`) traits.
+- `Note` (module `note`): a MIDI note number that is always in `0..=127`. It
+  deserializes from a plain number, rejecting anything larger, and converts to and
+  from `midly`'s `u7` at the MIDI boundary. Every note in the core — engine maps,
+  overrides, the note table, the report and the plan — is a `Note`.
+- `Decoder` (`Note → Option<Canon>`) and `Encoder` (`Canon → Option<Note>`) traits.
 - `EngineMap` implements both. Built from a TOML/JSON document (see below):
-  - `to_canon: HashMap<u8, Canon>` — decode direction, one entry per listed note.
-  - `from_canon: HashMap<Canon, u8>` — encode direction. A note flagged
+  - `to_canon: HashMap<Note, Canon>` — decode direction, one entry per listed note.
+  - `from_canon: HashMap<Canon, Note>` — encode direction. A note flagged
     `primary` wins the reverse mapping; a duplicate primary for one canon is a
     build error. Non-primary notes fill a canon only if no primary claimed it.
-- Note values are validated to `0..=127` at build time.
 
 ### `translate` — the pipeline, no MIDI
 
@@ -174,8 +183,8 @@ empty chain. The `chains_terminate` test enforces this.
   `{ "tgt": [{ "canon", "note" }], "src": [{ "canon", "note" }] }`. `tgt` retargets
   the *encode* side ("encode this canon as this note"); `src` retargets the
   *decode* side ("read this source note as this canon"), which lets a note the
-  source engine doesn't map be rescued to a canon. Note values validate to
-  `0..=127`.
+  source engine doesn't map be rescued to a canon. Notes are `Note`s, so an
+  out-of-range value fails deserialization.
 - `OverrideEncoder` wraps a base `Encoder`: an overridden canon uses the override
   note; everything else falls through to the base engine.
 - `OverrideDecoder` wraps a base `Decoder`: an overridden source note decodes to

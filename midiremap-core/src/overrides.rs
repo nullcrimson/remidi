@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
-use serde::{de, Deserialize, Deserializer};
+use serde::Deserialize;
 
 use crate::{
     canon::Canon,
     engine_map::{Decoder, Encoder},
+    note::Note,
 };
 
 #[derive(Deserialize, Default)]
@@ -18,19 +19,7 @@ pub struct Overrides {
 #[derive(Deserialize)]
 pub struct CanonNote {
     pub canon: Canon,
-    #[serde(deserialize_with = "midi_note")]
-    pub note: u8,
-}
-
-fn midi_note<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
-    let note = u8::deserialize(d)?;
-    if note > 127 {
-        return Err(de::Error::invalid_value(
-            de::Unexpected::Unsigned(u64::from(note)),
-            &"a MIDI note in 0..=127",
-        ));
-    }
-    Ok(note)
+    pub note: Note,
 }
 
 impl Overrides {
@@ -55,11 +44,11 @@ impl Overrides {
 
 pub struct OverrideEncoder<'a> {
     base: &'a dyn Encoder,
-    extra: HashMap<Canon, u8>,
+    extra: HashMap<Canon, Note>,
 }
 
 impl Encoder for OverrideEncoder<'_> {
-    fn encode(&self, canon: Canon) -> Option<u8> {
+    fn encode(&self, canon: Canon) -> Option<Note> {
         self.extra
             .get(&canon)
             .copied()
@@ -69,11 +58,11 @@ impl Encoder for OverrideEncoder<'_> {
 
 pub struct OverrideDecoder<'a> {
     base: &'a dyn Decoder,
-    extra: HashMap<u8, Canon>,
+    extra: HashMap<Note, Canon>,
 }
 
 impl Decoder for OverrideDecoder<'_> {
-    fn decode(&self, note: u8) -> Option<Canon> {
+    fn decode(&self, note: Note) -> Option<Canon> {
         self.extra
             .get(&note)
             .copied()
@@ -85,8 +74,9 @@ impl Decoder for OverrideDecoder<'_> {
 mod tests {
     use super::*;
     use crate::{
-        canon::{Canon, KickKind, SnareArtic},
+        canon::{idx, Canon, KickKind, SnareArtic},
         engine_map::{from_toml, Decoder, Encoder},
+        note::n,
     };
 
     const TGT: &str = r#"
@@ -123,7 +113,7 @@ mod tests {
     fn note_127_is_accepted() {
         let ov: Overrides =
             serde_json::from_str(r#"{"src":[{"note":127,"canon":"kick.main"}]}"#).unwrap();
-        assert_eq!(ov.src[0].note, 127);
+        assert_eq!(ov.src[0].note, n(127));
     }
 
     #[test]
@@ -138,11 +128,11 @@ mod tests {
         .unwrap();
         assert_eq!(
             ov.encoder(&base).encode(Canon::Kick(KickKind::Main)),
-            Some(40)
+            Some(n(40))
         );
         assert_eq!(
-            ov.decoder(&base).decode(99),
-            Some(Canon::Snare(1, SnareArtic::Hit))
+            ov.decoder(&base).decode(n(99)),
+            Some(Canon::Snare(idx(1), SnareArtic::Hit))
         );
     }
 
@@ -152,8 +142,8 @@ mod tests {
         let ov: Overrides =
             serde_json::from_str(r#"{"tgt":[{"canon":"kick.main","note":35}]}"#).unwrap();
         let enc = ov.encoder(&base);
-        assert_eq!(enc.encode(Canon::Kick(KickKind::Main)), Some(35));
-        assert_eq!(enc.encode(Canon::Snare(1, SnareArtic::Hit)), None);
+        assert_eq!(enc.encode(Canon::Kick(KickKind::Main)), Some(n(35)));
+        assert_eq!(enc.encode(Canon::Snare(idx(1), SnareArtic::Hit)), None);
     }
 
     #[test]
@@ -162,8 +152,8 @@ mod tests {
         let ov: Overrides =
             serde_json::from_str(r#"{"src":[{"note":99,"canon":"kick.main"}]}"#).unwrap();
         let dec = ov.decoder(&base);
-        assert_eq!(dec.decode(99), Some(Canon::Kick(KickKind::Main)));
-        assert_eq!(dec.decode(36), Some(Canon::Kick(KickKind::Main)));
-        assert_eq!(dec.decode(50), None);
+        assert_eq!(dec.decode(n(99)), Some(Canon::Kick(KickKind::Main)));
+        assert_eq!(dec.decode(n(36)), Some(Canon::Kick(KickKind::Main)));
+        assert_eq!(dec.decode(n(50)), None);
     }
 }

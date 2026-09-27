@@ -1,26 +1,29 @@
-use crate::translate::{Resolution, Translator};
+use crate::{
+    note::Note,
+    translate::{Resolution, Translator},
+};
 
-const NOTES: usize = 128;
+const NOTES: usize = Note::MAX as usize + 1;
 
 /// Every source note's resolution, compiled once per (source, target, overrides).
 pub struct NoteTable([Resolution; NOTES]);
 
 impl NoteTable {
     pub fn compile(translator: &Translator) -> Self {
-        Self(std::array::from_fn(|note| {
-            u8::try_from(note).map_or(Resolution::Unmapped, |n| translator.translate(n))
+        let mut notes = Note::all();
+        Self(std::array::from_fn(|_| {
+            notes
+                .next()
+                .map_or(Resolution::Unmapped, |n| translator.translate(n))
         }))
     }
 
-    /// Notes outside 0..=127 are [`Resolution::Unmapped`].
-    pub fn get(&self, note: u8) -> &Resolution {
-        self.0
-            .get(usize::from(note))
-            .unwrap_or(&Resolution::Unmapped)
+    pub fn get(&self, note: Note) -> &Resolution {
+        &self.0[usize::from(note.get())]
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (u8, &Resolution)> {
-        (0..=u8::MAX).zip(&self.0)
+    pub fn iter(&self) -> impl Iterator<Item = (Note, &Resolution)> {
+        Note::all().zip(&self.0)
     }
 }
 
@@ -55,7 +58,7 @@ mod tests {
                     Translator::new(&dec, &enc, &DefaultFallbacks),
                 ] {
                     let table = NoteTable::compile(&t);
-                    for note in 0..128 {
+                    for note in Note::all() {
                         assert_eq!(
                             table.get(note),
                             &t.translate(note),
@@ -68,19 +71,11 @@ mod tests {
     }
 
     #[test]
-    fn out_of_range_note_is_unmapped() {
-        let b = BuiltinMaps::new();
-        let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
-        let table = NoteTable::compile(&Translator::new(src, tgt, &DefaultFallbacks));
-        assert_eq!(table.get(200), &Resolution::Unmapped);
-    }
-
-    #[test]
     fn iter_yields_each_note_once_in_order() {
         let b = BuiltinMaps::new();
         let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
         let table = NoteTable::compile(&Translator::new(src, tgt, &DefaultFallbacks));
-        let notes: Vec<u8> = table.iter().map(|(n, _)| n).collect();
+        let notes: Vec<u8> = table.iter().map(|(n, _)| n.get()).collect();
         assert_eq!(notes, (0..128).collect::<Vec<u8>>());
     }
 }

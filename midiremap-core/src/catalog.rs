@@ -90,8 +90,9 @@ impl<P: MapProvider> MapProvider for LayeredMaps<P> {
 mod tests {
     use super::*;
     use crate::{
-        canon::{Canon, HatOpen, HatZone, KickKind, SnareArtic},
+        canon::{idx, Canon, HatOpen, HatZone, KickKind, SnareArtic},
         engine_map::{Decoder, Encoder},
+        note::n,
     };
 
     #[test]
@@ -118,16 +119,16 @@ mod tests {
     fn engine_specific_decodes() {
         let b = BuiltinMaps::new();
         assert_eq!(
-            b.get("general_midi").unwrap().decode(36),
+            b.get("general_midi").unwrap().decode(n(36)),
             Some(Canon::Kick(KickKind::Main))
         );
         assert_eq!(
-            b.get("general_midi").unwrap().decode(42),
+            b.get("general_midi").unwrap().decode(n(42)),
             Some(Canon::Hat(HatOpen::Closed, HatZone::Plain))
         );
         assert_eq!(
-            b.get("guitar_pro").unwrap().decode(38),
-            Some(Canon::Snare(1, SnareArtic::Hit))
+            b.get("guitar_pro").unwrap().decode(n(38)),
+            Some(Canon::Snare(idx(1), SnareArtic::Hit))
         );
     }
 
@@ -136,19 +137,19 @@ mod tests {
         let b = BuiltinMaps::new();
         let ggd = b.get("ggd_invasion").unwrap();
         assert_eq!(
-            ggd.decode(54),
+            ggd.decode(n(54)),
             Some("crash.2.hit".parse::<Canon>().unwrap())
         );
         assert_eq!(
-            ggd.decode(67),
+            ggd.decode(n(67)),
             Some("china.2.hit".parse::<Canon>().unwrap())
         );
         assert_eq!(
-            ggd.decode(75),
+            ggd.decode(n(75)),
             Some("splash.2.hit".parse::<Canon>().unwrap())
         );
         assert_eq!(
-            ggd.decode(53),
+            ggd.decode(n(53)),
             Some("crash.1.mute".parse::<Canon>().unwrap())
         );
     }
@@ -158,13 +159,13 @@ mod tests {
         let b = BuiltinMaps::new();
         let ad2 = b.get("addictive_drums2").unwrap();
         assert_eq!(
-            ad2.decode(49),
+            ad2.decode(n(49)),
             Some(Canon::Hat(HatOpen::Tight, HatZone::Tip))
         );
-        assert_eq!(ad2.decode(36), Some(Canon::Kick(KickKind::Main)));
+        assert_eq!(ad2.decode(n(36)), Some(Canon::Kick(KickKind::Main)));
         assert_eq!(
-            ad2.encode(Canon::Hat(HatOpen::Open(1), HatZone::Plain)),
-            Some(55)
+            ad2.encode(Canon::Hat(HatOpen::Open(idx(1)), HatZone::Plain)),
+            Some(n(55))
         );
     }
 
@@ -176,7 +177,7 @@ mod tests {
             .unwrap();
         let ezd = p.get("ezdrummer").unwrap();
         assert_eq!(ezd.name, "Custom EZD");
-        assert_eq!(ezd.encode(Canon::Kick(KickKind::Main)), Some(35));
+        assert_eq!(ezd.encode(Canon::Kick(KickKind::Main)), Some(n(35)));
     }
 
     #[test]
@@ -186,7 +187,7 @@ mod tests {
             .with_user_json(json)
             .unwrap();
         assert_eq!(
-            p.get("ggd_invasion").unwrap().decode(24),
+            p.get("ggd_invasion").unwrap().decode(n(24)),
             Some(Canon::Kick(KickKind::Main))
         );
         assert!(p.get("custom").is_some());

@@ -6,6 +6,7 @@ use midly::{
 };
 
 use crate::{
+    note::Note,
     table::NoteTable,
     translate::{CanonResolution, ReportSink, Resolution},
 };
@@ -155,15 +156,16 @@ impl<'a> EventRewriter<'a> {
                     TrackEventKind::Midi { channel, message } if filter.accepts(*channel) => {
                         match message {
                             MidiMessage::NoteOn { key, vel } => {
-                                let res = self.table.get(key.as_int());
+                                let note = Note::from(*key);
+                                let res = self.table.get(note);
                                 if vel.as_int() > 0 {
-                                    sink.record(key.as_int(), res);
+                                    sink.record(note, res);
                                 }
                                 apply(res, key)
                             }
                             MidiMessage::NoteOff { key, .. }
                             | MidiMessage::Aftertouch { key, .. } => {
-                                apply(self.table.get(key.as_int()), key)
+                                apply(self.table.get(Note::from(*key)), key)
                             }
                             _ => true,
                         }
@@ -188,7 +190,7 @@ fn apply(res: &Resolution, key: &mut u7) -> bool {
     match res {
         Resolution::Resolved(CanonResolution::Direct { note, .. })
         | Resolution::Resolved(CanonResolution::Fallback { note, .. }) => {
-            *key = u7::from_int_lossy(*note);
+            *key = u7::from(*note);
             true
         }
         Resolution::Unmapped | Resolution::Resolved(CanonResolution::Dropped { .. }) => false,

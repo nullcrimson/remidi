@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use midiremap_core::{
-    plan as core_plan, remap_with_overrides, BuiltinMaps, Canon, FallbackTally, MapProvider,
+    plan as core_plan, remap_with_overrides, BuiltinMaps, Canon, FallbackTally, MapProvider, Note,
     Overrides, PlanStatus, Report,
 };
 use serde::Serialize;
@@ -81,9 +81,9 @@ pub fn remap(
 struct VoiceRow {
     canon: String,
     label: String,
-    src_notes: Vec<u8>,
-    tgt_note: Option<u8>,
-    default_tgt_note: Option<u8>,
+    src_notes: Vec<Note>,
+    tgt_note: Option<Note>,
+    default_tgt_note: Option<Note>,
     status: &'static str,
 }
 
@@ -121,7 +121,7 @@ pub fn plan(
 
 #[derive(Serialize)]
 struct DrumView {
-    note: u8,
+    note: Note,
     canon: String,
     label: String,
     family: String,
@@ -175,8 +175,8 @@ struct CanonView {
 #[wasm_bindgen]
 pub fn canon_catalog() -> Result<JsValue, JsValue> {
     let items: Vec<CanonView> = Canon::all()
-        .into_iter()
-        .map(|c| CanonView {
+        .iter()
+        .map(|&c| CanonView {
             canon: c.to_string(),
             label: c.label(),
             family: c.family().to_string(),

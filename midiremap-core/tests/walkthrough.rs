@@ -4,7 +4,7 @@ use midiremap_core::{
     canon::{fallback, Canon},
     catalog::{BuiltinMaps, MapProvider},
     engine_map::{Decoder, Encoder, EngineMap},
-    remap, FallbackTally,
+    remap, FallbackTally, Note,
 };
 use midly::{
     num::{u15, u24, u28, u4, u7},
@@ -16,7 +16,7 @@ const QUARTER: u32 = PPQ as u32;
 const DRUM_CHANNEL: u8 = 9;
 const MICROS_PER_QUARTER_90BPM: u32 = 60_000_000 / 90;
 
-fn walkthrough_smf(notes: &[u8]) -> Vec<u8> {
+fn walkthrough_smf(notes: &[Note]) -> Vec<u8> {
     let mut track = Track::new();
     track.push(TrackEvent {
         delta: u28::from_int_lossy(0),
@@ -30,7 +30,7 @@ fn walkthrough_smf(notes: &[u8]) -> Vec<u8> {
             kind: TrackEventKind::Midi {
                 channel: u4::from_int_lossy(DRUM_CHANNEL),
                 message: MidiMessage::NoteOn {
-                    key: u7::from_int_lossy(note),
+                    key: u7::from(note),
                     vel: u7::from_int_lossy(100),
                 },
             },
@@ -40,7 +40,7 @@ fn walkthrough_smf(notes: &[u8]) -> Vec<u8> {
             kind: TrackEventKind::Midi {
                 channel: u4::from_int_lossy(DRUM_CHANNEL),
                 message: MidiMessage::NoteOff {
-                    key: u7::from_int_lossy(note),
+                    key: u7::from(note),
                     vel: u7::from_int_lossy(0),
                 },
             },
@@ -73,8 +73,8 @@ fn note_on_keys(bytes: &[u8]) -> Vec<u8> {
 }
 
 enum Expected {
-    Direct(u8),
-    Fallback(u8),
+    Direct(Note),
+    Fallback(Note),
     Dropped,
 }
 
@@ -117,7 +117,7 @@ fn ezdrummer2_is_the_richest_source_kit() {
 fn walkthrough_is_ninety_bpm_quarter_notes_one_per_drum() {
     let maps = BuiltinMaps::new();
     let src = maps.get(richest_engine(&maps)).unwrap();
-    let notes: Vec<u8> = src.source_notes().iter().map(|d| d.note).collect();
+    let notes: Vec<Note> = src.source_notes().iter().map(|d| d.note).collect();
     let midi = walkthrough_smf(&notes);
     let smf = Smf::parse(&midi).unwrap();
 
@@ -149,7 +149,7 @@ fn walkthrough_is_ninety_bpm_quarter_notes_one_per_drum() {
     );
     assert_eq!(
         note_on_keys(&midi),
-        notes,
+        notes.iter().map(|n| n.get()).collect::<Vec<_>>(),
         "walkthrough visits every source note once, in order"
     );
 
@@ -162,7 +162,7 @@ fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
     let maps = BuiltinMaps::new();
     let src_id = richest_engine(&maps);
     let src = maps.get(src_id).unwrap();
-    let notes: Vec<u8> = src.source_notes().iter().map(|d| d.note).collect();
+    let notes: Vec<Note> = src.source_notes().iter().map(|d| d.note).collect();
     let midi = walkthrough_smf(&notes);
 
     let mut target_ids = maps.ids();
@@ -179,9 +179,9 @@ fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
                 .decode(note)
                 .unwrap_or_else(|| panic!("{src_id} note {note} must decode"));
             match expected_resolution(canon, tgt) {
-                Expected::Direct(n) => expected_keys.push(n),
+                Expected::Direct(n) => expected_keys.push(n.get()),
                 Expected::Fallback(n) => {
-                    expected_keys.push(n);
+                    expected_keys.push(n.get());
                     expected_fallback
                         .entry(canon)
                         .or_insert(FallbackTally { note: n, count: 0 })
@@ -228,7 +228,7 @@ fn same_engine_conversion_is_all_direct() {
     let maps = BuiltinMaps::new();
     let src_id = richest_engine(&maps);
     let src = maps.get(src_id).unwrap();
-    let notes: Vec<u8> = src.source_notes().iter().map(|d| d.note).collect();
+    let notes: Vec<Note> = src.source_notes().iter().map(|d| d.note).collect();
     let midi = walkthrough_smf(&notes);
 
     let out = remap(&midi, src, src).unwrap();
@@ -259,7 +259,7 @@ fn walkthrough_hits_general_midi_anchor_notes() {
     ] {
         let canon: Canon = key.parse().unwrap();
         assert_eq!(
-            gm.encode(canon),
+            gm.encode(canon).map(Note::get),
             Some(note),
             "general_midi must map {key} to note {note}"
         );

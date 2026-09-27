@@ -87,6 +87,7 @@ mod tests {
     use crate::{
         canon::Canon,
         catalog::{BuiltinMaps, MapProvider},
+        note::n,
         translate::FallbackTally,
     };
 
@@ -179,7 +180,10 @@ mod tests {
             out.report
                 .fallback_used
                 .get(&"china.1.hit".parse::<Canon>().unwrap()),
-            Some(&FallbackTally { note: 86, count: 1 })
+            Some(&FallbackTally {
+                note: n(86),
+                count: 1
+            })
         );
     }
 
@@ -191,7 +195,7 @@ mod tests {
             "ezdrummer",
         );
         assert!(note_on_keys(&out.bytes).is_empty());
-        assert_eq!(out.report.unmapped_source.get(&99), Some(&1));
+        assert_eq!(out.report.unmapped_source.get(&n(99)), Some(&1));
     }
 
     #[test]

@@ -1,16 +1,65 @@
-use std::{fmt, str::FromStr};
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    fmt,
+    str::FromStr,
+    sync::LazyLock,
+};
 
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+
+/// A 1-based position, always within `1..=MAX`.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub struct Idx<const MAX: u8>(u8);
+
+impl<const MAX: u8> Idx<MAX> {
+    pub const FIRST: Self = Self(1);
+    pub const MAX: u8 = MAX;
+
+    pub const fn new(n: u8) -> Option<Self> {
+        if n >= 1 && n <= MAX {
+            Some(Self(n))
+        } else {
+            None
+        }
+    }
+
+    pub const fn get(self) -> u8 {
+        self.0
+    }
+
+    /// Every position, ascending.
+    pub fn all() -> impl Iterator<Item = Self> {
+        (1..=MAX).map(Self)
+    }
+
+    /// The position below this one, if any.
+    pub fn prev(self) -> Option<Self> {
+        Self::new(self.0 - 1)
+    }
+}
+
+impl<const MAX: u8> fmt::Display for Idx<MAX> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+pub type SnareIdx = Idx<2>;
+pub type AuxIdx = Idx<2>;
+pub type RideIdx = Idx<2>;
+pub type RackIdx = Idx<8>;
+pub type FloorIdx = Idx<4>;
+pub type OpenLevel = Idx<6>;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum Canon {
     Kick(KickKind),
-    Snare(u8, SnareArtic),
+    Snare(SnareIdx, SnareArtic),
     Tom(TomPos, TomArtic),
     Hat(HatOpen, HatZone),
-    Aux(u8, HatOpen, HatZone),
-    Cymbal(CymKind, u8, CymArtic),
-    Ride(u8, RideArtic),
+    Aux(AuxIdx, HatOpen, HatZone),
+    Cymbal(CymSlot, CymArtic),
+    Ride(RideIdx, RideArtic),
     Perc(PercKind),
 }
 
@@ -33,8 +82,8 @@ pub enum SnareArtic {
 }
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum TomPos {
-    Rack(u8),
-    Floor(u8),
+    Rack(RackIdx),
+    Floor(FloorIdx),
 }
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum TomArtic {
@@ -47,7 +96,7 @@ pub enum HatOpen {
     Tight,
     Closed,
     Loose,
-    Open(u8),
+    Open(OpenLevel),
     Cc,
     Pedal,
     PedalSplash,
@@ -59,13 +108,14 @@ pub enum HatZone {
     Edge,
     Bell,
 }
+/// A cymbal and its position; each kind has its own number of positions.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
-pub enum CymKind {
-    Crash,
-    China,
-    Splash,
-    Stack,
-    Bell,
+pub enum CymSlot {
+    Crash(Idx<6>),
+    China(Idx<3>),
+    Splash(Idx<3>),
+    Stack(Idx<4>),
+    Bell(Idx<2>),
 }
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum CymArtic {
@@ -97,6 +147,57 @@ pub enum PercKind {
     Misc,
 }
 
+impl CymSlot {
+    fn all() -> impl Iterator<Item = Self> {
+        Idx::all()
+            .map(Self::Crash)
+            .chain(Idx::all().map(Self::China))
+            .chain(Idx::all().map(Self::Splash))
+            .chain(Idx::all().map(Self::Stack))
+            .chain(Idx::all().map(Self::Bell))
+    }
+
+    fn index(self) -> u8 {
+        match self {
+            Self::Crash(i) => i.get(),
+            Self::China(i) | Self::Splash(i) => i.get(),
+            Self::Stack(i) => i.get(),
+            Self::Bell(i) => i.get(),
+        }
+    }
+
+    fn prev(self) -> Option<Self> {
+        match self {
+            Self::Crash(i) => i.prev().map(Self::Crash),
+            Self::China(i) => i.prev().map(Self::China),
+            Self::Splash(i) => i.prev().map(Self::Splash),
+            Self::Stack(i) => i.prev().map(Self::Stack),
+            Self::Bell(i) => i.prev().map(Self::Bell),
+        }
+    }
+
+    fn key(self) -> &'static str {
+        match self {
+            Self::Crash(_) => "crash",
+            Self::China(_) => "china",
+            Self::Splash(_) => "splash",
+            Self::Stack(_) => "stack",
+            Self::Bell(_) => "bell",
+        }
+    }
+
+    fn label(self) -> &'static str {
+        match self {
+            Self::Crash(_) => "Crash",
+            Self::China(_) => "China",
+            Self::Splash(_) => "Splash",
+            Self::Stack(_) => "Stack",
+            Self::Bell(_) => "Bell",
+        }
+    }
+}
+
+const KICK_KINDS: [KickKind; 3] = [KickKind::Main, KickKind::Alt, KickKind::Left];
 const SNARE_ARTICS: [SnareArtic; 8] = {
     use SnareArtic::*;
     [Hit, Rim, Rimshot, Sidestick, Flam, Ruff, Off, Side]
@@ -116,69 +217,50 @@ const PERC_KINDS: [PercKind; 7] = {
     [Cowbell, Clap, Shaker, Sticks, Tambourine, Vibraslap, Misc]
 };
 
-fn hat_openings() -> Vec<HatOpen> {
+fn hat_openings() -> impl Iterator<Item = HatOpen> {
     use HatOpen::*;
-    let mut v = vec![Tight, Closed, Loose, Cc, Pedal, PedalSplash];
-    v.extend((1..=6).map(Open));
-    v
+    [Tight, Closed, Loose, Cc, Pedal, PedalSplash]
+        .into_iter()
+        .chain(OpenLevel::all().map(Open))
 }
 
+fn hat_slots() -> impl Iterator<Item = (HatOpen, HatZone)> {
+    hat_openings().flat_map(|o| HAT_ZONES.map(|z| (o, z)))
+}
+
+fn tom_positions() -> impl Iterator<Item = TomPos> {
+    RackIdx::all()
+        .map(TomPos::Rack)
+        .chain(FloorIdx::all().map(TomPos::Floor))
+}
+
+fn build_all() -> Vec<Canon> {
+    KICK_KINDS
+        .into_iter()
+        .map(Canon::Kick)
+        .chain(SnareIdx::all().flat_map(|i| SNARE_ARTICS.map(|a| Canon::Snare(i, a))))
+        .chain(tom_positions().flat_map(|p| TOM_ARTICS.map(|a| Canon::Tom(p, a))))
+        .chain(hat_slots().map(|(o, z)| Canon::Hat(o, z)))
+        .chain(AuxIdx::all().flat_map(|i| hat_slots().map(move |(o, z)| Canon::Aux(i, o, z))))
+        .chain(CymSlot::all().flat_map(|s| CYM_ARTICS.map(|a| Canon::Cymbal(s, a))))
+        .chain(RideIdx::all().flat_map(|i| RIDE_ARTICS.map(|a| Canon::Ride(i, a))))
+        .chain(PERC_KINDS.map(Canon::Perc))
+        .collect()
+}
+
+static ALL: LazyLock<Vec<Canon>> = LazyLock::new(build_all);
+
+static BY_KEY: LazyLock<HashMap<String, Canon>> = LazyLock::new(|| {
+    ALL.iter()
+        .map(|&c| (c.to_string(), c))
+        .chain(RideIdx::all().map(|i| (format!("ride.{i}.bow"), Canon::Ride(i, RideArtic::Bow))))
+        .collect()
+});
+
 impl Canon {
-    pub fn all() -> Vec<Canon> {
-        let mut out = Vec::new();
-        for k in [KickKind::Main, KickKind::Alt, KickKind::Left] {
-            out.push(Canon::Kick(k));
-        }
-        for idx in 1..=2u8 {
-            for a in SNARE_ARTICS {
-                out.push(Canon::Snare(idx, a));
-            }
-        }
-        for n in 1..=8u8 {
-            for a in TOM_ARTICS {
-                out.push(Canon::Tom(TomPos::Rack(n), a));
-            }
-        }
-        for n in 1..=4u8 {
-            for a in TOM_ARTICS {
-                out.push(Canon::Tom(TomPos::Floor(n), a));
-            }
-        }
-        for o in hat_openings() {
-            for z in HAT_ZONES {
-                out.push(Canon::Hat(o, z));
-            }
-        }
-        for idx in 1..=2u8 {
-            for o in hat_openings() {
-                for z in HAT_ZONES {
-                    out.push(Canon::Aux(idx, o, z));
-                }
-            }
-        }
-        let cym: [(CymKind, u8); 5] = [
-            (CymKind::Crash, 6),
-            (CymKind::China, 3),
-            (CymKind::Splash, 3),
-            (CymKind::Stack, 4),
-            (CymKind::Bell, 2),
-        ];
-        for (kind, max) in cym {
-            for idx in 1..=max {
-                for a in CYM_ARTICS {
-                    out.push(Canon::Cymbal(kind, idx, a));
-                }
-            }
-        }
-        for idx in 1..=2u8 {
-            for a in RIDE_ARTICS {
-                out.push(Canon::Ride(idx, a));
-            }
-        }
-        for k in PERC_KINDS {
-            out.push(Canon::Perc(k));
-        }
-        out
+    /// Every canonical slot, in declaration order.
+    pub fn all() -> &'static [Canon] {
+        &ALL
     }
 }
 
@@ -227,16 +309,6 @@ fn hat_zone_key(z: HatZone) -> Option<&'static str> {
         HatZone::Tip => Some("tip"),
         HatZone::Edge => Some("edge"),
         HatZone::Bell => Some("bell"),
-    }
-}
-fn cym_kind_key(k: CymKind) -> &'static str {
-    use CymKind::*;
-    match k {
-        Crash => "crash",
-        China => "china",
-        Splash => "splash",
-        Stack => "stack",
-        Bell => "bell",
     }
 }
 fn cym_artic_key(a: CymArtic) -> &'static str {
@@ -295,9 +367,7 @@ impl fmt::Display for Canon {
                 Some(zs) => write!(f, "aux{i}.{}.{zs}", hat_open_key(o)),
                 None => write!(f, "aux{i}.{}", hat_open_key(o)),
             },
-            Canon::Cymbal(k, i, a) => {
-                write!(f, "{}.{i}.{}", cym_kind_key(k), cym_artic_key(a))
-            }
+            Canon::Cymbal(s, a) => write!(f, "{}.{}.{}", s.key(), s.index(), cym_artic_key(a)),
             Canon::Ride(i, a) => match ride_artic_key(a) {
                 Some(as_) => write!(f, "ride.{i}.{as_}"),
                 None => write!(f, "ride.{i}"),
@@ -311,160 +381,15 @@ impl fmt::Display for Canon {
 #[error("invalid canon key: {0}")]
 pub struct CanonParseError(pub String);
 
-fn tom_rack_idx(s: &str) -> Option<u8> {
-    s.parse::<u8>().ok().filter(|n| (1..=8).contains(n))
-}
-
-fn parse_hat_open(s: &str) -> Option<HatOpen> {
-    use HatOpen::*;
-    Some(match s {
-        "tight" => Tight,
-        "closed" => Closed,
-        "loose" => Loose,
-        "cc" => Cc,
-        "pedal" => Pedal,
-        "pedalsplash" => PedalSplash,
-        _ => Open(
-            s.strip_prefix("open")?
-                .parse::<u8>()
-                .ok()
-                .filter(|n| (1..=6).contains(n))?,
-        ),
-    })
-}
-fn parse_hat_zone(s: Option<&str>) -> Option<HatZone> {
-    match s {
-        None => Some(HatZone::Plain),
-        Some("tip") => Some(HatZone::Tip),
-        Some("edge") => Some(HatZone::Edge),
-        Some("bell") => Some(HatZone::Bell),
-        Some(_) => None,
-    }
-}
-
 impl FromStr for Canon {
     type Err = CanonParseError;
+
+    /// Accepts exactly the keys `Display` produces, plus the alias `ride.N.bow`.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let p: Vec<&str> = s.split('.').collect();
-        let parsed = (|| match p.as_slice() {
-            ["kick", k] => Some(Canon::Kick(match *k {
-                "main" => KickKind::Main,
-                "alt" => KickKind::Alt,
-                "left" => KickKind::Left,
-                _ => return None,
-            })),
-            [snare, a] if snare.starts_with("snare") => {
-                let i = snare
-                    .strip_prefix("snare")?
-                    .parse::<u8>()
-                    .ok()
-                    .filter(|n| (1..=2).contains(n))?;
-                let a = match *a {
-                    "hit" => SnareArtic::Hit,
-                    "rim" => SnareArtic::Rim,
-                    "rimshot" => SnareArtic::Rimshot,
-                    "sidestick" => SnareArtic::Sidestick,
-                    "flam" => SnareArtic::Flam,
-                    "ruff" => SnareArtic::Ruff,
-                    "off" => SnareArtic::Off,
-                    "side" => SnareArtic::Side,
-                    _ => return None,
-                };
-                Some(Canon::Snare(i, a))
-            }
-            ["tom", pos, a] => {
-                let pos = if let Some(n) = pos.strip_prefix("rack") {
-                    TomPos::Rack(tom_rack_idx(n)?)
-                } else if let Some(n) = pos.strip_prefix("floor") {
-                    TomPos::Floor(n.parse::<u8>().ok().filter(|n| (1..=4).contains(n))?)
-                } else {
-                    return None;
-                };
-                let a = match *a {
-                    "hit" => TomArtic::Hit,
-                    "rim" => TomArtic::Rim,
-                    "rimshot" => TomArtic::Rimshot,
-                    _ => return None,
-                };
-                Some(Canon::Tom(pos, a))
-            }
-            ["hat", o] => Some(Canon::Hat(parse_hat_open(o)?, HatZone::Plain)),
-            ["hat", o, z] => Some(Canon::Hat(parse_hat_open(o)?, parse_hat_zone(Some(z))?)),
-            [aux, o] if aux.starts_with("aux") => {
-                let i = aux
-                    .strip_prefix("aux")?
-                    .parse::<u8>()
-                    .ok()
-                    .filter(|n| (1..=2).contains(n))?;
-                Some(Canon::Aux(i, parse_hat_open(o)?, HatZone::Plain))
-            }
-            [aux, o, z] if aux.starts_with("aux") => {
-                let i = aux
-                    .strip_prefix("aux")?
-                    .parse::<u8>()
-                    .ok()
-                    .filter(|n| (1..=2).contains(n))?;
-                Some(Canon::Aux(i, parse_hat_open(o)?, parse_hat_zone(Some(z))?))
-            }
-            [kind, i, a] if matches!(*kind, "crash" | "china" | "splash" | "stack" | "bell") => {
-                let kind = match *kind {
-                    "crash" => CymKind::Crash,
-                    "china" => CymKind::China,
-                    "splash" => CymKind::Splash,
-                    "stack" => CymKind::Stack,
-                    "bell" => CymKind::Bell,
-                    _ => return None,
-                };
-                let max = match kind {
-                    CymKind::Crash => 6,
-                    CymKind::China => 3,
-                    CymKind::Splash => 3,
-                    CymKind::Stack => 4,
-                    CymKind::Bell => 2,
-                };
-                let i = i.parse::<u8>().ok().filter(|n| (1..=max).contains(n))?;
-                let a = match *a {
-                    "hit" => CymArtic::Hit,
-                    "mute" => CymArtic::Mute,
-                    "bell" => CymArtic::Bell,
-                    "belltip" => CymArtic::BellTip,
-                    "bow" => CymArtic::Bow,
-                    "bowtip" => CymArtic::BowTip,
-                    "edge" => CymArtic::Edge,
-                    _ => return None,
-                };
-                Some(Canon::Cymbal(kind, i, a))
-            }
-            ["ride", i] => Some(Canon::Ride(
-                i.parse::<u8>().ok().filter(|n| (1..=2).contains(n))?,
-                RideArtic::Bow,
-            )),
-            ["ride", i, a] => {
-                let i = i.parse::<u8>().ok().filter(|n| (1..=2).contains(n))?;
-                let a = match *a {
-                    "bell" => RideArtic::Bell,
-                    "belltip" => RideArtic::BellTip,
-                    "bowtip" => RideArtic::BowTip,
-                    "edge" => RideArtic::Edge,
-                    "mute" => RideArtic::Mute,
-                    "bow" => RideArtic::Bow,
-                    _ => return None,
-                };
-                Some(Canon::Ride(i, a))
-            }
-            ["perc", k] => Some(Canon::Perc(match *k {
-                "cowbell" => PercKind::Cowbell,
-                "clap" => PercKind::Clap,
-                "shaker" => PercKind::Shaker,
-                "sticks" => PercKind::Sticks,
-                "tambourine" => PercKind::Tambourine,
-                "vibraslap" => PercKind::Vibraslap,
-                "misc" => PercKind::Misc,
-                _ => return None,
-            })),
-            _ => None,
-        })();
-        parsed.ok_or_else(|| CanonParseError(s.to_string()))
+        BY_KEY
+            .get(s)
+            .copied()
+            .ok_or_else(|| CanonParseError(s.to_string()))
     }
 }
 
@@ -506,7 +431,7 @@ impl Canon {
             Canon::Kick(KickKind::Alt) => "Kick (Alt)".into(),
             Canon::Kick(KickKind::Left) => "Kick (Left)".into(),
             Canon::Snare(i, a) => {
-                let base = if i == 1 {
+                let base = if i == SnareIdx::FIRST {
                     "Snare".to_string()
                 } else {
                     format!("Snare {i}")
@@ -535,15 +460,8 @@ impl Canon {
             }
             Canon::Hat(o, z) => hat_label("Hi-Hat", o, z),
             Canon::Aux(i, o, z) => hat_label(&format!("Aux Hat {i}"), o, z),
-            Canon::Cymbal(k, i, a) => {
-                let kind = match k {
-                    CymKind::Crash => "Crash",
-                    CymKind::China => "China",
-                    CymKind::Splash => "Splash",
-                    CymKind::Stack => "Stack",
-                    CymKind::Bell => "Bell",
-                };
-                let base = format!("{kind} {i}");
+            Canon::Cymbal(s, a) => {
+                let base = format!("{} {}", s.label(), s.index());
                 match a {
                     CymArtic::Hit => base,
                     CymArtic::Mute => format!("{base} (Mute)"),
@@ -555,7 +473,7 @@ impl Canon {
                 }
             }
             Canon::Ride(i, a) => {
-                let base = if i == 1 {
+                let base = if i == RideIdx::FIRST {
                     "Ride".to_string()
                 } else {
                     format!("Ride {i}")
@@ -665,29 +583,24 @@ fn hat_zone_step(z: HatZone) -> Option<HatZone> {
 fn hat_open_step(o: HatOpen) -> Option<HatOpen> {
     use HatOpen::*;
     match o {
-        Open(n) if n > 1 => Some(Open(n - 1)),
-        Open(1) => Some(Loose),
+        Open(n) => Some(n.prev().map_or(Loose, Open)),
         Loose => Some(Closed),
         Tight => Some(Closed),
         Cc => Some(Closed),
         PedalSplash => Some(Pedal),
         Pedal => Some(Closed),
-        Open(_) | Closed => None,
+        Closed => None,
     }
 }
 fn tom_rank(p: TomPos) -> u8 {
     match p {
-        TomPos::Rack(n) => n - 1,
-        TomPos::Floor(n) => 8 + (n - 1),
+        TomPos::Rack(n) => n.get() - 1,
+        TomPos::Floor(n) => RackIdx::MAX + n.get() - 1,
     }
 }
 fn tom_neighbors(p: TomPos) -> Vec<TomPos> {
-    let all: Vec<TomPos> = (1..=8)
-        .map(TomPos::Rack)
-        .chain((1..=4).map(TomPos::Floor))
-        .collect();
     let r = i16::from(tom_rank(p));
-    let mut others: Vec<TomPos> = all.into_iter().filter(|&q| q != p).collect();
+    let mut others: Vec<TomPos> = tom_positions().filter(|&q| q != p).collect();
     others.sort_by_key(|&q| {
         let d = (i16::from(tom_rank(q)) - r).abs();
         (d, tom_rank(q))
@@ -709,8 +622,8 @@ pub fn single_step(c: Canon) -> Vec<Canon> {
             if let Some(p) = snare_artic_step(a) {
                 edges.push(Canon::Snare(i, p));
             }
-            if i > 1 {
-                edges.push(Canon::Snare(i - 1, a));
+            if let Some(prev) = i.prev() {
+                edges.push(Canon::Snare(prev, a));
             }
             edges
         }
@@ -729,20 +642,20 @@ pub fn single_step(c: Canon) -> Vec<Canon> {
                 .collect(),
         },
         Canon::Aux(_, o, z) => vec![Canon::Hat(o, z)],
-        Canon::Cymbal(kind, i, a) => {
+        Canon::Cymbal(slot, a) => {
             let mut edges = Vec::new();
             if let Some(p) = cym_artic_step(a) {
-                edges.push(Canon::Cymbal(kind, i, p));
+                edges.push(Canon::Cymbal(slot, p));
             }
-            if i > 1 {
-                edges.push(Canon::Cymbal(kind, i - 1, a));
+            if let Some(prev) = slot.prev() {
+                edges.push(Canon::Cymbal(prev, a));
             } else if a == CymArtic::Hit {
-                match kind {
-                    CymKind::Crash => {}
-                    CymKind::China | CymKind::Splash | CymKind::Stack => {
-                        edges.push(Canon::Cymbal(CymKind::Crash, 1, CymArtic::Hit));
+                match slot {
+                    CymSlot::Crash(_) => {}
+                    CymSlot::China(_) | CymSlot::Splash(_) | CymSlot::Stack(_) => {
+                        edges.push(Canon::Cymbal(CymSlot::Crash(Idx::FIRST), CymArtic::Hit));
                     }
-                    CymKind::Bell => edges.push(Canon::Ride(1, RideArtic::Bell)),
+                    CymSlot::Bell(_) => edges.push(Canon::Ride(RideIdx::FIRST, RideArtic::Bell)),
                 }
             }
             edges
@@ -752,10 +665,10 @@ pub fn single_step(c: Canon) -> Vec<Canon> {
             if let Some(p) = ride_artic_step(a) {
                 edges.push(Canon::Ride(i, p));
             }
-            if i > 1 {
-                edges.push(Canon::Ride(i - 1, a));
+            if let Some(prev) = i.prev() {
+                edges.push(Canon::Ride(prev, a));
             } else if a == RideArtic::Bow {
-                edges.push(Canon::Cymbal(CymKind::Crash, 1, CymArtic::Hit));
+                edges.push(Canon::Cymbal(CymSlot::Crash(Idx::FIRST), CymArtic::Hit));
             }
             edges
         }
@@ -764,9 +677,9 @@ pub fn single_step(c: Canon) -> Vec<Canon> {
 
 pub fn fallback(c: Canon) -> Vec<Canon> {
     let mut out: Vec<Canon> = Vec::new();
-    let mut seen: std::collections::HashSet<Canon> = std::collections::HashSet::new();
+    let mut seen: HashSet<Canon> = HashSet::new();
     seen.insert(c);
-    let mut queue: std::collections::VecDeque<Canon> = single_step(c).into();
+    let mut queue: VecDeque<Canon> = single_step(c).into();
     while let Some(n) = queue.pop_front() {
         if !seen.insert(n) {
             continue;
@@ -780,12 +693,17 @@ pub fn fallback(c: Canon) -> Vec<Canon> {
 }
 
 #[cfg(test)]
+pub(crate) const fn idx<const MAX: u8>(n: u8) -> Idx<MAX> {
+    Idx::new(n).expect("test index in range")
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn key_round_trips_over_all() {
-        for c in Canon::all() {
+        for &c in Canon::all() {
             let s = c.to_string();
             let back: Canon = s.parse().unwrap_or_else(|_| panic!("parse {s}"));
             assert_eq!(c, back, "round-trip {s}");
@@ -796,11 +714,11 @@ mod tests {
     fn key_examples_are_stable() {
         assert_eq!(Canon::Kick(KickKind::Main).to_string(), "kick.main");
         assert_eq!(
-            Canon::Snare(1, SnareArtic::Sidestick).to_string(),
+            Canon::Snare(idx(1), SnareArtic::Sidestick).to_string(),
             "snare1.sidestick"
         );
         assert_eq!(
-            Canon::Tom(TomPos::Rack(1), TomArtic::Hit).to_string(),
+            Canon::Tom(TomPos::Rack(idx(1)), TomArtic::Hit).to_string(),
             "tom.rack1.hit"
         );
         assert_eq!(
@@ -808,19 +726,22 @@ mod tests {
             "hat.closed"
         );
         assert_eq!(
-            Canon::Hat(HatOpen::Open(3), HatZone::Edge).to_string(),
+            Canon::Hat(HatOpen::Open(idx(3)), HatZone::Edge).to_string(),
             "hat.open3.edge"
         );
         assert_eq!(
-            Canon::Cymbal(CymKind::Crash, 2, CymArtic::Mute).to_string(),
+            Canon::Cymbal(CymSlot::Crash(idx(2)), CymArtic::Mute).to_string(),
             "crash.2.mute"
         );
-        assert_eq!(Canon::Ride(1, RideArtic::Bow).to_string(), "ride.1");
-        assert_eq!(Canon::Ride(1, RideArtic::Bell).to_string(), "ride.1.bell");
+        assert_eq!(Canon::Ride(idx(1), RideArtic::Bow).to_string(), "ride.1");
+        assert_eq!(
+            Canon::Ride(idx(1), RideArtic::Bell).to_string(),
+            "ride.1.bell"
+        );
         assert_eq!(Canon::Perc(PercKind::Cowbell).to_string(), "perc.cowbell");
         assert_eq!(
             "crash.2.mute".parse::<Canon>().unwrap(),
-            Canon::Cymbal(CymKind::Crash, 2, CymArtic::Mute)
+            Canon::Cymbal(CymSlot::Crash(idx(2)), CymArtic::Mute)
         );
         assert!("crash.9.hit".parse::<Canon>().is_err());
         assert!("bogus".parse::<Canon>().is_err());
@@ -828,7 +749,7 @@ mod tests {
 
     #[test]
     fn serde_is_string_form() {
-        let c = Canon::Cymbal(CymKind::China, 1, CymArtic::Hit);
+        let c = Canon::Cymbal(CymSlot::China(idx(1)), CymArtic::Hit);
         let j = serde_json::to_string(&c).unwrap();
         assert_eq!(j, "\"china.1.hit\"");
         let back: Canon = serde_json::from_str(&j).unwrap();
@@ -837,27 +758,33 @@ mod tests {
 
     #[test]
     fn every_variant_has_a_nonempty_label() {
-        for c in Canon::all() {
+        for &c in Canon::all() {
             assert!(!c.label().is_empty(), "{c:?} has empty label");
         }
         assert_eq!(
-            Canon::Hat(HatOpen::Open(1), HatZone::Plain).label(),
+            Canon::Hat(HatOpen::Open(idx(1)), HatZone::Plain).label(),
             "Hi-Hat Open 1"
         );
-        assert_eq!(Canon::Snare(1, SnareArtic::Sidestick).label(), "Side Stick");
+        assert_eq!(
+            Canon::Snare(idx(1), SnareArtic::Sidestick).label(),
+            "Side Stick"
+        );
     }
 
     #[test]
     fn every_variant_has_a_nonempty_family() {
-        for c in Canon::all() {
+        for &c in Canon::all() {
             assert!(!c.family().is_empty(), "{c:?} has empty family");
         }
-        assert_eq!(Canon::Ride(1, RideArtic::Bow).family(), "Cymbals");
+        assert_eq!(Canon::Ride(idx(1), RideArtic::Bow).family(), "Cymbals");
         assert_eq!(
-            Canon::Aux(1, HatOpen::Closed, HatZone::Plain).family(),
+            Canon::Aux(idx(1), HatOpen::Closed, HatZone::Plain).family(),
             "Aux"
         );
-        assert_eq!(Canon::Tom(TomPos::Rack(1), TomArtic::Hit).family(), "Toms");
+        assert_eq!(
+            Canon::Tom(TomPos::Rack(idx(1)), TomArtic::Hit).family(),
+            "Toms"
+        );
     }
 
     fn k(s: &str) -> Canon {
@@ -918,7 +845,7 @@ mod tests {
 
     #[test]
     fn chain_is_closed_no_self_no_dupes() {
-        for c in Canon::all() {
+        for &c in Canon::all() {
             let chain = fallback(c);
             assert!(!chain.contains(&c), "{c:?} in own chain");
             let mut seen = std::collections::HashSet::new();
@@ -936,6 +863,52 @@ mod tests {
                 }
             }
             assert!(chain.len() < Canon::all().len());
+        }
+    }
+
+    #[test]
+    fn idx_holds_only_one_to_max() {
+        assert_eq!(Idx::<2>::new(0), None);
+        assert_eq!(Idx::<2>::new(3), None);
+        assert_eq!(Idx::<2>::all().map(Idx::get).collect::<Vec<_>>(), [1, 2]);
+        assert_eq!(Idx::<2>::FIRST.prev(), None);
+        assert_eq!(idx::<2>(2).prev(), Some(Idx::FIRST));
+    }
+
+    #[test]
+    fn all_has_no_duplicates() {
+        let unique: HashSet<Canon> = Canon::all().iter().copied().collect();
+        assert_eq!(unique.len(), Canon::all().len());
+    }
+
+    #[test]
+    fn parse_accepts_ride_bow_alias_only_as_ride() {
+        assert_eq!(k("ride.1.bow"), k("ride.1"));
+        assert_eq!(k("ride.2.bow"), Canon::Ride(idx(2), RideArtic::Bow));
+    }
+
+    #[test]
+    fn parse_rejects_out_of_range_and_unknown_keys() {
+        for bad in [
+            "crash.7.hit",
+            "china.4.hit",
+            "splash.4.hit",
+            "stack.5.hit",
+            "bell.3.hit",
+            "snare3.hit",
+            "snare0.hit",
+            "aux3.closed",
+            "hat.open7",
+            "hat.open0",
+            "hat.closed.plain",
+            "tom.rack9.hit",
+            "tom.floor5.hit",
+            "ride.3",
+            "ride.0.bell",
+            "kick.main.hit",
+            "",
+        ] {
+            assert!(bad.parse::<Canon>().is_err(), "{bad:?} must be rejected");
         }
     }
 }
