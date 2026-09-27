@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Convert {{ page.src.name }} MIDI to {{ page.tgt.name }}</h1>
+<p class="lead">{{ summary }}</p>
+<div class="cta">
+  <a href="/?from={{ page.src.id }}&amp;to={{ page.tgt.id }}">Open the converter</a>
+  <a class="alt" href="{{ page.reverse.href() }}">{{ page.reverse.src_name }} → {{ page.reverse.tgt_name }}</a>
+</div>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>{{ page.src.name }} note</th><th>{{ page.src.name }} drum</th><th>{{ page.tgt.name }} note</th><th>{{ page.tgt.name }} drum</th><th>Result</th></tr></thead>
+    <tbody>
+      {% for r in page.rows %}
+      <tr>
+        <td class="num">{{ r.note }} · {{ r.name_c1 }} / {{ r.name_c2 }}</td>
+        <td>{{ r.drum }}</td>
+        {% if let Some(t) = r.outcome.target() %}
+        <td class="num">{{ t.note }} · {{ t.name_c1 }} / {{ t.name_c2 }}</td>
+        <td>{{ t.drum }}</td>
+        {% else %}
+        <td class="num">—</td>
+        <td>—</td>
+        {% endif %}
+        <td class="{{ r.outcome.label() }}">{{ r.outcome.label() }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<h2>More conversions from {{ page.src.name }}</h2>
+<ul class="links">
+  {% for l in page.siblings %}
+  <li><a href="{{ l.href() }}">{{ l.src_name }} → {{ l.tgt_name }}</a></li>
+  {% endfor %}
+</ul>
+<p>
+  Note maps: <a href="{{ page.src.href() }}">{{ page.src.name }}</a> ·
+  <a href="{{ page.tgt.href() }}">{{ page.tgt.name }}</a> ·
+  <a href="/engines/">all engines</a>
+</p>
+{% endblock %}

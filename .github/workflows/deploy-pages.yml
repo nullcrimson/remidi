@@ -17,6 +17,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      indexnow: ${{ steps.indexnow.outputs.payload }}
     steps:
       - uses: actions/checkout@v7
 
@@ -55,6 +57,15 @@ jobs:
         working-directory: app
         run: npm run build
 
+      - name: Generate engine and conversion pages
+        run: cargo run -p midiremap-site --release -- app/dist
+
+      - name: Build IndexNow payload from sitemap
+        id: indexnow
+        run: |
+          urls=$(grep -o '<loc>[^<]*</loc>' app/dist/sitemap.xml | sed -e 's#<loc>\(.*\)</loc>#"\1"#' | paste -sd, -)
+          echo "payload={\"host\":\"drumverter.com\",\"key\":\"b70482caafc9bdd6b2cc45b7fd07ddae\",\"keyLocation\":\"https://drumverter.com/b70482caafc9bdd6b2cc45b7fd07ddae.txt\",\"urlList\":[$urls]}" >> "$GITHUB_OUTPUT"
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
@@ -72,6 +83,9 @@ jobs:
         uses: actions/deploy-pages@v5
 
       - name: Notify IndexNow
+        env:
+          PAYLOAD: ${{ needs.build.outputs.indexnow }}
         run: |
           curl -sS -o /dev/null -w "IndexNow: %{http_code}\n" \
-            "https://api.indexnow.org/indexnow?url=https://drumverter.com/&key=b70482caafc9bdd6b2cc45b7fd07ddae&keyLocation=https://drumverter.com/b70482caafc9bdd6b2cc45b7fd07ddae.txt"
+            -H "Content-Type: application/json; charset=utf-8" \
+            --data "$PAYLOAD" https://api.indexnow.org/indexnow

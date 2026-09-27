@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ page.engine.name }} drum MIDI note map</h1>
+<p class="lead">
+  Every MIDI note {{ page.engine.name }} responds to ({{ page.rows.len() }} in total), with note
+  names in both octave conventions: C-1 (Reaper, Logic, Ableton, Guitar Pro) and C-2 (Studio One,
+  Cubase, FL Studio).
+</p>
+<div class="cta">
+  <a href="/?from={{ page.engine.id }}">Convert from {{ page.engine.name }}</a>
+  <a class="alt" href="/?to={{ page.engine.id }}">Convert to {{ page.engine.name }}</a>
+</div>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Note #</th><th>Name (C-1)</th><th>Name (C-2)</th><th>Drum</th></tr></thead>
+    <tbody>
+      {% for r in page.rows %}
+      <tr><td class="num">{{ r.note }}</td><td class="num">{{ r.name_c1 }}</td><td class="num">{{ r.name_c2 }}</td><td>{{ r.drum }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if !page.pair_links.is_empty() %}
+<h2>Conversion tables</h2>
+<ul class="links">
+  {% for l in page.pair_links %}
+  <li><a href="{{ l.href() }}">{{ l.src_name }} → {{ l.tgt_name }}</a></li>
+  {% endfor %}
+</ul>
+{% endif %}
+<p><a href="/engines/">← All engine note maps</a></p>
+{% endblock %}

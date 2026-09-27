@@ -8,6 +8,7 @@
     "dev": "vite",
     "prebuild": "npm run build:wasm",
     "build": "tsc --noEmit && vite build",
+    "build:site": "npm run build && cargo run --manifest-path ../Cargo.toml -p midiremap-site --release -- dist",
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest run"

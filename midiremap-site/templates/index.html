@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Drum MIDI note maps</h1>
+<p class="lead">
+  Note charts for {{ page.all.len() }} drum engines and conversion tables between the most popular
+  ones. Every table comes from the same mapping data the Drumverter converter uses.
+</p>
+<h2>Popular engines</h2>
+{% for m in page.majors %}
+<p><a href="{{ m.engine.href() }}"><strong>{{ m.engine.name }}</strong></a> —
+  {% for l in m.pairs %}<a href="{{ l.href() }}">to {{ l.tgt_name }}</a>{% if !loop.last %} · {% endif %}{% endfor %}
+</p>
+{% endfor %}
+<h2>All engines</h2>
+<ul class="links">
+  {% for e in page.all %}
+  <li><a href="{{ e.href() }}">{{ e.name }}</a></li>
+  {% endfor %}
+</ul>
+{% endblock %}
