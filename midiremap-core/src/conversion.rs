@@ -1,7 +1,7 @@
 use crate::{
     canon::{DefaultFallbacks, FallbackResolver},
     engine_map::{Decoder, Encoder, EngineMap, MapError},
-    midi::{CodecError, EventRewriter, MidiCodec, StandardMidiCodec},
+    midi::{ChannelScope, CodecError, EventRewriter, MidiCodec, StandardMidiCodec},
     overrides::Overrides,
     table::NoteTable,
     translate::{Report, Translator},
@@ -23,6 +23,7 @@ pub enum ConversionError {
 pub struct Conversion<C: MidiCodec = StandardMidiCodec> {
     table: NoteTable,
     codec: C,
+    scope: ChannelScope,
 }
 
 impl Conversion<StandardMidiCodec> {
@@ -36,13 +37,21 @@ impl Conversion<StandardMidiCodec> {
 
 impl<C: MidiCodec> Conversion<C> {
     pub fn with_codec(table: NoteTable, codec: C) -> Self {
-        Self { table, codec }
+        Self {
+            table,
+            codec,
+            scope: ChannelScope::default(),
+        }
+    }
+
+    pub fn with_scope(self, scope: ChannelScope) -> Self {
+        Self { scope, ..self }
     }
 
     pub fn run(&self, midi: &[u8]) -> Result<Converted, ConversionError> {
         let mut smf = self.codec.parse(midi)?;
         let mut report = Report::default();
-        EventRewriter::new(&self.table).rewrite(&mut smf, &mut report);
+        EventRewriter::new(&self.table, self.scope).rewrite(&mut smf, &mut report);
         let bytes = self.codec.write(&smf)?;
         Ok(Converted { bytes, report })
     }

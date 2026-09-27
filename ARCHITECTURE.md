@@ -123,11 +123,21 @@ empty chain. The `chains_terminate` test enforces this.
   bound `C: MidiCodec`, never as `&dyn MidiCodec`, because `parse` is
   lifetime-generic (`Smf<'a>` borrows the input) and thus not object-safe. Every
   other trait in the crate *is* object-safe and is used behind `&dyn`.
-- `EventRewriter` applies a `NoteTable` across the SMF event stream:
-  - Note-on/off keys are rewritten to the resolved target note.
-  - Unmapped / dropped notes are removed; a dropped event's delta is folded into
-    the next kept event so timing does not shift.
-  - Every non-note event (CC, meta, sysex) passes through untouched.
+- `ChannelScope { Auto | Only(u4) | All }` chooses which channels a conversion
+  rewrites; `resolve(&smf)` turns it into one `ChannelFilter { Only | All | Skip }`
+  per track. `Auto` (the default) converts every channel of each track that has a
+  channel-10 note-on and skips the other tracks; when no track has one, it converts
+  everything. Multi-track song exports keep their bass and keys, drum tracks split
+  across channels convert whole, and files with drums elsewhere convert as before.
+  Parses from `auto`, `all` or `1`..=`16`.
+- `EventRewriter` applies a `NoteTable` to the events each track's filter accepts:
+  - Note-on/off and poly aftertouch keys are rewritten to the resolved target
+    note, so cymbal chokes follow their cymbal.
+  - Unmapped / dropped notes (and their aftertouch) are removed; a removed event's
+    delta is folded into the next kept event so timing does not shift. Folded
+    deltas saturate at the `u28` maximum instead of wrapping.
+  - Every other event, and every event on a rejected channel, passes through
+    untouched.
   - Each real note-on (velocity > 0) is reported once.
 
   No active `(channel, note)` tracking is needed: translation is a pure function
@@ -137,8 +147,9 @@ empty chain. The `chains_terminate` test enforces this.
 
 ### `conversion` — end-to-end facade
 
-- `Conversion { table, codec }` with `run(bytes) → Converted { bytes, report }`;
-  `Conversion::new(src, tgt, resolver)` compiles the table up front.
+- `Conversion { table, codec, scope }` with `run(bytes) → Converted { bytes, report }`;
+  `Conversion::new(src, tgt, resolver)` compiles the table up front and uses
+  `ChannelScope::Auto`; `with_scope(scope)` overrides it (the CLI's `--channel`).
 - Free functions: `remap(mid, src, tgt)` and `remap_with_overrides(mid, src, tgt,
   ov)`. Empty overrides behave identically to `remap`.
 
