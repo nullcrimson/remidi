@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashSet};
 
 use midiremap_core::{
-    Canon, Catalog, EngineMap, Family, Mapping, MissingDrums, Note, OctaveBase, Overrides,
+    Canon, Catalog, Drum, EngineMap, Family, Mapping, MissingDrums, Note, OctaveBase, Overrides,
     PlanStatus, Resolution,
 };
 
@@ -47,8 +47,8 @@ pub struct EngineLink {
 impl EngineLink {
     fn of(map: &EngineMap) -> Self {
         Self {
-            id: map.id.clone(),
-            slug: slug(&map.id),
+            id: map.id().to_owned(),
+            slug: slug(map.id()),
             name: map.display_name().to_string(),
             vendor: map.vendor().unwrap_or(MORE_ENGINES).to_string(),
         }
@@ -73,7 +73,7 @@ pub struct PairLink {
 impl PairLink {
     fn of(src: &EngineMap, tgt: &EngineMap) -> Self {
         Self {
-            slug: pair_slug(&src.id, &tgt.id),
+            slug: pair_slug(src.id(), tgt.id()),
             src_name: src.display_name().to_string(),
             tgt_name: tgt.display_name().to_string(),
         }
@@ -239,7 +239,7 @@ fn pair_page(src: &EngineMap, tgt: &EngineMap, majors: &[&EngineMap]) -> PairPag
     let rows = pair_rows(src, tgt);
     let count = |rank: u8| rows.iter().filter(|r| r.rank() == rank).count();
     PairPage {
-        slug: pair_slug(&src.id, &tgt.id),
+        slug: pair_slug(src.id(), tgt.id()),
         src: EngineLink::of(src),
         tgt: EngineLink::of(tgt),
         dropped: count(0),
@@ -249,7 +249,7 @@ fn pair_page(src: &EngineMap, tgt: &EngineMap, majors: &[&EngineMap]) -> PairPag
         reverse: PairLink::of(tgt, src),
         siblings: majors
             .iter()
-            .filter(|m| m.id != src.id && m.id != tgt.id)
+            .filter(|m| m.id() != src.id() && m.id() != tgt.id())
             .map(|m| PairLink::of(src, m))
             .collect(),
     }
@@ -257,7 +257,7 @@ fn pair_page(src: &EngineMap, tgt: &EngineMap, majors: &[&EngineMap]) -> PairPag
 
 fn family_groups(map: &EngineMap) -> Vec<FamilyGroup> {
     let notes = map.source_notes();
-    let row = |d: &midiremap_core::engine_map::Drum| EngineRow {
+    let row = |d: &Drum| EngineRow {
         note: d.note.get(),
         name_c1: d.note.name(OctaveBase::C1),
         name_c2: d.note.name(OctaveBase::C2),
@@ -278,8 +278,8 @@ fn family_groups(map: &EngineMap) -> Vec<FamilyGroup> {
 }
 
 fn engine_page(map: &EngineMap, majors: &[&EngineMap]) -> EnginePage {
-    let others: Vec<&&EngineMap> = if majors.iter().any(|m| m.id == map.id) {
-        majors.iter().filter(|m| m.id != map.id).collect()
+    let others: Vec<&&EngineMap> = if majors.iter().any(|m| m.id() == map.id()) {
+        majors.iter().filter(|m| m.id() != map.id()).collect()
     } else {
         Vec::new()
     };
@@ -293,7 +293,7 @@ fn engine_page(map: &EngineMap, majors: &[&EngineMap]) -> EnginePage {
 }
 
 pub fn sort_by_name(maps: &mut [&EngineMap]) {
-    maps.sort_by_cached_key(|m| (m.display_name().to_lowercase(), m.id.clone()));
+    maps.sort_by_cached_key(|m| (m.display_name().to_lowercase(), m.id().to_owned()));
 }
 
 fn vendor_groups(maps: &[&EngineMap]) -> Vec<VendorGroup> {
@@ -332,16 +332,14 @@ impl Site {
             lookup(provider, id)?;
         }
         let mut maps: Vec<&EngineMap> = provider
-            .ids()
-            .into_iter()
-            .filter(|id| !EXCLUDED_IDS.contains(id))
-            .map(|id| lookup(provider, id))
-            .collect::<Result<_, _>>()?;
+            .engines()
+            .filter(|m| !EXCLUDED_IDS.contains(&m.id()))
+            .collect();
         sort_by_name(&mut maps);
 
         let mut seen = HashSet::new();
         for m in &maps {
-            let s = slug(&m.id);
+            let s = slug(m.id());
             if !seen.insert(s.clone()) {
                 return Err(SiteError::SlugCollision(s));
             }
@@ -353,7 +351,7 @@ impl Site {
             .flat_map(|s| {
                 majors
                     .iter()
-                    .filter(move |t| t.id != s.id)
+                    .filter(move |t| t.id() != s.id())
                     .map(move |t| (*s, *t))
             })
             .map(|(s, t)| pair_page(s, t, &majors))
@@ -366,7 +364,7 @@ impl Site {
                     engine: EngineLink::of(s),
                     cells: majors
                         .iter()
-                        .map(|t| (t.id != s.id).then(|| PairLink::of(s, t)))
+                        .map(|t| (t.id() != s.id()).then(|| PairLink::of(s, t)))
                         .collect(),
                 })
                 .collect(),
@@ -569,11 +567,7 @@ mod tests {
     #[test]
     fn pair_rows_agree_with_the_converter() {
         let maps = Catalog::builtin();
-        let by_id: HashMap<&str, &EngineMap> = maps
-            .ids()
-            .into_iter()
-            .filter_map(|id| maps.get(id).map(|m| (id, m)))
-            .collect();
+        let by_id: HashMap<&str, &EngineMap> = maps.engines().map(|m| (m.id(), m)).collect();
         for p in site().pairs {
             let (src, tgt) = (by_id[p.src.id.as_str()], by_id[p.tgt.id.as_str()]);
             for row in &p.rows {
@@ -597,7 +591,7 @@ mod tests {
     #[test]
     fn engines_with_equal_names_sort_by_id() {
         let map = |id: &str| {
-            midiremap_core::engine_map::from_json(&format!(
+            EngineMap::from_json(&format!(
                 r#"{{"id":"{id}","name":"Same","notes":[{{"note":36,"canon":"kick.main","primary":true}}]}}"#
             ))
             .unwrap()
@@ -605,10 +599,7 @@ mod tests {
         let (b, a) = (map("b"), map("a"));
         let mut maps = vec![&b, &a];
         sort_by_name(&mut maps);
-        assert_eq!(
-            maps.iter().map(|m| m.id.as_str()).collect::<Vec<_>>(),
-            ["a", "b"]
-        );
+        assert_eq!(maps.iter().map(|m| m.id()).collect::<Vec<_>>(), ["a", "b"]);
     }
 
     #[test]

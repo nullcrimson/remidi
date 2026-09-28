@@ -30,10 +30,11 @@ struct RawMap {
     notes: Vec<RawEntry>,
 }
 
+/// One engine's note layout: which drum each note plays, and which note plays each drum.
 #[derive(Debug, Clone)]
 pub struct EngineMap {
-    pub id: String,
-    pub name: String,
+    id: String,
+    name: String,
     short_name: Option<String>,
     vendor: Option<String>,
     aliases: Vec<String>,
@@ -55,6 +56,21 @@ pub struct Drum {
 }
 
 impl EngineMap {
+    /// Reads a user map in the same shape as the builtin `engines/*.toml`, as JSON.
+    pub fn from_json(s: &str) -> Result<Self, MapError> {
+        build(serde_json::from_str(s).map_err(MapError::Parse)?)
+    }
+
+    /// The stable id presets and links use, such as `ezdrummer`.
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    /// The engine's full name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     /// The drum a source note plays.
     pub fn decode(&self, note: Note) -> Option<Canon> {
         self.to_canon.get(&note).copied()
@@ -132,12 +148,14 @@ impl EngineMap {
     }
 }
 
-#[derive(thiserror::Error, Debug, PartialEq)]
+#[derive(thiserror::Error, Debug)]
 pub enum MapError {
     #[error("duplicate primary for {0:?}")]
     DuplicatePrimary(Canon),
-    #[error("parse error: {0}")]
-    Parse(String),
+    #[error("engine {engine} lists note {note} twice")]
+    DuplicateNote { engine: String, note: Note },
+    #[error("parse error")]
+    Parse(#[source] serde_json::Error),
     #[error("blank short_name for engine {0}")]
     BlankShortName(String),
     #[error("blank vendor for engine {0}")]
@@ -163,7 +181,12 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
 
     for e in raw.notes {
         let note = e.note;
-        to_canon.insert(note, e.canon);
+        if to_canon.insert(note, e.canon).is_some() {
+            return Err(MapError::DuplicateNote {
+                engine: raw.id,
+                note,
+            });
+        }
 
         if e.primary {
             if !primaries.insert(e.canon) {
@@ -187,18 +210,13 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
 }
 
 #[cfg(test)]
-pub fn from_toml(s: &str) -> Result<EngineMap, MapError> {
-    let raw: RawMap = toml::from_str(s).map_err(|e| MapError::Parse(e.to_string()))?;
-    build(raw)
-}
-
-pub fn from_json(s: &str) -> Result<EngineMap, MapError> {
-    let raw: RawMap = serde_json::from_str(s).map_err(|e| MapError::Parse(e.to_string()))?;
-    build(raw)
+pub(crate) fn from_toml(s: &str) -> Result<EngineMap, MapError> {
+    let value: serde_json::Value = toml::from_str(s).expect("test map is valid TOML");
+    build(serde_json::from_value(value).map_err(MapError::Parse)?)
 }
 
 pub(crate) fn many_from_json(s: &str) -> Result<Vec<EngineMap>, MapError> {
-    let raws: Vec<RawMap> = serde_json::from_str(s).map_err(|e| MapError::Parse(e.to_string()))?;
+    let raws: Vec<RawMap> = serde_json::from_str(s).map_err(MapError::Parse)?;
     raws.into_iter().map(build).collect()
 }
 
@@ -287,7 +305,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(m.display_name(), "Short");
-        assert_eq!(m.name, "Very Long Official Name");
+        assert_eq!(m.name(), "Very Long Official Name");
     }
 
     #[test]
@@ -358,7 +376,37 @@ mod tests {
         "#;
         assert!(matches!(
             from_toml(bad),
-            Err(MapError::Parse(msg)) if msg.contains("0..=127")
+            Err(MapError::Parse(e)) if e.to_string().contains("0..=127")
         ));
+    }
+
+    #[test]
+    fn a_note_listed_twice_is_error() {
+        let bad = r#"
+            id = "x"
+            name = "X"
+            notes = [
+              { note = 36, canon = "kick.main", primary = true },
+              { note = 36, canon = "snare1.hit", primary = true },
+            ]
+        "#;
+        let err = from_toml(bad).unwrap_err();
+        assert!(matches!(
+            &err,
+            MapError::DuplicateNote { engine, note } if engine == "x" && *note == n(36)
+        ));
+        assert_eq!(err.to_string(), "engine x lists note 36 twice");
+    }
+
+    #[test]
+    fn from_json_reads_a_map_and_keeps_the_parse_cause() {
+        let m = EngineMap::from_json(
+            r#"{"id":"j","name":"J","notes":[{"note":36,"canon":"kick.main","primary":true}]}"#,
+        )
+        .unwrap();
+        assert_eq!((m.id(), m.name()), ("j", "J"));
+        let err = EngineMap::from_json("{").unwrap_err();
+        assert_eq!(err.to_string(), "parse error");
+        assert!(std::error::Error::source(&err).is_some());
     }
 }

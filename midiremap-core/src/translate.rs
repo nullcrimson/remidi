@@ -2,12 +2,7 @@ use std::{collections::BTreeMap, fmt, str::FromStr};
 
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::{
-    canon::{fallback, Canon},
-    engine_map::EngineMap,
-    note::Note,
-    overrides::Overrides,
-};
+use crate::{canon::Canon, engine_map::EngineMap, note::Note, overrides::Overrides};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum CanonResolution {
@@ -135,14 +130,15 @@ pub(crate) fn substitute(
     tgt: &EngineMap,
     missing: MissingDrums,
 ) -> Option<(Canon, Note)> {
-    fallback(canon)
+    canon
+        .fallback_chain()
         .into_iter()
         .filter(|&alt| missing.allows(canon, alt))
         .find_map(|alt| tgt.encode(alt).map(|note| (alt, note)))
 }
 
 /// Resolves a canon against a target: directly, else the nearest fallback `missing` allows.
-pub fn resolve(canon: Canon, tgt: &EngineMap, missing: MissingDrums) -> CanonResolution {
+pub(crate) fn resolve(canon: Canon, tgt: &EngineMap, missing: MissingDrums) -> CanonResolution {
     if let Some(note) = tgt.encode(canon) {
         return CanonResolution::Direct { canon, note };
     }
@@ -162,6 +158,7 @@ pub struct FallbackTally {
     pub count: u32,
 }
 
+/// What a conversion did with each note hit; only the converter tallies it.
 #[derive(Default, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(
@@ -172,13 +169,11 @@ pub struct FallbackTally {
 pub struct Report {
     #[serde(serialize_with = "string_keys")]
     #[cfg_attr(feature = "ts", tsify(type = "Record<string, number>"))]
-    pub unmapped_source: BTreeMap<Note, u32>,
-    pub fallback_used: BTreeMap<Canon, FallbackTally>,
-    pub dropped: BTreeMap<Canon, u32>,
-    /// Note hits left as they were because the channel scope did not select them.
-    pub untouched: u32,
-    /// Note hits written to the output, directly or on a substitute.
-    pub converted: u32,
+    unmapped_source: BTreeMap<Note, u32>,
+    fallback_used: BTreeMap<Canon, FallbackTally>,
+    dropped: BTreeMap<Canon, u32>,
+    untouched: u32,
+    converted: u32,
 }
 
 fn string_keys<S: Serializer>(map: &BTreeMap<Note, u32>, s: S) -> Result<S::Ok, S::Error> {
@@ -186,8 +181,37 @@ fn string_keys<S: Serializer>(map: &BTreeMap<Note, u32>, s: S) -> Result<S::Ok, 
 }
 
 impl Report {
+    /// Hits on source notes the source engine does not map, by note.
+    pub fn unmapped_source(&self) -> &BTreeMap<Note, u32> {
+        &self.unmapped_source
+    }
+
+    /// Hits played on a stand-in because the target lacks the drum, by drum.
+    pub fn fallback_used(&self) -> &BTreeMap<Canon, FallbackTally> {
+        &self.fallback_used
+    }
+
+    /// Hits left out because nothing on the target may play them, by drum.
+    pub fn dropped(&self) -> &BTreeMap<Canon, u32> {
+        &self.dropped
+    }
+
+    /// Note hits left as they were because the channel scope did not select them.
+    pub fn untouched(&self) -> u32 {
+        self.untouched
+    }
+
+    /// Note hits written to the output, directly or on a substitute.
+    pub fn converted(&self) -> u32 {
+        self.converted
+    }
+
+    pub(crate) fn record_untouched(&mut self) {
+        self.untouched += 1;
+    }
+
     /// Tallies one source hit; direct hits only count as converted.
-    pub fn record(&mut self, source_note: Note, resolution: &Resolution) {
+    pub(crate) fn record(&mut self, source_note: Note, resolution: &Resolution) {
         match resolution {
             Resolution::Unmapped => *self.unmapped_source.entry(source_note).or_default() += 1,
             Resolution::Resolved(CanonResolution::Fallback { canon, note }) => {
@@ -476,7 +500,10 @@ notes = [ {} ]",
             Some(&1)
         );
         assert!(!r.unmapped_source.contains_key(&n(12)));
-        assert_eq!(r.converted, 2);
+        assert_eq!(r.converted(), 2);
+        assert_eq!(r.untouched(), 0);
+        r.record_untouched();
+        assert_eq!(r.untouched(), 1);
     }
 
     #[test]

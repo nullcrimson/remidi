@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { errorMessage } from '../lib/errors';
 import { engines as listEngines, ready, type Engine } from '../lib/midiremap';
 
 export type CatalogStatus = 'loading' | 'ready' | 'error';
@@ -27,7 +28,7 @@ export function useEngineCatalog(onReady?: (engines: Engine[]) => void) {
       })
       .catch((e) => {
         if (!cancelled) {
-          setError(String(e));
+          setError(errorMessage(e));
           setStatus('error');
         }
       });

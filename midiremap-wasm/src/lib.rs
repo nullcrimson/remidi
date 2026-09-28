@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, error::Error};
 
 use midiremap_core::{
     convert, parse_preset, plan as core_plan, Canon, Catalog, ChannelScope, Drum, EngineMap,
@@ -44,6 +44,14 @@ impl WasmError {
             message: message.to_string(),
             id: None,
         }
+    }
+
+    /// An error and its causes as one message, `outer: inner: innermost`.
+    fn caused(kind: ErrorKind, err: &(dyn Error + 'static)) -> Self {
+        let chain: Vec<String> = std::iter::successors(Some(err), |&e| e.source())
+            .map(ToString::to_string)
+            .collect();
+        Self::new(kind, chain.join(": "))
     }
 
     fn unknown_engine(message: String, id: &str) -> Self {
@@ -127,7 +135,7 @@ fn convert_file(
         .map_or(Ok(ChannelScope::Auto), str::parse)
         .map_err(|e| WasmError::new(ErrorKind::BadChannel, e))?;
     let out = convert(mid, &Mapping::new(src, tgt, ov, missing), scope)
-        .map_err(|e| WasmError::new(ErrorKind::BadMidi, e))?;
+        .map_err(|e| WasmError::caused(ErrorKind::BadMidi, &e))?;
     Ok(RemapOutput {
         bytes: out.bytes,
         report: out.report,
@@ -224,7 +232,7 @@ pub struct PresetView {
 
 fn preset_view(json: &str, catalog: &Catalog) -> Result<PresetView, WasmError> {
     let LoadedPreset { preset, skipped } =
-        parse_preset(json).map_err(|e| WasmError::new(ErrorKind::BadPreset, e))?;
+        parse_preset(json).map_err(|e| WasmError::caused(ErrorKind::BadPreset, &e))?;
     let engine = |id: &str| {
         catalog
             .canonical_id(id)
@@ -322,14 +330,12 @@ pub struct EngineInfo {
 }
 
 fn engine_infos(catalog: &Catalog) -> Vec<EngineInfo> {
-    let mut ids = catalog.ids();
-    ids.sort_unstable();
-    ids.into_iter()
-        .filter_map(|id| catalog.get(id))
+    catalog
+        .engines()
         .map(|m| EngineInfo {
-            id: m.id.clone(),
-            name: m.display_name().to_string(),
-            full_name: m.name.clone(),
+            id: m.id().to_owned(),
+            name: m.display_name().to_owned(),
+            full_name: m.name().to_owned(),
         })
         .collect()
 }
@@ -447,6 +453,34 @@ mod tests {
         };
         assert_eq!(kind_of(b"nope", None), Some(ErrorKind::BadMidi));
         assert_eq!(kind_of(b"nope", Some("17")), Some(ErrorKind::BadChannel));
+    }
+
+    #[test]
+    fn a_bad_file_message_carries_its_cause() {
+        let catalog = Catalog::builtin();
+        let midi = convert_file(
+            &catalog,
+            b"garbage",
+            "ggd_invasion",
+            "ezdrummer",
+            &Overrides::default(),
+            None,
+            MissingDrums::Nearest,
+        )
+        .err()
+        .unwrap();
+        assert_eq!(
+            midi.message,
+            "MIDI parse error: invalid midi: not a midi file"
+        );
+        let preset = preset_view("{", &catalog).unwrap_err();
+        assert!(
+            preset
+                .message
+                .starts_with("not a preset file: EOF while parsing"),
+            "{}",
+            preset.message
+        );
     }
 
     #[test]

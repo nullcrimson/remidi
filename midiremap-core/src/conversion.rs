@@ -125,9 +125,9 @@ mod tests {
         );
         let china = "china.1.hit".parse::<Canon>().unwrap();
         assert_eq!(note_on_keys(&out.bytes), vec![36]);
-        assert_eq!(out.report.dropped.get(&china), Some(&1));
-        assert!(out.report.fallback_used.is_empty());
-        assert_eq!(out.report.converted, 1);
+        assert_eq!(out.report.dropped().get(&china), Some(&1));
+        assert!(out.report.fallback_used().is_empty());
+        assert_eq!(out.report.converted(), 1);
     }
 
     #[test]
@@ -160,7 +160,7 @@ mod tests {
         assert_eq!(note_on_keys(&out.bytes), vec![86]);
         assert_eq!(
             out.report
-                .fallback_used
+                .fallback_used()
                 .get(&"china.1.hit".parse::<Canon>().unwrap()),
             Some(&FallbackTally {
                 note: n(86),
@@ -177,7 +177,7 @@ mod tests {
             "ezdrummer",
         );
         assert!(note_on_keys(&out.bytes).is_empty());
-        assert_eq!(out.report.unmapped_source.get(&n(99)), Some(&1));
+        assert_eq!(out.report.unmapped_source().get(&n(99)), Some(&1));
     }
 
     #[test]
@@ -300,7 +300,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(note_on_keys(&out.bytes), vec![36]);
-        assert!(out.report.unmapped_source.is_empty());
+        assert!(out.report.unmapped_source().is_empty());
     }
 
     #[test]

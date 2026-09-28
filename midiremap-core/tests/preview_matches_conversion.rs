@@ -98,15 +98,17 @@ fn previewed_by_source_note(
             row.status == PlanStatus::Dropped,
             row.tgt_note.is_none(),
             "{} -> {}: {} status and target disagree",
-            src.id,
-            tgt.id,
+            src.id(),
+            tgt.id(),
             row.canon
         );
         for &note in &row.src_notes {
             if let Some(prev) = seen.insert(note, row.canon) {
                 panic!(
                     "{} -> {}: note {note} in rows {prev} and {}",
-                    src.id, tgt.id, row.canon
+                    src.id(),
+                    tgt.id(),
+                    row.canon
                 );
             }
             if let Some(tgt_note) = row.tgt_note {

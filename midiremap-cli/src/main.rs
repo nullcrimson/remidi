@@ -93,9 +93,7 @@ fn read_preset(path: &PathBuf, catalog: &Catalog, src: &str, tgt: &str) -> Resul
 
 fn run_list(user_map: Option<PathBuf>) -> Result<()> {
     let provider = build_catalog(user_map)?;
-    let mut ids = provider.ids();
-    ids.sort_unstable();
-    for id in ids {
+    for id in provider.ids() {
         println!("{id}");
     }
     Ok(())
@@ -115,7 +113,7 @@ fn run_convert(a: ConvertArgs) -> Result<()> {
         std::fs::read(&a.input).with_context(|| format!("cannot read {}", a.input.display()))?;
 
     let overrides = match &a.preset {
-        Some(path) => read_preset(path, &provider, &src.id, &tgt.id)?,
+        Some(path) => read_preset(path, &provider, src.id(), tgt.id())?,
         None => read_overrides(a.overrides)?,
     };
     let out = convert(

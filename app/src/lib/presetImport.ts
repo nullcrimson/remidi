@@ -1,3 +1,4 @@
+import { errorMessage } from './errors';
 import type { PresetText } from './files';
 import { MAPPINGS_CAP, type SavedMapping } from './mappings';
 import type { ImportedPreset } from './midiremap';
@@ -32,7 +33,7 @@ export function importPresets(
     try {
       preset = parse(file.text);
     } catch (err) {
-      return `Couldn't import ${file.name}: ${err instanceof Error ? err.message : String(err)}`;
+      return `Couldn't import ${file.name}: ${errorMessage(err)}`;
     }
     if (count >= MAPPINGS_CAP) return `Couldn't import ${file.name}: preset limit reached (${MAPPINGS_CAP})`;
     const name = uniqueName(preset.name, taken);

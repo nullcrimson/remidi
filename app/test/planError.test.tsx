@@ -47,7 +47,7 @@ describe('plan errors', () => {
     const { result } = renderHook(() => useRemapper());
     await waitFor(() => expect(result.current.status).toBe('ready'));
     act(() => result.current.loadMapping(PRESET));
-    expect(result.current.editor.planError).toBe('Error: unknown canon bogus.canon');
+    expect(result.current.editor.planError).toBe('unknown canon bogus.canon');
     expect(result.current.editor.rows).toEqual([]);
     act(() => result.current.editor.reset());
     expect(result.current.editor.planError).toBeNull();
@@ -59,7 +59,7 @@ describe('plan errors', () => {
     render(<App />);
     await userEvent.click((await screen.findAllByRole('button', { name: /Old preset/ }))[0]);
     const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('The note editor could not load: Error: unknown canon bogus.canon');
+    expect(alert).toHaveTextContent('The note editor could not load: unknown canon bogus.canon');
     expect(screen.queryByText(/drums remapped/)).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Reset edits' }));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();

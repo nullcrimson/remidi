@@ -9,6 +9,7 @@ import {
   type Drum,
   type VoiceRow,
 } from '../lib/midiremap';
+import { errorMessage } from '../lib/errors';
 import type { Missing } from '../lib/missing';
 import { editsToOverrides, type Edits, type SrcEdits } from '../lib/overrides';
 import { noteInOctave, octaveIndexOf } from '../lib/notes';
@@ -176,7 +177,7 @@ export function useEditor(
     try {
       return { rows: computePlan(src, tgt, editsToOverrides(edits, srcEdits), missing), planError: null };
     } catch (err) {
-      return { rows: [], planError: String(err) };
+      return { rows: [], planError: errorMessage(err) };
     }
   }, [status, src, tgt, edits, srcEdits, missing]);
 

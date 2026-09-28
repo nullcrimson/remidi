@@ -6,10 +6,10 @@ use crate::{
 const NOTES: usize = Note::MAX as usize + 1;
 
 /// Every source note's resolution, compiled once per (source, target, overrides).
-pub struct NoteTable([Resolution; NOTES]);
+pub(crate) struct NoteTable([Resolution; NOTES]);
 
 impl NoteTable {
-    pub fn compile(mapping: &Mapping) -> Self {
+    pub(crate) fn compile(mapping: &Mapping) -> Self {
         let mut notes = Note::all();
         Self(std::array::from_fn(|_| {
             notes
@@ -18,11 +18,11 @@ impl NoteTable {
         }))
     }
 
-    pub fn get(&self, note: Note) -> &Resolution {
+    pub(crate) fn get(&self, note: Note) -> &Resolution {
         &self.0[usize::from(note.get())]
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (Note, &Resolution)> {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (Note, &Resolution)> {
         Note::all().zip(&self.0)
     }
 }

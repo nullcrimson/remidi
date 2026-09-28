@@ -31,10 +31,10 @@ pub struct LoadedPreset {
     pub skipped: Vec<String>,
 }
 
-#[derive(thiserror::Error, Debug, PartialEq, Eq)]
+#[derive(thiserror::Error, Debug)]
 pub enum PresetError {
-    #[error("not a preset file: {0}")]
-    Parse(String),
+    #[error("not a preset file")]
+    Parse(#[source] serde_json::Error),
     #[error("not a Drumverter preset (format is '{0}')")]
     Format(String),
     #[error("preset version {0} is not supported by this version of Drumverter")]
@@ -74,8 +74,7 @@ fn non_blank(value: String, field: &'static str) -> Result<String, PresetError> 
 
 /// Reads a preset file; an edit it cannot read is skipped and described, never fatal.
 pub fn parse_preset(json: &str) -> Result<LoadedPreset, PresetError> {
-    let raw: RawPreset =
-        serde_json::from_str(json).map_err(|e| PresetError::Parse(e.to_string()))?;
+    let raw: RawPreset = serde_json::from_str(json).map_err(PresetError::Parse)?;
     if raw.format != PRESET_FORMAT {
         return Err(PresetError::Format(raw.format));
     }
@@ -204,22 +203,29 @@ mod tests {
             parse_preset(r#"{"name":"N"}"#),
             Err(PresetError::Parse(_))
         ));
-        assert_eq!(
+        assert!(matches!(
             parse_preset(r#"{"format":"other","version":1,"name":"N","src":"a","tgt":"b"}"#),
-            Err(PresetError::Format("other".into()))
-        );
-        assert_eq!(
+            Err(PresetError::Format(f)) if f == "other"
+        ));
+        assert!(matches!(
             parse_preset(
                 r#"{"format":"drumverter-preset","version":2,"name":"N","src":"a","tgt":"b"}"#
             ),
             Err(PresetError::Version(2))
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             parse_preset(
                 r#"{"format":"drumverter-preset","version":1,"name":" ","src":"a","tgt":"b"}"#
             ),
             Err(PresetError::Blank("name"))
-        );
+        ));
+    }
+
+    #[test]
+    fn an_unreadable_file_keeps_the_parse_cause() {
+        let err = parse_preset("nope").unwrap_err();
+        assert_eq!(err.to_string(), "not a preset file");
+        assert!(std::error::Error::source(&err).is_some());
     }
 
     #[test]

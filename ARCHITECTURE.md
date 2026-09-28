@@ -70,6 +70,15 @@ plan        ── per-drum view of the NoteTable (for UI display), no MIDI
 
 Every concept is one concrete type or function; the core defines no traits.
 
+**Public surface.** Every module is private; the crate root re-exports the API the
+CLI, the WASM and the site use (`Canon`, `Catalog`, `EngineMap`, `Mapping`,
+`convert`, `plan`, `Report`, `Channel`, `ChannelScope`, the preset and error types).
+`#![warn(unreachable_pub)]` keeps anything else from becoming public by accident, and
+no `midly` type appears in a public signature. `canon` is split into `key` (key text,
+`FromStr`, serde), `label` and `fallback` (the graph). Errors keep their causes as
+`source()` (`CodecError`, `MapError::Parse`, `PresetError::Parse`); the CLI prints the
+chain through anyhow and the WASM joins it into one message (`outer: inner`).
+
 ### `canon` — the hub vocabulary
 
 - `Canon`: a `Copy` hierarchical enum whose variants carry sub-enums and bounded
@@ -95,8 +104,12 @@ Every concept is one concrete type or function; the core defines no traits.
 - `Canon::all()` is every slot, built once. `FromStr` is a lookup table built from
   `all()` and `Display` (plus the alias `ride.N.bow`), so every key round-trips by
   construction.
-- `fallback(canon)`: the ordered, nearest-first list of alternatives to try when a
-  target cannot play a slot.
+- `Canon::fallback_chain()`: the ordered, nearest-first list of alternatives to try
+  when a target cannot play a slot.
+- The part enums (`SnareArtic`, `CymArtic`, …) derive `strum::VariantArray`, so
+  `all()` enumerates them without hand-kept lists; a test checks through
+  `strum::EnumDiscriminants` that `all()` reaches every variant of `Canon`, `HatOpen`,
+  `TomPos` and `CymSlot`.
 
 **Fallback invariant.** `single_step` gives a slot's immediate, nearest
 alternatives; `fallback` is the breadth-first closure of that relation, so a chain
@@ -135,6 +148,8 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
   - `translate(note)` decodes then wraps `resolve_canon` in `Resolved`;
     `resolve_canon(canon)` is used directly by `plan`.
   - Every `CanonResolution` carries the canon it resolved.
+- `Report`'s counters are private, read through accessors; only the converter tallies
+  them (`record`, `record_untouched`).
 - `Report::record` keeps the counting policy in one place: it tallies unmapped
   source notes, fallbacks used (with the target note each one landed on), and
   dropped canons; direct hits are not recorded. `converted` counts hits written to
@@ -154,7 +169,9 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
 ### `midi` — the only module that knows `midly`
 
 - `parse(bytes)` / `write(&smf)`: the `midly` codec.
-- `ChannelScope { Auto | Only(u4) | All }` chooses which channels a conversion
+- `Channel` is a MIDI channel `1..=16`, numbered as people count them
+  (`Channel::DRUMS` is 10).
+- `ChannelScope { Auto | Only(Channel) | All }` chooses which channels a conversion
   rewrites; `resolve(&smf)` turns it into one `ChannelFilter { Only | All | Skip }`
   per track. `Auto` (the default) converts every channel of each track that has a
   channel-10 note-on and skips the other tracks; when no track has one, it converts
@@ -186,7 +203,10 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
 
 ### `catalog` — where engine maps come from
 
-- `Catalog`: engine maps keyed by id, with `get(id)` / `ids()`. A map may list former
+- `Catalog`: engine maps keyed by id in a `BTreeMap`, with `get(id)`, and `ids()` /
+  `engines()` in id order, so no caller sorts. `EngineMap` exposes `id()` / `name()`
+  and reads user maps with `EngineMap::from_json`; a map that lists a note twice is a
+  `MapError::DuplicateNote`. A map may list former
   ids as `aliases`; `get` and `canonical_id` resolve them, so renaming an engine never
   breaks a saved preset. `check_aliases` rejects an alias that is also an id or belongs
   to two engines.
@@ -197,7 +217,7 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
   `toml` stays out of the runtime (and the WASM). `builtin()` parses the table;
   `Catalog::shared()` is a process-wide `LazyLock` instance, so the
   WASM parses presets once per page instead of once per call. A semantically invalid
-  preset (unknown canon, duplicate primary) is a startup panic caught by tests.
+  preset (unknown canon, duplicate primary or note) is a startup panic caught by tests.
 - `with_user_json(json)` adds a user map that *shadows* a builtin with the same id;
   `from_maps(maps)` builds a catalog from any maps (tests, generators).
 - `tests/stable_ids.rs` guards saved data: every drum key and engine id ever released is

@@ -41,6 +41,6 @@ describe('convert worker', () => {
 
   it('replies with the error when the converter cannot load', async () => {
     readyMock.mockRejectedValue(new Error('wasm fetch failed'));
-    expect(await deliver()).toEqual({ id: 7, error: 'Error: wasm fetch failed' });
+    expect(await deliver()).toEqual({ id: 7, error: 'wasm fetch failed' });
   });
 });

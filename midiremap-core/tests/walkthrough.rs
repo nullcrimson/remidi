@@ -1,8 +1,7 @@
 use std::collections::BTreeMap;
 
 use midiremap_core::{
-    canon::{fallback, Canon},
-    convert, Catalog, ChannelScope, EngineMap, FallbackTally, Mapping, MissingDrums, Note,
+    convert, Canon, Catalog, ChannelScope, EngineMap, FallbackTally, Mapping, MissingDrums, Note,
     Overrides,
 };
 use midly::{
@@ -29,7 +28,7 @@ fn walkthrough_smf(notes: &[Note]) -> Vec<u8> {
             kind: TrackEventKind::Midi {
                 channel: u4::from_int_lossy(DRUM_CHANNEL),
                 message: MidiMessage::NoteOn {
-                    key: u7::from(note),
+                    key: u7::from_int_lossy(note.get()),
                     vel: u7::from_int_lossy(100),
                 },
             },
@@ -39,7 +38,7 @@ fn walkthrough_smf(notes: &[Note]) -> Vec<u8> {
             kind: TrackEventKind::Midi {
                 channel: u4::from_int_lossy(DRUM_CHANNEL),
                 message: MidiMessage::NoteOff {
-                    key: u7::from(note),
+                    key: u7::from_int_lossy(note.get()),
                     vel: u7::from_int_lossy(0),
                 },
             },
@@ -81,7 +80,7 @@ fn expected_resolution(canon: Canon, tgt: &EngineMap) -> Expected {
     if let Some(note) = tgt.encode(canon) {
         return Expected::Direct(note);
     }
-    for alt in fallback(canon) {
+    for alt in canon.fallback_chain() {
         if let Some(note) = tgt.encode(alt) {
             return Expected::Fallback(note);
         }
@@ -90,9 +89,8 @@ fn expected_resolution(canon: Canon, tgt: &EngineMap) -> Expected {
 }
 
 fn richest_engine(maps: &Catalog) -> &str {
-    let mut ids = maps.ids();
-    ids.sort_unstable();
-    ids.into_iter()
+    maps.ids()
+        .into_iter()
         .max_by_key(|id| maps.get(id).unwrap().source_notes().len())
         .unwrap()
 }
@@ -153,7 +151,7 @@ fn walkthrough_is_ninety_bpm_quarter_notes_one_per_drum() {
     );
 
     let dir = env!("CARGO_TARGET_TMPDIR");
-    std::fs::write(format!("{dir}/walkthrough_{}.mid", src.id), &midi).unwrap();
+    std::fs::write(format!("{dir}/walkthrough_{}.mid", src.id()), &midi).unwrap();
 }
 
 #[test]
@@ -205,15 +203,17 @@ fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
             "{src_id} -> {tgt_id}: output notes must match direct/fallback resolution"
         );
         assert!(
-            out.report.unmapped_source.is_empty(),
+            out.report.unmapped_source().is_empty(),
             "{src_id} -> {tgt_id}: a kit's own notes are always decodable"
         );
         assert_eq!(
-            out.report.fallback_used, expected_fallback,
+            out.report.fallback_used(),
+            &expected_fallback,
             "{src_id} -> {tgt_id}: fallback report must match the resolver"
         );
         assert_eq!(
-            out.report.dropped, expected_dropped,
+            out.report.dropped(),
+            &expected_dropped,
             "{src_id} -> {tgt_id}: dropped report must match the resolver"
         );
 
@@ -243,12 +243,12 @@ fn same_engine_conversion_is_all_direct() {
     .unwrap();
 
     assert_eq!(note_on_keys(&out.bytes).len(), notes.len());
-    assert!(out.report.unmapped_source.is_empty());
+    assert!(out.report.unmapped_source().is_empty());
     assert!(
-        out.report.fallback_used.is_empty(),
+        out.report.fallback_used().is_empty(),
         "a kit always encodes its own canon slots directly"
     );
-    assert!(out.report.dropped.is_empty());
+    assert!(out.report.dropped().is_empty());
 }
 
 #[test]

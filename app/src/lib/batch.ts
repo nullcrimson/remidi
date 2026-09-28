@@ -1,4 +1,5 @@
 import type { Channel } from './channel';
+import { errorMessage } from './errors';
 import type { LoadedFile } from './files';
 import type { Overrides, RemapReport, RemapResult } from './midiremap';
 import type { Missing } from './missing';
@@ -45,7 +46,7 @@ export function runBatch(
       const { bytes, report } = remap(f.bytes, src, tgt, ov, channel, missing);
       ok.push({ name: f.name, bytes, report });
     } catch (e) {
-      failed.push({ name: f.name, error: String(e) });
+      failed.push({ name: f.name, error: errorMessage(e) });
     }
   }
   return { ok, failed };

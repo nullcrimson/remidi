@@ -115,7 +115,7 @@ describe('useRemapper convert path', () => {
     await waitFor(() => expect(result.current.conv.kind).toBe('done'));
     expect(result.current.results.map((r) => r.name)).toEqual(['ok-ezdrummer.mid']);
     expect(result.current.failures).toEqual([
-      { name: 'bad.mid', error: 'Error: unknown source engine' },
+      { name: 'bad.mid', error: 'unknown source engine' },
     ]);
   });
 

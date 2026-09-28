@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import type { Channel } from '../lib/channel';
 import { convertBatch } from '../lib/converter';
+import { errorMessage } from '../lib/errors';
 import type { Overrides } from '../lib/midiremap';
 import type { Missing } from '../lib/missing';
 import { MID_EXT, type FileFailure, type FileResult, type LoadedFile } from '../lib/files';
@@ -130,7 +131,7 @@ export function useConverter(src: string, tgt: string, settingsKey: string) {
             type: 'CONVERT_ERROR',
             key,
             failures: [],
-            message: err instanceof Error ? err.message : String(err),
+            message: errorMessage(err),
           });
         }
         return null;

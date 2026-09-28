@@ -56,6 +56,14 @@ impl Note {
         (0..=Self::MAX).map(Self)
     }
 
+    pub(crate) fn from_key(key: u7) -> Self {
+        Self(key.as_int())
+    }
+
+    pub(crate) fn key(self) -> u7 {
+        u7::from_int_lossy(self.0)
+    }
+
     /// The note's name, such as `F#2`, in the given octave convention.
     pub fn name(self, base: OctaveBase) -> String {
         let octave = i16::from(self.0 / 12) - base.offset();
@@ -68,18 +76,6 @@ impl TryFrom<u8> for Note {
 
     fn try_from(n: u8) -> Result<Self, Self::Error> {
         Self::new(n).ok_or(NoteOutOfRange(n))
-    }
-}
-
-impl From<u7> for Note {
-    fn from(key: u7) -> Self {
-        Self(key.as_int())
-    }
-}
-
-impl From<Note> for u7 {
-    fn from(note: Note) -> Self {
-        u7::from_int_lossy(note.0)
     }
 }
 
@@ -167,7 +163,7 @@ mod tests {
     #[test]
     fn converts_to_and_from_u7() {
         let n = Note::new(100).unwrap();
-        assert_eq!(Note::from(u7::from(n)), n);
+        assert_eq!(Note::from_key(n.key()), n);
     }
 
     #[test]

@@ -1,17 +1,18 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
     sync::LazyLock,
 };
 
-use crate::engine_map::{from_json, many_from_json, EngineMap, MapError};
+use crate::engine_map::{many_from_json, EngineMap, MapError};
 
 const EMBEDDED: &str = include_str!(concat!(env!("OUT_DIR"), "/engines.json"));
 
 static SHARED: LazyLock<Catalog> = LazyLock::new(Catalog::builtin);
 
-/// Engine maps keyed by engine id; former ids resolve through each map's aliases.
+/// Engine maps keyed by engine id, in id order; former ids resolve through each map's
+/// aliases.
 pub struct Catalog {
-    maps: HashMap<String, EngineMap>,
+    maps: BTreeMap<String, EngineMap>,
     aliases: HashMap<String, String>,
 }
 
@@ -28,18 +29,18 @@ impl Catalog {
 
     /// Later maps with the same id replace earlier ones.
     pub fn from_maps(maps: impl IntoIterator<Item = EngineMap>) -> Self {
-        let maps: HashMap<String, EngineMap> =
-            maps.into_iter().map(|m| (m.id.clone(), m)).collect();
+        let maps: BTreeMap<String, EngineMap> =
+            maps.into_iter().map(|m| (m.id().to_owned(), m)).collect();
         let aliases = maps
-            .values()
-            .flat_map(|m| m.aliases().iter().map(|a| (a.clone(), m.id.clone())))
+            .iter()
+            .flat_map(|(id, m)| m.aliases().iter().map(|a| (a.clone(), id.clone())))
             .collect();
         Self { maps, aliases }
     }
 
     /// Adds a user map from JSON; it shadows a builtin with the same id.
     pub fn with_user_json(self, json: &str) -> Result<Self, MapError> {
-        let map = from_json(json)?;
+        let map = EngineMap::from_json(json)?;
         let catalog = Self::from_maps(self.maps.into_values().chain([map]));
         catalog.check_aliases()?;
         Ok(catalog)
@@ -65,11 +66,17 @@ impl Catalog {
 
     /// The current id for an id or a former id.
     pub fn canonical_id(&self, id: &str) -> Option<&str> {
-        self.get(id).map(|m| m.id.as_str())
+        self.get(id).map(EngineMap::id)
     }
 
+    /// Every engine id, sorted.
     pub fn ids(&self) -> Vec<&str> {
         self.maps.keys().map(String::as_str).collect()
+    }
+
+    /// Every engine, sorted by id.
+    pub fn engines(&self) -> impl Iterator<Item = &EngineMap> {
+        self.maps.values()
     }
 }
 
@@ -168,7 +175,7 @@ mod tests {
         let json = r#"{"id":"ezdrummer","name":"Custom EZD","notes":[{"note":35,"canon":"kick.main","primary":true}]}"#;
         let p = Catalog::builtin().with_user_json(json).unwrap();
         let ezd = p.get("ezdrummer").unwrap();
-        assert_eq!(ezd.name, "Custom EZD");
+        assert_eq!(ezd.name(), "Custom EZD");
         assert_eq!(ezd.encode(Canon::Kick(KickKind::Main)), Some(n(35)));
     }
 
@@ -187,7 +194,7 @@ mod tests {
     fn an_alias_resolves_to_its_engine() {
         let json = r#"{"id":"custom","name":"Custom","aliases":["legacy_kit"],"notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
         let p = Catalog::builtin().with_user_json(json).unwrap();
-        assert_eq!(p.get("legacy_kit").map(|m| m.id.as_str()), Some("custom"));
+        assert_eq!(p.get("legacy_kit").map(EngineMap::id), Some("custom"));
         assert_eq!(p.canonical_id("legacy_kit"), Some("custom"));
         assert_eq!(p.canonical_id("custom"), Some("custom"));
         assert_eq!(p.canonical_id("nope"), None);
@@ -197,15 +204,15 @@ mod tests {
     #[test]
     fn an_alias_may_not_shadow_an_engine_id() {
         let json = r#"{"id":"custom","name":"Custom","aliases":["ezdrummer"],"notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
-        assert_eq!(
-            Catalog::builtin().with_user_json(json).err(),
-            Some(MapError::AliasCollision("ezdrummer".into()))
-        );
+        assert!(matches!(
+            Catalog::builtin().with_user_json(json),
+            Err(MapError::AliasCollision(alias)) if alias == "ezdrummer"
+        ));
     }
 
     #[test]
     fn builtin_aliases_do_not_collide() {
-        assert_eq!(Catalog::builtin().check_aliases(), Ok(()));
+        assert!(Catalog::builtin().check_aliases().is_ok());
     }
 
     #[test]
@@ -229,10 +236,17 @@ mod tests {
             })
             .collect();
         stems.sort_unstable();
-        let b = Catalog::builtin();
-        let mut ids = b.ids();
-        ids.sort_unstable();
-        assert_eq!(ids, stems);
+        assert_eq!(Catalog::builtin().ids(), stems);
+    }
+
+    #[test]
+    fn ids_and_engines_come_sorted_by_id() {
+        let json = r#"{"id":"aaa_first","name":"First","notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
+        let c = Catalog::builtin().with_user_json(json).unwrap();
+        let ids = c.ids();
+        assert!(ids.is_sorted(), "{ids:?}");
+        assert_eq!(ids[0], "aaa_first");
+        assert_eq!(c.engines().map(EngineMap::id).collect::<Vec<_>>(), ids);
     }
 
     #[test]
