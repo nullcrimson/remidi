@@ -1,5 +1,6 @@
 id = "rsdrums_monarch"
 name = "RS Drums - Monarch"
+vendor = "RS Drums"
 notes = [
   { note = 24, canon = "kick.main", primary = true },
   { note = 26, canon = "snare1.hit", primary = true },

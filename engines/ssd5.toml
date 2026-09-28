@@ -1,6 +1,7 @@
 id = "ssd5"
 name = "Steven Slate Drums SSD5"
 short_name = "SSD5"
+vendor = "Steven Slate Drums"
 notes = [
   { note = 12, canon = "tom.floor2.rim", primary = true },
   { note = 14, canon = "tom.floor1.rim", primary = true },

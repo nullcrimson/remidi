@@ -327,6 +327,8 @@ dependencies = [
  "midiremap-core",
  "midly",
  "roxmltree",
+ "serde",
+ "serde_json",
  "thiserror",
 ]
 

@@ -1,5 +1,6 @@
 id = "ggd_modernmassive2"
 name = "GGD Modern & Massive 2 (Default Mapping)"
+vendor = "GetGood Drums"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "perc.sticks", primary = true },

@@ -1,6 +1,9 @@
 use askama::Template;
 
-use crate::pages::{EnginePage, IndexPage, PairPage, Site, ORIGIN};
+use crate::{
+    content::{Block, ContentPage, Link, CONTENT},
+    pages::{EnginePage, IndexPage, Outcome, PairPage, Site, ORIGIN},
+};
 
 pub const DESCRIPTION_MAX: usize = 155;
 
@@ -60,7 +63,7 @@ pub fn engine_meta(p: &EnginePage) -> Meta {
             &[
                 format!(
                     "{n} drum MIDI note map: all {} notes with drum names in C-1 and C-2 octave conventions.",
-                    p.rows.len()
+                    p.total
                 ),
                 format!("{n} drum MIDI note map with C-1 and C-2 note names."),
             ],
@@ -136,10 +139,56 @@ pub fn index_meta(p: &IndexPage) -> Meta {
     }
 }
 
+pub fn content_meta(p: &ContentPage) -> Meta {
+    Meta {
+        title: p.section.title.clone(),
+        description: p.section.description.clone(),
+        canonical: format!("{ORIGIN}{}", p.section.href()),
+    }
+}
+
+pub struct NavItem {
+    pub label: String,
+    pub href: String,
+    pub current: bool,
+}
+
+/// What every page shares: the stylesheet, header nav, footer and optional schema.
+pub struct Frame {
+    pub css: String,
+    pub nav: Vec<NavItem>,
+    pub footer: Vec<Link>,
+    pub trademark: String,
+    pub json_ld: Option<String>,
+}
+
+impl Frame {
+    fn new(css: &str, current: Option<&str>, json_ld: Option<String>) -> Self {
+        Self {
+            css: css.to_string(),
+            nav: CONTENT
+                .nav
+                .iter()
+                .map(|l| NavItem {
+                    label: l.label.clone(),
+                    href: l.href.clone(),
+                    current: current == Some(l.href.as_str()),
+                })
+                .collect(),
+            footer: CONTENT.footer_links(),
+            trademark: CONTENT.trademark.clone(),
+            json_ld,
+        }
+    }
+}
+
+const NOTE_MAPS: Option<&str> = Some("/engines/");
+
 #[derive(Template)]
 #[template(path = "engine.html")]
 struct EngineHtml<'a> {
     meta: Meta,
+    frame: Frame,
     page: &'a EnginePage,
 }
 
@@ -147,6 +196,7 @@ struct EngineHtml<'a> {
 #[template(path = "pair.html")]
 struct PairHtml<'a> {
     meta: Meta,
+    frame: Frame,
     heading: String,
     summary: String,
     page: &'a PairPage,
@@ -156,14 +206,24 @@ struct PairHtml<'a> {
 #[template(path = "index.html")]
 struct IndexHtml<'a> {
     meta: Meta,
+    frame: Frame,
     page: &'a IndexPage,
 }
 
-pub fn render_site(site: &Site) -> Result<Vec<(String, String)>, askama::Error> {
+#[derive(Template)]
+#[template(path = "content.html")]
+struct ContentHtml<'a> {
+    meta: Meta,
+    frame: Frame,
+    page: &'a ContentPage,
+}
+
+pub fn render_site(site: &Site, css: &str) -> Result<Vec<(String, String)>, askama::Error> {
     let mut out = vec![(
         "engines/index.html".to_string(),
         IndexHtml {
             meta: index_meta(&site.index),
+            frame: Frame::new(css, NOTE_MAPS, None),
             page: &site.index,
         }
         .render()?,
@@ -173,6 +233,7 @@ pub fn render_site(site: &Site) -> Result<Vec<(String, String)>, askama::Error> 
             format!("engines/{}/index.html", p.engine.slug),
             EngineHtml {
                 meta: engine_meta(p),
+                frame: Frame::new(css, NOTE_MAPS, None),
                 page: p,
             }
             .render()?,
@@ -183,6 +244,7 @@ pub fn render_site(site: &Site) -> Result<Vec<(String, String)>, askama::Error> 
             format!("convert/{}/index.html", p.slug),
             PairHtml {
                 meta: pair_meta(p),
+                frame: Frame::new(css, NOTE_MAPS, None),
                 heading: pair_heading(p),
                 summary: pair_summary(
                     &p.src.name,
@@ -192,6 +254,18 @@ pub fn render_site(site: &Site) -> Result<Vec<(String, String)>, askama::Error> 
                     p.approximated,
                     p.dropped,
                 ),
+                page: p,
+            }
+            .render()?,
+        ));
+    }
+    for p in &site.content {
+        let href = p.section.href();
+        out.push((
+            format!("{}/index.html", p.section.slug),
+            ContentHtml {
+                meta: content_meta(p),
+                frame: Frame::new(css, Some(&href), p.json_ld.clone()),
                 page: p,
             }
             .render()?,
@@ -216,8 +290,116 @@ mod tests {
         "/site.webmanifest",
     ];
 
+    const CSS: &str = "/assets/index-test.css";
+
     fn rendered() -> Vec<(String, String)> {
-        render_site(&Site::build(&Catalog::builtin()).unwrap()).unwrap()
+        render_site(&Site::build(&Catalog::builtin()).unwrap(), CSS).unwrap()
+    }
+
+    fn page(path: &str) -> String {
+        rendered()
+            .into_iter()
+            .find(|(p, _)| p == path)
+            .map(|(_, h)| h)
+            .unwrap()
+    }
+
+    #[test]
+    fn every_page_links_the_app_stylesheet_and_no_inline_styles() {
+        for (path, html) in rendered() {
+            assert!(
+                html.contains(&format!(r#"<link rel="stylesheet" href="{CSS}""#)),
+                "{path}"
+            );
+            assert!(
+                !html.contains("<style") && !html.contains("style=\""),
+                "{path}"
+            );
+        }
+    }
+
+    #[test]
+    fn templates_use_only_theme_sizes() {
+        let templates = [
+            include_str!("../templates/base.html"),
+            include_str!("../templates/engine.html"),
+            include_str!("../templates/index.html"),
+            include_str!("../templates/pair.html"),
+            include_str!("../templates/content.html"),
+            include_str!("../templates/filter.html"),
+        ];
+        for t in templates {
+            for banned in ["text-[", "rounded-[", "text-t6", "style=", "<style"] {
+                assert!(!t.contains(banned), "{banned}");
+            }
+        }
+    }
+
+    fn current_nav(html: &str) -> Vec<String> {
+        html.split("aria-current=\"page\"")
+            .skip(1)
+            .filter_map(|rest| rest.split('>').nth(1))
+            .map(|label| label.split('<').next().unwrap_or("").trim().to_string())
+            .collect()
+    }
+
+    #[test]
+    fn header_marks_the_current_section() {
+        for (path, html) in rendered() {
+            assert!(html.contains(r#"<nav aria-label="Main""#), "{path}");
+            assert!(html.contains(r#"<nav aria-label="Site""#), "{path}");
+            let expected: &[&str] = if path.starts_with("engines/") || path.starts_with("convert/")
+            {
+                &["Note maps"]
+            } else if path == "faq/index.html" {
+                &["FAQ"]
+            } else {
+                &[]
+            };
+            assert_eq!(current_nav(&html), expected, "{path}");
+        }
+    }
+
+    #[test]
+    fn content_pages_render_their_section() {
+        let faq = page("faq/index.html");
+        assert!(faq.contains(">Frequently asked questions</h1>"));
+        assert!(faq.contains("Is Drumverter free?"));
+        assert!(faq.contains(r#"<script type="application/ld+json">"#));
+        let issue = page("report-an-issue/index.html");
+        assert!(issue.contains(r#"href="https://github.com/nullcrimson/remidi/issues""#));
+        assert!(!issue.contains("application/ld+json"));
+        let guide = page("how-it-works/index.html");
+        assert!(guide.contains(r#"href="/engines/""#));
+    }
+
+    #[test]
+    fn pair_pages_switch_octave_and_changes_without_script() {
+        let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
+        for needle in [
+            r#"id="oct-c1""#,
+            r#"id="oct-c2""#,
+            r#"id="show-all""#,
+            r#"id="show-changes""#,
+            r#"data-outcome="exact""#,
+            r#"data-outcome="approximated""#,
+            r#"data-oct="c1""#,
+            r#"data-oct="c2""#,
+            "⇄ Reverse direction",
+        ] {
+            assert!(html.contains(needle), "{needle}");
+        }
+    }
+
+    #[test]
+    fn index_matrix_names_each_pair_link() {
+        let html = page("engines/index.html");
+        assert_eq!(html.matches(r#"aria-label="General MIDI to "#).count(), 7);
+        let matrix_links = html
+            .split("<a ")
+            .filter(|a| a.contains("href=\"/convert/") && a.contains(" to "))
+            .count();
+        assert_eq!(matrix_links, 56);
     }
 
     fn url_of(path: &str) -> String {
@@ -292,6 +474,7 @@ mod tests {
         let pages = rendered();
         let mut known: HashSet<String> = pages.iter().map(|(p, _)| url_of(p)).collect();
         known.insert("/".to_string());
+        known.insert(CSS.to_string());
         known.extend(STATIC_ASSETS.iter().map(|s| s.to_string()));
         for (path, html) in &pages {
             for href in html
@@ -320,15 +503,10 @@ mod tests {
 
     #[test]
     fn pair_pages_name_both_drum_columns() {
-        let pages = rendered();
-        let html = pages
-            .iter()
-            .find(|(p, _)| p == "convert/ggd-invasion-to-ezdrummer/index.html")
-            .map(|(_, h)| h.clone())
-            .unwrap();
-        assert!(html.contains("<th>GetGood Drums Invasion drum</th>"));
-        assert!(html.contains("<th>EZdrummer 3 drum</th>"));
-        assert!(!html.contains("<th>Drum</th>"));
+        let html = page("convert/ggd-invasion-to-ezdrummer/index.html");
+        assert!(html.contains(">GetGood Drums Invasion drum</th>"));
+        assert!(html.contains(">EZdrummer 3 drum</th>"));
+        assert!(!html.contains(">Drum</th>"));
     }
 
     #[test]

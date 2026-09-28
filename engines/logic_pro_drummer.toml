@@ -1,5 +1,6 @@
 id = "logic_pro_drummer"
 name = "Logic Pro Drummer"
+vendor = "Apple"
 notes = [
   { note = 28, canon = "crash.1.mute", primary = true },
   { note = 29, canon = "crash.2.mute", primary = true },

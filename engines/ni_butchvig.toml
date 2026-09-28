@@ -1,5 +1,6 @@
 id = "ni_butchvig"
 name = "Native Instruments Butch Vig Drums"
+vendor = "Native Instruments"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.hit", primary = true },

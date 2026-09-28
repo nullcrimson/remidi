@@ -1,5 +1,6 @@
 id = "ggd_metal"
 name = "GGD One Kit Wonder: Metal (Default Mapping 'Invasion')"
+vendor = "GetGood Drums"
 notes = [
   { note = 17, canon = "hat.cc", primary = true },
   { note = 22, canon = "kick.alt", primary = true },

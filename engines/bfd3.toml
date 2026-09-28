@@ -1,6 +1,7 @@
 id = "bfd3"
 name = "BFD3 Drums"
 short_name = "BFD3"
+vendor = "BFD"
 notes = [
   { note = 18, canon = "hat.cc.tip", primary = true },
   { note = 20, canon = "hat.cc.edge", primary = true },

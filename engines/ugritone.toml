@@ -1,5 +1,6 @@
 id = "ugritone"
 name = "Ugritone Drums"
+vendor = "Ugritone"
 notes = [
   { note = 32, canon = "hat.open5", primary = true },
   { note = 36, canon = "kick.main", primary = true },

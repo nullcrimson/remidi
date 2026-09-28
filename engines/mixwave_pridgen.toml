@@ -1,5 +1,6 @@
 id = "mixwave_pridgen"
 name = "MixWave Thomas Pridgen Drums"
+vendor = "MixWave"
 notes = [
   { note = 17, canon = "tom.floor2.rim", primary = true },
   { note = 19, canon = "tom.floor1.rim", primary = true },

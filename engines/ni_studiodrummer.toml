@@ -1,5 +1,6 @@
 id = "ni_studiodrummer"
 name = "Native Instruments Studio Drummer"
+vendor = "Native Instruments"
 notes = [
   { note = 22, canon = "crash.1.mute", primary = true },
   { note = 23, canon = "ride.1.mute", primary = true },

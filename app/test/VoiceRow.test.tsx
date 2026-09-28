@@ -83,13 +83,36 @@ describe('VoiceRow', () => {
     render(<VoiceRow row={{ ...kick, srcNotes: [24, 23, 22] }} effectiveTgt={36} {...base} />);
     expect(screen.getByRole('button', { name: 'C1' })).toBeInTheDocument();
     expect(screen.getByText('+2')).toBeInTheDocument();
-    expect(screen.getByLabelText('Also plays B0, A#0')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('2 more source notes play Kick: B0, A#0. All go to C2.'),
+    ).toBeInTheDocument();
   });
 
-  it('lists the extra source notes in the marker tooltip', async () => {
+  it('explains the marker in its tooltip', async () => {
     render(<VoiceRow row={{ ...kick, srcNotes: [24, 23, 22] }} effectiveTgt={36} {...base} />);
     await userEvent.hover(screen.getByText('+2'));
-    expect(await screen.findByRole('tooltip')).toHaveTextContent('Also B0, A#0');
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      '2 more source notes play Kick: B0, A#0. All go to C2.',
+    );
+  });
+
+  it('explains a single extra note and a dropped row', () => {
+    const { rerender } = render(
+      <VoiceRow row={{ ...kick, srcNotes: [24, 23] }} effectiveTgt={36} {...base} />,
+    );
+    expect(
+      screen.getByLabelText('1 more source note plays Kick: B0. Both go to C2.'),
+    ).toBeInTheDocument();
+    rerender(
+      <VoiceRow
+        row={{ ...kick, srcNotes: [24, 23], tgtNote: null, status: 'dropped' }}
+        effectiveTgt={null}
+        {...base}
+      />,
+    );
+    expect(
+      screen.getByLabelText('1 more source note plays Kick: B0. None has a target.'),
+    ).toBeInTheDocument();
   });
 
   it('shows no marker for a single source note', () => {

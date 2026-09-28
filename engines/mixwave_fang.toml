@@ -1,5 +1,6 @@
 id = "mixwave_fang"
 name = "MixWave Turnstile Daniel Fang"
+vendor = "MixWave"
 notes = [
   { note = 5, canon = "tom.rack1.hit", primary = true },
   { note = 6, canon = "tom.rack1.rimshot", primary = true },

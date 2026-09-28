@@ -95,7 +95,7 @@ describe('App edit view', () => {
     await userEvent.click(screen.getByText(/Edit individual notes/));
     expect(screen.getByText('Edit notes')).toBeInTheDocument();
     expect(screen.getByText('Kick')).toBeInTheDocument();
-    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '—' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
   });

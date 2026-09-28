@@ -1,32 +1,82 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{{ page.engine.name }} drum MIDI note map</h1>
-<p class="lead">
-  Every MIDI note {{ page.engine.name }} responds to ({{ page.rows.len() }} in total), with note
-  names in both octave conventions: C-1 (Reaper, Logic, Ableton, Guitar Pro) and C-2 (Studio One,
-  Cubase, FL Studio).
-</p>
-<div class="cta">
-  <a href="/?from={{ page.engine.id }}">Convert from {{ page.engine.name }}</a>
-  <a class="alt" href="/?to={{ page.engine.id }}">Convert to {{ page.engine.name }}</a>
+<nav aria-label="Breadcrumb" class="font-mono text-caption tracking-[0.14em] text-t5 uppercase">
+  <a href="/engines/" class="tap text-t4 transition-colors hover:text-t1">Note maps</a>
+  <span aria-hidden="true" class="text-decor">/</span>
+  {{ page.engine.name }}
+</nav>
+<div class="flex flex-col gap-2.5">
+  <h1 class="font-display text-display/tight font-bold text-t1">{{ page.engine.name }} drum MIDI note map</h1>
+  <p class="text-body/relaxed text-t3">
+    Every MIDI note {{ page.engine.name }} responds to — {{ page.total }} in total — grouped by drum.
+    Note names follow either octave convention: C-1 (Reaper, Logic, Ableton, Guitar Pro) or C-2
+    (Studio One, Cubase, FL Studio).
+  </p>
 </div>
-<div class="table-wrap">
-  <table>
-    <thead><tr><th>Note #</th><th>Name (C-1)</th><th>Name (C-2)</th><th>Drum</th></tr></thead>
-    <tbody>
-      {% for r in page.rows %}
-      <tr><td class="num">{{ r.note }}</td><td class="num">{{ r.name_c1 }}</td><td class="num">{{ r.name_c2 }}</td><td>{{ r.drum }}</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="flex flex-wrap items-center gap-3">
+  <a
+    href="/?to={{ page.engine.id }}"
+    class="inline-flex items-center justify-center rounded-panel bg-accent px-5 py-3 font-display text-body font-semibold text-ink transition hover:brightness-110 pointer-coarse:min-h-11"
+  >Convert to {{ page.engine.name }}</a>
+  <a
+    href="/?from={{ page.engine.id }}"
+    class="inline-flex items-center justify-center rounded-panel border border-accent/40 px-5 py-3 font-display text-body font-semibold text-accent transition hover:border-accent hover:bg-accent/8 pointer-coarse:min-h-11"
+  >Convert from {{ page.engine.name }}</a>
 </div>
-{% if !page.pair_links.is_empty() %}
-<h2>Conversion tables</h2>
-<ul class="links">
-  {% for l in page.pair_links %}
-  <li><a href="{{ l.href() }}">{{ l.src_name }} → {{ l.tgt_name }}</a></li>
+
+<div class="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
+  <input
+    type="search"
+    hidden
+    data-filter="drums"
+    aria-label="Filter drums"
+    placeholder="Filter by drum or note…"
+    class="min-w-0 grow rounded-chip border border-field-border bg-field px-2 py-1.25 font-mono text-body text-t2 transition-colors outline-none placeholder:text-t5 focus:border-accent/40 sm:text-label pointer-coarse:py-2.5"
+  />
+  <div role="radiogroup" aria-label="Octave naming" class="ml-auto inline-flex gap-1">
+    <label class="tap cursor-pointer rounded-chip border border-white/12 px-2 py-0.5 font-mono text-label font-semibold text-t4 outline-offset-2 outline-accent/60 transition-colors hover:border-accent/40 hover:text-t1 has-checked:border-accent has-checked:bg-accent/15 has-checked:text-t1 has-focus-visible:outline-2 pointer-coarse:px-3 pointer-coarse:py-3">
+      <input type="radio" name="octave" id="oct-c1" checked class="sr-only" />C-1
+    </label>
+    <label class="tap cursor-pointer rounded-chip border border-white/12 px-2 py-0.5 font-mono text-label font-semibold text-t4 outline-offset-2 outline-accent/60 transition-colors hover:border-accent/40 hover:text-t1 has-checked:border-accent has-checked:bg-accent/15 has-checked:text-t1 has-focus-visible:outline-2 pointer-coarse:px-3 pointer-coarse:py-3">
+      <input type="radio" name="octave" id="oct-c2" class="sr-only" />C-2
+    </label>
+  </div>
+</div>
+
+<table id="drums" class="-mt-3 w-full border-collapse text-left">
+  <thead class="sr-only">
+    <tr><th scope="col">Note</th><th scope="col">Drum</th></tr>
+  </thead>
+  {% for g in page.groups %}
+  <tbody data-group>
+    <tr>
+      <th scope="rowgroup" colspan="2" class="px-1 pt-4 pb-1.5 font-mono text-caption font-normal tracking-[0.14em] text-t5 uppercase">{{ g.name }}</th>
+    </tr>
+    {% for r in g.rows %}
+    <tr data-q="{{ r.search() }}" class="border-t border-white/5">
+      <td class="w-32 px-1 py-1.75 font-mono text-label whitespace-nowrap text-t1">{{ r.note }} · <span data-oct="c1">{{ r.name_c1 }}</span><span data-oct="c2">{{ r.name_c2 }}</span></td>
+      <td class="py-1.75 text-ui text-t3">{{ r.drum }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
   {% endfor %}
-</ul>
+</table>
+<p id="drums-empty" hidden class="font-mono text-label text-t5">No drums match</p>
+
+{% if !page.pairs_from.is_empty() %}
+<div class="flex flex-col gap-3 border-t border-hairline pt-5">
+  <h2 class="font-display text-title font-semibold text-t1">Conversion tables</h2>
+  <ul class="flex flex-wrap gap-2">
+    {% for l in page.pairs_from %}
+    <li><a href="{{ l.href() }}" class="inline-flex rounded-chip border border-white/12 px-2.5 py-1 text-ui text-t2 transition-colors hover:border-accent/40 hover:text-t1 pointer-coarse:py-3">→ {{ l.tgt_name }}</a></li>
+    {% endfor %}
+  </ul>
+  <ul class="flex flex-wrap gap-2">
+    {% for l in page.pairs_to %}
+    <li><a href="{{ l.href() }}" class="inline-flex rounded-chip border border-white/12 px-2.5 py-1 text-ui text-t2 transition-colors hover:border-accent/40 hover:text-t1 pointer-coarse:py-3">{{ l.src_name }} →</a></li>
+    {% endfor %}
+  </ul>
+</div>
 {% endif %}
-<p><a href="/engines/">← All engine note maps</a></p>
 {% endblock %}
+{% block script %}{% include "filter.html" %}{% endblock %}

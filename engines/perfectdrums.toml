@@ -1,5 +1,6 @@
 id = "perfectdrums"
 name = "Perfect Drums (Naughty Seal Audio)"
+vendor = "Naughty Seal Audio"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.sidestick", primary = true },

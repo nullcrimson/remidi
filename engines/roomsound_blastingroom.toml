@@ -1,5 +1,6 @@
 id = "roomsound_blastingroom"
 name = "Room Sound - The Blasting Room"
+vendor = "Room Sound"
 notes = [
   { note = 31, canon = "perc.sticks", primary = true },
   { note = 36, canon = "kick.main", primary = true },

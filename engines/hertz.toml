@@ -1,5 +1,6 @@
 id = "hertz"
 name = "Hertz Drums"
+vendor = "Hertz Drums"
 notes = [
   { note = 5, canon = "snare1.sidestick" },
   { note = 10, canon = "snare1.hit" },

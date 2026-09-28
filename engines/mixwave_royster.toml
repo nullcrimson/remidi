@@ -1,5 +1,6 @@
 id = "mixwave_royster"
 name = "MixWave Tony Royster Jr"
+vendor = "MixWave"
 notes = [
   { note = 19, canon = "tom.floor1.rim", primary = true },
   { note = 21, canon = "tom.rack2.rim", primary = true },

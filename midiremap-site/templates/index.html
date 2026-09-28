@@ -1,20 +1,65 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Drum MIDI note maps</h1>
-<p class="lead">
-  Note charts for {{ page.all.len() }} drum engines and conversion tables between the most popular
-  ones. Every table comes from the same mapping data the Drumverter converter uses.
-</p>
-<h2>Popular engines</h2>
-{% for m in page.majors %}
-<p><a href="{{ m.engine.href() }}"><strong>{{ m.engine.name }}</strong></a> —
-  {% for l in m.pairs %}<a href="{{ l.href() }}">to {{ l.tgt_name }}</a>{% if !loop.last %} · {% endif %}{% endfor %}
-</p>
-{% endfor %}
-<h2>All engines</h2>
-<ul class="links">
-  {% for e in page.all %}
-  <li><a href="{{ e.href() }}">{{ e.name }}</a></li>
-  {% endfor %}
-</ul>
+<div class="flex flex-col gap-2.5">
+  <h1 class="font-display text-display/tight font-bold text-t1">Drum MIDI note maps</h1>
+  <p class="text-body/relaxed text-t3">
+    Note charts for {{ page.all.len() }} drum engines and conversion tables between the most popular
+    ones — the same mapping data the Drumverter converter uses.
+  </p>
+</div>
+
+<section class="flex flex-col gap-3">
+  <h2 class="font-display text-title font-semibold text-t1">Popular conversions</h2>
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-xl table-fixed border-separate border-spacing-0.5 font-mono text-caption">
+      <thead>
+        <tr>
+          <th scope="col" class="sticky left-0 z-10 w-28 bg-card p-1.5 text-left font-normal text-t5 sm:w-44">FROM ↓ TO →</th>
+          {% for c in page.columns %}
+          <th scope="col" class="p-1.5 text-center font-normal text-t4">{{ c }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in page.matrix %}
+        <tr>
+          <th scope="row" class="sticky left-0 z-10 w-28 bg-card p-1.5 text-left font-sans text-label font-normal text-t2 sm:w-auto sm:whitespace-nowrap">{{ row.engine.name }}</th>
+          {% for cell in row.cells %}
+          <td class="text-center">
+            {% if let Some(l) = cell %}<a href="{{ l.href() }}" aria-label="{{ l.src_name }} to {{ l.tgt_name }}" title="{{ l.src_name }} → {{ l.tgt_name }}" class="flex h-8 items-center justify-center rounded-chip border border-white/8 text-t2 transition-colors hover:border-accent/40 hover:bg-accent/8 hover:text-t1 pointer-coarse:h-11 pointer-coarse:min-w-11">→</a>{% else %}<span aria-hidden="true" class="text-decor">·</span>{% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="text-label text-t5">Each arrow opens the conversion table from the row’s engine to the column’s.</p>
+</section>
+
+<section class="flex flex-col gap-3">
+  <h2 class="font-display text-title font-semibold text-t1">All {{ page.all.len() }} engines</h2>
+  <input
+    type="search"
+    hidden
+    data-filter="engines"
+    aria-label="Filter engines"
+    placeholder="Filter engines…"
+    class="rounded-chip border border-field-border bg-field px-2 py-1.25 font-mono text-body text-t2 transition-colors outline-none placeholder:text-t5 focus:border-accent/40 sm:text-label pointer-coarse:py-2.5"
+  />
+  <div id="engines" class="columns-1 gap-8 sm:columns-2 md:columns-3">
+    {% for g in page.vendors %}
+    <section data-group class="mb-5 break-inside-avoid">
+      <h3 class="pb-1.5 font-mono text-caption tracking-[0.14em] text-t5 uppercase">{{ g.name }}</h3>
+      <ul>
+        {% for e in g.engines %}
+        <li data-q="{{ e.search() }}"><a href="{{ e.href() }}" class="block py-0.5 text-ui text-t2 transition-colors hover:text-accent pointer-coarse:py-3">{{ e.name }}</a></li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endfor %}
+  </div>
+  <p id="engines-empty" hidden class="font-mono text-label text-t5">No engines match</p>
+</section>
 {% endblock %}
+{% block script %}{% include "filter.html" %}{% endblock %}

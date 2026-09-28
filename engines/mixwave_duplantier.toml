@@ -1,5 +1,6 @@
 id = "mixwave_duplantier"
 name = "MixWave Gojira - Mario Duplantier"
+vendor = "MixWave"
 notes = [
   { note = 19, canon = "tom.floor1.rim", primary = true },
   { note = 21, canon = "tom.rack2.rim", primary = true },

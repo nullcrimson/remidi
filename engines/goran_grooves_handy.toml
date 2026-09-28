@@ -1,5 +1,6 @@
 id = "goran_grooves_handy"
 name = "Goran Grooves Handy Drums"
+vendor = "Goran Grooves"
 notes = [
   { note = 31, canon = "hat.cc.tip", primary = true },
   { note = 33, canon = "hat.cc.edge", primary = true },

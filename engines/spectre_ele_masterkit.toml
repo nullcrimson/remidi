@@ -1,5 +1,6 @@
 id = "spectre_ele_masterkit"
 name = "Extinction Level Event Master Kit (Spectre Digital)"
+vendor = "Spectre Digital"
 notes = [
   { note = 2, canon = "hat.cc", primary = true },
   { note = 29, canon = "tom.rack1.rim", primary = true },

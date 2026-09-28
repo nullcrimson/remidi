@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@source '../../midiremap-site/templates';
 
 @theme {
   --color-page: #0c0e11;
@@ -102,4 +103,20 @@ body {
 }
 .mr-scroll:hover::-webkit-scrollbar-thumb {
   background: rgba(199, 192, 173, 0.5);
+}
+
+[data-oct='c2'] {
+  display: none;
+}
+
+:root:has(#oct-c2:checked) [data-oct='c1'] {
+  display: none;
+}
+
+:root:has(#oct-c2:checked) [data-oct='c2'] {
+  display: inline;
+}
+
+:root:has(#show-changes:checked) [data-outcome='exact'] {
+  display: none;
 }

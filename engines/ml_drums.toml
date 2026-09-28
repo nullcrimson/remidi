@@ -1,5 +1,6 @@
 id = "ml_drums"
 name = "ML Drums"
+vendor = "ML Sound Lab"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.sidestick", primary = true },

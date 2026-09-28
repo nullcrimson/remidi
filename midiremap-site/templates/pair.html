@@ -1,41 +1,96 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{{ heading }}</h1>
-<p class="lead">{{ summary }}</p>
-<div class="cta">
-  <a href="/?from={{ page.src.id }}&amp;to={{ page.tgt.id }}">Open the converter</a>
-  <a class="alt" href="{{ page.reverse.href() }}">{{ page.reverse.src_name }} → {{ page.reverse.tgt_name }}</a>
+<nav aria-label="Breadcrumb" class="font-mono text-caption tracking-[0.14em] text-t5 uppercase">
+  <a href="/engines/" class="tap text-t4 transition-colors hover:text-t1">Note maps</a>
+  <span aria-hidden="true" class="text-decor">/</span>
+  {{ page.src.name }} → {{ page.tgt.name }}
+</nav>
+<div class="flex flex-col gap-2.5">
+  <h1 class="font-display text-display/tight font-bold text-t1">{{ heading }}</h1>
+  <p class="text-body/relaxed text-t3">{{ summary }}</p>
 </div>
-<div class="table-wrap">
-  <table>
-    <thead><tr><th>{{ page.src.name }} note</th><th>{{ page.src.name }} drum</th><th>{{ page.tgt.name }} note</th><th>{{ page.tgt.name }} drum</th><th>Result</th></tr></thead>
-    <tbody>
-      {% for r in page.rows %}
-      <tr>
-        <td class="num">{{ r.note }} · {{ r.name_c1 }} / {{ r.name_c2 }}</td>
-        <td>{{ r.drum }}</td>
-        {% if let Some(t) = r.outcome.target() %}
-        <td class="num">{{ t.note }} · {{ t.name_c1 }} / {{ t.name_c2 }}</td>
-        <td>{{ t.drum }}</td>
-        {% else %}
-        <td class="num">—</td>
-        <td>—</td>
-        {% endif %}
-        <td class="{{ r.outcome.label() }}">{{ r.outcome.label() }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="flex flex-wrap items-center gap-x-5 gap-y-3">
+  <a
+    href="/?from={{ page.src.id }}&amp;to={{ page.tgt.id }}"
+    class="inline-flex items-center justify-center rounded-panel bg-accent px-5 py-3 font-display text-body font-semibold text-ink transition hover:brightness-110 pointer-coarse:min-h-11"
+  >Convert {{ page.src.name }} → {{ page.tgt.name }}</a>
+  <a href="{{ page.reverse.href() }}" class="tap inline-flex items-center gap-1.5 text-ui text-t2 transition-colors hover:text-accent">⇄ Reverse direction</a>
 </div>
-<h2>More conversions from {{ page.src.name }}</h2>
-<ul class="links">
-  {% for l in page.siblings %}
-  <li><a href="{{ l.href() }}">{{ l.src_name }} → {{ l.tgt_name }}</a></li>
-  {% endfor %}
-</ul>
-<p>
-  Note maps: <a href="{{ page.src.href() }}">{{ page.src.name }}</a> ·
-  <a href="{{ page.tgt.href() }}">{{ page.tgt.name }}</a> ·
-  <a href="/engines/">all engines</a>
-</p>
+
+<div class="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
+  <span class="rounded-chip border border-white/12 px-2 py-0.5 font-mono text-label text-t3">{{ page.exact }} exact</span>
+  {% if page.approximated > 0 %}<span class="rounded-chip border border-star/40 px-2 py-0.5 font-mono text-label text-star">{{ page.approximated }} approximated</span>{% endif %}
+  {% if page.dropped > 0 %}<span class="rounded-chip border border-danger/40 px-2 py-0.5 font-mono text-label text-danger">{{ page.dropped }} dropped</span>{% endif %}
+  <span aria-hidden="true" class="basis-full sm:basis-0 sm:grow"></span>
+  {% if page.changes() > 0 %}
+  <div role="radiogroup" aria-label="Rows" class="inline-flex gap-1">
+    <label class="tap cursor-pointer rounded-chip border border-white/12 px-2 py-0.5 font-mono text-label font-semibold text-t4 outline-offset-2 outline-accent/60 transition-colors hover:border-accent/40 hover:text-t1 has-checked:border-accent has-checked:bg-accent/15 has-checked:text-t1 has-focus-visible:outline-2 pointer-coarse:px-3 pointer-coarse:py-3">
+      <input type="radio" name="rows" id="show-all" checked class="sr-only" />All {{ page.rows.len() }}
+    </label>
+    <label class="tap cursor-pointer rounded-chip border border-white/12 px-2 py-0.5 font-mono text-label font-semibold text-t4 outline-offset-2 outline-accent/60 transition-colors hover:border-accent/40 hover:text-t1 has-checked:border-accent has-checked:bg-accent/15 has-checked:text-t1 has-focus-visible:outline-2 pointer-coarse:px-3 pointer-coarse:py-3">
+      <input type="radio" name="rows" id="show-changes" class="sr-only" />Changes {{ page.changes() }}
+    </label>
+  </div>
+  {% endif %}
+  <div role="radiogroup" aria-label="Octave naming" class="inline-flex gap-1">
+    <label class="tap cursor-pointer rounded-chip border border-white/12 px-2 py-0.5 font-mono text-label font-semibold text-t4 outline-offset-2 outline-accent/60 transition-colors hover:border-accent/40 hover:text-t1 has-checked:border-accent has-checked:bg-accent/15 has-checked:text-t1 has-focus-visible:outline-2 pointer-coarse:px-3 pointer-coarse:py-3">
+      <input type="radio" name="octave" id="oct-c1" checked class="sr-only" />C-1
+    </label>
+    <label class="tap cursor-pointer rounded-chip border border-white/12 px-2 py-0.5 font-mono text-label font-semibold text-t4 outline-offset-2 outline-accent/60 transition-colors hover:border-accent/40 hover:text-t1 has-checked:border-accent has-checked:bg-accent/15 has-checked:text-t1 has-focus-visible:outline-2 pointer-coarse:px-3 pointer-coarse:py-3">
+      <input type="radio" name="octave" id="oct-c2" class="sr-only" />C-2
+    </label>
+  </div>
+</div>
+
+<table class="w-full border-collapse text-left">
+  <thead class="hidden sm:table-header-group">
+    <tr class="font-mono text-caption tracking-[0.1em] text-t5 uppercase">
+      <th scope="col" class="px-1 pb-2 font-normal">{{ page.src.name }} note</th>
+      <th scope="col" class="pr-3 pb-2 font-normal">{{ page.src.name }} drum</th>
+      <th scope="col" class="pr-3 pb-2 font-normal"><span class="sr-only">to</span></th>
+      <th scope="col" class="pr-3 pb-2 font-normal">{{ page.tgt.name }} note</th>
+      <th scope="col" class="pr-3 pb-2 font-normal">{{ page.tgt.name }} drum</th>
+      <th scope="col" class="pb-2 font-normal">Result</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in page.rows %}
+    <tr
+      data-outcome="{{ r.outcome.label() }}"
+      class="grid grid-cols-[auto_auto_auto_minmax(0,1fr)_auto] items-baseline gap-x-2 gap-y-1 border-t border-white/5 px-1 py-2.5 sm:table-row"
+    >
+      <td class="col-start-1 row-start-2 font-mono text-label whitespace-nowrap text-t1 sm:py-2 sm:pr-3 sm:pl-1">{{ r.note }} · <span data-oct="c1">{{ r.name_c1 }}</span><span data-oct="c2">{{ r.name_c2 }}</span></td>
+      <td class="col-span-4 col-start-1 row-start-1 text-ui text-t2 sm:py-2 sm:pr-3">{{ r.drum }}</td>
+      <td aria-hidden="true" class="col-start-2 row-start-2 font-mono text-label text-t5 sm:py-2 sm:pr-3">→</td>
+      {% if let Some(t) = r.outcome.target() %}
+      <td class="col-start-3 row-start-2 font-mono text-label whitespace-nowrap text-t1 sm:py-2 sm:pr-3">{{ t.note }} · <span data-oct="c1">{{ t.name_c1 }}</span><span data-oct="c2">{{ t.name_c2 }}</span></td>
+      <td class="col-span-2 col-start-4 row-start-2 text-label text-t3 sm:py-2 sm:pr-3 sm:text-ui">{{ t.drum }}</td>
+      {% else %}
+      <td class="col-start-3 row-start-2 font-mono text-label text-danger sm:py-2 sm:pr-3">—</td>
+      <td class="col-span-2 col-start-4 row-start-2 text-label text-t5 sm:py-2 sm:pr-3 sm:text-ui">no equivalent</td>
+      {% endif %}
+      {% match r.outcome %}
+      {% when Outcome::Exact(_) %}<td class="col-start-5 row-start-1 justify-self-end font-mono text-label text-t5 sm:py-2">exact</td>
+      {% when Outcome::Approximated(_) %}<td class="col-start-5 row-start-1 justify-self-end font-mono text-label text-star sm:py-2">approximated</td>
+      {% when Outcome::Dropped %}<td class="col-start-5 row-start-1 justify-self-end font-mono text-label text-danger sm:py-2">dropped</td>
+      {% endmatch %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="flex flex-col gap-3 border-t border-hairline pt-5">
+  <h2 class="font-display text-title font-semibold text-t1">More from {{ page.src.name }}</h2>
+  <ul class="flex flex-wrap gap-2">
+    {% for l in page.siblings %}
+    <li><a href="{{ l.href() }}" class="inline-flex rounded-chip border border-white/12 px-2.5 py-1 text-ui text-t2 transition-colors hover:border-accent/40 hover:text-t1 pointer-coarse:py-3">→ {{ l.tgt_name }}</a></li>
+    {% endfor %}
+  </ul>
+  <p class="text-ui text-t4">
+    Full note maps:
+    <a href="{{ page.src.href() }}" class="tap text-star/85 underline decoration-star/30 decoration-1 underline-offset-4 transition hover:text-star hover:decoration-star/60">{{ page.src.name }}</a>
+    <span aria-hidden="true" class="text-decor">·</span>
+    <a href="{{ page.tgt.href() }}" class="tap text-star/85 underline decoration-star/30 decoration-1 underline-offset-4 transition hover:text-star hover:decoration-star/60">{{ page.tgt.name }}</a>
+  </p>
+</div>
 {% endblock %}

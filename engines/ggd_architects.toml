@@ -1,5 +1,6 @@
 id = "ggd_architects"
 name = "GGD One Kit Wonder: Architects (Default Mapping 'Invasion')"
+vendor = "GetGood Drums"
 notes = [
   { note = 17, canon = "hat.cc", primary = true },
   { note = 24, canon = "kick.main", primary = true },

@@ -1,5 +1,6 @@
 id = "odeholm"
 name = "Odeholm Drums"
+vendor = "Odeholm Audio"
 notes = [
   { note = 35, canon = "kick.left", primary = true },
   { note = 36, canon = "kick.main", primary = true },

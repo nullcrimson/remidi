@@ -1,5 +1,6 @@
 id = "redpack_dsdrum"
 name = "Red Pack Drums: DS Drum"
+vendor = "Red Pack Drums"
 notes = [
   { note = 21, canon = "hat.pedal" },
   { note = 22, canon = "hat.closed.edge", primary = true },

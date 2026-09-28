@@ -1,5 +1,6 @@
 id = "dw_soundworks"
 name = "DW Soundworks"
+vendor = "DW"
 notes = [
   { note = 2, canon = "snare1.rim" },
   { note = 4, canon = "snare1.rim", primary = true },

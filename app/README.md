@@ -47,6 +47,9 @@ npm run test     # Vitest; WASM is stubbed, no build required
   SummaryRow, ConvertButton, DonePanel, ReportModal (Convert); EditView, VoiceRow,
   NotePicker, SourceEditor, PianoKeyboard (Edit). Shared primitives: `styles.ts`, Button,
   TextButton, IconButton, ChipRadioGroup, ChipSelect, TextField, MonoLabel, ProseLink.
+  Frame: SiteHeader (brand + Converter · Note maps · FAQ), SiteFooter (section links that
+  open modals, rendered by ContentBlocks from `src/content/pages.json`, the same source
+  the static site pages use).
 
 ## Views
 

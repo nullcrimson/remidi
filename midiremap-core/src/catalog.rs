@@ -54,6 +54,14 @@ mod tests {
     };
 
     #[test]
+    fn every_builtin_names_its_vendor() {
+        let b = Catalog::builtin();
+        for id in b.ids() {
+            assert!(b.get(id).and_then(EngineMap::vendor).is_some(), "{id}");
+        }
+    }
+
+    #[test]
     fn builtin_has_known_slugs() {
         let b = Catalog::builtin();
         for id in [

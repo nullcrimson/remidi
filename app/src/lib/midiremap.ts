@@ -5,6 +5,7 @@ type WasmModule = typeof import('@wasm');
 export interface Engine {
   id: string;
   name: string;
+  fullName?: string;
 }
 
 export interface Overrides {

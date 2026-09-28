@@ -4,7 +4,8 @@ pub fn sitemap(site: &Site) -> String {
     let paths = ["/".to_string(), "/engines/".to_string()]
         .into_iter()
         .chain(site.engines.iter().map(|p| p.engine.href()))
-        .chain(site.pairs.iter().map(|p| format!("/convert/{}/", p.slug)));
+        .chain(site.pairs.iter().map(|p| format!("/convert/{}/", p.slug)))
+        .chain(site.content.iter().map(|p| p.section.href()));
     let urls: String = paths
         .map(|p| format!("  <url><loc>{ORIGIN}{p}</loc></url>\n"))
         .collect();
@@ -43,8 +44,12 @@ mod tests {
             .filter(|n| n.has_tag_name("loc"))
             .filter_map(|n| n.text())
             .collect();
-        assert_eq!(locs.len(), 2 + site.engines.len() + site.pairs.len());
-        assert_eq!(locs.len(), 144);
+        assert_eq!(
+            locs.len(),
+            2 + site.engines.len() + site.pairs.len() + site.content.len()
+        );
+        assert_eq!(locs.len(), 149);
+        assert!(locs.contains(&"https://drumverter.com/faq/"));
         assert_eq!(locs.iter().collect::<HashSet<_>>().len(), locs.len());
         assert!(locs
             .iter()

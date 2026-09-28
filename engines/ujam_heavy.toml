@@ -1,5 +1,6 @@
 id = "ujam_heavy"
 name = "ujam Virtual Drummer - Heavy"
+vendor = "UJAM"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.sidestick", primary = true },

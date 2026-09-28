@@ -1,5 +1,6 @@
 id = "roomsound_ballou"
 name = "Room Sound - Kurt Ballou"
+vendor = "Room Sound"
 notes = [
   { note = 31, canon = "perc.sticks", primary = true },
   { note = 35, canon = "snare1.flam", primary = true },

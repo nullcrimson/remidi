@@ -1,5 +1,6 @@
 id = "fotis_benardo"
 name = "Fotis Benardo Drums (Stigmatized Productions)"
+vendor = "Stigmatized Productions"
 notes = [
   { note = 24, canon = "crash.1.mute", primary = true },
   { note = 25, canon = "crash.2.mute", primary = true },

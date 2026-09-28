@@ -22,6 +22,8 @@ struct RawMap {
     name: String,
     #[serde(default)]
     short_name: Option<String>,
+    #[serde(default)]
+    vendor: Option<String>,
     notes: Vec<RawEntry>,
 }
 
@@ -30,6 +32,7 @@ pub struct EngineMap {
     pub id: String,
     pub name: String,
     short_name: Option<String>,
+    vendor: Option<String>,
     to_canon: HashMap<Note, Canon>,
     from_canon: HashMap<Canon, Note>,
 }
@@ -78,6 +81,11 @@ impl EngineMap {
         self.short_name.as_deref().unwrap_or(&self.name)
     }
 
+    /// Who makes the engine, when the map says so.
+    pub fn vendor(&self) -> Option<&str> {
+        self.vendor.as_deref()
+    }
+
     pub fn drums(&self) -> Vec<Drum> {
         let mut out: Vec<Drum> = self
             .from_canon
@@ -117,6 +125,8 @@ pub enum MapError {
     Parse(String),
     #[error("blank short_name for engine {0}")]
     BlankShortName(String),
+    #[error("blank vendor for engine {0}")]
+    BlankVendor(String),
 }
 
 fn build(raw: RawMap) -> Result<EngineMap, MapError> {
@@ -126,6 +136,9 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
         .is_some_and(|s| s.trim().is_empty())
     {
         return Err(MapError::BlankShortName(raw.id));
+    }
+    if raw.vendor.as_deref().is_some_and(|s| s.trim().is_empty()) {
+        return Err(MapError::BlankVendor(raw.id));
     }
     let mut to_canon = HashMap::new();
     let mut from_canon: HashMap<Canon, Note> = HashMap::new();
@@ -149,6 +162,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
         id: raw.id,
         name: raw.name,
         short_name: raw.short_name,
+        vendor: raw.vendor,
         to_canon,
         from_canon,
     })
@@ -260,6 +274,35 @@ mod tests {
         assert!(matches!(
             from_toml(bad),
             Err(MapError::BlankShortName(id)) if id == "x"
+        ));
+    }
+
+    #[test]
+    fn vendor_is_optional_and_read_when_given() {
+        assert_eq!(from_toml(SAMPLE).unwrap().vendor(), None);
+        let m = from_toml(
+            r#"
+            id = "x"
+            name = "X"
+            vendor = "Acme"
+            notes = [ { note = 36, canon = "kick.main", primary = true } ]
+        "#,
+        )
+        .unwrap();
+        assert_eq!(m.vendor(), Some("Acme"));
+    }
+
+    #[test]
+    fn blank_vendor_is_error() {
+        let bad = r#"
+            id = "x"
+            name = "X"
+            vendor = " "
+            notes = [ { note = 36, canon = "kick.main", primary = true } ]
+        "#;
+        assert!(matches!(
+            from_toml(bad),
+            Err(MapError::BlankVendor(id)) if id == "x"
         ));
     }
 

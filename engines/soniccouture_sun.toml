@@ -1,5 +1,6 @@
 id = "soniccouture_sun"
 name = "Soniccouture Sun Drums"
+vendor = "Soniccouture"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.sidestick", primary = true },

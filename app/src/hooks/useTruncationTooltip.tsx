@@ -10,8 +10,8 @@ interface Tip {
 export function useTruncationTooltip() {
   const [tip, setTip] = useState<Tip | null>(null);
 
-  const show = (el: HTMLElement, name: string) => {
-    if (el.scrollWidth <= el.clientWidth) return;
+  const show = (el: HTMLElement, name: string, always = false) => {
+    if (!always && el.scrollWidth <= el.clientWidth) return;
     const r = el.getBoundingClientRect();
     setTip({ name, x: r.left, y: r.bottom });
   };

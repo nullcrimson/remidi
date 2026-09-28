@@ -1,5 +1,6 @@
 id = "midiremap_standard"
 name = "MidiRemap Standard"
+vendor = "MidiRemap"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.hit", primary = true },

@@ -1,5 +1,6 @@
 id = "roland_td17"
 name = "Roland TD17"
+vendor = "Roland"
 notes = [
   { note = 22, canon = "hat.tight.edge", primary = true },
   { note = 26, canon = "hat.open4", primary = true },

@@ -169,26 +169,43 @@ pub fn canon_catalog() -> Result<JsValue, JsValue> {
     to_js(&items)
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
 struct EngineInfo {
     id: String,
     name: String,
+    full_name: String,
+}
+
+fn engine_infos(catalog: &Catalog) -> Vec<EngineInfo> {
+    let mut ids = catalog.ids();
+    ids.sort_unstable();
+    ids.into_iter()
+        .filter_map(|id| catalog.get(id))
+        .map(|m| EngineInfo {
+            id: m.id.clone(),
+            name: m.display_name().to_string(),
+            full_name: m.name.clone(),
+        })
+        .collect()
 }
 
 #[wasm_bindgen]
 pub fn engine_catalog() -> Result<JsValue, JsValue> {
-    let b = Catalog::shared();
-    let mut ids = b.ids();
-    ids.sort_unstable();
-    let infos: Vec<EngineInfo> = ids
-        .into_iter()
-        .map(|id| {
-            let m = b.get(id).expect("id from ids() must resolve");
-            EngineInfo {
-                id: m.id.clone(),
-                name: m.name.clone(),
-            }
-        })
-        .collect();
-    to_js(&infos)
+    to_js(&engine_infos(Catalog::shared()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn catalog_names_engines_by_display_name_and_keeps_the_full_name() {
+        let infos = engine_infos(&Catalog::builtin());
+        let ezd = infos.iter().find(|i| i.id == "ezdrummer").unwrap();
+        assert_eq!(ezd.name, "EZdrummer 3");
+        assert_eq!(ezd.full_name, "Toontrack EZdrummer 3");
+        let hertz = infos.iter().find(|i| i.id == "hertz").unwrap();
+        assert_eq!(hertz.name, hertz.full_name);
+    }
 }

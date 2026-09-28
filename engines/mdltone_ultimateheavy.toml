@@ -1,5 +1,6 @@
 id = "mdltone_ultimateheavy"
 name = "MDL Tone Ultimate Heavy Drums"
+vendor = "MDL Tone"
 notes = [
   { note = 35, canon = "kick.left", primary = true },
   { note = 36, canon = "kick.main", primary = true },

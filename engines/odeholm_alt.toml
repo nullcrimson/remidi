@@ -1,5 +1,6 @@
 id = "odeholm_alt"
 name = "Odeholm Drums (Alt Map)"
+vendor = "Odeholm Audio"
 notes = [
   { note = 23, canon = "kick.left", primary = true },
   { note = 24, canon = "kick.main", primary = true },

@@ -1,5 +1,6 @@
 id = "drumforge_greiner"
 name = "Drumforge Matt Greiner"
+vendor = "Drumforge"
 notes = [
   { note = 34, canon = "snare1.rim", primary = true },
   { note = 35, canon = "snare1.sidestick", primary = true },

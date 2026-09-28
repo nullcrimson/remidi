@@ -1,5 +1,6 @@
 id = "eastwest_prodrummer"
 name = "EastWest ProDrummer"
+vendor = "EastWest"
 notes = [
   { note = 34, canon = "hat.pedal", primary = true },
   { note = 35, canon = "kick.main" },

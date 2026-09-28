@@ -1,5 +1,6 @@
 id = "drumforge_ultimate"
 name = "Drumforge Ultimate"
+vendor = "Drumforge"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 38, canon = "snare1.hit", primary = true },

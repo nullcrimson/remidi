@@ -1,5 +1,6 @@
 id = "impact_xt"
 name = "Impact XT (PreSonus Studio One)"
+vendor = "PreSonus"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.rim", primary = true },

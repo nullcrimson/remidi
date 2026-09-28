@@ -1,5 +1,6 @@
 id = "soundblind_counterkit"
 name = "Soundblind Drums Counterkit"
+vendor = "Soundblind"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 39, canon = "snare1.hit", primary = true },

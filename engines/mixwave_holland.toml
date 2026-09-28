@@ -1,5 +1,6 @@
 id = "mixwave_holland"
 name = "MixWave Luke Holland"
+vendor = "MixWave"
 notes = [
   { note = 31, canon = "perc.sticks", primary = true },
   { note = 32, canon = "hat.cc.tip", primary = true },

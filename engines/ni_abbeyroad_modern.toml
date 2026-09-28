@@ -1,5 +1,6 @@
 id = "ni_abbeyroad_modern"
 name = "Native Instruments Abbey Road (Modern Drummer)"
+vendor = "Native Instruments"
 notes = [
   { note = 17, canon = "perc.misc" },
   { note = 19, canon = "perc.misc" },

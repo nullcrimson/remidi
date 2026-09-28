@@ -1,5 +1,6 @@
 id = "mt_power"
 name = "MT Power Drum Kit"
+vendor = "Manda Audio"
 notes = [
   { note = 33, canon = "kick.main" },
   { note = 35, canon = "kick.main" },

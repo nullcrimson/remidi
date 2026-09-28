@@ -1,5 +1,6 @@
 id = "klangmacht"
 name = "Klangmacht Drums"
+vendor = "Klangmacht"
 notes = [
   { note = 20, canon = "hat.loose" },
   { note = 21, canon = "hat.loose" },

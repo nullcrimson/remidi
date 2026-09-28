@@ -15,6 +15,13 @@ function noteChip(active: boolean, changed: boolean): string {
   return chip(active ? 'on' : changed ? 'changed' : 'off', 'md');
 }
 
+function extrasHint(label: string, extras: string[], target: string | null): string {
+  const one = extras.length === 1;
+  const lead = `${extras.length} more source ${one ? 'note plays' : 'notes play'} ${label}: ${extras.join(', ')}.`;
+  if (target === null) return `${lead} None has a target.`;
+  return `${lead} ${one ? 'Both' : 'All'} go to ${target}.`;
+}
+
 export function VoiceRow({
   row,
   effectiveTgt,
@@ -50,7 +57,11 @@ export function VoiceRow({
   const dropped = row.status === 'dropped' || effectiveTgt === null;
   const [srcNote, ...extraNotes] = row.srcNotes;
   const silent = srcNote === undefined;
-  const extraNames = extraNotes.map((n) => noteName(n, base)).join(', ');
+  const extraHint = extrasHint(
+    row.label,
+    extraNotes.map((n) => noteName(n, base)),
+    dropped ? null : noteName(effectiveTgt, base),
+  );
   return (
     <div
       ref={rowRef}
@@ -72,10 +83,10 @@ export function VoiceRow({
         </span>
         <span className="flex items-center gap-1.5 justify-self-end">
           {extraNotes.length > 0 && (
-            <Tooltip content={`Also ${extraNames}`}>
+            <Tooltip content={extraHint}>
               <span
                 tabIndex={0}
-                aria-label={`Also plays ${extraNames}`}
+                aria-label={extraHint}
                 className="tap font-mono text-caption text-t5"
               >
                 +{extraNotes.length}

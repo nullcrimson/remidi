@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
-import { AboutContent } from './components/AboutContent';
 import { CardDropzone } from './components/CardDropzone';
 import { CHANNEL_SELECT_ID, ChannelSelect } from './components/ChannelSelect';
 import { ConvertButton } from './components/ConvertButton';
@@ -12,6 +11,9 @@ import { LibraryList } from './components/LibraryList';
 import { OctaveToggle } from './components/OctaveToggle';
 import { ReportModal } from './components/ReportModal';
 import { SavedMappingChips } from './components/SavedMappingChips';
+import { SiteFooter } from './components/SiteFooter';
+import { SiteHeader } from './components/SiteHeader';
+import { skipLink } from './components/styles';
 import { SummaryRow } from './components/SummaryRow';
 import { useFavorites } from './hooks/useFavorites';
 import { useRemapper } from './hooks/useRemapper';
@@ -24,6 +26,7 @@ import {
   engineFilterId,
   FILE_PICKER_ID,
   focusById,
+  MAIN_ID,
 } from './lib/focusIds';
 import { shortCode } from './lib/format';
 import { buildReport } from './lib/report';
@@ -45,7 +48,19 @@ function Page({ wide = false, children }: { wide?: boolean; children: ReactNode 
       : ''}
         `}
       >
+        <a
+          href={`#${MAIN_ID}`}
+          onClick={(e) => {
+            e.preventDefault();
+            focusById(MAIN_ID);
+          }}
+          className={skipLink}
+        >
+          Skip to content
+        </a>
+        <SiteHeader />
         {children}
+        <SiteFooter />
       </div>
     </div>
   );
@@ -54,9 +69,12 @@ function Page({ wide = false, children }: { wide?: boolean; children: ReactNode 
 function Card({ children }: { children: ReactNode }) {
   return (
     <main
+      id={MAIN_ID}
+      tabIndex={-1}
       className="
         w-full overflow-clip rounded-card border border-hairline bg-card
         shadow-[0_0_64px_-16px_rgba(199,192,173,0.09),0_18px_48px_-28px_rgba(0,0,0,0.6)]
+        outline-none
       "
     >
       {children}
@@ -64,33 +82,13 @@ function Card({ children }: { children: ReactNode }) {
   );
 }
 
-function Header() {
+function Intro() {
   return (
-    <div className="flex flex-col gap-2">
-      <h1 className="flex flex-wrap items-baseline gap-x-2">
-        <span
-          className="
-            font-display text-brand font-semibold tracking-[0.02em] text-t2
-            [text-shadow:0_0_12px_rgba(236,232,224,0.3)]
-          "
-        >
-          Drumverter
-        </span>
-        <span className="text-ui font-normal text-t5">
-          <span className="
-            hidden
-            sm:inline
-          "
-          >{'— '}
-          </span>drum MIDI converter & remapper
-        </span>
-      </h1>
-      <p className="text-ui/relaxed text-t4">
-        Convert drum MIDI between GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2,
-        General MIDI, Guitar Pro and 80+ other engine layouts. Runs in your browser; files are never
-        uploaded.
-      </p>
-    </div>
+    <p className="text-ui/relaxed text-t4">
+      Convert drum MIDI between GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2,
+      General MIDI, Guitar Pro and 80+ other engine layouts. Runs in your browser; files are never
+      uploaded.
+    </p>
   );
 }
 
@@ -168,7 +166,7 @@ export default function App() {
             sm:p-[34px_34px_30px]
           "
           >
-            <Header />
+            <Intro />
 
             {c.status === 'loading' && (
               <p className="text-ui text-t3">Loading converter…</p>
@@ -305,8 +303,6 @@ export default function App() {
           </div>
         </CardDropzone>
       </Card>
-
-      <AboutContent />
 
       <ReportModal
         open={reportOpen}

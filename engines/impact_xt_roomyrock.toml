@@ -1,5 +1,6 @@
 id = "impact_xt_roomyrock"
 name = "Impact XT - TM Roomy Rock Kit (PreSonus Studio One)"
+vendor = "PreSonus"
 notes = [
   { note = 35, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.rim", primary = true },

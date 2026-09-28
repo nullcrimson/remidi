@@ -1,6 +1,7 @@
 id = "superior_drummer3"
 name = "Toontrack Superior Drummer 3"
 short_name = "Superior Drummer 3"
+vendor = "Toontrack"
 notes = [
   { note = 6, canon = "snare1.hit" },
   { note = 7, canon = "hat.cc.edge", primary = true },

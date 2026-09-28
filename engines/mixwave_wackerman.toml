@@ -1,5 +1,6 @@
 id = "mixwave_wackerman"
 name = "MixWave Avenged Sevenfold - Brooks Wackerman"
+vendor = "MixWave"
 notes = [
   { note = 5, canon = "tom.rack4.hit", primary = true },
   { note = 6, canon = "tom.rack5.hit", primary = true },

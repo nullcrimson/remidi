@@ -1,5 +1,6 @@
 id = "drumforge_bergstrand"
 name = "Drumforge Bergstrand"
+vendor = "Drumforge"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "kick.left", primary = true },

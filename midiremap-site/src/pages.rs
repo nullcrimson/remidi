@@ -1,28 +1,44 @@
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 
 use midiremap_core::{
     Canon, CanonResolution, Catalog, EngineMap, Mapping, Note, Overrides, Resolution,
 };
 
 use crate::{
+    content::{ContentPage, CONTENT},
     notes::{note_name, OctaveBase},
     SiteError,
 };
 
 pub const ORIGIN: &str = "https://drumverter.com";
 
-pub const MAJOR_IDS: [&str; 8] = [
-    "general_midi",
-    "ggd_invasion",
-    "ezdrummer",
-    "superior_drummer3",
-    "addictive_drums2",
-    "ssd5",
-    "bfd3",
-    "guitar_pro",
+/// The popular engines that get pair pages, with their column label in the index matrix.
+pub const MAJORS: [(&str, &str); 8] = [
+    ("general_midi", "GM"),
+    ("ggd_invasion", "Invasion"),
+    ("ezdrummer", "EZD3"),
+    ("superior_drummer3", "SD3"),
+    ("addictive_drums2", "AD2"),
+    ("ssd5", "SSD5"),
+    ("bfd3", "BFD3"),
+    ("guitar_pro", "GP"),
 ];
 
 pub const EXCLUDED_IDS: [&str; 1] = ["midiremap_standard"];
+
+/// Drum families in the order the app lists them.
+pub const FAMILY_ORDER: [&str; 7] = [
+    "Kick",
+    "Snare",
+    "Toms",
+    "Hi-Hat",
+    "Cymbals",
+    "Percussion",
+    "Aux",
+];
+
+/// The index group for engines whose vendor makes no other engine.
+pub const MORE_ENGINES: &str = "More engines";
 
 pub fn slug(id: &str) -> String {
     id.replace('_', "-")
@@ -36,6 +52,7 @@ pub struct EngineLink {
     pub id: String,
     pub slug: String,
     pub name: String,
+    pub vendor: String,
 }
 
 impl EngineLink {
@@ -44,11 +61,17 @@ impl EngineLink {
             id: map.id.clone(),
             slug: slug(&map.id),
             name: map.display_name().to_string(),
+            vendor: map.vendor().unwrap_or(MORE_ENGINES).to_string(),
         }
     }
 
     pub fn href(&self) -> String {
         format!("/engines/{}/", self.slug)
+    }
+
+    /// Lower-case text the index filter matches against.
+    pub fn search(&self) -> String {
+        format!("{} {}", self.name, self.vendor).to_lowercase()
     }
 }
 
@@ -79,6 +102,22 @@ pub struct EngineRow {
     pub drum: String,
 }
 
+impl EngineRow {
+    /// Lower-case text the engine page filter matches against.
+    pub fn search(&self) -> String {
+        format!(
+            "{} {} {} {}",
+            self.note, self.name_c1, self.name_c2, self.drum
+        )
+        .to_lowercase()
+    }
+}
+
+pub struct FamilyGroup {
+    pub name: &'static str,
+    pub rows: Vec<EngineRow>,
+}
+
 pub struct Target {
     pub note: u8,
     pub name_c1: String,
@@ -107,6 +146,14 @@ impl Outcome {
             Outcome::Dropped => None,
         }
     }
+
+    fn rank(&self) -> u8 {
+        match self {
+            Outcome::Dropped => 0,
+            Outcome::Approximated(_) => 1,
+            Outcome::Exact(_) => 2,
+        }
+    }
 }
 
 pub struct PairRow {
@@ -119,8 +166,10 @@ pub struct PairRow {
 
 pub struct EnginePage {
     pub engine: EngineLink,
-    pub rows: Vec<EngineRow>,
-    pub pair_links: Vec<PairLink>,
+    pub total: usize,
+    pub groups: Vec<FamilyGroup>,
+    pub pairs_from: Vec<PairLink>,
+    pub pairs_to: Vec<PairLink>,
 }
 
 pub struct PairPage {
@@ -135,13 +184,27 @@ pub struct PairPage {
     pub siblings: Vec<PairLink>,
 }
 
-pub struct MajorEntry {
+impl PairPage {
+    /// Rows whose drum does not land on its exact equivalent.
+    pub fn changes(&self) -> usize {
+        self.approximated + self.dropped
+    }
+}
+
+pub struct MatrixRow {
     pub engine: EngineLink,
-    pub pairs: Vec<PairLink>,
+    pub cells: Vec<Option<PairLink>>,
+}
+
+pub struct VendorGroup {
+    pub name: String,
+    pub engines: Vec<EngineLink>,
 }
 
 pub struct IndexPage {
-    pub majors: Vec<MajorEntry>,
+    pub columns: Vec<&'static str>,
+    pub matrix: Vec<MatrixRow>,
+    pub vendors: Vec<VendorGroup>,
     pub all: Vec<EngineLink>,
 }
 
@@ -149,6 +212,7 @@ pub struct Site {
     pub index: IndexPage,
     pub engines: Vec<EnginePage>,
     pub pairs: Vec<PairPage>,
+    pub content: Vec<ContentPage>,
 }
 
 fn lookup<'a>(provider: &'a Catalog, id: &str) -> Result<&'a EngineMap, SiteError> {
@@ -168,49 +232,43 @@ fn target(tgt: &EngineMap, note: Note, fallback: Canon) -> Target {
 
 fn pair_rows(src: &EngineMap, tgt: &EngineMap) -> Vec<PairRow> {
     let mapping = Mapping::new(src, tgt, &Overrides::default());
-    src.source_notes()
-        .into_iter()
-        .map(|d| {
-            let outcome = match mapping.translate(d.note) {
-                Resolution::Resolved(CanonResolution::Direct { note, .. }) => {
-                    Outcome::Exact(target(tgt, note, d.canon))
+    let mut rows: Vec<PairRow> =
+        src.source_notes()
+            .into_iter()
+            .map(|d| {
+                let outcome = match mapping.translate(d.note) {
+                    Resolution::Resolved(CanonResolution::Direct { note, .. }) => {
+                        Outcome::Exact(target(tgt, note, d.canon))
+                    }
+                    Resolution::Resolved(CanonResolution::Fallback { note, .. }) => {
+                        Outcome::Approximated(target(tgt, note, d.canon))
+                    }
+                    Resolution::Resolved(CanonResolution::Dropped { .. })
+                    | Resolution::Unmapped => Outcome::Dropped,
+                };
+                PairRow {
+                    note: d.note.get(),
+                    name_c1: note_name(d.note.get(), OctaveBase::C1),
+                    name_c2: note_name(d.note.get(), OctaveBase::C2),
+                    drum: d.label,
+                    outcome,
                 }
-                Resolution::Resolved(CanonResolution::Fallback { note, .. }) => {
-                    Outcome::Approximated(target(tgt, note, d.canon))
-                }
-                Resolution::Resolved(CanonResolution::Dropped { .. }) | Resolution::Unmapped => {
-                    Outcome::Dropped
-                }
-            };
-            PairRow {
-                note: d.note.get(),
-                name_c1: note_name(d.note.get(), OctaveBase::C1),
-                name_c2: note_name(d.note.get(), OctaveBase::C2),
-                drum: d.label,
-                outcome,
-            }
-        })
-        .collect()
+            })
+            .collect();
+    rows.sort_by_key(|r| (r.outcome.rank(), r.note));
+    rows
 }
 
 fn pair_page(src: &EngineMap, tgt: &EngineMap, majors: &[&EngineMap]) -> PairPage {
     let rows = pair_rows(src, tgt);
+    let count = |rank: u8| rows.iter().filter(|r| r.outcome.rank() == rank).count();
     PairPage {
         slug: pair_slug(&src.id, &tgt.id),
         src: EngineLink::of(src),
         tgt: EngineLink::of(tgt),
-        exact: rows
-            .iter()
-            .filter(|r| matches!(r.outcome, Outcome::Exact(_)))
-            .count(),
-        approximated: rows
-            .iter()
-            .filter(|r| matches!(r.outcome, Outcome::Approximated(_)))
-            .count(),
-        dropped: rows
-            .iter()
-            .filter(|r| matches!(r.outcome, Outcome::Dropped))
-            .count(),
+        dropped: count(0),
+        approximated: count(1),
+        exact: count(2),
         rows,
         reverse: PairLink::of(tgt, src),
         siblings: majors
@@ -221,29 +279,36 @@ fn pair_page(src: &EngineMap, tgt: &EngineMap, majors: &[&EngineMap]) -> PairPag
     }
 }
 
+fn family_groups(map: &EngineMap) -> Vec<FamilyGroup> {
+    let notes = map.source_notes();
+    let row = |d: &midiremap_core::engine_map::Drum| EngineRow {
+        note: d.note.get(),
+        name_c1: note_name(d.note.get(), OctaveBase::C1),
+        name_c2: note_name(d.note.get(), OctaveBase::C2),
+        drum: d.label.clone(),
+    };
+    FAMILY_ORDER
+        .iter()
+        .map(|&name| FamilyGroup {
+            name,
+            rows: notes.iter().filter(|d| d.family == name).map(row).collect(),
+        })
+        .filter(|g| !g.rows.is_empty())
+        .collect()
+}
+
 fn engine_page(map: &EngineMap, majors: &[&EngineMap]) -> EnginePage {
-    let pair_links = if majors.iter().any(|m| m.id == map.id) {
-        majors
-            .iter()
-            .filter(|m| m.id != map.id)
-            .flat_map(|m| [PairLink::of(map, m), PairLink::of(m, map)])
-            .collect()
+    let others: Vec<&&EngineMap> = if majors.iter().any(|m| m.id == map.id) {
+        majors.iter().filter(|m| m.id != map.id).collect()
     } else {
         Vec::new()
     };
     EnginePage {
         engine: EngineLink::of(map),
-        rows: map
-            .source_notes()
-            .into_iter()
-            .map(|d| EngineRow {
-                note: d.note.get(),
-                name_c1: note_name(d.note.get(), OctaveBase::C1),
-                name_c2: note_name(d.note.get(), OctaveBase::C2),
-                drum: d.label,
-            })
-            .collect(),
-        pair_links,
+        total: map.source_notes().len(),
+        groups: family_groups(map),
+        pairs_from: others.iter().map(|m| PairLink::of(map, m)).collect(),
+        pairs_to: others.iter().map(|m| PairLink::of(m, map)).collect(),
     }
 }
 
@@ -251,11 +316,37 @@ pub fn sort_by_name(maps: &mut [&EngineMap]) {
     maps.sort_by_cached_key(|m| (m.display_name().to_lowercase(), m.id.clone()));
 }
 
+fn vendor_groups(maps: &[&EngineMap]) -> Vec<VendorGroup> {
+    let mut by_vendor: BTreeMap<(String, String), Vec<EngineLink>> = BTreeMap::new();
+    for m in maps {
+        let link = EngineLink::of(m);
+        by_vendor
+            .entry((link.vendor.to_lowercase(), link.vendor.clone()))
+            .or_default()
+            .push(link);
+    }
+    let mut groups = Vec::new();
+    let mut more = Vec::new();
+    for ((_, name), engines) in by_vendor {
+        if engines.len() >= 2 && name != MORE_ENGINES {
+            groups.push(VendorGroup { name, engines });
+        } else {
+            more.extend(engines);
+        }
+    }
+    more.sort_by_cached_key(|e| (e.name.to_lowercase(), e.id.clone()));
+    groups.push(VendorGroup {
+        name: MORE_ENGINES.to_string(),
+        engines: more,
+    });
+    groups
+}
+
 impl Site {
     pub fn build(provider: &Catalog) -> Result<Site, SiteError> {
-        let majors = MAJOR_IDS
+        let majors = MAJORS
             .iter()
-            .map(|id| lookup(provider, id))
+            .map(|(id, _)| lookup(provider, id))
             .collect::<Result<Vec<_>, _>>()?;
         for id in EXCLUDED_IDS {
             lookup(provider, id)?;
@@ -288,23 +379,25 @@ impl Site {
             .map(|(s, t)| pair_page(s, t, &majors))
             .collect();
         let index = IndexPage {
-            majors: majors
+            columns: MAJORS.iter().map(|(_, abbr)| *abbr).collect(),
+            matrix: majors
                 .iter()
-                .map(|m| MajorEntry {
-                    engine: EngineLink::of(m),
-                    pairs: majors
+                .map(|s| MatrixRow {
+                    engine: EngineLink::of(s),
+                    cells: majors
                         .iter()
-                        .filter(|t| t.id != m.id)
-                        .map(|t| PairLink::of(m, t))
+                        .map(|t| (t.id != s.id).then(|| PairLink::of(s, t)))
                         .collect(),
                 })
                 .collect(),
+            vendors: vendor_groups(&maps),
             all: maps.iter().map(|m| EngineLink::of(m)).collect(),
         };
         Ok(Site {
             index,
             engines,
             pairs,
+            content: CONTENT.pages(),
         })
     }
 }
@@ -362,9 +455,87 @@ mod tests {
             .iter()
             .find(|p| p.engine.id == "ezdrummer")
             .unwrap();
-        assert_eq!(ezd.pair_links.len(), 14);
+        assert_eq!(ezd.pairs_from.len(), 7);
+        assert_eq!(ezd.pairs_to.len(), 7);
+        assert!(ezd.pairs_from.iter().all(|l| l.src_name == "EZdrummer 3"));
+        assert!(ezd.pairs_to.iter().all(|l| l.tgt_name == "EZdrummer 3"));
         let minor = s.engines.iter().find(|p| p.engine.id == "hertz").unwrap();
-        assert!(minor.pair_links.is_empty());
+        assert!(minor.pairs_from.is_empty() && minor.pairs_to.is_empty());
+    }
+
+    #[test]
+    fn pair_rows_put_changes_first() {
+        let rank = |o: &Outcome| match o {
+            Outcome::Dropped => 0,
+            Outcome::Approximated(_) => 1,
+            Outcome::Exact(_) => 2,
+        };
+        for p in site().pairs {
+            let keys: Vec<(u8, u8)> = p.rows.iter().map(|r| (rank(&r.outcome), r.note)).collect();
+            let mut sorted = keys.clone();
+            sorted.sort_unstable();
+            assert_eq!(keys, sorted, "{}", p.slug);
+            assert_eq!(p.changes(), p.approximated + p.dropped);
+        }
+    }
+
+    #[test]
+    fn engine_rows_are_grouped_by_family_in_app_order() {
+        let maps = Catalog::builtin();
+        for p in site().engines {
+            let names: Vec<&str> = p.groups.iter().map(|g| g.name).collect();
+            let order: Vec<&str> = FAMILY_ORDER
+                .iter()
+                .copied()
+                .filter(|f| names.contains(f))
+                .collect();
+            assert_eq!(names, order, "{}", p.engine.id);
+            assert!(p.groups.iter().all(|g| !g.rows.is_empty()));
+            let total: usize = p.groups.iter().map(|g| g.rows.len()).sum();
+            let map = maps.get(&p.engine.id).unwrap();
+            assert_eq!(total, map.source_notes().len(), "{}", p.engine.id);
+        }
+    }
+
+    #[test]
+    fn index_matrix_links_every_major_pair_once() {
+        let s = site();
+        assert_eq!(s.index.columns.len(), 8);
+        assert_eq!(s.index.matrix.len(), 8);
+        let mut slugs = HashSet::new();
+        for (i, row) in s.index.matrix.iter().enumerate() {
+            assert_eq!(row.cells.len(), 8);
+            assert!(row.cells[i].is_none());
+            for cell in row.cells.iter().flatten() {
+                assert_eq!(cell.src_name, row.engine.name);
+                assert!(slugs.insert(cell.slug.clone()));
+            }
+        }
+        assert_eq!(slugs.len(), 56);
+    }
+
+    #[test]
+    fn vendor_groups_list_every_engine_once_with_singletons_last() {
+        let s = site();
+        let listed: Vec<&str> = s
+            .index
+            .vendors
+            .iter()
+            .flat_map(|g| g.engines.iter().map(|e| e.id.as_str()))
+            .collect();
+        assert_eq!(listed.len(), s.index.all.len());
+        assert_eq!(listed.iter().collect::<HashSet<_>>().len(), listed.len());
+        let (last, named) = s.index.vendors.split_last().unwrap();
+        assert_eq!(last.name, MORE_ENGINES);
+        assert!(named
+            .iter()
+            .all(|g| g.engines.len() >= 2 && g.name != MORE_ENGINES));
+        let toontrack = named.iter().find(|g| g.name == "Toontrack").unwrap();
+        assert_eq!(toontrack.engines.len(), 3);
+        let vendors: Vec<String> = named.iter().map(|g| g.name.to_lowercase()).collect();
+        let mut sorted = vendors.clone();
+        sorted.sort();
+        assert_eq!(vendors, sorted);
     }
 
     #[test]

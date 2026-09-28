@@ -1,5 +1,6 @@
 id = "mixwave_gillespie"
 name = "MixWave Underoath - Aaron Gillespie"
+vendor = "MixWave"
 notes = [
   { note = 13, canon = "snare1.sidestick" },
   { note = 14, canon = "snare2.off", primary = true },

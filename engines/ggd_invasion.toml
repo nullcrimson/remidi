@@ -1,6 +1,7 @@
 id = "ggd_invasion"
 name = "GGD Invasion (Default Mapping 'Invasion')"
 short_name = "GetGood Drums Invasion"
+vendor = "GetGood Drums"
 notes = [
   { note = 17, canon = "hat.cc", primary = true },
   { note = 22, canon = "kick.alt", primary = true },

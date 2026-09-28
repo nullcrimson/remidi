@@ -34,6 +34,7 @@ Three crates, a web app, and embedded engine presets:
 | `midiremap-cli` | Offline `convert` / `list` binary. | core, `clap`, `anyhow` |
 | `midiremap-wasm` | Browser bindings for the web app. | core, `wasm-bindgen`, `serde-wasm-bindgen` |
 | `app/` | Vite + React + TypeScript converter UI over the WASM bindings. | Vite, React, Tailwind, Vitest |
+| `midiremap-site` | Static SEO pages (engine note maps, pair tables, FAQ / guide / legal pages) in the app's style. | core, `askama`, `serde_json` |
 | `engines/*.toml` | Preset note↔canon maps; core's `build.rs` converts them to one embedded JSON table. | — |
 
 `midiremap-core` never learns that `midly` or `std::fs` exist above its own
@@ -213,8 +214,10 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
 Each `engines/*.toml` (and any user map, as JSON) is one engine:
 
 ```toml
-id   = "ggd_invasion"
-name = "GetGood Drums Invasion"
+id         = "ggd_invasion"
+name       = "GGD Invasion (Default Mapping 'Invasion')"
+short_name = "GetGood Drums Invasion"
+vendor     = "GetGood Drums"
 notes = [
   { note = 24, canon = "kick.main",   primary = true },
   { note = 25, canon = "kick.main"                    },  # duplicate note, decode-only
@@ -223,6 +226,11 @@ notes = [
 ]
 ```
 
+- `short_name` — optional; the name the app and site show (`display_name`), falling
+  back to `name`. The app's engine filter still matches `name`.
+- `vendor` — who makes the engine; groups the site's engine index. Optional for user
+  maps, required for every built-in preset (a catalog test checks it). Blank values are
+  errors.
 - `note` — MIDI note number `0..=127`.
 - `canon` — a canon's dotted string key (see the `canon` module).
 - `primary` — optional (default `false`); the note used when *encoding* this
@@ -258,7 +266,8 @@ available engine ids.
 - `remap(mid, src_id, tgt_id, overrides_json?, channel?) → { bytes, report }` —
   `channel` is `auto` (the default), `all` or `1`-`16`.
 - `plan(src_id, tgt_id, overrides_json?) → [{ canon, label, src_notes, tgt_note, default_tgt_note, status }]`
-- `engine_catalog() → [{ id, name }]`
+- `engine_catalog() → [{ id, name, fullName }]` — `name` is the display name,
+  `fullName` the catalog name.
 - `engine_drums(tgt_id) → [{ note, canon, label, family }]` — the target's playable
   voices, for the note editor's drum list.
 - `engine_notes(src_id) → [{ note, canon, label, family }]` — the source's notes,
@@ -298,7 +307,9 @@ the UI is pure data.
   (`useSavedMappings`, `useFavorites`).
 - **`components/`** — the converter card (engine pickers, file chips, convert
   button, summary), the note editor (`EditView` + note/source pickers), and shared
-  controlled-overlay modals (about/FAQ/engines/contact/terms, loss report). Modals
+  controlled-overlay modals (guide/FAQ/issue/contact/terms, loss report). The header
+  and footer (`SiteHeader`, `SiteFooter`) frame every view; the footer's links go to
+  the site's pages and open the same text in a modal on a plain click. Modals
   are controlled overlays, not `<dialog>`, because the test environment lacks
   `showModal`.
 
@@ -310,6 +321,18 @@ conversion, not from the live rows. The drum channel picker beside the octave
 picker (Auto by default, not saved with mappings) is passed to every conversion;
 notes it leaves alone are shown on the done card and in the report as unchanged,
 not as loss.
+
+### Static site (`midiremap-site`)
+
+`npm run build:site` builds the app, then generates `/engines/`, one page per engine,
+one per pair of the eight popular engines, and one per content section into `dist/`.
+The pages link the app's own built stylesheet (read from `dist/index.html`); Tailwind
+scans the askama templates through `@source`, so both surfaces share one set of tokens
+and utilities. Octave naming and "Changes only" on pair pages are CSS-only radios; the
+filters on the engine and index pages are the only script. FAQ, How it works, Report an
+issue, Contact and Terms come from `app/src/content/pages.json`, which also feeds the
+app's modals and the homepage's FAQPage / HowTo schema (injected at build by a Vite
+plugin).
 
 ## Design rules (enforced)
 

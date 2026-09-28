@@ -1,5 +1,6 @@
 id = "beatbuddy"
 name = "BeatBuddy (by Singular Sound)"
+vendor = "Singular Sound"
 notes = [
   { note = 33, canon = "perc.sticks", primary = true },
   { note = 36, canon = "kick.main", primary = true },

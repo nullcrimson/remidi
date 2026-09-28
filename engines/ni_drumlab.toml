@@ -1,5 +1,6 @@
 id = "ni_drumlab"
 name = "Native Instruments Drumlab"
+vendor = "Native Instruments"
 notes = [
   { note = 35, canon = "kick.main" },
   { note = 36, canon = "kick.main" },

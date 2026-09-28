@@ -1,0 +1,27 @@
+<script>
+  document.querySelectorAll('input[data-filter]').forEach((input) => {
+    const scope = document.getElementById(input.dataset.filter);
+    const empty = document.getElementById(input.dataset.filter + '-empty');
+    const apply = () => {
+      const q = input.value.trim().toLowerCase();
+      let any = false;
+      scope.querySelectorAll('[data-group]').forEach((group) => {
+        let shown = 0;
+        group.querySelectorAll('[data-q]').forEach((row) => {
+          row.hidden = !row.dataset.q.includes(q);
+          if (!row.hidden) shown += 1;
+        });
+        group.hidden = shown === 0;
+        any = any || shown > 0;
+      });
+      empty.hidden = any;
+    };
+    input.hidden = false;
+    input.addEventListener('input', apply);
+    input.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || input.value === '') return;
+      input.value = '';
+      apply();
+    });
+  });
+</script>

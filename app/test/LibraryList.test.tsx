@@ -110,6 +110,20 @@ describe('LibraryList', () => {
     expect(onChange).toHaveBeenCalledWith('ezdrummer');
   });
 
+  it('matches the full engine name while showing the short one', async () => {
+    const named = [...engines, { id: 'sd3', name: 'Superior Drummer 3', fullName: 'Toontrack Superior Drummer 3' }];
+    render(<LibraryList label="FROM" value="" engines={named} onChange={() => {}} {...noFav} />);
+    await userEvent.type(combobox(), 'toontrack');
+    expect(screen.getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Superior Drummer 3']);
+  });
+
+  it('shows the full engine name on hover when it differs', async () => {
+    const named = [{ id: 'sd3', name: 'Superior Drummer 3', fullName: 'Toontrack Superior Drummer 3' }];
+    render(<LibraryList label="FROM" value="" engines={named} onChange={() => {}} {...noFav} />);
+    await userEvent.hover(screen.getByText('Superior Drummer 3'));
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Toontrack Superior Drummer 3');
+  });
+
   it('does not change selection when filtering hides it', async () => {
     const onChange = vi.fn();
     render(<LibraryList label="FROM" value="ezdrummer" engines={engines} onChange={onChange} {...noFav} />);

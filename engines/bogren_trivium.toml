@@ -1,5 +1,6 @@
 id = "bogren_trivium"
 name = "Bogren Digital Trivium Drums"
+vendor = "Bogren Digital"
 notes = [
   { note = 17, canon = "hat.cc", primary = true },
   { note = 22, canon = "kick.main" },

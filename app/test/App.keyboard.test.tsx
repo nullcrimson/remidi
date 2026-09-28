@@ -52,6 +52,9 @@ describe('keyboard use', () => {
       await userEvent.tab();
     };
     await tab();
+    expect(screen.getByRole('link', { name: 'Skip to content' })).toHaveFocus();
+    await userEvent.keyboard('{Enter}');
+    await tab();
     expect(document.activeElement).toHaveTextContent(/Drop a \.mid/);
     await addFile();
     await waitFor(() => expect(fromBox()).toHaveFocus());
