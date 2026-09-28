@@ -6,3 +6,6 @@ members = ["midiremap-core", "midiremap-cli", "midiremap-wasm", "midiremap-site"
 inherits = "release"
 lto = true
 codegen-units = 1
+
+[profile.dev.package.midiremap-core]
+opt-level = 2

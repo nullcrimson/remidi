@@ -17,7 +17,7 @@ env:
   FMT_TOOLCHAIN: nightly-2026-05-03
 
 jobs:
-  check:
+  rust:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -37,7 +37,26 @@ jobs:
       - name: Rust tests
         run: cargo test --workspace --locked
 
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Restore wasm build
+        id: wasm
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: app/src/wasm
+          key: wasm-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-wasm/**', 'engines/**', 'app/scripts/build-wasm.mjs', 'app/package-lock.json') }}
+
+      - name: Install Rust (from rust-toolchain.toml)
+        if: steps.wasm.outputs.cache-hit != 'true'
+        run: rustup toolchain install
+
+      - name: Cache cargo build
+        if: steps.wasm.outputs.cache-hit != 'true'
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Read pinned wasm-bindgen version
+        if: steps.wasm.outputs.cache-hit != 'true'
         id: wb
         run: |
           ver=$(grep -A1 '^name = "wasm-bindgen"$' Cargo.lock | grep '^version' | head -1 | sed -E 's/version = "(.+)"/\1/')
@@ -45,6 +64,7 @@ jobs:
           echo "v=$ver" >> "$GITHUB_OUTPUT"
 
       - name: Install wasm-bindgen-cli (matching Cargo.lock)
+        if: steps.wasm.outputs.cache-hit != 'true'
         uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2.87.21
         with:
           tool: wasm-bindgen-cli@${{ steps.wb.outputs.v }}
@@ -61,6 +81,7 @@ jobs:
         run: npm ci
 
       - name: Build wasm
+        if: steps.wasm.outputs.cache-hit != 'true'
         working-directory: app
         run: npm run build:wasm
 
@@ -77,18 +98,34 @@ jobs:
         run: npm test
 
   build:
-    needs: check
     runs-on: ubuntu-latest
     outputs:
       indexnow: ${{ steps.indexnow.outputs.payload }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Restore wasm build
+        id: wasm
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: app/src/wasm
+          key: wasm-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-wasm/**', 'engines/**', 'app/scripts/build-wasm.mjs', 'app/package-lock.json') }}
+
+      - name: Restore site generator
+        id: site
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.site-bin
+          key: site-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-site/**', 'engines/**', 'app/src/content/pages.json') }}
+
       - name: Install Rust (from rust-toolchain.toml)
+        if: steps.wasm.outputs.cache-hit != 'true' || steps.site.outputs.cache-hit != 'true'
         run: rustup toolchain install
 
       - name: Cache cargo build
+        if: steps.wasm.outputs.cache-hit != 'true' || steps.site.outputs.cache-hit != 'true'
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Read pinned wasm-bindgen version
+        if: steps.wasm.outputs.cache-hit != 'true'
         id: wb
         run: |
           ver=$(grep -A1 '^name = "wasm-bindgen"$' Cargo.lock | grep '^version' | head -1 | sed -E 's/version = "(.+)"/\1/')
@@ -96,6 +133,7 @@ jobs:
           echo "v=$ver" >> "$GITHUB_OUTPUT"
 
       - name: Install wasm-bindgen-cli (matching Cargo.lock)
+        if: steps.wasm.outputs.cache-hit != 'true'
         uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2.87.21
         with:
           tool: wasm-bindgen-cli@${{ steps.wb.outputs.v }}
@@ -111,18 +149,43 @@ jobs:
         working-directory: app
         run: npm ci
 
-      - name: Build (wasm + vite)
+      - name: Build wasm
+        if: steps.wasm.outputs.cache-hit != 'true'
         working-directory: app
-        run: npm run build
+        run: npm run build:wasm
+
+      - name: Build app
+        working-directory: app
+        run: npm run build --ignore-scripts
+
+      - name: Build site generator
+        if: steps.site.outputs.cache-hit != 'true'
+        run: |
+          cargo build -p midiremap-site --release --locked
+          mkdir -p ~/.site-bin
+          cp target/release/midiremap-site ~/.site-bin/
 
       - name: Generate engine and conversion pages
-        run: cargo run -p midiremap-site --release --locked -- app/dist
+        run: ~/.site-bin/midiremap-site app/dist
 
       - name: Size budgets
         working-directory: app
         run: npm run size
 
+      - name: Read Playwright version
+        id: pw
+        working-directory: app
+        run: echo "v=$(npx --no-install playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.v }}
+
       - name: Install Playwright Chromium
+        if: steps.pw-cache.outputs.cache-hit != 'true'
         working-directory: app
         run: npx playwright install --with-deps chromium
 
@@ -150,7 +213,7 @@ jobs:
           path: app/dist
 
   deploy:
-    needs: build
+    needs: [rust, app, build]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
