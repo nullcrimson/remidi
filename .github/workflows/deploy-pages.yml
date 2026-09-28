@@ -41,12 +41,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Read binaryen version
+        id: binaryen
+        run: echo "v=$(node -p "require('./app/package-lock.json').packages['node_modules/binaryen'].version")" >> "$GITHUB_OUTPUT"
+
       - name: Restore wasm build
         id: wasm
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: app/src/wasm
-          key: wasm-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-wasm/**', 'engines/**', 'app/scripts/build-wasm.mjs', 'app/package-lock.json') }}
+          key: wasm-binaryen${{ steps.binaryen.outputs.v }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-wasm/**', 'engines/**', 'app/scripts/build-wasm.mjs') }}
 
       - name: Install Rust (from rust-toolchain.toml)
         if: steps.wasm.outputs.cache-hit != 'true'
@@ -103,12 +107,16 @@ jobs:
       indexnow: ${{ steps.indexnow.outputs.payload }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Read binaryen version
+        id: binaryen
+        run: echo "v=$(node -p "require('./app/package-lock.json').packages['node_modules/binaryen'].version")" >> "$GITHUB_OUTPUT"
+
       - name: Restore wasm build
         id: wasm
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: app/src/wasm
-          key: wasm-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-wasm/**', 'engines/**', 'app/scripts/build-wasm.mjs', 'app/package-lock.json') }}
+          key: wasm-binaryen${{ steps.binaryen.outputs.v }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-wasm/**', 'engines/**', 'app/scripts/build-wasm.mjs') }}
 
       - name: Restore site generator
         id: site
