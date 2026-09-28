@@ -34,6 +34,7 @@ function Harness({ initial }: { initial: SavedMapping[] }) {
         onEdit={() => {}}
         onRename={(id, name) => setMappings((ms) => ms.map((m) => (m.id === id ? { ...m, name } : m)))}
         onDuplicate={() => {}}
+        onExport={() => {}}
         onDelete={(id) => setMappings((ms) => ms.filter((m) => m.id !== id))}
       />
     </>

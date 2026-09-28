@@ -3,28 +3,13 @@ import type { VoiceRow } from './midiremap';
 /** What a conversion does with a drum the target lacks; the exact values the converter parses. */
 export type Missing = 'nearest' | 'drop';
 
+/** Where the choice was kept before it moved into the session; read once, then removed. */
 export const MISSING_KEY = 'midiremap:missing';
 
 export const MISSING_OPTIONS: { value: Missing; label: string }[] = [
   { value: 'nearest', label: 'Nearest' },
   { value: 'drop', label: 'Drop' },
 ];
-
-export function loadMissing(): Missing {
-  try {
-    return localStorage.getItem(MISSING_KEY) === 'drop' ? 'drop' : 'nearest';
-  } catch {
-    return 'nearest';
-  }
-}
-
-export function saveMissing(missing: Missing): void {
-  try {
-    localStorage.setItem(MISSING_KEY, missing);
-  } catch {
-    void 0;
-  }
-}
 
 const swaps = (rows: VoiceRow[]) => rows.filter((r) => r.otherDrum && r.srcNotes.length > 0);
 

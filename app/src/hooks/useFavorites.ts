@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export type FavoritesScope = 'from' | 'to';
 
@@ -22,8 +22,11 @@ function load(key: string): Set<string> {
 export function useFavorites(scope: FavoritesScope): Favorites {
   const key = `midiremap:favorites:${scope}`;
   const [favorites, setFavorites] = useState<Set<string>>(() => load(key));
+  const dirty = useRef(false);
 
   useEffect(() => {
+    if (!dirty.current) return;
+    dirty.current = false;
     try {
       localStorage.setItem(key, JSON.stringify([...favorites]));
     } catch {
@@ -31,13 +34,23 @@ export function useFavorites(scope: FavoritesScope): Favorites {
     }
   }, [key, favorites]);
 
-  const toggleFavorite = (id: string) =>
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === key || e.key === null) setFavorites(load(key));
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [key]);
+
+  const toggleFavorite = (id: string) => {
+    dirty.current = true;
     setFavorites((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+  };
 
   return { favorites, toggleFavorite };
 }

@@ -240,3 +240,90 @@ fn unknown_missing_value_is_rejected() {
         "stderr: {err}"
     );
 }
+
+const PRESET: &str = include_str!("../../app/test/fixtures/my-kit.drumverter.json");
+
+fn convert_with_preset(
+    name: &str,
+    preset: &str,
+    engines: [&str; 2],
+    extra: &[&str],
+) -> (std::process::Output, Vec<u8>) {
+    let dir = std::env::temp_dir();
+    let pid = std::process::id();
+    let in_path = dir.join(format!("midiremap_{name}_in_{pid}.mid"));
+    let out_path = dir.join(format!("midiremap_{name}_out_{pid}.mid"));
+    let preset_path = dir.join(format!("midiremap_{name}_{pid}.drumverter.json"));
+    std::fs::write(&in_path, one_kick_smf()).unwrap();
+    std::fs::write(&preset_path, preset).unwrap();
+    let out = Command::new(BIN)
+        .args([
+            "convert",
+            in_path.to_str().unwrap(),
+            engines[0],
+            engines[1],
+            out_path.to_str().unwrap(),
+            "--preset",
+            preset_path.to_str().unwrap(),
+        ])
+        .args(extra)
+        .output()
+        .unwrap();
+    let bytes = std::fs::read(&out_path).unwrap_or_default();
+    for p in [in_path, out_path, preset_path] {
+        let _ = std::fs::remove_file(p);
+    }
+    (out, bytes)
+}
+
+#[test]
+fn a_preset_exported_by_the_app_applies_its_edits() {
+    let (out, bytes) = convert_with_preset("preset_ok", PRESET, ["ggd_invasion", "ezdrummer"], &[]);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(
+        first_note_on(&bytes),
+        38,
+        "note 24 is reassigned to the snare"
+    );
+}
+
+#[test]
+fn a_preset_for_other_engines_is_refused() {
+    let (out, _) =
+        convert_with_preset("preset_pair", PRESET, ["ggd_invasion", "general_midi"], &[]);
+    assert!(!out.status.success());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("ggd_invasion → ezdrummer") && err.contains("ggd_invasion → general_midi"),
+        "stderr: {err}"
+    );
+}
+
+#[test]
+fn a_preset_warns_about_skipped_edits() {
+    let preset = PRESET.replace("\"kick.main\": 35", "\"bogus.drum\": 35");
+    let (out, _) = convert_with_preset("preset_skip", &preset, ["ggd_invasion", "ezdrummer"], &[]);
+    assert!(out.status.success());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("skipped: unknown drum 'bogus.drum'"),
+        "stderr: {err}"
+    );
+}
+
+#[test]
+fn preset_and_overrides_cannot_be_combined() {
+    let (out, _) = convert_with_preset(
+        "preset_both",
+        PRESET,
+        ["ggd_invasion", "ezdrummer"],
+        &["--overrides", "x.json"],
+    );
+    assert!(!out.status.success());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("cannot be used with"), "stderr: {err}");
+}

@@ -1,11 +1,12 @@
-import { useCallback, useMemo, useReducer } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { Channel } from '../lib/channel';
 import { saveFile } from '../lib/download';
-import type { Engine } from '../lib/midiremap';
-import { loadMissing, saveMissing, type Missing } from '../lib/missing';
+import { canonCatalog, type Engine } from '../lib/midiremap';
+import type { Missing } from '../lib/missing';
 import type { OctaveBase } from '../lib/notes';
-import { editsToOverrides, type Edits, type SrcEdits } from '../lib/overrides';
+import { editsToOverrides, knownEdits, type Edits, type SrcEdits } from '../lib/overrides';
 import { preselection } from '../lib/preselect';
+import { loadSession, saveSession, type Session } from '../lib/session';
 import { useConverter } from './useConverter';
 import { useEditor } from './useEditor';
 import { useEngineCatalog } from './useEngineCatalog';
@@ -34,7 +35,7 @@ type SelectionAction
     | { type: 'SET_VIEW'; view: View }
     | { type: 'LOAD'; src: string; tgt: string; presetId: string | null }
     | { type: 'SET_PRESET'; presetId: string | null }
-    | { type: 'PRESELECT'; src?: string; tgt?: string };
+    | { type: 'PRESELECT'; src: string; tgt: string };
 
 const INITIAL: Selection = {
   src: '',
@@ -46,8 +47,17 @@ const INITIAL: Selection = {
   presetId: null,
 };
 
-function initialSelection(): Selection {
-  return { ...INITIAL, missing: loadMissing() };
+function selectionOf(session: Session): Selection {
+  const { src, tgt, oct, channel, missing, presetId } = session;
+  return { ...INITIAL, src, tgt, oct, channel, missing, presetId };
+}
+
+function knownCanons(): Set<string> | null {
+  try {
+    return new Set(canonCatalog().map((c) => c.canon));
+  } catch {
+    return null;
+  }
 }
 
 function selectionReducer(state: Selection, action: SelectionAction): Selection {
@@ -77,27 +87,26 @@ function selectionReducer(state: Selection, action: SelectionAction): Selection 
     case 'SET_PRESET':
       return { ...state, presetId: action.presetId };
     case 'PRESELECT':
-      return {
-        ...state,
-        src: action.src ?? state.src,
-        tgt: action.tgt ?? state.tgt,
-        presetId: null,
-      };
+      return { ...state, src: action.src, tgt: action.tgt, presetId: null };
   }
 }
 
+/**
+ * Screen state for the converter. The last setup (engines, settings, unsaved edits) is
+ * restored from the session and saved on every change; once the catalog loads, a link's
+ * engine pair wins and anything this version no longer knows is dropped.
+ */
 export function useRemapper() {
+  const [session] = useState(loadSession);
   const [{ src, tgt, oct, channel, missing, view, presetId }, dispatch] = useReducer(
     selectionReducer,
-    undefined,
-    initialSelection,
+    session,
+    selectionOf,
   );
-  const onCatalogReady = useCallback((list: Engine[]) => {
-    const picked = preselection(window.location.search, list);
-    if (picked) dispatch({ type: 'PRESELECT', ...picked });
-  }, []);
+  const restore = useRef<(list: Engine[]) => void>(() => {});
+  const onCatalogReady = useCallback((list: Engine[]) => restore.current(list), []);
   const { status, engines, error: initError } = useEngineCatalog(onCatalogReady);
-  const editor = useEditor(status, src, tgt, missing);
+  const editor = useEditor(status, src, tgt, missing, session);
   const { edits, srcEdits } = editor;
   const overrides = useMemo(() => editsToOverrides(edits, srcEdits), [edits, srcEdits]);
   const keyFor = useCallback(
@@ -142,20 +151,53 @@ export function useRemapper() {
   const setMissing = useCallback(
     (m: Missing) => {
       dispatch({ type: 'SET_MISSING', missing: m });
-      saveMissing(m);
       resetConv();
     },
     [resetConv],
   );
+
+  useEffect(() => {
+    restore.current = (list) => {
+      const known = new Set(list.map((e) => e.id));
+      const picked = preselection(window.location.search, list);
+      const keep = (id: string) => (known.has(id) ? id : '');
+      let nextSrc = picked?.src ?? keep(session.src);
+      let nextTgt = picked?.tgt ?? keep(session.tgt);
+      if (nextSrc === nextTgt) {
+        if (picked?.src) nextTgt = '';
+        else nextSrc = '';
+      }
+      if (nextSrc !== session.src || nextTgt !== session.tgt) {
+        dispatch({ type: 'PRESELECT', src: nextSrc, tgt: nextTgt });
+        resetEditor();
+        return;
+      }
+      const canons = knownCanons();
+      if (!canons) return;
+      const kept = knownEdits(session.edits, session.srcEdits, canons);
+      if (kept.skipped > 0) loadEditor(kept.edits, kept.srcEdits);
+    };
+  }, [session, resetEditor, loadEditor]);
+
+  useEffect(() => {
+    saveSession({ src, tgt, oct, channel, missing, presetId, edits, srcEdits });
+  }, [src, tgt, oct, channel, missing, presetId, edits, srcEdits]);
   const setView = useCallback((v: View) => dispatch({ type: 'SET_VIEW', view: v }), []);
 
+  const { canonOptions } = editor;
   const loadMapping = useCallback(
-    (m: { id?: string; src: string; tgt: string; edits: Edits; srcEdits?: SrcEdits }) => {
+    (m: { id?: string; src: string; tgt: string; edits: Edits; srcEdits?: SrcEdits }): number => {
+      const all = { edits: m.edits, srcEdits: m.srcEdits ?? {} };
+      const kept
+        = canonOptions.length > 0
+          ? knownEdits(all.edits, all.srcEdits, new Set(canonOptions.map((c) => c.canon)))
+          : { ...all, skipped: 0 };
       dispatch({ type: 'LOAD', src: m.src, tgt: m.tgt, presetId: m.id ?? null });
-      loadEditor(m.edits, m.srcEdits ?? {});
+      loadEditor(kept.edits, kept.srcEdits);
       resetConv();
+      return kept.skipped;
     },
-    [loadEditor, resetConv],
+    [canonOptions, loadEditor, resetConv],
   );
   const setPreset = useCallback(
     (id: string | null) => dispatch({ type: 'SET_PRESET', presetId: id }),
@@ -172,7 +214,6 @@ export function useRemapper() {
   const convert = useCallback(() => run(missing), [run, missing]);
   const dropMissingAndConvert = useCallback(() => {
     dispatch({ type: 'SET_MISSING', missing: 'drop' });
-    saveMissing('drop');
     return run('drop');
   }, [run]);
 

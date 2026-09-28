@@ -48,6 +48,16 @@ export interface RemapReport {
   untouched: number;
   converted: number;
 }
+/** A preset file read by the core: engines resolved to current ids, unreadable edits listed. */
+export interface ImportedPreset {
+  name: string;
+  src: string;
+  tgt: string;
+  edits: Record<string, number>;
+  srcEdits: Record<number, string | null>;
+  skipped: string[];
+}
+
 export interface RemapResult {
   bytes: Uint8Array<ArrayBuffer>;
   report: RemapReport;
@@ -104,6 +114,10 @@ export function engineNotes(srcId: string): Drum[] {
 
 export function canonCatalog(): CanonInfo[] {
   return mod().canon_catalog() as CanonInfo[];
+}
+
+export function parsePresetFile(json: string): ImportedPreset {
+  return mod().parse_preset_file(json) as ImportedPreset;
 }
 
 export function plan(src: string, tgt: string, ov?: Overrides, missing?: Missing): VoiceRow[] {

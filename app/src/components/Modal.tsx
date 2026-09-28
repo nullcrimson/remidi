@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useEffectEvent, useRef, type ReactNode } from 'react';
 import { IconButton } from './IconButton';
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -31,13 +31,14 @@ export function Modal({
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const close = useEffectEvent(onClose);
   useEffect(() => {
     const dialog = ref.current;
     if (!open || !dialog) return;
     const prev = document.activeElement as HTMLElement | null;
     dialog.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') close();
       if (e.key === 'Tab') keepFocusInside(dialog, e);
     };
     document.addEventListener('keydown', onKey);
@@ -46,7 +47,7 @@ export function Modal({
       const active = document.activeElement;
       if (!active || active === document.body || dialog.contains(active)) prev?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   return (
     <>

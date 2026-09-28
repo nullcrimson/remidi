@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseMappings, serializeMappings, sortByRecent, type SavedMapping } from '../src/lib/mappings';
+import { parseMappings, readStore, serializeMappings, sortByRecent, type SavedMapping } from '../src/lib/mappings';
 
 const sample: SavedMapping = {
   id: 'a1',
@@ -93,5 +93,28 @@ describe('sortByRecent', () => {
     const sorted = sortByRecent(input);
     expect(sorted.map((m) => m.id)).toEqual(['new', 'old']);
     expect(input.map((m) => m.id)).toEqual(['old', 'new']);
+  });
+});
+
+describe('readStore', () => {
+  const bad = { id: 'b', name: 'broken' };
+
+  it('reads the legacy bare array as version 0 and keeps invalid entries aside', () => {
+    expect(readStore(JSON.stringify([sample, bad]))).toEqual({ version: 0, items: [sample], invalid: [bad] });
+  });
+
+  it('reads the versioned envelope', () => {
+    expect(readStore(serializeMappings([sample]))).toEqual({ version: 1, items: [sample], invalid: [] });
+    expect(JSON.parse(serializeMappings([sample]))).toEqual({ version: 1, items: [sample] });
+  });
+
+  it('keeps data it cannot read, whole, instead of dropping it', () => {
+    const future = JSON.stringify({ version: 2, items: [sample] });
+    expect(readStore(future)).toEqual({ version: null, items: [], invalid: [JSON.parse(future)] });
+    expect(readStore('{')).toEqual({ version: null, items: [], invalid: ['{'] });
+  });
+
+  it('has nothing to read when empty', () => {
+    expect(readStore(null)).toEqual({ version: null, items: [], invalid: [] });
   });
 });

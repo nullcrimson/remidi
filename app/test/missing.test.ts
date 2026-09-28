@@ -1,13 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { VoiceRow } from '../src/lib/midiremap';
-import {
-  loadMissing,
-  MISSING_KEY,
-  MISSING_OPTIONS,
-  missingHint,
-  saveMissing,
-  swappedCanons,
-} from '../src/lib/missing';
+import { MISSING_OPTIONS, missingHint, swappedCanons } from '../src/lib/missing';
 
 function row(canon: string, extra: Partial<VoiceRow>): VoiceRow {
   return {
@@ -28,25 +21,11 @@ const DROPPED_SWAP = row('tom.rack4.hit', { status: 'dropped', tgtNote: null, ot
 const SILENT_SWAP = row('splash.1.hit', { status: 'fallback', otherDrum: true, srcNotes: [] });
 
 describe('missing drums setting', () => {
-  beforeEach(() => localStorage.clear());
-
   it('offers Nearest then Drop', () => {
     expect(MISSING_OPTIONS).toEqual([
       { value: 'nearest', label: 'Nearest' },
       { value: 'drop', label: 'Drop' },
     ]);
-  });
-
-  it('loads nearest by default and for unknown stored values', () => {
-    expect(loadMissing()).toBe('nearest');
-    localStorage.setItem(MISSING_KEY, 'maybe');
-    expect(loadMissing()).toBe('nearest');
-  });
-
-  it('round-trips a saved choice', () => {
-    saveMissing('drop');
-    expect(localStorage.getItem(MISSING_KEY)).toBe('drop');
-    expect(loadMissing()).toBe('drop');
   });
 
   it('explains the choice before a pair is picked', () => {

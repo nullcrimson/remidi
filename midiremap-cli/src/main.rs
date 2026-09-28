@@ -2,7 +2,9 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand};
-use midiremap_core::{convert, Catalog, ChannelScope, Mapping, MissingDrums, Overrides};
+use midiremap_core::{
+    convert, parse_preset, Catalog, ChannelScope, Mapping, MissingDrums, Overrides,
+};
 
 #[derive(Parser)]
 #[command(
@@ -37,8 +39,11 @@ struct ConvertArgs {
     channel: ChannelScope,
     /// Note edits as JSON: {"tgt":[{"canon":"kick.main","note":35}],
     /// "src":[{"note":24,"canon":"snare1.hit"}]}; a null canon silences a source note
-    #[arg(long, value_name = "FILE")]
+    #[arg(long, value_name = "FILE", conflicts_with = "preset")]
     overrides: Option<PathBuf>,
+    /// A preset exported from the web app (.drumverter.json); its engines must match
+    #[arg(long, value_name = "FILE")]
+    preset: Option<PathBuf>,
     /// Drums the target lacks: nearest (play on the closest drum) or drop (leave out;
     /// another way of playing the same drum still stands in)
     #[arg(long, value_name = "MODE", default_value = "nearest")]
@@ -66,6 +71,26 @@ fn read_overrides(path: Option<PathBuf>) -> Result<Overrides> {
     serde_json::from_str(&json).with_context(|| format!("invalid overrides {}", path.display()))
 }
 
+fn read_preset(path: &PathBuf, catalog: &Catalog, src: &str, tgt: &str) -> Result<Overrides> {
+    let json = std::fs::read_to_string(path)
+        .with_context(|| format!("cannot read preset {}", path.display()))?;
+    let loaded =
+        parse_preset(&json).with_context(|| format!("invalid preset {}", path.display()))?;
+    let preset = loaded.preset;
+    let resolve = |id: &str| catalog.canonical_id(id).unwrap_or(id).to_owned();
+    let (p_src, p_tgt) = (resolve(&preset.src), resolve(&preset.tgt));
+    if (p_src.as_str(), p_tgt.as_str()) != (src, tgt) {
+        anyhow::bail!(
+            "preset {} is for {p_src} → {p_tgt}, not {src} → {tgt}",
+            path.display()
+        );
+    }
+    for skipped in &loaded.skipped {
+        eprintln!("skipped: {skipped}");
+    }
+    Ok(preset.overrides())
+}
+
 fn run_list(user_map: Option<PathBuf>) -> Result<()> {
     let provider = build_catalog(user_map)?;
     let mut ids = provider.ids();
@@ -89,7 +114,10 @@ fn run_convert(a: ConvertArgs) -> Result<()> {
     let mid =
         std::fs::read(&a.input).with_context(|| format!("cannot read {}", a.input.display()))?;
 
-    let overrides = read_overrides(a.overrides)?;
+    let overrides = match &a.preset {
+        Some(path) => read_preset(path, &provider, &src.id, &tgt.id)?,
+        None => read_overrides(a.overrides)?,
+    };
     let out = convert(
         &mid,
         &Mapping::new(src, tgt, &overrides, a.missing),

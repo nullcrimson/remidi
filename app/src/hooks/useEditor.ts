@@ -159,16 +159,25 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-export function useEditor(status: CatalogStatus, src: string, tgt: string, missing: Missing) {
-  const [{ edits, srcEdits, pick, notice }, dispatch] = useReducer(reducer, INITIAL);
-
-  const rows = useMemo<VoiceRow[]>(
-    () =>
-      status === 'ready' && src && tgt
-        ? computePlan(src, tgt, editsToOverrides(edits, srcEdits), missing)
-        : [],
-    [status, src, tgt, edits, srcEdits, missing],
+export function useEditor(
+  status: CatalogStatus,
+  src: string,
+  tgt: string,
+  missing: Missing,
+  initial?: { edits: Edits; srcEdits: SrcEdits },
+) {
+  const [{ edits, srcEdits, pick, notice }, dispatch] = useReducer(reducer, initial, (start) =>
+    start ? { ...INITIAL, edits: start.edits, srcEdits: start.srcEdits } : INITIAL,
   );
+
+  const { rows, planError } = useMemo<{ rows: VoiceRow[]; planError: string | null }>(() => {
+    if (status !== 'ready' || !src || !tgt) return { rows: [], planError: null };
+    try {
+      return { rows: computePlan(src, tgt, editsToOverrides(edits, srcEdits), missing), planError: null };
+    } catch (err) {
+      return { rows: [], planError: String(err) };
+    }
+  }, [status, src, tgt, edits, srcEdits, missing]);
 
   const setPickOct = useCallback(
     (octIndex: number) => dispatch({ type: 'SET_PICK_OCT', octIndex }),
@@ -303,6 +312,7 @@ export function useEditor(status: CatalogStatus, src: string, tgt: string, missi
     pick,
     notice,
     rows,
+    planError,
     remappedCount,
     droppedCount,
     targetDrums,

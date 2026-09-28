@@ -14,16 +14,15 @@ export interface BatchRequest {
   missing: Missing;
 }
 
-export interface BatchReply {
-  id: number;
-  result: BatchResult;
-}
+/** A converted batch, or why the worker could not convert it. */
+export type BatchReply = { id: number; result: BatchResult } | { id: number; error: string };
 
 type MakeWorker = () => Worker;
 
 interface Pending {
   request: BatchRequest;
   resolve: (result: BatchResult) => void;
+  reject: (error: Error) => void;
 }
 
 async function onMainThread({
@@ -44,7 +43,8 @@ function moduleWorker(): Worker {
 
 /**
  * Converts batches in a Web Worker so the page stays responsive. Falls back to the main
- * thread when no worker can be created or the worker fails.
+ * thread when no worker can be created or the worker dies; a batch the worker could not
+ * convert is rejected, since the main thread would fail the same way.
  */
 export function createConverter(makeWorker: MakeWorker = moduleWorker) {
   let worker: Worker | null = null;
@@ -58,7 +58,7 @@ export function createConverter(makeWorker: MakeWorker = moduleWorker) {
     worker = null;
     const stranded = [...pending.values()];
     pending.clear();
-    for (const p of stranded) void onMainThread(p.request).then(p.resolve);
+    for (const p of stranded) void onMainThread(p.request).then(p.resolve, p.reject);
   };
 
   const connect = (): Worker | null => {
@@ -70,11 +70,15 @@ export function createConverter(makeWorker: MakeWorker = moduleWorker) {
       return null;
     }
     worker.onmessage = (e: MessageEvent<BatchReply>) => {
-      const p = pending.get(e.data.id);
-      pending.delete(e.data.id);
-      p?.resolve(e.data.result);
+      const reply = e.data;
+      const p = pending.get(reply.id);
+      pending.delete(reply.id);
+      if (!p) return;
+      if ('error' in reply) p.reject(new Error(reply.error));
+      else p.resolve(reply.result);
     };
     worker.onerror = fail;
+    worker.onmessageerror = fail;
     return worker;
   };
 
@@ -89,8 +93,8 @@ export function createConverter(makeWorker: MakeWorker = moduleWorker) {
     const request: BatchRequest = { id: nextId++, files, src, tgt, ov, channel, missing };
     const w = connect();
     if (!w) return onMainThread(request);
-    return new Promise((resolve) => {
-      pending.set(request.id, { request, resolve });
+    return new Promise((resolve, reject) => {
+      pending.set(request.id, { request, resolve, reject });
       w.postMessage(request);
     });
   };

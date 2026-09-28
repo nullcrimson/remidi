@@ -24,6 +24,8 @@ struct RawMap {
     short_name: Option<String>,
     #[serde(default)]
     vendor: Option<String>,
+    #[serde(default)]
+    aliases: Vec<String>,
     notes: Vec<RawEntry>,
 }
 
@@ -33,6 +35,7 @@ pub struct EngineMap {
     pub name: String,
     short_name: Option<String>,
     vendor: Option<String>,
+    aliases: Vec<String>,
     to_canon: HashMap<Note, Canon>,
     from_canon: HashMap<Canon, Note>,
 }
@@ -86,6 +89,11 @@ impl EngineMap {
         self.vendor.as_deref()
     }
 
+    /// Former ids that still find this engine.
+    pub fn aliases(&self) -> &[String] {
+        &self.aliases
+    }
+
     pub fn drums(&self) -> Vec<Drum> {
         let mut out: Vec<Drum> = self
             .from_canon
@@ -127,6 +135,8 @@ pub enum MapError {
     BlankShortName(String),
     #[error("blank vendor for engine {0}")]
     BlankVendor(String),
+    #[error("alias {0} is already an engine id or another engine's alias")]
+    AliasCollision(String),
 }
 
 fn build(raw: RawMap) -> Result<EngineMap, MapError> {
@@ -163,6 +173,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
         name: raw.name,
         short_name: raw.short_name,
         vendor: raw.vendor,
+        aliases: raw.aliases,
         to_canon,
         from_canon,
     })

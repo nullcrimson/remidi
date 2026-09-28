@@ -23,23 +23,24 @@ export function FileChips({
 }) {
   const skippedLine = skipped.length > 0 && (
     <p role="status" className="w-full text-label text-t4">
-      Skipped {skipped.join(', ')} — only .mid and .midi files
+      Skipped {skipped.join(', ')} — only .mid files and exported presets (.drumverter.json) can be
+      added
     </p>
   );
   if (files.length === 0) {
     return (
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 border-b border-hairline pb-4.5">
         <FilePicker id={FILE_PICKER_ID} onFiles={onFiles}>
-          <div className="
-            flex items-center gap-3 border-b border-hairline pb-4.5
-          "
-          >
+          <div className="flex items-center gap-3">
             <MidBadge />
             <span className="flex-1 text-body text-t4">
               Drop a .mid anywhere, or click to choose
             </span>
           </div>
         </FilePicker>
+        <p className="text-label text-t5">
+          Preset files you exported (.drumverter.json) can be dropped or chosen the same way.
+        </p>
         {skippedLine}
       </div>
     );

@@ -15,6 +15,7 @@ export function SavedMappingChips({
   onEdit,
   onRename,
   onDuplicate,
+  onExport,
   onDelete,
 }: {
   mappings: SavedMapping[];
@@ -25,6 +26,7 @@ export function SavedMappingChips({
   onEdit: (m: SavedMapping) => void;
   onRename: (id: string, name: string) => void;
   onDuplicate: (m: SavedMapping) => void;
+  onExport: (m: SavedMapping) => void;
   onDelete: (id: string) => void;
 }) {
   const listRef = useRef<HTMLUListElement>(null);
@@ -57,6 +59,7 @@ export function SavedMappingChips({
             onEdit={onEdit}
             onRename={onRename}
             onDuplicate={onDuplicate}
+            onExport={onExport}
             onDelete={remove}
           />
         ))}

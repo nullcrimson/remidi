@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type SetStateAction } from 'react';
 import type { Edits, SrcEdits } from '../lib/overrides';
 import {
   MAPPINGS_CAP,
   MAPPINGS_KEY,
   parseMappings,
+  quarantine,
+  readStore,
   serializeMappings,
   sortByRecent,
   type SavedMapping,
@@ -27,16 +29,41 @@ function load(): SavedMapping[] {
   }
 }
 
+function persist(mappings: SavedMapping[]) {
+  try {
+    quarantine(readStore(localStorage.getItem(MAPPINGS_KEY)).invalid);
+    localStorage.setItem(MAPPINGS_KEY, serializeMappings(mappings));
+  } catch {
+    void 0;
+  }
+}
+
+/**
+ * Saved presets, shared with other tabs. Storage is written only after a user action, so
+ * entries this version cannot read stay put until then and are quarantined, not dropped.
+ */
 export function useSavedMappings(): SavedMappings {
-  const [mappings, setMappings] = useState<SavedMapping[]>(() => load());
+  const [mappings, setStored] = useState<SavedMapping[]>(() => load());
+  const dirty = useRef(false);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(MAPPINGS_KEY, serializeMappings(mappings));
-    } catch {
-      void 0;
-    }
+    if (!dirty.current) return;
+    dirty.current = false;
+    persist(mappings);
   }, [mappings]);
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === MAPPINGS_KEY || e.key === null) setStored(load());
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  const setMappings = (next: SetStateAction<SavedMapping[]>) => {
+    dirty.current = true;
+    setStored(next);
+  };
 
   const save: SavedMappings['save'] = (input) => {
     if (mappings.length >= MAPPINGS_CAP) return null;

@@ -178,7 +178,10 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
 
 ### `catalog` — where engine maps come from
 
-- `Catalog`: engine maps keyed by id, with `get(id)` / `ids()`.
+- `Catalog`: engine maps keyed by id, with `get(id)` / `ids()`. A map may list former
+  ids as `aliases`; `get` and `canonical_id` resolve them, so renaming an engine never
+  breaks a saved preset. `check_aliases` rejects an alias that is also an id or belongs
+  to two engines.
 - `Catalog::builtin()`: every `engines/*.toml` (dozens of presets). Core's `build.rs`
   globs the directory, parses each file with `toml`, rejects invalid TOML or a
   duplicate engine id as a build error naming the file, and writes one JSON table
@@ -189,6 +192,19 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
   preset (unknown canon, duplicate primary) is a startup panic caught by tests.
 - `with_user_json(json)` adds a user map that *shadows* a builtin with the same id;
   `from_maps(maps)` builds a catalog from any maps (tests, generators).
+- `tests/stable_ids.rs` guards saved data: every drum key and engine id ever released is
+  recorded in `tests/golden/`, must still parse or resolve (through an alias after a
+  rename), and every new one must be appended.
+
+### `preset` — the preset file
+
+- `parse_preset(json) → LoadedPreset { preset: SavedPreset, skipped }` reads
+  `{ "format": "drumverter-preset", "version": 1, name, src, tgt, edits: { canon: note },
+  srcEdits: { "note": canon | null } }` — the file the web app exports. Another format or
+  version, or a blank name/engine, is an error; an edit it cannot read (unknown drum,
+  note out of range) is skipped and described in `skipped`, never fatal.
+  `SavedPreset::overrides()` turns it into `Overrides`. The app's export and this parser
+  share the fixture `app/test/fixtures/my-kit.drumverter.json`.
 
 ### `overrides` — per-voice retargeting
 
@@ -261,14 +277,15 @@ stderr and exits non-zero):
 ```
 midiremap convert <input.mid> <src_id> <tgt_id> <output.mid>
                   [--user-map map.json] [--overrides edits.json] [--channel auto|all|1-16]
-                  [--missing nearest|drop]
+                  [--missing nearest|drop] [--preset my-kit.drumverter.json]
 midiremap list [--user-map map.json]
 ```
 
 `convert` writes the remapped `.mid` and prints the loss report as pretty JSON to
 stderr. `--overrides` takes note edits as
-`{"tgt":[{"canon","note"}],"src":[{"note","canon"}]}` (the `Overrides` shape; a saved
-web-app preset is not accepted yet). `--missing drop`
+`{"tgt":[{"canon","note"}],"src":[{"note","canon"}]}` (the `Overrides` shape);
+`--preset` takes a preset exported from the web app instead (its engines, resolved
+through aliases, must match the command's; skipped edits are printed). `--missing drop`
 leaves out drums the target lacks instead of playing them on the nearest drum. `list`
 prints available engine ids.
 
@@ -288,6 +305,9 @@ prints available engine ids.
   for reassigning source notes.
 - `canon_catalog() → [{ canon, label, family }]` — the full canon vocabulary, for
   the source-note canon picker.
+- `parse_preset_file(json) → { name, src, tgt, edits, srcEdits, skipped }` — a preset
+  file for import, engines resolved to current ids; an unknown engine is an error.
+- A `start` function installs `console_error_panic_hook`, so a panic prints its message.
 
 Every export serializes through one helper that writes maps as objects and missing
 values as `null`. `remap` calls `convert` with the parsed `ChannelScope` and serializes `Report` directly:
@@ -309,16 +329,32 @@ the UI is pure data.
 - **Conversion off the main thread.** `converter.ts` sends each batch to one module
   Web Worker (`convertWorker.ts`), which loads the WASM itself and runs the shared
   `runBatch` (`batch.ts`); converted bytes come back as transferred buffers, so the
-  page and the spinner stay responsive. If a worker cannot be created or fails, the
-  same batch runs on the main thread, so conversion always completes. The editor's
-  `plan` preview stays on the main thread (it takes well under a millisecond).
+  page and the spinner stay responsive. If a worker cannot be created or dies, the
+  same batch runs on the main thread; a batch the worker could not convert (the WASM
+  failed to load) is rejected and shown as an error, never retried or left spinning.
+  The editor's `plan` preview stays on the main thread (it takes well under a
+  millisecond); a `plan` failure (e.g. a damaged preset) becomes a notice with Reset
+  edits, and anything else that throws while rendering reaches the root
+  `ErrorBoundary` (Reload, Report an issue, two-step Reset saved data).
 - **`hooks/`** — `useRemapper` is the facade the UI consumes. It composes
   `useEngineCatalog` (load status + engine list), `useConverter` (files → results
   + report), and `useEditor` (per-note edits, the live `plan` preview, and derived
   counts) behind a stable return contract, plus a small selection reducer for
   source/target/octave/channel/view. `useEditor`'s result is exposed as one nested
   `editor` bundle rather than a flat prop wall. Persistence lives in focused hooks
-  (`useSavedMappings`, `useFavorites`).
+  (`useSavedMappings`, `useFavorites`) and `lib/session.ts`:
+  - Presets are stored as `{ version: 1, items }` (a legacy bare array reads as version
+    0). Storage is written only after a user action; entries this version cannot read
+    are moved to `midiremap:quarantine` on the next write, never dropped. A `storage`
+    event reloads presets and favourites, so tabs stay in sync.
+  - The session (`midiremap:session`, versioned) keeps engines, octave, channel,
+    missing drums, the open preset id and unsaved edits; `useRemapper` restores it on
+    load and saves every change. When the catalog loads, a link's `?from/&to` pair
+    wins (dropping edits made for another pair), unknown engines are cleared and
+    unknown drums in restored edits are left out.
+  - Loading a preset leaves out edits for drums this version does not know and says
+    so; presets export to and import from `.drumverter.json` files (import parses
+    through the WASM `parse_preset_file`).
 - **`components/`** — the converter card (engine pickers, file chips, convert
   button, summary), the note editor (`EditView` + note/source pickers), and shared
   controlled-overlay modals (guide/FAQ/issue/contact/terms, loss report). The header

@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::LazyLock};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::LazyLock,
+};
 
 use crate::engine_map::{from_json, many_from_json, EngineMap, MapError};
 
@@ -6,9 +9,10 @@ const EMBEDDED: &str = include_str!(concat!(env!("OUT_DIR"), "/engines.json"));
 
 static SHARED: LazyLock<Catalog> = LazyLock::new(Catalog::builtin);
 
-/// Engine maps keyed by engine id.
+/// Engine maps keyed by engine id; former ids resolve through each map's aliases.
 pub struct Catalog {
     maps: HashMap<String, EngineMap>,
+    aliases: HashMap<String, String>,
 }
 
 impl Catalog {
@@ -24,20 +28,44 @@ impl Catalog {
 
     /// Later maps with the same id replace earlier ones.
     pub fn from_maps(maps: impl IntoIterator<Item = EngineMap>) -> Self {
-        Self {
-            maps: maps.into_iter().map(|m| (m.id.clone(), m)).collect(),
-        }
+        let maps: HashMap<String, EngineMap> =
+            maps.into_iter().map(|m| (m.id.clone(), m)).collect();
+        let aliases = maps
+            .values()
+            .flat_map(|m| m.aliases().iter().map(|a| (a.clone(), m.id.clone())))
+            .collect();
+        Self { maps, aliases }
     }
 
     /// Adds a user map from JSON; it shadows a builtin with the same id.
-    pub fn with_user_json(mut self, json: &str) -> Result<Self, MapError> {
+    pub fn with_user_json(self, json: &str) -> Result<Self, MapError> {
         let map = from_json(json)?;
-        self.maps.insert(map.id.clone(), map);
-        Ok(self)
+        let catalog = Self::from_maps(self.maps.into_values().chain([map]));
+        catalog.check_aliases()?;
+        Ok(catalog)
     }
 
+    /// Fails on an alias that is also an engine id or belongs to two engines.
+    pub fn check_aliases(&self) -> Result<(), MapError> {
+        let mut seen = HashSet::new();
+        for alias in self.maps.values().flat_map(EngineMap::aliases) {
+            if self.maps.contains_key(alias) || !seen.insert(alias) {
+                return Err(MapError::AliasCollision(alias.clone()));
+            }
+        }
+        Ok(())
+    }
+
+    /// An engine by id, or by one of its former ids.
     pub fn get(&self, id: &str) -> Option<&EngineMap> {
-        self.maps.get(id)
+        self.maps
+            .get(id)
+            .or_else(|| self.aliases.get(id).and_then(|real| self.maps.get(real)))
+    }
+
+    /// The current id for an id or a former id.
+    pub fn canonical_id(&self, id: &str) -> Option<&str> {
+        self.get(id).map(|m| m.id.as_str())
     }
 
     pub fn ids(&self) -> Vec<&str> {
@@ -153,6 +181,31 @@ mod tests {
             Some(Canon::Kick(KickKind::Main))
         );
         assert!(p.get("custom").is_some());
+    }
+
+    #[test]
+    fn an_alias_resolves_to_its_engine() {
+        let json = r#"{"id":"custom","name":"Custom","aliases":["legacy_kit"],"notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
+        let p = Catalog::builtin().with_user_json(json).unwrap();
+        assert_eq!(p.get("legacy_kit").map(|m| m.id.as_str()), Some("custom"));
+        assert_eq!(p.canonical_id("legacy_kit"), Some("custom"));
+        assert_eq!(p.canonical_id("custom"), Some("custom"));
+        assert_eq!(p.canonical_id("nope"), None);
+        assert!(!p.ids().contains(&"legacy_kit"));
+    }
+
+    #[test]
+    fn an_alias_may_not_shadow_an_engine_id() {
+        let json = r#"{"id":"custom","name":"Custom","aliases":["ezdrummer"],"notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
+        assert_eq!(
+            Catalog::builtin().with_user_json(json).err(),
+            Some(MapError::AliasCollision("ezdrummer".into()))
+        );
+    }
+
+    #[test]
+    fn builtin_aliases_do_not_collide() {
+        assert_eq!(Catalog::builtin().check_aliases(), Ok(()));
     }
 
     #[test]

@@ -9,6 +9,22 @@ describe('FileChips', () => {
       <FileChips files={[]} failures={[]} onFiles={() => {}} onRemove={() => {}} onClear={() => {}} />,
     );
     expect(screen.getByText(/drop a .mid/i)).toBeInTheDocument();
+    expect(
+      screen.getByText('Preset files you exported (.drumverter.json) can be dropped or chosen the same way.'),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the preset line out of the way once files are added', () => {
+    render(
+      <FileChips
+        files={[{ bytes: new Uint8Array(1), name: 'a.mid' }]}
+        failures={[]}
+        onFiles={() => {}}
+        onRemove={() => {}}
+        onClear={() => {}}
+      />,
+    );
+    expect(screen.queryByText(/Preset files you exported/)).not.toBeInTheDocument();
   });
 
   it('names files that were skipped for not being MIDI', () => {
@@ -23,7 +39,7 @@ describe('FileChips', () => {
       />,
     );
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Skipped notes.txt, cover.png — only .mid and .midi files',
+      'Skipped notes.txt, cover.png — only .mid files and exported presets (.drumverter.json) can be added',
     );
   });
 

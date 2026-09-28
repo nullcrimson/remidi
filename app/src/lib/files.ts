@@ -4,15 +4,36 @@ export const MID_EXT = /\.midi?$/i;
 
 export const isMid = (name: string) => MID_EXT.test(name);
 
-/** Splits picked or dropped files into MIDI files and the names of the rest. */
-export function splitMid(files: File[]): { mid: File[]; skipped: string[] } {
+const isPreset = (name: string) => /\.json$/i.test(name);
+
+/** Splits picked or dropped files into MIDI files, preset files and the names of the rest. */
+export function splitFiles(files: File[]): { mid: File[]; presets: File[]; skipped: string[] } {
   return {
     mid: files.filter((f) => isMid(f.name)),
-    skipped: files.filter((f) => !isMid(f.name)).map((f) => f.name),
+    presets: files.filter((f) => isPreset(f.name)),
+    skipped: files.filter((f) => !isMid(f.name) && !isPreset(f.name)).map((f) => f.name),
   };
 }
 
-export type OnFiles = (files: LoadedFile[], skipped: string[]) => void;
+/** A preset file's name and text, read for import. */
+export interface PresetText {
+  name: string;
+  text: string;
+}
+
+export type OnFiles = (files: LoadedFile[], skipped: string[], presets?: PresetText[]) => void;
+
+export async function readPresets(files: File[]): Promise<PresetText[]> {
+  return Promise.all(files.map(async (f) => ({ name: f.name, text: await f.text() })));
+}
+
+/** Reads picked or dropped files and hands MIDI and preset files to `onFiles`. */
+export async function takeFiles(list: File[], onFiles: OnFiles): Promise<void> {
+  const { mid, presets, skipped } = splitFiles(list);
+  if (!mid.length && !presets.length && !skipped.length) return;
+  const [loaded, texts] = await Promise.all([loadFiles(mid), readPresets(presets)]);
+  onFiles(loaded, skipped, texts);
+}
 
 export interface LoadedFile {
   bytes: Uint8Array;

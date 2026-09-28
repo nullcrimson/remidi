@@ -6,6 +6,7 @@ pub mod midi;
 pub mod note;
 pub mod overrides;
 pub mod plan;
+pub mod preset;
 pub mod table;
 pub mod translate;
 
@@ -17,6 +18,9 @@ pub use midi::{ChannelFilter, ChannelScope, ChannelScopeError, CodecError};
 pub use note::{Note, NoteOutOfRange};
 pub use overrides::{CanonNote, Overrides, SrcNote};
 pub use plan::{plan, PlanStatus, VoicePlan};
+pub use preset::{
+    parse_preset, LoadedPreset, PresetError, SavedPreset, PRESET_FORMAT, PRESET_VERSION,
+};
 pub use table::NoteTable;
 pub use translate::{
     resolve, CanonResolution, FallbackTally, Mapping, MissingDrums, MissingDrumsParseError, Report,

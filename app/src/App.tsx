@@ -10,12 +10,15 @@ import { IconButton } from './components/IconButton';
 import { LibraryList } from './components/LibraryList';
 import { MissingDrumsSetting } from './components/MissingDrumsSetting';
 import { OctaveToggle } from './components/OctaveToggle';
+import { PlanErrorNotice } from './components/PlanErrorNotice';
 import { ReportModal } from './components/ReportModal';
 import { SavedMappingChips } from './components/SavedMappingChips';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteHeader } from './components/SiteHeader';
+import { StatusNotice } from './components/StatusNotice';
 import { skipLink } from './components/styles';
 import { SummaryRow } from './components/SummaryRow';
+import { useDropGuard } from './hooks/useDropGuard';
 import { useFavorites } from './hooks/useFavorites';
 import { useRemapper } from './hooks/useRemapper';
 import { useSavedMappings } from './hooks/useSavedMappings';
@@ -30,7 +33,10 @@ import {
   MAIN_ID,
 } from './lib/focusIds';
 import { shortCode } from './lib/format';
+import { parsePresetFile } from './lib/midiremap';
 import { missingHint, swappedCanons } from './lib/missing';
+import { downloadPreset } from './lib/presetFile';
+import { importPresets, skippedNotice } from './lib/presetImport';
 import { buildReport } from './lib/report';
 
 function Page({ wide = false, children }: { wide?: boolean; children: ReactNode }) {
@@ -95,20 +101,25 @@ function Intro() {
 }
 
 export default function App() {
+  useDropGuard();
   const c = useRemapper();
   const favFrom = useFavorites('from');
   const favTo = useFavorites('to');
   const saved = useSavedMappings();
   const [reportOpen, setReportOpen] = useState(false);
   const [assignNote, setAssignNote] = useState<number | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const { addFiles: storeFiles, src, tgt } = c;
+  const { mappings, save: savePreset } = saved;
   const addFiles = useCallback<OnFiles>(
-    (files, skipped) => {
+    (files, skipped, presets = []) => {
+      if (presets.length > 0) setNotice(importPresets(presets, mappings, parsePresetFile, savePreset));
+      if (files.length === 0 && skipped.length === 0) return;
       flushSync(() => storeFiles(files, skipped));
       if (files.length === 0) return;
       focusById(!src ? engineFilterId('FROM') : !tgt ? engineFilterId('TO') : CONVERT_BUTTON_ID);
     },
-    [storeFiles, src, tgt],
+    [storeFiles, src, tgt, mappings, savePreset],
   );
   const reportView = useMemo(
     () => buildReport(c.results, c.editor.canonOptions, c.editor.targetDrums, c.oct),
@@ -233,14 +244,16 @@ export default function App() {
                   />
                 </div>
 
+                {notice && <StatusNotice message={notice} onDismiss={() => setNotice(null)} />}
+
                 <SavedMappingChips
                   fallbackFocusId={engineFilterId('FROM')}
                   mappings={saved.mappings}
                   engines={c.engines}
                   atCap={saved.atCap}
-                  onLoad={c.loadMapping}
+                  onLoad={(m) => setNotice(skippedNotice(m.name, c.loadMapping(m)))}
                   onEdit={(m) => {
-                    c.loadMapping(m);
+                    setNotice(skippedNotice(m.name, c.loadMapping(m)));
                     c.setView('edit');
                   }}
                   onRename={saved.rename}
@@ -252,6 +265,7 @@ export default function App() {
                       edits: m.edits,
                       srcEdits: m.srcEdits,
                     })}
+                  onExport={downloadPreset}
                   onDelete={saved.remove}
                 />
 
@@ -270,7 +284,11 @@ export default function App() {
                   />
                 </div>
 
-                {bothSelected && (
+                {bothSelected && c.editor.planError !== null && (
+                  <PlanErrorNotice message={c.editor.planError} onReset={c.editor.reset} />
+                )}
+
+                {bothSelected && c.editor.planError === null && (
                   <SummaryRow
                     remapped={c.editor.remappedCount}
                     total={c.editor.rows.length}

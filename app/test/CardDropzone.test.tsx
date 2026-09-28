@@ -15,6 +15,7 @@ describe('CardDropzone', () => {
     expect(screen.queryByText(/drop \.mid/i)).toBeNull();
     fireEvent.dragEnter(window);
     expect(screen.getByText(/drop \.mid/i)).toBeInTheDocument();
+    expect(screen.getByText('or an exported preset (.drumverter.json)')).toBeInTheDocument();
     fireEvent.dragLeave(window);
     expect(screen.queryByText(/drop \.mid/i)).toBeNull();
   });

@@ -121,7 +121,20 @@ export function useConverter(src: string, tgt: string, settingsKey: string) {
       const run = ++nextRun.current;
       activeRun.current = run;
       dispatch({ type: 'CONVERT_START', key });
-      const batch = await convertBatch(files, src, tgt, ov, channel, missing);
+      let batch: Awaited<ReturnType<typeof convertBatch>>;
+      try {
+        batch = await convertBatch(files, src, tgt, ov, channel, missing);
+      } catch (err) {
+        if (activeRun.current === run) {
+          dispatch({
+            type: 'CONVERT_ERROR',
+            key,
+            failures: [],
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+        return null;
+      }
       if (activeRun.current !== run) return null;
       const ok: FileResult[] = batch.ok.map(({ name, bytes, report }) => ({
         name: `${baseName(name)}-${tgt}.mid`,

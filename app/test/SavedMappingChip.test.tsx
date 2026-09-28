@@ -23,6 +23,7 @@ function makeProps(overrides = {}) {
     onEdit: vi.fn(),
     onRename: vi.fn(),
     onDuplicate: vi.fn(),
+    onExport: vi.fn(),
     onDelete: vi.fn(),
     ...overrides,
   };
@@ -65,6 +66,13 @@ describe('SavedMappingChip', () => {
     await userEvent.clear(input);
     await userEvent.type(input, 'New name{Enter}');
     expect(p.onRename).toHaveBeenCalledWith('p1', 'New name');
+  });
+
+  it('exports via the menu', async () => {
+    const p = renderChip();
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for My kit' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Export' }));
+    expect(p.onExport).toHaveBeenCalledWith(mapping);
   });
 
   it('duplicates via the menu', async () => {

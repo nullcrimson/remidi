@@ -12,6 +12,7 @@ import { FilterInput } from './FilterInput';
 import { IconButton } from './IconButton';
 import { MonoLabel } from './MonoLabel';
 import { NotePicker } from './NotePicker';
+import { PlanErrorNotice } from './PlanErrorNotice';
 import { SourceEditor } from './SourceEditor';
 import { SourceNotePicker } from './SourceNotePicker';
 import { ROW_GRID, textAction } from './styles';
@@ -185,6 +186,7 @@ export function EditView({
 }: EditViewProps) {
   const {
     rows,
+    planError,
     edits,
     srcEdits,
     pick,
@@ -248,6 +250,8 @@ export function EditView({
             {srcName} → {tgtName}
           </span>
         </div>
+
+        {planError !== null && <PlanErrorNotice message={planError} onReset={reset} />}
 
         <div className="
           flex flex-col gap-2

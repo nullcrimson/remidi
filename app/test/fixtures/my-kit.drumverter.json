@@ -1,0 +1,15 @@
+{
+  "format": "drumverter-preset",
+  "version": 1,
+  "name": "My kit",
+  "src": "ggd_invasion",
+  "tgt": "ezdrummer",
+  "edits": {
+    "kick.main": 35,
+    "china.1.hit": 52
+  },
+  "srcEdits": {
+    "24": "snare1.hit",
+    "60": null
+  }
+}

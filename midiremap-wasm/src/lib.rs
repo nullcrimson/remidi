@@ -1,9 +1,19 @@
+use std::collections::BTreeMap;
+
 use midiremap_core::{
-    convert, plan as core_plan, Canon, Catalog, ChannelScope, ChannelScopeError, Mapping,
-    MissingDrums, MissingDrumsParseError, Note, Overrides, PlanStatus, Report, VoicePlan,
+    convert, parse_preset, plan as core_plan, Canon, Catalog, ChannelScope, ChannelScopeError,
+    LoadedPreset, Mapping, MissingDrums, MissingDrumsParseError, Note, Overrides, PlanStatus,
+    Report, VoicePlan,
 };
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
+
+/// Prints a panic's message and location to the browser console instead of a bare
+/// `unreachable` trap.
+#[wasm_bindgen(start)]
+pub fn start() {
+    console_error_panic_hook::set_once();
+}
 
 #[derive(Serialize)]
 struct Output {
@@ -123,6 +133,51 @@ pub fn plan(
     to_js(&rows)
 }
 
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct PresetView {
+    name: String,
+    src: String,
+    tgt: String,
+    edits: BTreeMap<String, u8>,
+    src_edits: BTreeMap<String, Option<String>>,
+    skipped: Vec<String>,
+}
+
+fn preset_view(json: &str, catalog: &Catalog) -> Result<PresetView, String> {
+    let LoadedPreset { preset, skipped } = parse_preset(json).map_err(|e| e.to_string())?;
+    let engine = |id: &str| {
+        catalog
+            .canonical_id(id)
+            .map(str::to_owned)
+            .ok_or_else(|| format!("unknown engine '{id}'"))
+    };
+    Ok(PresetView {
+        src: engine(&preset.src)?,
+        tgt: engine(&preset.tgt)?,
+        edits: preset
+            .edits
+            .iter()
+            .map(|(canon, note)| (canon.to_string(), note.get()))
+            .collect(),
+        src_edits: preset
+            .src_edits
+            .iter()
+            .map(|(note, canon)| (note.get().to_string(), canon.map(|c| c.to_string())))
+            .collect(),
+        name: preset.name,
+        skipped,
+    })
+}
+
+/// Reads a preset file for import: engines resolved to current ids, unreadable edits
+/// listed in `skipped`.
+#[wasm_bindgen]
+pub fn parse_preset_file(json: &str) -> Result<JsValue, JsValue> {
+    let view = preset_view(json, Catalog::shared()).map_err(|e| JsValue::from_str(&e))?;
+    to_js(&view)
+}
+
 #[derive(Serialize)]
 struct DrumView {
     note: Note,
@@ -227,6 +282,39 @@ mod tests {
         assert_eq!(ezd.full_name, "Toontrack EZdrummer 3");
         let hertz = infos.iter().find(|i| i.id == "hertz").unwrap();
         assert_eq!(hertz.name, hertz.full_name);
+    }
+
+    const FIXTURE: &str = include_str!("../../app/test/fixtures/my-kit.drumverter.json");
+
+    #[test]
+    fn preset_view_resolves_engines_and_lists_skipped_edits() {
+        let with_alias = r#"{"id":"custom","name":"Custom","aliases":["old_kit"],"notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
+        let catalog = Catalog::builtin().with_user_json(with_alias).unwrap();
+        let json = FIXTURE
+            .replace("ggd_invasion", "old_kit")
+            .replace("\"kick.main\": 35", "\"bogus.drum\": 35");
+        let view = preset_view(&json, &catalog).unwrap();
+        assert_eq!(view.src, "custom");
+        assert_eq!(view.tgt, "ezdrummer");
+        assert_eq!(view.name, "My kit");
+        assert_eq!(view.edits.get("china.1.hit"), Some(&52));
+        assert_eq!(
+            view.src_edits.get("24"),
+            Some(&Some("snare1.hit".to_owned()))
+        );
+        assert_eq!(view.src_edits.get("60"), Some(&None));
+        assert_eq!(view.skipped, ["unknown drum 'bogus.drum'"]);
+    }
+
+    #[test]
+    fn preset_view_rejects_unknown_engines_and_bad_files() {
+        let catalog = Catalog::builtin();
+        let unknown = FIXTURE.replace("ezdrummer", "gone_engine");
+        assert_eq!(
+            preset_view(&unknown, &catalog).err().as_deref(),
+            Some("unknown engine 'gone_engine'")
+        );
+        assert!(preset_view("{}", &catalog).is_err());
     }
 
     #[test]

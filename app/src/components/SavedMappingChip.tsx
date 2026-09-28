@@ -33,6 +33,7 @@ export function SavedMappingChip({
   onEdit,
   onRename,
   onDuplicate,
+  onExport,
   onDelete,
 }: {
   mapping: SavedMapping;
@@ -42,6 +43,7 @@ export function SavedMappingChip({
   onEdit: (m: SavedMapping) => void;
   onRename: (id: string, name: string) => void;
   onDuplicate: (m: SavedMapping) => void;
+  onExport: (m: SavedMapping) => void;
   onDelete: (id: string) => void;
 }) {
   const [renaming, setRenaming] = useState(false);
@@ -95,6 +97,7 @@ export function SavedMappingChip({
   const items = [
     { key: 'rename', label: 'Rename', run: startRename, disabled: false, danger: false },
     { key: 'duplicate', label: 'Duplicate', run: () => onDuplicate(mapping), disabled: atCap, danger: false },
+    { key: 'export', label: 'Export', run: () => onExport(mapping), disabled: false, danger: false },
     { key: 'delete', label: 'Delete', run: () => onDelete(mapping.id), disabled: false, danger: true },
   ];
 

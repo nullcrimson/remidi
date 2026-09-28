@@ -9,6 +9,7 @@ const editor = {
   srcEdits: {},
   pick: null,
   notice: null,
+  planError: null as string | null,
   targetDrums: [],
   sourceNotes: [{ note: 24, canon: 'kick.main', label: 'Kick', family: 'Kick' }],
   canonOptions: [{ canon: 'kick.main', label: 'Kick', family: 'Kick' }],
@@ -45,6 +46,14 @@ const props = {
 };
 
 describe('EditView', () => {
+  it('shows a plan error with a way to reset the edits', async () => {
+    const reset = vi.fn();
+    render(<EditView {...props} editor={{ ...editor, rows: [], planError: 'Error: unknown canon x', reset }} />);
+    expect(screen.getByRole('alert')).toHaveTextContent('The note editor could not load: Error: unknown canon x');
+    await userEvent.click(screen.getByRole('button', { name: 'Reset edits' }));
+    expect(reset).toHaveBeenCalledOnce();
+  });
+
   it('tells which drum a picked source note came from', () => {
     render(
       <EditView

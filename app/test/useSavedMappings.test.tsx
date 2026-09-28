@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useSavedMappings } from '../src/hooks/useSavedMappings';
-import { MAPPINGS_CAP, MAPPINGS_KEY, parseMappings } from '../src/lib/mappings';
+import { MAPPINGS_CAP, MAPPINGS_KEY, parseMappings, QUARANTINE_KEY } from '../src/lib/mappings';
 
 const base = {
   name: 'GGD→EZ',
@@ -17,6 +17,36 @@ function stored() {
 
 describe('useSavedMappings', () => {
   beforeEach(() => localStorage.clear());
+
+  it('does not write on mount, so data it cannot read survives', () => {
+    const raw = JSON.stringify([{ id: 'x', name: 'broken' }]);
+    localStorage.setItem(MAPPINGS_KEY, raw);
+    renderHook(() => useSavedMappings());
+    expect(localStorage.getItem(MAPPINGS_KEY)).toBe(raw);
+  });
+
+  it('moves unreadable entries to quarantine on the next write', () => {
+    localStorage.setItem(MAPPINGS_KEY, JSON.stringify([{ id: 'x', name: 'broken' }]));
+    const { result } = renderHook(() => useSavedMappings());
+    act(() => result.current.save(base));
+    const envelope = JSON.parse(localStorage.getItem(MAPPINGS_KEY)!);
+    expect(envelope.version).toBe(1);
+    expect(envelope.items).toHaveLength(1);
+    const quarantine = JSON.parse(localStorage.getItem(QUARANTINE_KEY)!);
+    expect(quarantine).toHaveLength(1);
+    expect(quarantine[0].raw).toEqual({ id: 'x', name: 'broken' });
+    expect(typeof quarantine[0].at).toBe('number');
+  });
+
+  it('picks up presets another tab saved', () => {
+    const { result } = renderHook(() => useSavedMappings());
+    const other = renderHook(() => useSavedMappings());
+    act(() => other.result.current.save(base));
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', { key: MAPPINGS_KEY }));
+    });
+    expect(result.current.mappings.map((m) => m.name)).toEqual([base.name]);
+  });
 
   it('starts empty', () => {
     const { result } = renderHook(() => useSavedMappings());

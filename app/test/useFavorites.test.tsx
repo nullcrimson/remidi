@@ -8,6 +8,21 @@ const TO_KEY = 'midiremap:favorites:to';
 describe('useFavorites', () => {
   beforeEach(() => localStorage.clear());
 
+  it('does not rewrite stored favourites on mount', () => {
+    localStorage.setItem(FROM_KEY, JSON.stringify(['ggd_invasion', 7]));
+    renderHook(() => useFavorites('from'));
+    expect(localStorage.getItem(FROM_KEY)).toBe(JSON.stringify(['ggd_invasion', 7]));
+  });
+
+  it('picks up favourites another tab changed', () => {
+    const { result } = renderHook(() => useFavorites('from'));
+    localStorage.setItem(FROM_KEY, JSON.stringify(['ezdrummer']));
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', { key: FROM_KEY }));
+    });
+    expect(result.current.favorites.has('ezdrummer')).toBe(true);
+  });
+
   it('starts empty with no stored value', () => {
     const { result } = renderHook(() => useFavorites('from'));
     expect([...result.current.favorites]).toEqual([]);
@@ -40,7 +55,7 @@ describe('useFavorites', () => {
     const to = renderHook(() => useFavorites('to'));
     act(() => from.result.current.toggleFavorite('x'));
     expect(JSON.parse(localStorage.getItem(FROM_KEY)!)).toEqual(['x']);
-    expect(JSON.parse(localStorage.getItem(TO_KEY)!)).toEqual([]);
+    expect(localStorage.getItem(TO_KEY)).toBeNull();
     expect(to.result.current.favorites.has('x')).toBe(false);
   });
 

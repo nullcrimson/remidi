@@ -18,6 +18,7 @@ vi.mock('../src/lib/download', () => ({ saveFile: vi.fn() }));
 import { useRemapper } from '../src/hooks/useRemapper';
 import { saveFile } from '../src/lib/download';
 import { MISSING_KEY } from '../src/lib/missing';
+import { loadSession } from '../src/lib/session';
 
 const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 };
 
@@ -59,7 +60,7 @@ describe('useRemapper missing drums', () => {
 
     act(() => result.current.setMissing('drop'));
     expect(result.current.missing).toBe('drop');
-    expect(localStorage.getItem(MISSING_KEY)).toBe('drop');
+    expect(loadSession().missing).toBe('drop');
     expect(planMock.mock.lastCall?.[3]).toBe('drop');
     expect(result.current.conv.kind).toBe('idle');
 

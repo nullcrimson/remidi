@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { vi } from 'vitest';
+import { beforeEach, vi } from 'vitest';
 
 globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
 globalThis.URL.revokeObjectURL = vi.fn();
@@ -43,3 +43,5 @@ Object.defineProperty(globalThis, 'localStorage', {
   writable: true,
   configurable: true,
 });
+
+beforeEach(() => localStorage.clear());

@@ -17,7 +17,7 @@ function isNote(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 127;
 }
 
-function parseEdits(value: unknown): Edits | null {
+export function parseEdits(value: unknown): Edits | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
   const out: Edits = {};
   for (const [canon, note] of Object.entries(value)) {
@@ -27,7 +27,7 @@ function parseEdits(value: unknown): Edits | null {
   return out;
 }
 
-function parseSrcEdits(value: unknown): SrcEdits | null {
+export function parseSrcEdits(value: unknown): SrcEdits | null {
   if (value === undefined) return {};
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
   const out: SrcEdits = {};
@@ -59,19 +59,66 @@ function parseOne(value: unknown): SavedMapping | null {
   return { id: v.id, name: v.name, src: v.src, tgt: v.tgt, edits, srcEdits, updatedAt: v.updatedAt };
 }
 
-export function parseMappings(raw: string | null): SavedMapping[] {
-  if (!raw) return [];
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map(parseOne).filter((m): m is SavedMapping => m !== null);
-  } catch {
-    return [];
+export const QUARANTINE_KEY = 'midiremap:quarantine';
+const STORE_VERSION = 1;
+
+/** What storage holds: readable presets, and raw entries that could not be read. */
+export interface Store {
+  /** 0 for the legacy bare array, 1 for the envelope, null when absent or unreadable. */
+  version: 0 | 1 | null;
+  items: SavedMapping[];
+  invalid: unknown[];
+}
+
+function split(entries: unknown[], version: 0 | 1): Store {
+  const items: SavedMapping[] = [];
+  const invalid: unknown[] = [];
+  for (const entry of entries) {
+    const m = parseOne(entry);
+    if (m) items.push(m);
+    else invalid.push(entry);
   }
+  return { version, items, invalid };
+}
+
+export function readStore(raw: string | null): Store {
+  if (!raw) return { version: null, items: [], invalid: [] };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { version: null, items: [], invalid: [raw] };
+  }
+  if (Array.isArray(parsed)) return split(parsed, 0);
+  const envelope = parsed as { version?: unknown; items?: unknown };
+  if (envelope?.version === STORE_VERSION && Array.isArray(envelope.items)) {
+    return split(envelope.items, 1);
+  }
+  return { version: null, items: [], invalid: [parsed] };
+}
+
+export function parseMappings(raw: string | null): SavedMapping[] {
+  return readStore(raw).items;
 }
 
 export function serializeMappings(mappings: SavedMapping[]): string {
-  return JSON.stringify(mappings);
+  return JSON.stringify({ version: STORE_VERSION, items: mappings });
+}
+
+/** Keeps entries that could not be read, so no release ever deletes them. */
+export function quarantine(entries: unknown[], at = Date.now()): void {
+  if (entries.length === 0) return;
+  let kept: unknown[] = [];
+  try {
+    const prev: unknown = JSON.parse(localStorage.getItem(QUARANTINE_KEY) ?? '[]');
+    if (Array.isArray(prev)) kept = prev;
+  } catch {
+    void 0;
+  }
+  localStorage.setItem(
+    QUARANTINE_KEY,
+    JSON.stringify([...kept, ...entries.map((raw) => ({ at, raw }))]),
+  );
 }
 
 export function sortByRecent(mappings: SavedMapping[]): SavedMapping[] {

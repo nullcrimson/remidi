@@ -24,6 +24,19 @@ import App from '../src/App';
 describe('App edit view', () => {
   beforeEach(() => localStorage.clear());
 
+  it('keeps the edit view when a file is dropped on it', async () => {
+    render(<App />);
+    await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
+    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
+    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await userEvent.click(screen.getByRole('button', { name: /Edit individual notes/ }));
+    expect(screen.getByText('Edit notes')).toBeInTheDocument();
+    const drop = new Event('drop', { cancelable: true });
+    window.dispatchEvent(drop);
+    expect(drop.defaultPrevented).toBe(true);
+    expect(screen.getByText('Edit notes')).toBeInTheDocument();
+  });
+
   it('edits a saved preset straight from its chip', async () => {
     localStorage.setItem(
       MAPPINGS_KEY,
@@ -66,7 +79,7 @@ describe('App edit view', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Update preset' }));
     expect(screen.getByRole('textbox', { name: 'Preset name' })).toHaveValue('Original');
     await userEvent.click(screen.getByRole('button', { name: 'Update' }));
-    const stored = JSON.parse(localStorage.getItem(MAPPINGS_KEY)!) as { id: string; updatedAt: number }[];
+    const stored = (JSON.parse(localStorage.getItem(MAPPINGS_KEY)!) as { items: { id: string; updatedAt: number }[] }).items;
     expect(stored.find((m) => m.id === 'p1')!.updatedAt).toBeGreaterThan(2);
     expect(stored.find((m) => m.id === 'p2')!.updatedAt).toBe(2);
   });

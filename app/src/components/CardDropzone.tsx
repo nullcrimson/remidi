@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { loadFiles, splitMid, type OnFiles } from '../lib/files';
+import { takeFiles, type OnFiles } from '../lib/files';
 
 export function CardDropzone({
   onFiles,
@@ -29,9 +29,7 @@ export function CardDropzone({
       e.preventDefault();
       depth.current = 0;
       setOver(false);
-      const { mid, skipped } = splitMid(Array.from(e.dataTransfer?.files ?? []));
-      if (!mid.length && !skipped.length) return;
-      void loadFiles(mid).then((loaded) => onFiles(loaded, skipped));
+      void takeFiles(Array.from(e.dataTransfer?.files ?? []), onFiles);
     };
     window.addEventListener('dragenter', onEnter);
     window.addEventListener('dragover', onOver);
@@ -70,6 +68,7 @@ export function CardDropzone({
             <span className="font-mono text-label tracking-[0.18em] text-t3">
               DROP .MID
             </span>
+            <span className="text-label text-t5">or an exported preset (.drumverter.json)</span>
           </div>
         </div>
       )}

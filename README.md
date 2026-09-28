@@ -56,10 +56,11 @@ Every push to `master` runs the same checks in CI and deploys only when all pass
 ```bash
 cargo run -p midiremap-cli -- list
 cargo run -p midiremap-cli -- convert in.mid ggd_invasion ezdrummer out.mid \
-    [--channel auto|all|1-16] [--missing nearest|drop] [--overrides edits.json]
+    [--channel auto|all|1-16] [--missing nearest|drop] [--preset my-kit.drumverter.json]
 ```
 
-The loss report is printed to stderr as JSON.
+`--preset` applies a preset exported from the app (⋯ → Export). The loss report is
+printed to stderr as JSON.
 
 ## Adding an engine
 

@@ -1,5 +1,5 @@
 import { useRef, type ReactNode } from 'react';
-import { loadFiles, splitMid, type OnFiles } from '../lib/files';
+import { takeFiles, type OnFiles } from '../lib/files';
 
 export function FilePicker({
   onFiles,
@@ -13,11 +13,6 @@ export function FilePicker({
   fullWidth?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-
-  async function handle(list: FileList) {
-    const { mid, skipped } = splitMid(Array.from(list));
-    if (mid.length || skipped.length) onFiles(await loadFiles(mid), skipped);
-  }
 
   return (
     <>
@@ -36,11 +31,11 @@ export function FilePicker({
         ref={inputRef}
         data-testid="file-input"
         type="file"
-        accept=".mid,.midi"
+        accept=".mid,.midi,.json"
         multiple
         className="hidden"
         onChange={(e) => {
-          if (e.target.files) void handle(e.target.files);
+          if (e.target.files) void takeFiles(Array.from(e.target.files), onFiles);
           e.target.value = '';
         }}
       />

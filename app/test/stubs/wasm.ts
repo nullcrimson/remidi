@@ -44,6 +44,11 @@ const BASE_ROWS = [
   { canon: 'hat.cc', label: 'Hi-Hat CC', src_notes: [4], tgt_note: undefined, default_tgt_note: undefined, status: 'dropped', other_drum: false },
 ];
 
+export function parse_preset_file(json: string): unknown {
+  const p = JSON.parse(json) as { name: string; src: string; tgt: string; edits?: object; srcEdits?: object };
+  return { name: p.name, src: p.src, tgt: p.tgt, edits: p.edits ?? {}, srcEdits: p.srcEdits ?? {}, skipped: [] };
+}
+
 export let lastPlanMissing: string | undefined;
 
 export function plan(_src: string, _tgt: string, overridesJson?: string, missing?: string): unknown {

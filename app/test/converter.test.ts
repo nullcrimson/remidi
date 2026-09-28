@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const remapMock = vi.fn();
+const readyMock = vi.fn();
 vi.mock('../src/lib/midiremap', () => ({
-  ready: () => Promise.resolve(),
+  ready: () => readyMock(),
   remap: (...a: unknown[]) => remapMock(...a),
 }));
 
@@ -15,6 +16,7 @@ class FakeWorker {
   sent: BatchRequest[] = [];
   onmessage: ((e: MessageEvent) => void) | null = null;
   onerror: ((e: Event) => void) | null = null;
+  onmessageerror: ((e: MessageEvent) => void) | null = null;
   terminated = false;
   postMessage(msg: BatchRequest) {
     this.sent.push(msg);
@@ -22,6 +24,10 @@ class FakeWorker {
 
   terminate() {
     this.terminated = true;
+  }
+
+  fail(id: number, error: string) {
+    this.onmessage?.({ data: { id, error } } as MessageEvent);
   }
 
   reply(id: number, name: string) {
@@ -34,6 +40,45 @@ class FakeWorker {
 describe('createConverter', () => {
   beforeEach(() => {
     remapMock.mockReset().mockReturnValue({ bytes: new Uint8Array([7]), report: REPORT });
+    readyMock.mockReset().mockResolvedValue(undefined);
+  });
+
+  it('rejects a batch the worker could not convert, without retrying on the main thread', async () => {
+    const worker = new FakeWorker();
+    const { convert } = createConverter(() => worker as unknown as Worker);
+    const pending = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest');
+    worker.fail(worker.sent[0].id, 'Error: wasm fetch failed');
+    await expect(pending).rejects.toThrow('wasm fetch failed');
+    expect(remapMock).not.toHaveBeenCalled();
+    expect(worker.terminated).toBe(false);
+  });
+
+  it('finishes on the main thread when a worker reply cannot be read', async () => {
+    const worker = new FakeWorker();
+    const { convert } = createConverter(() => worker as unknown as Worker);
+    const pending = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest');
+    worker.onmessageerror?.(new MessageEvent('messageerror'));
+    expect(Array.from((await pending).ok[0].bytes)).toEqual([7]);
+    expect(worker.terminated).toBe(true);
+  });
+
+  it('rejects when the main-thread fallback cannot load the converter', async () => {
+    readyMock.mockRejectedValue(new Error('no wasm'));
+    const { convert } = createConverter(() => {
+      throw new ReferenceError('Worker is not defined');
+    });
+    await expect(convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest')).rejects.toThrow(
+      'no wasm',
+    );
+  });
+
+  it('rejects a stranded batch when the fallback after a worker crash fails too', async () => {
+    const worker = new FakeWorker();
+    const { convert } = createConverter(() => worker as unknown as Worker);
+    readyMock.mockRejectedValue(new Error('no wasm'));
+    const pending = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest');
+    worker.onerror?.(new Event('error'));
+    await expect(pending).rejects.toThrow('no wasm');
   });
 
   it('sends each batch to one lazily created worker', async () => {
