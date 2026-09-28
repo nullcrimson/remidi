@@ -45,6 +45,7 @@ export function DrumList({
               className="
                 flex w-full items-center justify-between py-1 pr-2 pl-2.5
                 text-ui/tight
+                pointer-coarse:min-h-11
               "
               hoverProps={{
                 onMouseEnter: (e) => show(e.currentTarget.querySelector('span') ?? e.currentTarget, d.label),

@@ -1,3 +1,4 @@
+import type { InputHTMLAttributes, KeyboardEvent } from 'react';
 import { IconButton } from './IconButton';
 import { TextField } from './TextField';
 
@@ -6,12 +7,15 @@ export function FilterInput({
   onChange,
   ariaLabel,
   placeholder = 'filter…',
+  inputProps = {},
 }: {
   value: string;
   onChange: (v: string) => void;
   ariaLabel: string;
   placeholder?: string;
+  inputProps?: Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>;
 }) {
+  const { onKeyDown, ...rest } = inputProps;
   return (
     <div className="relative mb-2">
       <span
@@ -23,11 +27,13 @@ export function FilterInput({
         ⌕
       </span>
       <TextField
+        {...rest}
         mono
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => {
+        onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+          onKeyDown?.(e);
           if (e.key === 'Escape' && value) {
             e.preventDefault();
             e.stopPropagation();
@@ -40,7 +46,9 @@ export function FilterInput({
       />
       {value && (
         <span className="absolute top-1/2 right-1 -translate-y-1/2">
-          <IconButton label="Clear filter" size="sm" onClick={() => onChange('')}>×</IconButton>
+          <IconButton label="Clear filter" size="sm" tabbable={false} onClick={() => onChange('')}>
+            ×
+          </IconButton>
         </span>
       )}
     </div>

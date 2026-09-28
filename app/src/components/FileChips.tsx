@@ -1,4 +1,5 @@
 import type { FileFailure, LoadedFile, OnFiles } from '../lib/files';
+import { FILE_PICKER_ID } from '../lib/focusIds';
 import { FilePicker } from './FilePicker';
 import { IconButton } from './IconButton';
 import { MidBadge } from './MidBadge';
@@ -28,7 +29,7 @@ export function FileChips({
   if (files.length === 0) {
     return (
       <div className="flex flex-col gap-2">
-        <FilePicker onFiles={onFiles}>
+        <FilePicker id={FILE_PICKER_ID} onFiles={onFiles}>
           <div className="
             flex items-center gap-3 border-b border-hairline pb-4.5
           "

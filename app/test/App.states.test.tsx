@@ -53,8 +53,8 @@ describe('App states', () => {
     const { default: App } = await import('../src/App');
     render(<App />);
     await screen.findByText('FROM');
-    await userEvent.click(screen.getAllByRole('button', { name: 'GGD Invasion' })[0]);
-    await userEvent.click(screen.getAllByRole('button', { name: 'EZdrummer' })[1]);
+    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
+    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
     await userEvent.upload(
       screen.getByTestId('file-input'),
       new File([new Uint8Array([1])], 'g.mid', { type: 'audio/midi' }),

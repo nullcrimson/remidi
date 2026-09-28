@@ -31,8 +31,8 @@ function reportWith(untouched: number, converted = 10) {
 async function pickEnginesAndFile() {
   render(<App />);
   await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
-  await userEvent.click(screen.getAllByRole('button', { name: 'GGD Invasion' })[0]);
-  await userEvent.click(screen.getAllByRole('button', { name: 'EZdrummer' })[1]);
+  await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
+  await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
   const input = screen.getAllByTestId('file-input')[0];
   await userEvent.upload(input, new File([new Uint8Array([1])], 'groove.mid'));
   await waitFor(() =>

@@ -1,4 +1,4 @@
-import { Fragment, useId, useState } from 'react';
+import { Fragment, useEffect, useId, useRef, useState } from 'react';
 import { noteName, type OctaveBase } from '../lib/notes';
 import type { Editor } from '../hooks/useEditor';
 import { useFilter } from '../hooks/useFilter';
@@ -38,7 +38,6 @@ export interface EditViewProps {
 function SavePreset({
   src,
   tgt,
-  canSave,
   existingPreset,
   atCap,
   onSave,
@@ -46,7 +45,6 @@ function SavePreset({
 }: {
   src: string;
   tgt: string;
-  canSave: boolean;
   existingPreset: SavedMapping | undefined;
   atCap: boolean;
   onSave: (name: string) => void;
@@ -78,13 +76,13 @@ function SavePreset({
       <Tooltip
         content={(
           <TooltipBody title="Reuse this mapping">
-            Saves the FROM→TO pair and your note overrides as a chip on the main
+            Saves the FROM→TO pair and any note changes as a chip on the main
             screen — one click reloads it. Kept in this browser only.
           </TooltipBody>
         )}
       >
         <span className="inline-flex">
-          <Button variant="secondary" size="sm" onClick={open} disabled={!canSave}>
+          <Button variant="secondary" size="sm" onClick={open}>
             {existingPreset ? 'Update preset' : 'Save as preset'}
           </Button>
         </span>
@@ -147,17 +145,13 @@ type Show = 'all' | 'changed' | 'issues';
 
 const isIssue = (row: VoiceRowData) => row.srcNotes.length > 0 && row.status !== 'direct';
 
-function resultOf(row: VoiceRowData, changed: boolean): RowResult {
-  if (changed) return { text: 'edited', tone: 'text-t2' };
+function playsOf(row: VoiceRowData, changed: boolean, drumAt: (note: number) => string): RowResult {
   if (row.srcNotes.length === 0) return { text: 'no source', tone: 'text-t5' };
-  switch (row.status) {
-    case 'direct':
-      return { text: 'direct', tone: 'text-t5' };
-    case 'fallback':
-      return { text: 'approx', tone: 'text-star' };
-    case 'dropped':
-      return { text: 'dropped', tone: 'text-danger' };
-  }
+  if (row.tgtNote === null) return { text: 'dropped', tone: 'text-danger' };
+  const name = drumAt(row.tgtNote);
+  if (changed) return { text: name, tone: 'text-t2' };
+  if (row.status === 'fallback') return { text: `≈ ${name}`, tone: 'text-star' };
+  return { text: name, tone: 'text-t5' };
 }
 
 function byFamily(rows: VoiceRowData[], familyOf: Map<string, string>) {
@@ -212,8 +206,12 @@ export function EditView({
     setSrcCanon,
     clearSrcCanon,
   } = editor;
-  const canSave = Object.keys(edits).length > 0 || Object.keys(srcEdits).length > 0;
   const [advanced, setAdvanced] = useState(assignNote !== null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const [focusHeading] = useState(pick === null && assignNote === null);
+  useEffect(() => {
+    if (focusHeading) headingRef.current?.focus();
+  }, [focusHeading]);
   const [show, setShow] = useState<Show>('all');
   const showId = useId();
   const { q, setQ, filtered } = useFilter(rows, (r) => r.label);
@@ -222,6 +220,9 @@ export function EditView({
     show === 'changed' ? changed.has(r.canon) : show === 'issues' ? isIssue(r) : true,
   );
   const familyOf = new Map(canonOptions.map((c) => [c.canon, c.family]));
+  const drumByNote = new Map<number, string>();
+  for (const d of targetDrums) if (!drumByNote.has(d.note)) drumByNote.set(d.note, d.label);
+  const drumAt = (note: number) => drumByNote.get(note) ?? noteName(note, oct);
   const groups = byFamily(shown, familyOf);
   const changes = changed.size;
 
@@ -235,7 +236,13 @@ export function EditView({
         <div className="flex flex-col gap-1">
           <div className="flex items-baseline gap-3">
             <TextButton onClick={() => setView('convert')}>← Back</TextButton>
-            <span className="text-body font-semibold text-t1">Edit notes</span>
+            <h2
+              ref={headingRef}
+              tabIndex={-1}
+              className="text-body font-semibold text-t1 outline-none"
+            >
+              Edit notes
+            </h2>
           </div>
           <span className="truncate text-label text-t4">
             {srcName} → {tgtName}
@@ -273,7 +280,13 @@ export function EditView({
             <MonoLabel className="justify-self-end">SOURCE</MonoLabel>
             <span />
             <MonoLabel>TARGET</MonoLabel>
-            <MonoLabel>RESULT</MonoLabel>
+            <MonoLabel className="
+              hidden
+              sm:block
+            "
+            >
+              PLAYS
+            </MonoLabel>
             <span />
           </div>
 
@@ -310,7 +323,7 @@ export function EditView({
                       onSrcToggle={() => (srcExpanded ? closePick() : openSrcPick(row.canon))}
                       onToggle={() => (tgtExpanded ? closePick() : openPick(row.canon))}
                       onDismiss={closePick}
-                      result={resultOf(row, rowChanged)}
+                      result={playsOf(row, rowChanged, drumAt)}
                       onReset={rowChanged ? () => resetRow(row.canon) : undefined}
                     >
                       {srcExpanded && pick && (
@@ -397,7 +410,6 @@ export function EditView({
           <SavePreset
             src={src}
             tgt={tgt}
-            canSave={canSave}
             existingPreset={existingPreset}
             atCap={presetsAtCap}
             onSave={onSavePreset}

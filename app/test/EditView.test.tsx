@@ -98,9 +98,12 @@ describe('EditView', () => {
     expect(screen.getByRole('dialog', { name: /Source note for Kick/i })).toBeInTheDocument();
   });
 
-  it('disables Save as preset when there are no edits', () => {
-    render(<EditView {...props} editor={{ ...editor, edits: {} }} />);
-    expect(screen.getByRole('button', { name: 'Save as preset' })).toBeDisabled();
+  it('saves a preset of just the engine pair when no notes changed', async () => {
+    const onSavePreset = vi.fn();
+    render(<EditView {...props} editor={{ ...editor, edits: {} }} onSavePreset={onSavePreset} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Save as preset' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSavePreset).toHaveBeenCalledWith('GGD→EZD');
   });
 
   it('reveals the advanced source editor on demand', async () => {
@@ -211,17 +214,33 @@ describe('EditView', () => {
     expect(drumNames()).toEqual(['Kick', 'Snare', 'Hi-Hat CC', 'Ride Bell', 'China 1']);
   });
 
-  it('says what happens to each drum', () => {
-    render(<EditView {...props} editor={full} />);
-    const result = (drum: string) =>
+  it('names the target drum each row plays', () => {
+    const targetDrums = [
+      { note: 36, canon: 'kick.main', label: 'EZ Kick', family: 'Kick' },
+      { note: 51, canon: 'ride.1', label: 'Ride', family: 'Cymbals' },
+      { note: 40, canon: 'snare.rim', label: 'Snare Rimshot', family: 'Snare' },
+    ];
+    render(<EditView {...props} editor={{ ...full, targetDrums }} />);
+    const plays = (drum: string) =>
       screen.getAllByTestId('drum-label').find((e) => e.textContent === drum)!.closest('[data-row]')!
         .querySelector('[data-testid=result]')!;
-    expect(result('Kick')).toHaveTextContent('direct');
-    expect(result('Snare')).toHaveTextContent('edited');
-    expect(result('Ride Bell')).toHaveTextContent('approx');
-    expect(result('Ride Bell')).toHaveClass('text-star');
-    expect(result('China 1')).toHaveTextContent('dropped');
-    expect(result('Hi-Hat CC')).toHaveTextContent('no source');
+    expect(screen.getAllByText('PLAYS')[0]).toBeInTheDocument();
+    expect(plays('Kick')).toHaveTextContent('EZ Kick');
+    expect(plays('Kick')).toHaveClass('text-t5');
+    expect(plays('Snare')).toHaveTextContent('Snare Rimshot');
+    expect(plays('Snare')).toHaveClass('text-t2');
+    expect(plays('Ride Bell')).toHaveTextContent('≈ Ride');
+    expect(plays('Ride Bell')).toHaveClass('text-star');
+    expect(plays('China 1')).toHaveTextContent('dropped');
+    expect(plays('China 1')).toHaveClass('text-danger');
+    expect(plays('Hi-Hat CC')).toHaveTextContent('no source');
+    expect(screen.getByRole('button', { name: 'C2' })).toHaveAccessibleDescription('EZ Kick');
+  });
+
+  it('falls back to the note name when no target drum sits on the note', () => {
+    render(<EditView {...props} editor={{ ...full, targetDrums: [] }} />);
+    const row = screen.getAllByTestId('drum-label').find((e) => e.textContent === 'Snare')!.closest('[data-row]')!;
+    expect(row.querySelector('[data-testid=result]')).toHaveTextContent('E2');
   });
 
   it('filters to changed drums and to drums with issues', async () => {

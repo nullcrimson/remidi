@@ -1,11 +1,21 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { engineFilterId } from '../lib/focusIds';
 import type { Engine } from '../lib/midiremap';
 import { revealScrollTop } from '../lib/reveal';
 import { useFilter } from '../hooks/useFilter';
 import { useTruncationTooltip } from '../hooks/useTruncationTooltip';
 import { FilterInput } from './FilterInput';
-import { ListRow } from './ListRow';
 import { MonoLabel } from './MonoLabel';
+
+const PAGE = 8;
+
+function reveal(list: HTMLElement, row: HTMLElement) {
+  const next = revealScrollTop(
+    { top: row.offsetTop, height: row.offsetHeight },
+    { scrollTop: list.scrollTop, height: list.clientHeight },
+  );
+  if (next !== null) list.scrollTop = next;
+}
 
 export function LibraryList({
   label,
@@ -27,63 +37,139 @@ export function LibraryList({
   const { q, setQ, filtered } = useFilter(engines, (e) => e.name);
   const { show, hide, tooltip } = useTruncationTooltip();
   const listRef = useRef<HTMLDivElement>(null);
+  const baseId = useId();
+  const listId = `${baseId}-list`;
+  const hintId = `${baseId}-hint`;
+  const optionId = (id: string) => `${baseId}-opt-${id}`;
+  const [focused, setFocused] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [followSelection, setFollowSelection] = useState(true);
+
+  const starred = filtered.filter((e) => favorites.has(e.id));
+  const rest = filtered.filter((e) => !favorites.has(e.id));
+  const enabled = [...starred, ...rest].filter((e) => e.id !== disabledId);
+  const active
+    = enabled.find((e) => e.id === activeId)
+      ?? (followSelection ? enabled.find((e) => e.id === value) : undefined)
+      ?? enabled[0];
+  const chosen = engines.find((e) => e.id === value);
 
   useEffect(() => {
     const list = listRef.current;
-    const row = list?.querySelector<HTMLElement>('[aria-pressed="true"]');
-    if (!list || !row) return;
-    const next = revealScrollTop(
-      { top: row.offsetTop, height: row.offsetHeight },
-      { scrollTop: list.scrollTop, height: list.clientHeight },
-    );
-    if (next !== null) list.scrollTop = next;
+    const row = list?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (list && row) reveal(list, row);
   }, [value]);
 
-  const chosen = engines.find((e) => e.id === value);
-  const starred = filtered.filter((e) => favorites.has(e.id));
-  const rest = filtered.filter((e) => !favorites.has(e.id));
+  const activeKey = focused ? active?.id : undefined;
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list || activeKey === undefined) return;
+    const row = document.getElementById(`${baseId}-opt-${activeKey}`);
+    if (row) reveal(list, row);
+  }, [activeKey, baseId]);
 
-  const row = (e: Engine) => {
+  const pick = (id: string) => {
+    onChange(id);
+    setQ('');
+    setActiveId(id);
+    setFollowSelection(true);
+  };
+
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    const at = active ? enabled.indexOf(active) : -1;
+    const move = (by: number) => {
+      e.preventDefault();
+      const next = enabled[Math.max(0, Math.min(enabled.length - 1, at + by))];
+      if (next) setActiveId(next.id);
+    };
+    switch (e.key) {
+      case 'ArrowDown':
+        return move(1);
+      case 'ArrowUp':
+        return move(-1);
+      case 'PageDown':
+        return move(PAGE);
+      case 'PageUp':
+        return move(-PAGE);
+      case 'Enter':
+        if (!active) return;
+        e.preventDefault();
+        if (e.ctrlKey || e.metaKey) onToggleFavorite(active.id);
+        else pick(active.id);
+    }
+  };
+
+  const option = (e: Engine) => {
     const fav = favorites.has(e.id);
+    const selected = e.id === value;
+    const disabled = e.id === disabledId;
+    const highlighted = focused && e.id === active?.id;
     return (
-      <ListRow
+      <div
         key={e.id}
-        selected={e.id === value}
-        disabled={e.id === disabledId}
-        onSelect={() => onChange(e.id)}
-        className="min-w-0 flex-1 truncate py-1.75 pl-3 text-ui/tight"
-        hoverProps={{
-          onMouseEnter: (ev) => show(ev.currentTarget, e.name),
-          onMouseLeave: hide,
-          onFocus: (ev) => show(ev.currentTarget, e.name),
-          onBlur: hide,
+        id={optionId(e.id)}
+        role="option"
+        aria-label={e.name}
+        aria-selected={selected}
+        aria-disabled={disabled || undefined}
+        onMouseDown={(ev) => ev.preventDefault()}
+        onClick={() => {
+          if (!disabled) pick(e.id);
         }}
-        trailing={(
-          <button
-            type="button"
-            aria-pressed={fav}
-            aria-label={`${fav ? 'Unfavorite' : 'Favorite'} ${e.name}`}
-            onClick={() => onToggleFavorite(e.id)}
-            className={`
-              shrink-0 px-2 text-ui transition-colors
-              ${
-          fav
-            ? 'text-star [text-shadow:0_0_8px_rgba(224,196,106,0.55)]'
-            : `
-              text-t5
-              hover:text-t2
-            `
-          }
-            `}
-          >
-            {fav ? '★' : '☆'}
-          </button>
-        )}
+        className={`
+          flex items-stretch border-l-2 transition-colors
+          pointer-coarse:min-h-11
+          ${highlighted ? 'bg-accent/8' : ''}
+          ${
+      disabled
+        ? 'cursor-not-allowed border-transparent text-t5 opacity-40'
+        : selected
+          ? 'cursor-pointer border-accent font-semibold text-t1'
+          : `
+            cursor-pointer border-transparent text-t4
+            hover:text-t1
+          `
+      }
+          ${highlighted && !selected && !disabled ? 'text-t1' : ''}
+        `}
       >
-        {e.name}
-      </ListRow>
+        <span
+          onMouseEnter={(ev) => show(ev.currentTarget, e.name)}
+          onMouseLeave={hide}
+          className="
+            min-w-0 flex-1 self-center truncate py-1.75 pl-3 text-ui/tight
+          "
+        >
+          {e.name}
+        </span>
+        <span
+          data-testid={`star-${e.id}`}
+          aria-hidden="true"
+          onClick={(ev) => {
+            ev.stopPropagation();
+            onToggleFavorite(e.id);
+          }}
+          className={`
+            tap flex shrink-0 cursor-pointer items-center justify-center px-2
+            text-ui transition-colors
+            pointer-coarse:w-11
+            ${
+      fav
+        ? 'text-star [text-shadow:0_0_8px_rgba(224,196,106,0.55)]'
+        : `
+          text-t5
+          hover:text-t2
+        `
+      }
+          `}
+        >
+          {fav ? '★' : '☆'}
+        </span>
+      </div>
     );
   };
+
+  const grouped = starred.length > 0 && rest.length > 0;
 
   return (
     <div role="group" aria-label={`${label} engine`}>
@@ -101,25 +187,58 @@ export function LibraryList({
           </>
         )}
       </div>
-      <FilterInput value={q} onChange={setQ} ariaLabel={`Filter ${label} engines`} />
-      <div ref={listRef} className="mr-scroll relative flex max-h-60 flex-col">
-        {filtered.length === 0
+      <FilterInput
+        value={q}
+        onChange={(v) => {
+          setQ(v);
+          setActiveId(null);
+          setFollowSelection(v === '');
+        }}
+        ariaLabel={`Filter ${label} engines`}
+        inputProps={{
+          id: engineFilterId(label),
+          role: 'combobox',
+          'aria-expanded': true,
+          'aria-controls': listId,
+          'aria-autocomplete': 'list',
+          'aria-activedescendant': active ? optionId(active.id) : undefined,
+          'aria-describedby': hintId,
+          onKeyDown,
+          onFocus: () => setFocused(true),
+          onBlur: () => setFocused(false),
+        }}
+      />
+      <span id={hintId} className="sr-only">
+        Type to filter. Arrow keys move, Enter picks, Ctrl+Enter adds or removes a favourite.
+      </span>
+      <div
+        ref={listRef}
+        id={listId}
+        role="listbox"
+        tabIndex={-1}
+        aria-label={`${label} engines`}
+        className="mr-scroll relative flex max-h-60 flex-col"
+      >
+        {grouped
           ? (
-              <span className="py-1.75 pl-3 font-mono text-label text-t5">no matches</span>
-            )
-          : (
               <>
-                {starred.map(row)}
-                {starred.length > 0 && rest.length > 0 && (
-                  <div
-                    data-testid="fav-divider"
-                    className="my-1 border-t border-hairline"
-                  />
-                )}
-                {rest.map(row)}
+                <div
+                  role="group"
+                  aria-label="Favourites"
+                  className="mb-1 border-b border-hairline pb-1"
+                >
+                  {starred.map(option)}
+                </div>
+                <div role="group" aria-label="All engines">
+                  {rest.map(option)}
+                </div>
               </>
-            )}
+            )
+          : [...starred, ...rest].map(option)}
       </div>
+      {filtered.length === 0 && (
+        <span className="block py-1.75 pl-3 font-mono text-label text-t5">no matches</span>
+      )}
       {tooltip}
     </div>
   );

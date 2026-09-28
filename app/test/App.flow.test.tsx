@@ -33,8 +33,8 @@ async function start() {
 }
 
 async function pickEngines() {
-  await userEvent.click(screen.getAllByRole('button', { name: 'GGD Invasion' })[0]);
-  await userEvent.click(screen.getAllByRole('button', { name: 'EZdrummer' })[1]);
+  await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
+  await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
 }
 
 async function upload(...names: string[]) {

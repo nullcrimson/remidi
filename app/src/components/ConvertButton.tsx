@@ -1,4 +1,5 @@
 import type { Conv } from '../hooks/useRemapper';
+import { CONVERT_BUTTON_ID } from '../lib/focusIds';
 import { Button } from './Button';
 
 export function ConvertButton({
@@ -28,6 +29,7 @@ export function ConvertButton({
   }
   return (
     <Button
+      id={CONVERT_BUTTON_ID}
       variant="primary"
       size="lg"
       disabled={blockedBy !== null}

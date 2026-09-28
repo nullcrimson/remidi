@@ -84,8 +84,8 @@ function GuideBody() {
         ))}
       </ol>
       <p className="text-t5">
-        <span className="font-medium text-t2">Save a preset (optional).</span> After fine-tuning, use
-        Save preset in the editor to keep a source→target pair together with your note overrides. It
+        <span className="font-medium text-t2">Save a preset (optional).</span> Use Save as preset in
+        the editor to keep a source→target pair, with any note changes you made. It
         appears under the engine lists as a chip — one click reloads it, ✎ reopens it in the editor,
         and the ⋯ menu renames, duplicates, or deletes it. Presets stay in this browser.
       </p>

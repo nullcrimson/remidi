@@ -26,6 +26,7 @@ export function ChipSelect<T extends string>({
           border border-white/12 bg-field py-0.5 pr-6 pl-2 font-mono text-label
           font-semibold text-t1 transition-colors
           hover:border-accent/40
+          pointer-coarse:py-3
         "
       >
         {options.map((o) => (

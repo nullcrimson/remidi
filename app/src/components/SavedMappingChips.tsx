@@ -1,3 +1,6 @@
+import { useRef } from 'react';
+import { flushSync } from 'react-dom';
+import { focusById } from '../lib/focusIds';
 import type { Engine } from '../lib/midiremap';
 import type { SavedMapping } from '../lib/mappings';
 import { MonoLabel } from './MonoLabel';
@@ -7,6 +10,7 @@ export function SavedMappingChips({
   mappings,
   engines,
   atCap,
+  fallbackFocusId,
   onLoad,
   onEdit,
   onRename,
@@ -16,12 +20,22 @@ export function SavedMappingChips({
   mappings: SavedMapping[];
   engines: Engine[];
   atCap: boolean;
+  fallbackFocusId?: string;
   onLoad: (m: SavedMapping) => void;
   onEdit: (m: SavedMapping) => void;
   onRename: (id: string, name: string) => void;
   onDuplicate: (m: SavedMapping) => void;
   onDelete: (id: string) => void;
 }) {
+  const listRef = useRef<HTMLUListElement>(null);
+  const remove = (id: string) => {
+    const at = mappings.findIndex((m) => m.id === id);
+    flushSync(() => onDelete(id));
+    const chips = listRef.current?.querySelectorAll<HTMLElement>('[data-chip-main]') ?? [];
+    const next = chips[Math.min(at, chips.length - 1)];
+    if (next) next.focus();
+    else if (fallbackFocusId) focusById(fallbackFocusId);
+  };
   if (mappings.length === 0) return null;
   const known = (id: string) => engines.some((e) => e.id === id);
 
@@ -32,7 +46,7 @@ export function SavedMappingChips({
       className="flex flex-col gap-2"
     >
       <MonoLabel>SAVED</MonoLabel>
-      <ul className="flex flex-wrap gap-2">
+      <ul ref={listRef} className="flex flex-wrap gap-2">
         {mappings.map((m) => (
           <SavedMappingChip
             key={m.id}
@@ -43,7 +57,7 @@ export function SavedMappingChips({
             onEdit={onEdit}
             onRename={onRename}
             onDuplicate={onDuplicate}
-            onDelete={onDelete}
+            onDelete={remove}
           />
         ))}
       </ul>

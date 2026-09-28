@@ -41,6 +41,7 @@ function SourceEditorRow({
         className="
           flex items-center justify-between gap-2 rounded-chip px-2.5 py-1.5
           hover:bg-white/2
+          pointer-coarse:py-3
         "
       >
         <button

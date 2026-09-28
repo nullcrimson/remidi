@@ -15,6 +15,7 @@ const SIZE = {
 };
 
 type Props = {
+  id?: string;
   variant: keyof typeof VARIANT;
   size: keyof typeof SIZE;
   children: ReactNode;
@@ -23,18 +24,19 @@ type Props = {
   | { href?: never; download?: never; onClick: () => void; disabled?: boolean; reason?: string }
 );
 
-export function Button({ variant, size, children, ...rest }: Props) {
+export function Button({ id, variant, size, children, ...rest }: Props) {
   const reasonId = useId();
   const className = `
     inline-flex items-center justify-center gap-1.75 font-display text-ui
     font-semibold transition
     disabled:cursor-not-allowed disabled:opacity-40
+    pointer-coarse:min-h-11
     ${VARIANT[variant]}
     ${SIZE[size]}
   `;
   if (rest.href !== undefined) {
     return (
-      <a href={rest.href} download={rest.download} className={className}>
+      <a id={id} href={rest.href} download={rest.download} className={className}>
         {children}
       </a>
     );
@@ -43,6 +45,7 @@ export function Button({ variant, size, children, ...rest }: Props) {
   const explained = disabled && rest.reason !== undefined;
   const button = (
     <button
+      id={id}
       type="button"
       disabled={disabled}
       aria-describedby={explained ? reasonId : undefined}

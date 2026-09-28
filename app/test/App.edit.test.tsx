@@ -80,8 +80,8 @@ describe('App edit view', () => {
     );
     render(<App />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
-    await userEvent.click(screen.getAllByRole('button', { name: 'GGD Invasion' })[0]);
-    await userEvent.click(screen.getAllByRole('button', { name: 'EZdrummer' })[1]);
+    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
+    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
     await userEvent.click(screen.getByText(/Edit individual notes/));
     expect(screen.getByRole('button', { name: 'Save as preset' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Update preset' })).not.toBeInTheDocument();
@@ -90,8 +90,8 @@ describe('App edit view', () => {
   it('navigates to edit and back', async () => {
     render(<App />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
-    await userEvent.click(screen.getAllByRole('button', { name: 'GGD Invasion' })[0]);
-    await userEvent.click(screen.getAllByRole('button', { name: 'EZdrummer' })[1]);
+    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
+    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
     await userEvent.click(screen.getByText(/Edit individual notes/));
     expect(screen.getByText('Edit notes')).toBeInTheDocument();
     expect(screen.getByText('Kick')).toBeInTheDocument();

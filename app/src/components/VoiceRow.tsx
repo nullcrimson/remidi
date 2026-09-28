@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react';
+import { useId, useRef, type ReactNode } from 'react';
 import type { VoiceRow as VoiceRowData } from '../lib/midiremap';
 import { useDismiss } from '../hooks/useDismiss';
 import { noteName, type OctaveBase } from '../lib/notes';
@@ -45,6 +45,7 @@ export function VoiceRow({
   children?: ReactNode;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
+  const playsId = useId();
   useDismiss(rowRef, onDismiss, srcExpanded || tgtExpanded);
   const dropped = row.status === 'dropped' || effectiveTgt === null;
   const [srcNote, ...extraNotes] = row.srcNotes;
@@ -75,7 +76,7 @@ export function VoiceRow({
               <span
                 tabIndex={0}
                 aria-label={`Also plays ${extraNames}`}
-                className="font-mono text-caption text-t5"
+                className="tap font-mono text-caption text-t5"
               >
                 +{extraNotes.length}
               </span>
@@ -96,6 +97,7 @@ export function VoiceRow({
           type="button"
           aria-haspopup="dialog"
           aria-expanded={tgtExpanded}
+          aria-describedby={playsId}
           onClick={onToggle}
           className={
             dropped && effectiveTgt === null
@@ -112,9 +114,12 @@ export function VoiceRow({
           {effectiveTgt === null ? '—' : noteName(effectiveTgt, base)}
         </button>
         <span
+          id={playsId}
           data-testid="result"
+          title={result.text}
           className={`
-            truncate text-label
+            col-span-3 col-start-2 row-start-2 truncate text-right text-label
+            sm:col-span-1 sm:col-start-auto sm:row-start-auto sm:text-left
             ${result.tone}
           `}
         >

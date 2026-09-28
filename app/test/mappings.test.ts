@@ -12,6 +12,19 @@ const sample: SavedMapping = {
 };
 
 describe('parseMappings', () => {
+  it('keeps a preset that only remembers the engine pair', () => {
+    const pairOnly: SavedMapping = {
+      id: 'p',
+      name: 'GGD→EZD',
+      src: 'ggd_invasion',
+      tgt: 'ezdrummer',
+      edits: {},
+      srcEdits: {},
+      updatedAt: 1,
+    };
+    expect(parseMappings(serializeMappings([pairOnly]))).toEqual([pairOnly]);
+  });
+
   it('returns empty for null or empty input', () => {
     expect(parseMappings(null)).toEqual([]);
     expect(parseMappings('')).toEqual([]);

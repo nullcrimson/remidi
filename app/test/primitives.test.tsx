@@ -155,3 +155,25 @@ describe('TextField', () => {
     expect(onChange).toHaveBeenCalled();
   });
 });
+
+describe('touch targets', () => {
+  it('grows the hit area of small controls on coarse pointers', () => {
+    render(
+      <>
+        <IconButton label="Close" onClick={() => {}}>×</IconButton>
+        <TextButton onClick={() => {}}>View report →</TextButton>
+        <ProseLink href="https://example.com">site</ProseLink>
+      </>,
+    );
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveClass('tap');
+    expect(screen.getByRole('button', { name: 'View report →' })).toHaveClass('tap');
+    expect(screen.getByRole('link', { name: 'site' })).toHaveClass('tap');
+    expect(chip('off', 'sm')).toContain('tap');
+    expect(chip('off', 'sm')).toContain('pointer-coarse:py-3');
+  });
+
+  it('makes the chip select full height on coarse pointers', () => {
+    render(<ChipSelect labelledBy="x" options={SIZES} value="s" onChange={() => {}} />);
+    expect(screen.getByRole('combobox')).toHaveClass('pointer-coarse:py-3');
+  });
+});

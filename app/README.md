@@ -58,7 +58,15 @@ npm run test     # Vitest; WASM is stubbed, no build required
   each row shows source → target and the result (direct, approx, dropped, edited) and can
   be reset. Target and source notes are picked from the drum list or an octave-tabbed
   piano (a bottom sheet on phones); Advanced reassigns raw source notes. A sticky footer
-  holds the change count, Reset all, Save as preset and Done.
+  holds the change count, Reset all, Save as preset and Done. A Plays column names the
+  target drum each row lands on (≈ when approximated).
+
+## Keyboard
+
+- Each engine picker is one Tab stop: type to filter, ↑/↓ (PgUp/PgDn) to move, Enter to pick,
+  Ctrl/⌘+Enter to add or remove a favourite, Escape to clear the filter.
+- Focus follows the task: after adding files it moves to the next missing step, after
+  converting to the result, and back to where you were after leaving the editor or a menu.
 
 ## Engine catalog
 

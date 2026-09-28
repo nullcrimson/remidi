@@ -5,7 +5,9 @@ export function FilePicker({
   onFiles,
   children,
   fullWidth = true,
+  id,
 }: {
+  id?: string;
   onFiles: OnFiles;
   children: ReactNode;
   fullWidth?: boolean;
@@ -20,10 +22,11 @@ export function FilePicker({
   return (
     <>
       <button
+        id={id}
         type="button"
         className={`
           cursor-pointer text-left
-          ${fullWidth ? 'w-full' : ''}
+          ${fullWidth ? 'w-full' : 'tap'}
         `}
         onClick={() => inputRef.current?.click()}
       >

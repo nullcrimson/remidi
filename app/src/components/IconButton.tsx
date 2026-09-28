@@ -15,6 +15,7 @@ export function IconButton({
   size = 'md',
   tone = 'default',
   disabled = false,
+  tabbable = true,
   onClick,
   children,
 }: {
@@ -22,6 +23,7 @@ export function IconButton({
   size?: keyof typeof SIZE;
   tone?: keyof typeof TONE;
   disabled?: boolean;
+  tabbable?: boolean;
   onClick: () => void;
   children: ReactNode;
 }) {
@@ -30,9 +32,11 @@ export function IconButton({
       type="button"
       aria-label={label}
       disabled={disabled}
+      tabIndex={tabbable ? undefined : -1}
       onClick={onClick}
       className={`
-        flex shrink-0 items-center justify-center leading-none transition-colors
+        tap flex shrink-0 items-center justify-center leading-none
+        transition-colors
         disabled:cursor-not-allowed disabled:opacity-40
         ${SIZE[size]}
         ${TONE[tone]}

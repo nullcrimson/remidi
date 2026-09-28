@@ -29,8 +29,8 @@ describe('App convert view', () => {
     expect(editButton()).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Convert & download/i })).toBeDisabled();
 
-    await userEvent.click(screen.getAllByRole('button', { name: 'GGD Invasion' })[0]);
-    await userEvent.click(screen.getAllByRole('button', { name: 'EZdrummer' })[1]);
+    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
+    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
 
     expect(editButton()).toBeEnabled();
   });

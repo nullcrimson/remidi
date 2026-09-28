@@ -41,6 +41,7 @@ export function CanonPicker({
                 className="
                   flex w-full items-center justify-between py-1 pr-2 pl-2.5
                   text-ui/tight
+                  pointer-coarse:min-h-11
                 "
               >
                 <span className="min-w-0 truncate">{o.label}</span>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { FileFailure, FileResult } from '../lib/files';
 import type { ReportFile, ReportView } from '../lib/report';
 import { zipFiles } from '../lib/zip';
@@ -55,6 +55,8 @@ export function DonePanel({
   onViewReport: () => void;
   onConvertMore: () => void;
 }) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => headingRef.current?.focus(), []);
   const single = results.length === 1;
   const zipUrl = useMemo(
     () => (single ? null : URL.createObjectURL(zipFiles(results))),
@@ -71,9 +73,13 @@ export function DonePanel({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2.5">
-        <p className="text-body font-semibold text-t1">
+        <h2
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-body font-semibold text-t1 outline-none"
+        >
           {plural(results.length, 'file', 'files')} converted → {targetName}
-        </p>
+        </h2>
         <ul className="flex flex-wrap gap-1.5">
           {outcomeTags(view, failures.length).map((t) => (
             <li key={t.text} className={tag(t.tone)}>{t.text}</li>

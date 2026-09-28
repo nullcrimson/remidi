@@ -1,3 +1,4 @@
+import { EDIT_LINK_ID } from '../lib/focusIds';
 import { textAction } from './styles';
 import { Tooltip, TooltipBody } from './Tooltip';
 
@@ -30,6 +31,7 @@ export function SummaryRow({
         )}
       >
         <button
+          id={EDIT_LINK_ID}
           type="button"
           onClick={onEdit}
           disabled={disabled}

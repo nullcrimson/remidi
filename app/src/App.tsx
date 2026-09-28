@@ -1,4 +1,5 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 import { AboutContent } from './components/AboutContent';
 import { CardDropzone } from './components/CardDropzone';
 import { CHANNEL_SELECT_ID, ChannelSelect } from './components/ChannelSelect';
@@ -16,6 +17,14 @@ import { useFavorites } from './hooks/useFavorites';
 import { useRemapper } from './hooks/useRemapper';
 import { useSavedMappings } from './hooks/useSavedMappings';
 import { convertBlocker } from './lib/blocker';
+import type { OnFiles } from './lib/files';
+import {
+  CONVERT_BUTTON_ID,
+  EDIT_LINK_ID,
+  engineFilterId,
+  FILE_PICKER_ID,
+  focusById,
+} from './lib/focusIds';
 import { shortCode } from './lib/format';
 import { buildReport } from './lib/report';
 
@@ -76,7 +85,7 @@ function Header() {
           </span>drum MIDI converter & remapper
         </span>
       </h1>
-      <p className="max-w-[72ch] text-ui/relaxed text-t4">
+      <p className="text-ui/relaxed text-t4">
         Convert drum MIDI between GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2,
         General MIDI, Guitar Pro and 80+ other engine layouts. Runs in your browser; files are never
         uploaded.
@@ -92,6 +101,15 @@ export default function App() {
   const saved = useSavedMappings();
   const [reportOpen, setReportOpen] = useState(false);
   const [assignNote, setAssignNote] = useState<number | null>(null);
+  const { addFiles: storeFiles, src, tgt } = c;
+  const addFiles = useCallback<OnFiles>(
+    (files, skipped) => {
+      flushSync(() => storeFiles(files, skipped));
+      if (files.length === 0) return;
+      focusById(!src ? engineFilterId('FROM') : !tgt ? engineFilterId('TO') : CONVERT_BUTTON_ID);
+    },
+    [storeFiles, src, tgt],
+  );
   const reportView = useMemo(
     () => buildReport(c.results, c.editor.canonOptions, c.editor.targetDrums, c.oct),
     [c.results, c.editor.canonOptions, c.editor.targetDrums, c.oct],
@@ -114,8 +132,11 @@ export default function App() {
             presetsAtCap={saved.atCap}
             assignNote={assignNote}
             setView={(v) => {
-              setAssignNote(null);
-              c.setView(v);
+              flushSync(() => {
+                setAssignNote(null);
+                c.setView(v);
+              });
+              if (v === 'convert') focusById(EDIT_LINK_ID);
             }}
             onSavePreset={(name) => {
               const id = saved.save({
@@ -141,7 +162,7 @@ export default function App() {
   return (
     <Page wide>
       <Card>
-        <CardDropzone onFiles={c.addFiles}>
+        <CardDropzone onFiles={addFiles}>
           <div className="
             flex flex-col gap-7 p-5
             sm:p-[34px_34px_30px]
@@ -163,7 +184,7 @@ export default function App() {
                   files={c.files}
                   failures={c.failures}
                   skipped={c.skipped}
-                  onFiles={c.addFiles}
+                  onFiles={addFiles}
                   onRemove={c.removeFile}
                   onClear={c.clearFiles}
                 />
@@ -208,6 +229,7 @@ export default function App() {
                 </div>
 
                 <SavedMappingChips
+                  fallbackFocusId={engineFilterId('FROM')}
                   mappings={saved.mappings}
                   engines={c.engines}
                   atCap={saved.atCap}
@@ -254,7 +276,10 @@ export default function App() {
                         targetName={targetName}
                         targetShort={targetShort}
                         onViewReport={() => setReportOpen(true)}
-                        onConvertMore={c.clearFiles}
+                        onConvertMore={() => {
+                          flushSync(() => c.clearFiles());
+                          focusById(FILE_PICKER_ID);
+                        }}
                       />
                     )
                   : (
@@ -266,9 +291,11 @@ export default function App() {
                     )}
 
                 {c.conv.kind === 'error' && c.error && (
-                  <p className="
-                    rounded-chip bg-danger/10 p-3 text-ui text-danger
-                  "
+                  <p
+                    role="alert"
+                    className="
+                      rounded-chip bg-danger/10 p-3 text-ui text-danger
+                    "
                   >
                     Error: {c.error}
                   </p>

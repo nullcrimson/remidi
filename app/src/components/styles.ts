@@ -1,10 +1,10 @@
 export type ChipState = 'on' | 'changed' | 'off';
 export type ChipSize = 'sm' | 'md';
 
-const CHIP_BASE = 'rounded-chip border font-mono font-semibold transition-colors';
+const CHIP_BASE = 'tap rounded-chip border font-mono font-semibold transition-colors';
 
 const CHIP_SIZE: Record<ChipSize, string> = {
-  sm: 'px-2 py-0.5 text-label',
+  sm: 'px-2 py-0.5 text-label pointer-coarse:px-3 pointer-coarse:py-3',
   md: 'min-w-14 px-2.5 py-1 text-ui',
 };
 
@@ -21,7 +21,7 @@ export function chip(state: ChipState, size: ChipSize): string {
 
 /** Gold underlined link for prose: about pages, report footer, site copy. */
 export const proseLink = `
-  text-star/85 underline decoration-star/30 decoration-1 underline-offset-4
+  tap text-star/85 underline decoration-star/30 decoration-1 underline-offset-4
   transition
   [text-shadow:0_0_10px_rgba(224,196,106,0.35)]
   hover:text-star hover:decoration-star/60
@@ -51,7 +51,7 @@ const TEXT_TONE: Record<TextTone, string> = {
 /** In-app action link: quiet text that lights up to the accent. */
 export function textAction(tone: TextTone = 'default'): string {
   return `
-    inline-flex items-center gap-1.5 text-ui transition-colors
+    tap inline-flex items-center gap-1.5 text-ui transition-colors
     disabled:cursor-not-allowed disabled:opacity-40
     ${TEXT_TONE[tone]}
   `;
@@ -65,12 +65,13 @@ export function field(mono: boolean): string {
     placeholder:text-t5
     focus:border-accent/40
     aria-invalid:border-danger/60
+    pointer-coarse:py-2.5
     ${mono ? 'font-mono sm:text-label' : 'sm:text-ui'}
   `;
 }
 
 /** Column template shared by the edit view's rows and their header. */
 export const ROW_GRID = `
-  grid grid-cols-[minmax(0,1fr)_auto_12px_auto_4.5rem_1.25rem] items-center gap-2
-  sm:grid-cols-[minmax(0,1fr)_auto_16px_auto_5rem_1.25rem] sm:gap-3
+  grid grid-cols-[minmax(0,1fr)_auto_12px_auto_1.25rem] items-center gap-x-2 gap-y-1
+  sm:grid-cols-[minmax(0,1fr)_auto_16px_auto_9rem_1.25rem] sm:gap-x-3
 `;

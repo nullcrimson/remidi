@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import {
   autoUpdate,
   flip,
@@ -20,6 +21,7 @@ import { TextField } from './TextField';
 
 const ICON_BTN = `
   flex w-6 shrink-0 items-center justify-center border-l border-hairline
+  pointer-coarse:w-11
   text-label text-t5 transition-colors
 `;
 
@@ -45,11 +47,17 @@ export function SavedMappingChip({
   const [renaming, setRenaming] = useState(false);
   const [draft, setDraft] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const moreId = useId();
+  const focusMore = () =>
+    document.querySelector<HTMLElement>(`[data-more="${moreId}"]`)?.focus();
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   const { refs, floatingStyles, context } = useFloating({
     open: menuOpen,
-    onOpenChange: setMenuOpen,
+    onOpenChange: (open, _event, reason) => {
+      setMenuOpen(open);
+      if (!open && reason === 'escape-key') focusMore();
+    },
     placement: 'bottom-end',
     middleware: [offset(6), flip(), shift({ padding: 8 })],
     whileElementsMounted: autoUpdate,
@@ -74,11 +82,15 @@ export function SavedMappingChip({
     setDraft(mapping.name);
     setRenaming(true);
   };
-  const commitRename = () => {
-    const name = draft.trim();
-    if (name) onRename(mapping.id, name);
-    setRenaming(false);
+  const mainRef = useRef<HTMLButtonElement>(null);
+  const endRename = (name: string | null) => {
+    flushSync(() => {
+      if (name) onRename(mapping.id, name);
+      setRenaming(false);
+    });
+    mainRef.current?.focus();
   };
+  const commitRename = () => endRename(draft.trim());
 
   const items = [
     { key: 'rename', label: 'Rename', run: startRename, disabled: false, danger: false },
@@ -102,12 +114,12 @@ export function SavedMappingChip({
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') commitRename();
-              if (e.key === 'Escape') setRenaming(false);
+              if (e.key === 'Escape') endRename(null);
             }}
             className="w-32 min-w-0"
           />
           <IconButton label="Save name" size="sm" onClick={commitRename}>✓</IconButton>
-          <IconButton label="Cancel rename" size="sm" onClick={() => setRenaming(false)}>×</IconButton>
+          <IconButton label="Cancel rename" size="sm" onClick={() => endRename(null)}>×</IconButton>
         </div>
       </li>
     );
@@ -120,6 +132,8 @@ export function SavedMappingChip({
     "
     >
       <button
+        ref={mainRef}
+        data-chip-main
         type="button"
         disabled={!known}
         onClick={() => onLoad(mapping)}
@@ -128,6 +142,7 @@ export function SavedMappingChip({
           flex min-w-0 items-center gap-2 py-1.5 pr-2 pl-2.5 text-left text-ui
           enabled:hover:bg-white/3
           disabled:opacity-40
+          pointer-coarse:py-3
         "
       >
         <span className="max-w-40 truncate text-t2">{mapping.name}</span>
@@ -150,6 +165,7 @@ export function SavedMappingChip({
       </button>
       <button
         ref={refs.setReference}
+        data-more={moreId}
         type="button"
         aria-label={`More actions for ${mapping.name}`}
         aria-haspopup="menu"
@@ -164,7 +180,7 @@ export function SavedMappingChip({
       </button>
       {menuOpen && (
         <FloatingPortal>
-          <FloatingFocusManager context={context} modal={false}>
+          <FloatingFocusManager context={context} modal={false} returnFocus={false}>
             <div
               // eslint-disable-next-line react-hooks/refs -- Floating UI setFloating is a callback-ref setter, not a during-render ref read
               ref={refs.setFloating}
@@ -194,12 +210,14 @@ export function SavedMappingChip({
                         if (it.disabled) return;
                         if (it.key !== 'rename') setMenuOpen(false);
                         it.run();
+                        if (it.key === 'duplicate') focusMore();
                       },
                     })}
                     className={`
                       flex w-full items-center rounded-chip px-2.5 py-1.5
                       text-left text-ui transition-colors
                       disabled:opacity-40
+                      pointer-coarse:py-3
                       ${it.danger
                   ? `
                     text-t3
