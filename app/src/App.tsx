@@ -4,7 +4,7 @@ import { CardDropzone } from './components/CardDropzone';
 import { CHANNEL_SELECT_ID, ChannelSelect } from './components/ChannelSelect';
 import { ConvertButton } from './components/ConvertButton';
 import { DonePanel } from './components/DonePanel';
-import { EditView } from './components/EditView';
+import { EditView, type EditFilter } from './components/EditView';
 import { FileChips } from './components/FileChips';
 import { IconButton } from './components/IconButton';
 import { LibraryList } from './components/LibraryList';
@@ -19,6 +19,7 @@ import { StatusNotice } from './components/StatusNotice';
 import { skipLink } from './components/styles';
 import { SummaryRow } from './components/SummaryRow';
 import { useDropGuard } from './hooks/useDropGuard';
+import { useEditedSummary } from './hooks/useEditedSummary';
 import { useFavorites } from './hooks/useFavorites';
 import { useRemapper } from './hooks/useRemapper';
 import { useSavedMappings } from './hooks/useSavedMappings';
@@ -109,6 +110,9 @@ export default function App() {
   const [reportOpen, setReportOpen] = useState(false);
   const [assignNote, setAssignNote] = useState<number | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [editShow, setEditShow] = useState<EditFilter>('all');
+  const openPreset = saved.mappings.find((m) => m.id === c.presetId);
+  const edited = useEditedSummary(c.editor, c.oct, openPreset);
   const { addFiles: storeFiles, src, tgt } = c;
   const { mappings, save: savePreset } = saved;
   const addFiles = useCallback<OnFiles>(
@@ -144,12 +148,14 @@ export default function App() {
             srcName={sourceName}
             tgtName={targetName}
             oct={c.oct}
-            existingPreset={saved.mappings.find((m) => m.id === c.presetId)}
+            existingPreset={openPreset}
             presetsAtCap={saved.atCap}
             assignNote={assignNote}
+            initialShow={editShow}
             setView={(v) => {
               flushSync(() => {
                 setAssignNote(null);
+                setEditShow('all');
                 c.setView(v);
               });
               if (v === 'convert') focusById(EDIT_LINK_ID);
@@ -293,6 +299,15 @@ export default function App() {
                     remapped={c.editor.remappedCount}
                     total={c.editor.rows.length}
                     onEdit={() => c.setView('edit')}
+                    edited={edited.count > 0
+                      ? {
+                          ...edited,
+                          onReview: () => {
+                            setEditShow('changed');
+                            c.setView('edit');
+                          },
+                        }
+                      : undefined}
                   />
                 )}
 
@@ -306,6 +321,7 @@ export default function App() {
                         targetShort={targetShort}
                         onViewReport={() => setReportOpen(true)}
                         onDropMissing={dropMissing}
+                        editedDrums={edited.count}
                         onConvertMore={() => {
                           flushSync(() => c.clearFiles());
                           focusById(FILE_PICKER_ID);

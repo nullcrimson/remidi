@@ -47,6 +47,7 @@ export function DonePanel({
   onViewReport,
   onConvertMore,
   onDropMissing,
+  editedDrums = 0,
 }: {
   results: FileResult[];
   failures: FileFailure[];
@@ -56,6 +57,7 @@ export function DonePanel({
   onViewReport: () => void;
   onConvertMore: () => void;
   onDropMissing?: () => void;
+  editedDrums?: number;
 }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => headingRef.current?.focus(), []);
@@ -81,6 +83,12 @@ export function DonePanel({
           className="text-body font-semibold text-t1 outline-none"
         >
           {plural(results.length, 'file', 'files')} converted → {targetName}
+          {editedDrums > 0 && (
+            <span className="font-normal text-t4">
+              {' · '}
+              {plural(editedDrums, 'drum', 'drums')} edited
+            </span>
+          )}
         </h2>
         <ul className="flex flex-wrap gap-1.5">
           {outcomeTags(view, failures.length).map((t) => (

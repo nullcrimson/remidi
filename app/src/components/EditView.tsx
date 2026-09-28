@@ -31,6 +31,7 @@ export interface EditViewProps {
   existingPreset: SavedMapping | undefined;
   presetsAtCap: boolean;
   assignNote?: number | null;
+  initialShow?: EditFilter;
   setView: (v: 'convert' | 'edit') => void;
   onSavePreset: (name: string) => void;
   onUpdatePreset: (id: string, name: string) => void;
@@ -142,7 +143,8 @@ function SavePreset({
   );
 }
 
-type Show = 'all' | 'changed' | 'issues';
+/** Which rows the editor lists. */
+export type EditFilter = 'all' | 'changed' | 'issues';
 
 const isIssue = (row: VoiceRowData) => row.srcNotes.length > 0 && row.status !== 'direct';
 
@@ -180,6 +182,7 @@ export function EditView({
   existingPreset,
   presetsAtCap,
   assignNote = null,
+  initialShow = 'all',
   setView,
   onSavePreset,
   onUpdatePreset,
@@ -214,7 +217,7 @@ export function EditView({
   useEffect(() => {
     if (focusHeading) headingRef.current?.focus();
   }, [focusHeading]);
-  const [show, setShow] = useState<Show>('all');
+  const [show, setShow] = useState<EditFilter>(initialShow);
   const showId = useId();
   const { q, setQ, filtered } = useFilter(rows, (r) => r.label);
   const issues = rows.filter(isIssue);

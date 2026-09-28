@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MAPPINGS_KEY } from '../src/lib/mappings';
+import { SESSION_KEY } from '../src/lib/session';
 
 vi.mock('../src/lib/midiremap', () => ({
   ready: () => Promise.resolve(),
@@ -98,6 +99,62 @@ describe('App edit view', () => {
     await userEvent.click(screen.getByText(/Edit individual notes/));
     expect(screen.getByRole('button', { name: 'Save as preset' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Update preset' })).not.toBeInTheDocument();
+  });
+
+  it('shows no edited chip for the default mapping', async () => {
+    render(<App />);
+    await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
+    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
+    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    expect(screen.getByText(/drums remapped/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /edited — review changes/ })).not.toBeInTheDocument();
+  });
+
+  it('shows the loaded preset on an edited chip that opens the editor on the changed drums', async () => {
+    localStorage.setItem(
+      MAPPINGS_KEY,
+      JSON.stringify([
+        { id: 'p1', name: 'My kit', src: 'ggd_invasion', tgt: 'ezdrummer', edits: { KickMain: 40 }, srcEdits: {}, updatedAt: 1 },
+      ]),
+    );
+    render(<App />);
+    await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: /^My kit/ }));
+    const chip = screen.getByRole('button', { name: '1 drum edited — review changes, from preset My kit' });
+    expect(chip).toHaveTextContent('My kit · 1 edited');
+    await userEvent.click(chip);
+    expect(screen.getByText('Edit notes')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Changed 1' })).toBeChecked();
+    expect(screen.queryByText('China')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+    await userEvent.click(screen.getByRole('button', { name: /Edit individual notes/ }));
+    expect(screen.getByRole('radio', { name: 'All 2' })).toBeChecked();
+  });
+
+  it('marks restored edits that differ from the open preset as unsaved', async () => {
+    localStorage.setItem(
+      MAPPINGS_KEY,
+      JSON.stringify([
+        { id: 'p1', name: 'My kit', src: 'ggd_invasion', tgt: 'ezdrummer', edits: { KickMain: 40 }, srcEdits: {}, updatedAt: 1 },
+      ]),
+    );
+    localStorage.setItem(
+      SESSION_KEY,
+      JSON.stringify({
+        version: 1,
+        src: 'ggd_invasion',
+        tgt: 'ezdrummer',
+        oct: 'c1',
+        channel: 'auto',
+        missing: 'nearest',
+        presetId: 'p1',
+        edits: { KickMain: 41 },
+        srcEdits: {},
+      }),
+    );
+    render(<App />);
+    const chip = await screen.findByRole('button', { name: '1 drum edited — review changes, not saved to My kit' });
+    expect(chip).toHaveTextContent('1 edited · unsaved');
   });
 
   it('navigates to edit and back', async () => {

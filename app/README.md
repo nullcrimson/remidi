@@ -49,6 +49,8 @@ npm run test     # Vitest; needs npm run build:wasm once (the contract test load
 - `src/lib/notes.ts` — note-name / octave helpers (octave base is display-only).
 - `src/lib/overrides.ts` — per-voice target edits → overrides doc.
 - `src/lib/missing.ts` — the missing-drums setting (Nearest / Drop) and its hint.
+- `src/lib/editSummary.ts` — the summary row's "edited" chip: which drums differ from the
+  default mapping, their preview lines, and whether they match the open preset.
 - `src/lib/session.ts` — the setup a reload brings back (engines, settings, unsaved edits).
 - `src/lib/mappings.ts`, `presetFile.ts`, `presetImport.ts` — stored presets (versioned,
   quarantine), `.drumverter.json` export and import.

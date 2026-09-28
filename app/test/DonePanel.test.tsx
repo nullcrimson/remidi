@@ -32,6 +32,7 @@ function renderPanel({
   onViewReport = vi.fn(),
   onConvertMore = vi.fn(),
   onDropMissing = undefined as (() => void) | undefined,
+  editedDrums = 0,
 } = {}) {
   render(
     <DonePanel
@@ -43,6 +44,7 @@ function renderPanel({
       onViewReport={onViewReport}
       onConvertMore={onConvertMore}
       onDropMissing={onDropMissing}
+      editedDrums={editedDrums}
     />,
   );
   return { onViewReport, onConvertMore };
@@ -65,6 +67,18 @@ describe('DonePanel', () => {
     expect(link).toHaveAttribute('href', 'blob:x');
     expect(link).toHaveAttribute('download', 'groove-ezd.mid');
     expect(link).toHaveClass('bg-accent');
+  });
+
+  it('says how many drums were edited in the heading', () => {
+    renderPanel({ editedDrums: 3 });
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(
+      '1 file converted → Toontrack EZdrummer 3 · 3 drums edited',
+    );
+  });
+
+  it('says one drum was edited', () => {
+    renderPanel({ editedDrums: 1 });
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('· 1 drum edited');
   });
 
   it('tags each outcome, approximated in gold', () => {

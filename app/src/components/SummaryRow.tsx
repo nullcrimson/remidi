@@ -1,4 +1,5 @@
 import { EDIT_LINK_ID } from '../lib/focusIds';
+import { EditedChip, type EditedState } from './EditedChip';
 import { textAction } from './styles';
 import { Tooltip, TooltipBody } from './Tooltip';
 
@@ -7,21 +8,27 @@ export function SummaryRow({
   total,
   onEdit,
   disabled,
+  edited,
 }: {
   remapped: number;
   total: number;
   onEdit: () => void;
   disabled?: boolean;
+  edited?: EditedState;
 }) {
   return (
     <div className="
-      flex items-center justify-between border-t border-hairline pt-4.5
+      flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t
+      border-hairline pt-4.5
     "
     >
-      <span className="text-ui text-t4">
-        <span className="font-semibold text-accent">{remapped}</span> of {total}{' '}
-        drums remapped
-      </span>
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+        <span className="text-ui text-t4">
+          <span className="font-semibold text-accent">{remapped}</span> of {total}{' '}
+          drums remapped
+        </span>
+        {edited && <EditedChip {...edited} />}
+      </div>
       <Tooltip
         content={(
           <TooltipBody title="Fine-tune each drum">
