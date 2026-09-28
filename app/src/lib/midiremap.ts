@@ -1,84 +1,57 @@
+import type {
+  CanonInfo,
+  Drum,
+  EngineInfo,
+  ErrorKind,
+  MissingDrums,
+  Overrides,
+  PresetView,
+  RemapOutput,
+  VoiceRow,
+  WasmError,
+} from '@wasm';
 import type { Channel } from './channel';
-import type { Missing } from './missing';
 
 type WasmModule = typeof import('@wasm');
 
-export interface Engine {
-  id: string;
-  name: string;
-  fullName?: string;
+export type {
+  CanonInfo,
+  Drum,
+  EngineInfo as Engine,
+  ErrorKind,
+  FallbackTally,
+  PresetView as ImportedPreset,
+  MissingDrums,
+  Overrides,
+  RemapOutput as RemapResult,
+  Report as RemapReport,
+  VoiceRow,
+  PlanStatus as VoiceStatus,
+} from '@wasm';
+
+/** A call into the WASM module failed; `kind` and `id` say how and on what. */
+export class WasmCallError extends Error {
+  readonly kind: ErrorKind;
+  readonly id: string | null;
+
+  constructor(err: WasmError) {
+    super(err.message);
+    this.name = 'WasmCallError';
+    this.kind = err.kind;
+    this.id = err.id;
+  }
 }
 
-export interface Overrides {
-  tgt: { canon: string; note: number }[];
-  src: { note: number; canon: string | null }[];
+function isWasmError(err: unknown): err is WasmError {
+  return typeof err === 'object' && err !== null && 'kind' in err && 'message' in err;
 }
 
-export interface CanonInfo {
-  canon: string;
-  label: string;
-  family: string;
-}
-
-export interface Drum {
-  note: number;
-  canon: string;
-  label: string;
-  family: string;
-}
-export type VoiceStatus = 'direct' | 'fallback' | 'dropped';
-export interface VoiceRow {
-  canon: string;
-  label: string;
-  srcNotes: number[];
-  tgtNote: number | null;
-  defaultTgtNote: number | null;
-  status: VoiceStatus;
-  /** The target lacks this drum and its nearest stand-in is another drum. */
-  otherDrum: boolean;
-}
-export interface FallbackTally {
-  note: number;
-  count: number;
-}
-export interface RemapReport {
-  unmappedSource: Record<string, number>;
-  fallbackUsed: Record<string, FallbackTally>;
-  dropped: Record<string, number>;
-  untouched: number;
-  converted: number;
-}
-/** A preset file read by the core: engines resolved to current ids, unreadable edits listed. */
-export interface ImportedPreset {
-  name: string;
-  src: string;
-  tgt: string;
-  edits: Record<string, number>;
-  srcEdits: Record<number, string | null>;
-  skipped: string[];
-}
-
-export interface RemapResult {
-  bytes: Uint8Array<ArrayBuffer>;
-  report: RemapReport;
-}
-
-interface RawRemapReport {
-  unmapped_source: Record<string, number>;
-  fallback_used: Record<string, FallbackTally>;
-  dropped: Record<string, number>;
-  untouched: number;
-  converted: number;
-}
-
-interface RawVoiceRow {
-  canon: string;
-  label: string;
-  src_notes: number[];
-  tgt_note?: number | null;
-  default_tgt_note?: number | null;
-  status: VoiceStatus;
-  other_drum: boolean;
+function call<T>(f: (m: WasmModule) => T): T {
+  try {
+    return f(mod());
+  } catch (err) {
+    throw isWasmError(err) ? new WasmCallError(err) : err;
+  }
 }
 
 let wasm: WasmModule | null = null;
@@ -100,37 +73,28 @@ function mod(): WasmModule {
   return wasm;
 }
 
-export function engines(): Engine[] {
-  return mod().engine_catalog() as Engine[];
+export function engines(): EngineInfo[] {
+  return call((m) => m.engine_catalog());
 }
 
 export function engineDrums(tgtId: string): Drum[] {
-  return mod().engine_drums(tgtId) as Drum[];
+  return call((m) => m.engine_drums(tgtId));
 }
 
 export function engineNotes(srcId: string): Drum[] {
-  return mod().engine_notes(srcId) as Drum[];
+  return call((m) => m.engine_notes(srcId));
 }
 
 export function canonCatalog(): CanonInfo[] {
-  return mod().canon_catalog() as CanonInfo[];
+  return call((m) => m.canon_catalog());
 }
 
-export function parsePresetFile(json: string): ImportedPreset {
-  return mod().parse_preset_file(json) as ImportedPreset;
+export function parsePresetFile(json: string): PresetView {
+  return call((m) => m.parse_preset_file(json));
 }
 
-export function plan(src: string, tgt: string, ov?: Overrides, missing?: Missing): VoiceRow[] {
-  const raw = mod().plan(src, tgt, ov ? JSON.stringify(ov) : undefined, missing) as RawVoiceRow[];
-  return raw.map((r) => ({
-    canon: r.canon,
-    label: r.label,
-    srcNotes: r.src_notes,
-    tgtNote: r.tgt_note ?? null,
-    defaultTgtNote: r.default_tgt_note ?? null,
-    status: r.status,
-    otherDrum: r.other_drum,
-  }));
+export function plan(src: string, tgt: string, ov?: Overrides, missing?: MissingDrums): VoiceRow[] {
+  return call((m) => m.plan(src, tgt, ov, missing));
 }
 
 export function remap(
@@ -139,20 +103,7 @@ export function remap(
   tgt: string,
   ov?: Overrides,
   channel?: Channel,
-  missing?: Missing,
-): RemapResult {
-  const r = mod().remap(mid, src, tgt, ov ? JSON.stringify(ov) : undefined, channel, missing) as {
-    bytes: Uint8Array<ArrayBuffer>;
-    report: RawRemapReport;
-  };
-  return {
-    bytes: r.bytes,
-    report: {
-      unmappedSource: r.report.unmapped_source,
-      fallbackUsed: r.report.fallback_used,
-      dropped: r.report.dropped,
-      untouched: r.report.untouched,
-      converted: r.report.converted,
-    },
-  };
+  missing?: MissingDrums,
+): RemapOutput {
+  return call((m) => m.remap(mid, src, tgt, ov, channel, missing));
 }

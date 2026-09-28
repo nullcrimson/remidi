@@ -52,6 +52,7 @@ pub type FloorIdx = Idx<4>;
 pub type OpenLevel = Idx<6>;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify), tsify(type = "string"))]
 pub enum Canon {
     Kick(KickKind),
     Snare(SnareIdx, SnareArtic),

@@ -1,11 +1,11 @@
 use std::collections::BTreeMap;
 
 use midiremap_core::{
-    convert, parse_preset, plan as core_plan, Canon, Catalog, ChannelScope, ChannelScopeError,
-    LoadedPreset, Mapping, MissingDrums, MissingDrumsParseError, Note, Overrides, PlanStatus,
-    Report, VoicePlan,
+    convert, parse_preset, plan as core_plan, Canon, Catalog, ChannelScope, Drum, EngineMap,
+    LoadedPreset, Mapping, MissingDrums, Overrides, Report, VoicePlan,
 };
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
+use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 
 /// Prints a panic's message and location to the browser console instead of a bare
@@ -15,42 +15,123 @@ pub fn start() {
     console_error_panic_hook::set_once();
 }
 
-#[derive(Serialize)]
-struct Output {
+/// What went wrong in a call, thrown to JavaScript inside a [`WasmError`].
+#[derive(Serialize, Tsify, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ErrorKind {
+    UnknownEngine,
+    BadOverrides,
+    BadMissing,
+    BadChannel,
+    BadMidi,
+    BadPreset,
+    Internal,
+}
+
+/// The value every export throws; `id` names the offending engine when there is one.
+#[derive(Serialize, Tsify, Debug, PartialEq, Eq)]
+#[tsify(missing_as_null, hashmap_as_object)]
+pub struct WasmError {
+    kind: ErrorKind,
+    message: String,
+    id: Option<String>,
+}
+
+impl WasmError {
+    fn new(kind: ErrorKind, message: impl ToString) -> Self {
+        Self {
+            kind,
+            message: message.to_string(),
+            id: None,
+        }
+    }
+
+    fn unknown_engine(message: String, id: &str) -> Self {
+        Self {
+            kind: ErrorKind::UnknownEngine,
+            message,
+            id: Some(id.to_owned()),
+        }
+    }
+}
+
+impl From<WasmError> for JsValue {
+    fn from(err: WasmError) -> Self {
+        err.into_ts()
+            .map_or_else(|_| Self::from_str(&err.message), Self::from)
+    }
+}
+
+impl From<tsify::Error> for WasmError {
+    fn from(err: tsify::Error) -> Self {
+        Self::new(ErrorKind::Internal, err)
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Role {
+    Source,
+    Target,
+}
+
+fn engine<'a>(catalog: &'a Catalog, id: &str, role: Role) -> Result<&'a EngineMap, WasmError> {
+    let role = match role {
+        Role::Source => "source",
+        Role::Target => "target",
+    };
+    catalog
+        .get(id)
+        .ok_or_else(|| WasmError::unknown_engine(format!("unknown {role} engine '{id}'"), id))
+}
+
+fn from_js<T>(value: Option<Ts<T>>, kind: ErrorKind) -> Result<T, WasmError>
+where
+    T: Tsify + DeserializeOwned + Default,
+    T::JsType: Clone,
+{
+    value.map_or_else(
+        || Ok(T::default()),
+        |v| v.to_rust().map_err(|e| WasmError::new(kind, e)),
+    )
+}
+
+fn to_js_all<T: Tsify + Serialize>(items: &[T]) -> Result<Vec<Ts<T>>, WasmError> {
+    items
+        .iter()
+        .map(|item| item.into_ts().map_err(WasmError::from))
+        .collect()
+}
+
+/// The result of [`remap`]: the converted file and what happened to its notes.
+#[derive(Serialize, Tsify)]
+#[tsify(missing_as_null, hashmap_as_object)]
+pub struct RemapOutput {
     #[serde(with = "serde_bytes")]
+    #[tsify(type = "Uint8Array<ArrayBuffer>")]
     bytes: Vec<u8>,
     report: Report,
 }
 
-fn parse_overrides(overrides_json: Option<String>) -> Result<Overrides, JsValue> {
-    overrides_json.map_or_else(
-        || Ok(Overrides::default()),
-        |s| serde_json::from_str(&s).map_err(|e| JsValue::from_str(&e.to_string())),
-    )
-}
-
-fn to_js<T: Serialize>(value: &T) -> Result<JsValue, JsValue> {
-    let serializer = serde_wasm_bindgen::Serializer::new()
-        .serialize_maps_as_objects(true)
-        .serialize_missing_as_null(true);
-    value
-        .serialize(&serializer)
-        .map_err(|e| JsValue::from_str(&e.to_string()))
-}
-
-fn parse_channel(channel: Option<String>) -> Result<ChannelScope, JsValue> {
-    channel.map_or(Ok(ChannelScope::Auto), |s| {
-        s.parse()
-            .map_err(|e: ChannelScopeError| JsValue::from_str(&e.to_string()))
+fn convert_file(
+    catalog: &Catalog,
+    mid: &[u8],
+    src_id: &str,
+    tgt_id: &str,
+    ov: &Overrides,
+    channel: Option<&str>,
+    missing: MissingDrums,
+) -> Result<RemapOutput, WasmError> {
+    let src = engine(catalog, src_id, Role::Source)?;
+    let tgt = engine(catalog, tgt_id, Role::Target)?;
+    let scope: ChannelScope = channel
+        .map_or(Ok(ChannelScope::Auto), str::parse)
+        .map_err(|e| WasmError::new(ErrorKind::BadChannel, e))?;
+    let out = convert(mid, &Mapping::new(src, tgt, ov, missing), scope)
+        .map_err(|e| WasmError::new(ErrorKind::BadMidi, e))?;
+    Ok(RemapOutput {
+        bytes: out.bytes,
+        report: out.report,
     })
-}
-
-fn missing_of(missing: Option<&str>) -> Result<MissingDrums, MissingDrumsParseError> {
-    missing.map_or(Ok(MissingDrums::default()), str::parse)
-}
-
-fn parse_missing(missing: Option<String>) -> Result<MissingDrums, JsValue> {
-    missing_of(missing.as_deref()).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
 #[wasm_bindgen]
@@ -58,84 +139,81 @@ pub fn remap(
     mid: &[u8],
     src_id: &str,
     tgt_id: &str,
-    overrides_json: Option<String>,
+    overrides: Option<Ts<Overrides>>,
     channel: Option<String>,
-    missing: Option<String>,
-) -> Result<JsValue, JsValue> {
-    let provider = Catalog::shared();
-    let src = provider
-        .get(src_id)
-        .ok_or_else(|| JsValue::from_str("unknown source engine"))?;
-    let tgt = provider
-        .get(tgt_id)
-        .ok_or_else(|| JsValue::from_str("unknown target engine"))?;
-    let ov = parse_overrides(overrides_json)?;
-    let scope = parse_channel(channel)?;
-    let missing = parse_missing(missing)?;
-    let out = convert(mid, &Mapping::new(src, tgt, &ov, missing), scope)
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
-    let payload = Output {
-        bytes: out.bytes,
-        report: out.report,
-    };
-    to_js(&payload)
+    missing: Option<Ts<MissingDrums>>,
+) -> Result<Ts<RemapOutput>, WasmError> {
+    let ov = from_js(overrides, ErrorKind::BadOverrides)?;
+    let missing = from_js(missing, ErrorKind::BadMissing)?;
+    let out = convert_file(
+        Catalog::shared(),
+        mid,
+        src_id,
+        tgt_id,
+        &ov,
+        channel.as_deref(),
+        missing,
+    )?;
+    Ok(out.into_ts()?)
 }
 
-#[derive(Serialize)]
-struct VoiceRow {
-    canon: String,
+/// One drum of the edit preview with its display label.
+#[derive(Serialize, Tsify)]
+#[tsify(missing_as_null, hashmap_as_object)]
+pub struct VoiceRow {
+    #[serde(flatten)]
+    plan: VoicePlan,
     label: String,
-    src_notes: Vec<Note>,
-    tgt_note: Option<Note>,
-    default_tgt_note: Option<Note>,
-    status: &'static str,
-    other_drum: bool,
 }
 
 impl From<VoicePlan> for VoiceRow {
-    fn from(v: VoicePlan) -> Self {
+    fn from(plan: VoicePlan) -> Self {
         Self {
-            canon: v.canon.to_string(),
-            label: v.canon.label(),
-            src_notes: v.src_notes,
-            tgt_note: v.tgt_note,
-            default_tgt_note: v.default_tgt_note,
-            status: match v.status {
-                PlanStatus::Direct => "direct",
-                PlanStatus::Fallback => "fallback",
-                PlanStatus::Dropped => "dropped",
-            },
-            other_drum: v.other_drum,
+            label: plan.canon.label(),
+            plan,
         }
     }
+}
+
+fn voice_rows(
+    catalog: &Catalog,
+    src_id: &str,
+    tgt_id: &str,
+    ov: &Overrides,
+    missing: MissingDrums,
+) -> Result<Vec<VoiceRow>, WasmError> {
+    let src = engine(catalog, src_id, Role::Source)?;
+    let tgt = engine(catalog, tgt_id, Role::Target)?;
+    Ok(core_plan(src, tgt, ov, missing)
+        .into_iter()
+        .map(VoiceRow::from)
+        .collect())
 }
 
 #[wasm_bindgen]
 pub fn plan(
     src_id: &str,
     tgt_id: &str,
-    overrides_json: Option<String>,
-    missing: Option<String>,
-) -> Result<JsValue, JsValue> {
-    let provider = Catalog::shared();
-    let src = provider
-        .get(src_id)
-        .ok_or_else(|| JsValue::from_str("unknown source engine"))?;
-    let tgt = provider
-        .get(tgt_id)
-        .ok_or_else(|| JsValue::from_str("unknown target engine"))?;
-    let ov = parse_overrides(overrides_json)?;
-    let missing = parse_missing(missing)?;
-    let rows: Vec<VoiceRow> = core_plan(src, tgt, &ov, missing)
-        .into_iter()
-        .map(VoiceRow::from)
-        .collect();
-    to_js(&rows)
+    overrides: Option<Ts<Overrides>>,
+    missing: Option<Ts<MissingDrums>>,
+) -> Result<Vec<Ts<VoiceRow>>, WasmError> {
+    let ov = from_js(overrides, ErrorKind::BadOverrides)?;
+    let missing = from_js(missing, ErrorKind::BadMissing)?;
+    to_js_all(&voice_rows(
+        Catalog::shared(),
+        src_id,
+        tgt_id,
+        &ov,
+        missing,
+    )?)
 }
 
-#[derive(Serialize, Debug)]
+/// A preset file read for import: engines resolved to current ids, unreadable edits
+/// listed in `skipped`.
+#[derive(Serialize, Tsify, Debug)]
 #[serde(rename_all = "camelCase")]
-struct PresetView {
+#[tsify(missing_as_null, hashmap_as_object)]
+pub struct PresetView {
     name: String,
     src: String,
     tgt: String,
@@ -144,13 +222,14 @@ struct PresetView {
     skipped: Vec<String>,
 }
 
-fn preset_view(json: &str, catalog: &Catalog) -> Result<PresetView, String> {
-    let LoadedPreset { preset, skipped } = parse_preset(json).map_err(|e| e.to_string())?;
+fn preset_view(json: &str, catalog: &Catalog) -> Result<PresetView, WasmError> {
+    let LoadedPreset { preset, skipped } =
+        parse_preset(json).map_err(|e| WasmError::new(ErrorKind::BadPreset, e))?;
     let engine = |id: &str| {
         catalog
             .canonical_id(id)
             .map(str::to_owned)
-            .ok_or_else(|| format!("unknown engine '{id}'"))
+            .ok_or_else(|| WasmError::unknown_engine(format!("unknown engine '{id}'"), id))
     };
     Ok(PresetView {
         src: engine(&preset.src)?,
@@ -173,80 +252,55 @@ fn preset_view(json: &str, catalog: &Catalog) -> Result<PresetView, String> {
 /// Reads a preset file for import: engines resolved to current ids, unreadable edits
 /// listed in `skipped`.
 #[wasm_bindgen]
-pub fn parse_preset_file(json: &str) -> Result<JsValue, JsValue> {
-    let view = preset_view(json, Catalog::shared()).map_err(|e| JsValue::from_str(&e))?;
-    to_js(&view)
+pub fn parse_preset_file(json: &str) -> Result<Ts<PresetView>, WasmError> {
+    Ok(preset_view(json, Catalog::shared())?.into_ts()?)
 }
 
-#[derive(Serialize)]
-struct DrumView {
-    note: Note,
-    canon: String,
+fn drums_of(catalog: &Catalog, id: &str, role: Role) -> Result<Vec<Drum>, WasmError> {
+    let map = engine(catalog, id, role)?;
+    Ok(match role {
+        Role::Source => map.source_notes(),
+        Role::Target => map.drums(),
+    })
+}
+
+#[wasm_bindgen]
+pub fn engine_drums(tgt_id: &str) -> Result<Vec<Ts<Drum>>, WasmError> {
+    to_js_all(&drums_of(Catalog::shared(), tgt_id, Role::Target)?)
+}
+
+#[wasm_bindgen]
+pub fn engine_notes(src_id: &str) -> Result<Vec<Ts<Drum>>, WasmError> {
+    to_js_all(&drums_of(Catalog::shared(), src_id, Role::Source)?)
+}
+
+/// One entry of the canonical drum vocabulary.
+#[derive(Serialize, Tsify)]
+#[tsify(missing_as_null, hashmap_as_object)]
+pub struct CanonInfo {
+    canon: Canon,
     label: String,
-    family: String,
+    family: &'static str,
 }
 
 #[wasm_bindgen]
-pub fn engine_drums(tgt_id: &str) -> Result<JsValue, JsValue> {
-    let provider = Catalog::shared();
-    let tgt = provider
-        .get(tgt_id)
-        .ok_or_else(|| JsValue::from_str("unknown target engine"))?;
-    let drums: Vec<DrumView> = tgt
-        .drums()
-        .into_iter()
-        .map(|d| DrumView {
-            note: d.note,
-            canon: d.canon.to_string(),
-            label: d.label,
-            family: d.family.to_string(),
-        })
-        .collect();
-    to_js(&drums)
-}
-
-#[wasm_bindgen]
-pub fn engine_notes(src_id: &str) -> Result<JsValue, JsValue> {
-    let provider = Catalog::shared();
-    let src = provider
-        .get(src_id)
-        .ok_or_else(|| JsValue::from_str("unknown source engine"))?;
-    let notes: Vec<DrumView> = src
-        .source_notes()
-        .into_iter()
-        .map(|d| DrumView {
-            note: d.note,
-            canon: d.canon.to_string(),
-            label: d.label,
-            family: d.family.to_string(),
-        })
-        .collect();
-    to_js(&notes)
-}
-
-#[derive(Serialize)]
-struct CanonView {
-    canon: String,
-    label: String,
-    family: String,
-}
-
-#[wasm_bindgen]
-pub fn canon_catalog() -> Result<JsValue, JsValue> {
-    let items: Vec<CanonView> = Canon::all()
+pub fn canon_catalog() -> Result<Vec<Ts<CanonInfo>>, WasmError> {
+    let items: Vec<CanonInfo> = Canon::all()
         .iter()
-        .map(|&c| CanonView {
-            canon: c.to_string(),
+        .map(|&c| CanonInfo {
+            canon: c,
             label: c.label(),
-            family: c.family().to_string(),
+            family: c.family(),
         })
         .collect();
-    to_js(&items)
+    to_js_all(&items)
 }
 
-#[derive(Serialize, Debug, PartialEq)]
+/// An engine as the pickers list it.
+#[derive(Serialize, Tsify, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
-struct EngineInfo {
+#[tsify(missing_as_null, hashmap_as_object)]
+pub struct EngineInfo {
     id: String,
     name: String,
     full_name: String,
@@ -266,12 +320,14 @@ fn engine_infos(catalog: &Catalog) -> Vec<EngineInfo> {
 }
 
 #[wasm_bindgen]
-pub fn engine_catalog() -> Result<JsValue, JsValue> {
-    to_js(&engine_infos(Catalog::shared()))
+pub fn engine_catalog() -> Result<Vec<Ts<EngineInfo>>, WasmError> {
+    to_js_all(&engine_infos(Catalog::shared()))
 }
 
 #[cfg(test)]
 mod tests {
+    use midiremap_core::PlanStatus;
+
     use super::*;
 
     #[test]
@@ -307,40 +363,99 @@ mod tests {
     }
 
     #[test]
-    fn preset_view_rejects_unknown_engines_and_bad_files() {
+    fn preset_view_names_an_unknown_engine_and_rejects_bad_files() {
         let catalog = Catalog::builtin();
         let unknown = FIXTURE.replace("ezdrummer", "gone_engine");
         assert_eq!(
-            preset_view(&unknown, &catalog).err().as_deref(),
-            Some("unknown engine 'gone_engine'")
+            preset_view(&unknown, &catalog).unwrap_err(),
+            WasmError {
+                kind: ErrorKind::UnknownEngine,
+                message: "unknown engine 'gone_engine'".to_owned(),
+                id: Some("gone_engine".to_owned()),
+            }
         );
-        assert!(preset_view("{}", &catalog).is_err());
+        assert_eq!(
+            preset_view("{}", &catalog).unwrap_err().kind,
+            ErrorKind::BadPreset
+        );
     }
 
     #[test]
-    fn missing_defaults_to_nearest_and_rejects_unknown_values() {
-        assert_eq!(missing_of(None), Ok(MissingDrums::Nearest));
-        assert_eq!(missing_of(Some("drop")), Ok(MissingDrums::Drop));
-        assert!(missing_of(Some("maybe")).is_err());
-    }
-
-    #[test]
-    fn voice_rows_carry_other_drum_and_the_drop_status() {
+    fn an_unknown_engine_error_names_its_role_and_id() {
         let catalog = Catalog::builtin();
-        let rows: Vec<VoiceRow> = core_plan(
-            catalog.get("ggd_invasion").unwrap(),
-            catalog.get("ezdrummer").unwrap(),
+        let err = voice_rows(
+            &catalog,
+            "nope",
+            "ezdrummer",
+            &Overrides::default(),
+            MissingDrums::Nearest,
+        )
+        .err()
+        .unwrap();
+        assert_eq!(
+            err,
+            WasmError {
+                kind: ErrorKind::UnknownEngine,
+                message: "unknown source engine 'nope'".to_owned(),
+                id: Some("nope".to_owned()),
+            }
+        );
+        let err = drums_of(&catalog, "gone", Role::Target).err().unwrap();
+        assert_eq!(err.message, "unknown target engine 'gone'");
+        assert_eq!(err.id.as_deref(), Some("gone"));
+    }
+
+    #[test]
+    fn a_wasm_error_serializes_its_kind_in_camel_case() {
+        let err = WasmError::new(ErrorKind::BadMidi, "not a MIDI file");
+        assert_eq!(
+            serde_json::to_value(&err).unwrap(),
+            serde_json::json!({ "kind": "badMidi", "message": "not a MIDI file", "id": null })
+        );
+    }
+
+    #[test]
+    fn conversion_errors_are_typed() {
+        let catalog = Catalog::builtin();
+        let kind_of = |mid: &[u8], channel: Option<&str>| {
+            convert_file(
+                &catalog,
+                mid,
+                "ggd_invasion",
+                "ezdrummer",
+                &Overrides::default(),
+                channel,
+                MissingDrums::Nearest,
+            )
+            .err()
+            .map(|e| e.kind)
+        };
+        assert_eq!(kind_of(b"nope", None), Some(ErrorKind::BadMidi));
+        assert_eq!(kind_of(b"nope", Some("17")), Some(ErrorKind::BadChannel));
+    }
+
+    #[test]
+    fn voice_rows_flatten_the_plan_and_add_the_label() {
+        let catalog = Catalog::builtin();
+        let rows = voice_rows(
+            &catalog,
+            "ggd_invasion",
+            "ezdrummer",
             &Overrides::default(),
             MissingDrums::Drop,
         )
-        .into_iter()
-        .map(VoiceRow::from)
-        .collect();
-        let china = rows.iter().find(|r| r.canon == "china.1.hit").unwrap();
-        assert!(china.other_drum);
-        assert_eq!(china.status, "dropped");
-        let kick = rows.iter().find(|r| r.canon == "kick.main").unwrap();
-        assert!(!kick.other_drum);
-        assert_eq!(kick.status, "direct");
+        .unwrap();
+        let find = |key: &str| {
+            rows.iter()
+                .find(|r| r.plan.canon.to_string() == key)
+                .unwrap()
+        };
+        let china = find("china.1.hit");
+        let json = serde_json::to_value(china).unwrap();
+        assert_eq!(json["status"], "dropped");
+        assert_eq!(json["otherDrum"], true);
+        assert_eq!(json["label"], china.plan.canon.label());
+        assert_eq!(json["tgtNote"], serde_json::Value::Null);
+        assert_eq!(find("kick.main").plan.status, PlanStatus::Direct);
     }
 }

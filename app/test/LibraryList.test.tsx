@@ -4,9 +4,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { LibraryList } from '../src/components/LibraryList';
 
 const engines = [
-  { id: 'addictive', name: 'Addictive Drums 2' },
-  { id: 'ggd_invasion', name: 'GGD Invasion' },
-  { id: 'ezdrummer', name: 'EZdrummer' },
+  { id: 'addictive', name: 'Addictive Drums 2', fullName: 'Addictive Drums 2' },
+  { id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GGD Invasion' },
+  { id: 'ezdrummer', name: 'EZdrummer', fullName: 'EZdrummer' },
 ];
 const noFav = { favorites: new Set<string>(), onToggleFavorite: () => {} };
 

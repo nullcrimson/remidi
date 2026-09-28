@@ -9,6 +9,11 @@ midly = "0.5"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1"
+tsify = { version = "0.5.8", default-features = false, features = ["js"], optional = true }
+wasm-bindgen = { version = "0.2", optional = true }
+
+[features]
+ts = ["dep:tsify", "dep:wasm-bindgen"]
 
 [dev-dependencies]
 toml = "0.8"

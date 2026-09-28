@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { engines, plan, ready, remap } from '../src/lib/midiremap';
+import { engineDrums, engines, plan, ready, remap, WasmCallError } from '../src/lib/midiremap';
 import * as stub from './stubs/wasm';
 import { REMAP_BYTES } from './stubs/wasm';
 
 describe('midiremap wrapper', () => {
-  it('lists engines', async () => {
+  it('lists engines with their full names', async () => {
     await ready();
     const ids = engines().map((e) => e.id);
     expect([...ids].sort()).toEqual(['ezdrummer', 'ggd_invasion']);
-    expect(engines().every((e) => typeof e.name === 'string' && e.name.length > 0)).toBe(true);
+    expect(engines().every((e) => e.name.length > 0 && e.fullName.length > 0)).toBe(true);
   });
 
-  it('maps plan rows to camelCase', () => {
+  it('returns plan rows as the module gives them', () => {
     const rows = plan('ggd_invasion', 'ezdrummer');
     const kick = rows.find((r) => r.canon === 'kick.main')!;
     expect(kick.srcNotes).toEqual([24]);
@@ -20,17 +20,10 @@ describe('midiremap wrapper', () => {
     expect(rows.find((r) => r.canon === 'china.1.hit')!.tgtNote).toBeNull();
   });
 
-  it('turns missing notes into null', () => {
-    const cc = plan('ggd_invasion', 'ezdrummer').find((r) => r.canon === 'hat.cc')!;
-    expect(cc.tgtNote).toBeNull();
-    expect(cc.defaultTgtNote).toBeNull();
-  });
-
-  it('applies a target override to the plan', () => {
-    const rows = plan('ggd_invasion', 'ezdrummer', {
-      tgt: [{ canon: 'kick.main', note: 35 }],
-      src: [],
-    });
+  it('passes overrides to the module as an object', () => {
+    const ov = { tgt: [{ canon: 'kick.main', note: 35 }], src: [] };
+    const rows = plan('ggd_invasion', 'ezdrummer', ov);
+    expect(stub.lastPlanOverrides).toEqual(ov);
     expect(rows.find((r) => r.canon === 'kick.main')!.tgtNote).toBe(35);
   });
 
@@ -42,10 +35,9 @@ describe('midiremap wrapper', () => {
     expect(rows.find((r) => r.canon === 'china.1.hit')!.srcNotes[0]).toBe(60);
   });
 
-  it('passes remap bytes through and camelCases the report', () => {
+  it('passes remap bytes and the report through', () => {
     const out = remap(new Uint8Array([0]), 'ggd_invasion', 'ezdrummer');
     expect(out.bytes).toBe(REMAP_BYTES);
-    expect(Array.from(out.bytes)).toEqual([77, 84, 104, 100]);
     expect(out.report.dropped).toEqual({ 'china.1.hit': 1 });
     expect(out.report.fallbackUsed).toEqual({ 'hat.open3': { note: 46, count: 2 } });
     expect(out.report.unmappedSource).toEqual({});
@@ -53,7 +45,7 @@ describe('midiremap wrapper', () => {
     expect(out.report.converted).toBe(40);
   });
 
-  it('passes the missing-drums choice to plan and maps other_drum', () => {
+  it('passes the missing-drums choice to plan', () => {
     const rows = plan('ggd_invasion', 'ezdrummer', undefined, 'drop');
     expect(stub.lastPlanMissing).toBe('drop');
     expect(rows.find((r) => r.canon === 'china.1.hit')!.otherDrum).toBe(true);
@@ -72,5 +64,17 @@ describe('midiremap wrapper', () => {
     expect(stub.lastRemapChannel).toBe('10');
     remap(new Uint8Array([0]), 'ggd_invasion', 'ezdrummer');
     expect(stub.lastRemapChannel).toBeUndefined();
+  });
+
+  it('turns a thrown module error into an Error with its kind and id', () => {
+    let err: unknown;
+    try {
+      engineDrums('nope');
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeInstanceOf(WasmCallError);
+    expect(err).toBeInstanceOf(Error);
+    expect(err).toMatchObject({ message: "unknown target engine 'nope'", kind: 'unknownEngine', id: 'nope' });
   });
 });

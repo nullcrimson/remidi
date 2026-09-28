@@ -5,6 +5,11 @@ use crate::{canon::Canon, note::Note};
 /// Edits layered over a source and a target engine; the last entry for a note or canon
 /// wins.
 #[derive(Deserialize, Default)]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
 pub struct Overrides {
     #[serde(default)]
     pub tgt: Vec<CanonNote>,
@@ -13,6 +18,11 @@ pub struct Overrides {
 }
 
 #[derive(Deserialize)]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
 pub struct CanonNote {
     pub canon: Canon,
     pub note: Note,
@@ -20,6 +30,11 @@ pub struct CanonNote {
 
 /// A source note played as `canon`, or no drum at all when `canon` is `None`.
 #[derive(Deserialize)]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
 pub struct SrcNote {
     pub note: Note,
     pub canon: Option<Canon>,

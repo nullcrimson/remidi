@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, fmt, str::FromStr};
 
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
 
 use crate::{
     canon::{fallback, Canon},
@@ -40,7 +40,13 @@ pub enum Resolution {
 }
 
 /// What happens to a drum the target engine lacks.
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
 pub enum MissingDrums {
     /// Play it on the nearest drum the target has.
     #[default]
@@ -146,14 +152,26 @@ pub fn resolve(canon: Canon, tgt: &EngineMap, missing: MissingDrums) -> CanonRes
 }
 
 #[derive(Serialize, Debug, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
 pub struct FallbackTally {
     pub note: Note,
     pub count: u32,
 }
 
 #[derive(Default, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
 pub struct Report {
     #[serde(serialize_with = "string_keys")]
+    #[cfg_attr(feature = "ts", tsify(type = "Record<string, number>"))]
     pub unmapped_source: BTreeMap<Note, u32>,
     pub fallback_used: BTreeMap<Canon, FallbackTally>,
     pub dropped: BTreeMap<Canon, u32>,
@@ -340,6 +358,19 @@ notes = [ {} ]",
     }
 
     #[test]
+    fn missing_drums_serializes_as_its_lowercase_name() {
+        assert_eq!(
+            serde_json::to_string(&MissingDrums::Drop).unwrap(),
+            r#""drop""#
+        );
+        assert_eq!(
+            serde_json::from_str::<MissingDrums>(r#""nearest""#).unwrap(),
+            MissingDrums::Nearest
+        );
+        assert!(serde_json::from_str::<MissingDrums>(r#""maybe""#).is_err());
+    }
+
+    #[test]
     fn missing_drums_parses_and_prints_its_two_values() {
         assert_eq!(MissingDrums::default(), MissingDrums::Nearest);
         for m in [MissingDrums::Nearest, MissingDrums::Drop] {
@@ -464,7 +495,7 @@ notes = [ {} ]",
         }
         assert_eq!(
             serde_json::to_string(&r).unwrap(),
-            r#"{"unmapped_source":{"5":2,"12":1,"99":1},"fallback_used":{},"dropped":{"china.1.hit":1,"splash.1.hit":1},"untouched":0,"converted":0}"#
+            r#"{"unmappedSource":{"5":2,"12":1,"99":1},"fallbackUsed":{},"dropped":{"china.1.hit":1,"splash.1.hit":1},"untouched":0,"converted":0}"#
         );
     }
 }

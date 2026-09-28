@@ -5,6 +5,7 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 /// A MIDI note number, always within `0..=127`.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify), tsify(type = "number"))]
 pub struct Note(u8);
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]

@@ -60,7 +60,8 @@ cargo run -p midiremap-cli -- convert in.mid ggd_invasion ezdrummer out.mid \
 ```
 
 `--preset` applies a preset exported from the app (⋯ → Export). The loss report is
-printed to stderr as JSON.
+printed to stderr as JSON (`unmappedSource`, `fallbackUsed`, `dropped`, `untouched`,
+`converted`).
 
 ## Adding an engine
 

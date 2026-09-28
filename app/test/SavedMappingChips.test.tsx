@@ -5,8 +5,8 @@ import { SavedMappingChips } from '../src/components/SavedMappingChips';
 import type { SavedMapping } from '../src/lib/mappings';
 
 const engines = [
-  { id: 'ggd_invasion', name: 'GGD Invasion' },
-  { id: 'ezdrummer', name: 'EZdrummer' },
+  { id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GGD Invasion' },
+  { id: 'ezdrummer', name: 'EZdrummer', fullName: 'EZdrummer' },
 ];
 
 const mapping: SavedMapping = {

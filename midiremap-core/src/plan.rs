@@ -1,5 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
+use serde::Serialize;
+
 use crate::{
     canon::Canon,
     engine_map::EngineMap,
@@ -9,7 +11,13 @@ use crate::{
     translate::{resolve, CanonResolution, Mapping, MissingDrums, Resolution},
 };
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
 pub enum PlanStatus {
     Direct,
     Fallback,
@@ -27,7 +35,13 @@ impl From<&CanonResolution> for PlanStatus {
 }
 
 /// One drum of the edit preview, derived from the same [`NoteTable`] the converter uses.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
 pub struct VoicePlan {
     pub canon: Canon,
     /// Source notes that play this drum: overridden notes, then the engine's primary note,
@@ -121,6 +135,27 @@ mod tests {
             &ov,
             missing,
         )
+    }
+
+    #[test]
+    fn a_voice_serializes_in_camel_case_with_null_for_no_note() {
+        let drop = ggd_to_ezd_with("{}", MissingDrums::Drop);
+        let json = serde_json::to_value(find(&drop, "china.1.hit")).unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "canon": "china.1.hit",
+                "srcNotes": json["srcNotes"],
+                "tgtNote": null,
+                "defaultTgtNote": null,
+                "status": "dropped",
+                "otherDrum": true,
+            })
+        );
+        assert!(json["srcNotes"].as_array().is_some_and(|a| !a.is_empty()));
+        let kick = serde_json::to_value(find(&drop, "kick.main")).unwrap();
+        assert_eq!(kick["status"], "direct");
+        assert_eq!(kick["tgtNote"], 36);
     }
 
     #[test]

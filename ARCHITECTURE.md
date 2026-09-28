@@ -37,7 +37,7 @@ Four crates, a web app, and embedded engine presets:
 |-------|------|------------|
 | `midiremap-core` | Pure engine. No I/O beyond parsing bytes handed to it. All the logic below. | `midly`, `serde`, `serde_json`, `thiserror` (`toml` at build time only) |
 | `midiremap-cli` | Offline `convert` / `list` binary. | core, `clap`, `anyhow` |
-| `midiremap-wasm` | Browser bindings for the web app. | core, `wasm-bindgen`, `serde-wasm-bindgen` |
+| `midiremap-wasm` | Browser bindings for the web app. | core (feature `ts`), `wasm-bindgen`, `tsify` |
 | `app/` | Vite + React + TypeScript converter UI over the WASM bindings. | Vite, React, Tailwind, Vitest |
 | `midiremap-site` | Static SEO pages (engine note maps, pair tables, FAQ / guide / legal pages) in the app's style. | core, `askama`, `serde_json` |
 | `engines/*.toml` | Preset note↔canon maps; core's `build.rs` converts them to one embedded JSON table. | — |
@@ -132,8 +132,9 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
   source notes, fallbacks used (with the target note each one landed on), and
   dropped canons; direct hits are not recorded. `converted` counts hits written to
   the output (direct or approximated); `untouched` counts note-ons the channel scope
-  left alone, which are not loss. Its `BTreeMap`s serialize in a
-  stable order, note keys as strings, so the CLI and WASM print the same JSON.
+  left alone, which are not loss. It serializes in camelCase (`unmappedSource`,
+  `fallbackUsed`, `dropped`, `untouched`, `converted`) with its `BTreeMap`s in a
+  stable order and note keys as strings, so the CLI and WASM print the same JSON.
 
 ### `table` — the single source of truth
 
@@ -293,10 +294,11 @@ prints available engine ids.
 
 `wasm-bindgen` exports for the browser app:
 
-- `remap(mid, src_id, tgt_id, overrides_json?, channel?, missing?) → { bytes, report }` —
-  `channel` is `auto` (the default), `all` or `1`-`16`; `missing` is `nearest` (the
-  default) or `drop`.
-- `plan(src_id, tgt_id, overrides_json?, missing?) → [{ canon, label, src_notes, tgt_note, default_tgt_note, status, other_drum }]`
+- `remap(mid, src_id, tgt_id, overrides?, channel?, missing?) → RemapOutput { bytes, report }` —
+  `overrides` is an `Overrides` object; `channel` is `auto` (the default), `all` or
+  `1`-`16`; `missing` is `nearest` (the default) or `drop`.
+- `plan(src_id, tgt_id, overrides?, missing?) → VoiceRow[]` — a core `VoicePlan`
+  (`canon, srcNotes, tgtNote, defaultTgtNote, status, otherDrum`) plus its `label`.
 - `engine_catalog() → [{ id, name, fullName }]` — `name` is the display name,
   `fullName` the catalog name.
 - `engine_drums(tgt_id) → [{ note, canon, label, family }]` — the target's playable
@@ -309,11 +311,18 @@ prints available engine ids.
   file for import, engines resolved to current ids; an unknown engine is an error.
 - A `start` function installs `console_error_panic_hook`, so a panic prints its message.
 
-Every export serializes through one helper that writes maps as objects and missing
-values as `null`. `remap` calls `convert` with the parsed `ChannelScope` and serializes `Report` directly:
-canons serialize to their dotted keys and notes to strings, so every map becomes a
-plain JS object (the serializer emits maps as objects), and converted bytes arrive
-as a `Uint8Array`.
+One contract, generated from Rust. Every value crossing the boundary is a serde type
+that also derives `tsify::Tsify` (in core behind the opt-in feature `ts`, which only
+this crate enables), and crosses as `Ts<T>`, so wasm-bindgen writes the real
+TypeScript types into `midiremap_wasm.d.ts` instead of `any`. Each type declares
+`missing_as_null` and `hashmap_as_object`, so the declared type and the runtime value
+agree: missing notes are `null`, maps are plain objects, `Note` is `number`, `Canon`
+is `string`, converted bytes are a `Uint8Array`. A field renamed in Rust changes the
+`.d.ts`, and the app's `tsc` fails.
+
+Every export throws a `WasmError { kind, message, id }`; `kind` is `unknownEngine`
+(`id` names the engine), `badOverrides`, `badMissing`, `badChannel`, `badMidi`,
+`badPreset` or `internal`.
 
 ### Web app (`app/`)
 
@@ -322,9 +331,9 @@ touches `.mid` bytes or the WASM edge directly; both are isolated so the rest of
 the UI is pure data.
 
 - **`lib/`** — framework-free logic and the boundary. `midiremap.ts` is the sole
-  WASM adapter: a single init promise, `unknown → typed` casts confined here, and
-  snake→camel normalization of the report and plan so the app never sees raw
-  bindings. Sibling pure modules cover notes, mapping (de)serialization, the loss
+  WASM adapter: a single init promise, the generated types re-exported under the
+  app's names, and a thrown `WasmError` turned into a `WasmCallError` (an `Error`
+  with `kind` and `id`). Sibling pure modules cover notes, mapping (de)serialization, the loss
   report builder, override assembly, file naming, and zipping.
 - **Conversion off the main thread.** `converter.ts` sends each batch to one module
   Web Worker (`convertWorker.ts`), which loads the WASM itself and runs the shared

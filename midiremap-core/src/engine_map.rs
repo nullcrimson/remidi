@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     canon::Canon,
@@ -40,6 +40,12 @@ pub struct EngineMap {
     from_canon: HashMap<Canon, Note>,
 }
 
+#[derive(Serialize)]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
 pub struct Drum {
     pub note: Note,
     pub canon: Canon,
@@ -239,6 +245,15 @@ mod tests {
         assert_eq!(d[0].family, "Kick");
         assert_eq!(d[1].note, n(26));
         assert_eq!(d[1].family, "Snare");
+    }
+
+    #[test]
+    fn a_drum_serializes_its_note_canon_label_and_family() {
+        let m = from_toml(SAMPLE).unwrap();
+        assert_eq!(
+            serde_json::to_value(&m.drums()[0]).unwrap(),
+            serde_json::json!({ "note": 24, "canon": "kick.main", "label": "Kick", "family": "Kick" })
+        );
     }
 
     #[test]

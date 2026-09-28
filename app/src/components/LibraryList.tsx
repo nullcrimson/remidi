@@ -34,7 +34,7 @@ export function LibraryList({
   favorites: Set<string>;
   onToggleFavorite: (id: string) => void;
 }) {
-  const { q, setQ, filtered } = useFilter(engines, (e) => `${e.name} ${e.fullName ?? ''}`);
+  const { q, setQ, filtered } = useFilter(engines, (e) => `${e.name} ${e.fullName}`);
   const { show, hide, tooltip } = useTruncationTooltip();
   const listRef = useRef<HTMLDivElement>(null);
   const baseId = useId();
@@ -135,7 +135,7 @@ export function LibraryList({
       >
         <span
           onMouseEnter={(ev) =>
-            show(ev.currentTarget, e.fullName ?? e.name, e.fullName !== undefined && e.fullName !== e.name)}
+            show(ev.currentTarget, e.fullName, e.fullName !== e.name)}
           onMouseLeave={hide}
           className="
             min-w-0 flex-1 self-center truncate py-1.75 pl-3 text-ui/tight

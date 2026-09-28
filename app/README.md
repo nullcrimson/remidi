@@ -32,15 +32,20 @@ Deploy the static contents of `app/dist/` to any static host.
 ## Test
 
 ```bash
-npm run test     # Vitest; WASM is stubbed, no build required
+npm run test     # Vitest; needs npm run build:wasm once (the contract test loads the real module)
 ```
 
 ## How it works
 
 - `scripts/build-wasm.mjs` — builds the wasm crate and runs `wasm-bindgen --target web`
-  into `src/wasm/` (gitignored). Node (not bash) so `cargo`/`wasm-bindgen` resolve
-  from PATH on Windows too.
-- `src/lib/midiremap.ts` — typed wrapper: `ready()`, `engines()`, `plan()`, `remap()`.
+  into `src/wasm/` (gitignored), then type-checks the generated `.d.ts` on its own
+  (the app's `tsconfig` skips library checks, which would hide a broken reference).
+  Node (not bash) so `cargo`/`wasm-bindgen` resolve from PATH on Windows too.
+- `src/lib/midiremap.ts` — typed wrapper: `ready()`, `engines()`, `plan()`, `remap()`;
+  its types are generated from Rust, and module errors become `WasmCallError`.
+- `test/stubs/wasm.ts` — the WASM stand-in for component tests; each export is typed
+  as the real one. `test/wasm.contract.test.ts` loads the real module and checks its
+  shapes and errors, and that the stub returns the same fields and real drum keys.
 - `src/lib/notes.ts` — note-name / octave helpers (octave base is display-only).
 - `src/lib/overrides.ts` — per-voice target edits → overrides doc.
 - `src/lib/missing.ts` — the missing-drums setting (Nearest / Drop) and its hint.

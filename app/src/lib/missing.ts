@@ -1,7 +1,7 @@
-import type { VoiceRow } from './midiremap';
+import type { MissingDrums, VoiceRow } from './midiremap';
 
-/** What a conversion does with a drum the target lacks; the exact values the converter parses. */
-export type Missing = 'nearest' | 'drop';
+/** What a conversion does with a drum the target lacks, as the converter defines it. */
+export type Missing = MissingDrums;
 
 /** Where the choice was kept before it moved into the session; read once, then removed. */
 export const MISSING_KEY = 'midiremap:missing';

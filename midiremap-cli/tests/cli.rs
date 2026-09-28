@@ -91,7 +91,7 @@ fn converts_a_file_end_to_end() {
         String::from_utf8_lossy(&out.stderr)
     );
     let err = String::from_utf8_lossy(&out.stderr);
-    assert!(err.contains("unmapped_source"), "report missing: {err}");
+    assert!(err.contains("unmappedSource"), "report missing: {err}");
 
     let bytes = std::fs::read(&out_path).unwrap();
     let smf = Smf::parse(&bytes).unwrap();

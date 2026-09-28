@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { preselection } from '../src/lib/preselect';
 
 const ENGINES = [
-  { id: 'ggd_invasion', name: 'GGD Invasion' },
-  { id: 'ezdrummer', name: 'EZdrummer' },
+  { id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GGD Invasion' },
+  { id: 'ezdrummer', name: 'EZdrummer', fullName: 'EZdrummer' },
 ];
 
 describe('preselection', () => {
