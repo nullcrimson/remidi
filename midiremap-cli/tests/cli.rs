@@ -8,19 +8,23 @@ use midly::{
 const BIN: &str = env!("CARGO_BIN_EXE_midiremap");
 
 fn one_kick_smf() -> Vec<u8> {
+    one_note_smf(24)
+}
+
+fn one_note_smf(note: u8) -> Vec<u8> {
     let mut track = Track::new();
     for (delta, msg) in [
         (
             0u32,
             MidiMessage::NoteOn {
-                key: u7::from_int_lossy(24),
+                key: u7::from_int_lossy(note),
                 vel: u7::from_int_lossy(100),
             },
         ),
         (
             48,
             MidiMessage::NoteOff {
-                key: u7::from_int_lossy(24),
+                key: u7::from_int_lossy(note),
                 vel: u7::from_int_lossy(0),
             },
         ),
@@ -167,4 +171,72 @@ fn invalid_overrides_file_fails_with_its_path() {
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(err.contains("invalid overrides"), "stderr: {err}");
     assert!(err.contains("0..=127"), "stderr: {err}");
+}
+
+fn note_ons(bytes: &[u8]) -> Vec<u8> {
+    Smf::parse(bytes).unwrap().tracks[0]
+        .iter()
+        .filter_map(|ev| match ev.kind {
+            TrackEventKind::Midi {
+                message: MidiMessage::NoteOn { key, vel },
+                ..
+            } if vel.as_int() > 0 => Some(key.as_int()),
+            _ => None,
+        })
+        .collect()
+}
+
+fn convert_china(name: &str, extra: &[&str]) -> (std::process::Output, Vec<u8>) {
+    let dir = std::env::temp_dir();
+    let pid = std::process::id();
+    let in_path = dir.join(format!("midiremap_{name}_in_{pid}.mid"));
+    let out_path = dir.join(format!("midiremap_{name}_out_{pid}.mid"));
+    std::fs::write(&in_path, one_note_smf(65)).unwrap();
+    let out = Command::new(BIN)
+        .args([
+            "convert",
+            in_path.to_str().unwrap(),
+            "ggd_invasion",
+            "ezdrummer",
+            out_path.to_str().unwrap(),
+        ])
+        .args(extra)
+        .output()
+        .unwrap();
+    let bytes = std::fs::read(&out_path).unwrap_or_default();
+    for p in [in_path, out_path] {
+        let _ = std::fs::remove_file(p);
+    }
+    (out, bytes)
+}
+
+#[test]
+fn missing_drums_default_to_the_nearest_drum() {
+    let (out, bytes) = convert_china("missing_default", &[]);
+    assert!(out.status.success());
+    assert_eq!(note_ons(&bytes), vec![86]);
+}
+
+#[test]
+fn missing_drop_leaves_a_swapped_drum_out() {
+    let (out, bytes) = convert_china("missing_drop", &["--missing", "drop"]);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(note_ons(&bytes).is_empty());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("china.1.hit"), "report: {err}");
+}
+
+#[test]
+fn unknown_missing_value_is_rejected() {
+    let (out, _) = convert_china("missing_bad", &["--missing", "maybe"]);
+    assert!(!out.status.success());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("nearest") && err.contains("drop"),
+        "stderr: {err}"
+    );
 }

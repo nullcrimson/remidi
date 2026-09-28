@@ -262,6 +262,19 @@ impl Canon {
     pub fn all() -> &'static [Canon] {
         &ALL
     }
+
+    /// Whether `other` is the same physical drum or cymbal, only played another way.
+    pub fn same_drum(self, other: Canon) -> bool {
+        match (self, other) {
+            (Self::Kick(_), Self::Kick(_)) | (Self::Hat(..), Self::Hat(..)) => true,
+            (Self::Snare(a, _), Self::Snare(b, _)) | (Self::Ride(a, _), Self::Ride(b, _)) => a == b,
+            (Self::Tom(a, _), Self::Tom(b, _)) => a == b,
+            (Self::Aux(a, ..), Self::Aux(b, ..)) => a == b,
+            (Self::Cymbal(a, _), Self::Cymbal(b, _)) => a == b,
+            (Self::Perc(a), Self::Perc(b)) => a == b,
+            _ => false,
+        }
+    }
 }
 
 fn kick_kind_key(k: KickKind) -> &'static str {
@@ -857,6 +870,52 @@ mod tests {
                 }
             }
             assert!(chain.len() < Canon::all().len());
+        }
+    }
+
+    #[test]
+    fn same_drum_joins_ways_of_playing_one_instrument() {
+        for (a, b) in [
+            ("kick.left", "kick.main"),
+            ("kick.alt", "kick.main"),
+            ("snare2.rimshot", "snare2.hit"),
+            ("tom.rack4.rim", "tom.rack4.hit"),
+            ("hat.open3.bell", "hat.closed"),
+            ("hat.pedal", "hat.closed"),
+            ("aux1.open5", "aux1.closed"),
+            ("china.2.mute", "china.2.hit"),
+            ("ride.1.bell", "ride.1"),
+            ("perc.cowbell", "perc.cowbell"),
+        ] {
+            assert!(k(a).same_drum(k(b)), "{a} ~ {b}");
+            assert!(k(b).same_drum(k(a)), "{b} ~ {a}");
+        }
+    }
+
+    #[test]
+    fn same_drum_separates_swaps() {
+        for (a, b) in [
+            ("tom.rack4.hit", "tom.rack3.hit"),
+            ("snare2.hit", "snare1.hit"),
+            ("china.1.hit", "crash.1.hit"),
+            ("splash.1.hit", "crash.1.hit"),
+            ("stack.1.hit", "crash.1.hit"),
+            ("crash.3.hit", "crash.2.hit"),
+            ("ride.2", "ride.1"),
+            ("ride.1", "crash.1.hit"),
+            ("bell.1.hit", "ride.1.bell"),
+            ("aux1.closed", "hat.closed"),
+            ("perc.cowbell", "perc.clap"),
+        ] {
+            assert!(!k(a).same_drum(k(b)), "{a} !~ {b}");
+            assert!(!k(b).same_drum(k(a)), "{b} !~ {a}");
+        }
+    }
+
+    #[test]
+    fn every_canon_is_its_own_drum() {
+        for &c in Canon::all() {
+            assert!(c.same_drum(c), "{c}");
         }
     }
 

@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashSet};
 
 use midiremap_core::{
-    Canon, CanonResolution, Catalog, EngineMap, Mapping, Note, Overrides, Resolution,
+    Canon, CanonResolution, Catalog, EngineMap, Mapping, MissingDrums, Note, Overrides, Resolution,
 };
 
 use crate::{
@@ -231,7 +231,7 @@ fn target(tgt: &EngineMap, note: Note, fallback: Canon) -> Target {
 }
 
 fn pair_rows(src: &EngineMap, tgt: &EngineMap) -> Vec<PairRow> {
-    let mapping = Mapping::new(src, tgt, &Overrides::default());
+    let mapping = Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest);
     let mut rows: Vec<PairRow> =
         src.source_notes()
             .into_iter()
@@ -604,7 +604,7 @@ mod tests {
             for row in &p.rows {
                 let out = convert(
                     &one_note(row.note),
-                    &Mapping::new(src, tgt, &Overrides::default()),
+                    &Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest),
                     ChannelScope::Auto,
                 )
                 .unwrap();

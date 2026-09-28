@@ -37,14 +37,17 @@ export function canon_catalog(): unknown {
 }
 
 const BASE_ROWS = [
-  { canon: 'kick.main', label: 'Kick', src_notes: [24], tgt_note: 36, default_tgt_note: 36, status: 'direct' },
-  { canon: 'snare1.hit', label: 'Snare', src_notes: [26], tgt_note: 38, default_tgt_note: 38, status: 'direct' },
-  { canon: 'hat.open3', label: 'Hi-Hat Open 3', src_notes: [47], tgt_note: 46, default_tgt_note: 46, status: 'fallback' },
-  { canon: 'china.1.hit', label: 'China 1', src_notes: [59], tgt_note: null, default_tgt_note: null, status: 'dropped' },
-  { canon: 'hat.cc', label: 'Hi-Hat CC', src_notes: [4], tgt_note: undefined, default_tgt_note: undefined, status: 'dropped' },
+  { canon: 'kick.main', label: 'Kick', src_notes: [24], tgt_note: 36, default_tgt_note: 36, status: 'direct', other_drum: false },
+  { canon: 'snare1.hit', label: 'Snare', src_notes: [26], tgt_note: 38, default_tgt_note: 38, status: 'direct', other_drum: false },
+  { canon: 'hat.open3', label: 'Hi-Hat Open 3', src_notes: [47], tgt_note: 46, default_tgt_note: 46, status: 'fallback', other_drum: false },
+  { canon: 'china.1.hit', label: 'China 1', src_notes: [59], tgt_note: null, default_tgt_note: null, status: 'dropped', other_drum: true },
+  { canon: 'hat.cc', label: 'Hi-Hat CC', src_notes: [4], tgt_note: undefined, default_tgt_note: undefined, status: 'dropped', other_drum: false },
 ];
 
-export function plan(_src: string, _tgt: string, overridesJson?: string): unknown {
+export let lastPlanMissing: string | undefined;
+
+export function plan(_src: string, _tgt: string, overridesJson?: string, missing?: string): unknown {
+  lastPlanMissing = missing;
   const rows = BASE_ROWS.map((r) => ({ ...r, src_notes: [...r.src_notes] }));
   if (overridesJson) {
     const ov = JSON.parse(overridesJson) as {
@@ -65,6 +68,7 @@ export function plan(_src: string, _tgt: string, overridesJson?: string): unknow
 }
 
 export let lastRemapChannel: string | undefined;
+export let lastRemapMissing: string | undefined;
 
 export const REMAP_BYTES = new Uint8Array([77, 84, 104, 100]);
 
@@ -74,8 +78,10 @@ export function remap(
   _tgt: string,
   _overridesJson?: string,
   channel?: string,
+  missing?: string,
 ): unknown {
   lastRemapChannel = channel;
+  lastRemapMissing = missing;
   return {
     bytes: REMAP_BYTES,
     report: {

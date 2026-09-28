@@ -2,6 +2,7 @@ import { useCallback, useEffect, useReducer, useRef } from 'react';
 import type { Channel } from '../lib/channel';
 import { convertBatch } from '../lib/converter';
 import type { Overrides } from '../lib/midiremap';
+import type { Missing } from '../lib/missing';
 import { MID_EXT, type FileFailure, type FileResult, type LoadedFile } from '../lib/files';
 
 export type Conv
@@ -70,7 +71,8 @@ function baseName(name: string): string {
 
 /**
  * Files and their conversion. `settingsKey` identifies everything a result depends on
- * besides the files; a result made under another key reads as idle.
+ * besides the files; a result made under another key reads as idle. Each run names the key
+ * it converts under, so a run started together with a settings change is not stale.
  */
 export function useConverter(src: string, tgt: string, settingsKey: string) {
   const [{ files, skipped, conv: stored }, dispatch] = useReducer(reducer, INITIAL);
@@ -109,13 +111,17 @@ export function useConverter(src: string, tgt: string, settingsKey: string) {
   }, []);
 
   const convert = useCallback(
-    async (ov: Overrides, channel: Channel): Promise<FileResult[] | null> => {
+    async (
+      ov: Overrides,
+      channel: Channel,
+      missing: Missing,
+      key: string,
+    ): Promise<FileResult[] | null> => {
       if (files.length === 0 || !src || !tgt) return null;
       const run = ++nextRun.current;
       activeRun.current = run;
-      const key = settingsKey;
       dispatch({ type: 'CONVERT_START', key });
-      const batch = await convertBatch(files, src, tgt, ov, channel);
+      const batch = await convertBatch(files, src, tgt, ov, channel, missing);
       if (activeRun.current !== run) return null;
       const ok: FileResult[] = batch.ok.map(({ name, bytes, report }) => ({
         name: `${baseName(name)}-${tgt}.mid`,
@@ -134,7 +140,7 @@ export function useConverter(src: string, tgt: string, settingsKey: string) {
         });
       return ok;
     },
-    [files, src, tgt, settingsKey],
+    [files, src, tgt],
   );
 
   const results = conv.kind === 'done' ? conv.results : [];

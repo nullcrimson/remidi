@@ -183,12 +183,14 @@ export function ReportModal({
   onPickTarget,
   onAssignSource,
   onChannel,
+  onDropMissing,
 }: {
   open: boolean;
   onClose: () => void;
   view: ReportView;
   sourceName: string;
   targetName: string;
+  onDropMissing?: () => void;
 } & ReportFixes) {
   const detailFiles = view.files.filter(hasDetail);
   const names = { source: sourceName, target: targetName };
@@ -212,6 +214,18 @@ export function ReportModal({
         <Headline view={view} targetName={targetName} />
         {(hasLoss(view.groups) || view.totals.untouched > 0) && (
           <GroupList groups={view.groups} untouched={view.totals.untouched} names={names} fixes={fixes} />
+        )}
+        {onDropMissing && (
+          <div>
+            <TextButton
+              onClick={() => {
+                onDropMissing();
+                onClose();
+              }}
+            >
+              Drop missing drums &amp; convert again
+            </TextButton>
+          </div>
         )}
         {view.files.length > 1 && detailFiles.length > 0 && (
           <div className="flex flex-col gap-4 border-t border-hairline pt-4">

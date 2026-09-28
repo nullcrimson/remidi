@@ -48,13 +48,37 @@ const cleanWithUnchanged: ReportView = {
   ],
 };
 
-function show(view: ReportView) {
+function show(view: ReportView, onDropMissing?: () => void) {
   const handlers = { onClose: vi.fn(), onPickTarget: vi.fn(), onAssignSource: vi.fn(), onChannel: vi.fn() };
-  render(<ReportModal open view={view} targetName="EZdrummer" sourceName="GGD Invasion" {...handlers} />);
+  render(
+    <ReportModal
+      open
+      view={view}
+      targetName="EZdrummer"
+      sourceName="GGD Invasion"
+      onDropMissing={onDropMissing}
+      {...handlers}
+    />,
+  );
   return handlers;
 }
 
 describe('ReportModal', () => {
+  it('offers to drop missing drums and convert again once, then closes', async () => {
+    const onDropMissing = vi.fn();
+    const h = show(lossy, onDropMissing);
+    const buttons = screen.getAllByRole('button', { name: 'Drop missing drums & convert again' });
+    expect(buttons).toHaveLength(1);
+    await userEvent.click(buttons[0]);
+    expect(onDropMissing).toHaveBeenCalledOnce();
+    expect(h.onClose).toHaveBeenCalled();
+  });
+
+  it('has no drop link unless asked to', () => {
+    show(lossy);
+    expect(screen.queryByRole('button', { name: /Drop missing drums/ })).not.toBeInTheDocument();
+  });
+
   it('shows the clean message when nothing was lost', () => {
     show(clean);
     expect(screen.getByText(/Clean conversion/i)).toBeInTheDocument();

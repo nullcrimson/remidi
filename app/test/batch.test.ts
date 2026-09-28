@@ -20,6 +20,7 @@ describe('runBatch', () => {
       'ezdrummer',
       undefined,
       'auto',
+      'nearest',
       remap,
     );
     expect(result.ok.map((c) => [c.name, Array.from(c.bytes)])).toEqual([
@@ -29,13 +30,13 @@ describe('runBatch', () => {
     expect(result.failed).toEqual([{ name: 'broken.mid', error: 'Error: bad midi' }]);
   });
 
-  it('passes engines, overrides and channel through to remap', () => {
+  it('passes engines, overrides, channel and missing drums through to remap', () => {
     const calls: unknown[][] = [];
     const ov = { tgt: [{ canon: 'kick.main', note: 35 }], src: [] };
-    runBatch([{ name: 'a.mid', bytes: new Uint8Array([1]) }], 's', 't', ov, '10', (...args) => {
+    runBatch([{ name: 'a.mid', bytes: new Uint8Array([1]) }], 's', 't', ov, '10', 'drop', (...args) => {
       calls.push(args.slice(1));
       return { bytes: new Uint8Array(), report: REPORT };
     });
-    expect(calls).toEqual([['s', 't', ov, '10']]);
+    expect(calls).toEqual([['s', 't', ov, '10', 'drop']]);
   });
 });

@@ -1,4 +1,4 @@
-use midiremap_core::{convert, Catalog, ChannelScope, Converted, Mapping, Overrides};
+use midiremap_core::{convert, Catalog, ChannelScope, Converted, Mapping, MissingDrums, Overrides};
 use midly::{
     num::{u15, u28, u4, u7},
     Format, Header, MidiMessage, Smf, Timing, Track, TrackEvent, TrackEventKind,
@@ -98,7 +98,12 @@ fn track_events(bytes: &[u8], index: usize) -> Vec<Ev> {
 fn ggd_to_ezd(midi: &[u8], scope: ChannelScope) -> Converted {
     let b = Catalog::builtin();
     let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
-    convert(midi, &Mapping::new(src, tgt, &Overrides::default()), scope).unwrap()
+    convert(
+        midi,
+        &Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest),
+        scope,
+    )
+    .unwrap()
 }
 
 #[test]

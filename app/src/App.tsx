@@ -8,6 +8,7 @@ import { EditView } from './components/EditView';
 import { FileChips } from './components/FileChips';
 import { IconButton } from './components/IconButton';
 import { LibraryList } from './components/LibraryList';
+import { MissingDrumsSetting } from './components/MissingDrumsSetting';
 import { OctaveToggle } from './components/OctaveToggle';
 import { ReportModal } from './components/ReportModal';
 import { SavedMappingChips } from './components/SavedMappingChips';
@@ -29,6 +30,7 @@ import {
   MAIN_ID,
 } from './lib/focusIds';
 import { shortCode } from './lib/format';
+import { missingHint, swappedCanons } from './lib/missing';
 import { buildReport } from './lib/report';
 
 function Page({ wide = false, children }: { wide?: boolean; children: ReactNode }) {
@@ -112,6 +114,11 @@ export default function App() {
     () => buildReport(c.results, c.editor.canonOptions, c.editor.targetDrums, c.oct),
     [c.results, c.editor.canonOptions, c.editor.targetDrums, c.oct],
   );
+  const swapped = useMemo(() => swappedCanons(c.editor.rows), [c.editor.rows]);
+  const canDropMissing
+    = c.missing === 'nearest'
+      && reportView.groups.approximated.some((e) => e.canon !== undefined && swapped.has(e.canon));
+  const dropMissing = canDropMissing ? () => void c.dropMissingAndConvert() : undefined;
   const targetName = c.engines.find((e) => e.id === c.tgt)?.name ?? c.tgt;
   const sourceName = c.engines.find((e) => e.id === c.src)?.name ?? c.src;
 
@@ -251,10 +258,16 @@ export default function App() {
                 <div className="
                   grid grid-cols-1 gap-5.5
                   sm:grid-cols-2
+                  lg:grid-cols-3
                 "
                 >
                   <OctaveToggle value={c.oct} onChange={c.setOct} />
                   <ChannelSelect value={c.channel} onChange={c.setChannel} />
+                  <MissingDrumsSetting
+                    value={c.missing}
+                    hint={missingHint(c.missing, c.editor.rows)}
+                    onChange={c.setMissing}
+                  />
                 </div>
 
                 {bothSelected && (
@@ -274,6 +287,7 @@ export default function App() {
                         targetName={targetName}
                         targetShort={targetShort}
                         onViewReport={() => setReportOpen(true)}
+                        onDropMissing={dropMissing}
                         onConvertMore={() => {
                           flushSync(() => c.clearFiles());
                           focusById(FILE_PICKER_ID);
@@ -319,6 +333,7 @@ export default function App() {
           c.setView('edit');
         }}
         onChannel={() => document.getElementById(CHANNEL_SELECT_ID)?.focus()}
+        onDropMissing={dropMissing}
       />
     </Page>
   );

@@ -47,10 +47,12 @@ describe('useRemapper edit path', () => {
     expect(result.current.editor.pick).toBeNull();
     expect(result.current.editor.edits.KickMain).toBe(50);
     expect(result.current.editor.remappedCount).toBe(1);
-    expect(planMock).toHaveBeenCalledWith('ggd_invasion', 'ezdrummer', {
-      tgt: [{ canon: 'KickMain', note: 50 }],
-      src: [],
-    });
+    expect(planMock).toHaveBeenCalledWith(
+      'ggd_invasion',
+      'ezdrummer',
+      { tgt: [{ canon: 'KickMain', note: 50 }], src: [] },
+      'nearest',
+    );
   });
 
   it('sets an absolute target note from the drum list', async () => {

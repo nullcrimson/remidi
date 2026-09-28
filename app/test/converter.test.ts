@@ -42,12 +42,13 @@ describe('createConverter', () => {
     const { convert } = createConverter(make);
     expect(make).not.toHaveBeenCalled();
 
-    const first = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto');
-    const second = convert(FILES, 'ggd_invasion', 'superior_drummer3', undefined, '10');
+    const first = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest');
+    const second = convert(FILES, 'ggd_invasion', 'superior_drummer3', undefined, '10', 'drop');
     expect(make).toHaveBeenCalledOnce();
     expect(worker.sent.map((m) => m.tgt)).toEqual(['ezdrummer', 'superior_drummer3']);
     expect(worker.sent[0].files).toEqual(FILES);
     expect(worker.sent.map((m) => m.channel)).toEqual(['auto', '10']);
+    expect(worker.sent.map((m) => m.missing)).toEqual(['nearest', 'drop']);
 
     worker.reply(worker.sent[1].id, 'second');
     worker.reply(worker.sent[0].id, 'first');
@@ -60,10 +61,11 @@ describe('createConverter', () => {
     const { convert } = createConverter(() => {
       throw new ReferenceError('Worker is not defined');
     });
-    const result = await convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'all');
+    const result = await convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'all', 'nearest');
     expect(Array.from(result.ok[0].bytes)).toEqual([7]);
     expect(remapMock).toHaveBeenCalledOnce();
     expect(remapMock.mock.calls[0][4]).toBe('all');
+    expect(remapMock.mock.calls[0][5]).toBe('nearest');
   });
 
   it('finishes pending and later batches on the main thread after a worker error', async () => {
@@ -71,13 +73,13 @@ describe('createConverter', () => {
     const make = vi.fn(() => worker as unknown as Worker);
     const { convert } = createConverter(make);
 
-    const pending = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, '3');
+    const pending = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, '3', 'nearest');
     worker.onerror?.(new Event('error'));
     expect(Array.from((await pending).ok[0].bytes)).toEqual([7]);
     expect(remapMock.mock.calls[0][4]).toBe('3');
     expect(worker.terminated).toBe(true);
 
-    await convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto');
+    await convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest');
     expect(make).toHaveBeenCalledOnce();
     expect(remapMock).toHaveBeenCalledTimes(2);
   });

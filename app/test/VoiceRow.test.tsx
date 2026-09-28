@@ -15,7 +15,7 @@ const base = {
   result: { text: 'direct', tone: 'text-t5' },
 };
 
-const kick = { canon: 'KickMain', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct' as const };
+const kick = { canon: 'KickMain', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct' as const, otherDrum: false };
 
 describe('VoiceRow', () => {
   it('shows the drum label plus source and target note buttons', () => {
@@ -42,7 +42,7 @@ describe('VoiceRow', () => {
   it('shows a dash for a dropped target but keeps the source chip', () => {
     render(
       <VoiceRow
-        row={{ canon: 'China', label: 'China', srcNotes: [59], tgtNote: null, defaultTgtNote: null, status: 'dropped' }}
+        row={{ canon: 'China', label: 'China', srcNotes: [59], tgtNote: null, defaultTgtNote: null, status: 'dropped', otherDrum: false }}
         effectiveTgt={null}
         {...base}
       />,

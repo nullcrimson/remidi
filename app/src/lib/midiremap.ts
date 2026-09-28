@@ -1,4 +1,5 @@
 import type { Channel } from './channel';
+import type { Missing } from './missing';
 
 type WasmModule = typeof import('@wasm');
 
@@ -33,6 +34,8 @@ export interface VoiceRow {
   tgtNote: number | null;
   defaultTgtNote: number | null;
   status: VoiceStatus;
+  /** The target lacks this drum and its nearest stand-in is another drum. */
+  otherDrum: boolean;
 }
 export interface FallbackTally {
   note: number;
@@ -65,6 +68,7 @@ interface RawVoiceRow {
   tgt_note?: number | null;
   default_tgt_note?: number | null;
   status: VoiceStatus;
+  other_drum: boolean;
 }
 
 let wasm: WasmModule | null = null;
@@ -102,8 +106,8 @@ export function canonCatalog(): CanonInfo[] {
   return mod().canon_catalog() as CanonInfo[];
 }
 
-export function plan(src: string, tgt: string, ov?: Overrides): VoiceRow[] {
-  const raw = mod().plan(src, tgt, ov ? JSON.stringify(ov) : undefined) as RawVoiceRow[];
+export function plan(src: string, tgt: string, ov?: Overrides, missing?: Missing): VoiceRow[] {
+  const raw = mod().plan(src, tgt, ov ? JSON.stringify(ov) : undefined, missing) as RawVoiceRow[];
   return raw.map((r) => ({
     canon: r.canon,
     label: r.label,
@@ -111,6 +115,7 @@ export function plan(src: string, tgt: string, ov?: Overrides): VoiceRow[] {
     tgtNote: r.tgt_note ?? null,
     defaultTgtNote: r.default_tgt_note ?? null,
     status: r.status,
+    otherDrum: r.other_drum,
   }));
 }
 
@@ -120,8 +125,9 @@ export function remap(
   tgt: string,
   ov?: Overrides,
   channel?: Channel,
+  missing?: Missing,
 ): RemapResult {
-  const r = mod().remap(mid, src, tgt, ov ? JSON.stringify(ov) : undefined, channel) as {
+  const r = mod().remap(mid, src, tgt, ov ? JSON.stringify(ov) : undefined, channel, missing) as {
     bytes: Uint8Array<ArrayBuffer>;
     report: RawRemapReport;
   };

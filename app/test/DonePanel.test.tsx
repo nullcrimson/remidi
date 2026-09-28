@@ -31,6 +31,7 @@ function renderPanel({
   report = view(),
   onViewReport = vi.fn(),
   onConvertMore = vi.fn(),
+  onDropMissing = undefined as (() => void) | undefined,
 } = {}) {
   render(
     <DonePanel
@@ -41,12 +42,22 @@ function renderPanel({
       targetShort="EZD"
       onViewReport={onViewReport}
       onConvertMore={onConvertMore}
+      onDropMissing={onDropMissing}
     />,
   );
   return { onViewReport, onConvertMore };
 }
 
 describe('DonePanel', () => {
+  it('offers to drop missing drums and convert again only when asked to', async () => {
+    renderPanel();
+    expect(screen.queryByRole('button', { name: /Drop missing drums/ })).not.toBeInTheDocument();
+    const onDropMissing = vi.fn();
+    renderPanel({ onDropMissing });
+    await userEvent.click(screen.getByRole('button', { name: 'Drop missing drums & convert again' }));
+    expect(onDropMissing).toHaveBeenCalledOnce();
+  });
+
   it('names the result and offers the file as the primary download', () => {
     renderPanel();
     expect(screen.getByText('1 file converted → Toontrack EZdrummer 3')).toBeInTheDocument();

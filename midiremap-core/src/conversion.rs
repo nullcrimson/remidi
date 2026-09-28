@@ -37,7 +37,11 @@ mod tests {
 
     use super::*;
     use crate::{
-        canon::Canon, catalog::Catalog, note::n, overrides::Overrides, translate::FallbackTally,
+        canon::Canon,
+        catalog::Catalog,
+        note::n,
+        overrides::Overrides,
+        translate::{FallbackTally, MissingDrums},
     };
 
     fn smf_from(events: &[(u32, MidiMessage)]) -> Vec<u8> {
@@ -91,15 +95,39 @@ mod tests {
     }
 
     fn convert_ids(mid: &[u8], src_id: &str, tgt_id: &str) -> Converted {
+        convert_ids_with(mid, src_id, tgt_id, MissingDrums::Nearest)
+    }
+
+    fn convert_ids_with(
+        mid: &[u8],
+        src_id: &str,
+        tgt_id: &str,
+        missing: MissingDrums,
+    ) -> Converted {
         let b = Catalog::builtin();
         let src = b.get(src_id).unwrap();
         let tgt = b.get(tgt_id).unwrap();
         convert(
             mid,
-            &Mapping::new(src, tgt, &Overrides::default()),
+            &Mapping::new(src, tgt, &Overrides::default(), missing),
             ChannelScope::Auto,
         )
         .unwrap()
+    }
+
+    #[test]
+    fn drop_leaves_a_swapped_china_out_and_reports_it() {
+        let out = convert_ids_with(
+            &smf_from(&[(0, on(24)), (10, off(24)), (0, on(65)), (48, off(65))]),
+            "ggd_invasion",
+            "ezdrummer",
+            MissingDrums::Drop,
+        );
+        let china = "china.1.hit".parse::<Canon>().unwrap();
+        assert_eq!(note_on_keys(&out.bytes), vec![36]);
+        assert_eq!(out.report.dropped.get(&china), Some(&1));
+        assert!(out.report.fallback_used.is_empty());
+        assert_eq!(out.report.converted, 1);
     }
 
     #[test]
@@ -228,12 +256,17 @@ mod tests {
         let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
         let plain = convert(
             &mid,
-            &Mapping::new(src, tgt, &Overrides::default()),
+            &Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest),
             ChannelScope::Auto,
         )
         .unwrap();
         let ov = Overrides::default();
-        let with = convert(&mid, &Mapping::new(src, tgt, &ov), ChannelScope::Auto).unwrap();
+        let with = convert(
+            &mid,
+            &Mapping::new(src, tgt, &ov, MissingDrums::Nearest),
+            ChannelScope::Auto,
+        )
+        .unwrap();
         assert_eq!(note_on_keys(&plain.bytes), note_on_keys(&with.bytes));
     }
 
@@ -244,7 +277,12 @@ mod tests {
         let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
         let ov: Overrides =
             serde_json::from_str(r#"{"tgt":[{"canon":"kick.main","note":35}]}"#).unwrap();
-        let out = convert(&mid, &Mapping::new(src, tgt, &ov), ChannelScope::Auto).unwrap();
+        let out = convert(
+            &mid,
+            &Mapping::new(src, tgt, &ov, MissingDrums::Nearest),
+            ChannelScope::Auto,
+        )
+        .unwrap();
         assert_eq!(note_on_keys(&out.bytes), vec![35]);
     }
 
@@ -255,7 +293,12 @@ mod tests {
         let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
         let ov: Overrides =
             serde_json::from_str(r#"{"src":[{"note":99,"canon":"kick.main"}]}"#).unwrap();
-        let out = convert(&mid, &Mapping::new(src, tgt, &ov), ChannelScope::Auto).unwrap();
+        let out = convert(
+            &mid,
+            &Mapping::new(src, tgt, &ov, MissingDrums::Nearest),
+            ChannelScope::Auto,
+        )
+        .unwrap();
         assert_eq!(note_on_keys(&out.bytes), vec![36]);
         assert!(out.report.unmapped_source.is_empty());
     }
@@ -267,7 +310,12 @@ mod tests {
         let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
         let ov: Overrides =
             serde_json::from_str(r#"{"src":[{"note":24,"canon":"snare1.hit"}]}"#).unwrap();
-        let out = convert(&mid, &Mapping::new(src, tgt, &ov), ChannelScope::Auto).unwrap();
+        let out = convert(
+            &mid,
+            &Mapping::new(src, tgt, &ov, MissingDrums::Nearest),
+            ChannelScope::Auto,
+        )
+        .unwrap();
         assert_eq!(note_on_keys(&out.bytes), vec![38]);
     }
 

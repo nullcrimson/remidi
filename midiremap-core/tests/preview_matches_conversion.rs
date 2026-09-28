@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
 use midiremap_core::{
-    convert, plan, Catalog, ChannelScope, EngineMap, Mapping, Note, Overrides, PlanStatus,
+    convert, plan, Catalog, ChannelScope, EngineMap, Mapping, MissingDrums, Note, Overrides,
+    PlanStatus,
 };
 use midly::{
     num::{u15, u28, u4, u7},
@@ -84,10 +85,15 @@ fn converted_by_source_note(bytes: &[u8]) -> BTreeMap<u8, u8> {
     out
 }
 
-fn previewed_by_source_note(src: &EngineMap, tgt: &EngineMap, ov: &Overrides) -> BTreeMap<u8, u8> {
+fn previewed_by_source_note(
+    src: &EngineMap,
+    tgt: &EngineMap,
+    ov: &Overrides,
+    missing: MissingDrums,
+) -> BTreeMap<u8, u8> {
     let mut out = BTreeMap::new();
     let mut seen = BTreeMap::new();
-    for row in plan(src, tgt, ov) {
+    for row in plan(src, tgt, ov, missing) {
         assert_eq!(
             row.status == PlanStatus::Dropped,
             row.tgt_note.is_none(),
@@ -111,7 +117,7 @@ fn previewed_by_source_note(src: &EngineMap, tgt: &EngineMap, ov: &Overrides) ->
     out
 }
 
-fn assert_preview_matches_conversion(ov_json: &str) {
+fn assert_preview_matches_conversion(ov_json: &str, missing: MissingDrums) {
     let maps = Catalog::builtin();
     let ov: Overrides = serde_json::from_str(ov_json).unwrap();
     let midi = every_note_smf();
@@ -121,12 +127,16 @@ fn assert_preview_matches_conversion(ov_json: &str) {
         let src = maps.get(src_id).unwrap();
         for tgt_id in &ids {
             let tgt = maps.get(tgt_id).unwrap();
-            let converted =
-                convert(&midi, &Mapping::new(src, tgt, &ov), ChannelScope::Auto).unwrap();
+            let converted = convert(
+                &midi,
+                &Mapping::new(src, tgt, &ov, missing),
+                ChannelScope::Auto,
+            )
+            .unwrap();
             assert_eq!(
                 converted_by_source_note(&converted.bytes),
-                previewed_by_source_note(src, tgt, &ov),
-                "{src_id} -> {tgt_id}: preview must equal conversion"
+                previewed_by_source_note(src, tgt, &ov, missing),
+                "{src_id} -> {tgt_id} ({missing}): preview must equal conversion"
             );
         }
     }
@@ -134,12 +144,18 @@ fn assert_preview_matches_conversion(ov_json: &str) {
 
 #[test]
 fn preview_matches_conversion_for_every_builtin_pair() {
-    assert_preview_matches_conversion("{}");
+    assert_preview_matches_conversion("{}", MissingDrums::Nearest);
+}
+
+#[test]
+fn preview_matches_conversion_under_drop_for_every_builtin_pair() {
+    assert_preview_matches_conversion("{}", MissingDrums::Drop);
+    assert_preview_matches_conversion(OVERRIDES, MissingDrums::Drop);
 }
 
 #[test]
 fn preview_matches_conversion_with_overrides_for_every_builtin_pair() {
-    assert_preview_matches_conversion(OVERRIDES);
+    assert_preview_matches_conversion(OVERRIDES, MissingDrums::Nearest);
 }
 
 #[test]
@@ -153,11 +169,11 @@ fn reassigned_note_converts_as_its_new_drum() {
         serde_json::from_str(r#"{"src":[{"note":24,"canon":"snare1.hit"}]}"#).unwrap();
     let converted = convert(
         &every_note_smf(),
-        &Mapping::new(src, tgt, &ov),
+        &Mapping::new(src, tgt, &ov, MissingDrums::Nearest),
         ChannelScope::Auto,
     )
     .unwrap();
-    let snare = plan(src, tgt, &ov)
+    let snare = plan(src, tgt, &ov, MissingDrums::Nearest)
         .into_iter()
         .find(|r| r.canon.to_string() == "snare1.hit")
         .unwrap();

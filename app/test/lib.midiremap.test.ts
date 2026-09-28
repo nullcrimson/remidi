@@ -53,6 +53,20 @@ describe('midiremap wrapper', () => {
     expect(out.report.converted).toBe(40);
   });
 
+  it('passes the missing-drums choice to plan and maps other_drum', () => {
+    const rows = plan('ggd_invasion', 'ezdrummer', undefined, 'drop');
+    expect(stub.lastPlanMissing).toBe('drop');
+    expect(rows.find((r) => r.canon === 'china.1.hit')!.otherDrum).toBe(true);
+    expect(rows.find((r) => r.canon === 'kick.main')!.otherDrum).toBe(false);
+  });
+
+  it('passes the missing-drums choice to the converter', () => {
+    remap(new Uint8Array([0]), 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'drop');
+    expect(stub.lastRemapMissing).toBe('drop');
+    remap(new Uint8Array([0]), 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest');
+    expect(stub.lastRemapMissing).toBe('nearest');
+  });
+
   it('passes the channel to the converter', () => {
     remap(new Uint8Array([0]), 'ggd_invasion', 'ezdrummer', undefined, '10');
     expect(stub.lastRemapChannel).toBe('10');

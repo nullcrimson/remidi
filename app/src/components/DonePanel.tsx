@@ -46,6 +46,7 @@ export function DonePanel({
   targetShort,
   onViewReport,
   onConvertMore,
+  onDropMissing,
 }: {
   results: FileResult[];
   failures: FileFailure[];
@@ -54,6 +55,7 @@ export function DonePanel({
   targetShort: string;
   onViewReport: () => void;
   onConvertMore: () => void;
+  onDropMissing?: () => void;
 }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => headingRef.current?.focus(), []);
@@ -131,9 +133,12 @@ export function DonePanel({
         </ul>
       )}
 
-      <div className="flex items-center gap-5">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         <TextButton onClick={onViewReport}>View report →</TextButton>
         <TextButton onClick={onConvertMore}>Convert more</TextButton>
+        {onDropMissing && (
+          <TextButton onClick={onDropMissing}>Drop missing drums &amp; convert again</TextButton>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 use midiremap_core::{
-    convert, plan as core_plan, Canon, Catalog, ChannelScope, ChannelScopeError, Mapping, Note,
-    Overrides, PlanStatus, Report,
+    convert, plan as core_plan, Canon, Catalog, ChannelScope, ChannelScopeError, Mapping,
+    MissingDrums, MissingDrumsParseError, Note, Overrides, PlanStatus, Report, VoicePlan,
 };
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
@@ -35,6 +35,14 @@ fn parse_channel(channel: Option<String>) -> Result<ChannelScope, JsValue> {
     })
 }
 
+fn missing_of(missing: Option<&str>) -> Result<MissingDrums, MissingDrumsParseError> {
+    missing.map_or(Ok(MissingDrums::default()), str::parse)
+}
+
+fn parse_missing(missing: Option<String>) -> Result<MissingDrums, JsValue> {
+    missing_of(missing.as_deref()).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
 #[wasm_bindgen]
 pub fn remap(
     mid: &[u8],
@@ -42,6 +50,7 @@ pub fn remap(
     tgt_id: &str,
     overrides_json: Option<String>,
     channel: Option<String>,
+    missing: Option<String>,
 ) -> Result<JsValue, JsValue> {
     let provider = Catalog::shared();
     let src = provider
@@ -52,7 +61,8 @@ pub fn remap(
         .ok_or_else(|| JsValue::from_str("unknown target engine"))?;
     let ov = parse_overrides(overrides_json)?;
     let scope = parse_channel(channel)?;
-    let out = convert(mid, &Mapping::new(src, tgt, &ov), scope)
+    let missing = parse_missing(missing)?;
+    let out = convert(mid, &Mapping::new(src, tgt, &ov, missing), scope)
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
     let payload = Output {
         bytes: out.bytes,
@@ -69,25 +79,12 @@ struct VoiceRow {
     tgt_note: Option<Note>,
     default_tgt_note: Option<Note>,
     status: &'static str,
+    other_drum: bool,
 }
 
-#[wasm_bindgen]
-pub fn plan(
-    src_id: &str,
-    tgt_id: &str,
-    overrides_json: Option<String>,
-) -> Result<JsValue, JsValue> {
-    let provider = Catalog::shared();
-    let src = provider
-        .get(src_id)
-        .ok_or_else(|| JsValue::from_str("unknown source engine"))?;
-    let tgt = provider
-        .get(tgt_id)
-        .ok_or_else(|| JsValue::from_str("unknown target engine"))?;
-    let ov = parse_overrides(overrides_json)?;
-    let rows: Vec<VoiceRow> = core_plan(src, tgt, &ov)
-        .into_iter()
-        .map(|v| VoiceRow {
+impl From<VoicePlan> for VoiceRow {
+    fn from(v: VoicePlan) -> Self {
+        Self {
             canon: v.canon.to_string(),
             label: v.canon.label(),
             src_notes: v.src_notes,
@@ -98,7 +95,30 @@ pub fn plan(
                 PlanStatus::Fallback => "fallback",
                 PlanStatus::Dropped => "dropped",
             },
-        })
+            other_drum: v.other_drum,
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub fn plan(
+    src_id: &str,
+    tgt_id: &str,
+    overrides_json: Option<String>,
+    missing: Option<String>,
+) -> Result<JsValue, JsValue> {
+    let provider = Catalog::shared();
+    let src = provider
+        .get(src_id)
+        .ok_or_else(|| JsValue::from_str("unknown source engine"))?;
+    let tgt = provider
+        .get(tgt_id)
+        .ok_or_else(|| JsValue::from_str("unknown target engine"))?;
+    let ov = parse_overrides(overrides_json)?;
+    let missing = parse_missing(missing)?;
+    let rows: Vec<VoiceRow> = core_plan(src, tgt, &ov, missing)
+        .into_iter()
+        .map(VoiceRow::from)
         .collect();
     to_js(&rows)
 }
@@ -207,5 +227,32 @@ mod tests {
         assert_eq!(ezd.full_name, "Toontrack EZdrummer 3");
         let hertz = infos.iter().find(|i| i.id == "hertz").unwrap();
         assert_eq!(hertz.name, hertz.full_name);
+    }
+
+    #[test]
+    fn missing_defaults_to_nearest_and_rejects_unknown_values() {
+        assert_eq!(missing_of(None), Ok(MissingDrums::Nearest));
+        assert_eq!(missing_of(Some("drop")), Ok(MissingDrums::Drop));
+        assert!(missing_of(Some("maybe")).is_err());
+    }
+
+    #[test]
+    fn voice_rows_carry_other_drum_and_the_drop_status() {
+        let catalog = Catalog::builtin();
+        let rows: Vec<VoiceRow> = core_plan(
+            catalog.get("ggd_invasion").unwrap(),
+            catalog.get("ezdrummer").unwrap(),
+            &Overrides::default(),
+            MissingDrums::Drop,
+        )
+        .into_iter()
+        .map(VoiceRow::from)
+        .collect();
+        let china = rows.iter().find(|r| r.canon == "china.1.hit").unwrap();
+        assert!(china.other_drum);
+        assert_eq!(china.status, "dropped");
+        let kick = rows.iter().find(|r| r.canon == "kick.main").unwrap();
+        assert!(!kick.other_drum);
+        assert_eq!(kick.status, "direct");
     }
 }

@@ -2,6 +2,7 @@ import { runBatch, type BatchResult } from './batch';
 import type { Channel } from './channel';
 import type { LoadedFile } from './files';
 import { ready, remap, type Overrides } from './midiremap';
+import type { Missing } from './missing';
 
 export interface BatchRequest {
   id: number;
@@ -10,6 +11,7 @@ export interface BatchRequest {
   tgt: string;
   ov?: Overrides;
   channel: Channel;
+  missing: Missing;
 }
 
 export interface BatchReply {
@@ -24,9 +26,16 @@ interface Pending {
   resolve: (result: BatchResult) => void;
 }
 
-async function onMainThread({ files, src, tgt, ov, channel }: BatchRequest): Promise<BatchResult> {
+async function onMainThread({
+  files,
+  src,
+  tgt,
+  ov,
+  channel,
+  missing,
+}: BatchRequest): Promise<BatchResult> {
   await ready();
-  return runBatch(files, src, tgt, ov, channel, remap);
+  return runBatch(files, src, tgt, ov, channel, missing, remap);
 }
 
 function moduleWorker(): Worker {
@@ -75,8 +84,9 @@ export function createConverter(makeWorker: MakeWorker = moduleWorker) {
     tgt: string,
     ov: Overrides | undefined,
     channel: Channel,
+    missing: Missing,
   ): Promise<BatchResult> => {
-    const request: BatchRequest = { id: nextId++, files, src, tgt, ov, channel };
+    const request: BatchRequest = { id: nextId++, files, src, tgt, ov, channel, missing };
     const w = connect();
     if (!w) return onMainThread(request);
     return new Promise((resolve) => {

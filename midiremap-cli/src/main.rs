@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand};
-use midiremap_core::{convert, Catalog, ChannelScope, Mapping, Overrides};
+use midiremap_core::{convert, Catalog, ChannelScope, Mapping, MissingDrums, Overrides};
 
 #[derive(Parser)]
 #[command(
@@ -38,6 +38,10 @@ struct ConvertArgs {
     /// Note edits as JSON, in the same shape the web app saves
     #[arg(long, value_name = "FILE")]
     overrides: Option<PathBuf>,
+    /// Drums the target lacks: nearest (play on the closest drum) or drop (leave out;
+    /// another way of playing the same drum still stands in)
+    #[arg(long, value_name = "MODE", default_value = "nearest")]
+    missing: MissingDrums,
 }
 
 fn build_catalog(user_map: Option<PathBuf>) -> Result<Catalog> {
@@ -85,8 +89,12 @@ fn run_convert(a: ConvertArgs) -> Result<()> {
         std::fs::read(&a.input).with_context(|| format!("cannot read {}", a.input.display()))?;
 
     let overrides = read_overrides(a.overrides)?;
-    let out =
-        convert(&mid, &Mapping::new(src, tgt, &overrides), a.channel).context("remap failed")?;
+    let out = convert(
+        &mid,
+        &Mapping::new(src, tgt, &overrides, a.missing),
+        a.channel,
+    )
+    .context("remap failed")?;
 
     std::fs::write(&a.output, &out.bytes)
         .with_context(|| format!("cannot write {}", a.output.display()))?;

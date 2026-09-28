@@ -42,9 +42,10 @@ npm run test     # Vitest; WASM is stubbed, no build required
 - `src/lib/midiremap.ts` — typed wrapper: `ready()`, `engines()`, `plan()`, `remap()`.
 - `src/lib/notes.ts` — note-name / octave helpers (octave base is display-only).
 - `src/lib/overrides.ts` — per-voice target edits → overrides doc.
+- `src/lib/missing.ts` — the missing-drums setting (Nearest / Drop), its stored value and hint.
 - `src/hooks/useRemapper.ts` — screen state (Convert + Edit).
 - `src/components/*` — FileChips/CardDropzone, LibraryList, OctaveToggle, ChannelSelect,
-  SummaryRow, ConvertButton, DonePanel, ReportModal (Convert); EditView, VoiceRow,
+  MissingDrumsSetting, SummaryRow, ConvertButton, DonePanel, ReportModal (Convert); EditView, VoiceRow,
   NotePicker, SourceEditor, PianoKeyboard (Edit). Shared primitives: `styles.ts`, Button,
   TextButton, IconButton, ChipRadioGroup, ChipSelect, TextField, MonoLabel, ProseLink.
   Frame: SiteHeader (brand + Converter · Note maps · FAQ), SiteFooter (section links that
@@ -53,10 +54,12 @@ npm run test     # Vitest; WASM is stubbed, no build required
 
 ## Views
 
-- **Convert**: drop `.mid` files, pick From/To engines (⇄ swaps), set octave naming and
-  drum channel, convert. A single file downloads straight away; a batch offers a zip.
-  The report groups dropped / approximated / unrecognized / unchanged notes with links to
-  fix each one.
+- **Convert**: drop `.mid` files, pick From/To engines (⇄ swaps), set octave naming,
+  drum channel and missing drums (Nearest plays a drum the target lacks on the closest
+  one, Drop leaves it out; remembered in the browser), convert. A single file downloads
+  straight away; a batch offers a zip. The report groups dropped / approximated /
+  unrecognized / unchanged notes with links to fix each one; after a conversion that
+  moved drums to another drum, "Drop missing drums & convert again" re-runs it with Drop.
 - **Edit notes**: drums grouped by family with a filter and All / Changed / Issues chips;
   each row shows source → target and the result (direct, approx, dropped, edited) and can
   be reset. Target and source notes are picked from the drum list or an octave-tabbed

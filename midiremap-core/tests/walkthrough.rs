@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 
 use midiremap_core::{
     canon::{fallback, Canon},
-    convert, Catalog, ChannelScope, EngineMap, FallbackTally, Mapping, Note, Overrides,
+    convert, Catalog, ChannelScope, EngineMap, FallbackTally, Mapping, MissingDrums, Note,
+    Overrides,
 };
 use midly::{
     num::{u15, u24, u28, u4, u7},
@@ -193,7 +194,7 @@ fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
 
         let out = convert(
             &midi,
-            &Mapping::new(src, tgt, &Overrides::default()),
+            &Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest),
             ChannelScope::Auto,
         )
         .unwrap();
@@ -236,7 +237,7 @@ fn same_engine_conversion_is_all_direct() {
 
     let out = convert(
         &midi,
-        &Mapping::new(src, src, &Overrides::default()),
+        &Mapping::new(src, src, &Overrides::default(), MissingDrums::Nearest),
         ChannelScope::Auto,
     )
     .unwrap();
@@ -281,6 +282,7 @@ fn ride_bow_approximates_to_a_bow_tip_before_a_crash() {
         catalog.get("addictive_drums2").unwrap(),
         catalog.get("ezdrummer").unwrap(),
         &Overrides::default(),
+        MissingDrums::Nearest,
     );
     let ride = Note::new(45).unwrap();
     match mapping.translate(ride) {

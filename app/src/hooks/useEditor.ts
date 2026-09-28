@@ -8,6 +8,7 @@ import {
   type Drum,
   type VoiceRow,
 } from '../lib/midiremap';
+import type { Missing } from '../lib/missing';
 import { editsToOverrides, type Edits, type SrcEdits } from '../lib/overrides';
 import { noteInOctave, octaveIndexOf } from '../lib/notes';
 import type { CatalogStatus } from './useEngineCatalog';
@@ -158,15 +159,15 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-export function useEditor(status: CatalogStatus, src: string, tgt: string) {
+export function useEditor(status: CatalogStatus, src: string, tgt: string, missing: Missing) {
   const [{ edits, srcEdits, pick, notice }, dispatch] = useReducer(reducer, INITIAL);
 
   const rows = useMemo<VoiceRow[]>(
     () =>
       status === 'ready' && src && tgt
-        ? computePlan(src, tgt, editsToOverrides(edits, srcEdits))
+        ? computePlan(src, tgt, editsToOverrides(edits, srcEdits), missing)
         : [],
-    [status, src, tgt, edits, srcEdits],
+    [status, src, tgt, edits, srcEdits, missing],
   );
 
   const setPickOct = useCallback(

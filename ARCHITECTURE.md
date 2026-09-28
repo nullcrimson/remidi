@@ -24,6 +24,11 @@ closed one: `hat.loose → hat.closed → hat.tight`). If the chain is exhausted
 hit is **dropped** and recorded in a loss report. A source note with no canonical
 meaning is **unmapped** and dropped.
 
+The **missing drums** setting (`MissingDrums`) decides how far the chain may reach:
+`Nearest` (the default) takes the first entry the target plays, which may be another
+drum (a China on a crash, Tom 4 on Tom 3); `Drop` keeps only entries on the same drum
+(`Canon::same_drum`: a rimshot still becomes a snare hit), else drops the hit.
+
 ## Workspace
 
 Three crates, a web app, and embedded engine presets:
@@ -109,9 +114,12 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
 
 ### `translate` — the pipeline, no MIDI
 
-- `Mapping::new(src, tgt, &Overrides)` owns the source and target maps with the
-  overrides applied: the hub-and-spoke pipeline as a pure function of one note.
-  `resolve(canon, &EngineMap)` resolves a canon against any target.
+- `Mapping::new(src, tgt, &Overrides, MissingDrums)` owns the source and target maps
+  with the overrides applied: the hub-and-spoke pipeline as a pure function of one note.
+  `resolve(canon, &EngineMap, MissingDrums)` resolves a canon against any target;
+  `Drop` walks the same chain filtered to `Canon::same_drum`, so both modes share one
+  order. `moves_to_other_drum(canon)` says whether the setting decides a canon (the
+  target lacks it and its nearest stand-in is another drum).
 - Two result types keep partial cases unrepresentable:
   - `CanonResolution { Direct | Fallback | Dropped }` — total result of resolving
     a *canon* against the target. Cannot be "unmapped".
@@ -196,10 +204,11 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
 
 ### `plan` — the source→target table (UI, no MIDI)
 
-- `plan(src, tgt, ov) → Vec<VoicePlan>`: a per-drum view of the `NoteTable`
-  compiled with the same `Overrides` conversion uses. One row per canon the source
-  engine defines or any note decodes to, in `Canon::all()` order, giving
-  `{ canon, src_notes, tgt_note, default_tgt_note, status }`:
+- `plan(src, tgt, ov, missing) → Vec<VoicePlan>`: a per-drum view of the `NoteTable`
+  compiled with the same `Overrides` and `MissingDrums` conversion uses. One row per
+  canon the source engine defines or any note decodes to, in `Canon::all()` order,
+  giving `{ canon, src_notes, tgt_note, default_tgt_note, status, other_drum }`
+  (`other_drum`: the missing-drums setting decides this row):
   - `src_notes`: every source note that plays this drum — overridden notes first,
     then the engine's primary note, then the rest. Empty for a *silent* drum (its
     notes were reassigned); the row stays so its target remains editable.
@@ -252,20 +261,23 @@ stderr and exits non-zero):
 ```
 midiremap convert <input.mid> <src_id> <tgt_id> <output.mid>
                   [--user-map map.json] [--overrides edits.json] [--channel auto|all|1-16]
+                  [--missing nearest|drop]
 midiremap list [--user-map map.json]
 ```
 
 `convert` writes the remapped `.mid` and prints the loss report as pretty JSON to
-stderr. `--overrides` takes the same edit JSON the web app saves. `list` prints
-available engine ids.
+stderr. `--overrides` takes the same edit JSON the web app saves. `--missing drop`
+leaves out drums the target lacks instead of playing them on the nearest drum. `list`
+prints available engine ids.
 
 ### WASM (`midiremap-wasm`)
 
 `wasm-bindgen` exports for the browser app:
 
-- `remap(mid, src_id, tgt_id, overrides_json?, channel?) → { bytes, report }` —
-  `channel` is `auto` (the default), `all` or `1`-`16`.
-- `plan(src_id, tgt_id, overrides_json?) → [{ canon, label, src_notes, tgt_note, default_tgt_note, status }]`
+- `remap(mid, src_id, tgt_id, overrides_json?, channel?, missing?) → { bytes, report }` —
+  `channel` is `auto` (the default), `all` or `1`-`16`; `missing` is `nearest` (the
+  default) or `drop`.
+- `plan(src_id, tgt_id, overrides_json?, missing?) → [{ canon, label, src_notes, tgt_note, default_tgt_note, status, other_drum }]`
 - `engine_catalog() → [{ id, name, fullName }]` — `name` is the display name,
   `fullName` the catalog name.
 - `engine_drums(tgt_id) → [{ note, canon, label, family }]` — the target's playable

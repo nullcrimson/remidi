@@ -30,7 +30,7 @@ impl NoteTable {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{catalog::Catalog, overrides::Overrides};
+    use crate::{catalog::Catalog, overrides::Overrides, translate::MissingDrums};
 
     #[test]
     fn agrees_with_translate_for_every_note() {
@@ -48,10 +48,15 @@ mod tests {
         for src_id in ids {
             for tgt_id in ids {
                 let (src, tgt) = (b.get(src_id).unwrap(), b.get(tgt_id).unwrap());
-                for t in [
-                    Mapping::new(src, tgt, &Overrides::default()),
-                    Mapping::new(src, tgt, &ov),
-                ] {
+                for t in [MissingDrums::Nearest, MissingDrums::Drop]
+                    .into_iter()
+                    .flat_map(|m| {
+                        [
+                            Mapping::new(src, tgt, &Overrides::default(), m),
+                            Mapping::new(src, tgt, &ov, m),
+                        ]
+                    })
+                {
                     let table = NoteTable::compile(&t);
                     for note in Note::all() {
                         assert_eq!(
@@ -69,7 +74,12 @@ mod tests {
     fn iter_yields_each_note_once_in_order() {
         let b = Catalog::builtin();
         let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
-        let table = NoteTable::compile(&Mapping::new(src, tgt, &Overrides::default()));
+        let table = NoteTable::compile(&Mapping::new(
+            src,
+            tgt,
+            &Overrides::default(),
+            MissingDrums::Nearest,
+        ));
         let notes: Vec<u8> = table.iter().map(|(n, _)| n.get()).collect();
         assert_eq!(notes, (0..128).collect::<Vec<u8>>());
     }

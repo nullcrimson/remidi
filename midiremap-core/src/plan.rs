@@ -6,7 +6,7 @@ use crate::{
     note::Note,
     overrides::Overrides,
     table::NoteTable,
-    translate::{resolve, CanonResolution, Mapping, Resolution},
+    translate::{resolve, CanonResolution, Mapping, MissingDrums, Resolution},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -37,11 +37,19 @@ pub struct VoicePlan {
     /// Target note without target overrides.
     pub default_tgt_note: Option<Note>,
     pub status: PlanStatus,
+    /// The target lacks this drum and its nearest stand-in is another drum, so the
+    /// [`MissingDrums`] setting decides it.
+    pub other_drum: bool,
 }
 
 /// Duplicate overrides resolve last-wins, exactly as in conversion.
-pub fn plan(src: &EngineMap, tgt: &EngineMap, ov: &Overrides) -> Vec<VoicePlan> {
-    let mapping = Mapping::new(src, tgt, ov);
+pub fn plan(
+    src: &EngineMap,
+    tgt: &EngineMap,
+    ov: &Overrides,
+    missing: MissingDrums,
+) -> Vec<VoicePlan> {
+    let mapping = Mapping::new(src, tgt, ov, missing);
     let table = NoteTable::compile(&mapping);
     let overridden: HashSet<Note> = ov.src.iter().map(|cn| cn.note).collect();
 
@@ -75,8 +83,9 @@ pub fn plan(src: &EngineMap, tgt: &EngineMap, ov: &Overrides) -> Vec<VoicePlan> 
                 canon,
                 src_notes,
                 tgt_note: resolved.note(),
-                default_tgt_note: resolve(canon, tgt).note(),
+                default_tgt_note: resolve(canon, tgt, missing).note(),
                 status: PlanStatus::from(&resolved),
+                other_drum: mapping.moves_to_other_drum(canon),
             })
         })
         .collect()
@@ -90,7 +99,7 @@ mod tests {
         catalog::Catalog,
         engine_map::from_toml,
         note::n,
-        Overrides,
+        MissingDrums, Overrides,
     };
 
     fn find<'a>(rows: &'a [VoicePlan], name: &str) -> &'a VoicePlan {
@@ -100,13 +109,47 @@ mod tests {
     }
 
     fn ggd_to_ezd(ov: &str) -> Vec<VoicePlan> {
+        ggd_to_ezd_with(ov, MissingDrums::Nearest)
+    }
+
+    fn ggd_to_ezd_with(ov: &str, missing: MissingDrums) -> Vec<VoicePlan> {
         let b = Catalog::builtin();
         let ov: Overrides = serde_json::from_str(ov).unwrap();
         plan(
             b.get("ggd_invasion").unwrap(),
             b.get("ezdrummer").unwrap(),
             &ov,
+            missing,
         )
+    }
+
+    #[test]
+    fn a_swapped_drum_is_marked_and_dropped_under_drop() {
+        let near = ggd_to_ezd("{}");
+        let china = find(&near, "china.1.hit");
+        assert!(china.other_drum);
+        assert_eq!(china.status, PlanStatus::Fallback);
+        assert!(!find(&near, "kick.main").other_drum);
+
+        let drop = ggd_to_ezd_with("{}", MissingDrums::Drop);
+        let china = find(&drop, "china.1.hit");
+        assert!(china.other_drum);
+        assert_eq!(china.status, PlanStatus::Dropped);
+        assert_eq!(china.tgt_note, None);
+        assert_eq!(china.default_tgt_note, None);
+        assert_eq!(find(&drop, "kick.main").tgt_note, Some(n(36)));
+    }
+
+    #[test]
+    fn a_target_edit_rescues_a_dropped_swap() {
+        let rows = ggd_to_ezd_with(
+            r#"{"tgt":[{"canon":"china.1.hit","note":52}]}"#,
+            MissingDrums::Drop,
+        );
+        let china = find(&rows, "china.1.hit");
+        assert_eq!(china.tgt_note, Some(n(52)));
+        assert_eq!(china.status, PlanStatus::Direct);
+        assert!(!china.other_drum);
     }
 
     #[test]
@@ -128,6 +171,7 @@ mod tests {
             b.get("ggd_invasion").unwrap(),
             b.get("ggd_invasion").unwrap(),
             &Overrides::default(),
+            MissingDrums::Nearest,
         );
         let kick = rows
             .iter()
@@ -209,7 +253,7 @@ mod tests {
         .unwrap();
         let ov: Overrides =
             serde_json::from_str(r#"{"src":[{"canon":"kick.main","note":30}]}"#).unwrap();
-        let rows = plan(&src, &src, &ov);
+        let rows = plan(&src, &src, &ov, MissingDrums::Nearest);
         assert_eq!(
             find(&rows, "kick.main").src_notes,
             vec![n(30), n(10), n(5), n(12)]
@@ -239,7 +283,7 @@ mod tests {
         .unwrap();
         let ov: Overrides =
             serde_json::from_str(r#"{"src":[{"canon":"snare1.hit","note":60}]}"#).unwrap();
-        let rows = plan(&src, &tgt, &ov);
+        let rows = plan(&src, &tgt, &ov, MissingDrums::Nearest);
         let snare = find(&rows, "snare1.hit");
         assert_eq!(snare.src_notes, vec![n(60)]);
         assert_eq!(snare.tgt_note, Some(n(38)));
