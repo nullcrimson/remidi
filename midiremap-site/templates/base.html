@@ -62,13 +62,13 @@
         </main>
         <footer class="flex flex-col gap-2 px-1">
           <nav aria-label="Site">
-            <ul class="flex flex-wrap gap-x-5 gap-y-2 text-ui">
+            <ul class="flex flex-wrap justify-center gap-x-5 gap-y-2 text-ui">
               {% for l in frame.footer %}
-              <li><a href="{{ l.href }}" class="tap text-t4 transition-colors hover:text-t1">{{ l.label }}</a></li>
+              <li><a href="{{ l.href }}" class="tap text-star/85 underline decoration-star/30 decoration-1 underline-offset-4 transition [text-shadow:0_0_10px_rgba(224,196,106,0.35)] hover:text-star hover:decoration-star/60 hover:[text-shadow:0_0_15px_rgba(224,196,106,0.6)]">{{ l.label }}</a></li>
               {% endfor %}
             </ul>
           </nav>
-          <p class="text-label text-t5">{{ frame.trademark }}</p>
+          <p class="text-center text-label text-t5">{{ frame.trademark }}</p>
         </footer>
       </div>
     </div>

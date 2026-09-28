@@ -2,7 +2,7 @@ import { useState, type MouseEvent } from 'react';
 import { content, sectionHref, type Link, type Section } from '../content/site';
 import { ContentBlocks } from './ContentBlocks';
 import { Modal } from './Modal';
-import { footerLink } from './styles';
+import { proseLink } from './styles';
 
 type Item = Link & { section?: Section };
 
@@ -22,7 +22,7 @@ export function SiteFooter() {
   return (
     <footer className="flex flex-col gap-2 px-1">
       <nav aria-label="Site">
-        <ul className="flex flex-wrap gap-x-5 gap-y-2 text-ui">
+        <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-ui">
           {ITEMS.map((item) => (
             <li key={item.href}>
               <a
@@ -33,7 +33,7 @@ export function SiteFooter() {
                   e.preventDefault();
                   setOpen(item.section.key);
                 }}
-                className={footerLink}
+                className={proseLink}
               >
                 {item.label}
               </a>
@@ -41,7 +41,7 @@ export function SiteFooter() {
           ))}
         </ul>
       </nav>
-      <p className="text-label text-t5">{content.trademark}</p>
+      <p className="text-center text-label text-t5">{content.trademark}</p>
 
       {content.sections.map((s) => (
         <Modal

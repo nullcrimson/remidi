@@ -20,6 +20,13 @@ describe('SiteFooter', () => {
     expect(screen.getByText(content.trademark)).toBeInTheDocument();
   });
 
+  it('shows gold links, centred', () => {
+    render(<SiteFooter />);
+    for (const link of footerLinks()) expect(link).toHaveClass('text-star/85');
+    expect(screen.getByRole('navigation', { name: 'Site' }).firstElementChild).toHaveClass('justify-center');
+    expect(screen.getByText(content.trademark)).toHaveClass('text-center');
+  });
+
   it('opens a section in a dialog on a plain click and closes it', async () => {
     render(<SiteFooter />);
     await userEvent.click(within(screen.getByRole('navigation', { name: 'Site' })).getByRole('link', { name: 'FAQ' }));

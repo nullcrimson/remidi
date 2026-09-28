@@ -361,6 +361,18 @@ mod tests {
     }
 
     #[test]
+    fn footer_links_are_gold_and_centred() {
+        let html = page("faq/index.html");
+        let footer = html.split("<footer").nth(1).unwrap();
+        assert!(footer.contains("justify-center"));
+        assert!(footer.contains("text-center"));
+        assert_eq!(
+            footer.matches("<a ").count(),
+            footer.matches("text-star/85").count()
+        );
+    }
+
+    #[test]
     fn content_pages_render_their_section() {
         let faq = page("faq/index.html");
         assert!(faq.contains(">Frequently asked questions</h1>"));

@@ -43,9 +43,6 @@ export const skipLink = `
   focus:bg-ink focus:px-3 focus:py-2 focus:text-ui focus:text-t1
 `;
 
-/** Quiet footer link. */
-export const footerLink = 'tap text-t4 transition-colors hover:text-t1';
-
 export type TagTone = 'neutral' | 'gold' | 'danger';
 
 const TAG_TONE: Record<TagTone, string> = {
