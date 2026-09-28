@@ -4,70 +4,29 @@ use midiremap_core::{
     convert, Canon, Catalog, ChannelScope, EngineMap, FallbackTally, Mapping, MissingDrums, Note,
     Overrides,
 };
+use midiremap_testkit::{event, events, hit_keys, off, on, smf, DRUMS, PPQ};
 use midly::{
-    num::{u15, u24, u28, u4, u7},
-    Format, Header, MetaMessage, MidiMessage, Smf, Timing, Track, TrackEvent, TrackEventKind,
+    num::{u24, u28},
+    MetaMessage, MidiMessage, Smf, Timing, TrackEvent, TrackEventKind,
 };
 
-const PPQ: u16 = 480;
 const QUARTER: u32 = PPQ as u32;
-const DRUM_CHANNEL: u8 = 9;
 const MICROS_PER_QUARTER_90BPM: u32 = 60_000_000 / 90;
 
 fn walkthrough_smf(notes: &[Note]) -> Vec<u8> {
-    let mut track = Track::new();
-    track.push(TrackEvent {
-        delta: u28::from_int_lossy(0),
+    let tempo = TrackEvent {
+        delta: u28::new(0),
         kind: TrackEventKind::Meta(MetaMessage::Tempo(u24::from_int_lossy(
             MICROS_PER_QUARTER_90BPM,
         ))),
-    });
-    for &note in notes {
-        track.push(TrackEvent {
-            delta: u28::from_int_lossy(0),
-            kind: TrackEventKind::Midi {
-                channel: u4::from_int_lossy(DRUM_CHANNEL),
-                message: MidiMessage::NoteOn {
-                    key: u7::from_int_lossy(note.get()),
-                    vel: u7::from_int_lossy(100),
-                },
-            },
-        });
-        track.push(TrackEvent {
-            delta: u28::from_int_lossy(QUARTER),
-            kind: TrackEventKind::Midi {
-                channel: u4::from_int_lossy(DRUM_CHANNEL),
-                message: MidiMessage::NoteOff {
-                    key: u7::from_int_lossy(note.get()),
-                    vel: u7::from_int_lossy(0),
-                },
-            },
-        });
-    }
-    let smf = Smf {
-        header: Header {
-            format: Format::SingleTrack,
-            timing: Timing::Metrical(u15::from_int_lossy(PPQ)),
-        },
-        tracks: vec![track],
     };
-    let mut buf = Vec::new();
-    smf.write_std(&mut buf).unwrap();
-    buf
-}
-
-fn note_on_keys(bytes: &[u8]) -> Vec<u8> {
-    let smf = Smf::parse(bytes).unwrap();
-    smf.tracks[0]
-        .iter()
-        .filter_map(|ev| match ev.kind {
-            TrackEventKind::Midi {
-                message: MidiMessage::NoteOn { key, vel },
-                ..
-            } if vel.as_int() > 0 => Some(key.as_int()),
-            _ => None,
-        })
-        .collect()
+    let hits = notes.iter().flat_map(|note| {
+        [
+            event(0, DRUMS, on(note.get())),
+            event(QUARTER, DRUMS, off(note.get())),
+        ]
+    });
+    smf(vec![std::iter::once(tempo).chain(hits).collect()])
 }
 
 enum Expected {
@@ -128,13 +87,10 @@ fn walkthrough_is_ninety_bpm_quarter_notes_one_per_drum() {
     });
     assert_eq!(tempo, Some(MICROS_PER_QUARTER_90BPM));
 
-    let ons: Vec<(u8, u32)> = smf.tracks[0]
-        .iter()
-        .filter_map(|ev| match ev.kind {
-            TrackEventKind::Midi {
-                message: MidiMessage::NoteOn { key, vel },
-                ..
-            } if vel.as_int() > 0 => Some((key.as_int(), ev.delta.as_int())),
+    let ons: Vec<(u8, u32)> = events(&midi, 0)
+        .into_iter()
+        .filter_map(|(delta, _, message)| match message {
+            MidiMessage::NoteOn { key, vel } if vel.as_int() > 0 => Some((key.as_int(), delta)),
             _ => None,
         })
         .collect();
@@ -145,7 +101,7 @@ fn walkthrough_is_ninety_bpm_quarter_notes_one_per_drum() {
         "each hit follows the previous quarter-note off"
     );
     assert_eq!(
-        note_on_keys(&midi),
+        hit_keys(&midi),
         notes.iter().map(|n| n.get()).collect::<Vec<_>>(),
         "walkthrough visits every source note once, in order"
     );
@@ -198,7 +154,7 @@ fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
         .unwrap();
 
         assert_eq!(
-            note_on_keys(&out.bytes),
+            hit_keys(&out.bytes),
             expected_keys,
             "{src_id} -> {tgt_id}: output notes must match direct/fallback resolution"
         );
@@ -242,7 +198,7 @@ fn same_engine_conversion_is_all_direct() {
     )
     .unwrap();
 
-    assert_eq!(note_on_keys(&out.bytes).len(), notes.len());
+    assert_eq!(hit_keys(&out.bytes).len(), notes.len());
     assert!(out.report.unmapped_source().is_empty());
     assert!(
         out.report.fallback_used().is_empty(),

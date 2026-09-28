@@ -31,7 +31,7 @@ drum (a China on a crash, Tom 4 on Tom 3); `Drop` keeps only entries on the same
 
 ## Workspace
 
-Four crates, a web app, and embedded engine presets:
+Five crates, a web app, and embedded engine presets:
 
 | Component | Role | Depends on |
 |-------|------|------------|
@@ -40,6 +40,7 @@ Four crates, a web app, and embedded engine presets:
 | `midiremap-wasm` | Browser bindings for the web app. | core (feature `ts`), `wasm-bindgen`, `tsify` |
 | `app/` | Vite + React + TypeScript converter UI over the WASM bindings. | Vite, React, Tailwind, Vitest |
 | `midiremap-site` | Static SEO pages (engine note maps, pair tables, FAQ / guide / legal pages) in the app's style. | core, `askama`, `serde_json` |
+| `midiremap-testkit` | Test-only: builds and reads small SMFs (channels `1..=16`) for the other crates' tests. | `midly` |
 | `engines/*.toml` | Preset note↔canon maps; core's `build.rs` converts them to one embedded JSON table. | — |
 
 `midiremap-core` never learns that `midly` or `std::fs` exist above its own
@@ -168,7 +169,9 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
 
 ### `midi` — the only module that knows `midly`
 
-- `parse(bytes)` / `write(&smf)`: the `midly` codec.
+- `parse(bytes)` / `write(&smf)`: the `midly` codec. `parse` refuses a header whose
+  SMPTE rate byte is `0x80` before midly sees it: midly 0.5.3 negates it with an
+  overflow, a panic in builds with overflow checks (found by fuzzing).
 - `Channel` is a MIDI channel `1..=16`, numbered as people count them
   (`Channel::DRUMS` is 10).
 - `ChannelScope { Auto | Only(Channel) | All }` chooses which channels a conversion
@@ -194,6 +197,16 @@ lists every reachable alternative once, nearest first, never the slot itself. Th
   of the note number, so a note-on and its note-off resolve identically and stay
   paired. The only accepted loss is many-to-one collisions (e.g. L/R kick → one
   note).
+- `tests/rewrite_props.rs` (proptest) checks this on generated multi-track files for
+  every built-in pair, missing setting and scope: kept events keep their absolute tick
+  and everything but the key, only note events are removed, notes stay paired per
+  channel and key, and `converted + dropped + unmapped + untouched` equals the input's
+  note-ons.
+- `fuzz/` (cargo-fuzz, its own workspace) feeds `convert` arbitrary bytes: no panic,
+  the output parses, and the counts add up. It runs daily in CI (`fuzz.yml`); locally,
+  on Linux or WSL with a nightly toolchain:
+  `cd midiremap-core && cargo +nightly fuzz run convert fuzz/corpus/convert fuzz/seeds -- -dict=fuzz/midi.dict -max_total_time=600`.
+  Crashes found become files in `fuzz/seeds/`.
 
 ### `conversion` — end-to-end facade
 
@@ -458,4 +471,9 @@ changes first.
   (`convert`), one catalog type, one mapping type.
 - **Standard crates over hand-rolled** parsing, error handling, and serialization.
 - The verify gate before every change is `fmt` + `test` + `clippy`, all clean.
+- **Browser behaviour is tested in a browser.** `app/e2e` (Playwright, Chromium desktop
+  and a Pixel 7 profile) runs against the built site in CI before deploy: conversion
+  through the real WASM, keyboard walk and focus, drag and drop, the report dialog,
+  tap-target sizes, and the static pages' filters and toggles. Any console error
+  fails a test.
 ```

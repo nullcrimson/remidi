@@ -384,10 +384,7 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use midiremap_core::{convert, ChannelScope};
-    use midly::{
-        num::{u15, u28, u4, u7},
-        Format, Header, MidiMessage, Smf, Timing, Track, TrackEvent, TrackEventKind,
-    };
+    use midiremap_testkit::{drums, hit_keys, off, on};
 
     use super::*;
 
@@ -520,50 +517,6 @@ mod tests {
         }
     }
 
-    fn one_note(note: u8) -> Vec<u8> {
-        let mut track = Track::new();
-        for message in [
-            MidiMessage::NoteOn {
-                key: u7::from_int_lossy(note),
-                vel: u7::from_int_lossy(100),
-            },
-            MidiMessage::NoteOff {
-                key: u7::from_int_lossy(note),
-                vel: u7::from_int_lossy(0),
-            },
-        ] {
-            track.push(TrackEvent {
-                delta: u28::from_int_lossy(10),
-                kind: TrackEventKind::Midi {
-                    channel: u4::from_int_lossy(9),
-                    message,
-                },
-            });
-        }
-        let smf = Smf {
-            header: Header {
-                format: Format::SingleTrack,
-                timing: Timing::Metrical(u15::from_int_lossy(480)),
-            },
-            tracks: vec![track],
-        };
-        let mut buf = Vec::new();
-        smf.write_std(&mut buf).unwrap();
-        buf
-    }
-
-    fn converted_note(bytes: &[u8]) -> Option<u8> {
-        Smf::parse(bytes).unwrap().tracks[0]
-            .iter()
-            .find_map(|ev| match ev.kind {
-                TrackEventKind::Midi {
-                    message: MidiMessage::NoteOn { key, vel },
-                    ..
-                } if vel.as_int() > 0 => Some(key.as_int()),
-                _ => None,
-            })
-    }
-
     #[test]
     fn pair_rows_agree_with_the_converter() {
         let maps = Catalog::builtin();
@@ -572,13 +525,13 @@ mod tests {
             let (src, tgt) = (by_id[p.src.id.as_str()], by_id[p.tgt.id.as_str()]);
             for row in &p.rows {
                 let out = convert(
-                    &one_note(row.note),
+                    &drums(&[(10, on(row.note)), (10, off(row.note))]),
                     &Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest),
                     ChannelScope::Auto,
                 )
                 .unwrap();
                 assert_eq!(
-                    converted_note(&out.bytes),
+                    hit_keys(&out.bytes).first().copied(),
                     row.target.as_ref().map(|t| t.note),
                     "{} note {}",
                     p.slug,

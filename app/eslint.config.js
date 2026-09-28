@@ -7,7 +7,7 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist', 'coverage', 'src/wasm'] },
+  { ignores: ['dist', 'coverage', 'src/wasm', 'playwright-report', 'test-results'] },
   stylistic.configs.customize({
     indent: 2,
     quotes: 'single',
@@ -40,7 +40,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['test/**/*.{ts,tsx}'],
+    files: ['test/**/*.{ts,tsx}', 'e2e/**/*.ts'],
     extends: [js.configs.recommended, tseslint.configs.recommended],
     languageOptions: {
       ecmaVersion: 2020,

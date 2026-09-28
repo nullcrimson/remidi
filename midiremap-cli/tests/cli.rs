@@ -1,9 +1,6 @@
 use std::process::Command;
 
-use midly::{
-    num::{u15, u28, u4, u7},
-    Format, Header, MidiMessage, Smf, Timing, Track, TrackEvent, TrackEventKind,
-};
+use midiremap_testkit::{drums, hit_keys, off, on};
 
 const BIN: &str = env!("CARGO_BIN_EXE_midiremap");
 
@@ -12,41 +9,7 @@ fn one_kick_smf() -> Vec<u8> {
 }
 
 fn one_note_smf(note: u8) -> Vec<u8> {
-    let mut track = Track::new();
-    for (delta, msg) in [
-        (
-            0u32,
-            MidiMessage::NoteOn {
-                key: u7::from_int_lossy(note),
-                vel: u7::from_int_lossy(100),
-            },
-        ),
-        (
-            48,
-            MidiMessage::NoteOff {
-                key: u7::from_int_lossy(note),
-                vel: u7::from_int_lossy(0),
-            },
-        ),
-    ] {
-        track.push(TrackEvent {
-            delta: u28::from_int_lossy(delta),
-            kind: TrackEventKind::Midi {
-                channel: u4::from_int_lossy(9),
-                message: msg,
-            },
-        });
-    }
-    let smf = Smf {
-        header: Header {
-            format: Format::SingleTrack,
-            timing: Timing::Metrical(u15::from_int_lossy(480)),
-        },
-        tracks: vec![track],
-    };
-    let mut buf = Vec::new();
-    smf.write_std(&mut buf).unwrap();
-    buf
+    drums(&[(0, on(note)), (48, off(note))])
 }
 
 #[test]
@@ -94,34 +57,14 @@ fn converts_a_file_end_to_end() {
     assert!(err.contains("unmappedSource"), "report missing: {err}");
 
     let bytes = std::fs::read(&out_path).unwrap();
-    let smf = Smf::parse(&bytes).unwrap();
-    let key = smf.tracks[0]
-        .iter()
-        .find_map(|ev| match ev.kind {
-            TrackEventKind::Midi {
-                message: MidiMessage::NoteOn { key, vel },
-                ..
-            } if vel.as_int() > 0 => Some(key.as_int()),
-            _ => None,
-        })
-        .expect("a note-on");
-    assert_eq!(key, 36);
+    assert_eq!(hit_keys(&bytes), vec![36]);
 
     let _ = std::fs::remove_file(&in_path);
     let _ = std::fs::remove_file(&out_path);
 }
 
 fn first_note_on(bytes: &[u8]) -> u8 {
-    Smf::parse(bytes).unwrap().tracks[0]
-        .iter()
-        .find_map(|ev| match ev.kind {
-            TrackEventKind::Midi {
-                message: MidiMessage::NoteOn { key, vel },
-                ..
-            } if vel.as_int() > 0 => Some(key.as_int()),
-            _ => None,
-        })
-        .expect("a note-on")
+    hit_keys(bytes)[0]
 }
 
 fn convert_with_overrides(name: &str, overrides: &str) -> (std::process::Output, Vec<u8>) {
@@ -173,19 +116,6 @@ fn invalid_overrides_file_fails_with_its_path() {
     assert!(err.contains("0..=127"), "stderr: {err}");
 }
 
-fn note_ons(bytes: &[u8]) -> Vec<u8> {
-    Smf::parse(bytes).unwrap().tracks[0]
-        .iter()
-        .filter_map(|ev| match ev.kind {
-            TrackEventKind::Midi {
-                message: MidiMessage::NoteOn { key, vel },
-                ..
-            } if vel.as_int() > 0 => Some(key.as_int()),
-            _ => None,
-        })
-        .collect()
-}
-
 fn convert_china(name: &str, extra: &[&str]) -> (std::process::Output, Vec<u8>) {
     let dir = std::env::temp_dir();
     let pid = std::process::id();
@@ -214,7 +144,7 @@ fn convert_china(name: &str, extra: &[&str]) -> (std::process::Output, Vec<u8>) 
 fn missing_drums_default_to_the_nearest_drum() {
     let (out, bytes) = convert_china("missing_default", &[]);
     assert!(out.status.success());
-    assert_eq!(note_ons(&bytes), vec![86]);
+    assert_eq!(hit_keys(&bytes), vec![86]);
 }
 
 #[test]
@@ -225,7 +155,7 @@ fn missing_drop_leaves_a_swapped_drum_out() {
         "stderr: {}",
         String::from_utf8_lossy(&out.stderr)
     );
-    assert!(note_ons(&bytes).is_empty());
+    assert!(hit_keys(&bytes).is_empty());
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(err.contains("china.1.hit"), "report: {err}");
 }

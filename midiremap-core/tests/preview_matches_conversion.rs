@@ -4,10 +4,8 @@ use midiremap_core::{
     convert, plan, Catalog, ChannelScope, EngineMap, Mapping, MissingDrums, Note, Overrides,
     PlanStatus,
 };
-use midly::{
-    num::{u15, u28, u4, u7},
-    Format, Header, MidiMessage, Smf, Timing, Track, TrackEvent, TrackEventKind,
-};
+use midiremap_testkit::{drums, events, off, on};
+use midly::MidiMessage;
 
 const LEAD: u32 = 10;
 const TAIL: u32 = 5;
@@ -24,58 +22,19 @@ const OVERRIDES: &str = r#"{
     ]
 }"#;
 
-fn event(delta: u32, message: MidiMessage) -> TrackEvent<'static> {
-    TrackEvent {
-        delta: u28::from_int_lossy(delta),
-        kind: TrackEventKind::Midi {
-            channel: u4::from_int_lossy(9),
-            message,
-        },
-    }
-}
-
 fn every_note_smf() -> Vec<u8> {
-    let mut track = Track::new();
-    for note in 0..128u8 {
-        let key = u7::from_int_lossy(note);
-        track.push(event(
-            LEAD,
-            MidiMessage::NoteOn {
-                key,
-                vel: u7::from_int_lossy(100),
-            },
-        ));
-        track.push(event(
-            TAIL,
-            MidiMessage::NoteOff {
-                key,
-                vel: u7::from_int_lossy(0),
-            },
-        ));
-    }
-    let smf = Smf {
-        header: Header {
-            format: Format::SingleTrack,
-            timing: Timing::Metrical(u15::from_int_lossy(480)),
-        },
-        tracks: vec![track],
-    };
-    let mut buf = Vec::new();
-    smf.write_std(&mut buf).unwrap();
-    buf
+    let hits: Vec<_> = (0..128u8)
+        .flat_map(|note| [(LEAD, on(note)), (TAIL, off(note))])
+        .collect();
+    drums(&hits)
 }
 
 fn converted_by_source_note(bytes: &[u8]) -> BTreeMap<u8, u8> {
-    let smf = Smf::parse(bytes).unwrap();
     let mut time = 0;
     let mut out = BTreeMap::new();
-    for ev in &smf.tracks[0] {
-        time += ev.delta.as_int();
-        if let TrackEventKind::Midi {
-            message: MidiMessage::NoteOn { key, vel },
-            ..
-        } = ev.kind
-        {
+    for (delta, _, message) in events(bytes, 0) {
+        time += delta;
+        if let MidiMessage::NoteOn { key, vel } = message {
             if vel.as_int() > 0 {
                 let src = u8::try_from((time - LEAD) / STEP).unwrap();
                 out.insert(src, key.as_int());

@@ -24,6 +24,7 @@ are never uploaded.
 | `midiremap-cli` | Offline `convert` / `list` command |
 | `midiremap-wasm` | Browser bindings used by the app |
 | `midiremap-site` | Static pages: per-engine note maps, pair tables, FAQ and guide |
+| `midiremap-testkit` | Test helpers that build and read small MIDI files |
 | `app/` | Vite + React + TypeScript converter UI |
 | `engines/*.toml` | One note map per engine, embedded at build time |
 
@@ -47,9 +48,12 @@ npm run dev          # builds the wasm module, then starts Vite
 npm run lint
 npm test
 npm run build:site   # app + static pages into app/dist
+npx playwright install chromium   # once
+npm run e2e          # browser smoke tests against app/dist
 ```
 
-Every push to `master` runs the same checks in CI and deploys only when all pass.
+Every push to `master` runs the same checks in CI and deploys only when all pass. A
+daily job fuzzes the converter (see ARCHITECTURE.md).
 
 ## Command line
 

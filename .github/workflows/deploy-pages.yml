@@ -80,7 +80,6 @@ jobs:
 
   build:
     needs: check
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       indexnow: ${{ steps.indexnow.outputs.payload }}
@@ -123,19 +122,37 @@ jobs:
       - name: Generate engine and conversion pages
         run: cargo run -p midiremap-site --release --locked -- app/dist
 
+      - name: Install Playwright Chromium
+        working-directory: app
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser smoke tests
+        working-directory: app
+        run: npm run e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: app/playwright-report
+
       - name: Build IndexNow payload from sitemap
+        if: github.event_name != 'pull_request'
         id: indexnow
         run: |
           urls=$(grep -o '<loc>[^<]*</loc>' app/dist/sitemap.xml | sed -e 's#<loc>\(.*\)</loc>#"\1"#' | paste -sd, -)
           echo "payload={\"host\":\"drumverter.com\",\"key\":\"b70482caafc9bdd6b2cc45b7fd07ddae\",\"keyLocation\":\"https://drumverter.com/b70482caafc9bdd6b2cc45b7fd07ddae.txt\",\"urlList\":[$urls]}" >> "$GITHUB_OUTPUT"
 
       - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v5
         with:
           path: app/dist
 
   deploy:
     needs: build
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       pages: write

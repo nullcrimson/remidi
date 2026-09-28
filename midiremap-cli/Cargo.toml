@@ -15,4 +15,4 @@ clap = { version = "4", features = ["derive"] }
 anyhow = "1"
 
 [dev-dependencies]
-midly = "0.5"
+midiremap-testkit = { path = "../midiremap-testkit" }

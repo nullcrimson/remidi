@@ -1,0 +1,65 @@
+name: Fuzz
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: How long to fuzz
+        default: '600'
+
+permissions:
+  contents: read
+
+env:
+  NIGHTLY: nightly-2026-05-03
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: midiremap-core
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install pinned nightly
+        run: rustup toolchain install "$NIGHTLY" --profile minimal --component clippy,rustfmt
+
+      - name: Install cargo-fuzz
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-fuzz
+
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: midiremap-core/fuzz
+
+      - name: Restore corpus
+        uses: actions/cache@v6
+        with:
+          path: midiremap-core/fuzz/corpus
+          key: fuzz-corpus-${{ github.run_id }}
+          restore-keys: fuzz-corpus-
+
+      - name: Format and lint the target
+        run: |
+          cargo +"$NIGHTLY" fmt --manifest-path fuzz/Cargo.toml --all -- --check
+          cargo +"$NIGHTLY" clippy --manifest-path fuzz/Cargo.toml --locked -- -D warnings
+
+      - name: Fuzz convert
+        run: |
+          mkdir -p fuzz/corpus/convert
+          cargo +"$NIGHTLY" fuzz run convert fuzz/corpus/convert fuzz/seeds -- \
+            -dict=fuzz/midi.dict -max_total_time="${SECONDS_TO_FUZZ}"
+        env:
+          SECONDS_TO_FUZZ: ${{ inputs.seconds || '600' }}
+
+      - name: Upload crashes
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-artifacts
+          path: midiremap-core/fuzz/artifacts

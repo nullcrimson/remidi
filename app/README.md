@@ -33,7 +33,14 @@ Deploy the static contents of `app/dist/` to any static host.
 
 ```bash
 npm run test     # Vitest; needs npm run build:wasm once (the contract test loads the real module)
+npm run e2e      # Playwright against vite preview of dist; run npm run build:site first
 ```
+
+`e2e/` holds the browser smoke tests (Chromium desktop and Pixel 7): conversion through
+the real WASM with the downloaded file read back, keyboard walk and focus steps, drag and
+drop, the report dialog, tap-target sizes on a phone, and the static pages' filters and
+toggles. `e2e/fixtures.ts` writes the MIDI files with `midi-file` and fails any test whose
+page logs an error.
 
 ## How it works
 

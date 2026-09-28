@@ -17,6 +17,8 @@ wasm-bindgen = { version = "0.2", optional = true }
 ts = ["dep:tsify", "dep:wasm-bindgen"]
 
 [dev-dependencies]
+midiremap-testkit = { path = "../midiremap-testkit" }
+proptest = "1"
 toml = "0.8"
 
 [build-dependencies]

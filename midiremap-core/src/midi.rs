@@ -20,7 +20,57 @@ pub enum CodecError {
 }
 
 pub(crate) fn parse(bytes: &[u8]) -> Result<Smf<'_>, CodecError> {
+    if has_smpte_rate_minus_128(bytes) {
+        return Err(CodecError::Parse("invalid SMPTE frame rate".into()));
+    }
     Smf::parse(bytes).map_err(|e| CodecError::Parse(Box::new(e)))
+}
+
+/// Whether any header chunk has SMPTE rate byte `0x80`, which midly 0.5.3 negates with an
+/// overflow (a panic when overflow checks are on) wherever it reads a header. No real
+/// frame rate uses it.
+fn has_smpte_rate_minus_128(bytes: &[u8]) -> bool {
+    smf_body(bytes).is_some_and(|smf| {
+        chunks(smf, Chunking::Smf).any(|(id, data)| id == b"MThd" && data.get(4) == Some(&0x80))
+    })
+}
+
+/// The SMF in `bytes`: the file itself, or an RMID file's first `data` chunk, found the
+/// way midly finds it.
+fn smf_body(bytes: &[u8]) -> Option<&[u8]> {
+    if !bytes.starts_with(b"RIFF") {
+        return Some(bytes);
+    }
+    let (_, riff) = chunks(bytes, Chunking::Riff).next()?;
+    let inner = riff.strip_prefix(b"RMID")?;
+    chunks(inner, Chunking::Riff).find_map(|(id, data)| (id == b"data").then_some(data))
+}
+
+#[derive(Clone, Copy)]
+enum Chunking {
+    Smf,
+    Riff,
+}
+
+/// `(id, data)` chunks as midly splits them: a short chunk runs to the end of the input,
+/// RIFF lengths are little-endian and odd ones padded.
+fn chunks(mut raw: &[u8], chunking: Chunking) -> impl Iterator<Item = (&[u8], &[u8])> {
+    std::iter::from_fn(move || {
+        let (head, rest) = raw.split_at_checked(8)?;
+        let (id, len) = head.split_at(4);
+        let len: [u8; 4] = len.try_into().ok()?;
+        let len = usize::try_from(match chunking {
+            Chunking::Smf => u32::from_be_bytes(len),
+            Chunking::Riff => u32::from_le_bytes(len),
+        })
+        .ok()?;
+        let (data, rest) = rest.split_at_checked(len).unwrap_or((rest, &[]));
+        raw = match chunking {
+            Chunking::Riff if len % 2 == 1 => rest.get(1..).unwrap_or_default(),
+            _ => rest,
+        };
+        Some((id, data))
+    })
 }
 
 pub(crate) fn write(smf: &Smf) -> Result<Vec<u8>, CodecError> {
@@ -245,6 +295,35 @@ mod tests {
             Ok(ChannelScope::Only(Channel::DRUMS))
         );
         assert!("0".parse::<ChannelScope>().is_err());
+    }
+
+    fn riff(smf: &[u8]) -> Vec<u8> {
+        let len = |n: usize| u32::try_from(n).unwrap().to_le_bytes();
+        let mut riff = b"RIFF".to_vec();
+        riff.extend(len(12 + smf.len()));
+        riff.extend(b"RMIDdata");
+        riff.extend(len(smf.len()));
+        riff.extend(smf);
+        riff
+    }
+
+    #[test]
+    fn an_smpte_rate_of_minus_128_is_an_error() {
+        let smf = |timing: &[u8]| {
+            [
+                b"MThd\0\0\0\x06\0\0\0\x01".as_slice(),
+                timing,
+                b"MTrk\0\0\0\x04\0\xff\x2f\0",
+            ]
+            .concat()
+        };
+        let (bad, good) = (smf(b"\x80\xe0"), smf(b"\xe7\x28"));
+        assert!(parse(&good).is_ok());
+        assert!(parse(&riff(&good)).is_ok());
+        assert!(parse(&bad).is_err());
+        assert!(parse(&riff(&bad)).is_err());
+        let later = [good.as_slice(), b"MThd\0\0\0\x06\0\0\0\x01\x80\xe0"].concat();
+        assert!(parse(&later).is_err());
     }
 
     #[test]

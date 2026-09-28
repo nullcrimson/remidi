@@ -9,3 +9,5 @@
 *.mid
 .vscode/
 *.tsbuildinfo
+/app/playwright-report
+/app/test-results

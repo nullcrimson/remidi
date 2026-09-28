@@ -13,5 +13,5 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [dev-dependencies]
-midly = "0.5"
+midiremap-testkit = { path = "../midiremap-testkit" }
 roxmltree = "0.21"
