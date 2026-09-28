@@ -35,7 +35,8 @@ struct ConvertArgs {
     /// Channels to convert: auto (tracks with channel-10 hits, else every track), all, or 1-16
     #[arg(long, value_name = "CHANNEL", default_value = "auto")]
     channel: ChannelScope,
-    /// Note edits as JSON, in the same shape the web app saves
+    /// Note edits as JSON: {"tgt":[{"canon":"kick.main","note":35}],
+    /// "src":[{"note":24,"canon":"snare1.hit"}]}; a null canon silences a source note
     #[arg(long, value_name = "FILE")]
     overrides: Option<PathBuf>,
     /// Drums the target lacks: nearest (play on the closest drum) or drop (leave out;

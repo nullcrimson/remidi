@@ -6,8 +6,9 @@ is no backend.
 
 ## Prerequisites
 
-- Node 18+
-- Rust toolchain with the wasm target: `rustup target add wasm32-unknown-unknown`
+- Node 20.19+ (CI uses the version in the root `.nvmrc`)
+- Rust: rustup installs the version pinned in the root `rust-toolchain.toml`, wasm target
+  included
 - `cargo install wasm-bindgen-cli --version 0.2.126`
 
 ## Develop

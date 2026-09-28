@@ -1,31 +1,94 @@
-name: Deploy app to GitHub Pages
+name: CI and deploy
 
 on:
   push:
     branches: [master]
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FMT_TOOLCHAIN: nightly-2026-05-03
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust (from rust-toolchain.toml) and nightly rustfmt
+        run: |
+          rustup toolchain install
+          rustup toolchain install "$FMT_TOOLCHAIN" --profile minimal --component rustfmt
+
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@v2
+
+      - name: Rust format
+        run: cargo +"$FMT_TOOLCHAIN" fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Rust tests
+        run: cargo test --workspace --locked
+
+      - name: Read pinned wasm-bindgen version
+        id: wb
+        run: |
+          ver=$(grep -A1 '^name = "wasm-bindgen"$' Cargo.lock | grep '^version' | head -1 | sed -E 's/version = "(.+)"/\1/')
+          echo "wasm-bindgen version: $ver"
+          echo "v=$ver" >> "$GITHUB_OUTPUT"
+
+      - name: Install wasm-bindgen-cli (matching Cargo.lock)
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen-cli@${{ steps.wb.outputs.v }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install deps
+        working-directory: app
+        run: npm ci
+
+      - name: Build wasm
+        working-directory: app
+        run: npm run build:wasm
+
+      - name: Lint
+        working-directory: app
+        run: npm run lint
+
+      - name: Type check
+        working-directory: app
+        run: npx tsc --noEmit
+
+      - name: App tests
+        working-directory: app
+        run: npm test
+
   build:
+    needs: check
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       indexnow: ${{ steps.indexnow.outputs.payload }}
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install Rust (wasm target)
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
+      - name: Install Rust (from rust-toolchain.toml)
+        run: rustup toolchain install
 
       - name: Cache cargo build
         uses: Swatinem/rust-cache@v2
@@ -45,7 +108,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: app/package-lock.json
 
@@ -58,7 +121,7 @@ jobs:
         run: npm run build
 
       - name: Generate engine and conversion pages
-        run: cargo run -p midiremap-site --release -- app/dist
+        run: cargo run -p midiremap-site --release --locked -- app/dist
 
       - name: Build IndexNow payload from sitemap
         id: indexnow
@@ -74,6 +137,12 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: true
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

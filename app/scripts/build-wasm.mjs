@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const run = (cmd) => execSync(cmd, { cwd: root, stdio: 'inherit' });
 
-run('cargo build -p midiremap-wasm --target wasm32-unknown-unknown --release');
+run('cargo build -p midiremap-wasm --target wasm32-unknown-unknown --release --locked');
 run(
   'wasm-bindgen target/wasm32-unknown-unknown/release/midiremap_wasm.wasm --out-dir app/src/wasm --target web',
 );

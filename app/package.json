@@ -2,13 +2,16 @@
   "name": "midiremap-app",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=20.19"
+  },
   "scripts": {
     "build:wasm": "node scripts/build-wasm.mjs",
     "predev": "npm run build:wasm",
     "dev": "vite",
     "prebuild": "npm run build:wasm",
     "build": "tsc --noEmit && vite build",
-    "build:site": "npm run build && cargo run --manifest-path ../Cargo.toml -p midiremap-site --release -- dist",
+    "build:site": "npm run build && cargo run --manifest-path ../Cargo.toml -p midiremap-site --release --locked -- dist",
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest run"

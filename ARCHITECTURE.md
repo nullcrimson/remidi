@@ -31,7 +31,7 @@ drum (a China on a crash, Tom 4 on Tom 3); `Drop` keeps only entries on the same
 
 ## Workspace
 
-Three crates, a web app, and embedded engine presets:
+Four crates, a web app, and embedded engine presets:
 
 | Component | Role | Depends on |
 |-------|------|------------|
@@ -266,7 +266,9 @@ midiremap list [--user-map map.json]
 ```
 
 `convert` writes the remapped `.mid` and prints the loss report as pretty JSON to
-stderr. `--overrides` takes the same edit JSON the web app saves. `--missing drop`
+stderr. `--overrides` takes note edits as
+`{"tgt":[{"canon","note"}],"src":[{"note","canon"}]}` (the `Overrides` shape; a saved
+web-app preset is not accepted yet). `--missing drop`
 leaves out drums the target lacks instead of playing them on the nearest drum. `list`
 prints available engine ids.
 
