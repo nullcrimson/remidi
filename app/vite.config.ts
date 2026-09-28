@@ -3,15 +3,10 @@ import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { content, injectJsonLd } from './src/content/site';
 
 export default defineConfig({
   base: process.env.VITE_BASE ?? '/',
-  plugins: [
-    react(),
-    tailwindcss(),
-    { name: 'site-json-ld', transformIndexHtml: (html) => injectJsonLd(html, content) },
-  ],
+  plugins: [react(), tailwindcss()],
   worker: { format: 'es' },
   resolve: {
     alias: {

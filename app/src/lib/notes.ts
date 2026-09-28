@@ -1,4 +1,6 @@
-export type OctaveBase = 'c1' | 'c2';
+import type { OctaveBase } from './midiremap';
+
+export type { OctaveBase };
 
 const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 

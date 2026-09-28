@@ -56,23 +56,23 @@
   <tbody>
     {% for r in page.rows %}
     <tr
-      data-outcome="{{ r.outcome.label() }}"
+      data-outcome="{{ r.label() }}"
       class="grid grid-cols-[auto_auto_auto_minmax(0,1fr)_auto] items-baseline gap-x-2 gap-y-1 border-t border-white/5 px-1 py-2.5 sm:table-row"
     >
       <td class="col-start-1 row-start-2 font-mono text-label whitespace-nowrap text-t1 sm:py-2 sm:pr-3 sm:pl-1">{{ r.note }} · <span data-oct="c1">{{ r.name_c1 }}</span><span data-oct="c2">{{ r.name_c2 }}</span></td>
       <td class="col-span-4 col-start-1 row-start-1 text-ui text-t2 sm:py-2 sm:pr-3">{{ r.drum }}</td>
       <td aria-hidden="true" class="col-start-2 row-start-2 font-mono text-label text-t5 sm:py-2 sm:pr-3">→</td>
-      {% if let Some(t) = r.outcome.target() %}
+      {% if let Some(t) = r.target %}
       <td class="col-start-3 row-start-2 font-mono text-label whitespace-nowrap text-t1 sm:py-2 sm:pr-3">{{ t.note }} · <span data-oct="c1">{{ t.name_c1 }}</span><span data-oct="c2">{{ t.name_c2 }}</span></td>
       <td class="col-span-2 col-start-4 row-start-2 text-label text-t3 sm:py-2 sm:pr-3 sm:text-ui">{{ t.drum }}</td>
       {% else %}
       <td class="col-start-3 row-start-2 font-mono text-label text-danger sm:py-2 sm:pr-3">—</td>
       <td class="col-span-2 col-start-4 row-start-2 text-label text-t5 sm:py-2 sm:pr-3 sm:text-ui">no equivalent</td>
       {% endif %}
-      {% match r.outcome %}
-      {% when Outcome::Exact(_) %}<td class="col-start-5 row-start-1 justify-self-end font-mono text-label text-t5 sm:py-2">exact</td>
-      {% when Outcome::Approximated(_) %}<td class="col-start-5 row-start-1 justify-self-end font-mono text-label text-star sm:py-2">approximated</td>
-      {% when Outcome::Dropped %}<td class="col-start-5 row-start-1 justify-self-end font-mono text-label text-danger sm:py-2">dropped</td>
+      {% match r.status %}
+      {% when PlanStatus::Direct %}<td class="col-start-5 row-start-1 justify-self-end font-mono text-label text-t5 sm:py-2">exact</td>
+      {% when PlanStatus::Fallback %}<td class="col-start-5 row-start-1 justify-self-end font-mono text-label text-star sm:py-2">approximated</td>
+      {% when PlanStatus::Dropped %}<td class="col-start-5 row-start-1 justify-self-end font-mono text-label text-danger sm:py-2">dropped</td>
       {% endmatch %}
     </tr>
     {% endfor %}
@@ -88,9 +88,9 @@
   </ul>
   <p class="text-ui text-t4">
     Full note maps:
-    <a href="{{ page.src.href() }}" class="tap text-star/85 underline decoration-star/30 decoration-1 underline-offset-4 transition hover:text-star hover:decoration-star/60">{{ page.src.name }}</a>
+    <a href="{{ page.src.href() }}" class="prose-link">{{ page.src.name }}</a>
     <span aria-hidden="true" class="text-decor">·</span>
-    <a href="{{ page.tgt.href() }}" class="tap text-star/85 underline decoration-star/30 decoration-1 underline-offset-4 transition hover:text-star hover:decoration-star/60">{{ page.tgt.name }}</a>
+    <a href="{{ page.tgt.href() }}" class="prose-link">{{ page.tgt.name }}</a>
   </p>
 </div>
 {% endblock %}

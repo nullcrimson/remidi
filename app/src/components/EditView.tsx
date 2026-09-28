@@ -2,7 +2,7 @@ import { Fragment, useEffect, useId, useRef, useState } from 'react';
 import { noteName, type OctaveBase } from '../lib/notes';
 import type { Editor } from '../hooks/useEditor';
 import { useFilter } from '../hooks/useFilter';
-import { FAMILY_ORDER } from '../lib/families';
+import { groupByFamily } from '../lib/families';
 import type { VoiceRow as VoiceRowData } from '../lib/midiremap';
 import { MAPPINGS_CAP, type SavedMapping } from '../lib/mappings';
 import { shortCode } from '../lib/format';
@@ -157,21 +157,6 @@ function playsOf(row: VoiceRowData, changed: boolean, drumAt: (note: number) => 
   return { text: name, tone: 'text-t5' };
 }
 
-function byFamily(rows: VoiceRowData[], familyOf: Map<string, string>) {
-  const families = new Map<string, VoiceRowData[]>();
-  for (const row of rows) {
-    const family = familyOf.get(row.canon) ?? 'Other';
-    families.set(family, [...(families.get(family) ?? []), row]);
-  }
-  const rank = (f: string) => {
-    const i = FAMILY_ORDER.indexOf(f);
-    return i === -1 ? FAMILY_ORDER.length : i;
-  };
-  return [...families.entries()]
-    .sort(([a], [b]) => rank(a) - rank(b))
-    .map(([family, items]) => ({ family, items }));
-}
-
 export function EditView({
   editor,
   src,
@@ -197,6 +182,7 @@ export function EditView({
     targetDrums,
     sourceNotes,
     canonOptions,
+    families,
     changed,
     changedSrc,
     resetRow,
@@ -228,7 +214,7 @@ export function EditView({
   const drumByNote = new Map<number, string>();
   for (const d of targetDrums) if (!drumByNote.has(d.note)) drumByNote.set(d.note, d.label);
   const drumAt = (note: number) => drumByNote.get(note) ?? noteName(note, oct);
-  const groups = byFamily(shown, familyOf);
+  const groups = groupByFamily(shown, (r) => familyOf.get(r.canon) ?? 'Other', families);
   const changes = changed.size;
 
   return (
@@ -351,6 +337,7 @@ export function EditView({
                           octIndex={pick.octIndex}
                           base={oct}
                           drums={targetDrums}
+                          families={families}
                           onSetOct={setPickOct}
                           onPickSemitone={chooseNote}
                           onPickNote={chooseNoteAbsolute}
@@ -387,6 +374,7 @@ export function EditView({
               notes={sourceNotes}
               srcEdits={srcEdits}
               options={canonOptions}
+              families={families}
               base={oct}
               initialNote={assignNote}
               onSet={setSrcCanon}

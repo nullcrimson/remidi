@@ -36,18 +36,18 @@
       <div class="flex w-200 max-w-full flex-col gap-5">
         <a
           href="#main"
-          class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-panel focus:bg-ink focus:px-3 focus:py-2 focus:text-ui focus:text-t1"
+          class="skip-link"
         >Skip to content</a>
         <header class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 px-1">
           <a
             href="/"
-            class="tap font-display text-brand font-semibold tracking-[0.02em] text-t2 [text-shadow:0_0_12px_rgba(236,232,224,0.3)] hover:text-t1"
+            class="tap brand-mark hover:text-t1"
           >Drumverter</a>
           <nav aria-label="Main">
             <ul class="flex gap-5 text-ui">
               {% for n in frame.nav %}
               <li>
-                {% if n.current %}<a href="{{ n.href }}" aria-current="page" class="tap border-b border-accent pb-0.5 text-t1 transition-colors">{{ n.label }}</a>{% else %}<a href="{{ n.href }}" class="tap border-b border-transparent pb-0.5 text-t4 transition-colors hover:text-t1">{{ n.label }}</a>{% endif %}
+                <a href="{{ n.href }}"{% if n.current %} aria-current="page"{% endif %} class="nav-link">{{ n.label }}</a>
               </li>
               {% endfor %}
             </ul>
@@ -64,7 +64,7 @@
           <nav aria-label="Site">
             <ul class="flex flex-wrap justify-center gap-x-5 gap-y-2 text-ui">
               {% for l in frame.footer %}
-              <li><a href="{{ l.href }}" class="tap text-star/85 underline decoration-star/30 decoration-1 underline-offset-4 transition [text-shadow:0_0_10px_rgba(224,196,106,0.35)] hover:text-star hover:decoration-star/60 hover:[text-shadow:0_0_15px_rgba(224,196,106,0.6)]">{{ l.label }}</a></li>
+              <li><a href="{{ l.href }}" class="prose-link">{{ l.label }}</a></li>
               {% endfor %}
             </ul>
           </nav>

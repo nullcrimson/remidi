@@ -1,5 +1,4 @@
 import { content } from '../content/site';
-import { navLink } from './styles';
 
 export function SiteHeader() {
   return (
@@ -8,14 +7,7 @@ export function SiteHeader() {
     "
     >
       <h1 className="flex flex-wrap items-baseline gap-x-2">
-        <span
-          className="
-            font-display text-brand font-semibold tracking-[0.02em] text-t2
-            [text-shadow:0_0_12px_rgba(236,232,224,0.3)]
-          "
-        >
-          Drumverter
-        </span>
+        <span className="brand-mark">Drumverter</span>
         <span className="text-ui font-normal text-t5">
           <span className="
             hidden
@@ -32,7 +24,7 @@ export function SiteHeader() {
               <a
                 href={link.href}
                 aria-current={link.href === '/' ? 'page' : undefined}
-                className={navLink(link.href === '/')}
+                className="nav-link"
               >
                 {link.label}
               </a>

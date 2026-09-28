@@ -3,6 +3,7 @@ import type {
   Drum,
   EngineInfo,
   ErrorKind,
+  Family,
   MissingDrums,
   Overrides,
   PresetView,
@@ -19,9 +20,11 @@ export type {
   Drum,
   EngineInfo as Engine,
   ErrorKind,
+  Family,
   FallbackTally,
   PresetView as ImportedPreset,
   MissingDrums,
+  OctaveBase,
   Overrides,
   RemapOutput as RemapResult,
   Report as RemapReport,
@@ -87,6 +90,10 @@ export function engineNotes(srcId: string): Drum[] {
 
 export function canonCatalog(): CanonInfo[] {
   return call((m) => m.canon_catalog());
+}
+
+export function familyOrder(): Family[] {
+  return call((m) => m.family_order());
 }
 
 export function parsePresetFile(json: string): PresetView {

@@ -2,12 +2,13 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { SourceEditor } from '../src/components/SourceEditor';
+import { family_order } from './stubs/wasm';
 
-const notes = [{ note: 24, canon: 'kick.main', label: 'Kick', family: 'Kick' }];
+const notes = [{ note: 24, canon: 'kick.main', label: 'Kick', family: 'Kick' as const }];
 
 const options = [
-  { canon: 'kick.main', label: 'Kick', family: 'Kick' },
-  { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
+  { canon: 'kick.main', label: 'Kick', family: 'Kick' as const },
+  { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' as const },
 ];
 
 function setup(srcEdits: Record<number, string | null> = {}) {
@@ -18,6 +19,7 @@ function setup(srcEdits: Record<number, string | null> = {}) {
       notes={notes}
       srcEdits={srcEdits}
       options={options}
+      families={family_order()}
       base="c1"
       onSet={onSet}
       onClear={onClear}

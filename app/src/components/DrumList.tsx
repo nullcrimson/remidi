@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { Drum } from '../lib/midiremap';
 import { noteName, type OctaveBase } from '../lib/notes';
 import { useTruncationTooltip } from '../hooks/useTruncationTooltip';
-import { FAMILY_ORDER } from '../lib/families';
+import { groupByFamily } from '../lib/families';
 import { ListRow } from './ListRow';
 import { MonoLabel } from './MonoLabel';
 
@@ -10,19 +10,18 @@ export function DrumList({
   drums,
   currentNote,
   base,
+  families,
   onPickNote,
 }: {
   drums: Drum[];
+  families: readonly string[];
   currentNote: number | null;
   base: OctaveBase;
   onPickNote: (note: number) => void;
 }) {
   const { show, hide, tooltip } = useTruncationTooltip();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const groups = FAMILY_ORDER.map((family) => ({
-    family,
-    items: drums.filter((d) => d.family === family),
-  })).filter((g) => g.items.length > 0);
+  const groups = groupByFamily(drums, (d) => d.family, families);
 
   useEffect(() => {
     const c = scrollRef.current;

@@ -19,30 +19,6 @@ export function chip(state: ChipState, size: ChipSize): string {
   return `${CHIP_BASE} ${CHIP_SIZE[size]} ${CHIP_STATE[state]}`;
 }
 
-/** Gold underlined link for prose: about pages, report footer, site copy. */
-export const proseLink = `
-  tap text-star/85 underline decoration-star/30 decoration-1 underline-offset-4
-  transition
-  [text-shadow:0_0_10px_rgba(224,196,106,0.35)]
-  hover:text-star hover:decoration-star/60
-  hover:[text-shadow:0_0_15px_rgba(224,196,106,0.6)]
-`;
-
-/** Header nav link; the current page is lit and underlined in the accent. */
-export function navLink(current: boolean): string {
-  return `
-    tap border-b pb-0.5 transition-colors
-    ${current ? 'border-accent text-t1' : 'border-transparent text-t4 hover:text-t1'}
-  `;
-}
-
-/** Link hidden until focused, jumping past the header to the card. */
-export const skipLink = `
-  sr-only
-  focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-panel
-  focus:bg-ink focus:px-3 focus:py-2 focus:text-ui focus:text-t1
-`;
-
 export type TagTone = 'neutral' | 'gold' | 'danger';
 
 const TAG_TONE: Record<TagTone, string> = {

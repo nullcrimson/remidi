@@ -2,7 +2,6 @@ import { useState, type MouseEvent } from 'react';
 import { content, sectionHref, type Link, type Section } from '../content/site';
 import { ContentBlocks } from './ContentBlocks';
 import { Modal } from './Modal';
-import { proseLink } from './styles';
 
 type Item = Link & { section?: Section };
 
@@ -33,7 +32,7 @@ export function SiteFooter() {
                   e.preventDefault();
                   setOpen(item.section.key);
                 }}
-                className={proseLink}
+                className="prose-link"
               >
                 {item.label}
               </a>

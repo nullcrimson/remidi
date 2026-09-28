@@ -2,8 +2,9 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { NotePicker } from '../src/components/NotePicker';
+import { family_order } from './stubs/wasm';
 
-const DRUMS = [{ note: 36, canon: 'kick.main', label: 'Kick', family: 'Kick' }];
+const DRUMS = [{ note: 36, canon: 'kick.main', label: 'Kick', family: 'Kick' as const }];
 
 describe('NotePicker', () => {
   it('labels tabs by base and shows the current note name', () => {
@@ -14,6 +15,7 @@ describe('NotePicker', () => {
         octIndex={4}
         base="c2"
         drums={[]}
+        families={family_order()}
         onSetOct={() => {}}
         onPickSemitone={() => {}}
         onPickNote={() => {}}
@@ -34,6 +36,7 @@ describe('NotePicker', () => {
         octIndex={4}
         base="c1"
         drums={[]}
+        families={family_order()}
         onSetOct={onSetOct}
         onPickSemitone={() => {}}
         onPickNote={() => {}}
@@ -55,6 +58,7 @@ describe('NotePicker', () => {
         octIndex={4}
         base="c1"
         drums={[]}
+        families={family_order()}
         onSetOct={() => {}}
         onPickSemitone={() => {}}
         onPickNote={() => {}}
@@ -74,6 +78,7 @@ describe('NotePicker', () => {
         octIndex={4}
         base="c1"
         drums={DRUMS}
+        families={family_order()}
         onSetOct={() => {}}
         onPickSemitone={() => {}}
         onPickNote={onPickDrum}
@@ -92,6 +97,7 @@ describe('NotePicker', () => {
         octIndex={2}
         base="c1"
         drums={DRUMS}
+        families={family_order()}
         onSetOct={() => {}}
         onPickSemitone={() => {}}
         onPickNote={() => {}}
@@ -109,6 +115,7 @@ describe('NotePicker', () => {
         octIndex={2}
         base="c1"
         drums={DRUMS}
+        families={family_order()}
         onSetOct={() => {}}
         onPickSemitone={() => {}}
         onPickNote={() => {}}

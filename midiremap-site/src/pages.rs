@@ -1,12 +1,12 @@
 use std::collections::{BTreeMap, HashSet};
 
 use midiremap_core::{
-    Canon, CanonResolution, Catalog, EngineMap, Mapping, MissingDrums, Note, Overrides, Resolution,
+    Canon, Catalog, EngineMap, Family, Mapping, MissingDrums, Note, OctaveBase, Overrides,
+    PlanStatus, Resolution,
 };
 
 use crate::{
     content::{ContentPage, CONTENT},
-    notes::{note_name, OctaveBase},
     SiteError,
 };
 
@@ -25,17 +25,6 @@ pub const MAJORS: [(&str, &str); 8] = [
 ];
 
 pub const EXCLUDED_IDS: [&str; 1] = ["midiremap_standard"];
-
-/// Drum families in the order the app lists them.
-pub const FAMILY_ORDER: [&str; 7] = [
-    "Kick",
-    "Snare",
-    "Toms",
-    "Hi-Hat",
-    "Cymbals",
-    "Percussion",
-    "Aux",
-];
 
 /// The index group for engines whose vendor makes no other engine.
 pub const MORE_ENGINES: &str = "More engines";
@@ -125,43 +114,35 @@ pub struct Target {
     pub drum: String,
 }
 
-pub enum Outcome {
-    Exact(Target),
-    Approximated(Target),
-    Dropped,
-}
-
-impl Outcome {
-    pub fn label(&self) -> &'static str {
-        match self {
-            Outcome::Exact(_) => "exact",
-            Outcome::Approximated(_) => "approximated",
-            Outcome::Dropped => "dropped",
-        }
-    }
-
-    pub fn target(&self) -> Option<&Target> {
-        match self {
-            Outcome::Exact(t) | Outcome::Approximated(t) => Some(t),
-            Outcome::Dropped => None,
-        }
-    }
-
-    fn rank(&self) -> u8 {
-        match self {
-            Outcome::Dropped => 0,
-            Outcome::Approximated(_) => 1,
-            Outcome::Exact(_) => 2,
-        }
-    }
-}
-
 pub struct PairRow {
     pub note: u8,
     pub name_c1: String,
     pub name_c2: String,
     pub drum: String,
-    pub outcome: Outcome,
+    /// How the note converts, as the core decides it.
+    pub status: PlanStatus,
+    /// Where the note lands; `None` when it is dropped.
+    pub target: Option<Target>,
+}
+
+impl PairRow {
+    /// The word the page shows for the status.
+    pub fn label(&self) -> &'static str {
+        match self.status {
+            PlanStatus::Direct => "exact",
+            PlanStatus::Fallback => "approximated",
+            PlanStatus::Dropped => "dropped",
+        }
+    }
+
+    /// Sort key that lists changes first: dropped, then approximated, then exact.
+    pub fn rank(&self) -> u8 {
+        match self.status {
+            PlanStatus::Dropped => 0,
+            PlanStatus::Fallback => 1,
+            PlanStatus::Direct => 2,
+        }
+    }
 }
 
 pub struct EnginePage {
@@ -224,44 +205,39 @@ fn lookup<'a>(provider: &'a Catalog, id: &str) -> Result<&'a EngineMap, SiteErro
 fn target(tgt: &EngineMap, note: Note, fallback: Canon) -> Target {
     Target {
         note: note.get(),
-        name_c1: note_name(note.get(), OctaveBase::C1),
-        name_c2: note_name(note.get(), OctaveBase::C2),
+        name_c1: note.name(OctaveBase::C1),
+        name_c2: note.name(OctaveBase::C2),
         drum: tgt.decode(note).unwrap_or(fallback).label(),
     }
 }
 
 fn pair_rows(src: &EngineMap, tgt: &EngineMap) -> Vec<PairRow> {
     let mapping = Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest);
-    let mut rows: Vec<PairRow> =
-        src.source_notes()
-            .into_iter()
-            .map(|d| {
-                let outcome = match mapping.translate(d.note) {
-                    Resolution::Resolved(CanonResolution::Direct { note, .. }) => {
-                        Outcome::Exact(target(tgt, note, d.canon))
-                    }
-                    Resolution::Resolved(CanonResolution::Fallback { note, .. }) => {
-                        Outcome::Approximated(target(tgt, note, d.canon))
-                    }
-                    Resolution::Resolved(CanonResolution::Dropped { .. })
-                    | Resolution::Unmapped => Outcome::Dropped,
-                };
-                PairRow {
-                    note: d.note.get(),
-                    name_c1: note_name(d.note.get(), OctaveBase::C1),
-                    name_c2: note_name(d.note.get(), OctaveBase::C2),
-                    drum: d.label,
-                    outcome,
-                }
-            })
-            .collect();
-    rows.sort_by_key(|r| (r.outcome.rank(), r.note));
+    let mut rows: Vec<PairRow> = src
+        .source_notes()
+        .into_iter()
+        .map(|d| {
+            let (status, landed) = match mapping.translate(d.note) {
+                Resolution::Resolved(r) => (PlanStatus::from(&r), r.note()),
+                Resolution::Unmapped => (PlanStatus::Dropped, None),
+            };
+            PairRow {
+                note: d.note.get(),
+                name_c1: d.note.name(OctaveBase::C1),
+                name_c2: d.note.name(OctaveBase::C2),
+                drum: d.label,
+                status,
+                target: landed.map(|note| target(tgt, note, d.canon)),
+            }
+        })
+        .collect();
+    rows.sort_by_key(|r| (r.rank(), r.note));
     rows
 }
 
 fn pair_page(src: &EngineMap, tgt: &EngineMap, majors: &[&EngineMap]) -> PairPage {
     let rows = pair_rows(src, tgt);
-    let count = |rank: u8| rows.iter().filter(|r| r.outcome.rank() == rank).count();
+    let count = |rank: u8| rows.iter().filter(|r| r.rank() == rank).count();
     PairPage {
         slug: pair_slug(&src.id, &tgt.id),
         src: EngineLink::of(src),
@@ -283,15 +259,19 @@ fn family_groups(map: &EngineMap) -> Vec<FamilyGroup> {
     let notes = map.source_notes();
     let row = |d: &midiremap_core::engine_map::Drum| EngineRow {
         note: d.note.get(),
-        name_c1: note_name(d.note.get(), OctaveBase::C1),
-        name_c2: note_name(d.note.get(), OctaveBase::C2),
+        name_c1: d.note.name(OctaveBase::C1),
+        name_c2: d.note.name(OctaveBase::C2),
         drum: d.label.clone(),
     };
-    FAMILY_ORDER
+    Family::ALL
         .iter()
-        .map(|&name| FamilyGroup {
-            name,
-            rows: notes.iter().filter(|d| d.family == name).map(row).collect(),
+        .map(|&family| FamilyGroup {
+            name: family.label(),
+            rows: notes
+                .iter()
+                .filter(|d| d.family == family)
+                .map(row)
+                .collect(),
         })
         .filter(|g| !g.rows.is_empty())
         .collect()
@@ -465,13 +445,8 @@ mod tests {
 
     #[test]
     fn pair_rows_put_changes_first() {
-        let rank = |o: &Outcome| match o {
-            Outcome::Dropped => 0,
-            Outcome::Approximated(_) => 1,
-            Outcome::Exact(_) => 2,
-        };
         for p in site().pairs {
-            let keys: Vec<(u8, u8)> = p.rows.iter().map(|r| (rank(&r.outcome), r.note)).collect();
+            let keys: Vec<(u8, u8)> = p.rows.iter().map(|r| (r.rank(), r.note)).collect();
             let mut sorted = keys.clone();
             sorted.sort_unstable();
             assert_eq!(keys, sorted, "{}", p.slug);
@@ -484,9 +459,9 @@ mod tests {
         let maps = Catalog::builtin();
         for p in site().engines {
             let names: Vec<&str> = p.groups.iter().map(|g| g.name).collect();
-            let order: Vec<&str> = FAMILY_ORDER
+            let order: Vec<&str> = Family::ALL
                 .iter()
-                .copied()
+                .map(|f| f.label())
                 .filter(|f| names.contains(f))
                 .collect();
             assert_eq!(names, order, "{}", p.engine.id);
@@ -610,7 +585,7 @@ mod tests {
                 .unwrap();
                 assert_eq!(
                     converted_note(&out.bytes),
-                    row.outcome.target().map(|t| t.note),
+                    row.target.as_ref().map(|t| t.note),
                     "{} note {}",
                     p.slug,
                     row.note

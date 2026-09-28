@@ -13,6 +13,7 @@ export function NotePicker({
   octIndex,
   base,
   drums,
+  families,
   onSetOct,
   onPickSemitone,
   onPickNote,
@@ -23,6 +24,7 @@ export function NotePicker({
   octIndex: number;
   base: OctaveBase;
   drums: Drum[];
+  families: readonly string[];
   onSetOct: (octIndex: number) => void;
   onPickSemitone: (semitone: number) => void;
   onPickNote: (note: number) => void;
@@ -48,7 +50,7 @@ export function NotePicker({
           "
         >
           <div className="min-w-0 flex-1">
-            <DrumList drums={drums} currentNote={currentNote} base={base} onPickNote={onPickNote} />
+            <DrumList drums={drums} families={families} currentNote={currentNote} base={base} onPickNote={onPickNote} />
           </div>
           <div className="
             flex w-full shrink-0 flex-col gap-3.25

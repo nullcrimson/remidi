@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     canon::Canon,
+    family::Family,
     note::Note,
     overrides::{CanonNote, SrcNote},
 };
@@ -50,7 +51,7 @@ pub struct Drum {
     pub note: Note,
     pub canon: Canon,
     pub label: String,
-    pub family: &'static str,
+    pub family: Family,
 }
 
 impl EngineMap {
@@ -242,9 +243,9 @@ mod tests {
         assert_eq!(d.len(), 2);
         assert_eq!(d[0].note, n(24));
         assert_eq!(d[0].label, "Kick");
-        assert_eq!(d[0].family, "Kick");
+        assert_eq!(d[0].family, Family::Kick);
         assert_eq!(d[1].note, n(26));
-        assert_eq!(d[1].family, "Snare");
+        assert_eq!(d[1].family, Family::Snare);
     }
 
     #[test]

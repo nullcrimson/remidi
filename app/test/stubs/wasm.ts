@@ -39,6 +39,15 @@ export const canon_catalog: typeof Wasm.canon_catalog = () => [
   { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
 ];
 
+export const family_order: typeof Wasm.family_order = () => [
+  'Kick', 'Snare', 'Toms', 'Hi-Hat', 'Cymbals', 'Percussion', 'Aux',
+];
+
+const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+export const note_names: typeof Wasm.note_names = (base) =>
+  Array.from({ length: 128 }, (_, n) => `${NAMES[n % 12]}${Math.floor(n / 12) - (base === 'c1' ? 1 : 2)}`);
+
 const BASE_ROWS: Wasm.VoiceRow[] = [
   { canon: 'kick.main', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct', otherDrum: false },
   { canon: 'snare1.hit', label: 'Snare', srcNotes: [26], tgtNote: 38, defaultTgtNote: 38, status: 'direct', otherDrum: false },

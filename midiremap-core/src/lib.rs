@@ -2,6 +2,7 @@ pub mod canon;
 pub mod catalog;
 pub mod conversion;
 pub mod engine_map;
+pub mod family;
 pub mod midi;
 pub mod note;
 pub mod overrides;
@@ -14,8 +15,9 @@ pub use canon::Canon;
 pub use catalog::Catalog;
 pub use conversion::{convert, ConversionError, Converted};
 pub use engine_map::{Drum, EngineMap, MapError};
+pub use family::Family;
 pub use midi::{ChannelFilter, ChannelScope, ChannelScopeError, CodecError};
-pub use note::{Note, NoteOutOfRange};
+pub use note::{Note, NoteOutOfRange, OctaveBase};
 pub use overrides::{CanonNote, Overrides, SrcNote};
 pub use plan::{plan, PlanStatus, VoicePlan};
 pub use preset::{

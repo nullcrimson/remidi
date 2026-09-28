@@ -9,6 +9,9 @@ import { ProseLink } from '../src/components/ProseLink';
 import { TextButton } from '../src/components/TextButton';
 import { TextField } from '../src/components/TextField';
 import { chip } from '../src/components/styles';
+import css from '../src/index.css?raw';
+
+const utility = (name: string) => css.slice(css.indexOf(`@utility ${name} {`), css.indexOf('}', css.indexOf(`@utility ${name} {`)));
 
 const SIZES = [
   { value: 's', label: 'Small' },
@@ -141,7 +144,7 @@ describe('ProseLink', () => {
     const link = screen.getByRole('link', { name: 'site' });
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-    expect(link).toHaveClass('text-star/85');
+    expect(link).toHaveClass('prose-link');
   });
 });
 
@@ -167,7 +170,9 @@ describe('touch targets', () => {
     );
     expect(screen.getByRole('button', { name: 'Close' })).toHaveClass('tap');
     expect(screen.getByRole('button', { name: 'View report →' })).toHaveClass('tap');
-    expect(screen.getByRole('link', { name: 'site' })).toHaveClass('tap');
+    expect(screen.getByRole('link', { name: 'site' })).toHaveClass('prose-link');
+    expect(utility('prose-link')).toMatch(/@apply tap /);
+    expect(utility('nav-link')).toMatch(/@apply tap /);
     expect(chip('off', 'sm')).toContain('tap');
     expect(chip('off', 'sm')).toContain('pointer-coarse:py-3');
   });

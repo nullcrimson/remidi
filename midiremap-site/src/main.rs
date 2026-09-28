@@ -1,5 +1,4 @@
 mod content;
-mod notes;
 mod pages;
 mod render;
 mod sitemap;

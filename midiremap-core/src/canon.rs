@@ -7,6 +7,8 @@ use std::{
 
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
+use crate::family::Family;
+
 /// A 1-based position, always within `1..=MAX`.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Idx<const MAX: u8>(u8);
@@ -514,16 +516,15 @@ impl Canon {
         }
     }
 
-    pub fn family(self) -> &'static str {
+    pub fn family(self) -> Family {
         match self {
-            Canon::Kick(_) => "Kick",
-            Canon::Snare(..) => "Snare",
-            Canon::Tom(..) => "Toms",
-            Canon::Hat(..) => "Hi-Hat",
-            Canon::Aux(..) => "Aux",
-            Canon::Cymbal(..) => "Cymbals",
-            Canon::Ride(..) => "Cymbals",
-            Canon::Perc(_) => "Percussion",
+            Canon::Kick(_) => Family::Kick,
+            Canon::Snare(..) => Family::Snare,
+            Canon::Tom(..) => Family::Toms,
+            Canon::Hat(..) => Family::HiHat,
+            Canon::Aux(..) => Family::Aux,
+            Canon::Cymbal(..) | Canon::Ride(..) => Family::Cymbals,
+            Canon::Perc(_) => Family::Percussion,
         }
     }
 }
@@ -771,18 +772,18 @@ mod tests {
     }
 
     #[test]
-    fn every_variant_has_a_nonempty_family() {
-        for &c in Canon::all() {
-            assert!(!c.family().is_empty(), "{c:?} has empty family");
-        }
-        assert_eq!(Canon::Ride(idx(1), RideArtic::Bow).family(), "Cymbals");
+    fn drums_belong_to_their_family() {
+        assert_eq!(
+            Canon::Ride(idx(1), RideArtic::Bow).family(),
+            Family::Cymbals
+        );
         assert_eq!(
             Canon::Aux(idx(1), HatOpen::Closed, HatZone::Plain).family(),
-            "Aux"
+            Family::Aux
         );
         assert_eq!(
             Canon::Tom(TomPos::Rack(idx(1)), TomArtic::Hit).family(),
-            "Toms"
+            Family::Toms
         );
     }
 

@@ -46,7 +46,10 @@ npm run test     # Vitest; needs npm run build:wasm once (the contract test load
 - `test/stubs/wasm.ts` — the WASM stand-in for component tests; each export is typed
   as the real one. `test/wasm.contract.test.ts` loads the real module and checks its
   shapes and errors, and that the stub returns the same fields and real drum keys.
-- `src/lib/notes.ts` — note-name / octave helpers (octave base is display-only).
+- `src/lib/notes.ts` — note-name / octave helpers (octave base is display-only); the
+  contract test checks the names against the core's.
+- `src/lib/families.ts` — `groupByFamily`: groups drums in the core's family order
+  (`editor.families`), keeping any family it does not list.
 - `src/lib/overrides.ts` — per-voice target edits → overrides doc.
 - `src/lib/missing.ts` — the missing-drums setting (Nearest / Drop) and its hint.
 - `src/lib/editSummary.ts` — the summary row's "edited" chip: which drums differ from the

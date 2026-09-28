@@ -1,8 +1,9 @@
 use askama::Template;
+use midiremap_core::PlanStatus;
 
 use crate::{
     content::{Block, ContentPage, Link, CONTENT},
-    pages::{EnginePage, IndexPage, Outcome, PairPage, Site, ORIGIN},
+    pages::{EnginePage, IndexPage, PairPage, Site, ORIGIN},
 };
 
 pub const DESCRIPTION_MAX: usize = 155;
@@ -368,7 +369,7 @@ mod tests {
         assert!(footer.contains("text-center"));
         assert_eq!(
             footer.matches("<a ").count(),
-            footer.matches("text-star/85").count()
+            footer.matches(r#"class="prose-link""#).count()
         );
     }
 

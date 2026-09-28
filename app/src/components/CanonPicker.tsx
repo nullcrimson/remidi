@@ -1,4 +1,4 @@
-import { FAMILY_ORDER } from '../lib/families';
+import { groupByFamily } from '../lib/families';
 import type { CanonInfo } from '../lib/midiremap';
 import { IconButton } from './IconButton';
 import { ListRow } from './ListRow';
@@ -9,19 +9,18 @@ export function CanonPicker({
   noteLabel,
   current,
   options,
+  families,
   onPick,
   onClose,
 }: {
   noteLabel: string;
   current: string | null;
   options: CanonInfo[];
+  families: readonly string[];
   onPick: (canon: string) => void;
   onClose: () => void;
 }) {
-  const groups = FAMILY_ORDER.map((family) => ({
-    family,
-    items: options.filter((o) => o.family === family),
-  })).filter((g) => g.items.length > 0);
+  const groups = groupByFamily(options, (o) => o.family, families);
 
   return (
     <PickerShell label={`Canon for ${noteLabel}`} onClose={onClose}>

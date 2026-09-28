@@ -3,6 +3,30 @@ use std::fmt;
 use midly::num::u7;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
+const NAMES: [&str; 12] = [
+    "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
+];
+
+/// Which octave number middle C (note 60) gets: `C1` calls it C4 (Reaper, Logic, Ableton,
+/// Guitar Pro), `C2` calls it C3 (Cubase, FL Studio, Studio One).
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify))]
+pub enum OctaveBase {
+    #[default]
+    C1,
+    C2,
+}
+
+impl OctaveBase {
+    const fn offset(self) -> i16 {
+        match self {
+            Self::C1 => 1,
+            Self::C2 => 2,
+        }
+    }
+}
+
 /// A MIDI note number, always within `0..=127`.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[cfg_attr(feature = "ts", derive(tsify::Tsify), tsify(type = "number"))]
@@ -30,6 +54,12 @@ impl Note {
     /// Every note, ascending.
     pub fn all() -> impl Iterator<Item = Self> {
         (0..=Self::MAX).map(Self)
+    }
+
+    /// The note's name, such as `F#2`, in the given octave convention.
+    pub fn name(self, base: OctaveBase) -> String {
+        let octave = i16::from(self.0 / 12) - base.offset();
+        format!("{}{octave}", NAMES[usize::from(self.0 % 12)])
     }
 }
 
@@ -82,6 +112,26 @@ pub(crate) const fn n(x: u8) -> Note {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn names_notes_in_both_octave_conventions() {
+        let cases = [
+            (0, "C-1", "C-2"),
+            (36, "C2", "C1"),
+            (42, "F#2", "F#1"),
+            (60, "C4", "C3"),
+            (127, "G9", "G8"),
+        ];
+        for (note, c1, c2) in cases {
+            assert_eq!(n(note).name(OctaveBase::C1), c1);
+            assert_eq!(n(note).name(OctaveBase::C2), c2);
+        }
+    }
+
+    #[test]
+    fn an_octave_base_serializes_in_lowercase() {
+        assert_eq!(serde_json::to_string(&OctaveBase::C2).unwrap(), r#""c2""#);
+    }
 
     #[test]
     fn accepts_0_to_127_only() {

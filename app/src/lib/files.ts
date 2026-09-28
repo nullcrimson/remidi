@@ -21,18 +21,39 @@ export interface PresetText {
   text: string;
 }
 
-export type OnFiles = (files: LoadedFile[], skipped: string[], presets?: PresetText[]) => void;
+/**
+ * Receives what was picked or dropped: MIDI files, names skipped for their type, preset
+ * files, and names of files the browser could not read.
+ */
+export type OnFiles = (
+  files: LoadedFile[],
+  skipped: string[],
+  presets?: PresetText[],
+  unreadable?: string[],
+) => void;
 
-export async function readPresets(files: File[]): Promise<PresetText[]> {
-  return Promise.all(files.map(async (f) => ({ name: f.name, text: await f.text() })));
+async function readEach<T>(files: File[], read: (f: File) => Promise<T>): Promise<{ read: T[]; failed: string[] }> {
+  const settled = await Promise.allSettled(files.map(read));
+  return {
+    read: settled.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : [])),
+    failed: files.filter((_, i) => settled[i].status === 'rejected').map((f) => f.name),
+  };
+}
+
+/** The notice for files the browser could not read. */
+export function unreadableNotice(names: string[]): string {
+  return `Couldn't read ${names.join(', ')} — pick ${names.length === 1 ? 'it' : 'them'} again.`;
 }
 
 /** Reads picked or dropped files and hands MIDI and preset files to `onFiles`. */
 export async function takeFiles(list: File[], onFiles: OnFiles): Promise<void> {
   const { mid, presets, skipped } = splitFiles(list);
   if (!mid.length && !presets.length && !skipped.length) return;
-  const [loaded, texts] = await Promise.all([loadFiles(mid), readPresets(presets)]);
-  onFiles(loaded, skipped, texts);
+  const [loaded, texts] = await Promise.all([
+    readEach(mid, async (f): Promise<LoadedFile> => ({ bytes: new Uint8Array(await f.arrayBuffer()), name: f.name })),
+    readEach(presets, async (f): Promise<PresetText> => ({ name: f.name, text: await f.text() })),
+  ]);
+  onFiles(loaded.read, skipped, texts.read, [...loaded.failed, ...texts.failed]);
 }
 
 export interface LoadedFile {

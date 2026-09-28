@@ -22,7 +22,7 @@ describe('SiteFooter', () => {
 
   it('shows gold links, centred', () => {
     render(<SiteFooter />);
-    for (const link of footerLinks()) expect(link).toHaveClass('text-star/85');
+    for (const link of footerLinks()) expect(link).toHaveClass('prose-link');
     expect(screen.getByRole('navigation', { name: 'Site' }).firstElementChild).toHaveClass('justify-center');
     expect(screen.getByText(content.trademark)).toHaveClass('text-center');
   });

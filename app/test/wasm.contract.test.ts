@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { noteName } from '../src/lib/notes';
 import FIXTURE from './fixtures/my-kit.drumverter.json?raw';
 import * as stub from './stubs/wasm';
 
@@ -88,6 +89,19 @@ describe('real WASM module', () => {
     });
   });
 
+  it('lists the drum families in display order', () => {
+    expect(real.family_order()).toEqual(['Kick', 'Snare', 'Toms', 'Hi-Hat', 'Cymbals', 'Percussion', 'Aux']);
+    const families = new Set(real.family_order());
+    expect(real.canon_catalog().every((c) => families.has(c.family))).toBe(true);
+  });
+
+  it('names every note the way the app does, in both octave conventions', () => {
+    for (const base of ['c1', 'c2'] as const) {
+      const app = Array.from({ length: 128 }, (_, n) => noteName(n, base));
+      expect(app).toEqual(real.note_names(base));
+    }
+  });
+
   it('throws typed errors', () => {
     expect(thrown(() => real.engine_drums('nope'))).toEqual({
       kind: 'unknownEngine',
@@ -114,6 +128,8 @@ describe('test stub', () => {
     expect(first(stub.canon_catalog())).toEqual(first(real.canon_catalog()));
     expect(first(stub.plan('ggd_invasion', 'ezdrummer'))).toEqual(first(real.plan('ggd_invasion', 'ezdrummer')));
     expect(keys(stub.parse_preset_file(FIXTURE))).toEqual(keys(real.parse_preset_file(FIXTURE)));
+    expect(stub.family_order()).toEqual(real.family_order());
+    expect(stub.note_names('c2')).toEqual(real.note_names('c2'));
     const [s, r] = [stub.remap(MIDI, 'ggd_invasion', 'ezdrummer'), real.remap(MIDI, 'ggd_invasion', 'ezdrummer')];
     expect(keys(s)).toEqual(keys(r));
     expect(keys(s.report)).toEqual(keys(r.report));

@@ -65,6 +65,29 @@ describe('App presets', () => {
     expect(saveFile).toHaveBeenCalledWith('blob:mock-url', 'my-kit.drumverter.json');
   });
 
+  it('says which files the browser could not read and keeps the rest', async () => {
+    await start();
+    const gone = (name: string) => {
+      const f = new File(['x'], name);
+      const fail = () => Promise.reject(new DOMException('gone', 'NotReadableError'));
+      Object.defineProperty(f, 'arrayBuffer', { value: fail });
+      Object.defineProperty(f, 'text', { value: fail });
+      return f;
+    };
+    const input = screen.getAllByTestId('file-input')[0];
+    await userEvent.upload(input, [gone('groove.mid'), new File(['MThd'], 'fill.mid')], { applyAccept: false });
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent("Couldn't read groove.mid — pick it again."),
+    );
+    expect(screen.getByText('fill.mid')).toBeInTheDocument();
+    await userEvent.upload(screen.getAllByTestId('file-input')[0], [gone('a.mid'), gone('b.drumverter.json')], {
+      applyAccept: false,
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent("Couldn't read a.mid, b.drumverter.json — pick them again."),
+    );
+  });
+
   it('imports a preset file as a new preset with a free name', async () => {
     parsePresetMock.mockReturnValue({
       name: 'My kit',

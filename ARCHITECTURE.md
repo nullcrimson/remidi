@@ -76,6 +76,13 @@ Every concept is one concrete type or function; the core defines no traits.
   positions — `Kick(KickKind)`, `Snare(SnareIdx, SnareArtic)`, `Tom(TomPos, TomArtic)`,
   `Hat(HatOpen, HatZone)`, `Aux(AuxIdx, HatOpen, HatZone)`,
   `Cymbal(CymSlot, CymArtic)`, `Ride(RideIdx, RideArtic)` and percussion.
+- `Canon::family() → Family`. `Family` (module `family`) is declared in display order
+  (`Kick, Snare, Toms, Hi-Hat, Cymbals, Percussion, Aux`, `Family::ALL`) and serializes
+  as its label; the app and the site both group drums by it, so the order lives here
+  only.
+- `Note::name(OctaveBase)` names a note (`F#2`); `OctaveBase::{C1, C2}` is the octave
+  convention. The site uses it directly; the app keeps a synchronous copy that the
+  contract test checks against the WASM `note_names` for all 128 notes.
 - `Idx<const MAX: u8>` holds a 1-based position that is always in `1..=MAX`
   (`SnareIdx = Idx<2>`, `RackIdx = Idx<8>`, `FloorIdx = Idx<4>`, `OpenLevel = Idx<6>`,
   …); `CymSlot { Crash(Idx<6>) | China(Idx<3>) | Splash(Idx<3>) | Stack(Idx<4>) |
@@ -301,6 +308,8 @@ prints available engine ids.
   (`canon, srcNotes, tgtNote, defaultTgtNote, status, otherDrum`) plus its `label`.
 - `engine_catalog() → [{ id, name, fullName }]` — `name` is the display name,
   `fullName` the catalog name.
+- `family_order() → Family[]` — drum families in display order; `note_names(base) →
+  string[]` — the 128 note names.
 - `engine_drums(tgt_id) → [{ note, canon, label, family }]` — the target's playable
   voices, for the note editor's drum list.
 - `engine_notes(src_id) → [{ note, canon, label, family }]` — the source's notes,
@@ -390,8 +399,13 @@ scans the askama templates through `@source`, so both surfaces share one set of 
 and utilities. Octave naming and "Changes only" on pair pages are CSS-only radios; the
 filters on the engine and index pages are the only script. FAQ, How it works, Report an
 issue, Contact and Terms come from `app/src/content/pages.json`, which also feeds the
-app's modals and the homepage's FAQPage / HowTo schema (injected at build by a Vite
-plugin).
+app's modals; their FAQPage / HowTo schema is written on `/faq/` and `/how-it-works/`,
+and `/` carries only the SoftwareApplication block in `index.html`. Links and chrome
+that both surfaces draw are `@utility` classes in `index.css` (`prose-link`,
+`nav-link`, `skip-link`, `brand-mark`), used by the React components and the templates
+alike. Pair-page rows take their status from the core (`PlanStatus` of each source
+note's resolution); the site only names it (exact / approximated / dropped) and sorts
+changes first.
 
 ## Design rules (enforced)
 

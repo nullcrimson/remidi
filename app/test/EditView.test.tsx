@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { EditView } from '../src/components/EditView';
+import { family_order } from './stubs/wasm';
 
 const editor = {
   rows: [{ canon: 'KickMain', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct' as const, otherDrum: false }],
@@ -11,8 +12,9 @@ const editor = {
   notice: null,
   planError: null as string | null,
   targetDrums: [],
-  sourceNotes: [{ note: 24, canon: 'kick.main', label: 'Kick', family: 'Kick' }],
-  canonOptions: [{ canon: 'kick.main', label: 'Kick', family: 'Kick' }],
+  sourceNotes: [{ note: 24, canon: 'kick.main', label: 'Kick', family: 'Kick' as const }],
+  canonOptions: [{ canon: 'kick.main', label: 'Kick', family: 'Kick' as const }],
+  families: family_order(),
   remappedCount: 0,
   droppedCount: 0,
   changed: new Set<string>(),
@@ -193,11 +195,11 @@ describe('EditView', () => {
   });
 
   const CATALOG = [
-    { canon: 'kick.main', label: 'Kick', family: 'Kick' },
-    { canon: 'snare.main', label: 'Snare', family: 'Snare' },
-    { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals' },
-    { canon: 'china.1', label: 'China 1', family: 'Cymbals' },
-    { canon: 'hat.cc', label: 'Hi-Hat CC', family: 'Hi-Hat' },
+    { canon: 'kick.main', label: 'Kick', family: 'Kick' as const },
+    { canon: 'snare.main', label: 'Snare', family: 'Snare' as const },
+    { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals' as const },
+    { canon: 'china.1', label: 'China 1', family: 'Cymbals' as const },
+    { canon: 'hat.cc', label: 'Hi-Hat CC', family: 'Hi-Hat' as const },
   ];
   const ROWS = [
     { canon: 'ride.bell', label: 'Ride Bell', srcNotes: [53], tgtNote: 51, defaultTgtNote: 51, status: 'fallback' as const, otherDrum: false },
@@ -225,9 +227,9 @@ describe('EditView', () => {
 
   it('names the target drum each row plays', () => {
     const targetDrums = [
-      { note: 36, canon: 'kick.main', label: 'EZ Kick', family: 'Kick' },
-      { note: 51, canon: 'ride.1', label: 'Ride', family: 'Cymbals' },
-      { note: 40, canon: 'snare.rim', label: 'Snare Rimshot', family: 'Snare' },
+      { note: 36, canon: 'kick.main', label: 'EZ Kick', family: 'Kick' as const },
+      { note: 51, canon: 'ride.1', label: 'Ride', family: 'Cymbals' as const },
+      { note: 40, canon: 'snare.rim', label: 'Snare Rimshot', family: 'Snare' as const },
     ];
     render(<EditView {...props} editor={{ ...full, targetDrums }} />);
     const plays = (drum: string) =>

@@ -64,6 +64,22 @@
   }
 }
 
+@utility prose-link {
+  @apply tap text-star/85 underline decoration-star/30 decoration-1 underline-offset-4 transition [text-shadow:0_0_10px_rgba(224,196,106,0.35)] hover:text-star hover:decoration-star/60 hover:[text-shadow:0_0_15px_rgba(224,196,106,0.6)];
+}
+
+@utility nav-link {
+  @apply tap border-b border-transparent pb-0.5 text-t4 transition-colors hover:text-t1 aria-[current=page]:border-accent aria-[current=page]:text-t1;
+}
+
+@utility skip-link {
+  @apply sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-panel focus:bg-ink focus:px-3 focus:py-2 focus:text-ui focus:text-t1;
+}
+
+@utility brand-mark {
+  @apply font-display text-brand font-semibold tracking-[0.02em] text-t2 [text-shadow:0_0_12px_rgba(236,232,224,0.3)];
+}
+
 body {
   margin: 0;
   background: var(--color-page);

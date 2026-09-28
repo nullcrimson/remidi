@@ -1,12 +1,11 @@
 import type { Block, Inline } from '../content/site';
 import { ProseLink } from './ProseLink';
-import { proseLink } from './styles';
 
 function Text({ inline }: { inline: Inline[] }) {
   return inline.map((part, i) => {
     if (typeof part === 'string') return part;
     return part.href.startsWith('/')
-      ? <a key={i} href={part.href} className={proseLink}>{part.text}</a>
+      ? <a key={i} href={part.href} className="prose-link">{part.text}</a>
       : <ProseLink key={i} href={part.href}>{part.text}</ProseLink>;
   });
 }

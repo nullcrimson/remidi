@@ -3,6 +3,7 @@ import {
   canonCatalog,
   engineDrums,
   engineNotes,
+  familyOrder,
   plan as computePlan,
   type CanonInfo,
   type Drum,
@@ -297,6 +298,14 @@ export function useEditor(
       }),
     [sourceNotes],
   );
+  const families = useMemo<string[]>(() => {
+    if (status !== 'ready') return [];
+    try {
+      return familyOrder();
+    } catch {
+      return [];
+    }
+  }, [status]);
   const canonOptions = useMemo<CanonInfo[]>(() => {
     if (status !== 'ready') return [];
     try {
@@ -318,6 +327,7 @@ export function useEditor(
     targetDrums,
     sourceNotes,
     canonOptions,
+    families,
     changed,
     changedSrc,
     resetRow,

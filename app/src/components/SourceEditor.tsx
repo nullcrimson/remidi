@@ -14,6 +14,7 @@ function SourceEditorRow({
   changed,
   label,
   options,
+  families,
   base,
   open,
   onToggle,
@@ -26,6 +27,7 @@ function SourceEditorRow({
   changed: boolean;
   label: string;
   options: CanonInfo[];
+  families: readonly string[];
   base: OctaveBase;
   open: boolean;
   onToggle: () => void;
@@ -82,6 +84,7 @@ function SourceEditorRow({
           noteLabel={noteName(note, base)}
           current={current}
           options={options}
+          families={families}
           onPick={(canon) => {
             onSet(note, canon);
             onClose();
@@ -97,6 +100,7 @@ export function SourceEditor({
   notes,
   srcEdits,
   options,
+  families,
   base,
   initialNote = null,
   onSet,
@@ -105,6 +109,7 @@ export function SourceEditor({
   notes: Drum[];
   srcEdits: SrcEdits;
   options: CanonInfo[];
+  families: readonly string[];
   base: OctaveBase;
   initialNote?: number | null;
   onSet: (note: number, canon: string) => void;
@@ -158,6 +163,7 @@ export function SourceEditor({
             changed={override !== undefined}
             label={current ? labelOf(current) : ''}
             options={options}
+            families={families}
             base={base}
             open={openNote === note}
             onToggle={() => setOpenNote(openNote === note ? null : note)}

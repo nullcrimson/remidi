@@ -16,7 +16,6 @@ import { SavedMappingChips } from './components/SavedMappingChips';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteHeader } from './components/SiteHeader';
 import { StatusNotice } from './components/StatusNotice';
-import { skipLink } from './components/styles';
 import { SummaryRow } from './components/SummaryRow';
 import { useDropGuard } from './hooks/useDropGuard';
 import { useEditedSummary } from './hooks/useEditedSummary';
@@ -24,7 +23,7 @@ import { useFavorites } from './hooks/useFavorites';
 import { useRemapper } from './hooks/useRemapper';
 import { useSavedMappings } from './hooks/useSavedMappings';
 import { convertBlocker } from './lib/blocker';
-import type { OnFiles } from './lib/files';
+import { unreadableNotice, type OnFiles } from './lib/files';
 import {
   CONVERT_BUTTON_ID,
   EDIT_LINK_ID,
@@ -63,7 +62,7 @@ function Page({ wide = false, children }: { wide?: boolean; children: ReactNode 
             e.preventDefault();
             focusById(MAIN_ID);
           }}
-          className={skipLink}
+          className="skip-link"
         >
           Skip to content
         </a>
@@ -116,8 +115,12 @@ export default function App() {
   const { addFiles: storeFiles, src, tgt } = c;
   const { mappings, save: savePreset } = saved;
   const addFiles = useCallback<OnFiles>(
-    (files, skipped, presets = []) => {
-      if (presets.length > 0) setNotice(importPresets(presets, mappings, parsePresetFile, savePreset));
+    (files, skipped, presets = [], unreadable = []) => {
+      const lines = [
+        ...(unreadable.length > 0 ? [unreadableNotice(unreadable)] : []),
+        ...(presets.length > 0 ? [importPresets(presets, mappings, parsePresetFile, savePreset)] : []),
+      ];
+      if (lines.length > 0) setNotice(lines.join(' '));
       if (files.length === 0 && skipped.length === 0) return;
       flushSync(() => storeFiles(files, skipped));
       if (files.length === 0) return;

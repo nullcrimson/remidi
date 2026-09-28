@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use midiremap_core::{
     convert, parse_preset, plan as core_plan, Canon, Catalog, ChannelScope, Drum, EngineMap,
-    LoadedPreset, Mapping, MissingDrums, Overrides, Report, VoicePlan,
+    Family, LoadedPreset, Mapping, MissingDrums, Note, OctaveBase, Overrides, Report, VoicePlan,
 };
 use serde::{de::DeserializeOwned, Serialize};
 use tsify::{Ts, Tsify};
@@ -280,7 +280,7 @@ pub fn engine_notes(src_id: &str) -> Result<Vec<Ts<Drum>>, WasmError> {
 pub struct CanonInfo {
     canon: Canon,
     label: String,
-    family: &'static str,
+    family: Family,
 }
 
 #[wasm_bindgen]
@@ -294,6 +294,21 @@ pub fn canon_catalog() -> Result<Vec<Ts<CanonInfo>>, WasmError> {
         })
         .collect();
     to_js_all(&items)
+}
+
+/// Every drum family, in the order the app lists them.
+#[wasm_bindgen]
+pub fn family_order() -> Result<Vec<Ts<Family>>, WasmError> {
+    to_js_all(&Family::ALL)
+}
+
+/// The names of all 128 notes in the given octave convention.
+#[wasm_bindgen]
+pub fn note_names(base: Ts<OctaveBase>) -> Result<Vec<String>, WasmError> {
+    let base: OctaveBase = base
+        .to_rust()
+        .map_err(|e| WasmError::new(ErrorKind::Internal, e))?;
+    Ok(Note::all().map(|n| n.name(base)).collect())
 }
 
 /// An engine as the pickers list it.
