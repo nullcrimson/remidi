@@ -3,12 +3,18 @@ mod pages;
 mod render;
 mod sitemap;
 
-use std::{fs, path::PathBuf, process::ExitCode};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    process::ExitCode,
+};
 
 use clap::Parser;
 use midiremap_core::Catalog;
 
-use crate::pages::Site;
+use crate::{pages::Site, render::Shell};
+
+const FILTER_JS: &str = include_str!("../static/filter.js");
 
 #[derive(Parser)]
 #[command(about = "Generate Drumverter's static engine and conversion pages")]
@@ -20,8 +26,8 @@ struct Args {
 pub enum SiteError {
     #[error("unknown engine id: {0}")]
     UnknownEngine(String),
-    #[error("no app stylesheet linked from {0}; run the app build first")]
-    MissingStylesheet(PathBuf),
+    #[error("no {what} in {}; run the app build first", path.display())]
+    MissingFromIndex { what: &'static str, path: PathBuf },
     #[error("slug collision: {0}")]
     SlugCollision(String),
     #[error(transparent)]
@@ -55,17 +61,53 @@ fn stylesheet_href(index_html: &str) -> Option<&str> {
         .find(|href| href.starts_with('/') && href.ends_with(".css"))
 }
 
+/// The built `index.html`'s content security policy, as HTML-escaped attribute text.
+fn content_security_policy(index_html: &str) -> Option<&str> {
+    index_html
+        .split("<meta")
+        .skip(1)
+        .filter_map(|tag| tag.split('>').next())
+        .filter(|tag| tag.contains(r#"http-equiv="Content-Security-Policy""#))
+        .find_map(|tag| tag.split(r#"content=""#).nth(1)?.split('"').next())
+}
+
+/// The built `index.html`'s Cloudflare Web Analytics `<script>` element.
+fn beacon(index_html: &str) -> Option<&str> {
+    index_html.match_indices("<script").find_map(|(at, _)| {
+        let rest = &index_html[at..];
+        let open = rest.find('>')?;
+        let end = rest.find("</script>")? + "</script>".len();
+        rest[..open]
+            .contains("data-cf-beacon")
+            .then(|| &rest[..end])
+    })
+}
+
+fn app_shell<'a>(index_html: &'a str, path: &Path) -> Result<Shell<'a>, SiteError> {
+    let missing = |what| SiteError::MissingFromIndex {
+        what,
+        path: path.to_path_buf(),
+    };
+    Ok(Shell {
+        css: stylesheet_href(index_html).ok_or_else(|| missing("stylesheet"))?,
+        csp: content_security_policy(index_html)
+            .ok_or_else(|| missing("content security policy"))?,
+        beacon: beacon(index_html).ok_or_else(|| missing("analytics beacon"))?,
+    })
+}
+
 fn run(args: Args) -> Result<Site, SiteError> {
     let index = args.out_dir.join("index.html");
     let html = fs::read_to_string(&index).map_err(|source| SiteError::Io {
         path: index.clone(),
         source,
     })?;
-    let css = stylesheet_href(&html).ok_or(SiteError::MissingStylesheet(index))?;
+    let shell = app_shell(&html, &index)?;
     let site = Site::build(&Catalog::builtin())?;
-    for (rel, html) in render::render_site(&site, css)? {
+    for (rel, html) in render::render_site(&site, &shell)? {
         write(args.out_dir.join(rel), &html)?;
     }
+    write(args.out_dir.join("filter.js"), FILTER_JS)?;
     write(args.out_dir.join("sitemap.xml"), &sitemap::sitemap(&site))?;
     write(args.out_dir.join("robots.txt"), &sitemap::robots())?;
     Ok(site)
@@ -96,12 +138,51 @@ fn main() -> ExitCode {
 mod tests {
     use super::*;
 
-    #[test]
-    fn finds_the_built_stylesheet_and_skips_web_fonts() {
-        let html = r#"<link href="https://fonts.googleapis.com/css2?family=X" rel="stylesheet" />
+    const INDEX: &str = r#"<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src &#39;self&#39;; font-src &#39;self&#39;">
+    <meta charset="UTF-8" />
+    <link href="https://example.com/fonts.css" rel="stylesheet" />
     <script type="module" crossorigin src="/assets/index-a1.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-b2.css">"#;
-        assert_eq!(stylesheet_href(html), Some("/assets/index-b2.css"));
+    <link rel="stylesheet" crossorigin href="/assets/index-b2.css">
+  </head>
+  <body>
+    <script type="application/ld+json">{}</script>
+    <script
+      defer
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token": "t"}'
+    ></script>
+  </body>"#;
+
+    #[test]
+    fn reads_the_shell_from_the_built_index() {
+        let shell = app_shell(INDEX, Path::new("index.html")).unwrap();
+        assert_eq!(shell.css, "/assets/index-b2.css");
+        assert_eq!(
+            shell.csp,
+            "default-src &#39;self&#39;; font-src &#39;self&#39;"
+        );
+        assert!(shell.beacon.starts_with("<script\n      defer"));
+        assert!(shell.beacon.contains(r#"data-cf-beacon='{"token": "t"}'"#));
+        assert!(shell.beacon.ends_with("></script>"));
+    }
+
+    #[test]
+    fn a_shell_part_missing_from_the_index_is_an_error() {
+        let path = Path::new("index.html");
+        let without = |part: &str| INDEX.replace(part, "");
+        for (part, what) in [
+            ("/assets/index-b2.css", "stylesheet"),
+            ("Content-Security-Policy", "content security policy"),
+            ("data-cf-beacon", "analytics beacon"),
+        ] {
+            let err = app_shell(&without(part), path).err().unwrap();
+            assert!(err.to_string().contains(what), "{err}");
+        }
+    }
+
+    #[test]
+    fn only_a_local_stylesheet_counts() {
         assert_eq!(
             stylesheet_href(r#"<link rel="stylesheet" href="https://x/y.css">"#),
             None

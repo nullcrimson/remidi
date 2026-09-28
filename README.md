@@ -34,7 +34,7 @@ covers the UI.
 ## Build and test
 
 Requirements: rustup (it installs the Rust version pinned in `rust-toolchain.toml`,
-wasm target included), a nightly toolchain for `rustfmt`, Node 20.19+ (`.nvmrc`), and
+wasm target included), a nightly toolchain for `rustfmt`, Node 22.18+ (`.nvmrc`), and
 `wasm-bindgen-cli` at the version in `Cargo.lock`.
 
 ```bash

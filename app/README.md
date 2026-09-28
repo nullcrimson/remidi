@@ -6,7 +6,7 @@ is no backend.
 
 ## Prerequisites
 
-- Node 20.19+ (CI uses the version in the root `.nvmrc`)
+- Node 22.18+ (the size and IndexNow scripts are TypeScript run by Node; CI uses the version in the root `.nvmrc`)
 - Rust: rustup installs the version pinned in the root `rust-toolchain.toml`, wasm target
   included
 - `cargo install wasm-bindgen-cli --version 0.2.126`
@@ -34,6 +34,7 @@ Deploy the static contents of `app/dist/` to any static host.
 ```bash
 npm run test     # Vitest; needs npm run build:wasm once (the contract test loads the real module)
 npm run e2e      # Playwright against vite preview of dist; run npm run build:site first
+npm run size     # size budgets for dist/assets (wasm, JS, CSS gzipped; latin fonts)
 ```
 
 `e2e/` holds the browser smoke tests (Chromium desktop and Pixel 7): conversion through

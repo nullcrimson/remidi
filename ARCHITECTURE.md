@@ -353,6 +353,11 @@ prints available engine ids.
   file for import, engines resolved to current ids; an unknown engine is an error.
 - A `start` function installs `console_error_panic_hook`, so a panic prints its message.
 
+The browser build uses the `wasm` Cargo profile (release with LTO and one codegen
+unit), then `wasm-opt -Oz` (npm `binaryen`) on the bindgen output: 718 → 543 KB, 197 →
+163 KB gzipped. `opt-level` s / z made it larger — a quarter of the module is the
+embedded engine table.
+
 One contract, generated from Rust. Every value crossing the boundary is a serde type
 that also derives `tsify::Tsify` (in core behind the opt-in feature `ts`, which only
 this crate enables), and crosses as `Ts<T>`, so wasm-bindgen writes the real
@@ -453,7 +458,12 @@ and utilities. Octave naming and "Changes only" on pair pages are CSS-only radio
 filters on the engine and index pages are the only script. FAQ, How it works, Report an
 issue, Contact and Terms come from `app/src/content/pages.json`, which also feeds the
 app's modals; their FAQPage / HowTo schema is written on `/faq/` and `/how-it-works/`,
-and `/` carries only the SoftwareApplication block in `index.html`. Links and chrome
+and `/` carries only the SoftwareApplication block in `index.html`. Besides the
+stylesheet, each page copies two things from the built `index.html`: the content security
+policy (defined once in `vite.config.ts`, injected into the build only) and the
+Cloudflare Web Analytics beacon, so every page states the same policy and counts visits
+the same way. The filter script is `/filter.js`, not inline, so the policy needs no
+`'unsafe-inline'`. Links and chrome
 that both surfaces draw are `@utility` classes in `index.css` (`prose-link`,
 `nav-link`, `skip-link`, `brand-mark`), used by the React components and the templates
 alike. Pair-page rows take their status from the core (`PlanStatus` of each source
@@ -471,6 +481,17 @@ changes first.
   (`convert`), one catalog type, one mapping type.
 - **Standard crates over hand-rolled** parsing, error handling, and serialization.
 - The verify gate before every change is `fmt` + `test` + `clippy`, all clean.
+- **Nothing third-party without a reason.** Fonts are self-hosted (`@fontsource`,
+  variable Space Grotesk and IBM Plex Sans, IBM Plex Mono 400/600 — the faces the pages
+  load). The one outside origin is the analytics beacon; the CSP allows only it,
+  `'self'` and `'wasm-unsafe-eval'`, and the e2e suite fails on any other request.
+- **Budgets and audits.** `npm run size` fails the build when gzipped wasm, JS or CSS, or
+  the latin font files, grow past `scripts/check-size.ts`'s budgets. `audit.yml` runs
+  `cargo deny` (advisories, licences, sources; `deny.toml`) and `npm audit` on every
+  push and weekly; Dependabot proposes updates; every action is pinned to a commit.
+- **IndexNow pings only changed pages.** `scripts/indexnow.ts` hashes each sitemap
+  page (asset file names blanked), publishes `page-hashes.json`, and submits the pages
+  whose hash differs from the live copy.
 - **Browser behaviour is tested in a browser.** `app/e2e` (Playwright, Chromium desktop
   and a Pixel 7 profile) runs against the built site in CI before deploy: conversion
   through the real WASM, keyboard walk and focus, drag and drop, the report dialog,

@@ -16,5 +16,5 @@
     "types": ["vitest/globals", "@testing-library/jest-dom", "node"],
     "paths": { "@wasm": ["./src/wasm/midiremap_wasm"] }
   },
-  "include": ["src", "test", "e2e", "playwright.config.ts"]
+  "include": ["src", "test", "e2e", "scripts/**/*.ts", "playwright.config.ts", "vite.config.ts"]
 }

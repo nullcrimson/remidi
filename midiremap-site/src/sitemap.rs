@@ -25,6 +25,10 @@ mod tests {
     use midiremap_core::Catalog;
 
     use super::*;
+    use crate::{
+        content::CONTENT,
+        pages::{EXCLUDED_IDS, MAJORS},
+    };
 
     #[test]
     fn robots_allows_all_and_points_to_the_sitemap() {
@@ -36,19 +40,17 @@ mod tests {
 
     #[test]
     fn lists_every_page_once_on_the_canonical_origin() {
-        let site = Site::build(&Catalog::builtin()).unwrap();
-        let xml = sitemap(&site);
+        let catalog = Catalog::builtin();
+        let xml = sitemap(&Site::build(&catalog).unwrap());
         let doc = roxmltree::Document::parse(&xml).unwrap();
         let locs: Vec<&str> = doc
             .descendants()
             .filter(|n| n.has_tag_name("loc"))
             .filter_map(|n| n.text())
             .collect();
-        assert_eq!(
-            locs.len(),
-            2 + site.engines.len() + site.pairs.len() + site.content.len()
-        );
-        assert_eq!(locs.len(), 149);
+        let engines = catalog.ids().len() - EXCLUDED_IDS.len();
+        let pairs = MAJORS.len() * (MAJORS.len() - 1);
+        assert_eq!(locs.len(), 2 + engines + pairs + CONTENT.sections.len());
         assert!(locs.contains(&"https://drumverter.com/faq/"));
         assert_eq!(locs.iter().collect::<HashSet<_>>().len(), locs.len());
         assert!(locs

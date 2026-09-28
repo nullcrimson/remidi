@@ -154,9 +154,20 @@ pub struct NavItem {
     pub current: bool,
 }
 
-/// What every page shares: the stylesheet, header nav, footer and optional schema.
+/// What the static pages take from the app's built `index.html`: its stylesheet, its
+/// content security policy (escaped attribute text) and its analytics beacon `<script>`
+/// element, both written as they are.
+pub struct Shell<'a> {
+    pub css: &'a str,
+    pub csp: &'a str,
+    pub beacon: &'a str,
+}
+
+/// What every page shares: the app shell, header nav, footer and optional schema.
 pub struct Frame {
     pub css: String,
+    pub csp: String,
+    pub beacon: String,
     pub nav: Vec<NavItem>,
     pub footer: Vec<Link>,
     pub trademark: String,
@@ -164,9 +175,11 @@ pub struct Frame {
 }
 
 impl Frame {
-    fn new(css: &str, current: Option<&str>, json_ld: Option<String>) -> Self {
+    fn new(shell: &Shell, current: Option<&str>, json_ld: Option<String>) -> Self {
         Self {
-            css: css.to_string(),
+            css: shell.css.to_string(),
+            csp: shell.csp.to_string(),
+            beacon: shell.beacon.to_string(),
             nav: CONTENT
                 .nav
                 .iter()
@@ -219,12 +232,12 @@ struct ContentHtml<'a> {
     page: &'a ContentPage,
 }
 
-pub fn render_site(site: &Site, css: &str) -> Result<Vec<(String, String)>, askama::Error> {
+pub fn render_site(site: &Site, shell: &Shell) -> Result<Vec<(String, String)>, askama::Error> {
     let mut out = vec![(
         "engines/index.html".to_string(),
         IndexHtml {
             meta: index_meta(&site.index),
-            frame: Frame::new(css, NOTE_MAPS, None),
+            frame: Frame::new(shell, NOTE_MAPS, None),
             page: &site.index,
         }
         .render()?,
@@ -234,7 +247,7 @@ pub fn render_site(site: &Site, css: &str) -> Result<Vec<(String, String)>, aska
             format!("engines/{}/index.html", p.engine.slug),
             EngineHtml {
                 meta: engine_meta(p),
-                frame: Frame::new(css, NOTE_MAPS, None),
+                frame: Frame::new(shell, NOTE_MAPS, None),
                 page: p,
             }
             .render()?,
@@ -245,7 +258,7 @@ pub fn render_site(site: &Site, css: &str) -> Result<Vec<(String, String)>, aska
             format!("convert/{}/index.html", p.slug),
             PairHtml {
                 meta: pair_meta(p),
-                frame: Frame::new(css, NOTE_MAPS, None),
+                frame: Frame::new(shell, NOTE_MAPS, None),
                 heading: pair_heading(p),
                 summary: pair_summary(
                     &p.src.name,
@@ -266,7 +279,7 @@ pub fn render_site(site: &Site, css: &str) -> Result<Vec<(String, String)>, aska
             format!("{}/index.html", p.section.slug),
             ContentHtml {
                 meta: content_meta(p),
-                frame: Frame::new(css, Some(&href), p.json_ld.clone()),
+                frame: Frame::new(shell, Some(&href), p.json_ld.clone()),
                 page: p,
             }
             .render()?,
@@ -291,10 +304,49 @@ mod tests {
         "/site.webmanifest",
     ];
 
-    const CSS: &str = "/assets/index-test.css";
+    const SHELL: Shell = Shell {
+        css: "/assets/index-test.css",
+        csp: "default-src &#39;self&#39;",
+        beacon: r#"<script defer src="https://static.cloudflareinsights.com/beacon.min.js"></script>"#,
+    };
 
     fn rendered() -> Vec<(String, String)> {
-        render_site(&Site::build(&Catalog::builtin()).unwrap(), CSS).unwrap()
+        render_site(&Site::build(&Catalog::builtin()).unwrap(), &SHELL).unwrap()
+    }
+
+    #[test]
+    fn every_page_carries_the_policy_and_the_beacon() {
+        for (path, html) in rendered() {
+            let head = html.split("</head>").next().unwrap();
+            assert!(
+                head.contains(
+                    r#"<meta http-equiv="Content-Security-Policy" content="default-src &#39;self&#39;" />"#
+                ),
+                "{path}"
+            );
+            assert_eq!(html.matches(SHELL.beacon).count(), 1, "{path}");
+        }
+    }
+
+    #[test]
+    fn no_page_runs_inline_script() {
+        for (path, html) in rendered() {
+            for tag in html.split("<script").skip(1) {
+                let open = tag.split('>').next().unwrap();
+                assert!(
+                    open.contains("src=") || open.contains(r#"type="application/ld+json""#),
+                    "{path}: <script{open}>"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn filter_pages_load_the_filter_script() {
+        let script = r#"<script src="/filter.js" defer></script>"#;
+        assert!(page("engines/index.html").contains(script));
+        assert!(page("engines/ezdrummer/index.html").contains(script));
+        assert!(!page("convert/addictive-drums2-to-ezdrummer/index.html").contains(script));
     }
 
     fn page(path: &str) -> String {
@@ -309,7 +361,7 @@ mod tests {
     fn every_page_links_the_app_stylesheet_and_no_inline_styles() {
         for (path, html) in rendered() {
             assert!(
-                html.contains(&format!(r#"<link rel="stylesheet" href="{CSS}""#)),
+                html.contains(&format!(r#"<link rel="stylesheet" href="{}""#, SHELL.css)),
                 "{path}"
             );
             assert!(
@@ -328,6 +380,7 @@ mod tests {
             include_str!("../templates/pair.html"),
             include_str!("../templates/content.html"),
             include_str!("../templates/filter.html"),
+            include_str!("../static/filter.js"),
         ];
         for t in templates {
             for banned in ["text-[", "rounded-[", "text-t6", "style=", "<style"] {
@@ -487,7 +540,7 @@ mod tests {
         let pages = rendered();
         let mut known: HashSet<String> = pages.iter().map(|(p, _)| url_of(p)).collect();
         known.insert("/".to_string());
-        known.insert(CSS.to_string());
+        known.insert(SHELL.css.to_string());
         known.extend(STATIC_ASSETS.iter().map(|s| s.to_string()));
         for (path, html) in &pages {
             for href in html

@@ -3,20 +3,42 @@ import { parseMidi, writeMidi, type MidiEvent } from 'midi-file';
 
 export { expect };
 
-const IGNORED = [/cloudflareinsights/];
+/** Cloudflare Web Analytics, the one third party the pages may reach. */
+export const BEACON = /^https:\/\/(static\.)?cloudflareinsights\.com\//;
 
-/** Playwright's `test`, failing any test whose page logs an error or throws. */
-export const test = base.extend<{ pageErrors: string[] }>({
+/**
+ * Playwright's `test`, failing any test whose page logs an error (CSP violations
+ * included), throws, or requests another origin than the beacon's. Beacon requests are
+ * aborted so test runs never count as visits; the aborted load's console error is
+ * expected.
+ */
+export const test = base.extend<{ pageErrors: string[]; foreignRequests: string[] }>({
   pageErrors: [
     async ({ page }, use) => {
       const errors: string[] = [];
       page.on('pageerror', (e) => errors.push(e.message));
       page.on('console', (m) => {
         const text = `${m.text()} ${m.location().url}`;
-        if (m.type() === 'error' && !IGNORED.some((re) => re.test(text))) errors.push(text);
+        if (m.type() === 'error' && !BEACON.test(m.location().url)) errors.push(text);
       });
       await use(errors);
       expect(errors).toEqual([]);
+    },
+    { auto: true },
+  ],
+  foreignRequests: [
+    async ({ page, baseURL }, use) => {
+      const foreign: string[] = [];
+      await page.route(BEACON, (route) => route.abort());
+      page.on('request', (r) => {
+        const url = new URL(r.url());
+        const web = url.protocol === 'http:' || url.protocol === 'https:';
+        if (web && url.origin !== new URL(baseURL!).origin && !BEACON.test(r.url())) {
+          foreign.push(r.url());
+        }
+      });
+      await use(foreign);
+      expect(foreign).toEqual([]);
     },
     { auto: true },
   ],

@@ -1,3 +1,8 @@
 [workspace]
 resolver = "2"
 members = ["midiremap-core", "midiremap-cli", "midiremap-wasm", "midiremap-site", "midiremap-testkit"]
+
+[profile.wasm]
+inherits = "release"
+lto = true
+codegen-units = 1

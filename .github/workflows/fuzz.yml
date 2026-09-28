@@ -22,23 +22,22 @@ jobs:
       run:
         working-directory: midiremap-core
     steps:
-      - uses: actions/checkout@v7
-
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install pinned nightly
         run: rustup toolchain install "$NIGHTLY" --profile minimal --component clippy,rustfmt
 
       - name: Install cargo-fuzz
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2.87.21
         with:
           tool: cargo-fuzz
 
       - name: Cache cargo build
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: midiremap-core/fuzz
 
       - name: Restore corpus
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: midiremap-core/fuzz/corpus
           key: fuzz-corpus-${{ github.run_id }}
@@ -59,7 +58,7 @@ jobs:
 
       - name: Upload crashes
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: fuzz-artifacts
           path: midiremap-core/fuzz/artifacts

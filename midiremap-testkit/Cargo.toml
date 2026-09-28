@@ -6,4 +6,4 @@ license = "MIT"
 publish = false
 
 [dependencies]
-midly = "0.5"
+midly = { version = "0.5", default-features = false, features = ["alloc", "std"] }
