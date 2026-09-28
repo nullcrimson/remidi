@@ -6,6 +6,7 @@ import type { Missing } from '../lib/missing';
 import type { OctaveBase } from '../lib/notes';
 import { editsToOverrides, knownEdits, type Edits, type SrcEdits } from '../lib/overrides';
 import { preselection } from '../lib/preselect';
+import type { SelectionEvent } from '../lib/selection';
 import { loadSession, saveSession, type Session } from '../lib/session';
 import { useConverter } from './useConverter';
 import { useEditor } from './useEditor';
@@ -26,16 +27,10 @@ interface Selection {
 }
 
 type SelectionAction
-  = | { type: 'CHOOSE_SRC'; id: string }
-    | { type: 'CHOOSE_TGT'; id: string }
-    | { type: 'SWAP' }
+  = | SelectionEvent
     | { type: 'SET_OCT'; oct: OctaveBase }
-    | { type: 'SET_CHANNEL'; channel: Channel }
-    | { type: 'SET_MISSING'; missing: Missing }
     | { type: 'SET_VIEW'; view: View }
-    | { type: 'LOAD'; src: string; tgt: string; presetId: string | null }
-    | { type: 'SET_PRESET'; presetId: string | null }
-    | { type: 'PRESELECT'; src: string; tgt: string };
+    | { type: 'SET_PRESET'; presetId: string | null };
 
 const INITIAL: Selection = {
   src: '',
@@ -62,39 +57,35 @@ function knownCanons(): Set<string> | null {
 
 function selectionReducer(state: Selection, action: SelectionAction): Selection {
   switch (action.type) {
-    case 'CHOOSE_SRC':
+    case 'chooseSrc':
       return { ...state, src: action.id, presetId: null };
-    case 'CHOOSE_TGT':
+    case 'chooseTgt':
       return { ...state, tgt: action.id, presetId: null };
-    case 'SWAP':
+    case 'swap':
       return { ...state, src: state.tgt, tgt: state.src, presetId: null };
+    case 'preselect':
+      return { ...state, src: action.src, tgt: action.tgt, presetId: null };
+    case 'loadMapping':
+      return { ...state, src: action.src, tgt: action.tgt, view: 'convert', presetId: action.presetId };
+    case 'setChannel':
+      return { ...state, channel: action.channel };
+    case 'setMissing':
+      return { ...state, missing: action.missing };
     case 'SET_OCT':
       return { ...state, oct: action.oct };
-    case 'SET_CHANNEL':
-      return { ...state, channel: action.channel };
-    case 'SET_MISSING':
-      return { ...state, missing: action.missing };
     case 'SET_VIEW':
       return { ...state, view: action.view };
-    case 'LOAD':
-      return {
-        ...state,
-        src: action.src,
-        tgt: action.tgt,
-        view: 'convert',
-        presetId: action.presetId,
-      };
     case 'SET_PRESET':
       return { ...state, presetId: action.presetId };
-    case 'PRESELECT':
-      return { ...state, src: action.src, tgt: action.tgt, presetId: null };
   }
 }
 
 /**
  * Screen state for the converter. The last setup (engines, settings, unsaved edits) is
  * restored from the session and saved on every change; once the catalog loads, a link's
- * engine pair wins and anything this version no longer knows is dropped.
+ * engine pair wins and anything this version no longer knows is dropped. Every change to
+ * what is converted is one {@link SelectionEvent}, handed to the selection, the editor and
+ * the converter alike.
  */
 export function useRemapper() {
   const [session] = useState(loadSession);
@@ -107,7 +98,7 @@ export function useRemapper() {
   const onCatalogReady = useCallback((list: Engine[]) => restore.current(list), []);
   const { status, engines, error: initError } = useEngineCatalog(onCatalogReady);
   const editor = useEditor(status, src, tgt, missing, session);
-  const { edits, srcEdits } = editor;
+  const { edits, srcEdits, canonOptions, load: loadEditor, onSelection: editorSees } = editor;
   const overrides = useMemo(() => editsToOverrides(edits, srcEdits), [edits, srcEdits]);
   const keyFor = useCallback(
     (m: Missing) => JSON.stringify({ src, tgt, channel, missing: m, overrides }),
@@ -115,45 +106,27 @@ export function useRemapper() {
   );
   const settingsKey = useMemo(() => keyFor(missing), [keyFor, missing]);
   const converter = useConverter(src, tgt, settingsKey);
+  const { onSelection: converterSees, convert: runConvert } = converter;
 
-  const { reset: resetEditor, load: loadEditor } = editor;
-  const { resetConv, convert: runConvert } = converter;
+  const emit = useCallback(
+    (event: SelectionEvent) => {
+      dispatch(event);
+      editorSees(event);
+      converterSees(event);
+    },
+    [editorSees, converterSees],
+  );
 
-  const chooseSrc = useCallback(
-    (id: string) => {
-      dispatch({ type: 'CHOOSE_SRC', id });
-      resetEditor();
-      resetConv();
-    },
-    [resetEditor, resetConv],
-  );
-  const chooseTgt = useCallback(
-    (id: string) => {
-      dispatch({ type: 'CHOOSE_TGT', id });
-      resetEditor();
-      resetConv();
-    },
-    [resetEditor, resetConv],
-  );
-  const swap = useCallback(() => {
-    dispatch({ type: 'SWAP' });
-    resetEditor();
-    resetConv();
-  }, [resetEditor, resetConv]);
+  const chooseSrc = useCallback((id: string) => emit({ type: 'chooseSrc', id }), [emit]);
+  const chooseTgt = useCallback((id: string) => emit({ type: 'chooseTgt', id }), [emit]);
+  const swap = useCallback(() => emit({ type: 'swap' }), [emit]);
+  const setChannel = useCallback((c: Channel) => emit({ type: 'setChannel', channel: c }), [emit]);
+  const setMissing = useCallback((m: Missing) => emit({ type: 'setMissing', missing: m }), [emit]);
   const setOct = useCallback((o: OctaveBase) => dispatch({ type: 'SET_OCT', oct: o }), []);
-  const setChannel = useCallback(
-    (c: Channel) => {
-      dispatch({ type: 'SET_CHANNEL', channel: c });
-      resetConv();
-    },
-    [resetConv],
-  );
-  const setMissing = useCallback(
-    (m: Missing) => {
-      dispatch({ type: 'SET_MISSING', missing: m });
-      resetConv();
-    },
-    [resetConv],
+  const setView = useCallback((v: View) => dispatch({ type: 'SET_VIEW', view: v }), []);
+  const setPreset = useCallback(
+    (id: string | null) => dispatch({ type: 'SET_PRESET', presetId: id }),
+    [],
   );
 
   useEffect(() => {
@@ -168,8 +141,7 @@ export function useRemapper() {
         else nextSrc = '';
       }
       if (nextSrc !== session.src || nextTgt !== session.tgt) {
-        dispatch({ type: 'PRESELECT', src: nextSrc, tgt: nextTgt });
-        resetEditor();
+        emit({ type: 'preselect', src: nextSrc, tgt: nextTgt });
         return;
       }
       const canons = knownCanons();
@@ -177,14 +149,12 @@ export function useRemapper() {
       const kept = knownEdits(session.edits, session.srcEdits, canons);
       if (kept.skipped > 0) loadEditor(kept.edits, kept.srcEdits);
     };
-  }, [session, resetEditor, loadEditor]);
+  }, [session, emit, loadEditor]);
 
   useEffect(() => {
     saveSession({ src, tgt, oct, channel, missing, presetId, edits, srcEdits });
   }, [src, tgt, oct, channel, missing, presetId, edits, srcEdits]);
-  const setView = useCallback((v: View) => dispatch({ type: 'SET_VIEW', view: v }), []);
 
-  const { canonOptions } = editor;
   const loadMapping = useCallback(
     (m: { id?: string; src: string; tgt: string; edits: Edits; srcEdits?: SrcEdits }): number => {
       const all = { edits: m.edits, srcEdits: m.srcEdits ?? {} };
@@ -192,16 +162,17 @@ export function useRemapper() {
         = canonOptions.length > 0
           ? knownEdits(all.edits, all.srcEdits, new Set(canonOptions.map((c) => c.canon)))
           : { ...all, skipped: 0 };
-      dispatch({ type: 'LOAD', src: m.src, tgt: m.tgt, presetId: m.id ?? null });
-      loadEditor(kept.edits, kept.srcEdits);
-      resetConv();
+      emit({
+        type: 'loadMapping',
+        src: m.src,
+        tgt: m.tgt,
+        presetId: m.id ?? null,
+        edits: kept.edits,
+        srcEdits: kept.srcEdits,
+      });
       return kept.skipped;
     },
-    [canonOptions, loadEditor, resetConv],
-  );
-  const setPreset = useCallback(
-    (id: string | null) => dispatch({ type: 'SET_PRESET', presetId: id }),
-    [],
+    [canonOptions, emit],
   );
 
   const run = useCallback(
@@ -213,9 +184,9 @@ export function useRemapper() {
   );
   const convert = useCallback(() => run(missing), [run, missing]);
   const dropMissingAndConvert = useCallback(() => {
-    dispatch({ type: 'SET_MISSING', missing: 'drop' });
+    emit({ type: 'setMissing', missing: 'drop' });
     return run('drop');
-  }, [run]);
+  }, [emit, run]);
 
   return {
     status,
@@ -246,7 +217,6 @@ export function useRemapper() {
     setView,
     convert,
     dropMissingAndConvert,
-    reset: resetConv,
     loadMapping,
     setPreset,
   };

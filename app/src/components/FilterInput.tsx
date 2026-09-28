@@ -1,4 +1,5 @@
 import type { InputHTMLAttributes, KeyboardEvent } from 'react';
+import type { FocusRef } from '../hooks/useFocusIntent';
 import { IconButton } from './IconButton';
 import { TextField } from './TextField';
 
@@ -8,7 +9,9 @@ export function FilterInput({
   ariaLabel,
   placeholder = 'filter…',
   inputProps = {},
+  inputRef,
 }: {
+  inputRef?: FocusRef;
   value: string;
   onChange: (v: string) => void;
   ariaLabel: string;
@@ -28,6 +31,7 @@ export function FilterInput({
       </span>
       <TextField
         {...rest}
+        ref={inputRef}
         mono
         type="text"
         value={value}

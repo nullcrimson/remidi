@@ -1,0 +1,156 @@
+import { Fragment } from 'react';
+import type { Editor } from '../../hooks/useEditor';
+import type { Drum, VoiceRow as VoiceRowData } from '../../lib/midiremap';
+import { noteName, type OctaveBase } from '../../lib/notes';
+import { MonoLabel } from '../MonoLabel';
+import { NotePicker } from '../NotePicker';
+import { SourceNotePicker } from '../SourceNotePicker';
+import { ROW_GRID } from '../styles';
+import { VoiceRow, type RowResult } from '../VoiceRow';
+
+/** The editor actions a row and its pickers use. */
+export type RowActions = Pick<
+  Editor,
+  | 'openPick'
+  | 'openSrcPick'
+  | 'closePick'
+  | 'setPickOct'
+  | 'chooseNote'
+  | 'chooseNoteAbsolute'
+  | 'chooseSrcNote'
+  | 'resetRow'
+>;
+
+function playsOf(row: VoiceRowData, changed: boolean, drumAt: (note: number) => string): RowResult {
+  if (row.srcNotes.length === 0) return { text: 'no source', tone: 'text-t5' };
+  if (row.tgtNote === null) return { text: 'dropped', tone: 'text-danger' };
+  const name = drumAt(row.tgtNote);
+  if (changed) return { text: name, tone: 'text-t2' };
+  if (row.status === 'fallback') return { text: `≈ ${name}`, tone: 'text-star' };
+  return { text: name, tone: 'text-t5' };
+}
+
+function Header() {
+  return (
+    <div className={`
+      ${ROW_GRID}
+      pb-1
+    `}
+    >
+      <MonoLabel>DRUM</MonoLabel>
+      <MonoLabel className="justify-self-end">SOURCE</MonoLabel>
+      <span />
+      <MonoLabel>TARGET</MonoLabel>
+      <MonoLabel className="
+        hidden
+        sm:block
+      "
+      >
+        PLAYS
+      </MonoLabel>
+      <span />
+    </div>
+  );
+}
+
+/** The editor's drum rows, grouped by family, each with its source and target pickers. */
+export function FamilyRows({
+  groups,
+  pick,
+  notice,
+  edits,
+  changed,
+  changedSrc,
+  targetDrums,
+  families,
+  oct,
+  actions,
+}: {
+  groups: { family: string; items: VoiceRowData[] }[];
+  pick: Editor['pick'];
+  notice: Editor['notice'];
+  edits: Editor['edits'];
+  changed: ReadonlySet<string>;
+  changedSrc: ReadonlySet<string>;
+  targetDrums: Drum[];
+  families: readonly string[];
+  oct: OctaveBase;
+  actions: RowActions;
+}) {
+  const drumByNote = new Map<number, string>();
+  for (const d of targetDrums) if (!drumByNote.has(d.note)) drumByNote.set(d.note, d.label);
+  const drumAt = (note: number) => drumByNote.get(note) ?? noteName(note, oct);
+
+  return (
+    <div>
+      <Header />
+      {groups.length === 0 && <p className="py-4 text-ui text-t4">No drums match</p>}
+      {groups.map((g) => (
+        <div key={g.family} className="pt-3">
+          <div
+            data-testid="family"
+            className="
+              border-b border-hairline pb-1 font-mono text-caption
+              tracking-[0.14em] text-t4
+            "
+          >
+            {g.family}
+          </div>
+          {g.items.map((row) => {
+            const srcExpanded = pick?.canon === row.canon && pick.side === 'src';
+            const tgtExpanded = pick?.canon === row.canon && pick.side === 'tgt';
+            const rowChanged = changed.has(row.canon);
+            return (
+              <Fragment key={row.canon}>
+                <VoiceRow
+                  row={row}
+                  effectiveTgt={row.tgtNote}
+                  base={oct}
+                  srcChanged={changedSrc.has(row.canon)}
+                  tgtChanged={row.canon in edits}
+                  srcExpanded={srcExpanded}
+                  tgtExpanded={tgtExpanded}
+                  onSrcToggle={() => (srcExpanded ? actions.closePick() : actions.openSrcPick(row.canon))}
+                  onToggle={() => (tgtExpanded ? actions.closePick() : actions.openPick(row.canon))}
+                  result={playsOf(row, rowChanged, drumAt)}
+                  onReset={rowChanged ? () => actions.resetRow(row.canon) : undefined}
+                >
+                  {srcExpanded && pick && (
+                    <SourceNotePicker
+                      voiceLabel={row.label}
+                      currentNote={row.srcNotes[0] ?? null}
+                      octIndex={pick.octIndex}
+                      base={oct}
+                      onSetOct={actions.setPickOct}
+                      onPickSemitone={actions.chooseSrcNote}
+                      onClose={actions.closePick}
+                    />
+                  )}
+                  {tgtExpanded && pick && (
+                    <NotePicker
+                      voiceLabel={row.label}
+                      currentNote={row.tgtNote}
+                      octIndex={pick.octIndex}
+                      base={oct}
+                      drums={targetDrums}
+                      families={families}
+                      onSetOct={actions.setPickOct}
+                      onPickSemitone={actions.chooseNote}
+                      onPickNote={actions.chooseNoteAbsolute}
+                      onClose={actions.closePick}
+                    />
+                  )}
+                </VoiceRow>
+                {notice?.canon === row.canon && (
+                  <p role="status" className="px-1 pb-2 text-label text-t4">
+                    {noteName(notice.note, oct)} was {notice.from} — now plays {row.label}
+                  </p>
+                )}
+              </Fragment>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}

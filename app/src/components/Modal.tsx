@@ -1,99 +1,101 @@
-import { useEffect, useEffectEvent, useRef, type ReactNode } from 'react';
+import {
+  FloatingFocusManager,
+  FloatingOverlay,
+  useDismiss,
+  useFloating,
+  useInteractions,
+} from '@floating-ui/react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { IconButton } from './IconButton';
 
-const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
-
-function keepFocusInside(dialog: HTMLElement, e: KeyboardEvent) {
-  const items = [...dialog.querySelectorAll<HTMLElement>(FOCUSABLE)];
-  if (items.length === 0) return;
-  const first = items[0];
-  const last = items[items.length - 1];
-  const active = document.activeElement;
-  const outside = !dialog.contains(active);
-  if (e.shiftKey && (active === first || active === dialog || outside)) {
-    e.preventDefault();
-    last.focus();
-  } else if (!e.shiftKey && (active === last || outside)) {
-    e.preventDefault();
-    first.focus();
-  }
-}
-
-export function Modal({
-  open,
-  heading,
-  onClose,
-  children,
-}: {
+interface ModalProps {
   open: boolean;
   heading: string;
   onClose: () => void;
   children: ReactNode;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const close = useEffectEvent(onClose);
-  useEffect(() => {
-    const dialog = ref.current;
-    if (!open || !dialog) return;
-    const prev = document.activeElement as HTMLElement | null;
-    dialog.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close();
-      if (e.key === 'Tab') keepFocusInside(dialog, e);
-    };
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      const active = document.activeElement;
-      if (!active || active === document.body || dialog.contains(active)) prev?.focus();
-    };
-  }, [open]);
+}
+
+/**
+ * A dialog over the page: it traps focus, locks page scroll, closes on Escape or the
+ * backdrop, and gives focus back to what opened it. Closed, its content stays in the
+ * page, hidden, so crawlers still read it.
+ */
+export function Modal({ open, ...props }: ModalProps) {
+  if (open) return <ModalDialog {...props} />;
+  return (
+    <div role="dialog" aria-label={props.heading} hidden>
+      <ModalContent {...props} />
+    </div>
+  );
+}
+
+function ModalDialog(props: Omit<ModalProps, 'open'>) {
+  const { heading, onClose } = props;
+  const [opener] = useState(() => ({ current: document.activeElement as HTMLElement | null }));
+  const [panel, setPanel] = useState<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const attachPanel = useCallback((el: HTMLDivElement | null) => {
+    panelRef.current = el;
+    setPanel(el);
+  }, []);
+  const { context } = useFloating({
+    open: true,
+    onOpenChange: (next) => {
+      if (!next) onClose();
+    },
+    elements: { floating: panel },
+  });
+  const { getFloatingProps } = useInteractions([
+    useDismiss(context, { outsidePressEvent: 'click' }),
+  ]);
 
   return (
-    <>
-      {open && (
+    <FloatingOverlay
+      lockScroll
+      data-testid="modal-backdrop"
+      className="z-40 bg-page/72 backdrop-blur-[1.5px]"
+    >
+      <FloatingFocusManager context={context} initialFocus={panelRef} returnFocus={opener}>
         <div
-          onClick={onClose}
-          aria-hidden="true"
-          className="fixed inset-0 z-40 bg-page/72 backdrop-blur-[1.5px]"
-        />
-      )}
-      <div
-        ref={ref}
-        role="dialog"
-        aria-modal={open || undefined}
-        aria-label={heading}
-        tabIndex={open ? -1 : undefined}
-        hidden={!open}
-        className={
-          open
-            ? `
-              fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] w-160 max-w-[92vw]
-              -translate-1/2 flex-col overflow-hidden rounded-card border
-              border-hairline bg-card shadow-[0_24px_70px_-20px_rgba(0,0,0,0.8)]
-              outline-none
-            `
-            : undefined
-        }
-      >
-        <div className="
-          flex items-center justify-between border-b border-hairline px-6 py-4
-        "
-        >
-          <h2 className="
-            font-display text-brand font-semibold tracking-[0.01em] text-t1
+          ref={attachPanel}
+          role="dialog"
+          aria-modal
+          aria-label={heading}
+          tabIndex={-1}
+          {...getFloatingProps()}
+          className="
+            fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] w-160 max-w-[92vw]
+            -translate-1/2 flex-col overflow-hidden rounded-card border
+            border-hairline bg-card shadow-modal outline-none
           "
-          >
-            {heading}
-          </h2>
-          <IconButton label="Close" onClick={onClose}>×</IconButton>
+        >
+          <ModalContent {...props} />
         </div>
-        <div className="
-          mr-scroll overflow-y-auto px-6 py-5 text-body/relaxed text-t4
+      </FloatingFocusManager>
+    </FloatingOverlay>
+  );
+}
+
+function ModalContent({ heading, onClose, children }: Omit<ModalProps, 'open'>) {
+  return (
+    <>
+      <div className="
+        flex items-center justify-between border-b border-hairline px-6 py-4
+      "
+      >
+        <h2 className="
+          font-display text-brand font-semibold tracking-[0.01em] text-t1
         "
         >
-          {children}
-        </div>
+          {heading}
+        </h2>
+        <IconButton label="Close" onClick={onClose}>×</IconButton>
+      </div>
+      <div className="
+        mr-scroll overflow-y-auto px-6 py-5 text-body/relaxed text-t4
+      "
+      >
+        {children}
       </div>
     </>
   );

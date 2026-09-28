@@ -6,7 +6,7 @@ import type { Editor } from './useEditor';
 
 /** How many drums differ from the default mapping, a preview of them, and the open preset. */
 export function useEditedSummary(
-  editor: Editor,
+  editor: Pick<Editor, 'rows' | 'changed' | 'sourceNotes' | 'canonOptions' | 'edits' | 'srcEdits'>,
   oct: OctaveBase,
   preset: SavedMapping | undefined,
 ): { count: number; lines: string[]; preset: PresetMatch } {

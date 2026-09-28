@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import { saveFile } from '../lib/download';
 import type { FileFailure, FileResult } from '../lib/files';
 import type { ReportFile, ReportView } from '../lib/report';
 import { zipFiles } from '../lib/zip';
 import { Button } from './Button';
 import { tag, type TagTone } from './styles';
 import { TextButton } from './TextButton';
+
+const FREE_ZIP_AFTER_MS = 10_000;
 
 function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
@@ -62,14 +65,11 @@ export function DonePanel({
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => headingRef.current?.focus(), []);
   const single = results.length === 1;
-  const zipUrl = useMemo(
-    () => (single ? null : URL.createObjectURL(zipFiles(results))),
-    [single, results],
-  );
-  useEffect(() => {
-    if (!zipUrl) return;
-    return () => URL.revokeObjectURL(zipUrl);
-  }, [zipUrl]);
+  const downloadZip = () => {
+    const url = URL.createObjectURL(zipFiles(results));
+    saveFile(url, `remapped-${targetShort}.zip`);
+    setTimeout(() => URL.revokeObjectURL(url), FREE_ZIP_AFTER_MS);
+  };
 
   const reportByName = new Map(view.files.map((f) => [f.name, f]));
   const showFiles = results.length + failures.length > 1;
@@ -103,11 +103,11 @@ export function DonePanel({
               ↓ Download .mid
             </Button>
           )
-        : zipUrl && (
-          <Button variant="primary" size="lg" href={zipUrl} download={`remapped-${targetShort}.zip`}>
-            ↓ Download {results.length} files (.zip)
-          </Button>
-        )}
+        : (
+            <Button variant="primary" size="lg" onClick={downloadZip}>
+              ↓ Download {results.length} files (.zip)
+            </Button>
+          )}
 
       {showFiles && (
         <ul aria-label="Converted files" className="flex flex-col">
@@ -135,7 +135,7 @@ export function DonePanel({
               "
             >
               <span className="min-w-0 truncate font-mono text-t2">{f.name}</span>
-              <span className="shrink-0 text-danger">{f.error.replace(/^Error: /, '')}</span>
+              <span className="shrink-0 text-danger">{f.error}</span>
             </li>
           ))}
         </ul>

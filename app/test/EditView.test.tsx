@@ -31,6 +31,7 @@ const editor = {
   closePick: vi.fn(),
   reset: vi.fn(),
   load: vi.fn(),
+  onSelection: vi.fn(),
 };
 
 const props = {

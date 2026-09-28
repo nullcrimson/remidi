@@ -1,9 +1,10 @@
+import type { FocusRef } from '../hooks/useFocusIntent';
 import type { ReactNode } from 'react';
 import { ChipSelect } from './ChipSelect';
 import { SettingRow } from './SettingRow';
 
 export function SettingSelect<T extends string>({
-  id,
+  ref,
   label,
   value,
   options,
@@ -12,7 +13,7 @@ export function SettingSelect<T extends string>({
   tip,
   hint,
 }: {
-  id?: string;
+  ref?: FocusRef;
   label: string;
   value: T;
   options: readonly { value: T; label: string }[];
@@ -23,7 +24,7 @@ export function SettingSelect<T extends string>({
 }) {
   return (
     <SettingRow label={label} tipTitle={tipTitle} tip={tip} hint={hint}>
-      {(ids) => <ChipSelect id={id} {...ids} options={options} value={value} onChange={onChange} />}
+      {(ids) => <ChipSelect ref={ref} {...ids} options={options} value={value} onChange={onChange} />}
     </SettingRow>
   );
 }

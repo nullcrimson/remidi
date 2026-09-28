@@ -2,6 +2,9 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DonePanel } from '../src/components/DonePanel';
+
+vi.mock('../src/lib/download', () => ({ saveFile: vi.fn() }));
+import { saveFile } from '../src/lib/download';
 import type { FileFailure, FileResult } from '../src/lib/files';
 import type { ReportGroups, ReportView } from '../src/lib/report';
 
@@ -105,7 +108,7 @@ describe('DonePanel', () => {
   it('offers a zip and lists every file of a batch, failures inline', () => {
     renderPanel({
       results: [result('a-ezd.mid', 'blob:a'), result('b-ezd.mid', 'blob:b')],
-      failures: [{ name: 'c.mid', error: 'Error: not a MIDI file' }],
+      failures: [{ name: 'c.mid', error: 'not a MIDI file' }],
       report: view({ approximated: 2 }, [
         { name: 'a-ezd.mid', groups: NONE, untouched: 0, converted: 10 },
         {
@@ -118,10 +121,7 @@ describe('DonePanel', () => {
     });
     expect(screen.getByText('2 files converted → Toontrack EZdrummer 3')).toBeInTheDocument();
     expect(screen.getByText('1 failed')).toHaveClass('text-danger');
-    expect(screen.getByRole('link', { name: '↓ Download 2 files (.zip)' })).toHaveAttribute(
-      'download',
-      'remapped-EZD.zip',
-    );
+    expect(screen.getByRole('button', { name: '↓ Download 2 files (.zip)' })).toBeInTheDocument();
     const files = screen.getByRole('list', { name: 'Converted files' });
     const [a, b, c] = within(files).getAllByRole('listitem');
     expect(a).toHaveTextContent('a-ezd.mid');
@@ -145,49 +145,34 @@ describe('DonePanel', () => {
     expect(onConvertMore).toHaveBeenCalledOnce();
   });
 
-  describe('zip object-URL lifecycle', () => {
+  describe('zip download', () => {
     beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
       vi.mocked(URL.createObjectURL).mockClear();
       vi.mocked(URL.revokeObjectURL).mockClear();
+      vi.mocked(saveFile).mockClear();
     });
     afterEach(() => {
+      vi.useRealTimers();
       vi.mocked(URL.createObjectURL).mockReturnValue('blob:mock-url');
     });
 
-    const batch = [result('a.mid', 'blob:a'), result('b.mid', 'blob:b')];
-
-    it('creates one zip URL and revokes it on unmount', () => {
+    it('builds the zip only when asked, saves it and frees it afterwards', async () => {
       vi.mocked(URL.createObjectURL).mockReturnValueOnce('blob:zip-1');
-      const { rerender, unmount } = render(
-        <DonePanel
-          results={batch}
-          failures={[]}
-          view={view()}
-          targetName="EZ"
-          targetShort="EZD"
-          onViewReport={() => {}}
-          onConvertMore={() => {}}
-        />,
-      );
-      rerender(
-        <DonePanel
-          results={batch}
-          failures={[]}
-          view={view()}
-          targetName="EZ"
-          targetShort="EZD"
-          onViewReport={() => {}}
-          onConvertMore={() => {}}
-        />,
-      );
+      renderPanel({ results: [result('a.mid', 'blob:a'), result('b.mid', 'blob:b')] });
+      expect(URL.createObjectURL).not.toHaveBeenCalled();
+      await userEvent.click(screen.getByRole('button', { name: '↓ Download 2 files (.zip)' }));
       expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
-      unmount();
+      expect(saveFile).toHaveBeenCalledWith('blob:zip-1', 'remapped-EZD.zip');
+      expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+      vi.runAllTimers();
       expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:zip-1');
     });
 
     it('does not zip a single result', () => {
       renderPanel();
       expect(URL.createObjectURL).not.toHaveBeenCalled();
+      expect(screen.queryByRole('button', { name: /\.zip/ })).not.toBeInTheDocument();
     });
   });
 });

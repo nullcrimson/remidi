@@ -4,6 +4,7 @@ import { convertBatch } from '../lib/converter';
 import { errorMessage } from '../lib/errors';
 import type { Overrides } from '../lib/midiremap';
 import type { Missing } from '../lib/missing';
+import type { SelectionEvent } from '../lib/selection';
 import { MID_EXT, type FileFailure, type FileResult, type LoadedFile } from '../lib/files';
 
 export type Conv
@@ -23,10 +24,10 @@ interface State {
 const IDLE: Conv = { kind: 'idle' };
 
 type Action
-  = | { type: 'ADD_FILES'; files: LoadedFile[]; skipped: string[] }
+  = | SelectionEvent
+    | { type: 'ADD_FILES'; files: LoadedFile[]; skipped: string[] }
     | { type: 'REMOVE_FILE'; name: string }
     | { type: 'CLEAR_FILES' }
-    | { type: 'RESET_CONV' }
     | { type: 'CONVERT_START'; key: string }
     | { type: 'CONVERT_DONE'; key: string; results: FileResult[]; failures: FileFailure[] }
     | { type: 'CONVERT_ERROR'; key: string; failures: FileFailure[]; message: string };
@@ -49,7 +50,13 @@ function reducer(state: State, action: Action): State {
       };
     case 'CLEAR_FILES':
       return { files: [], skipped: [], conv: { kind: 'idle' } };
-    case 'RESET_CONV':
+    case 'chooseSrc':
+    case 'chooseTgt':
+    case 'swap':
+    case 'preselect':
+    case 'loadMapping':
+    case 'setChannel':
+    case 'setMissing':
       return { ...state, conv: { kind: 'idle' } };
     case 'CONVERT_START':
       return { ...state, conv: { kind: 'running', key: action.key } };
@@ -106,9 +113,9 @@ export function useConverter(src: string, tgt: string, settingsKey: string) {
     activeRun.current = 0;
     dispatch({ type: 'CLEAR_FILES' });
   }, []);
-  const resetConv = useCallback(() => {
+  const onSelection = useCallback((event: SelectionEvent) => {
     activeRun.current = 0;
-    dispatch({ type: 'RESET_CONV' });
+    dispatch(event);
   }, []);
 
   const convert = useCallback(
@@ -171,7 +178,7 @@ export function useConverter(src: string, tgt: string, settingsKey: string) {
     addFiles,
     removeFile,
     clearFiles,
-    resetConv,
+    onSelection,
     convert,
   };
 }

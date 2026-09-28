@@ -39,6 +39,17 @@
   --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --shadow-card: 0 0 64px -16px rgba(199, 192, 173, 0.09), 0 18px 48px -28px rgba(0, 0, 0, 0.6);
+  --shadow-modal: 0 24px 70px -20px rgba(0, 0, 0, 0.8);
+  --shadow-sheet: 0 -18px 48px -12px rgba(0, 0, 0, 0.7);
+  --shadow-popover: 0 10px 30px -8px rgba(0, 0, 0, 0.7);
+  --shadow-tip: 0 8px 24px rgba(0, 0, 0, 0.55);
+  --shadow-key-lit: 0 0 10px rgba(199, 192, 173, 0.45);
+  --shadow-key-pressed: 0 0 10px rgba(199, 192, 173, 0.45), inset 0 0 0 2px var(--color-keyinset);
+  --shadow-key-glow: 0 0 14px rgba(236, 232, 224, 0.6);
+  --shadow-key-glow-dim: 0 0 14px rgba(236, 232, 224, 0.55);
+  --shadow-key-black: 0 2px 3px rgba(0, 0, 0, 0.5);
+  --text-shadow-star: 0 0 8px rgba(224, 196, 106, 0.55);
 }
 
 @layer base {

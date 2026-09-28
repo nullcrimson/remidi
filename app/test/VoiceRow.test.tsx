@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { PickerShell } from '../src/components/PickerShell';
 import { VoiceRow } from '../src/components/VoiceRow';
 
 const base = {
@@ -11,7 +12,6 @@ const base = {
   tgtExpanded: false,
   onSrcToggle: () => {},
   onToggle: () => {},
-  onDismiss: () => {},
   result: { text: 'direct', tone: 'text-t5' },
 };
 
@@ -51,17 +51,19 @@ describe('VoiceRow', () => {
     expect(screen.getByRole('button', { name: 'B3' })).toBeInTheDocument();
   });
 
-  it('dismisses on an outside click only while a picker is expanded', () => {
-    const onDismiss = vi.fn();
-    const { rerender } = render(
-      <VoiceRow row={kick} effectiveTgt={36} {...base} onDismiss={onDismiss} />,
+  it('keeps its picker open on a press inside the row and closes it on one outside', () => {
+    const onClose = vi.fn();
+    render(
+      <VoiceRow row={kick} effectiveTgt={36} {...base} tgtExpanded>
+        <PickerShell label="Target note for Kick" onClose={onClose}>
+          <p>keys</p>
+        </PickerShell>
+      </VoiceRow>,
     );
+    fireEvent.mouseDown(screen.getByText('Kick'));
+    expect(onClose).not.toHaveBeenCalled();
     fireEvent.mouseDown(document.body);
-    expect(onDismiss).not.toHaveBeenCalled();
-
-    rerender(<VoiceRow row={kick} effectiveTgt={36} {...base} tgtExpanded onDismiss={onDismiss} />);
-    fireEvent.mouseDown(document.body);
-    expect(onDismiss).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
   });
 
   it('renders the picker slot only when a side is expanded', () => {

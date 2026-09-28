@@ -25,7 +25,7 @@ export function useTruncationTooltip() {
           className="
             pointer-events-none fixed z-50 max-w-70 rounded-panel border
             border-accent/25 bg-ink px-2.5 py-1.5 font-sans text-ui/tight
-            text-t1 shadow-[0_8px_24px_rgba(0,0,0,0.55)]
+            text-t1 shadow-tip
           "
         >
           {tip.name}

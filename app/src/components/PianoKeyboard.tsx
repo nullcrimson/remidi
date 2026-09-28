@@ -46,13 +46,10 @@ export function PianoKeyboard({
               transition
               ${
           active
-            ? `
-              bg-accent
-              shadow-[0_0_10px_rgba(199,192,173,0.45),inset_0_0_0_2px_var(--color-keyinset)]
-            `
+            ? `bg-accent shadow-key-pressed`
             : `
               bg-keywhite
-              hover:shadow-[0_0_14px_rgba(236,232,224,0.6)]
+              hover:shadow-key-glow
             `
           }
             `}
@@ -78,10 +75,10 @@ export function PianoKeyboard({
               border-black transition
               ${
           active
-            ? 'bg-keyactive shadow-[0_0_10px_rgba(199,192,173,0.45)]'
+            ? 'bg-keyactive shadow-key-lit'
             : `
-              bg-keyblack shadow-[0_2px_3px_rgba(0,0,0,0.5)]
-              hover:shadow-[0_0_14px_rgba(236,232,224,0.55)]
+              bg-keyblack shadow-key-black
+              hover:shadow-key-glow-dim
             `
           }
             `}

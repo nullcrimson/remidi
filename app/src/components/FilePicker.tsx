@@ -1,13 +1,14 @@
 import { useRef, type ReactNode } from 'react';
+import type { FocusRef } from '../hooks/useFocusIntent';
 import { takeFiles, type OnFiles } from '../lib/files';
 
 export function FilePicker({
   onFiles,
   children,
   fullWidth = true,
-  id,
+  ref,
 }: {
-  id?: string;
+  ref?: FocusRef;
   onFiles: OnFiles;
   children: ReactNode;
   fullWidth?: boolean;
@@ -17,7 +18,7 @@ export function FilePicker({
   return (
     <>
       <button
-        id={id}
+        ref={ref}
         type="button"
         className={`
           cursor-pointer text-left

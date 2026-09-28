@@ -1,11 +1,11 @@
-import type { InputHTMLAttributes } from 'react';
+import type { InputHTMLAttributes, Ref } from 'react';
 import { field } from './styles';
 
 export function TextField({
   mono = false,
   className = '',
   ...props
-}: { mono?: boolean } & InputHTMLAttributes<HTMLInputElement>) {
+}: { mono?: boolean; ref?: Ref<HTMLInputElement> } & InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}

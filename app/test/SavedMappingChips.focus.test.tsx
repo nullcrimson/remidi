@@ -24,12 +24,12 @@ function Harness({ initial }: { initial: SavedMapping[] }) {
   const [mappings, setMappings] = useState(initial);
   return (
     <>
-      <input id="fallback" aria-label="FROM" />
+      <input aria-label="FROM" />
       <SavedMappingChips
         mappings={mappings}
         engines={engines}
         atCap={false}
-        fallbackFocusId="fallback"
+        onFocusFallback={() => screen.getByRole('textbox', { name: 'FROM' }).focus()}
         onLoad={() => {}}
         onEdit={() => {}}
         onRename={(id, name) => setMappings((ms) => ms.map((m) => (m.id === id ? { ...m, name } : m)))}

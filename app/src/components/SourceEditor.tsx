@@ -1,11 +1,11 @@
-import { useId, useMemo, useRef, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import type { CanonInfo, Drum } from '../lib/midiremap';
 import type { SrcEdits } from '../lib/overrides';
-import { useDismiss } from '../hooks/useDismiss';
 import { noteName, type OctaveBase } from '../lib/notes';
 import { Button } from './Button';
 import { CanonPicker } from './CanonPicker';
 import { IconButton } from './IconButton';
+import { OverlayAnchor } from './overlayAnchor';
 import { TextField } from './TextField';
 
 function SourceEditorRow({
@@ -35,10 +35,9 @@ function SourceEditorRow({
   onSet: (note: number, canon: string) => void;
   onClear: (note: number) => void;
 }) {
-  const rowRef = useRef<HTMLDivElement>(null);
-  useDismiss(rowRef, onClose, open);
+  const [rowEl, setRowEl] = useState<HTMLDivElement | null>(null);
   return (
-    <div ref={rowRef}>
+    <div ref={setRowEl}>
       <div
         className="
           flex items-center justify-between gap-2 rounded-chip px-2.5 py-1.5
@@ -79,19 +78,21 @@ function SourceEditorRow({
           </IconButton>
         )}
       </div>
-      {open && (
-        <CanonPicker
-          noteLabel={noteName(note, base)}
-          current={current}
-          options={options}
-          families={families}
-          onPick={(canon) => {
-            onSet(note, canon);
-            onClose();
-          }}
-          onClose={onClose}
-        />
-      )}
+      <OverlayAnchor value={rowEl}>
+        {open && (
+          <CanonPicker
+            noteLabel={noteName(note, base)}
+            current={current}
+            options={options}
+            families={families}
+            onPick={(canon) => {
+              onSet(note, canon);
+              onClose();
+            }}
+            onClose={onClose}
+          />
+        )}
+      </OverlayAnchor>
     </div>
   );
 }

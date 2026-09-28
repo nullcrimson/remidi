@@ -31,6 +31,11 @@ describe('style tokens', () => {
     expect(offenders(/rounded(-[a-z]+)?-\[/)).toEqual([]);
   });
 
+  it('keeps raw colours and arbitrary shadows in the theme tokens', () => {
+    expect(offenders(/rgba\(/)).toEqual([]);
+    expect(offenders(/shadow-\[/)).toEqual([]);
+  });
+
   it('keeps the decoration colour off text that must be read', () => {
     expect(offenders(/\btext-t6\b/)).toEqual([]);
     expect(css).not.toContain('--color-t6');

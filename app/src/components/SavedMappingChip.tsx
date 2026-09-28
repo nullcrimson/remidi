@@ -191,8 +191,7 @@ export function SavedMappingChip({
               {...getFloatingProps()}
               className="
                 z-50 min-w-36 overflow-hidden rounded-panel border
-                border-hairline bg-ink p-1
-                shadow-[0_10px_30px_-8px_rgba(0,0,0,0.7)]
+                border-hairline bg-ink p-1 shadow-popover
               "
             >
               {items.map((it, i) => (

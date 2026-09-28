@@ -1,12 +1,14 @@
+import type { FocusRef } from '../hooks/useFocusIntent';
+
 export function ChipSelect<T extends string>({
-  id,
+  ref,
   labelledBy,
   describedBy,
   options,
   value,
   onChange,
 }: {
-  id?: string;
+  ref?: FocusRef;
   labelledBy: string;
   describedBy?: string;
   options: readonly { value: T; label: string }[];
@@ -16,7 +18,7 @@ export function ChipSelect<T extends string>({
   return (
     <span className="relative inline-flex">
       <select
-        id={id}
+        ref={ref}
         aria-labelledby={labelledBy}
         aria-describedby={describedBy}
         value={value}

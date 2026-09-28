@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
-import { engineFilterId } from '../lib/focusIds';
+import type { FocusRef } from '../hooks/useFocusIntent';
 import type { Engine } from '../lib/midiremap';
 import { revealScrollTop } from '../lib/reveal';
 import { useFilter } from '../hooks/useFilter';
@@ -25,7 +25,9 @@ export function LibraryList({
   disabledId,
   favorites,
   onToggleFavorite,
+  filterRef,
 }: {
+  filterRef?: FocusRef;
   label: string;
   value: string;
   engines: Engine[];
@@ -156,7 +158,7 @@ export function LibraryList({
             pointer-coarse:w-11
             ${
       fav
-        ? 'text-star [text-shadow:0_0_8px_rgba(224,196,106,0.55)]'
+        ? 'text-star text-shadow-star'
         : `
           text-t5
           hover:text-t2
@@ -196,8 +198,8 @@ export function LibraryList({
           setFollowSelection(v === '');
         }}
         ariaLabel={`Filter ${label} engines`}
+        inputRef={filterRef}
         inputProps={{
-          id: engineFilterId(label),
           role: 'combobox',
           'aria-expanded': true,
           'aria-controls': listId,

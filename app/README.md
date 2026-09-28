@@ -57,10 +57,18 @@ npm run test     # Vitest; needs npm run build:wasm once (the contract test load
 - `src/lib/session.ts` — the setup a reload brings back (engines, settings, unsaved edits).
 - `src/lib/mappings.ts`, `presetFile.ts`, `presetImport.ts` — stored presets (versioned,
   quarantine), `.drumverter.json` export and import.
-- `src/hooks/useRemapper.ts` — screen state (Convert + Edit).
+- `src/hooks/useRemapper.ts` — screen state (Convert + Edit); every selection change is
+  one `SelectionEvent` (`src/lib/selection.ts`) handed to each reducer.
+- `src/lib/editorState.ts` — the note editor's reducer; `src/hooks/useEngineData.ts` — the
+  pair's drums, notes, vocabulary and family order.
+- `src/hooks/usePresetActions.ts`, `useFileIntake.ts`, `useConversionReport.ts` — preset
+  payloads, dropped files and presets, the report.
+- `src/hooks/useFocusIntent.ts` — moves focus after an action (`ref` / `request`).
 - `src/components/*` — FileChips/CardDropzone, LibraryList, OctaveToggle, ChannelSelect,
-  MissingDrumsSetting, SummaryRow, ConvertButton, DonePanel, ReportModal (Convert); EditView, VoiceRow,
-  NotePicker, SourceEditor, PianoKeyboard (Edit). Shared primitives: `styles.ts`, Button,
+  MissingDrumsSetting, ConvertSettings, EngineColumns, SummaryRow, ConvertButton, DonePanel,
+  ReportModal (Convert); EditView with `edit/` (EditFilters, FamilyRows, EditFooter,
+  SavePreset), VoiceRow, NotePicker, SourceEditor, PianoKeyboard (Edit). Page chrome:
+  PageFrame (Page, Card). Overlays: Modal, PickerShell (+ `overlayAnchor`), on Floating UI. Shared primitives: `styles.ts`, Button,
   TextButton, IconButton, ChipRadioGroup, ChipSelect, TextField, MonoLabel, ProseLink.
   Frame: SiteHeader (brand + Converter · Note maps · FAQ), SiteFooter (section links that
   open modals, rendered by ContentBlocks from `src/content/pages.json`, the same source

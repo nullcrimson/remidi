@@ -1,18 +1,19 @@
 import { CHANNELS, channelHint, type Channel } from '../lib/channel';
+import type { FocusRef } from '../hooks/useFocusIntent';
 import { SettingSelect } from './SettingSelect';
 
-export const CHANNEL_SELECT_ID = 'drum-channel';
-
 export function ChannelSelect({
+  ref,
   value,
   onChange,
 }: {
+  ref?: FocusRef;
   value: Channel;
   onChange: (channel: Channel) => void;
 }) {
   return (
     <SettingSelect
-      id={CHANNEL_SELECT_ID}
+      ref={ref}
       label="Drum channel"
       value={value}
       options={CHANNELS}

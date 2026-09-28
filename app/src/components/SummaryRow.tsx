@@ -1,4 +1,4 @@
-import { EDIT_LINK_ID } from '../lib/focusIds';
+import type { FocusRef } from '../hooks/useFocusIntent';
 import { EditedChip, type EditedState } from './EditedChip';
 import { textAction } from './styles';
 import { Tooltip, TooltipBody } from './Tooltip';
@@ -7,12 +7,14 @@ export function SummaryRow({
   remapped,
   total,
   onEdit,
+  editRef,
   disabled,
   edited,
 }: {
   remapped: number;
   total: number;
   onEdit: () => void;
+  editRef?: FocusRef;
   disabled?: boolean;
   edited?: EditedState;
 }) {
@@ -38,7 +40,7 @@ export function SummaryRow({
         )}
       >
         <button
-          id={EDIT_LINK_ID}
+          ref={editRef}
           type="button"
           onClick={onEdit}
           disabled={disabled}

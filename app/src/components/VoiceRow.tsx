@@ -1,8 +1,8 @@
-import { useId, useRef, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import type { VoiceRow as VoiceRowData } from '../lib/midiremap';
-import { useDismiss } from '../hooks/useDismiss';
 import { noteName, type OctaveBase } from '../lib/notes';
 import { IconButton } from './IconButton';
+import { OverlayAnchor } from './overlayAnchor';
 import { chip, ROW_GRID } from './styles';
 import { Tooltip } from './Tooltip';
 
@@ -32,7 +32,6 @@ export function VoiceRow({
   tgtExpanded,
   onSrcToggle,
   onToggle,
-  onDismiss,
   result,
   onReset,
   children,
@@ -46,14 +45,12 @@ export function VoiceRow({
   tgtExpanded: boolean;
   onSrcToggle: () => void;
   onToggle: () => void;
-  onDismiss: () => void;
   result: RowResult;
   onReset?: () => void;
   children?: ReactNode;
 }) {
-  const rowRef = useRef<HTMLDivElement>(null);
+  const [rowEl, setRowEl] = useState<HTMLDivElement | null>(null);
   const playsId = useId();
-  useDismiss(rowRef, onDismiss, srcExpanded || tgtExpanded);
   const dropped = row.status === 'dropped' || effectiveTgt === null;
   const [srcNote, ...extraNotes] = row.srcNotes;
   const silent = srcNote === undefined;
@@ -64,7 +61,7 @@ export function VoiceRow({
   );
   return (
     <div
-      ref={rowRef}
+      ref={setRowEl}
       data-row
       className={`
         border-b border-white/4.5
@@ -142,7 +139,7 @@ export function VoiceRow({
             )
           : <span />}
       </div>
-      {(srcExpanded || tgtExpanded) && children}
+      <OverlayAnchor value={rowEl}>{(srcExpanded || tgtExpanded) && children}</OverlayAnchor>
     </div>
   );
 }

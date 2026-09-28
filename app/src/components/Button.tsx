@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from 'react';
+import type { FocusRef } from '../hooks/useFocusIntent';
 
 const VARIANT = {
   primary: 'bg-accent text-ink enabled:hover:brightness-110 [&[href]]:hover:brightness-110',
@@ -15,7 +16,7 @@ const SIZE = {
 };
 
 type Props = {
-  id?: string;
+  ref?: FocusRef;
   variant: keyof typeof VARIANT;
   size: keyof typeof SIZE;
   children: ReactNode;
@@ -24,7 +25,7 @@ type Props = {
   | { href?: never; download?: never; onClick: () => void; disabled?: boolean; reason?: string }
 );
 
-export function Button({ id, variant, size, children, ...rest }: Props) {
+export function Button({ ref, variant, size, children, ...rest }: Props) {
   const reasonId = useId();
   const className = `
     inline-flex items-center justify-center gap-1.75 font-display text-ui
@@ -36,7 +37,7 @@ export function Button({ id, variant, size, children, ...rest }: Props) {
   `;
   if (rest.href !== undefined) {
     return (
-      <a id={id} href={rest.href} download={rest.download} className={className}>
+      <a ref={ref} href={rest.href} download={rest.download} className={className}>
         {children}
       </a>
     );
@@ -45,7 +46,7 @@ export function Button({ id, variant, size, children, ...rest }: Props) {
   const explained = disabled && rest.reason !== undefined;
   const button = (
     <button
-      id={id}
+      ref={ref}
       type="button"
       disabled={disabled}
       aria-describedby={explained ? reasonId : undefined}

@@ -1,0 +1,43 @@
+import { useCallback } from 'react';
+import { unreadableNotice, type LoadedFile, type OnFiles } from '../lib/files';
+import { parsePresetFile } from '../lib/midiremap';
+import { importPresets } from '../lib/presetImport';
+import type { FocusTarget } from './useFocusIntent';
+import type { SavedMappings } from './useSavedMappings';
+
+/**
+ * Takes files picked or dropped: MIDI files join the list and focus moves to the next
+ * missing step (FROM, TO, then Convert); presets are imported; unreadable files and
+ * import results are reported through `notify`.
+ */
+export function useFileIntake({
+  storeFiles,
+  src,
+  tgt,
+  saved,
+  notify,
+  focus,
+}: {
+  storeFiles: (files: LoadedFile[], skipped: string[]) => void;
+  src: string;
+  tgt: string;
+  saved: Pick<SavedMappings, 'mappings' | 'save'>;
+  notify: (message: string) => void;
+  focus: (target: FocusTarget) => void;
+}): OnFiles {
+  const { mappings, save } = saved;
+  return useCallback<OnFiles>(
+    (files, skipped, presets = [], unreadable = []) => {
+      const lines = [
+        ...(unreadable.length > 0 ? [unreadableNotice(unreadable)] : []),
+        ...(presets.length > 0 ? [importPresets(presets, mappings, parsePresetFile, save)] : []),
+      ];
+      if (lines.length > 0) notify(lines.join(' '));
+      if (files.length === 0 && skipped.length === 0) return;
+      storeFiles(files, skipped);
+      if (files.length === 0) return;
+      focus(!src ? 'from' : !tgt ? 'to' : 'convert');
+    },
+    [storeFiles, src, tgt, mappings, save, notify, focus],
+  );
+}

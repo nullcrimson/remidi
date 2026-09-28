@@ -379,7 +379,22 @@ the UI is pure data.
   + report), and `useEditor` (per-note edits, the live `plan` preview, and derived
   counts) behind a stable return contract, plus a small selection reducer for
   source/target/octave/channel/view. `useEditor`'s result is exposed as one nested
-  `editor` bundle rather than a flat prop wall. Persistence lives in focused hooks
+  `editor` bundle; the editor screen owns it and hands its parts only what they read.
+  Its reducer lives in `lib/editorState.ts`; the pair's drums, notes, vocabulary and
+  family order come from `useEngineData`.
+  - Every change to what is converted (pick FROM/TO, swap, a link's pair, load a
+    preset, channel, missing drums) is one `SelectionEvent` (`lib/selection.ts`) that
+    `useRemapper` hands to the selection, editor and converter reducers alike; each
+    decides what it means (the editor drops edits when the pair changes, the converter
+    goes idle and cancels a running batch). No action resets another hook by hand.
+  - `usePresetActions` assembles preset payloads (save, update, duplicate, load, edit);
+    `useFileIntake` takes dropped files and presets; `useConversionReport` builds the
+    report and decides whether "drop missing drums" applies.
+  - Focus after an action goes through `useFocusIntent`: a component registers a
+    target with `ref(target)`, the action calls `request(target)`, and focus moves once
+    the render is on screen and any closing dialog has handed focus back. There are no
+    global element ids for focus.
+  Persistence lives in focused hooks
   (`useSavedMappings`, `useFavorites`) and `lib/session.ts`:
   - Presets are stored as `{ version: 1, items }` (a legacy bare array reads as version
     0). Storage is written only after a user action; entries this version cannot read
@@ -397,9 +412,14 @@ the UI is pure data.
   button, summary), the note editor (`EditView` + note/source pickers), and shared
   controlled-overlay modals (guide/FAQ/issue/contact/terms, loss report). The header
   and footer (`SiteHeader`, `SiteFooter`) frame every view; the footer's links go to
-  the site's pages and open the same text in a modal on a plain click. Modals
-  are controlled overlays, not `<dialog>`, because the test environment lacks
-  `showModal`.
+  the site's pages and open the same text in a modal on a plain click. Overlays use
+  Floating UI throughout: `Modal` (focus trap, scroll lock, Escape and backdrop close,
+  focus back to the opener; closed, its content stays in the page, hidden, for
+  crawlers), `PickerShell` (the note pickers: focus in, Escape or a press outside its
+  row closes, focus back; the row is its `OverlayAnchor`), menus and tooltips. The
+  editor's parts live in `components/edit/`. A structure test keeps every component
+  and hook within 250 lines; the style test keeps raw `rgba(` and `shadow-[` out of
+  components (shadows are `@theme` tokens in `index.css`).
 
 Edit preview and downloaded output share one source of truth: the editor's rows
 come from the core `plan`, a view of the same `NoteTable` the converter uses, so

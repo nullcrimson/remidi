@@ -1,12 +1,14 @@
 import type { Conv } from '../hooks/useRemapper';
-import { CONVERT_BUTTON_ID } from '../lib/focusIds';
+import type { FocusRef } from '../hooks/useFocusIntent';
 import { Button } from './Button';
 
 export function ConvertButton({
+  ref,
   conv,
   blockedBy,
   onConvert,
 }: {
+  ref?: FocusRef;
   conv: Conv;
   blockedBy: string | null;
   onConvert: () => void;
@@ -29,7 +31,7 @@ export function ConvertButton({
   }
   return (
     <Button
-      id={CONVERT_BUTTON_ID}
+      ref={ref}
       variant="primary"
       size="lg"
       disabled={blockedBy !== null}

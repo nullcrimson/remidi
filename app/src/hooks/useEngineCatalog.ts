@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { errorMessage } from '../lib/errors';
 import { engines as listEngines, ready, type Engine } from '../lib/midiremap';
 
@@ -8,11 +8,7 @@ export function useEngineCatalog(onReady?: (engines: Engine[]) => void) {
   const [status, setStatus] = useState<CatalogStatus>('loading');
   const [engines, setEngines] = useState<Engine[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const onReadyRef = useRef(onReady);
-
-  useEffect(() => {
-    onReadyRef.current = onReady;
-  });
+  const announceReady = useEffectEvent((list: Engine[]) => onReady?.(list));
 
   useEffect(() => {
     let cancelled = false;
@@ -24,7 +20,7 @@ export function useEngineCatalog(onReady?: (engines: Engine[]) => void) {
         );
         setEngines(list);
         setStatus('ready');
-        onReadyRef.current?.(list);
+        announceReady(list);
       })
       .catch((e) => {
         if (!cancelled) {

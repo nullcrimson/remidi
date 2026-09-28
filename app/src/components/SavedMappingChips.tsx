@@ -1,6 +1,5 @@
 import { useRef } from 'react';
 import { flushSync } from 'react-dom';
-import { focusById } from '../lib/focusIds';
 import type { Engine } from '../lib/midiremap';
 import type { SavedMapping } from '../lib/mappings';
 import { MonoLabel } from './MonoLabel';
@@ -10,7 +9,7 @@ export function SavedMappingChips({
   mappings,
   engines,
   atCap,
-  fallbackFocusId,
+  onFocusFallback,
   onLoad,
   onEdit,
   onRename,
@@ -21,7 +20,8 @@ export function SavedMappingChips({
   mappings: SavedMapping[];
   engines: Engine[];
   atCap: boolean;
-  fallbackFocusId?: string;
+  /** Where focus goes when the last chip is deleted. */
+  onFocusFallback?: () => void;
   onLoad: (m: SavedMapping) => void;
   onEdit: (m: SavedMapping) => void;
   onRename: (id: string, name: string) => void;
@@ -36,7 +36,7 @@ export function SavedMappingChips({
     const chips = listRef.current?.querySelectorAll<HTMLElement>('[data-chip-main]') ?? [];
     const next = chips[Math.min(at, chips.length - 1)];
     if (next) next.focus();
-    else if (fallbackFocusId) focusById(fallbackFocusId);
+    else onFocusFallback?.();
   };
   if (mappings.length === 0) return null;
   const known = (id: string) => engines.some((e) => e.id === id);

@@ -1,5 +1,5 @@
 import type { FileFailure, LoadedFile, OnFiles } from '../lib/files';
-import { FILE_PICKER_ID } from '../lib/focusIds';
+import type { FocusRef } from '../hooks/useFocusIntent';
 import { FilePicker } from './FilePicker';
 import { IconButton } from './IconButton';
 import { MidBadge } from './MidBadge';
@@ -13,7 +13,9 @@ export function FileChips({
   onFiles,
   onRemove,
   onClear,
+  pickerRef,
 }: {
+  pickerRef?: FocusRef;
   files: LoadedFile[];
   failures: FileFailure[];
   skipped?: string[];
@@ -30,7 +32,7 @@ export function FileChips({
   if (files.length === 0) {
     return (
       <div className="flex flex-col gap-2 border-b border-hairline pb-4.5">
-        <FilePicker id={FILE_PICKER_ID} onFiles={onFiles}>
+        <FilePicker ref={pickerRef} onFiles={onFiles}>
           <div className="flex items-center gap-3">
             <MidBadge />
             <span className="flex-1 text-body text-t4">
