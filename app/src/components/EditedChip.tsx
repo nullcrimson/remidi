@@ -1,5 +1,6 @@
 import type { Message } from '../generated/i18n';
-import { t } from '../i18n';
+import type { Translate } from '../i18n';
+import { useT } from '../localeContext';
 import type { PresetMatch } from '../lib/editSummary';
 import { tag } from './styles';
 import { Tooltip, TooltipBody } from './Tooltip';
@@ -11,13 +12,14 @@ export interface EditedState {
   onReview: () => void;
 }
 
-function accessibleName(count: number, preset: PresetMatch): string {
+function accessibleName(count: number, preset: PresetMatch, t: Translate): string {
   if (preset.kind === 'saved') return t({ id: 'edited-review-saved', args: { count, name: preset.name } });
   if (preset.kind === 'unsaved') return t({ id: 'edited-review-unsaved', args: { count, name: preset.name } });
   return t({ id: 'edited-review', args: { count } });
 }
 
 export function EditedChip({ count, lines, preset, onReview }: EditedState) {
+  const t = useT();
   return (
     <Tooltip
       content={(
@@ -32,7 +34,7 @@ export function EditedChip({ count, lines, preset, onReview }: EditedState) {
       <button
         type="button"
         onClick={onReview}
-        aria-label={accessibleName(count, preset)}
+        aria-label={accessibleName(count, preset, t)}
         className={`
           tap inline-flex max-w-full min-w-0 cursor-pointer items-center gap-1
           transition-colors

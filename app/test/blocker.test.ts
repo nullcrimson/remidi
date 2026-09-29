@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { convertBlocker } from '../src/lib/blocker';
-import { t } from '../src/i18n';
+import { ENGLISH } from '../src/i18n';
+
+const { t } = ENGLISH;
 
 describe('convertBlocker', () => {
   it('names what is missing', () => {

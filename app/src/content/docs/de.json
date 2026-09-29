@@ -1,0 +1,177 @@
+{
+  "guide": [
+    {
+      "p": [
+        "Drumverter ist ein kostenloser Konverter, der Drum-MIDI für jedes Sample-Plugin umbelegt. Er überträgt einen Drum-MIDI-Groove von der Notenbelegung eines Plugins auf die eines anderen – komplett in Ihrem Browser. Ziehen Sie eine .mid-Datei von GetGood Drums auf die Seite, belegen Sie sie für EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI oder Guitar Pro um und laden Sie eine fertige Datei herunter. Kein Upload, keine Anmeldung, keine Kosten – Ihre Dateien verlassen nie Ihren Rechner."
+      ]
+    },
+    {
+      "steps": [
+        {
+          "title": "Dateien hinzufügen.",
+          "body": "Legen Sie eine oder mehrere .mid-Dateien irgendwo auf der Seite ab oder klicken Sie, um sie auszuwählen."
+        },
+        {
+          "title": "Quelle und Ziel wählen.",
+          "body": "Wählen Sie das Plugin, für das Ihr MIDI geschrieben wurde, und das Plugin, für das es umbelegt werden soll."
+        },
+        {
+          "title": "Feinabstimmung (optional).",
+          "body": "Öffnen Sie den Noteneditor, um festzulegen, welche Note jedes Instrument spielt oder welches Instrument eine Note in Ihrer Datei auslöst."
+        },
+        {
+          "title": "Herunterladen.",
+          "body": "Sie erhalten eine einzelne .mid-Datei oder eine .zip-Datei, wenn Sie mehrere Dateien auf einmal konvertieren."
+        }
+      ]
+    },
+    {
+      "note": {
+        "title": "Preset speichern (optional).",
+        "body": "Mit „Als Preset speichern“ im Editor sichern Sie ein Paar aus Quelle→Ziel samt Ihren Notenänderungen. Es erscheint unter den Plugin-Listen als Schaltfläche – ein Klick lädt es wieder, ✎ öffnet es erneut im Editor, und über das ⋯-Menü können Sie es umbenennen, duplizieren oder löschen. Presets bleiben in diesem Browser gespeichert."
+      }
+    },
+    {
+      "h": "Unterstützte Drum-Plugins"
+    },
+    {
+      "p": [
+        "Drumverter konvertiert zwischen Dutzenden von Notenbelegungen verschiedener Drum-Plugins, in jede Richtung – darunter:"
+      ]
+    },
+    {
+      "list": [
+        [
+          "GetGood Drums (Invasion, Modern & Massive und weitere)"
+        ],
+        [
+          "Toontrack EZdrummer & Superior Drummer 3"
+        ],
+        [
+          "Addictive Drums 2 (XLN Audio)"
+        ],
+        [
+          "Steven Slate Drums SSD5"
+        ],
+        [
+          "BFD3"
+        ],
+        [
+          "Native Instruments Studio Drummer & Abbey Road"
+        ],
+        [
+          "ML Drums & Perfect Drums"
+        ],
+        [
+          "Signature-Kits bekannter Drummer von MixWave"
+        ],
+        [
+          "General MIDI & Guitar Pro"
+        ],
+        [
+          "…und Dutzende weitere – siehe ",
+          {
+            "text": "die Notenbelegungen aller Plugins",
+            "href": "/engines/"
+          }
+        ]
+      ]
+    },
+    {
+      "p": [
+        "Jede Zuordnung läuft über ein einheitliches Drum-Vokabular mit Ersatzstufen für jeden Slot: Eine Note ohne exakte Entsprechung landet auf dem ähnlichsten verfügbaren Sound, statt verloren zu gehen."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "faq": [
+        {
+          "q": "Ist Drumverter kostenlos?",
+          "a": "Ja. Es läuft komplett in Ihrem Browser – ohne Konto und ohne Kosten."
+        },
+        {
+          "q": "Werden meine MIDI-Dateien hochgeladen?",
+          "a": "Nein. Die Konvertierung läuft lokal in Ihrem Browser; Ihre Dateien verlassen nie Ihr Gerät."
+        },
+        {
+          "q": "Wie konvertiere ich Drum-MIDI von GetGood Drums nach EZdrummer?",
+          "a": "Fügen Sie die .mid-Datei hinzu, wählen Sie GetGood Drums als Quelle und EZdrummer als Ziel und laden Sie dann die umbelegte Datei herunter."
+        },
+        {
+          "q": "Welche DAWs und Oktavbezeichnungen werden unterstützt?",
+          "a": "Beide gängigen Konventionen für die Oktavbezeichnung werden abgedeckt – wechseln Sie zwischen C-1 (Reaper, Logic, Ableton, Guitar Pro) und C-2 (Studio One, Cubase, FL Studio), damit die Notennamen zu Ihrer DAW passen."
+        },
+        {
+          "q": "Kann ich mehrere Dateien auf einmal konvertieren?",
+          "a": "Ja. Fügen Sie mehrere .mid-Dateien hinzu und laden Sie alle zusammen als eine .zip-Datei herunter."
+        },
+        {
+          "q": "Was passiert, wenn es ein Instrument im Ziel-Plugin nicht gibt?",
+          "a": "Drumverter wählt über Ersatzketten für jeden Slot den ähnlichsten verfügbaren Sound und listet im Bericht alles auf, was sich nicht zuordnen ließ."
+        }
+      ]
+    }
+  ],
+  "issue": [
+    {
+      "p": [
+        "Falsche Zuordnung entdeckt oder fehlt Ihnen ein Plugin? Erstellen Sie ein ",
+        {
+          "text": "GitHub-Issue",
+          "href": "https://github.com/nullcrimson/remidi/issues"
+        },
+        " mit den Details."
+      ]
+    },
+    {
+      "p": [
+        "Lieber per E-Mail? Schreiben Sie mir an ",
+        {
+          "text": "null.crimson.dev@gmail.com",
+          "href": "mailto:null.crimson.dev@gmail.com"
+        },
+        "."
+      ]
+    }
+  ],
+  "contact": [
+    {
+      "p": [
+        "Fragen, Feedback oder Plugin-Wünsche? Schreiben Sie mir an ",
+        {
+          "text": "null.crimson.dev@gmail.com",
+          "href": "mailto:null.crimson.dev@gmail.com"
+        },
+        "."
+      ]
+    }
+  ],
+  "terms": [
+    {
+      "p": [
+        "Drumverter ist ein kostenloses Tool, das „wie besehen“ und ohne Zusicherung einer bestimmten Verfügbarkeit bereitgestellt wird, ohne jegliche Gewährleistung. Der Autor übernimmt keine Garantie dafür, dass es korrekt, fehlerfrei oder ohne Unterbrechung funktioniert."
+      ]
+    },
+    {
+      "p": [
+        "Zuordnungen und Ersatzinstrumente werden nach bestem Wissen erstellt. Konvertierte Dateien können unvollständig oder fehlerhaft sein. Sie sind selbst dafür verantwortlich, das Ergebnis zu prüfen und Sicherungskopien Ihrer Originaldateien anzulegen, bevor Sie diese verwenden."
+      ]
+    },
+    {
+      "p": [
+        "Soweit gesetzlich zulässig, haftet der Autor nicht für Schäden oder Datenverluste, die aus der Nutzung von Drumverter oder der Unmöglichkeit seiner Nutzung entstehen."
+      ]
+    },
+    {
+      "p": [
+        "Alle Plugin- und Produktnamen sind Marken ihrer jeweiligen Inhaber. Drumverter ist unabhängig und steht mit keinem von ihnen in Verbindung, wird von keinem unterstützt oder gesponsert; die Namen dienen nur dazu, die Kompatibilität der Notenbelegungen anzugeben."
+      ]
+    },
+    {
+      "p": [
+        "Die Konvertierung läuft vollständig in Ihrem Browser – Dateien werden weder hochgeladen noch gespeichert. Drumverter erhebt nur anonyme Nutzungsstatistiken ohne Cookies (etwa Seitenaufrufe), um einzuschätzen, ob das Tool nützlich ist; Ihre MIDI-Daten verlassen nie Ihr Gerät. Drumverter kann jederzeit geändert oder eingestellt werden. Mit der Nutzung akzeptieren Sie diese Bedingungen."
+      ]
+    }
+  ]
+}

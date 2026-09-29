@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import type { FocusRef } from '../hooks/useFocusIntent';
 import { EditedChip, type EditedState } from './EditedChip';
 import { textAction } from './styles';
@@ -20,6 +20,7 @@ export function SummaryRow({
   disabled?: boolean;
   edited?: EditedState;
 }) {
+  const t = useT();
   return (
     <div className="
       flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t

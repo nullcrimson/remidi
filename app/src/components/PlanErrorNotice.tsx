@@ -1,10 +1,11 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import type { AppError } from '../lib/errors';
 import { ErrorText } from './ErrorText';
 import { Rich } from './Rich';
 import { TextButton } from './TextButton';
 
 export function PlanErrorNotice({ error, onReset }: { error: AppError; onReset: () => void }) {
+  const t = useT();
   return (
     <div
       role="alert"

@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import { noteName, type OctaveBase } from '../lib/notes';
 import { IconButton } from './IconButton';
 import { MonoLabel } from './MonoLabel';
@@ -23,6 +23,7 @@ export function SourceNotePicker({
   onPickSemitone: (semitone: number) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   return (
     <PickerShell
       label={t({ id: 'source-picker-label', args: { drum: voiceLabel } })}

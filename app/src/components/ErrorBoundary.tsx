@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import { Component, useState, type ErrorInfo, type ReactNode } from 'react';
 import { Button } from './Button';
 import { ProseLink } from './ProseLink';
@@ -17,6 +17,7 @@ function clearSavedData() {
 }
 
 function Fallback({ message, onReload }: { message: string; onReload: () => void }) {
+  const t = useT();
   const [confirming, setConfirming] = useState(false);
   return (
     <div className="

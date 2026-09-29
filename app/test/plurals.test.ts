@@ -1,4 +1,6 @@
-import { t } from '../src/i18n';
+import { ENGLISH } from '../src/i18n';
+
+const { t } = ENGLISH;
 
 describe('plural wording', () => {
   it('says one override', () => {

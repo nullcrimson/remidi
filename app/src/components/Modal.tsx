@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import {
   FloatingFocusManager,
   FloatingOverlay,
@@ -78,6 +78,7 @@ function ModalDialog(props: Omit<ModalProps, 'open'>) {
 }
 
 function ModalContent({ heading, onClose, children }: Omit<ModalProps, 'open'>) {
+  const t = useT();
   return (
     <>
       <div className="

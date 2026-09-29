@@ -1,29 +1,34 @@
-import enFtl from '../../locales/en/app.ftl?raw';
-import { initForTests, loadMessages, t } from '../src/i18n';
+import { ENGLISH, loadTranslator, makeTranslator } from '../src/i18n';
 import { href } from '../src/content/site';
 
-describe('messages', () => {
+describe('translators', () => {
   it('formats a message with its arguments', () => {
-    initForTests('greet = { $count } files\n');
-    expect(t({ id: 'greet' as never, args: { count: 3 } } as never)).toBe('3 files');
+    const tr = makeTranslator('en', 'greet = { $count } files\n', {}, ['greet']);
+    expect(tr.t({ id: 'greet', args: { count: 3 } } as never)).toBe('3 files');
+  });
+
+  it('refuses a language file that lacks an English message', () => {
+    expect(() => makeTranslator('pl', 'only-this = x\n', {})).toThrow(/missing messages: brand-tagline/);
   });
 
   it('reports a message formatted without its arguments', () => {
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
-    initForTests('greet = { $count } files\n');
-    expect(t({ id: 'greet' } as never)).toBe('{$count} files');
+    const tr = makeTranslator('en', 'greet = { $count } files\n', {}, ['greet']);
+    expect(tr.t({ id: 'greet' } as never)).toBe('{$count} files');
     expect(logged).toHaveBeenCalledWith('greet', expect.anything());
     logged.mockRestore();
   });
 
-  it('refuses a language file that lacks an English message', async () => {
-    await expect(loadMessages('en', async () => 'only-this = x\n')).rejects.toThrow(/missing messages: brand-tagline/);
+  it('gives English without loading anything', async () => {
+    expect(await loadTranslator('en')).toBe(ENGLISH);
   });
 
-  it('refuses to start when the language file cannot load', async () => {
-    await expect(loadMessages('en', async () => {
-      throw new TypeError('Failed to fetch');
-    })).rejects.toThrow(/Failed to fetch/);
+  it('loads Polish messages and documents together', async () => {
+    const pl = await loadTranslator('pl');
+    expect(pl.locale).toBe('pl');
+    expect(pl.t({ id: 'nav-converter' })).not.toBe(ENGLISH.t({ id: 'nav-converter' }));
+    expect(pl.docs.faq?.length).toBeGreaterThan(0);
+    expect(pl.docs.terms?.length).toBeGreaterThan(0);
   });
 });
 
@@ -34,5 +39,3 @@ describe('links', () => {
     expect(href({ section: 'guide' })).toBe('/how-it-works/');
   });
 });
-
-afterAll(() => initForTests(enFtl));

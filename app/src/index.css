@@ -41,7 +41,7 @@
   --radius-chip: 6px;
   --radius-panel: 10px;
   --radius-card: 18px;
-  --font-display: 'Space Grotesk Variable', system-ui, sans-serif;
+  --font-display: 'Space Grotesk Variable', 'IBM Plex Sans Variable', system-ui, sans-serif;
   --font-sans: 'IBM Plex Sans Variable', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
   --shadow-card: 0 0 64px -16px rgba(199, 192, 173, 0.09), 0 18px 48px -28px rgba(0, 0, 0, 0.6);
@@ -86,6 +86,41 @@
 
 @utility nav-link {
   @apply tap border-b border-transparent pb-0.5 text-t4 transition-colors hover:text-t1 aria-[current=page]:border-accent aria-[current=page]:text-t1;
+}
+
+@utility lang-trigger {
+  anchor-name: --language-trigger;
+  @apply inline-flex items-center gap-1.5;
+}
+
+@utility lang-menu {
+  position: fixed;
+  inset: calc(6vh + 2.25rem) 1rem auto auto;
+  margin: 0;
+  max-block-size: 80dvh;
+  overflow-y: auto;
+  @apply min-w-44 rounded-panel border border-hairline bg-card p-2 text-ui text-t3 shadow-popover;
+
+  @supports (anchor-name: --a) {
+    position-anchor: --language-trigger;
+    inset: calc(anchor(bottom) + 0.5rem) anchor(right) auto auto;
+  }
+
+  @media (max-width: 639px) {
+    inset: auto 0 0 0;
+    width: 100%;
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    @apply p-3 shadow-sheet;
+  }
+}
+
+@utility lang-item {
+  @apply flex items-center justify-between gap-4 rounded-chip px-3 py-2 transition-colors hover:bg-white/3 hover:text-star pointer-coarse:py-3;
+
+  &[aria-current]::after {
+    content: '✓';
+    @apply text-accent;
+  }
 }
 
 @utility skip-link {

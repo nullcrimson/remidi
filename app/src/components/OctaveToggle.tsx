@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import type { OctaveBase } from '../lib/notes';
 import { ChipRadioGroup } from './ChipRadioGroup';
 import { SettingRow } from './SettingRow';
@@ -20,6 +20,7 @@ export function OctaveToggle({
   value: OctaveBase;
   onChange: (base: OctaveBase) => void;
 }) {
+  const t = useT();
   return (
     <SettingRow
       label={t({ id: 'octave-label' })}

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { editLines, previewLines, sameEdits } from '../src/lib/editSummary';
 import type { VoiceRow } from '../src/lib/midiremap';
-import { t } from '../src/i18n';
+import { ENGLISH } from '../src/i18n';
 import type { Message } from '../src/generated/i18n';
+
+const { t } = ENGLISH;
 
 const row = (canon: string, label: string, srcNotes: number[], tgtNote: number | null, defaultTgtNote: number | null): VoiceRow => ({
   canon,

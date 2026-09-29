@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import { CHANNELS, channelHint, type Channel } from '../lib/channel';
 import type { FocusRef } from '../hooks/useFocusIntent';
 import { SettingSelect } from './SettingSelect';
@@ -12,6 +12,7 @@ export function ChannelSelect({
   value: Channel;
   onChange: (channel: Channel) => void;
 }) {
+  const t = useT();
   return (
     <SettingSelect
       ref={ref}

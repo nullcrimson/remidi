@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { CHANNELS, channelHint } from '../src/lib/channel';
-import { t } from '../src/i18n';
+import { ENGLISH } from '../src/i18n';
+
+const { t } = ENGLISH;
 
 describe('channel options', () => {
   it('lists auto, all, then channels 1 to 16', () => {

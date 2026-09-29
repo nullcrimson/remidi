@@ -18,12 +18,13 @@ use clap::Parser;
 use midiremap_core::Catalog;
 
 use crate::{
-    i18n::{Docs, I18nError, Locale, Messages, SectionKey},
-    pages::Site,
-    render::{Shell, Texts},
+    i18n::{home, Docs, I18nError, Locale, Messages},
+    pages::{page_file, Site},
+    render::Shell,
 };
 
 const FILTER_JS: &str = include_str!("../static/filter.js");
+const LOCALE_JS: &str = include_str!("../static/locale.js");
 
 #[derive(Parser)]
 #[command(about = "Generate Drumverter's static engine and conversion pages")]
@@ -109,7 +110,7 @@ fn app_shell<'a>(index_html: &'a str, path: &Path) -> Result<Shell<'a>, SiteErro
     })
 }
 
-fn run(args: Args) -> Result<Site, SiteError> {
+fn run(args: Args) -> Result<usize, SiteError> {
     let index = args.out_dir.join("index.html");
     let html = fs::read_to_string(&index).map_err(|source| SiteError::Io {
         path: index.clone(),
@@ -119,34 +120,36 @@ fn run(args: Args) -> Result<Site, SiteError> {
     let site = Site::build(&Catalog::builtin())?;
     let messages = Messages::load()?;
     let docs = Docs::load()?;
-    let texts = Texts {
-        messages: &messages,
-        docs: &docs,
-        locale: Locale::En,
-    };
-    for (rel, html) in render::render_site(&site, &shell, &texts)? {
-        write(args.out_dir.join(rel), &html)?;
+    let pages = render::render_site(&site, &shell, &messages, &docs)?;
+    let written = pages.len();
+    for (rel, page) in pages {
+        write(args.out_dir.join(rel), &page)?;
     }
-    write(index, &shell::localize_shell(&html, Locale::En, &messages)?)?;
+    for &l in Locale::ALL {
+        write(
+            args.out_dir.join(page_file(&home(l))),
+            &shell::localize_shell(&html, l, &messages)?,
+        )?;
+    }
     write(args.out_dir.join("filter.js"), FILTER_JS)?;
+    write(args.out_dir.join("locale.js"), LOCALE_JS)?;
     write(
         args.out_dir.join("sitemap.xml"),
         &sitemap::sitemap(&site, &docs),
     )?;
     write(args.out_dir.join("robots.txt"), &sitemap::robots())?;
-    Ok(site)
+    Ok(written)
 }
 
 fn main() -> ExitCode {
     let args = Args::parse();
     let out_dir = args.out_dir.clone();
     match run(args) {
-        Ok(site) => {
+        Ok(pages) => {
             println!(
-                "wrote {} engine pages, {} pair pages, {} content pages, index, sitemap and robots.txt to {}",
-                site.engines.len(),
-                site.pairs.len(),
-                SectionKey::ALL.len(),
+                "wrote {pages} static pages and {} converter pages in {} languages, sitemap and robots.txt to {}",
+                Locale::ALL.len(),
+                Locale::ALL.len(),
                 out_dir.display()
             );
             ExitCode::SUCCESS

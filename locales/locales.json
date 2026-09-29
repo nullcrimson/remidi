@@ -1,1 +1,13 @@
-[{ "code": "en", "prefix": "", "langTag": "en", "nativeName": "English", "fonts": null }]
+[
+  { "code": "en", "prefix": "", "langTag": "en", "nativeName": "English", "fonts": null },
+  { "code": "es", "prefix": "es", "langTag": "es", "nativeName": "Español", "fonts": null },
+  { "code": "pt", "prefix": "pt", "langTag": "pt-BR", "nativeName": "Português", "fonts": null },
+  { "code": "de", "prefix": "de", "langTag": "de", "nativeName": "Deutsch", "fonts": null },
+  { "code": "ja", "prefix": "ja", "langTag": "ja", "nativeName": "日本語", "fonts": "'Hiragino Sans', 'Yu Gothic UI', 'Yu Gothic', 'Noto Sans JP', system-ui, sans-serif" },
+  { "code": "fr", "prefix": "fr", "langTag": "fr", "nativeName": "Français", "fonts": null },
+  { "code": "ru", "prefix": "ru", "langTag": "ru", "nativeName": "Русский", "fonts": null },
+  { "code": "pl", "prefix": "pl", "langTag": "pl", "nativeName": "Polski", "fonts": null },
+  { "code": "it", "prefix": "it", "langTag": "it", "nativeName": "Italiano", "fonts": null },
+  { "code": "zh", "prefix": "zh", "langTag": "zh-Hans", "nativeName": "中文", "fonts": "'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif" },
+  { "code": "ko", "prefix": "ko", "langTag": "ko", "nativeName": "한국어", "fonts": "'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif" }
+]

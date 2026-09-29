@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import type { Drum } from '../lib/midiremap';
 import { noteName, type OctaveBase } from '../lib/notes';
 import { DrumList } from './DrumList';
@@ -31,6 +31,7 @@ export function NotePicker({
   onPickNote: (note: number) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   return (
     <PickerShell label={t({ id: 'note-picker-label', args: { drum: voiceLabel } })} onClose={onClose}>
       <div className="mb-3 flex items-center justify-between">

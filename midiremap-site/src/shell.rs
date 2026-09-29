@@ -3,7 +3,7 @@ use serde_json::json;
 
 use crate::{
     content::script_json,
-    i18n::{home, Locale, Messages, Plain},
+    i18n::{converter_alternates, home, Locale, Messages, Plain},
     pages::ORIGIN,
     SiteError,
 };
@@ -21,6 +21,7 @@ struct AppHead<'a> {
     image_alt: &'a str,
     origin: &'static str,
     canonical: String,
+    alternates: Vec<(&'static str, String)>,
     json_ld: String,
 }
 
@@ -56,6 +57,10 @@ pub fn localize_shell(index_html: &str, locale: Locale, m: &Messages) -> Result<
         twitter_description: get(Plain::ConverterTwitterDescription),
         image_alt: get(Plain::ConverterImageAlt),
         origin: ORIGIN,
+        alternates: converter_alternates()
+            .into_iter()
+            .map(|(tag, path)| (tag, format!("{ORIGIN}{path}")))
+            .collect(),
         json_ld: script_json(&json!({
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
@@ -111,6 +116,35 @@ mod tests {
         let m = Messages::load().unwrap();
         let once = localize_shell(MARKED, Locale::En, &m).unwrap();
         assert_eq!(localize_shell(&once, Locale::En, &m).unwrap(), once);
+    }
+
+    #[test]
+    fn each_shell_has_its_language_title_and_canonical() {
+        let m = Messages::load().unwrap();
+        let pl = localize_shell(MARKED, Locale::Pl, &m).unwrap();
+        assert!(pl.contains(r#"<html lang="pl">"#));
+        assert!(pl.contains(r#"<link rel="canonical" href="https://drumverter.com/pl/" />"#));
+        assert!(pl.contains(&format!(
+            "<title>{}</title>",
+            m.get(Locale::Pl, Plain::ConverterTitle)
+        )));
+    }
+
+    #[test]
+    fn every_shell_lists_every_version_and_the_default() {
+        let out = localize_shell(MARKED, Locale::En, &Messages::load().unwrap()).unwrap();
+        assert_eq!(
+            out.matches(r#"rel="alternate" hreflang="#).count(),
+            Locale::ALL.len() + 1
+        );
+        assert!(out.contains(r#"hreflang="x-default" href="https://drumverter.com/""#));
+    }
+
+    #[test]
+    fn the_polish_shell_carries_the_polish_load_failure_notice() {
+        let m = Messages::load().unwrap();
+        let pl = localize_shell(MARKED, Locale::Pl, &m).unwrap();
+        assert!(pl.contains(m.get(Locale::Pl, Plain::LoadFailed)));
     }
 
     #[test]

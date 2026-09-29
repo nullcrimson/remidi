@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import { useId, useMemo, useState } from 'react';
 import type { CanonInfo, Drum } from '../lib/midiremap';
 import type { SrcEdits } from '../lib/overrides';
@@ -36,6 +36,7 @@ function SourceEditorRow({
   onSet: (note: number, canon: string) => void;
   onClear: (note: number) => void;
 }) {
+  const t = useT();
   const [rowEl, setRowEl] = useState<HTMLDivElement | null>(null);
   return (
     <div ref={setRowEl}>
@@ -117,6 +118,7 @@ export function SourceEditor({
   onSet: (note: number, canon: string) => void;
   onClear: (note: number) => void;
 }) {
+  const t = useT();
   const [openNote, setOpenNote] = useState<number | null>(initialNote);
   const [extra, setExtra] = useState<number[]>(initialNote === null ? [] : [initialNote]);
   const [addValue, setAddValue] = useState('');

@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { takeFiles, type OnFiles } from '../lib/files';
 
@@ -9,6 +9,7 @@ export function CardDropzone({
   onFiles: OnFiles;
   children: ReactNode;
 }) {
+  const t = useT();
   const [over, setOver] = useState(false);
   const depth = useRef(0);
 

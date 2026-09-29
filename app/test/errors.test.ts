@@ -1,5 +1,7 @@
 import { errorDetail, errorMessage, toAppError, WasmCallError } from '../src/lib/errors';
-import { t } from '../src/i18n';
+import { ENGLISH } from '../src/i18n';
+
+const { t } = ENGLISH;
 
 describe('errors', () => {
   it('keeps the cause in the message of a WASM call error, for logs', () => {

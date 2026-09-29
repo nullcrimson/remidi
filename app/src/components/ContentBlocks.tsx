@@ -1,11 +1,20 @@
-import type { Block, Inline } from '../content/site';
+import { localHref, type Block, type Inline } from '../content/site';
+import { useLocale } from '../localeContext';
 import { ProseLink } from './ProseLink';
 
 function Text({ inline }: { inline: Inline[] }) {
+  const { translator } = useLocale();
   return inline.map((part, i) => {
     if (typeof part === 'string') return part;
     return part.href.startsWith('/')
-      ? <a key={i} href={part.href} className="prose-link">{part.text}</a>
+      ? (
+          <a
+            key={i}
+            href={localHref(part.href, translator.locale)}
+            className="prose-link"
+          >{part.text}
+          </a>
+        )
       : <ProseLink key={i} href={part.href}>{part.text}</ProseLink>;
   });
 }

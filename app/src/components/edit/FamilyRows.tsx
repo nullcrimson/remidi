@@ -1,4 +1,5 @@
-import { t } from '../../i18n';
+import type { Translate } from '../../i18n';
+import { useT } from '../../localeContext';
 import { Fragment } from 'react';
 import type { Editor } from '../../hooks/useEditor';
 import type { Drum, VoiceRow as VoiceRowData } from '../../lib/midiremap';
@@ -22,7 +23,7 @@ export type RowActions = Pick<
   | 'resetRow'
 >;
 
-function playsOf(row: VoiceRowData, changed: boolean, drumAt: (note: number) => string): RowResult {
+function playsOf(row: VoiceRowData, changed: boolean, drumAt: (note: number) => string, t: Translate): RowResult {
   if (row.srcNotes.length === 0) return { text: t({ id: 'row-no-source' }), tone: 'text-t5' };
   if (row.tgtNote === null) return { text: t({ id: 'row-dropped' }), tone: 'text-danger' };
   const name = drumAt(row.tgtNote);
@@ -32,6 +33,7 @@ function playsOf(row: VoiceRowData, changed: boolean, drumAt: (note: number) => 
 }
 
 function Header() {
+  const t = useT();
   return (
     <div className={`
       ${ROW_GRID}
@@ -78,6 +80,7 @@ export function FamilyRows({
   oct: OctaveBase;
   actions: RowActions;
 }) {
+  const t = useT();
   const drumByNote = new Map<number, string>();
   for (const d of targetDrums) if (!drumByNote.has(d.note)) drumByNote.set(d.note, d.label);
   const drumAt = (note: number) => drumByNote.get(note) ?? noteName(note, oct);
@@ -113,7 +116,7 @@ export function FamilyRows({
                   tgtExpanded={tgtExpanded}
                   onSrcToggle={() => (srcExpanded ? actions.closePick() : actions.openSrcPick(row.canon))}
                   onToggle={() => (tgtExpanded ? actions.closePick() : actions.openPick(row.canon))}
-                  result={playsOf(row, rowChanged, drumAt)}
+                  result={playsOf(row, rowChanged, drumAt, t)}
                   onReset={rowChanged ? () => actions.resetRow(row.canon) : undefined}
                 >
                   {srcExpanded && pick && (

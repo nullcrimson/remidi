@@ -1,4 +1,4 @@
-import { t } from '../../i18n';
+import { useT } from '../../localeContext';
 import { useId } from 'react';
 import type { EditFilter } from '../../lib/editFilter';
 import { ChipRadioGroup } from '../ChipRadioGroup';
@@ -18,6 +18,7 @@ export function EditFilters({
   onShow: (show: EditFilter) => void;
   counts: Record<EditFilter, number>;
 }) {
+  const t = useT();
   const showId = useId();
   return (
     <div className="

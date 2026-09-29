@@ -1,10 +1,16 @@
+use std::borrow::Borrow;
+
 use askama::Template;
+use fluent_bundle::{FluentArgs, FluentValue};
 use midiremap_core::PlanStatus;
 
 use crate::{
     content::{faq_schema, how_to_schema, Block, ContentPage},
-    i18n::{home, href, label, Docs, Locale, Messages, NavTarget, Plain, SectionKey, FOOTER, NAV},
-    pages::{EnginePage, IndexPage, PairPage, Site, NOTE_MAPS, ORIGIN},
+    i18n::{
+        alternates, base, home, href, label, local_href, page_in, Docs, Locale, MessageId,
+        Messages, NavTarget, Page, Plain, SectionKey, FOOTER, NAV,
+    },
+    pages::{page_file, EnginePage, IndexPage, PairPage, Site, NOTE_MAPS, ORIGIN},
 };
 
 pub const DESCRIPTION_MAX: usize = 155;
@@ -17,23 +23,13 @@ pub struct Meta {
 
 pub const TITLE_NAME_MAX: usize = 40;
 
-const DANGLING: [char; 9] = [' ', ',', '.', ':', ';', '&', '(', '-', '/'];
-
-pub fn truncate(s: &str, max: usize) -> String {
-    if s.chars().count() <= max {
-        return s.to_string();
-    }
-    let head: String = s.chars().take(max.saturating_sub(1)).collect();
-    let mut cut = head.rfind(' ').map_or(head.as_str(), |i| &head[..i]);
-    if cut.matches('(').count() > cut.matches(')').count() {
-        cut = cut.rfind('(').map_or(cut, |i| &cut[..i]);
-    }
-    format!("{}…", cut.trim_end_matches(DANGLING))
-}
-
 fn fit(first: &[String], rest: &[String], max: usize) -> String {
     let Some(mut out) = first.iter().find(|s| s.chars().count() <= max).cloned() else {
-        return first.last().map_or_else(String::new, |s| truncate(s, max));
+        return first
+            .iter()
+            .min_by_key(|s| s.chars().count())
+            .cloned()
+            .unwrap_or_default();
     };
     for sentence in rest {
         if out.chars().count() + 1 + sentence.chars().count() <= max {
@@ -52,92 +48,108 @@ fn with_midi(name: &str) -> String {
     }
 }
 
-pub fn engine_meta(p: &EnginePage) -> Meta {
-    let n = &p.engine.name;
+fn args<'a>(pairs: impl IntoIterator<Item = (&'a str, FluentValue<'a>)>) -> FluentArgs<'a> {
+    pairs.into_iter().collect()
+}
+
+fn engine_meta(p: &EnginePage, texts: &Texts) -> Meta {
+    let n = p.engine.name.as_str();
+    let midi = with_midi(n);
     let title = if n.chars().count() <= TITLE_NAME_MAX {
-        format!("{} Note Map & Drum Mapping | Drumverter", with_midi(n))
+        texts.format(
+            MessageId::MapsEngineTitle,
+            args([("engineMidi", midi.as_str().into())]),
+        )
     } else {
-        format!("MIDI Note Map: {n} | Drumverter")
+        texts.format(
+            MessageId::MapsEngineTitleLongName,
+            args([("engine", n.into())]),
+        )
     };
     Meta {
         title,
         description: fit(
             &[
-                format!(
-                    "{n} drum MIDI note map: all {} notes with drum names in C-1 and C-2 octave conventions.",
-                    p.total
+                texts.format(
+                    MessageId::MapsEngineDescription,
+                    args([("engine", n.into()), ("total", p.total.into())]),
                 ),
-                format!("{n} drum MIDI note map with C-1 and C-2 note names."),
+                texts.format(
+                    MessageId::MapsEngineDescriptionShort,
+                    args([("engine", n.into())]),
+                ),
             ],
-            &[format!("Convert {} to any engine, free.", with_midi(n))],
+            &[texts.format(
+                MessageId::MapsEngineDescriptionMore,
+                args([("engineMidi", midi.as_str().into())]),
+            )],
             DESCRIPTION_MAX,
         ),
-        canonical: format!("{ORIGIN}{}", p.engine.href()),
+        canonical: texts.url(&p.engine.href()),
     }
 }
 
-fn agree<'a>(n: usize, one: &'a str, many: &'a str) -> &'a str {
-    if n == 1 {
-        one
-    } else {
-        many
-    }
-}
-
-pub fn pair_summary(
+fn pair_summary(
+    texts: &Texts,
     src: &str,
     tgt: &str,
     total: usize,
-    exact: usize,
-    approximated: usize,
-    dropped: usize,
+    (exact, approximated, dropped): (usize, usize, usize),
 ) -> String {
-    format!(
-        "Of {total} {src} notes, {exact} {} exactly to {tgt}, {approximated} {} approximated with the closest available drum, and {dropped} {} no equivalent.",
-        agree(exact, "maps", "map"),
-        agree(approximated, "is", "are"),
-        agree(dropped, "has", "have"),
+    texts.format(
+        MessageId::MapsPairSummary,
+        args([
+            ("total", total.into()),
+            ("source", src.into()),
+            ("exact", exact.into()),
+            ("target", tgt.into()),
+            ("approximated", approximated.into()),
+            ("dropped", dropped.into()),
+        ]),
     )
 }
 
-fn pair_heading(p: &PairPage) -> String {
-    format!("Convert {} to {}", with_midi(&p.src.name), p.tgt.name)
+fn pair_args<'a>(p: &'a PairPage, midi: &'a str) -> FluentArgs<'a> {
+    args([
+        ("sourceMidi", midi.into()),
+        ("source", p.src.name.as_str().into()),
+        ("target", p.tgt.name.as_str().into()),
+        ("exact", p.exact.into()),
+        ("approximated", p.approximated.into()),
+        ("dropped", p.dropped.into()),
+    ])
 }
 
-pub fn pair_meta(p: &PairPage) -> Meta {
-    let (s, t) = (&p.src.name, &p.tgt.name);
+fn pair_heading(p: &PairPage, texts: &Texts) -> String {
+    texts.format(
+        MessageId::MapsPairHeading,
+        pair_args(p, &with_midi(&p.src.name)),
+    )
+}
+
+fn pair_meta(p: &PairPage, texts: &Texts) -> Meta {
+    let midi = with_midi(&p.src.name);
     Meta {
-        title: format!("{} | Drumverter", pair_heading(p)),
+        title: texts.format(MessageId::MapsPairTitle, pair_args(p, &midi)),
         description: fit(
-            &[format!(
-                "Convert {s} drum MIDI to {t}: {} {} exactly, {} approximated, {} dropped.",
-                p.exact,
-                agree(p.exact, "note maps", "notes map"),
-                p.approximated,
-                p.dropped
-            )],
-            &["Free in-browser converter.".to_string()],
+            &[texts.format(MessageId::MapsPairDescription, pair_args(p, &midi))],
+            &[texts.get(Plain::MapsPairDescriptionMore).to_owned()],
             DESCRIPTION_MAX,
         ),
-        canonical: format!("{ORIGIN}{}", p.href()),
+        canonical: texts.url(&p.href()),
     }
 }
 
-pub fn index_meta(p: &IndexPage) -> Meta {
+fn index_meta(p: &IndexPage, texts: &Texts) -> Meta {
+    let count = || args([("count", p.all.len().into())]);
     Meta {
-        title: format!(
-            "Drum MIDI Note Maps for {} Drum Engines | Drumverter",
-            p.all.len()
-        ),
+        title: texts.format(MessageId::MapsIndexTitle, count()),
         description: fit(
-            &[format!(
-                "Drum MIDI note maps for {} drum engines, plus conversion tables between GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums and more.",
-                p.all.len()
-            )],
+            &[texts.format(MessageId::MapsIndexDescription, count())],
             &[],
             DESCRIPTION_MAX,
         ),
-        canonical: format!("{ORIGIN}{NOTE_MAPS}"),
+        canonical: texts.url(NOTE_MAPS),
     }
 }
 
@@ -165,15 +177,46 @@ pub struct Shell<'a> {
 }
 
 /// The words pages are written in: one locale's messages and documents.
-pub struct Texts<'a> {
-    pub messages: &'a Messages,
-    pub docs: &'a Docs,
-    pub locale: Locale,
+struct Texts<'a> {
+    messages: &'a Messages,
+    docs: &'a Docs,
+    locale: Locale,
 }
 
 impl<'a> Texts<'a> {
     fn get(&self, id: Plain) -> &'a str {
         self.messages.get(self.locale, id)
+    }
+
+    fn format(&self, id: MessageId, args: FluentArgs) -> String {
+        self.messages.format(self.locale, id, &args)
+    }
+
+    fn engine(&self, id: MessageId, engine: &str) -> String {
+        self.format(id, args([("engine", engine.into())]))
+    }
+
+    fn count(&self, id: MessageId, count: impl Borrow<usize>) -> String {
+        self.format(id, args([("count", (*count.borrow()).into())]))
+    }
+
+    fn pair(&self, id: MessageId, source: &str, target: &str) -> String {
+        self.format(
+            id,
+            args([("source", source.into()), ("target", target.into())]),
+        )
+    }
+
+    fn path(&self, english: &str) -> String {
+        format!("{}{english}", base(self.locale))
+    }
+
+    fn link(&self, english: &str) -> String {
+        local_href(english, self.locale, self.docs)
+    }
+
+    fn url(&self, english: &str) -> String {
+        format!("{ORIGIN}{}", self.path(english))
     }
 
     fn links(&self, targets: &[NavTarget], current: Option<NavTarget>) -> Vec<NavItem<'a>> {
@@ -188,8 +231,32 @@ impl<'a> Texts<'a> {
     }
 }
 
+/// One entry of the language menu: a locale, named in itself, and this page in it.
+struct LangItem {
+    name: &'static str,
+    tag: &'static str,
+    code: &'static str,
+    href: String,
+    current: bool,
+}
+
+/// A hidden notice offering this page in another locale, in that locale's words.
+struct Offer<'a> {
+    code: &'static str,
+    tag: &'static str,
+    href: String,
+    text: &'a str,
+}
+
 /// What every page shares: the app shell, header nav, footer and optional schema.
 struct Frame<'a> {
+    lang: &'static str,
+    code: String,
+    menu_label: &'a str,
+    dismiss: &'a str,
+    languages: Vec<LangItem>,
+    offers: Vec<Offer<'a>>,
+    alternates: Vec<(&'static str, String)>,
     css: &'a str,
     csp: &'a str,
     beacon: &'a str,
@@ -198,7 +265,6 @@ struct Frame<'a> {
     nav_site: &'a str,
     nav: Vec<NavItem<'a>>,
     footer: Vec<NavItem<'a>>,
-    trademark: &'a str,
     home: String,
     open_converter: &'a str,
     json_ld: Option<String>,
@@ -210,8 +276,39 @@ impl<'a> Frame<'a> {
         texts: &Texts<'a>,
         current: Option<NavTarget>,
         json_ld: Option<String>,
+        page: &Page,
     ) -> Self {
+        let here = texts.locale;
+        let versions = alternates(page, texts.docs);
         Self {
+            lang: here.lang_tag(),
+            code: here.code().to_uppercase(),
+            menu_label: texts.get(Plain::LangMenuLabel),
+            dismiss: texts.get(Plain::NoticeDismiss),
+            languages: Locale::ALL
+                .iter()
+                .map(|&l| LangItem {
+                    name: l.native_name(),
+                    tag: l.lang_tag(),
+                    code: l.code(),
+                    href: page_in(page, l, texts.docs),
+                    current: l == here,
+                })
+                .collect(),
+            offers: Locale::ALL
+                .iter()
+                .filter(|&&l| l != here && versions.iter().any(|(tag, _)| *tag == l.lang_tag()))
+                .map(|&l| Offer {
+                    code: l.code(),
+                    tag: l.lang_tag(),
+                    href: page_in(page, l, texts.docs),
+                    text: texts.messages.get(l, Plain::LangOffer),
+                })
+                .collect(),
+            alternates: versions
+                .into_iter()
+                .map(|(tag, path)| (tag, format!("{ORIGIN}{path}")))
+                .collect(),
             css: shell.css,
             csp: shell.csp,
             beacon: shell.beacon,
@@ -220,7 +317,6 @@ impl<'a> Frame<'a> {
             nav_site: texts.get(Plain::NavSite),
             nav: texts.links(NAV, current),
             footer: texts.links(FOOTER, None),
-            trademark: texts.get(Plain::Trademark),
             home: home(texts.locale),
             open_converter: texts.get(Plain::OpenConverter),
             json_ld,
@@ -238,15 +334,13 @@ fn section_schema(key: SectionKey, page: &ContentPage) -> Option<String> {
     }
 }
 
-fn page_file(path: &str) -> String {
-    format!("{}index.html", path.trim_start_matches('/'))
-}
-
 #[derive(Template)]
 #[template(path = "engine.html")]
 struct EngineHtml<'a> {
     meta: Meta,
     frame: Frame<'a>,
+    texts: &'a Texts<'a>,
+    intro: String,
     page: &'a EnginePage,
 }
 
@@ -255,6 +349,7 @@ struct EngineHtml<'a> {
 struct PairHtml<'a> {
     meta: Meta,
     frame: Frame<'a>,
+    texts: &'a Texts<'a>,
     heading: String,
     summary: String,
     page: &'a PairPage,
@@ -265,6 +360,7 @@ struct PairHtml<'a> {
 struct IndexHtml<'a> {
     meta: Meta,
     frame: Frame<'a>,
+    texts: &'a Texts<'a>,
     page: &'a IndexPage,
 }
 
@@ -273,54 +369,93 @@ struct IndexHtml<'a> {
 struct ContentHtml<'a> {
     meta: Meta,
     frame: Frame<'a>,
+    texts: &'a Texts<'a>,
     page: &'a ContentPage<'a>,
 }
 
+/// Every static page in every locale: the note-map index, engine and pair pages, and each
+/// locale's translated sections.
 pub fn render_site(
+    site: &Site,
+    shell: &Shell,
+    messages: &Messages,
+    docs: &Docs,
+) -> Result<Vec<(String, String)>, askama::Error> {
+    let mut out = vec![];
+    for &locale in Locale::ALL {
+        let texts = Texts {
+            messages,
+            docs,
+            locale,
+        };
+        out.extend(render_note_maps(site, shell, &texts)?);
+        out.extend(render_sections(shell, &texts)?);
+    }
+    Ok(out)
+}
+
+fn render_note_maps(
     site: &Site,
     shell: &Shell,
     texts: &Texts,
 ) -> Result<Vec<(String, String)>, askama::Error> {
+    let frame = |path: &str| Frame::new(shell, texts, IN_NOTE_MAPS, None, &Page::Everywhere(path));
     let mut out = vec![(
-        page_file(NOTE_MAPS),
+        page_file(&texts.path(NOTE_MAPS)),
         IndexHtml {
-            meta: index_meta(&site.index),
-            frame: Frame::new(shell, texts, IN_NOTE_MAPS, None),
+            meta: index_meta(&site.index, texts),
+            frame: frame(NOTE_MAPS),
+            texts,
             page: &site.index,
         }
         .render()?,
     )];
     for p in &site.engines {
+        let path = p.engine.href();
         out.push((
-            page_file(&p.engine.href()),
+            page_file(&texts.path(&path)),
             EngineHtml {
-                meta: engine_meta(p),
-                frame: Frame::new(shell, texts, IN_NOTE_MAPS, None),
-                page: p,
-            }
-            .render()?,
-        ));
-    }
-    for p in &site.pairs {
-        out.push((
-            page_file(&p.href()),
-            PairHtml {
-                meta: pair_meta(p),
-                frame: Frame::new(shell, texts, IN_NOTE_MAPS, None),
-                heading: pair_heading(p),
-                summary: pair_summary(
-                    &p.src.name,
-                    &p.tgt.name,
-                    p.rows.len(),
-                    p.exact,
-                    p.approximated,
-                    p.dropped,
+                meta: engine_meta(p, texts),
+                frame: frame(&path),
+                texts,
+                intro: texts.format(
+                    MessageId::MapsEngineIntro,
+                    args([
+                        ("engine", p.engine.name.as_str().into()),
+                        ("total", p.total.into()),
+                    ]),
                 ),
                 page: p,
             }
             .render()?,
         ));
     }
+    for p in &site.pairs {
+        let path = p.href();
+        out.push((
+            page_file(&texts.path(&path)),
+            PairHtml {
+                meta: pair_meta(p, texts),
+                frame: frame(&path),
+                texts,
+                heading: pair_heading(p, texts),
+                summary: pair_summary(
+                    texts,
+                    &p.src.name,
+                    &p.tgt.name,
+                    p.rows.len(),
+                    (p.exact, p.approximated, p.dropped),
+                ),
+                page: p,
+            }
+            .render()?,
+        ));
+    }
+    Ok(out)
+}
+
+fn render_sections(shell: &Shell, texts: &Texts) -> Result<Vec<(String, String)>, askama::Error> {
+    let mut out = vec![];
     for &k in SectionKey::ALL {
         let Some(blocks) = texts.docs.blocks(texts.locale, k) else {
             continue;
@@ -339,7 +474,14 @@ pub fn render_site(
                     texts.get(k.description()).to_owned(),
                     &path,
                 ),
-                frame: Frame::new(shell, texts, Some(target), section_schema(k, &page)),
+                frame: Frame::new(
+                    shell,
+                    texts,
+                    Some(target),
+                    section_schema(k, &page),
+                    &Page::Section(k),
+                ),
+                texts,
                 page: &page,
             }
             .render()?,
@@ -347,6 +489,7 @@ pub fn render_site(
     }
     Ok(out)
 }
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
@@ -373,12 +516,13 @@ mod tests {
     fn rendered() -> Vec<(String, String)> {
         let messages = Messages::load().unwrap();
         let docs = Docs::load().unwrap();
-        let texts = Texts {
-            messages: &messages,
-            docs: &docs,
-            locale: Locale::En,
-        };
-        render_site(&Site::build(&Catalog::builtin()).unwrap(), &SHELL, &texts).unwrap()
+        render_site(
+            &Site::build(&Catalog::builtin()).unwrap(),
+            &SHELL,
+            &messages,
+            &docs,
+        )
+        .unwrap()
     }
 
     #[test]
@@ -413,6 +557,16 @@ mod tests {
                     "{path}: <script{open}>"
                 );
             }
+        }
+    }
+
+    #[test]
+    fn every_static_page_loads_the_locale_script() {
+        for (path, html) in rendered() {
+            assert!(
+                html.contains(r#"<script src="/locale.js" defer></script>"#),
+                "{path}"
+            );
         }
     }
 
@@ -455,7 +609,10 @@ mod tests {
             include_str!("../templates/pair.html"),
             include_str!("../templates/content.html"),
             include_str!("../templates/filter.html"),
+            include_str!("../templates/lang_menu.html"),
+            include_str!("../templates/lang_offer.html"),
             include_str!("../static/filter.js"),
+            include_str!("../static/locale.js"),
         ];
         for t in templates {
             for banned in ["text-[", "rounded-[", "text-t6", "style=", "<style"] {
@@ -474,17 +631,25 @@ mod tests {
 
     #[test]
     fn header_marks_the_current_section() {
+        let messages = Messages::load().unwrap();
         for (path, html) in rendered() {
-            assert!(html.contains(r#"<nav aria-label="Main""#), "{path}");
-            assert!(html.contains(r#"<nav aria-label="Site""#), "{path}");
-            let expected: &[&str] = if path.starts_with("engines/") || path.starts_with("convert/")
-            {
-                &["Note maps"]
-            } else if path == "faq/index.html" {
-                &["FAQ"]
-            } else {
-                &[]
-            };
+            let locale = Locale::ALL
+                .iter()
+                .copied()
+                .find(|l| !l.prefix().is_empty() && path.starts_with(&format!("{}/", l.prefix())))
+                .unwrap_or(Locale::En);
+            let rest = path.trim_start_matches(&format!("{}/", locale.prefix()));
+            let aria = |nav| format!(r#"<nav aria-label="{}""#, messages.get(locale, nav));
+            assert!(html.contains(&aria(Plain::NavMain)), "{path}");
+            assert!(html.contains(&aria(Plain::NavSite)), "{path}");
+            let expected: Vec<&str> =
+                if rest.starts_with("engines/") || rest.starts_with("convert/") {
+                    vec![messages.get(locale, Plain::NavNoteMaps)]
+                } else if rest == "faq/index.html" {
+                    vec![messages.get(locale, SectionKey::Faq.label())]
+                } else {
+                    vec![]
+                };
             assert_eq!(current_nav(&html), expected, "{path}");
         }
     }
@@ -494,7 +659,7 @@ mod tests {
         let html = page("faq/index.html");
         let footer = html.split("<footer").nth(1).unwrap();
         assert!(footer.contains("justify-center"));
-        assert!(footer.contains("text-center"));
+        assert!(!footer.contains("trademarks"));
         assert_eq!(
             footer.matches("<a ").count(),
             footer.matches(r#"class="prose-link""#).count()
@@ -548,29 +713,27 @@ mod tests {
     }
 
     #[test]
-    fn truncate_counts_chars_and_cuts_at_words() {
-        assert_eq!(truncate("short", 155), "short");
-        let long = "Mjölnir ".repeat(40);
-        let t = truncate(&long, 155);
-        assert!(t.chars().count() <= 155);
-        assert!(t.ends_with('…'));
-        assert!(!t.contains("Mjöl…"));
+    fn a_description_longer_than_a_snippet_stays_whole() {
+        let long = "A whole sentence well past the limit.".to_owned();
+        let longer = format!("{long} And another one.");
+        assert_eq!(fit(&[longer, long.clone()], &[], 10), long);
     }
 
-    #[test]
-    fn truncate_drops_dangling_symbols() {
-        assert_eq!(truncate("Convert Modern & Massive", 19), "Convert Modern…");
-        assert_eq!(
-            truncate("Perfect Drums (Naughty Seal Audio)", 23),
-            "Perfect Drums…"
-        );
+    fn in_locale<R>(locale: Locale, f: impl FnOnce(&Texts) -> R) -> R {
+        let messages = Messages::load().unwrap();
+        let docs = Docs::load().unwrap();
+        f(&Texts {
+            messages: &messages,
+            docs: &docs,
+            locale,
+        })
     }
 
     #[test]
     fn engine_titles_lead_with_the_keyword() {
         let site = Site::build(&Catalog::builtin()).unwrap();
         for p in &site.engines {
-            let title = engine_meta(p).title;
+            let title = in_locale(Locale::En, |t| engine_meta(p, t).title);
             let head: String = title.chars().take(60).collect();
             assert!(head.contains("MIDI Note Map"), "{title}");
         }
@@ -579,14 +742,18 @@ mod tests {
     #[test]
     fn descriptions_end_on_a_whole_sentence() {
         let site = Site::build(&Catalog::builtin()).unwrap();
-        let descriptions = site
-            .engines
-            .iter()
-            .map(|p| engine_meta(p).description)
-            .chain(site.pairs.iter().map(|p| pair_meta(p).description))
-            .chain(std::iter::once(index_meta(&site.index).description));
-        for d in descriptions {
-            assert!(d.ends_with('.'), "{d}");
+        for &l in Locale::ALL {
+            in_locale(l, |t| {
+                let descriptions = site
+                    .engines
+                    .iter()
+                    .map(|p| engine_meta(p, t).description)
+                    .chain(site.pairs.iter().map(|p| pair_meta(p, t).description))
+                    .chain(std::iter::once(index_meta(&site.index, t).description));
+                for d in descriptions {
+                    assert!(d.ends_with(['.', '。']), "{d}");
+                }
+            });
         }
     }
 
@@ -614,7 +781,7 @@ mod tests {
     fn every_internal_link_resolves() {
         let pages = rendered();
         let mut known: HashSet<String> = pages.iter().map(|(p, _)| url_of(p)).collect();
-        known.insert("/".to_string());
+        known.extend(Locale::ALL.iter().map(|&l| home(l)));
         known.insert(SHELL.css.to_string());
         known.extend(STATIC_ASSETS.iter().map(|s| s.to_string()));
         for (path, html) in &pages {
@@ -623,8 +790,9 @@ mod tests {
                 .skip(1)
                 .filter_map(|s| s.split('"').next())
             {
-                if href.starts_with('/') && !href.starts_with("/?") {
-                    assert!(known.contains(href), "{path} links to missing {href}");
+                let target = href.split('?').next().unwrap_or(href);
+                if target.starts_with('/') {
+                    assert!(known.contains(target), "{path} links to missing {href}");
                 }
             }
         }
@@ -632,12 +800,14 @@ mod tests {
 
     #[test]
     fn pair_summary_agrees_in_number() {
+        let summary =
+            |total, counts| in_locale(Locale::En, |t| pair_summary(t, "A", "B", total, counts));
         assert_eq!(
-            pair_summary("A", "B", 3, 1, 1, 1),
+            summary(3, (1, 1, 1)),
             "Of 3 A notes, 1 maps exactly to B, 1 is approximated with the closest available drum, and 1 has no equivalent."
         );
         assert_eq!(
-            pair_summary("A", "B", 5, 2, 0, 3),
+            summary(5, (2, 0, 3)),
             "Of 5 A notes, 2 map exactly to B, 0 are approximated with the closest available drum, and 3 have no equivalent."
         );
     }
@@ -701,27 +871,135 @@ mod tests {
     #[test]
     fn descriptions_fit() {
         let site = Site::build(&Catalog::builtin()).unwrap();
-        for p in &site.engines {
-            assert!(engine_meta(p).description.chars().count() <= DESCRIPTION_MAX);
-        }
-        for p in &site.pairs {
-            assert!(pair_meta(p).description.chars().count() <= DESCRIPTION_MAX);
-        }
-        assert!(index_meta(&site.index).description.chars().count() <= DESCRIPTION_MAX);
+        let fits = |d: String| d.chars().count() <= DESCRIPTION_MAX;
+        in_locale(Locale::En, |t| {
+            assert!(site
+                .engines
+                .iter()
+                .all(|p| fits(engine_meta(p, t).description)));
+            assert!(site.pairs.iter().all(|p| fits(pair_meta(p, t).description)));
+            assert!(fits(index_meta(&site.index, t).description));
+        });
     }
 
     #[test]
-    fn section_descriptions_fit() {
+    fn polish_faq_renders_the_polish_document_in_polish() {
+        let html = page("pl/faq/index.html");
+        assert!(html.contains(r#"<html lang="pl">"#));
         let messages = Messages::load().unwrap();
-        for &l in Locale::ALL {
-            for &k in SectionKey::ALL {
-                assert!(
-                    messages.get(l, k.description()).chars().count() <= DESCRIPTION_MAX,
-                    "{} {}",
-                    l.code(),
-                    k.key()
-                );
-            }
+        let heading = messages.get(Locale::Pl, SectionKey::Faq.heading());
+        assert_ne!(heading, messages.get(Locale::En, SectionKey::Faq.heading()));
+        assert!(html.contains(&format!(">{heading}<")));
+        assert!(html.contains("Czy Drumverter jest darmowy?"));
+    }
+
+    #[test]
+    fn polish_pages_link_the_polish_sections() {
+        let html = page("pl/faq/index.html");
+        assert!(html.contains(r#"href="/pl/faq/""#));
+        assert!(html.contains(r#"href="/pl/terms/""#));
+        assert!(html.contains(r#"href="/pl/""#));
+    }
+
+    #[test]
+    fn every_page_offers_the_language_menu() {
+        for (path, html) in rendered() {
+            assert!(html.contains(r#"id="language-menu""#), "{path}");
+            assert!(html.contains(">Polski<"), "{path}");
+        }
+    }
+
+    #[test]
+    fn an_engine_page_menu_links_each_language_to_the_same_page() {
+        let html = page("engines/ezdrummer/index.html");
+        assert!(html.contains(r#"href="/pl/engines/ezdrummer/" hreflang="pl""#));
+    }
+
+    fn polish(id: MessageId, arg: (&str, &str)) -> String {
+        let mut args = FluentArgs::new();
+        args.set(arg.0, arg.1);
+        Messages::load().unwrap().format(Locale::Pl, id, &args)
+    }
+
+    #[test]
+    fn polish_engine_pages_are_written_in_polish_and_link_polish_pages() {
+        let html = page("pl/engines/ezdrummer/index.html");
+        assert!(html.contains(r#"<html lang="pl">"#));
+        assert!(html.contains(&polish(
+            MessageId::MapsEngineHeading,
+            ("engine", "EZdrummer 3")
+        )));
+        assert!(html.contains(r#"href="/pl/?to=ezdrummer""#));
+        assert!(html.contains(r#"href="/pl/engines/""#));
+    }
+
+    #[test]
+    fn polish_note_map_index_links_polish_engine_and_pair_pages() {
+        let html = page("pl/engines/index.html");
+        assert!(html.contains(r#"href="/pl/engines/ezdrummer/""#));
+        assert!(html.contains(r#"href="/pl/convert/"#));
+        assert!(!html.contains(r#"href="/convert/"#));
+    }
+
+    #[test]
+    fn the_polish_note_map_index_names_the_remaining_engines_in_polish() {
+        let messages = Messages::load().unwrap();
+        let html = page("pl/engines/index.html");
+        assert!(html.contains(messages.get(Locale::Pl, Plain::MapsMoreEngines)));
+        assert!(!html.contains(messages.get(Locale::En, Plain::MapsMoreEngines)));
+    }
+
+    #[test]
+    fn the_polish_guide_links_the_polish_note_maps() {
+        let html = page("pl/how-it-works/index.html");
+        let main = html
+            .split("<main")
+            .nth(1)
+            .unwrap()
+            .split("</main>")
+            .next()
+            .unwrap();
+        assert!(main.contains(r#"href="/pl/engines/""#));
+    }
+
+    #[test]
+    fn polish_pair_pages_open_the_polish_converter() {
+        let html = page("pl/convert/addictive-drums2-to-ezdrummer/index.html");
+        assert!(html.contains(r#"href="/pl/?from="#));
+        assert!(html.contains(&polish(
+            MessageId::MapsMoreFrom,
+            ("engine", "Addictive Drums 2")
+        )));
+    }
+
+    #[test]
+    fn translated_pages_list_their_alternates() {
+        let html = page("pl/faq/index.html");
+        for (tag, path) in [("en", "/faq/"), ("pl", "/pl/faq/"), ("x-default", "/faq/")] {
+            let link =
+                format!(r#"<link rel="alternate" hreflang="{tag}" href="{ORIGIN}{path}" />"#);
+            assert!(html.contains(&link), "{link}");
+        }
+        assert!(page("engines/ezdrummer/index.html").contains(&format!(
+            r#"<link rel="alternate" hreflang="pl" href="{ORIGIN}/pl/engines/ezdrummer/" />"#
+        )));
+    }
+
+    #[test]
+    fn a_polish_page_offers_english_and_an_english_page_offers_polish() {
+        assert!(page("pl/faq/index.html").contains(r#"data-offer="en""#));
+        assert!(page("faq/index.html").contains(r#"data-offer="pl""#));
+    }
+
+    #[test]
+    fn english_section_descriptions_fit() {
+        let messages = Messages::load().unwrap();
+        for &k in SectionKey::ALL {
+            assert!(
+                messages.get(Locale::En, k.description()).chars().count() <= DESCRIPTION_MAX,
+                "{}",
+                k.key()
+            );
         }
     }
 }

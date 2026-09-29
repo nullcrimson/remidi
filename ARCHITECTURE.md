@@ -480,34 +480,83 @@ changes first.
 
 Sources, one owner per text:
 
-- `locales/locales.json` — the locales (code, URL prefix, language tag, native name,
-  system fonts). I1 lists only `en`.
+- `locales/locales.json` — the 11 locales in menu order (code, URL prefix, language tag,
+  native name, system fonts): en, es, pt (`pt-BR`), de, ja, fr, ru, pl, it, zh
+  (`zh-Hans`), ko. ja, zh and ko use system font stacks.
 - `locales/<code>/app.ftl` — every UI message, in [Fluent](https://projectfluent.org/)
-  syntax; `en` is the reference. `locales/GLOSSARY.md` lists what is never translated.
+  syntax; `en` is the reference. `locales/GLOSSARY.md` holds the shared rules (what is
+  never translated, tone); `locales/<code>/GLOSSARY.md` each language's terms;
+  `locales/<code>/same-as-english.txt` the messages meant to read exactly as in English.
 - `app/src/content/structure.json` — section keys and slugs, and the nav and footer as
   targets (`{ route: "converter" | "noteMaps" }` or `{ section }`).
 - `app/src/content/docs/<code>.json` — the guide, FAQ and legal documents, by section.
+  Every locale has every section; a locale without one would link to the English page.
 
 Generated, never committed: `midiremap-site/build.rs` (with `fluent-syntax`) writes
 `Locale`, `SectionKey`, `NavTarget`, `NAV`/`FOOTER` and `MessageId` (with each message's
 variables) into `OUT_DIR`; `npm run gen:i18n` (`app/scripts/gen-i18n.ts`, with
 `@fluent/syntax`) writes the same types to `app/src/generated/i18n.ts`, plus
-`lang.css` (`:lang()` font stacks). A nav target naming an unknown section fails both
+`lang.css` (`:lang()` rules setting the sans, display and mono stacks) and `TRANSLATED_SECTIONS` (the keys of each
+locale's documents). A nav target naming an unknown section fails both
 generators; a section missing one of its four messages fails `tsc` and `rustc`.
 
-Runtime: the app's `t(message)` formats a `Message` — `{ id }`, or `{ id, args }` with
-exactly the variables `en` declares, checked by `tsc`. `main.tsx` awaits
-`loadMessages(LOCALE)` before mounting (English is bundled; other locales are fetched),
-so `t` is total; if loading fails, the shell's `#load-failed` notice is shown instead.
-`src/locale.ts` is the only reader of `location.pathname`. Library code returns
+Runtime: a `Translator` (`src/i18n.ts`) holds a locale, its `t(message)` and its
+documents. `t` formats a `Message` — `{ id }`, or `{ id, args }` with exactly the variables
+`en` declares, checked by `tsc`. English is bundled (`ENGLISH`); `loadTranslator(locale)`
+loads another locale's `.ftl` and `docs/<code>.json` together as lazy chunks
+(`assets/locale-<code>-messages-*.js` and `-docs-*.js`, named by
+`scripts/localeChunk.ts`, budgeted per file apart from the app's JS). `LocaleProvider` holds
+the current translator in a React context; components read `useT()` / `useLocale()`, so a
+language change re-renders text in place and keeps every other state.
+
+- Start (`main.tsx`): the address names the locale (`src/locale.ts`, the only reader of
+  `location.pathname`). On `/`, the stored choice, or with none the first browser language
+  the site speaks (`lib/detect.ts`: same language and script by `Intl.Locale.maximize`, so
+  `pt-PT` finds Português but `zh-TW` does not find Simplified Chinese), is loaded and the address replaced
+  (`history.replaceState`, query and hash kept) — no redirect, no reload. If that chunk fails, `/` stays
+  English. If the address's own locale fails, the shell's `#load-failed` notice shows.
+- Switch: the header's globe menu (`LanguageMenu`, an HTML `popover`) holds plain links to
+  each converter; a plain click switches in place,
+  stores the choice (`midiremap:locale`, `lib/localeChoice.ts`) and `pushState`s the
+  locale's converter URL. The latest request wins; Back/forward switch in place. A failed
+  load keeps the current language and shows a "couldn't load" line in the header.
+
+Library code returns
 `Message` values, never English strings; components call `t`. Errors are `AppError`
 (`WasmError` or `wasmUnavailable`); `toAppError` is the one conversion from anything
 caught, and `ErrorText` shows the translated line with the untranslated `detail`.
 
 The site formats with `fluent-bundle`: `Messages::load` proves every locale's `app.ftl`
 has every English id with exactly its variables; `href(target, locale, docs)` links a
-section to the locale's page, or to the English page when the locale lacks it. The
-parity test checks every locale's documents keep English's block shapes and links.
+section to the locale's page, or to the English page when the locale lacks it;
+`local_href` points a document's internal link at the same page in the reader's
+language. `Messages::format` fills a message's variables (Fluent plurals included) for
+the note-map pages. The parity test checks every locale's documents keep English's block shapes and links, and
+that every locale translates the guide and FAQ.
+
+The generator writes, per locale, a converter shell (`/`, `/pl/`, …), the note-map index,
+engine and pair pages (`/pl/engines/…`, `/pl/convert/…`) and the translated sections
+(`/pl/faq/`), each with `<html lang>` and `hreflang` alternates for exactly its versions
+plus `x-default`. Engine and drum names stay as the engines name them. Every static page carries the same language menu as the app
+(plain links: `page_in` gives the same page in a locale, or that locale's converter). The
+sitemap lists every URL with `xhtml:link` alternates. `static/locale.js` stores the
+choice when a language link is clicked. With a stored choice, a page that exists in that
+language replaces itself with that version (`location.replace`); with none, it shows a
+dismissible offer of the same page in the browser's language, matched by the same
+language-and-script rule as `lib/detect.ts`.
+
+Fonts: the display stack falls back to IBM Plex Sans, whose Cyrillic subset draws Russian
+headings (Space Grotesk has no Cyrillic); ja, zh and ko replace all three stacks with the
+system fonts and load no web font. English pages load the same font files as before.
+
+Guards beyond parity: `test/untranslated.test.ts` fails when a message reads exactly as in
+English unless its locale lists it in `same-as-english.txt`; `e2e/layout.spec.ts` walks the
+converter's states (empty, language menu, file loaded, editor, done, report, each footer
+document) and six static pages in every locale, on desktop and phone, and fails on
+horizontal page scroll or text cut off by its box (`e2e/layout.ts`). The pseudo-locale
+`en-XA` (English accented, lengthened and bracketed by `pseudo-localization`) runs the
+converter walk by serving itself in place of `/pl/`'s messages chunk; it exists only in the
+test.
 
 Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props; symbols,
 "Drumverter", "MIDI" and ".mid" are allowed.

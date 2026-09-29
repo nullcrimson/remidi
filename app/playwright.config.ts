@@ -14,7 +14,7 @@ export default defineConfig({
   },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] }, testIgnore: /touch\.spec/ },
-    { name: 'phone', use: { ...devices['Pixel 7'] }, testMatch: /(touch|convert)\.spec/ },
+    { name: 'phone', use: { ...devices['Pixel 7'] }, testMatch: /(touch|convert|layout)\.spec/ },
   ],
   webServer: {
     command: `npx vite preview --port ${PORT} --strictPort`,

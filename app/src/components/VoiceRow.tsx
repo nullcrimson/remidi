@@ -1,4 +1,5 @@
-import { t } from '../i18n';
+import type { Translate } from '../i18n';
+import { useT } from '../localeContext';
 import { useId, useState, type ReactNode } from 'react';
 import type { VoiceRow as VoiceRowData } from '../lib/midiremap';
 import { noteName, type OctaveBase } from '../lib/notes';
@@ -16,7 +17,7 @@ function noteChip(active: boolean, changed: boolean): string {
   return chip(active ? 'on' : changed ? 'changed' : 'off', 'md');
 }
 
-function extrasHint(label: string, extras: string[], target: string | null): string {
+function extrasHint(label: string, extras: string[], target: string | null, t: Translate): string {
   const args = { count: extras.length, drum: label, notes: extras.join(', ') };
   return target === null
     ? t({ id: 'row-extras-dropped', args })
@@ -50,6 +51,7 @@ export function VoiceRow({
   onReset?: () => void;
   children?: ReactNode;
 }) {
+  const t = useT();
   const [rowEl, setRowEl] = useState<HTMLDivElement | null>(null);
   const playsId = useId();
   const dropped = row.status === 'dropped' || effectiveTgt === null;
@@ -59,6 +61,7 @@ export function VoiceRow({
     row.label,
     extraNotes.map((n) => noteName(n, base)),
     dropped ? null : noteName(effectiveTgt, base),
+    t,
   );
   return (
     <div

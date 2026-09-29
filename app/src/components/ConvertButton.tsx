@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import type { Conv } from '../hooks/useRemapper';
 import type { FocusRef } from '../hooks/useFocusIntent';
 import { Button } from './Button';
@@ -14,6 +14,7 @@ export function ConvertButton({
   blockedBy: string | null;
   onConvert: () => void;
 }) {
+  const t = useT();
   if (conv.kind === 'running') {
     return (
       <div>

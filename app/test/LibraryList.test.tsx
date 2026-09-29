@@ -2,6 +2,8 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { LibraryList } from '../src/components/LibraryList';
+import { loadTranslator } from '../src/i18n';
+import { LocaleContext } from '../src/localeContext';
 
 const engines = [
   { id: 'addictive', name: 'Addictive Drums 2', fullName: 'Addictive Drums 2' },
@@ -218,5 +220,18 @@ describe('LibraryList', () => {
         if (d) Object.defineProperty(HTMLElement.prototype, p, d);
       });
     }
+  });
+});
+
+describe('LibraryList in another language', () => {
+  it('shows the filter placeholder in that language', async () => {
+    const pl = await loadTranslator('pl');
+    render(
+      <LocaleContext.Provider value={{ translator: pl, switchTo: () => undefined, failed: null }}>
+        <LibraryList label="ŹRÓDŁO" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />
+      </LocaleContext.Provider>,
+    );
+    expect(screen.getByRole('combobox')).toHaveAttribute('placeholder', pl.t({ id: 'library-filter-placeholder' }));
+    expect(screen.getByRole('combobox')).not.toHaveAttribute('placeholder', 'filter…');
   });
 });

@@ -12,6 +12,11 @@ pub const ORIGIN: &str = "https://drumverter.com";
 /// The note-map index page, and the folder every engine page lives in.
 pub const NOTE_MAPS: &str = "/engines/";
 
+/// The file a page's address is served from, relative to the site root.
+pub fn page_file(path: &str) -> String {
+    format!("{}index.html", path.trim_start_matches('/'))
+}
+
 /// The popular engines that get pair pages, with their column label in the index matrix.
 pub const MAJORS: [(&str, &str); 8] = [
     ("general_midi", "GM"),
@@ -26,9 +31,6 @@ pub const MAJORS: [(&str, &str); 8] = [
 
 pub const EXCLUDED_IDS: [&str; 1] = ["midiremap_standard"];
 
-/// The index group for engines whose vendor makes no other engine.
-pub const MORE_ENGINES: &str = "More engines";
-
 pub fn slug(id: &str) -> String {
     id.replace('_', "-")
 }
@@ -41,7 +43,7 @@ pub struct EngineLink {
     pub id: String,
     pub slug: String,
     pub name: String,
-    pub vendor: String,
+    pub vendor: Option<String>,
 }
 
 impl EngineLink {
@@ -50,7 +52,7 @@ impl EngineLink {
             id: map.id().to_owned(),
             slug: slug(map.id()),
             name: map.display_name().to_string(),
-            vendor: map.vendor().unwrap_or(MORE_ENGINES).to_string(),
+            vendor: map.vendor().map(str::to_owned),
         }
     }
 
@@ -60,7 +62,11 @@ impl EngineLink {
 
     /// Lower-case text the index filter matches against.
     pub fn search(&self) -> String {
-        format!("{} {}", self.name, self.vendor).to_lowercase()
+        match &self.vendor {
+            Some(vendor) => format!("{} {vendor}", self.name),
+            None => self.name.clone(),
+        }
+        .to_lowercase()
     }
 }
 
@@ -185,8 +191,10 @@ pub struct MatrixRow {
     pub cells: Vec<Option<PairLink>>,
 }
 
+/// Engines grouped under their vendor, or under no vendor for the ones whose vendor makes
+/// no other engine.
 pub struct VendorGroup {
-    pub name: String,
+    pub name: Option<String>,
     pub engines: Vec<EngineLink>,
 }
 
@@ -305,25 +313,31 @@ pub fn sort_by_name(maps: &mut [&EngineMap]) {
 
 fn vendor_groups(maps: &[&EngineMap]) -> Vec<VendorGroup> {
     let mut by_vendor: BTreeMap<(String, String), Vec<EngineLink>> = BTreeMap::new();
+    let mut more = Vec::new();
     for m in maps {
         let link = EngineLink::of(m);
-        by_vendor
-            .entry((link.vendor.to_lowercase(), link.vendor.clone()))
-            .or_default()
-            .push(link);
+        match link.vendor.clone() {
+            Some(vendor) => by_vendor
+                .entry((vendor.to_lowercase(), vendor))
+                .or_default()
+                .push(link),
+            None => more.push(link),
+        }
     }
     let mut groups = Vec::new();
-    let mut more = Vec::new();
     for ((_, name), engines) in by_vendor {
-        if engines.len() >= 2 && name != MORE_ENGINES {
-            groups.push(VendorGroup { name, engines });
+        if engines.len() >= 2 {
+            groups.push(VendorGroup {
+                name: Some(name),
+                engines,
+            });
         } else {
             more.extend(engines);
         }
     }
     more.sort_by_cached_key(|e| (e.name.to_lowercase(), e.id.clone()));
     groups.push(VendorGroup {
-        name: MORE_ENGINES.to_string(),
+        name: None,
         engines: more,
     });
     groups
@@ -502,13 +516,20 @@ mod tests {
         assert_eq!(listed.len(), s.index.all.len());
         assert_eq!(listed.iter().collect::<HashSet<_>>().len(), listed.len());
         let (last, named) = s.index.vendors.split_last().unwrap();
-        assert_eq!(last.name, MORE_ENGINES);
+        assert_eq!(last.name, None);
         assert!(named
             .iter()
-            .all(|g| g.engines.len() >= 2 && g.name != MORE_ENGINES));
-        let toontrack = named.iter().find(|g| g.name == "Toontrack").unwrap();
+            .all(|g| g.engines.len() >= 2 && g.name.is_some()));
+        let toontrack = named
+            .iter()
+            .find(|g| g.name.as_deref() == Some("Toontrack"))
+            .unwrap();
         assert_eq!(toontrack.engines.len(), 3);
-        let vendors: Vec<String> = named.iter().map(|g| g.name.to_lowercase()).collect();
+        let vendors: Vec<String> = named
+            .iter()
+            .filter_map(|g| g.name.as_deref())
+            .map(str::to_lowercase)
+            .collect();
         let mut sorted = vendors.clone();
         sorted.sort();
         assert_eq!(vendors, sorted);

@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import type { InputHTMLAttributes, KeyboardEvent } from 'react';
 import type { FocusRef } from '../hooks/useFocusIntent';
 import { IconButton } from './IconButton';
@@ -8,7 +8,7 @@ export function FilterInput({
   value,
   onChange,
   ariaLabel,
-  placeholder = 'filter…',
+  placeholder,
   inputProps = {},
   inputRef,
 }: {
@@ -16,9 +16,10 @@ export function FilterInput({
   value: string;
   onChange: (v: string) => void;
   ariaLabel: string;
-  placeholder?: string;
+  placeholder: string;
   inputProps?: Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>;
 }) {
+  const t = useT();
   const { onKeyDown, ...rest } = inputProps;
   return (
     <div className="relative mb-2">

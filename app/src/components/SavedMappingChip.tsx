@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import { useId, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import {
@@ -47,6 +47,7 @@ export function SavedMappingChip({
   onExport: (m: SavedMapping) => void;
   onDelete: (id: string) => void;
 }) {
+  const t = useT();
   const [renaming, setRenaming] = useState(false);
   const [draft, setDraft] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);

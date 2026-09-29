@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import { useEffect, useRef, useState } from 'react';
 import type { Editor } from '../hooks/useEditor';
 import { useFilter } from '../hooks/useFilter';
@@ -46,6 +46,7 @@ export function EditView({
   onSavePreset,
   onUpdatePreset,
 }: EditViewProps) {
+  const t = useT();
   const { rows, planError, changed, canonOptions, families, reset } = editor;
   const [advanced, setAdvanced] = useState(assignNote !== null);
   const headingRef = useRef<HTMLHeadingElement>(null);

@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { SiteFooter } from '../src/components/SiteFooter';
 
-const TRADEMARK = 'All engine and product names are trademarks of their respective owners. Drumverter is not affiliated with them.';
 const footerLinks = () => within(screen.getByRole('navigation', { name: 'Site' })).getAllByRole('link');
 
 describe('SiteFooter', () => {
@@ -17,14 +16,17 @@ describe('SiteFooter', () => {
       ['Contact', '/contact/'],
       ['Terms', '/terms/'],
     ]);
-    expect(screen.getByText(TRADEMARK)).toBeInTheDocument();
+  });
+
+  it('leaves the trademark notice to the terms', () => {
+    render(<SiteFooter />);
+    expect(screen.getByText(/trademarks/)).not.toBeVisible();
   });
 
   it('shows gold links, centred', () => {
     render(<SiteFooter />);
     for (const link of footerLinks()) expect(link).toHaveClass('prose-link');
     expect(screen.getByRole('navigation', { name: 'Site' }).firstElementChild).toHaveClass('justify-center');
-    expect(screen.getByText(TRADEMARK)).toHaveClass('text-center');
   });
 
   it('opens a section in a dialog on a plain click and closes it', async () => {

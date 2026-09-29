@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import type { FocusRef } from '../hooks/useFocusIntent';
 import type { Engine } from '../lib/midiremap';
@@ -37,6 +37,7 @@ export function LibraryList({
   favorites: Set<string>;
   onToggleFavorite: (id: string) => void;
 }) {
+  const t = useT();
   const { q, setQ, filtered } = useFilter(engines, (e) => `${e.name} ${e.fullName}`);
   const { show, hide, tooltip } = useTruncationTooltip();
   const listRef = useRef<HTMLDivElement>(null);
@@ -199,6 +200,7 @@ export function LibraryList({
           setFollowSelection(v === '');
         }}
         ariaLabel={t({ id: 'library-filter', args: { side: label } })}
+        placeholder={t({ id: 'library-filter-placeholder' })}
         inputRef={filterRef}
         inputProps={{
           role: 'combobox',
@@ -212,9 +214,7 @@ export function LibraryList({
           onBlur: () => setFocused(false),
         }}
       />
-      <span id={hintId} className="sr-only">
-        {t({ id: 'library-hint' })}
-      </span>
+      <span id={hintId} className="sr-only">{t({ id: 'library-hint' })}</span>
       <div
         ref={listRef}
         id={listId}

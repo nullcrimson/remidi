@@ -2,6 +2,7 @@ import { CHANNELS, type Channel } from './channel';
 import { parseEdits, parseSrcEdits } from './mappings';
 import { MISSING_KEY, type Missing } from './missing';
 import type { OctaveBase } from './notes';
+import { readStored } from './storage';
 import type { Edits, SrcEdits } from './overrides';
 
 export const SESSION_KEY = 'midiremap:session';
@@ -30,16 +31,8 @@ export const EMPTY_SESSION: Session = {
   srcEdits: {},
 };
 
-function read(key: string): string | null {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
 function stored(): Record<string, unknown> | null {
-  const raw = read(SESSION_KEY);
+  const raw = readStored(SESSION_KEY);
   if (!raw) return null;
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -55,7 +48,7 @@ const text = (value: unknown) => (typeof value === 'string' ? value : '');
 
 export function loadSession(): Session {
   const v = stored();
-  const legacyMissing = read(MISSING_KEY) === 'drop' ? 'drop' : 'nearest';
+  const legacyMissing = readStored(MISSING_KEY) === 'drop' ? 'drop' : 'nearest';
   if (!v) return { ...EMPTY_SESSION, missing: legacyMissing };
   return {
     src: text(v.src),

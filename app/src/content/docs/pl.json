@@ -1,0 +1,177 @@
+{
+  "guide": [
+    {
+      "p": [
+        "Drumverter to darmowy remapper MIDI perkusji dla każdej wtyczki perkusyjnej. Przenosi groove MIDI perkusji napisany dla układu nut jednej wtyczki na układ innej — w całości w przeglądarce. Wrzuć plik .mid z GetGood Drums, przemapuj go na EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI lub Guitar Pro i pobierz gotowy plik. Bez wysyłania, bez rejestracji, bez opłat — pliki nie opuszczają komputera."
+      ]
+    },
+    {
+      "steps": [
+        {
+          "title": "Dodaj pliki.",
+          "body": "Upuść jeden lub więcej plików .mid w dowolnym miejscu strony albo kliknij, aby je wybrać."
+        },
+        {
+          "title": "Wybierz źródło i cel.",
+          "body": "Wybierz wtyczkę, dla której napisano MIDI, i wtyczkę, na którą ma zostać przemapowane."
+        },
+        {
+          "title": "Dopracuj (opcjonalnie).",
+          "body": "Otwórz edytor nut, aby zmienić, którą nutę gra każdy instrument albo który instrument uruchamia nuta z pliku."
+        },
+        {
+          "title": "Pobierz.",
+          "body": "Pobierz jeden plik .mid albo archiwum .zip, gdy konwertujesz kilka plików naraz."
+        }
+      ]
+    },
+    {
+      "note": {
+        "title": "Zapisz preset (opcjonalnie).",
+        "body": "Użyj Zapisz jako preset w edytorze, aby zachować parę źródło→cel razem ze zmianami nut. Pojawi się pod listami wtyczek jako chip — jedno kliknięcie wczytuje go ponownie, ✎ otwiera go w edytorze, a menu ⋯ zmienia nazwę, duplikuje lub usuwa. Presety zostają w tej przeglądarce."
+      }
+    },
+    {
+      "h": "Obsługiwane wtyczki perkusyjne"
+    },
+    {
+      "p": [
+        "Drumverter mapuje między dziesiątkami układów nut wtyczek perkusyjnych, w dowolnym kierunku — między innymi:"
+      ]
+    },
+    {
+      "list": [
+        [
+          "GetGood Drums (Invasion, Modern & Massive i inne)"
+        ],
+        [
+          "Toontrack EZdrummer i Superior Drummer 3"
+        ],
+        [
+          "Addictive Drums 2 (XLN Audio)"
+        ],
+        [
+          "Steven Slate Drums SSD5"
+        ],
+        [
+          "BFD3"
+        ],
+        [
+          "Native Instruments Studio Drummer i Abbey Road"
+        ],
+        [
+          "ML Drums i Perfect Drums"
+        ],
+        [
+          "Zestawy sygnowane przez perkusistów MixWave"
+        ],
+        [
+          "General MIDI i Guitar Pro"
+        ],
+        [
+          "…i dziesiątki innych — zobacz ",
+          {
+            "text": "mapy nut wszystkich wtyczek",
+            "href": "/engines/"
+          }
+        ]
+      ]
+    },
+    {
+      "p": [
+        "Każde mapowanie przechodzi przez kanoniczny słownik instrumentów z zamiennikami dla każdego slotu, więc nuta bez dokładnego odpowiednika trafia na najbliższy dostępny dźwięk zamiast zniknąć."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "faq": [
+        {
+          "q": "Czy Drumverter jest darmowy?",
+          "a": "Tak. Działa w całości w przeglądarce, bez konta i bez opłat."
+        },
+        {
+          "q": "Czy moje pliki MIDI są gdzieś wysyłane?",
+          "a": "Nie. Konwersja odbywa się lokalnie w przeglądarce; pliki nie opuszczają urządzenia."
+        },
+        {
+          "q": "Jak przekonwertować MIDI z GetGood Drums na EZdrummer?",
+          "a": "Dodaj plik .mid, ustaw źródło na GetGood Drums, a cel na EZdrummer, i pobierz przemapowany plik."
+        },
+        {
+          "q": "Jakie DAW i konwencje oktaw są obsługiwane?",
+          "a": "Obie popularne konwencje oktaw — przełączaj między C-1 (Reaper, Logic, Ableton, Guitar Pro) a C-2 (Studio One, Cubase, FL Studio), aby nazwy nut zgadzały się z DAW."
+        },
+        {
+          "q": "Czy mogę przekonwertować kilka plików naraz?",
+          "a": "Tak. Dodaj kilka plików .mid i pobierz je wszystkie jako jedno archiwum .zip."
+        },
+        {
+          "q": "Co jeśli instrument nie ma odpowiednika we wtyczce docelowej?",
+          "a": "Drumverter szuka najbliższego dostępnego dźwięku przez łańcuch zamienników dla każdego slotu i zgłasza wszystko, czego nie udało się dopasować."
+        }
+      ]
+    }
+  ],
+  "issue": [
+    {
+      "p": [
+        "Błędne mapowanie albo brakująca wtyczka? Otwórz ",
+        {
+          "text": "zgłoszenie na GitHubie",
+          "href": "https://github.com/nullcrimson/remidi/issues"
+        },
+        " z opisem sprawy."
+      ]
+    },
+    {
+      "p": [
+        "Wygodniej e-mailem? Napisz na ",
+        {
+          "text": "null.crimson.dev@gmail.com",
+          "href": "mailto:null.crimson.dev@gmail.com"
+        },
+        "."
+      ]
+    }
+  ],
+  "contact": [
+    {
+      "p": [
+        "Pytania, uwagi albo prośby o nową wtyczkę? Napisz na ",
+        {
+          "text": "null.crimson.dev@gmail.com",
+          "href": "mailto:null.crimson.dev@gmail.com"
+        },
+        "."
+      ]
+    }
+  ],
+  "terms": [
+    {
+      "p": [
+        "Drumverter to darmowe narzędzie dostarczane „takie, jakie jest” i „w miarę dostępności”, bez jakichkolwiek gwarancji. Autor nie gwarantuje, że jest dokładne, wolne od błędów ani że działa bez przerw."
+      ]
+    },
+    {
+      "p": [
+        "Mapowania instrumentów i zamienniki są przygotowywane najlepiej, jak to możliwe. Przekonwertowane pliki mogą być niekompletne lub błędne. Za sprawdzenie wyniku oraz zachowanie kopii zapasowych oryginalnych plików przed ich użyciem odpowiada użytkownik."
+      ]
+    },
+    {
+      "p": [
+        "W maksymalnym zakresie dozwolonym przez prawo autor nie ponosi odpowiedzialności za jakiekolwiek szkody ani utratę danych wynikające z korzystania z aplikacji Drumverter lub z niemożności korzystania z niej."
+      ]
+    },
+    {
+      "p": [
+        "Wszystkie nazwy wtyczek i produktów są znakami towarowymi ich właścicieli. Drumverter jest niezależny i nie jest powiązany z żadnym z nich, nie jest przez nich polecany ani sponsorowany; nazwy są używane wyłącznie do określenia zgodności układów nut."
+      ]
+    },
+    {
+      "p": [
+        "Konwersja działa w całości w przeglądarce — pliki nie są przesyłane ani przechowywane. Drumverter zbiera wyłącznie anonimowe statystyki korzystania bez plików cookie (takie jak liczba odsłon), aby sprawdzić, czy narzędzie jest przydatne; pliki MIDI nigdy nie opuszczają urządzenia. Drumverter może ulec zmianie lub zostać wyłączony w dowolnym momencie. Korzystanie z niego oznacza akceptację niniejszych warunków."
+      ]
+    }
+  ]
+}

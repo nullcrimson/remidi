@@ -10,7 +10,7 @@ test('the shell carries a hidden load-failure notice', async ({ page }) => {
 test('/ makes no language-file request', async ({ page }) => {
   const ftl: string[] = [];
   page.on('request', (r) => {
-    if (/\.ftl\b|app-[\w-]+\.js$/.test(r.url())) ftl.push(r.url());
+    if (/\.ftl\b|locale-[\w-]+\.js$/.test(r.url())) ftl.push(r.url());
   });
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();

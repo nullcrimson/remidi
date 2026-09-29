@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import { MISSING_OPTIONS, type Missing } from '../lib/missing';
 import { ChipRadioGroup } from './ChipRadioGroup';
 import { SettingRow } from './SettingRow';
@@ -12,6 +12,7 @@ export function MissingDrumsSetting({
   hint: string;
   onChange: (missing: Missing) => void;
 }) {
+  const t = useT();
   return (
     <SettingRow
       label={t({ id: 'missing-label' })}

@@ -1,10 +1,5 @@
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, vi } from 'vitest';
-import enFtl from '../../locales/en/app.ftl?raw';
-import { MESSAGE_IDS } from '../src/generated/i18n';
-import { initForTests } from '../src/i18n';
-
-initForTests(enFtl, MESSAGE_IDS);
 
 globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
 globalThis.URL.revokeObjectURL = vi.fn();
@@ -14,6 +9,9 @@ class ResizeObserverStub {
   unobserve(): void {}
   disconnect(): void {}
 }
+HTMLElement.prototype.showPopover ??= function showPopover() {};
+HTMLElement.prototype.hidePopover ??= function hidePopover() {};
+
 globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
 
 class MemoryStorage {

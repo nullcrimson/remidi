@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import type { ReactNode } from 'react';
 import type { FocusRef } from '../hooks/useFocusIntent';
 import { SiteFooter } from './SiteFooter';
@@ -16,6 +16,7 @@ export function Page({
   onSkip: () => void;
   children: ReactNode;
 }) {
+  const t = useT();
   return (
     <div
       className="flex min-h-screen flex-col items-center px-5 pt-[6vh] pb-16"

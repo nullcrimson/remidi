@@ -1,4 +1,5 @@
-import { t } from '../i18n';
+import type { Translate } from '../i18n';
+import { useT } from '../localeContext';
 import { useEffect, useRef } from 'react';
 import { saveFile } from '../lib/download';
 import type { FailedFile } from '../lib/batch';
@@ -12,7 +13,7 @@ import { TextButton } from './TextButton';
 
 const FREE_ZIP_AFTER_MS = 10_000;
 
-function outcomeTags(view: ReportView, failed: number): { text: string; tone: TagTone }[] {
+function outcomeTags(view: ReportView, failed: number, t: Translate): { text: string; tone: TagTone }[] {
   const { converted, approximated, dropped, unrecognized, untouched } = view.totals;
   const tags: { text: string; tone: TagTone }[] = [
     converted > 0
@@ -27,7 +28,7 @@ function outcomeTags(view: ReportView, failed: number): { text: string; tone: Ta
   return tags;
 }
 
-function fileStatus(file: ReportFile | undefined): string {
+function fileStatus(file: ReportFile | undefined, t: Translate): string {
   if (!file) return '';
   if (file.converted === 0) return t({ id: 'done-tag-nothing' });
   const sum = (entries: { count: number }[]) => entries.reduce((n, e) => n + e.count, 0);
@@ -61,6 +62,7 @@ export function DonePanel({
   onDropMissing?: () => void;
   editedDrums?: number;
 }) {
+  const t = useT();
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => headingRef.current?.focus(), []);
   const single = results.length === 1;
@@ -90,7 +92,7 @@ export function DonePanel({
           )}
         </h2>
         <ul className="flex flex-wrap gap-1.5">
-          {outcomeTags(view, failures.length).map((item) => (
+          {outcomeTags(view, failures.length, t).map((item) => (
             <li key={item.text} className={tag(item.tone)}>{item.text}</li>
           ))}
         </ul>
@@ -120,7 +122,7 @@ export function DonePanel({
             >
               <span className="min-w-0 truncate font-mono text-t2">{r.name}</span>
               <span className="flex shrink-0 items-center gap-3">
-                <span className="text-t4">{fileStatus(reportByName.get(r.name))}</span>
+                <span className="text-t4">{fileStatus(reportByName.get(r.name), t)}</span>
                 <TextButton href={r.url} download={r.name}>{t({ id: 'done-file-download' })}</TextButton>
               </span>
             </li>

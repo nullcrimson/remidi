@@ -1,9 +1,10 @@
 import { CONTACT_EMAIL, ISSUES_URL } from '../content/site';
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import { ProseLink } from './ProseLink';
 import { Rich } from './Rich';
 
 export function ContactFooter() {
+  const t = useT();
   return (
     <p className="border-t border-hairline pt-4 text-ui text-t5">
       <Rich

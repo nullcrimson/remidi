@@ -34,13 +34,20 @@ Deploy the static contents of `app/dist/` to any static host.
 ```bash
 npm run test     # Vitest; needs npm run build:wasm once (the contract test loads the real module)
 npm run e2e      # Playwright against vite preview of dist; run npm run build:site first
-npm run size     # size budgets for dist/assets (wasm, JS, CSS gzipped; latin fonts)
+npm run size     # size budgets for dist/assets (wasm, JS, CSS gzipped; latin fonts; largest locale chunk)
 ```
 
 `npm run gen:i18n` writes `src/generated/` (message, locale and section types, and
 `lang.css`) from `../locales/` and `src/content/structure.json`. It runs before `dev`,
 `build`, `test`, `lint` and `typecheck`; run it by hand after editing a `.ftl` file while
 the dev server is up. The folder is not committed.
+
+Each non-English locale's messages and documents build into lazy `assets/locale-*.js`
+chunks (`locale-<code>-messages-*.js`, `locale-<code>-docs-*.js`) that English visitors never load. After `npm run build:site`, `/pl/` serves the
+Polish converter in `vite preview`; the dev server serves the app at `/pl/` too, and the
+note-map and document pages from the last `npm run build:site` in `dist/`.
+
+`e2e/layout.spec.ts` checks every locale, and a pseudo-locale served in place of the Polish messages, for sideways scrolling and cut-off text on desktop and phone.
 
 `e2e/` holds the browser smoke tests (Chromium desktop and Pixel 7): conversion through
 the real WASM with the downloaded file read back, keyboard walk and focus steps, drag and
@@ -84,8 +91,9 @@ page logs an error.
   PageFrame (Page, Card). Overlays: Modal, PickerShell (+ `overlayAnchor`), on Floating UI. Shared primitives: `styles.ts`, Button,
   TextButton, IconButton, ChipRadioGroup, ChipSelect, TextField, MonoLabel, ProseLink.
   Frame: SiteHeader (brand + Converter · Note maps · FAQ), SiteFooter (section links that
-  open modals, rendered by ContentBlocks from `src/content/docs/en.json`, the same source
-  the static site pages use). Every text comes from `../locales/en/app.ftl` through `t()`.
+  open modals, rendered by ContentBlocks from `src/content/docs/<code>.json`, the same
+  source the static site pages use) and LanguageMenu. Every text comes from
+  `../locales/<code>/app.ftl` through `useT()`, provided by LocaleProvider.
 
 ## Views
 

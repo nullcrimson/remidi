@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import type { FailedFile } from '../lib/batch';
 import type { LoadedFile, OnFiles } from '../lib/files';
 import { errorTitle } from './errorTitle';
@@ -26,6 +26,7 @@ export function FileChips({
   onRemove: (name: string) => void;
   onClear: () => void;
 }) {
+  const t = useT();
   const skippedLine = skipped.length > 0 && (
     <p role="status" className="w-full text-label text-t4">
       {t({ id: 'files-skipped', args: { names: skipped.join(', ') } })}
@@ -49,7 +50,7 @@ export function FileChips({
       </div>
     );
   }
-  const failed = new Map(failures.map((f) => [f.name, errorTitle(f.error)]));
+  const failed = new Map(failures.map((f) => [f.name, errorTitle(f.error, t)]));
   return (
     <div className="
       flex flex-wrap items-center gap-2 border-b border-hairline pb-4.5

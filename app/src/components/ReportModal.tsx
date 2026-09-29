@@ -1,5 +1,6 @@
 import type { MessageId } from '../generated/i18n';
-import { t } from '../i18n';
+import type { Translate } from '../i18n';
+import { useT } from '../localeContext';
 import { Modal } from './Modal';
 import { MonoLabel } from './MonoLabel';
 import { TextButton } from './TextButton';
@@ -25,7 +26,7 @@ const GROUPS = [
   { key: 'unrecognized', title: 'report-unrecognized', color: 'text-t4' },
 ] as const satisfies readonly { key: GroupKey; title: MessageId; color: string }[];
 
-function groupHint(key: GroupKey, sourceName: string, targetName: string): string {
+function groupHint(key: GroupKey, sourceName: string, targetName: string, t: Translate): string {
   switch (key) {
     case 'dropped':
       return t({ id: 'report-dropped-hint', args: { target: targetName } });
@@ -36,7 +37,7 @@ function groupHint(key: GroupKey, sourceName: string, targetName: string): strin
   }
 }
 
-function entryFix(key: GroupKey, e: ReportEntry, fixes: ReportFixes): Fix | undefined {
+function entryFix(key: GroupKey, e: ReportEntry, fixes: ReportFixes, t: Translate): Fix | undefined {
   if (key === 'dropped' && e.canon !== undefined) {
     const canon = e.canon;
     return { label: t({ id: 'report-pick-target' }), run: () => fixes.onPickTarget(canon) };
@@ -48,7 +49,7 @@ function entryFix(key: GroupKey, e: ReportEntry, fixes: ReportFixes): Fix | unde
   return undefined;
 }
 
-function summaryLine(view: ReportView): string {
+function summaryLine(view: ReportView, t: Translate): string {
   const parts: string[] = [];
   if (view.totals.dropped) parts.push(t({ id: 'done-tag-dropped', args: { count: view.totals.dropped } }));
   if (view.totals.approximated) parts.push(t({ id: 'done-tag-approximated', args: { count: view.totals.approximated } }));
@@ -112,16 +113,17 @@ function GroupList({
   names: { source: string; target: string };
   fixes: ReportFixes;
 }) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-3">
       {GROUPS.map((g) => (
         <Group
           key={g.key}
           title={t({ id: g.title })}
-          hint={groupHint(g.key, names.source, names.target)}
+          hint={groupHint(g.key, names.source, names.target, t)}
           color={g.color}
           entries={groups[g.key]}
-          fixOf={(e) => entryFix(g.key, e, fixes)}
+          fixOf={(e) => entryFix(g.key, e, fixes, t)}
         />
       ))}
       <Group
@@ -144,6 +146,7 @@ function hasDetail(file: ReportFile): boolean {
 }
 
 function Headline({ view, targetName }: { view: ReportView; targetName: string }) {
+  const t = useT();
   if (view.totals.converted === 0) {
     return (
       <p>
@@ -162,7 +165,7 @@ function Headline({ view, targetName }: { view: ReportView; targetName: string }
       </p>
     );
   }
-  return <p className="font-mono text-caption text-t4">{summaryLine(view)}</p>;
+  return <p className="font-mono text-caption text-t4">{summaryLine(view, t)}</p>;
 }
 
 export function ReportModal({
@@ -183,6 +186,7 @@ export function ReportModal({
   targetName: string;
   onDropMissing?: () => void;
 } & ReportFixes) {
+  const t = useT();
   const detailFiles = view.files.filter(hasDetail);
   const names = { source: sourceName, target: targetName };
   const fixes: ReportFixes = {

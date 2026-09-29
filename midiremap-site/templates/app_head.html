@@ -5,6 +5,8 @@
     />
     <meta name="robots" content="index,follow" />
     <link rel="canonical" href="{{ canonical }}" />
+    {% for (tag, url) in alternates %}<link rel="alternate" hreflang="{{ tag }}" href="{{ url }}" />
+    {% endfor %}
 
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />

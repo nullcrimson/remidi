@@ -1,11 +1,12 @@
 import { Fragment } from 'react';
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import type { NoticeLine } from '../lib/notice';
 import { ErrorText } from './ErrorText';
 import { Rich } from './Rich';
 import { TextButton } from './TextButton';
 
 function Line({ line }: { line: NoticeLine }) {
+  const t = useT();
   if ('message' in line) return t(line.message);
   return (
     <Rich
@@ -17,6 +18,7 @@ function Line({ line }: { line: NoticeLine }) {
 }
 
 export function StatusNotice({ lines, onDismiss }: { lines: NoticeLine[]; onDismiss: () => void }) {
+  const t = useT();
   return (
     <div
       role="status"

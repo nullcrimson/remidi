@@ -1,8 +1,13 @@
+import { createReadStream } from 'node:fs';
+import { extname } from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { builtFile } from './scripts/devStatic';
+import { localeChunkName } from './scripts/localeChunk';
+import { LOCALES } from './src/generated/i18n';
 
 const BEACON = 'https://static.cloudflareinsights.com';
 const BEACON_REPORTS = 'https://cloudflareinsights.com';
@@ -36,9 +41,43 @@ function contentSecurityPolicy(): Plugin {
   };
 }
 
+const TYPES: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css',
+  '.js': 'text/javascript',
+  '.xml': 'application/xml',
+  '.txt': 'text/plain',
+  '.woff2': 'font/woff2',
+};
+
+/** Lets `npm run dev` open the static pages the last `npm run build:site` wrote to `dist`. */
+function builtStaticPages(): Plugin {
+  const dist = fileURLToPath(new URL('./dist', import.meta.url));
+  const shells = Object.values(LOCALES).map(({ prefix }) => (prefix === '' ? '/' : `/${prefix}/`));
+  return {
+    name: 'built-static-pages',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const file = req.url === undefined ? undefined : builtFile(dist, req.url, shells);
+        if (file === undefined) return next();
+        res.setHeader('Content-Type', TYPES[extname(file)] ?? 'application/octet-stream');
+        createReadStream(file).pipe(res);
+      });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss(), contentSecurityPolicy()],
+  plugins: [react(), tailwindcss(), contentSecurityPolicy(), builtStaticPages()],
   worker: { format: 'es' },
+  build: {
+    rollupOptions: {
+      output: {
+        chunkFileNames: (chunk) => localeChunkName(chunk.facadeModuleId) ?? 'assets/[name]-[hash].js',
+      },
+    },
+  },
   server: { fs: { allow: ['.', '../locales'] } },
   resolve: {
     alias: {

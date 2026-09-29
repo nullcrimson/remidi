@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { VoiceRow } from '../src/lib/midiremap';
 import { MISSING_OPTIONS, missingHint, swappedCanons } from '../src/lib/missing';
-import { t } from '../src/i18n';
+import { ENGLISH } from '../src/i18n';
+
+const { t } = ENGLISH;
 
 function row(canon: string, extra: Partial<VoiceRow>): VoiceRow {
   return {

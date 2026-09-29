@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import { useRef } from 'react';
 import { flushSync } from 'react-dom';
 import type { Engine } from '../lib/midiremap';
@@ -30,6 +30,7 @@ export function SavedMappingChips({
   onExport: (m: SavedMapping) => void;
   onDelete: (id: string) => void;
 }) {
+  const t = useT();
   const listRef = useRef<HTMLUListElement>(null);
   const remove = (id: string) => {
     const at = mappings.findIndex((m) => m.id === id);

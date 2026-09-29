@@ -1,0 +1,177 @@
+{
+  "guide": [
+    {
+      "p": [
+        "O Drumverter é um remapeador de MIDI de bateria grátis para qualquer plugin. Ele converte um groove MIDI de bateria feito para o mapa de notas de um plugin no mapa de outro — tudo no seu navegador. Solte um .mid do GetGood Drums, remapeie para EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI ou Guitar Pro e baixe um arquivo pronto para usar. Sem upload, sem cadastro, sem custo — seus arquivos nunca saem do seu computador."
+      ]
+    },
+    {
+      "steps": [
+        {
+          "title": "Adicione seus arquivos.",
+          "body": "Solte um ou mais arquivos .mid em qualquer lugar da página, ou clique para escolher."
+        },
+        {
+          "title": "Escolha a origem e o destino.",
+          "body": "Escolha o plugin para o qual o seu MIDI foi feito e o plugin para o qual você quer convertê-lo."
+        },
+        {
+          "title": "Faça ajustes (opcional).",
+          "body": "Abra o editor de notas para mudar a nota que cada peça toca, ou a peça que uma nota do seu arquivo aciona."
+        },
+        {
+          "title": "Baixe o resultado.",
+          "body": "Você recebe um único .mid, ou um .zip quando converte vários de uma vez."
+        }
+      ]
+    },
+    {
+      "note": {
+        "title": "Salve um preset (opcional).",
+        "body": "Use Salvar como preset no editor para guardar um par origem→destino, com as alterações de notas que você fez. Ele aparece como um atalho abaixo das listas de plugins — um clique carrega tudo de novo, ✎ abre o preset no editor e o menu ⋯ renomeia, duplica ou exclui. Os presets ficam salvos neste navegador."
+      }
+    },
+    {
+      "h": "Plugins de bateria compatíveis"
+    },
+    {
+      "p": [
+        "O Drumverter converte entre os mapas de notas de dezenas de plugins de bateria, em qualquer direção — entre eles:"
+      ]
+    },
+    {
+      "list": [
+        [
+          "GetGood Drums (Invasion, Modern & Massive e outros)"
+        ],
+        [
+          "Toontrack EZdrummer e Superior Drummer 3"
+        ],
+        [
+          "Addictive Drums 2 (XLN Audio)"
+        ],
+        [
+          "Steven Slate Drums SSD5"
+        ],
+        [
+          "BFD3"
+        ],
+        [
+          "Native Instruments Studio Drummer e Abbey Road"
+        ],
+        [
+          "ML Drums e Perfect Drums"
+        ],
+        [
+          "Kits signature de bateristas da MixWave"
+        ],
+        [
+          "General MIDI e Guitar Pro"
+        ],
+        [
+          "…e dezenas de outros — veja ",
+          {
+            "text": "o mapa de notas de cada plugin",
+            "href": "/engines/"
+          }
+        ]
+      ]
+    },
+    {
+      "p": [
+        "Todo mapeamento passa por um vocabulário canônico de peças, com alternativas para cada posição: uma nota sem equivalente exato vai para a peça disponível mais próxima em vez de ser descartada."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "faq": [
+        {
+          "q": "O Drumverter é grátis?",
+          "a": "Sim. Ele funciona inteiro no seu navegador, sem conta e sem custo."
+        },
+        {
+          "q": "Meus arquivos MIDI são enviados para algum lugar?",
+          "a": "Não. A conversão acontece no seu próprio navegador; os arquivos nunca saem do seu dispositivo."
+        },
+        {
+          "q": "Como eu converto MIDI do GetGood Drums para o EZdrummer?",
+          "a": "Adicione o .mid, escolha GetGood Drums como origem e EZdrummer como destino e baixe o arquivo remapeado."
+        },
+        {
+          "q": "Funciona com a minha DAW? E as oitavas, C-1 ou C-2?",
+          "a": "Funciona com as duas convenções de oitava mais comuns — alterne entre C-1 (Reaper, Logic, Ableton, Guitar Pro) e C-2 (Studio One, Cubase, FL Studio) para os nomes das notas baterem com os da sua DAW."
+        },
+        {
+          "q": "Dá para converter vários arquivos de uma vez?",
+          "a": "Dá. Adicione vários arquivos .mid e baixe todos juntos em um único .zip."
+        },
+        {
+          "q": "E se uma peça não existir no plugin de destino?",
+          "a": "O Drumverter usa cadeias de alternativas para cada posição e escolhe a peça disponível mais próxima; o que não der para mapear aparece no relatório."
+        }
+      ]
+    }
+  ],
+  "issue": [
+    {
+      "p": [
+        "Achou um mapeamento errado ou quer um plugin novo? Abra uma ",
+        {
+          "text": "issue no GitHub",
+          "href": "https://github.com/nullcrimson/remidi/issues"
+        },
+        " com os detalhes."
+      ]
+    },
+    {
+      "p": [
+        "Prefere e-mail? Fale comigo em ",
+        {
+          "text": "null.crimson.dev@gmail.com",
+          "href": "mailto:null.crimson.dev@gmail.com"
+        },
+        "."
+      ]
+    }
+  ],
+  "contact": [
+    {
+      "p": [
+        "Dúvidas, sugestões ou pedidos de plugins? Mande um e-mail para ",
+        {
+          "text": "null.crimson.dev@gmail.com",
+          "href": "mailto:null.crimson.dev@gmail.com"
+        },
+        "."
+      ]
+    }
+  ],
+  "terms": [
+    {
+      "p": [
+        "O Drumverter é uma ferramenta grátis, fornecida “no estado em que se encontra” e “conforme disponibilidade”, sem garantias de nenhum tipo. O autor não garante que ela seja precisa, livre de erros ou que funcione sem interrupções."
+      ]
+    },
+    {
+      "p": [
+        "Os mapeamentos de bateria e as alternativas são feitos da melhor forma possível, sem garantia de exatidão. Os arquivos convertidos podem ficar incompletos ou incorretos. Você é responsável por revisar o resultado e por manter cópias de segurança dos seus arquivos originais antes de usá-los."
+      ]
+    },
+    {
+      "p": [
+        "Na medida máxima permitida pela lei, o autor não se responsabiliza por quaisquer danos ou perdas de dados decorrentes do uso, ou da impossibilidade de uso, do Drumverter."
+      ]
+    },
+    {
+      "p": [
+        "Todos os nomes de plugins e produtos são marcas comerciais dos seus respectivos proprietários. O Drumverter é independente e não tem vínculo com nenhum deles, nem é endossado ou patrocinado por eles; os nomes são usados apenas para identificar a compatibilidade dos mapas de notas."
+      ]
+    },
+    {
+      "p": [
+        "A conversão acontece inteiramente no seu navegador — os arquivos não são enviados nem armazenados. O Drumverter coleta apenas estatísticas de uso anônimas e sem cookies (como visualizações de página) para avaliar se a ferramenta é útil; o seu MIDI nunca sai do seu dispositivo. O Drumverter pode mudar ou ser desativado a qualquer momento. Ao usá-lo, você aceita estes termos."
+      ]
+    }
+  ]
+}

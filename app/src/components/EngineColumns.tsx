@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import type { FocusRef } from '../hooks/useFocusIntent';
 import { useFavorites } from '../hooks/useFavorites';
 import type { Engine } from '../lib/midiremap';
@@ -25,6 +25,7 @@ export function EngineColumns({
   fromRef: FocusRef;
   toRef: FocusRef;
 }) {
+  const t = useT();
   const favFrom = useFavorites('from');
   const favTo = useFavorites('to');
   return (

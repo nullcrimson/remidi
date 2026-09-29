@@ -1,15 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import enFtl from '../../locales/en/app.ftl?raw';
-import { MESSAGE_IDS } from '../src/generated/i18n';
 
 const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {} };
 
 describe('App states', () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.resetModules();
-    (await import('../src/i18n')).initForTests(enFtl, MESSAGE_IDS);
   });
   afterEach(() => vi.doUnmock('../src/lib/midiremap'));
 

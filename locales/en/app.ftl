@@ -1,7 +1,6 @@
 brand-tagline = drum MIDI converter & remapper
 nav-converter = Converter
 nav-note-maps = Note maps
-trademark = All engine and product names are trademarks of their respective owners. Drumverter is not affiliated with them.
 section-guide-label = How it works
 section-guide-heading = How to convert drum MIDI
 section-guide-title = How to Convert Drum MIDI Between Engines | Drumverter
@@ -25,6 +24,9 @@ section-terms-description = Terms of use for Drumverter, the free in-browser dru
 skip-to-content = Skip to content
 nav-main = Main
 nav-site = Site
+lang-menu-label = Language
+lang-load-failed = Couldn't load { $language }. Check your connection and try again.
+lang-offer = This page is available in English →
 open-converter = Open the converter →
 error-unknown-engine = Unknown { $role ->
     [source] source
@@ -158,6 +160,7 @@ row-extras = { $count ->
 row-reset = Reset { $drum }
 edit-filter-label = Filter drums
 edit-filter-placeholder = filter drums…
+library-filter-placeholder = filter…
 edit-show = Show
 edit-show-all = All { $count }
 edit-show-changed = Changed { $count }
@@ -282,3 +285,66 @@ converter-app-description = Free in-browser tool that remaps drum MIDI between s
 converter-noscript = Drumverter is a free drum MIDI remapper. It remaps a drum MIDI file written for one sample engine's note layout into another's — for example remapping GetGood Drums to EZdrummer, Superior Drummer, Addictive Drums, General MIDI, or Guitar Pro — using a canonical drum vocabulary with per-slot fallbacks. This MIDI remapping runs entirely in your browser; enable JavaScript to use the converter.
 load-failed = Drumverter couldn't load. Check your connection and reload the page.
 load-failed-reload = Reload
+maps-breadcrumb = Breadcrumb
+maps-index-title = Drum MIDI Note Maps for { $count } Drum Engines | Drumverter
+maps-index-description = Drum MIDI note maps for { $count } drum engines, plus conversion tables between GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums and more.
+maps-index-heading = Drum MIDI note maps
+maps-index-intro = Note charts for { $count } drum engines and conversion tables between the most popular ones — the same mapping data the Drumverter converter uses.
+maps-popular = Popular conversions
+maps-more-engines = More engines
+maps-matrix-corner = FROM ↓ TO →
+maps-pair-link = { $source } to { $target }
+maps-matrix-hint = Each arrow opens the conversion table from the row’s engine to the column’s.
+maps-all-engines = All { $count } engines
+maps-filter-engines-label = Filter engines
+maps-filter-engines-placeholder = Filter engines…
+maps-no-engines = No engines match
+maps-engine-title = { $engineMidi } Note Map & Drum Mapping | Drumverter
+maps-engine-title-long-name = MIDI Note Map: { $engine } | Drumverter
+maps-engine-description = { $engine } drum MIDI note map: all { $total } notes with drum names in C-1 and C-2 octave conventions.
+maps-engine-description-short = { $engine } drum MIDI note map with C-1 and C-2 note names.
+maps-engine-description-more = Convert { $engineMidi } to any engine, free.
+maps-engine-heading = { $engine } drum MIDI note map
+maps-engine-intro = Every MIDI note { $engine } responds to — { $total } in total — grouped by drum. Note names follow either octave convention: C-1 (Reaper, Logic, Ableton, Guitar Pro) or C-2 (Studio One, Cubase, FL Studio).
+maps-convert-to = Convert to { $engine }
+maps-convert-from = Convert from { $engine }
+maps-filter-drums-label = Filter drums
+maps-filter-drums-placeholder = Filter by drum or note…
+maps-octave-naming = Octave naming
+maps-column-note = Note
+maps-column-drum = Drum
+maps-conversion-tables = Conversion tables
+maps-pair-heading = Convert { $sourceMidi } to { $target }
+maps-pair-title = Convert { $sourceMidi } to { $target } | Drumverter
+maps-pair-description = Convert { $source } drum MIDI to { $target }: { $exact } { $exact ->
+    [one] note maps
+   *[other] notes map
+} exactly, { $approximated } approximated, { $dropped } dropped.
+maps-pair-description-more = Free in-browser converter.
+maps-pair-summary = Of { $total } { $source } notes, { $exact } { $exact ->
+    [one] maps
+   *[other] map
+} exactly to { $target }, { $approximated } { $approximated ->
+    [one] is
+   *[other] are
+} approximated with the closest available drum, and { $dropped } { $dropped ->
+    [one] has
+   *[other] have
+} no equivalent.
+maps-pair-convert = Convert { $source } → { $target }
+maps-reverse = ⇄ Reverse direction
+maps-exact-count = { $count } exact
+maps-approximated-count = { $count } approximated
+maps-dropped-count = { $count } dropped
+maps-rows = Rows
+maps-rows-changes = Changes { $count }
+maps-column-engine-note = { $engine } note
+maps-column-engine-drum = { $engine } drum
+maps-column-to = to
+maps-column-result = Result
+maps-no-equivalent = no equivalent
+maps-status-exact = exact
+maps-status-approximated = approximated
+maps-status-dropped = dropped
+maps-more-from = More from { $engine }
+maps-full-maps = Full note maps:

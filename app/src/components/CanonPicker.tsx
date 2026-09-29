@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../localeContext';
 import { groupByFamily } from '../lib/families';
 import type { CanonInfo } from '../lib/midiremap';
 import { IconButton } from './IconButton';
@@ -21,6 +21,7 @@ export function CanonPicker({
   onPick: (canon: string) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const groups = groupByFamily(options, (o) => o.family, families);
 
   return (

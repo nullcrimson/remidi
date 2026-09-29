@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ frame.lang }}">
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="{{ frame.csp|safe }}" />
@@ -7,7 +7,8 @@
     <title>{{ meta.title }}</title>
     <meta name="description" content="{{ meta.description }}" />
     <link rel="canonical" href="{{ meta.canonical }}" />
-    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    {% for (tag, url) in frame.alternates %}<link rel="alternate" hreflang="{{ tag }}" href="{{ url }}" />
+    {% endfor %}    <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -35,7 +36,7 @@
         >{{ frame.skip }}</a>
         <header class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 px-1">
           <a
-            href="/"
+            href="{{ frame.home }}"
             class="tap brand-mark hover:text-t1"
           >Drumverter</a>
           <nav aria-label="{{ frame.nav_main }}">
@@ -45,9 +46,11 @@
                 <a href="{{ n.href }}"{% if n.current %} aria-current="page"{% endif %} class="nav-link">{{ n.label }}</a>
               </li>
               {% endfor %}
+              <li>{% include "lang_menu.html" %}</li>
             </ul>
           </nav>
         </header>
+        {% include "lang_offer.html" %}
         <main
           id="main"
           tabindex="-1"
@@ -63,11 +66,11 @@
               {% endfor %}
             </ul>
           </nav>
-          <p class="text-center text-label text-t5">{{ frame.trademark }}</p>
         </footer>
       </div>
     </div>
     {% block script %}{% endblock %}
+    <script src="/locale.js" defer></script>
     {{ frame.beacon|safe }}
   </body>
 </html>

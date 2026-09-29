@@ -1,0 +1,3 @@
+channel-number
+mid-badge
+done-file-download

@@ -1,5 +1,6 @@
 import docs from './docs/en.json';
-import { LOCALES, SECTION_MESSAGES, SECTION_SLUGS, type Locale, type Message, type NavTarget, type SectionKey } from '../generated/i18n';
+import { LOCALES, SECTION_KEYS, SECTION_MESSAGES, SECTION_SLUGS, TRANSLATED_SECTIONS, type Locale, type Message, type NavTarget, type SectionKey } from '../generated/i18n';
+import type { Translator } from '../i18n';
 
 export type Inline = string | { text: string; href: string };
 export interface Step {
@@ -21,21 +22,30 @@ export type Block
 export const ISSUES_URL = 'https://github.com/nullcrimson/remidi/issues';
 export const CONTACT_EMAIL = 'null.crimson.dev@gmail.com';
 
-const EN: Record<SectionKey, Block[]> = docs as Record<SectionKey, Block[]>;
-const DOCS: Partial<Record<Locale, Partial<Record<SectionKey, Block[]>>>> = { en: EN };
+export type Docs = Partial<Record<SectionKey, Block[]>>;
 
-/** A section's document in `locale`, or English when that locale lacks it. */
-export function sectionBlocks(key: SectionKey, locale: Locale = 'en'): Block[] {
-  return DOCS[locale]?.[key] ?? EN[key];
+export const EN_DOCS: Record<SectionKey, Block[]> = docs as Record<SectionKey, Block[]>;
+
+/** A section's document in the translator's language, or English when it lacks one. */
+export function sectionBlocks(key: SectionKey, translator: Translator): Block[] {
+  return translator.docs[key] ?? EN_DOCS[key];
 }
 
 /** Where a nav or footer link goes from a `locale` page; missing sections link to English. */
 export function href(target: NavTarget, locale: Locale = 'en'): string {
   const { prefix } = LOCALES[locale];
   const base = prefix === '' ? '' : `/${prefix}`;
-  if ('route' in target) return target.route === 'converter' ? `${base}/` : '/engines/';
+  if ('route' in target) return target.route === 'converter' ? `${base}/` : `${base}/engines/`;
   const slug = SECTION_SLUGS[target.section];
-  return DOCS[locale]?.[target.section] ? `${base}/${slug}/` : `/${slug}/`;
+  return TRANSLATED_SECTIONS[locale].includes(target.section) ? `${base}/${slug}/` : `/${slug}/`;
+}
+
+/** A document's internal link, pointed at the same page in `locale`. */
+export function localHref(path: string, locale: Locale): string {
+  const section = SECTION_KEYS.find((k) => path === `/${SECTION_SLUGS[k]}/`);
+  if (section !== undefined) return href({ section }, locale);
+  const { prefix } = LOCALES[locale];
+  return prefix === '' ? path : `/${prefix}${path}`;
 }
 
 export function targetLabel(target: NavTarget): Message {

@@ -27,10 +27,11 @@ import { missingHint } from './lib/missing';
 import { downloadPreset } from './lib/presetFile';
 import { ErrorText } from './components/ErrorText';
 import { Rich } from './components/Rich';
-import { t } from './i18n';
+import { useT } from './localeContext';
 import type { NoticeLine } from './lib/notice';
 
 function Intro() {
+  const t = useT();
   return (
     <p className="text-ui/relaxed text-t4">
       {t({ id: 'app-intro' })}
@@ -39,6 +40,7 @@ function Intro() {
 }
 
 export default function App() {
+  const t = useT();
   useDropGuard();
   const c = useRemapper();
   const { editor } = c;

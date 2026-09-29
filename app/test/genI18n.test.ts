@@ -32,6 +32,22 @@ describe('gen-i18n', () => {
   it('writes :lang rules only for locales with fonts', () => {
     const withFonts = [...locales, { code: 'ja', prefix: 'ja', langTag: 'ja', nativeName: '日本語', fonts: '"Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif' }];
     const { css } = generate(parseSources({ locales: withFonts, structure, ftl }));
-    expect(css).toBe(':lang(ja) {\n  --font-sans: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;\n  --font-display: var(--font-sans);\n}\n');
+    expect(css).toBe(':lang(ja) {\n  --font-sans: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;\n  --font-display: var(--font-sans);\n  --font-mono: \'IBM Plex Mono\', "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;\n}\n');
+  });
+
+  it('lists each locale\'s translated sections from its documents', () => {
+    const out = generate(parseSources({
+      locales: [...locales, { code: 'pl', prefix: 'pl', langTag: 'pl', nativeName: 'Polski', fonts: null }],
+      structure: { ...structure, sections: ['guide', 'faq', 'terms'].map((key) => ({ key, slug: key })) },
+      ftl: 'a = x\n',
+      docs: { en: ['guide', 'faq', 'terms'], pl: ['guide', 'faq'] },
+    }));
+    expect(out.ts).toContain('export const TRANSLATED_SECTIONS: Record<Locale, readonly SectionKey[]> = {"en":["guide","faq","terms"],"pl":["guide","faq"]};');
+    expect(out.ts).toContain('export const LOCALE_CODES: readonly Locale[] = ["en","pl"];');
+    expect(out.ts).toContain('"nativeName":"Polski"');
+  });
+
+  it('rejects documents for a section the structure does not know', () => {
+    expect(() => parseSources({ locales, structure, ftl: 'a = x\n', docs: { en: ['nope'] } })).toThrow(/docs\/en\.json: unknown section 'nope'/);
   });
 });

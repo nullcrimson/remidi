@@ -1,4 +1,4 @@
-import { t } from '../../i18n';
+import { useT } from '../../localeContext';
 import { useState } from 'react';
 import { MAPPINGS_CAP, type SavedMapping } from '../../lib/mappings';
 import { shortCode } from '../../lib/format';
@@ -23,6 +23,7 @@ export function SavePreset({
   onSave: (name: string) => void;
   onUpdate: (id: string, name: string) => void;
 }) {
+  const t = useT();
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState('');
   const pairLabel = `${shortCode(src)}→${shortCode(tgt)}`;

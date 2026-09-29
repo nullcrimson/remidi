@@ -16,6 +16,7 @@ struct LocaleEntry {
     code: String,
     prefix: String,
     lang_tag: String,
+    native_name: String,
 }
 
 #[derive(Deserialize)]
@@ -148,7 +149,7 @@ fn main() {
         .map(|l| l.code.to_upper_camel_case())
         .collect();
     let mut out = enumeration("Locale", &locale_variants);
-    out += "impl Locale {\n    #[cfg(test)]\n";
+    out += "impl Locale {\n";
     out += &all(&locale_variants);
     let field = |f: fn(&LocaleEntry) -> &str| {
         move |l: &LocaleEntry| (l.code.to_upper_camel_case(), format!("{:?}", f(l)))
@@ -156,6 +157,12 @@ fn main() {
     out += &matcher("code", "&'static str", &locales, field(|l| &l.code));
     out += &matcher("prefix", "&'static str", &locales, field(|l| &l.prefix));
     out += &matcher("lang_tag", "&'static str", &locales, field(|l| &l.lang_tag));
+    out += &matcher(
+        "native_name",
+        "&'static str",
+        &locales,
+        field(|l| &l.native_name),
+    );
     out += &matcher("ftl", "&'static str", &locales, |l| {
         (
             l.code.to_upper_camel_case(),

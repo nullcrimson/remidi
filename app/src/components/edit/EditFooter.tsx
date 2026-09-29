@@ -1,4 +1,4 @@
-import { t } from '../../i18n';
+import { useT } from '../../localeContext';
 import type { SavedMapping } from '../../lib/mappings';
 import { Button } from '../Button';
 import { TextButton } from '../TextButton';
@@ -26,6 +26,7 @@ export function EditFooter({
   onUpdatePreset: (id: string, name: string) => void;
   onDone: () => void;
 }) {
+  const t = useT();
   return (
     <section
       aria-label={t({ id: 'edit-actions' })}

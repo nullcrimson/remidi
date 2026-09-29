@@ -1,16 +1,14 @@
-import { useState, type MouseEvent } from 'react';
+import { useState } from 'react';
 import { href, sectionBlocks, targetLabel } from '../content/site';
 import { FOOTER, SECTION_KEYS, SECTION_MESSAGES, type SectionKey } from '../generated/i18n';
-import { t } from '../i18n';
-import { LOCALE } from '../locale';
+import { useLocale } from '../localeContext';
+import { plainClick } from '../lib/plainClick';
 import { ContentBlocks } from './ContentBlocks';
 import { Modal } from './Modal';
 
-function plainClick(e: MouseEvent): boolean {
-  return e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey;
-}
-
 export function SiteFooter() {
+  const { translator } = useLocale();
+  const { t, locale } = translator;
   const [open, setOpen] = useState<SectionKey | null>(null);
 
   return (
@@ -20,9 +18,9 @@ export function SiteFooter() {
           {FOOTER.map((target) => {
             const section = 'section' in target ? target.section : null;
             return (
-              <li key={href(target, LOCALE)}>
+              <li key={href(target, locale)}>
                 <a
-                  href={href(target, LOCALE)}
+                  href={href(target, locale)}
                   aria-haspopup={section ? 'dialog' : undefined}
                   onClick={(e) => {
                     if (!section || !plainClick(e)) return;
@@ -38,7 +36,6 @@ export function SiteFooter() {
           })}
         </ul>
       </nav>
-      <p className="text-center text-label text-t5">{t({ id: 'trademark' })}</p>
 
       {SECTION_KEYS.map((key) => (
         <Modal
@@ -47,7 +44,7 @@ export function SiteFooter() {
           heading={t({ id: SECTION_MESSAGES[key].heading })}
           onClose={() => setOpen(null)}
         >
-          <ContentBlocks blocks={sectionBlocks(key, LOCALE)} />
+          <ContentBlocks blocks={sectionBlocks(key, translator)} />
         </Modal>
       ))}
     </footer>

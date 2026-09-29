@@ -65,3 +65,18 @@ fn english_has_every_section() {
         assert!(docs.has(Locale::En, k), "{}", k.key());
     }
 }
+
+#[test]
+fn every_locale_translates_the_guide_and_faq() {
+    let docs = Docs::load().unwrap();
+    for &l in Locale::ALL {
+        assert!(docs.has(l, SectionKey::Guide), "{}", l.code());
+        assert!(docs.has(l, SectionKey::Faq), "{}", l.code());
+    }
+}
+
+#[test]
+fn polish_is_a_locale() {
+    assert_eq!(Locale::Pl.prefix(), "pl");
+    assert_eq!(Locale::Pl.native_name(), "Polski");
+}

@@ -20,9 +20,14 @@ pub enum I18nError {
     },
 }
 
+struct Translation {
+    plain: PlainTexts,
+    bundle: FluentBundle<FluentResource>,
+}
+
 /// Every locale's UI messages, checked against English's ids and variables; the ones
 /// without variables are kept formatted.
-pub struct Messages(PerLocale<PlainTexts>);
+pub struct Messages(PerLocale<Translation>);
 
 fn matches_english(ftl: &str) -> Result<(), String> {
     let mut found: HashMap<&str, BTreeSet<&str>> = ftl_vars::message_vars(ftl)
@@ -76,7 +81,7 @@ fn format(
 }
 
 impl Messages {
-    fn check(locale: Locale, ftl: &str) -> Result<PlainTexts, I18nError> {
+    fn check(locale: Locale, ftl: &str) -> Result<Translation, I18nError> {
         let err = |detail: String| I18nError::Ftl {
             locale: locale.code(),
             detail,
@@ -86,7 +91,8 @@ impl Messages {
         for &id in MessageId::ALL.iter().filter(|id| !id.vars().is_empty()) {
             format(&bundle, id.id(), id.vars()).map_err(err)?;
         }
-        PlainTexts::try_new(|id| format(&bundle, id.id(), &[]).map_err(err))
+        let plain = PlainTexts::try_new(|id| format(&bundle, id.id(), &[]).map_err(err))?;
+        Ok(Translation { plain, bundle })
     }
 
     pub fn load() -> Result<Self, I18nError> {
@@ -94,7 +100,21 @@ impl Messages {
     }
 
     pub fn get(&self, locale: Locale, id: Plain) -> &str {
-        self.0.get(locale).get(id)
+        self.0.get(locale).plain.get(id)
+    }
+
+    /// `id` in `locale` with `args`; `load` proved every message has a value.
+    pub fn format(&self, locale: Locale, id: MessageId, args: &FluentArgs) -> String {
+        let Translation { bundle, .. } = self.0.get(locale);
+        bundle
+            .get_message(id.id())
+            .and_then(|m| m.value())
+            .map(|p| {
+                bundle
+                    .format_pattern(p, Some(args), &mut vec![])
+                    .into_owned()
+            })
+            .unwrap_or_default()
     }
 }
 
@@ -125,8 +145,8 @@ impl Docs {
     }
 
     #[cfg(test)]
-    pub fn with_sections(keys: &[SectionKey]) -> Self {
-        Self(PerLocale::try_new(|_| Ok(keys.iter().map(|&k| (k, vec![])).collect())).unwrap())
+    pub fn with_sections(keys: impl Fn(Locale) -> &'static [SectionKey]) -> Self {
+        Self(PerLocale::try_new(|l| Ok(keys(l).iter().map(|&k| (k, vec![])).collect())).unwrap())
     }
 
     pub fn blocks(&self, locale: Locale, key: SectionKey) -> Option<&[Block]> {
@@ -138,7 +158,8 @@ impl Docs {
     }
 }
 
-fn base(locale: Locale) -> String {
+/// The path prefix of `locale`'s pages: empty for English, `/pl` for Polish.
+pub fn base(locale: Locale) -> String {
     match locale.prefix() {
         "" => String::new(),
         p => format!("/{p}"),
@@ -155,9 +176,59 @@ pub fn home(locale: Locale) -> String {
 pub fn href(target: NavTarget, locale: Locale, docs: &Docs) -> String {
     match target {
         NavTarget::Converter => home(locale),
-        NavTarget::NoteMaps => NOTE_MAPS.to_owned(),
+        NavTarget::NoteMaps => format!("{}{NOTE_MAPS}", base(locale)),
         NavTarget::Section(k) if docs.has(locale, k) => format!("{}/{}/", base(locale), k.slug()),
         NavTarget::Section(k) => format!("/{}/", k.slug()),
+    }
+}
+
+/// A static page, as the language menu and `hreflang` see it.
+pub enum Page<'a> {
+    /// A document section, which a locale may lack.
+    Section(SectionKey),
+    /// A page every locale has, by its English path.
+    Everywhere(&'a str),
+}
+
+/// The same page in `to`, or `to`'s converter when the page has no version there.
+pub fn page_in(page: &Page, to: Locale, docs: &Docs) -> String {
+    match page {
+        Page::Section(k) if docs.has(to, *k) => href(NavTarget::Section(*k), to, docs),
+        Page::Section(_) => home(to),
+        Page::Everywhere(path) => format!("{}{path}", base(to)),
+    }
+}
+
+/// The versions of `page` for `hreflang`: each locale that has it, then `x-default`.
+pub fn alternates(page: &Page, docs: &Docs) -> Vec<(&'static str, String)> {
+    Locale::ALL
+        .iter()
+        .filter(|&&l| match page {
+            Page::Section(k) => docs.has(l, *k),
+            Page::Everywhere(_) => true,
+        })
+        .map(|&l| (l.lang_tag(), page_in(page, l, docs)))
+        .chain([("x-default", page_in(page, Locale::En, docs))])
+        .collect()
+}
+
+/// The converter's versions for `hreflang`.
+pub fn converter_alternates() -> Vec<(&'static str, String)> {
+    Locale::ALL
+        .iter()
+        .map(|&l| (l.lang_tag(), home(l)))
+        .chain([("x-default", home(Locale::En))])
+        .collect()
+}
+
+/// A document's internal link, pointed at the same page in `locale`.
+pub fn local_href(path: &str, locale: Locale, docs: &Docs) -> String {
+    match SectionKey::ALL
+        .iter()
+        .find(|k| path == format!("/{}/", k.slug()))
+    {
+        Some(&k) => href(NavTarget::Section(k), locale, docs),
+        None => format!("{}{path}", base(locale)),
     }
 }
 
@@ -173,6 +244,30 @@ pub fn label(target: NavTarget) -> Plain {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn eleven_locales_in_menu_order_each_with_its_own_prefix() {
+        let names: Vec<&str> = Locale::ALL.iter().map(|l| l.native_name()).collect();
+        assert_eq!(
+            names,
+            [
+                "English",
+                "Español",
+                "Português",
+                "Deutsch",
+                "日本語",
+                "Français",
+                "Русский",
+                "Polski",
+                "Italiano",
+                "中文",
+                "한국어"
+            ]
+        );
+        let prefixes: std::collections::HashSet<&str> =
+            Locale::ALL.iter().map(|l| l.prefix()).collect();
+        assert_eq!(prefixes.len(), Locale::ALL.len());
+    }
 
     fn with_edit_more(replacement: &str) -> String {
         Locale::En
@@ -198,7 +293,7 @@ mod tests {
 
     #[test]
     fn english_links_point_at_routes_and_section_slugs() {
-        let docs = Docs::with_sections(&[SectionKey::Guide]);
+        let docs = Docs::with_sections(|_| &[SectionKey::Guide]);
         assert_eq!(href(NavTarget::Converter, Locale::En, &docs), "/");
         assert_eq!(href(NavTarget::NoteMaps, Locale::En, &docs), NOTE_MAPS);
         assert_eq!(
@@ -209,7 +304,7 @@ mod tests {
 
     #[test]
     fn load_rejects_missing_ids() {
-        assert!(Messages::check(Locale::En, "trademark = x\n").is_err());
+        assert!(Messages::check(Locale::En, "nav-converter = x\n").is_err());
     }
 
     #[test]
@@ -233,5 +328,92 @@ mod tests {
     #[test]
     fn docs_reject_an_unknown_section() {
         assert!(Docs::parse(Locale::En, r#"{ "nope": [] }"#).is_err());
+    }
+
+    #[test]
+    fn a_translated_section_switches_to_its_translation() {
+        let docs = Docs::load().unwrap();
+        assert_eq!(
+            page_in(&Page::Section(SectionKey::Faq), Locale::Pl, &docs),
+            "/pl/faq/"
+        );
+        assert_eq!(
+            page_in(&Page::Section(SectionKey::Faq), Locale::En, &docs),
+            "/faq/"
+        );
+    }
+
+    fn polish_without_terms() -> Docs {
+        Docs::with_sections(|l| match l {
+            Locale::En => &[SectionKey::Faq, SectionKey::Terms],
+            _ => &[SectionKey::Faq],
+        })
+    }
+
+    #[test]
+    fn an_untranslated_section_switches_to_the_converter() {
+        let docs = polish_without_terms();
+        assert_eq!(
+            page_in(&Page::Section(SectionKey::Terms), Locale::Pl, &docs),
+            "/pl/"
+        );
+    }
+
+    #[test]
+    fn a_document_link_points_at_the_page_in_the_readers_language() {
+        let docs = Docs::load().unwrap();
+        assert_eq!(local_href("/engines/", Locale::Pl, &docs), "/pl/engines/");
+        assert_eq!(local_href("/faq/", Locale::Pl, &docs), "/pl/faq/");
+        assert_eq!(local_href("/engines/", Locale::En, &docs), "/engines/");
+    }
+
+    #[test]
+    fn note_maps_link_to_the_locales_note_maps() {
+        let docs = Docs::load().unwrap();
+        assert_eq!(href(NavTarget::NoteMaps, Locale::Pl, &docs), "/pl/engines/");
+    }
+
+    #[test]
+    fn a_note_map_page_switches_to_the_same_page_in_another_locale() {
+        let docs = Docs::load().unwrap();
+        let page = Page::Everywhere("/engines/ezdrummer/");
+        assert_eq!(page_in(&page, Locale::Pl, &docs), "/pl/engines/ezdrummer/");
+    }
+
+    #[test]
+    fn a_note_map_page_lists_every_locale_and_the_default() {
+        let docs = Docs::load().unwrap();
+        assert_eq!(
+            alternates(&Page::Everywhere("/engines/"), &docs).len(),
+            Locale::ALL.len() + 1
+        );
+    }
+
+    #[test]
+    fn messages_format_with_their_arguments() {
+        let mut args = FluentArgs::new();
+        args.set("engine", "EZdrummer 3");
+        assert_eq!(
+            Messages::load()
+                .unwrap()
+                .format(Locale::En, MessageId::MapsConvertTo, &args),
+            "Convert to EZdrummer 3"
+        );
+    }
+
+    #[test]
+    fn a_translated_section_lists_its_versions_and_the_default() {
+        let docs = Docs::load().unwrap();
+        let faq = alternates(&Page::Section(SectionKey::Faq), &docs);
+        assert_eq!(faq.len(), Locale::ALL.len() + 1);
+        assert_eq!(faq.first(), Some(&("en", "/faq/".to_owned())));
+        assert!(faq.contains(&("pl", "/pl/faq/".to_owned())));
+        assert!(faq.contains(&("pt-BR", "/pt/faq/".to_owned())));
+        assert!(faq.contains(&("zh-Hans", "/zh/faq/".to_owned())));
+        assert_eq!(faq.last(), Some(&("x-default", "/faq/".to_owned())));
+        assert_eq!(
+            alternates(&Page::Section(SectionKey::Terms), &polish_without_terms()).len(),
+            2
+        );
     }
 }

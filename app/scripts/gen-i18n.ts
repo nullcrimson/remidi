@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 interface LocaleEntry { code: string; prefix: string; langTag: string; nativeName: string; fonts: string | null }
 type Target = { route: 'converter' | 'noteMaps' } | { section: string };
 interface Structure { sections: { key: string; slug: string }[]; nav: Target[]; footer: Target[] }
-interface Sources { locales: LocaleEntry[]; structure: Structure; ftl: string }
+interface Sources { locales: LocaleEntry[]; structure: Structure; ftl: string; docs?: Record<string, string[]> }
 
 function variables(pattern: Pattern | null, out: Set<string>): void {
   JSON.stringify(pattern, (_k, v) => {
@@ -33,6 +33,10 @@ export function parseSources(s: Sources): Sources & { args: Record<string, strin
   for (const t of [...s.structure.nav, ...s.structure.footer]) {
     if ('section' in t && !keys.has(t.section)) throw new Error(`structure.json: unknown section '${t.section}'`);
   }
+  for (const [code, sections] of Object.entries(s.docs ?? {})) {
+    const unknown = sections.find((k) => !keys.has(k));
+    if (unknown !== undefined) throw new Error(`docs/${code}.json: unknown section '${unknown}'`);
+  }
   return { ...s, args: argsOf(s.ftl) };
 }
 
@@ -43,13 +47,15 @@ export function generate(s: ReturnType<typeof parseSources>): { ts: string; css:
   const keys = s.structure.sections.map((x) => x.key);
   const header = ids.some((id) => s.args[id].length > 0) ? 'import type { FluentVariable } from \'@fluent/bundle\';\n\n' : '';
   const ts = `${header}export type Locale = ${union(s.locales.map((l) => l.code))};
-export const LOCALES: Record<Locale, { prefix: string; langTag: string }> = ${JSON.stringify(Object.fromEntries(s.locales.map(({ code, prefix, langTag }) => [code, { prefix, langTag }])))};
+export const LOCALES: Record<Locale, { prefix: string; langTag: string; nativeName: string }> = ${JSON.stringify(Object.fromEntries(s.locales.map(({ code, prefix, langTag, nativeName }) => [code, { prefix, langTag, nativeName }])))};
+export const LOCALE_CODES: readonly Locale[] = ${JSON.stringify(s.locales.map((l) => l.code))};
 export function parseLocale(segment: string): Locale | undefined {
   return (Object.keys(LOCALES) as Locale[]).find((l) => LOCALES[l].prefix !== '' && LOCALES[l].prefix === segment);
 }
 
 export type SectionKey = ${union(keys)};
 export const SECTION_KEYS: readonly SectionKey[] = ${JSON.stringify(keys)};
+export const TRANSLATED_SECTIONS: Record<Locale, readonly SectionKey[]> = ${JSON.stringify(Object.fromEntries(s.locales.map((l) => [l.code, s.docs?.[l.code] ?? []])))};
 export const SECTION_SLUGS: Record<SectionKey, string> = ${JSON.stringify(Object.fromEntries(s.structure.sections.map((x) => [x.key, x.slug])))};
 export type NavTarget = { route: 'converter' } | { route: 'noteMaps' } | { section: SectionKey };
 export const NAV: NavTarget[] = ${JSON.stringify(s.structure.nav)};
@@ -65,17 +71,19 @@ export const SECTION_MESSAGES = {
 ${keys.map((k) => `  ${k}: { label: 'section-${k}-label', heading: 'section-${k}-heading', description: 'section-${k}-description' },`).join('\n')}
 } as const satisfies Record<SectionKey, { label: MessageId; heading: MessageId; description: MessageId }>;
 `;
-  const css = s.locales.filter((l) => l.fonts).map((l) => `:lang(${l.langTag}) {\n  --font-sans: ${l.fonts};\n  --font-display: var(--font-sans);\n}\n`).join('');
+  const css = s.locales.filter((l) => l.fonts).map((l) => `:lang(${l.langTag}) {\n  --font-sans: ${l.fonts};\n  --font-display: var(--font-sans);\n  --font-mono: 'IBM Plex Mono', ${l.fonts};\n}\n`).join('');
   return { ts, css };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const root = fileURLToPath(new URL('../..', import.meta.url));
   const read = (p: string) => readFileSync(join(root, p), 'utf8');
+  const locales: LocaleEntry[] = JSON.parse(read('locales/locales.json'));
   const out = generate(parseSources({
-    locales: JSON.parse(read('locales/locales.json')),
+    locales,
     structure: JSON.parse(read('app/src/content/structure.json')),
     ftl: read('locales/en/app.ftl'),
+    docs: Object.fromEntries(locales.map((l) => [l.code, Object.keys(JSON.parse(read(`app/src/content/docs/${l.code}.json`)))])),
   }));
   const dir = join(root, 'app/src/generated');
   mkdirSync(dir, { recursive: true });
