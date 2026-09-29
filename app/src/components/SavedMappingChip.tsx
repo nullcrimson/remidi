@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useId, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import {
@@ -95,10 +96,10 @@ export function SavedMappingChip({
   const commitRename = () => endRename(draft.trim());
 
   const items = [
-    { key: 'rename', label: 'Rename', run: startRename, disabled: false, danger: false },
-    { key: 'duplicate', label: 'Duplicate', run: () => onDuplicate(mapping), disabled: atCap, danger: false },
-    { key: 'export', label: 'Export', run: () => onExport(mapping), disabled: false, danger: false },
-    { key: 'delete', label: 'Delete', run: () => onDelete(mapping.id), disabled: false, danger: true },
+    { key: 'rename', label: t({ id: 'chip-rename' }), run: startRename, disabled: false, danger: false },
+    { key: 'duplicate', label: t({ id: 'chip-duplicate' }), run: () => onDuplicate(mapping), disabled: atCap, danger: false },
+    { key: 'export', label: t({ id: 'chip-export' }), run: () => onExport(mapping), disabled: false, danger: false },
+    { key: 'delete', label: t({ id: 'chip-delete' }), run: () => onDelete(mapping.id), disabled: false, danger: true },
   ];
 
   if (renaming) {
@@ -113,7 +114,7 @@ export function SavedMappingChip({
             mono
             value={draft}
             autoFocus
-            aria-label={`Rename ${mapping.name}`}
+            aria-label={t({ id: 'chip-rename-label', args: { name: mapping.name } })}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') commitRename();
@@ -121,8 +122,8 @@ export function SavedMappingChip({
             }}
             className="w-32 min-w-0"
           />
-          <IconButton label="Save name" size="sm" onClick={commitRename}>✓</IconButton>
-          <IconButton label="Cancel rename" size="sm" onClick={() => endRename(null)}>×</IconButton>
+          <IconButton label={t({ id: 'chip-rename-save' })} size="sm" onClick={commitRename}>✓</IconButton>
+          <IconButton label={t({ id: 'chip-rename-cancel' })} size="sm" onClick={() => endRename(null)}>×</IconButton>
         </div>
       </li>
     );
@@ -140,7 +141,7 @@ export function SavedMappingChip({
         type="button"
         disabled={!known}
         onClick={() => onLoad(mapping)}
-        title={known ? `${overrideCount} overrides` : 'engine unavailable'}
+        title={known ? t({ id: 'chip-overrides', args: { count: overrideCount } }) : t({ id: 'chip-unavailable' })}
         className="
           flex min-w-0 items-center gap-2 py-1.5 pr-2 pl-2.5 text-left text-ui
           enabled:hover:bg-white/3
@@ -155,7 +156,7 @@ export function SavedMappingChip({
       </button>
       <button
         type="button"
-        aria-label={`Edit notes for ${mapping.name}`}
+        aria-label={t({ id: 'chip-edit', args: { name: mapping.name } })}
         disabled={!known}
         onClick={() => onEdit(mapping)}
         className={`
@@ -170,7 +171,7 @@ export function SavedMappingChip({
         ref={refs.setReference}
         data-more={moreId}
         type="button"
-        aria-label={`More actions for ${mapping.name}`}
+        aria-label={t({ id: 'chip-more', args: { name: mapping.name } })}
         aria-haspopup="menu"
         aria-expanded={menuOpen}
         {...getReferenceProps()}
@@ -206,7 +207,7 @@ export function SavedMappingChip({
                     type="button"
                     role="menuitem"
                     disabled={it.disabled}
-                    title={it.key === 'duplicate' && atCap ? 'preset limit reached' : undefined}
+                    title={it.key === 'duplicate' && atCap ? t({ id: 'chip-at-cap' }) : undefined}
                     {...getItemProps({
                       onClick: () => {
                         if (it.disabled) return;

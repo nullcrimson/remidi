@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import {
   FloatingFocusManager,
   FloatingOverlay,
@@ -89,7 +90,7 @@ function ModalContent({ heading, onClose, children }: Omit<ModalProps, 'open'>) 
         >
           {heading}
         </h2>
-        <IconButton label="Close" onClick={onClose}>×</IconButton>
+        <IconButton label={t({ id: 'close' })} onClick={onClose}>×</IconButton>
       </div>
       <div className="
         mr-scroll overflow-y-auto px-6 py-5 text-body/relaxed text-t4

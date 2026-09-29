@@ -1,7 +1,9 @@
+import { t } from '../i18n';
 import type { FocusRef } from '../hooks/useFocusIntent';
 import { EditedChip, type EditedState } from './EditedChip';
 import { textAction } from './styles';
 import { Tooltip, TooltipBody } from './Tooltip';
+import { Rich } from './Rich';
 
 export function SummaryRow({
   remapped,
@@ -26,16 +28,18 @@ export function SummaryRow({
     >
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
         <span className="text-ui text-t4">
-          <span className="font-semibold text-accent">{remapped}</span> of {total}{' '}
-          drums remapped
+          <Rich
+            id="summary-remapped"
+            args={{ total }}
+            slots={{ remapped: <span className="font-semibold text-accent">{remapped}</span> }}
+          />
         </span>
         {edited && <EditedChip {...edited} />}
       </div>
       <Tooltip
         content={(
-          <TooltipBody title="Fine-tune each drum">
-            Reassign any drum to a different target note — pick from the drum list or the piano. Your
-            changes apply to the conversion and can be saved as a preset.
+          <TooltipBody title={t({ id: 'summary-edit-tip-title' })}>
+            {t({ id: 'summary-edit-tip' })}
           </TooltipBody>
         )}
       >
@@ -50,7 +54,7 @@ export function SummaryRow({
           `}
         >
           <span aria-hidden="true">✎</span>
-          Edit individual notes →
+          {t({ id: 'summary-edit' })}
         </button>
       </Tooltip>
     </div>

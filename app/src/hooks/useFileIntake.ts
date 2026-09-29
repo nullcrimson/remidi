@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { unreadableNotice, type LoadedFile, type OnFiles } from '../lib/files';
 import { parsePresetFile } from '../lib/midiremap';
+import type { NoticeLine } from '../lib/notice';
 import { importPresets } from '../lib/presetImport';
 import type { FocusTarget } from './useFocusIntent';
 import type { SavedMappings } from './useSavedMappings';
@@ -22,17 +23,17 @@ export function useFileIntake({
   src: string;
   tgt: string;
   saved: Pick<SavedMappings, 'mappings' | 'save'>;
-  notify: (message: string) => void;
+  notify: (lines: NoticeLine[]) => void;
   focus: (target: FocusTarget) => void;
 }): OnFiles {
   const { mappings, save } = saved;
   return useCallback<OnFiles>(
     (files, skipped, presets = [], unreadable = []) => {
-      const lines = [
-        ...(unreadable.length > 0 ? [unreadableNotice(unreadable)] : []),
-        ...(presets.length > 0 ? [importPresets(presets, mappings, parsePresetFile, save)] : []),
+      const lines: NoticeLine[] = [
+        ...(unreadable.length > 0 ? [{ message: unreadableNotice(unreadable) }] : []),
+        ...(presets.length > 0 ? importPresets(presets, mappings, parsePresetFile, save) : []),
       ];
-      if (lines.length > 0) notify(lines.join(' '));
+      if (lines.length > 0) notify(lines);
       if (files.length === 0 && skipped.length === 0) return;
       storeFiles(files, skipped);
       if (files.length === 0) return;

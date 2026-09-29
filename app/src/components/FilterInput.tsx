@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import type { InputHTMLAttributes, KeyboardEvent } from 'react';
 import type { FocusRef } from '../hooks/useFocusIntent';
 import { IconButton } from './IconButton';
@@ -50,7 +51,7 @@ export function FilterInput({
       />
       {value && (
         <span className="absolute top-1/2 right-1 -translate-y-1/2">
-          <IconButton label="Clear filter" size="sm" tabbable={false} onClick={() => onChange('')}>
+          <IconButton label={t({ id: 'filter-clear' })} size="sm" tabbable={false} onClick={() => onChange('')}>
             ×
           </IconButton>
         </span>

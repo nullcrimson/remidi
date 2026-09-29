@@ -5,12 +5,12 @@ use midiremap_core::{
     PlanStatus, Resolution,
 };
 
-use crate::{
-    content::{ContentPage, CONTENT},
-    SiteError,
-};
+use crate::SiteError;
 
 pub const ORIGIN: &str = "https://drumverter.com";
+
+/// The note-map index page, and the folder every engine page lives in.
+pub const NOTE_MAPS: &str = "/engines/";
 
 /// The popular engines that get pair pages, with their column label in the index matrix.
 pub const MAJORS: [(&str, &str); 8] = [
@@ -55,7 +55,7 @@ impl EngineLink {
     }
 
     pub fn href(&self) -> String {
-        format!("/engines/{}/", self.slug)
+        format!("{NOTE_MAPS}{}/", self.slug)
     }
 
     /// Lower-case text the index filter matches against.
@@ -80,8 +80,12 @@ impl PairLink {
     }
 
     pub fn href(&self) -> String {
-        format!("/convert/{}/", self.slug)
+        pair_href(&self.slug)
     }
+}
+
+fn pair_href(slug: &str) -> String {
+    format!("/convert/{slug}/")
 }
 
 pub struct EngineRow {
@@ -166,6 +170,10 @@ pub struct PairPage {
 }
 
 impl PairPage {
+    pub fn href(&self) -> String {
+        pair_href(&self.slug)
+    }
+
     /// Rows whose drum does not land on its exact equivalent.
     pub fn changes(&self) -> usize {
         self.approximated + self.dropped
@@ -193,7 +201,6 @@ pub struct Site {
     pub index: IndexPage,
     pub engines: Vec<EnginePage>,
     pub pairs: Vec<PairPage>,
-    pub content: Vec<ContentPage>,
 }
 
 fn lookup<'a>(provider: &'a Catalog, id: &str) -> Result<&'a EngineMap, SiteError> {
@@ -375,7 +382,6 @@ impl Site {
             index,
             engines,
             pairs,
-            content: CONTENT.pages(),
         })
     }
 }

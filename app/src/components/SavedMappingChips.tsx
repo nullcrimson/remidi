@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useRef } from 'react';
 import { flushSync } from 'react-dom';
 import type { Engine } from '../lib/midiremap';
@@ -44,10 +45,10 @@ export function SavedMappingChips({
   return (
     <div
       role="group"
-      aria-label="Saved mappings"
+      aria-label={t({ id: 'saved-group' })}
       className="flex flex-col gap-2"
     >
-      <MonoLabel>SAVED</MonoLabel>
+      <MonoLabel>{t({ id: 'saved-heading' })}</MonoLabel>
       <ul ref={listRef} className="flex flex-wrap gap-2">
         {mappings.map((m) => (
           <SavedMappingChip

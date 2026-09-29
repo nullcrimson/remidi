@@ -1,34 +1,31 @@
+import type { Message } from '../generated/i18n';
+import { t } from '../i18n';
 import type { PresetMatch } from '../lib/editSummary';
 import { tag } from './styles';
 import { Tooltip, TooltipBody } from './Tooltip';
 
 export interface EditedState {
   count: number;
-  lines: string[];
+  lines: Message[];
   preset: PresetMatch;
   onReview: () => void;
 }
 
-function drums(n: number): string {
-  return `${n} drum${n === 1 ? '' : 's'}`;
-}
-
 function accessibleName(count: number, preset: PresetMatch): string {
-  const base = `${drums(count)} edited — review changes`;
-  if (preset.kind === 'saved') return `${base}, from preset ${preset.name}`;
-  if (preset.kind === 'unsaved') return `${base}, not saved to ${preset.name}`;
-  return base;
+  if (preset.kind === 'saved') return t({ id: 'edited-review-saved', args: { count, name: preset.name } });
+  if (preset.kind === 'unsaved') return t({ id: 'edited-review-unsaved', args: { count, name: preset.name } });
+  return t({ id: 'edited-review', args: { count } });
 }
 
 export function EditedChip({ count, lines, preset, onReview }: EditedState) {
   return (
     <Tooltip
       content={(
-        <TooltipBody title={`${drums(count)} ${count === 1 ? 'differs' : 'differ'} from the default mapping`}>
-          {lines.map((line) => (
+        <TooltipBody title={t({ id: 'edited-differ', args: { count } })}>
+          {lines.map((line) => t(line)).map((line) => (
             <span key={line} className="block">{line}</span>
           ))}
-          <span className="mt-1 block">Click to review or reset.</span>
+          <span className="mt-1 block">{t({ id: 'edited-click' })}</span>
         </TooltipBody>
       )}
     >
@@ -52,7 +49,7 @@ export function EditedChip({ count, lines, preset, onReview }: EditedState) {
           </>
         )}
         <span className="whitespace-nowrap">
-          {`${count} edited${preset.kind === 'unsaved' ? ' · unsaved' : ''}`}
+          {t({ id: preset.kind === 'unsaved' ? 'edited-count-unsaved' : 'edited-count', args: { count } })}
         </span>
       </button>
     </Tooltip>

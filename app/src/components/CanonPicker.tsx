@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { groupByFamily } from '../lib/families';
 import type { CanonInfo } from '../lib/midiremap';
 import { IconButton } from './IconButton';
@@ -23,10 +24,10 @@ export function CanonPicker({
   const groups = groupByFamily(options, (o) => o.family, families);
 
   return (
-    <PickerShell label={`Canon for ${noteLabel}`} onClose={onClose}>
+    <PickerShell label={t({ id: 'canon-picker-label', args: { note: noteLabel } })} onClose={onClose}>
       <div className="mb-3 flex items-center justify-between">
-        <MonoLabel tone="text-t4">SOURCE · {noteLabel}</MonoLabel>
-        <IconButton label="Close" onClick={onClose}>×</IconButton>
+        <MonoLabel tone="text-t4">{t({ id: 'canon-picker-heading', args: { note: noteLabel } })}</MonoLabel>
+        <IconButton label={t({ id: 'close' })} onClick={onClose}>×</IconButton>
       </div>
       <div className="mr-scroll flex max-h-64 flex-col gap-2 pr-1">
         {groups.map((g) => (

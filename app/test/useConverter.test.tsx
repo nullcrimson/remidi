@@ -21,7 +21,7 @@ describe('useConverter', () => {
     });
     expect(out).toBeNull();
     expect(result.current.conv.kind).toBe('error');
-    expect(result.current.convError).toBe('wasm fetch failed');
+    expect(result.current.convError).toEqual({ kind: 'internal', detail: 'wasm fetch failed' });
     expect(result.current.failures).toEqual([]);
   });
 });

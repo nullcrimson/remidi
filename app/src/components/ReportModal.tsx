@@ -1,8 +1,10 @@
+import type { MessageId } from '../generated/i18n';
+import { t } from '../i18n';
 import { Modal } from './Modal';
 import { MonoLabel } from './MonoLabel';
-import { ProseLink } from './ProseLink';
 import { TextButton } from './TextButton';
 import type { ReportEntry, ReportFile, ReportGroups, ReportView } from '../lib/report';
+import { ContactFooter } from './ContactFooter';
 
 export interface ReportFixes {
   onPickTarget: (canon: string) => void;
@@ -17,57 +19,46 @@ interface Fix {
 
 type GroupKey = keyof ReportGroups;
 
-const GROUPS: { key: GroupKey; title: string; color: string }[] = [
-  { key: 'dropped', title: 'Dropped', color: 'text-danger' },
-  { key: 'approximated', title: 'Approximated', color: 'text-star' },
-  { key: 'unrecognized', title: 'Unrecognized', color: 'text-t4' },
-];
+const GROUPS = [
+  { key: 'dropped', title: 'report-dropped', color: 'text-danger' },
+  { key: 'approximated', title: 'report-approximated', color: 'text-star' },
+  { key: 'unrecognized', title: 'report-unrecognized', color: 'text-t4' },
+] as const satisfies readonly { key: GroupKey; title: MessageId; color: string }[];
 
 function groupHint(key: GroupKey, sourceName: string, targetName: string): string {
   switch (key) {
     case 'dropped':
-      return `${targetName} has no such drum`;
+      return t({ id: 'report-dropped-hint', args: { target: targetName } });
     case 'approximated':
-      return 'played on the nearest drum';
+      return t({ id: 'report-approximated-hint' });
     case 'unrecognized':
-      return `not in the ${sourceName} map — removed from the file`;
+      return t({ id: 'report-unrecognized-hint', args: { source: sourceName } });
   }
 }
 
 function entryFix(key: GroupKey, e: ReportEntry, fixes: ReportFixes): Fix | undefined {
   if (key === 'dropped' && e.canon !== undefined) {
     const canon = e.canon;
-    return { label: 'Pick a target →', run: () => fixes.onPickTarget(canon) };
+    return { label: t({ id: 'report-pick-target' }), run: () => fixes.onPickTarget(canon) };
   }
   if (key === 'unrecognized' && e.note !== undefined) {
     const note = e.note;
-    return { label: 'Assign →', run: () => fixes.onAssignSource(note) };
+    return { label: t({ id: 'report-assign' }), run: () => fixes.onAssignSource(note) };
   }
   return undefined;
 }
 
 function summaryLine(view: ReportView): string {
   const parts: string[] = [];
-  if (view.totals.dropped) parts.push(`${view.totals.dropped} dropped`);
-  if (view.totals.approximated) parts.push(`${view.totals.approximated} approximated`);
-  if (view.totals.unrecognized) parts.push(`${view.totals.unrecognized} unrecognized`);
-  return parts.join(' · ') + (view.files.length > 1 ? ` across ${view.files.length} files` : '');
+  if (view.totals.dropped) parts.push(t({ id: 'done-tag-dropped', args: { count: view.totals.dropped } }));
+  if (view.totals.approximated) parts.push(t({ id: 'done-tag-approximated', args: { count: view.totals.approximated } }));
+  if (view.totals.unrecognized) parts.push(t({ id: 'done-tag-unrecognized', args: { count: view.totals.unrecognized } }));
+  const line = parts.join(' · ');
+  return view.files.length > 1 ? t({ id: 'report-across', args: { summary: line, count: view.files.length } }) : line;
 }
 
 function hasLoss(groups: ReportGroups): boolean {
   return groups.dropped.length + groups.approximated.length + groups.unrecognized.length > 0;
-}
-
-function ContactFooter() {
-  return (
-    <p className="border-t border-hairline pt-4 text-ui text-t5">
-      Wrong mapping or missing engine? Open a{' '}
-      <ProseLink href="https://github.com/nullcrimson/remidi/issues">GitHub issue</ProseLink>{' '}
-      or email{' '}
-      <ProseLink href="mailto:null.crimson.dev@gmail.com">null.crimson.dev@gmail.com</ProseLink>
-      .
-    </p>
-  );
 }
 
 function Group({
@@ -126,7 +117,7 @@ function GroupList({
       {GROUPS.map((g) => (
         <Group
           key={g.key}
-          title={g.title}
+          title={t({ id: g.title })}
           hint={groupHint(g.key, names.source, names.target)}
           color={g.color}
           entries={groups[g.key]}
@@ -134,15 +125,15 @@ function GroupList({
         />
       ))}
       <Group
-        title="Unchanged"
-        hint="other tracks / channels"
+        title={t({ id: 'report-unchanged' })}
+        hint={t({ id: 'report-unchanged-hint' })}
         color="text-t4"
         entries={
           untouched > 0
-            ? [{ label: 'Notes on other tracks or channels, left as they were', count: untouched }]
+            ? [{ label: t({ id: 'report-unchanged-entry' }), count: untouched }]
             : []
         }
-        fixOf={() => ({ label: 'Drum channel →', run: fixes.onChannel })}
+        fixOf={() => ({ label: t({ id: 'report-channel' }), run: fixes.onChannel })}
       />
     </div>
   );
@@ -156,18 +147,18 @@ function Headline({ view, targetName }: { view: ReportView; targetName: string }
   if (view.totals.converted === 0) {
     return (
       <p>
-        <span className="font-semibold text-t1">Nothing was converted</span>
-        {view.totals.untouched > 0
-          ? ' — no notes on the selected drum channel. Pick another drum channel or All.'
-          : ' — no drum notes found in this file.'}
+        <span className="font-semibold text-t1">{t({ id: 'report-nothing' })}</span>
+        {' '}
+        {t({ id: view.totals.untouched > 0 ? 'report-nothing-channel' : 'report-nothing-notes' })}
       </p>
     );
   }
   if (view.clean) {
     return (
       <p>
-        <span className="font-semibold text-t1">Clean conversion</span> — every drum mapped
-        directly to {targetName}.
+        <span className="font-semibold text-t1">{t({ id: 'report-clean' })}</span>
+        {' '}
+        {t({ id: 'report-clean-detail', args: { target: targetName } })}
       </p>
     );
   }
@@ -209,7 +200,7 @@ export function ReportModal({
     },
   };
   return (
-    <Modal open={open} heading="Conversion report" onClose={onClose}>
+    <Modal open={open} heading={t({ id: 'report-heading' })} onClose={onClose}>
       <div className="flex flex-col gap-5">
         <Headline view={view} targetName={targetName} />
         {(hasLoss(view.groups) || view.totals.untouched > 0) && (
@@ -223,7 +214,7 @@ export function ReportModal({
                 onClose();
               }}
             >
-              Drop missing drums &amp; convert again
+              {t({ id: 'drop-missing' })}
             </TextButton>
           </div>
         )}

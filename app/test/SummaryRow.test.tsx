@@ -3,8 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { SummaryRow } from '../src/components/SummaryRow';
 import type { EditedState } from '../src/components/EditedChip';
+import type { Message } from '../src/generated/i18n';
 
-const LINES = ['Kick: C1 → B1 (default C1 → C2)', 'Snare: D1 → E2 (default D1 → D2)'];
+const LINES: Message[] = [
+  { id: 'edit-line', args: { drum: 'Kick', now: 'C1 → B1', byDefault: 'C1 → C2' } },
+  { id: 'edit-line', args: { drum: 'Snare', now: 'D1 → E2', byDefault: 'D1 → D2' } },
+];
 
 function renderRow(edited?: Partial<EditedState>) {
   const onReview = vi.fn();
@@ -50,7 +54,8 @@ describe('SummaryRow edited chip', () => {
     await userEvent.hover(screen.getByRole('button', { name: /drums edited/ }));
     const tip = screen.getByRole('tooltip');
     expect(tip).toHaveTextContent('2 drums differ from the default mapping');
-    for (const line of LINES) expect(tip).toHaveTextContent(line);
+    expect(tip).toHaveTextContent('Kick: C1 → B1 (default C1 → C2)');
+    expect(tip).toHaveTextContent('Snare: D1 → E2 (default D1 → D2)');
     expect(tip).toHaveTextContent('Click to review or reset.');
   });
 

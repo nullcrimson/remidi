@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { editLines, previewLines, sameEdits } from '../src/lib/editSummary';
 import type { VoiceRow } from '../src/lib/midiremap';
+import { t } from '../src/i18n';
+import type { Message } from '../src/generated/i18n';
 
 const row = (canon: string, label: string, srcNotes: number[], tgtNote: number | null, defaultTgtNote: number | null): VoiceRow => ({
   canon,
@@ -27,7 +29,7 @@ const DEFAULT_SRC = new Map([
 describe('editLines', () => {
   it('describes each changed drum as its mapping now and by default, in row order', () => {
     const changed = new Set(['china.1.hit', 'kick.main', 'snare1.hit']);
-    expect(editLines(ROWS, changed, DEFAULT_SRC, 'c1')).toEqual([
+    expect(editLines(ROWS, changed, DEFAULT_SRC, 'c1').map(t)).toEqual([
       'Kick: C1 → B1 (default C1 → C2)',
       'Snare: D1 +2 → D2 (default D1 → D2)',
       'China 1: — → — (default C4 → —)',
@@ -35,7 +37,7 @@ describe('editLines', () => {
   });
 
   it('names notes in the chosen octave convention', () => {
-    expect(editLines(ROWS, new Set(['kick.main']), DEFAULT_SRC, 'c2')).toEqual([
+    expect(editLines(ROWS, new Set(['kick.main']), DEFAULT_SRC, 'c2').map(t)).toEqual([
       'Kick: C0 → B0 (default C0 → C1)',
     ]);
   });
@@ -43,9 +45,10 @@ describe('editLines', () => {
 
 describe('previewLines', () => {
   it('keeps up to five lines and counts the rest', () => {
-    const lines = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
-    expect(previewLines(lines)).toEqual(['a', 'b', 'c', 'd', 'e', '+2 more']);
-    expect(previewLines(lines.slice(0, 5))).toEqual(['a', 'b', 'c', 'd', 'e']);
+    const lines = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((drum): Message => ({ id: 'edit-line', args: { drum, now: '1', byDefault: '2' } }));
+    const shown = (ls: Message[]) => ls.map(t);
+    expect(shown(previewLines(lines))).toEqual([...shown(lines.slice(0, 5)), '+2 more']);
+    expect(previewLines(lines.slice(0, 5))).toEqual(lines.slice(0, 5));
   });
 });
 

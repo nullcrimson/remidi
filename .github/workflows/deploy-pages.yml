@@ -95,7 +95,7 @@ jobs:
 
       - name: Type check
         working-directory: app
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: App tests
         working-directory: app
@@ -123,7 +123,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.site-bin
-          key: site-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-site/**', 'engines/**', 'app/src/content/pages.json') }}
+          key: site-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-site/**', 'engines/**', 'locales/**', 'app/src/content/**') }}
 
       - name: Install Rust (from rust-toolchain.toml)
         if: steps.wasm.outputs.cache-hit != 'true' || steps.site.outputs.cache-hit != 'true'
@@ -161,6 +161,10 @@ jobs:
         if: steps.wasm.outputs.cache-hit != 'true'
         working-directory: app
         run: npm run build:wasm
+
+      - name: Generate i18n types
+        working-directory: app
+        run: npm run gen:i18n
 
       - name: Build app
         working-directory: app

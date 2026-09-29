@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { engineDrums, engines, plan, ready, remap, WasmCallError } from '../src/lib/midiremap';
+import { WasmCallError } from '../src/lib/errors';
+import { engineDrums, engines, plan, ready, remap } from '../src/lib/midiremap';
 import * as stub from './stubs/wasm';
 import { REMAP_BYTES } from './stubs/wasm';
 
@@ -75,6 +76,6 @@ describe('midiremap wrapper', () => {
     }
     expect(err).toBeInstanceOf(WasmCallError);
     expect(err).toBeInstanceOf(Error);
-    expect(err).toMatchObject({ message: "unknown target engine 'nope'", kind: 'unknownEngine', id: 'nope' });
+    expect((err as WasmCallError).error).toEqual({ kind: 'unknownEngine', role: 'target', id: 'nope' });
   });
 });

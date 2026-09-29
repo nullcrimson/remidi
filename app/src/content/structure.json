@@ -1,0 +1,11 @@
+{
+  "sections": [
+    { "key": "guide", "slug": "how-it-works" },
+    { "key": "faq", "slug": "faq" },
+    { "key": "issue", "slug": "report-an-issue" },
+    { "key": "contact", "slug": "contact" },
+    { "key": "terms", "slug": "terms" }
+  ],
+  "nav": [{ "route": "converter" }, { "route": "noteMaps" }, { "section": "faq" }],
+  "footer": [{ "section": "guide" }, { "section": "faq" }, { "route": "noteMaps" }, { "section": "issue" }, { "section": "contact" }, { "section": "terms" }]
+}

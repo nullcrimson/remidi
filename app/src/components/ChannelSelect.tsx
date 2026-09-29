@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { CHANNELS, channelHint, type Channel } from '../lib/channel';
 import type { FocusRef } from '../hooks/useFocusIntent';
 import { SettingSelect } from './SettingSelect';
@@ -14,13 +15,13 @@ export function ChannelSelect({
   return (
     <SettingSelect
       ref={ref}
-      label="Drum channel"
+      label={t({ id: 'channel-label' })}
       value={value}
-      options={CHANNELS}
+      options={CHANNELS.map((c) => ({ value: c.value, label: t(c.label) }))}
       onChange={onChange}
-      tipTitle="Which notes get converted"
-      tip="Auto converts every track that uses channel 10 — the General MIDI drum channel — and leaves other instruments alone. Pick a channel or All if your drums are elsewhere."
-      hint={channelHint(value)}
+      tipTitle={t({ id: 'channel-tip-title' })}
+      tip={t({ id: 'channel-tip' })}
+      hint={t(channelHint(value))}
     />
   );
 }

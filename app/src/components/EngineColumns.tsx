@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import type { FocusRef } from '../hooks/useFocusIntent';
 import { useFavorites } from '../hooks/useFavorites';
 import type { Engine } from '../lib/midiremap';
@@ -33,7 +34,7 @@ export function EngineColumns({
     "
     >
       <LibraryList
-        label="FROM"
+        label={t({ id: 'engine-from' })}
         value={src}
         disabledId={tgt}
         engines={engines}
@@ -47,7 +48,7 @@ export function EngineColumns({
         sm:pt-8
       "
       >
-        <IconButton label="Swap FROM and TO" disabled={!src && !tgt} onClick={onSwap}>
+        <IconButton label={t({ id: 'engine-swap' })} disabled={!src && !tgt} onClick={onSwap}>
           <span className="
             inline-block rotate-90
             sm:rotate-0
@@ -57,7 +58,7 @@ export function EngineColumns({
         </IconButton>
       </div>
       <LibraryList
-        label="TO"
+        label={t({ id: 'engine-to' })}
         value={tgt}
         disabledId={src}
         engines={engines}

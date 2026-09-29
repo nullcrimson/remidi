@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import { useState } from 'react';
 import { MAPPINGS_CAP, type SavedMapping } from '../../lib/mappings';
 import { shortCode } from '../../lib/format';
@@ -47,15 +48,14 @@ export function SavePreset({
     return (
       <Tooltip
         content={(
-          <TooltipBody title="Reuse this mapping">
-            Saves the FROM→TO pair and any note changes as a chip on the main
-            screen — one click reloads it. Kept in this browser only.
+          <TooltipBody title={t({ id: 'preset-tip-title' })}>
+            {t({ id: 'preset-tip' })}
           </TooltipBody>
         )}
       >
         <span className="inline-flex">
           <Button variant="secondary" size="sm" onClick={open}>
-            {existingPreset ? 'Update preset' : 'Save as preset'}
+            {t({ id: existingPreset ? 'preset-update-open' : 'preset-save-open' })}
           </Button>
         </span>
       </Tooltip>
@@ -73,7 +73,7 @@ export function SavePreset({
         <TextField
           value={name}
           autoFocus
-          aria-label="Preset name"
+          aria-label={t({ id: 'preset-name' })}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') primary();
@@ -85,28 +85,28 @@ export function SavePreset({
           ? (
               <>
                 <Button variant="primary" size="sm" onClick={saveUpdate} disabled={!trimmed}>
-                  Update
+                  {t({ id: 'preset-update' })}
                 </Button>
                 <Button variant="secondary" size="sm" onClick={saveNew} disabled={!trimmed || atCap}>
-                  Save new
+                  {t({ id: 'preset-save-new' })}
                 </Button>
               </>
             )
           : (
               <Button variant="primary" size="sm" onClick={saveNew} disabled={!trimmed || atCap}>
-                Save
+                {t({ id: 'preset-save' })}
               </Button>
             )}
-        <IconButton label="Cancel" onClick={() => setNaming(false)}>×</IconButton>
+        <IconButton label={t({ id: 'cancel' })} onClick={() => setNaming(false)}>×</IconButton>
       </div>
       {existingPreset && (
         <p className="text-label text-t5">
-          A preset for {pairLabel} already exists.
+          {t({ id: 'preset-exists', args: { pair: pairLabel } })}
         </p>
       )}
       {atCap && !existingPreset && (
         <p className="text-label text-danger">
-          Preset limit reached ({MAPPINGS_CAP}).
+          {t({ id: 'preset-at-cap', args: { cap: MAPPINGS_CAP } })}
         </p>
       )}
     </div>

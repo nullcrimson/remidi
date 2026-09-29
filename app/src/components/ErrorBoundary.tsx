@@ -1,9 +1,10 @@
+import { t } from '../i18n';
 import { Component, useState, type ErrorInfo, type ReactNode } from 'react';
 import { Button } from './Button';
 import { ProseLink } from './ProseLink';
 import { TextButton } from './TextButton';
+import { ISSUES_URL } from '../content/site';
 
-const ISSUES_URL = 'https://github.com/nullcrimson/remidi/issues';
 const STORAGE_PREFIX = 'midiremap:';
 
 function clearSavedData() {
@@ -27,22 +28,21 @@ function Fallback({ message, onReload }: { message: string; onReload: () => void
         bg-card p-6
       "
       >
-        <h1 className="font-display text-brand font-semibold text-t1">Something went wrong</h1>
+        <h1 className="font-display text-brand font-semibold text-t1">{t({ id: 'crash-heading' })}</h1>
         <p className="text-ui text-t4">
-          The converter hit an error it could not recover from. Reloading usually fixes it; if it
-          keeps happening, a saved preset may be damaged.
+          {t({ id: 'crash-body' })}
         </p>
         <p className="font-mono text-caption wrap-break-word text-monodim">{message}</p>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-          <Button variant="primary" size="md" onClick={onReload}>Reload</Button>
-          <ProseLink href={ISSUES_URL}>Report an issue</ProseLink>
+          <Button variant="primary" size="md" onClick={onReload}>{t({ id: 'crash-reload' })}</Button>
+          <ProseLink href={ISSUES_URL}>{t({ id: 'section-issue-label' })}</ProseLink>
           {!confirming && (
-            <TextButton onClick={() => setConfirming(true)}>Reset saved data…</TextButton>
+            <TextButton onClick={() => setConfirming(true)}>{t({ id: 'crash-reset' })}</TextButton>
           )}
         </div>
         {confirming && (
           <div className="flex flex-col gap-3 rounded-chip bg-danger/10 p-3">
-            <p className="text-ui text-danger">Delete saved presets, favourites and settings?</p>
+            <p className="text-ui text-danger">{t({ id: 'crash-reset-confirm' })}</p>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
               <Button
                 variant="secondary"
@@ -52,9 +52,9 @@ function Fallback({ message, onReload }: { message: string; onReload: () => void
                   onReload();
                 }}
               >
-                Delete and reload
+                {t({ id: 'crash-reset-do' })}
               </Button>
-              <TextButton onClick={() => setConfirming(false)}>Cancel</TextButton>
+              <TextButton onClick={() => setConfirming(false)}>{t({ id: 'cancel' })}</TextButton>
             </div>
           </div>
         )}

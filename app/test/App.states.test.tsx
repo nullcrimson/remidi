@@ -1,11 +1,16 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import enFtl from '../../locales/en/app.ftl?raw';
+import { MESSAGE_IDS } from '../src/generated/i18n';
 
 const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {} };
 
 describe('App states', () => {
-  beforeEach(() => vi.resetModules());
+  beforeEach(async () => {
+    vi.resetModules();
+    (await import('../src/i18n')).initForTests(enFtl, MESSAGE_IDS);
+  });
   afterEach(() => vi.doUnmock('../src/lib/midiremap'));
 
   it('shows the loading state before the module is ready', async () => {
@@ -60,6 +65,6 @@ describe('App states', () => {
       new File([new Uint8Array([1])], 'g.mid', { type: 'audio/midi' }),
     );
     await userEvent.click(screen.getByRole('button', { name: /Convert & download/i }));
-    expect(await screen.findByText(/Error:.*bad midi/i)).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Error: Something went wrong Details: bad midi');
   });
 });

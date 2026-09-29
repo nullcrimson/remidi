@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import type { Drum } from '../lib/midiremap';
 import { noteName, type OctaveBase } from '../lib/notes';
 import { DrumList } from './DrumList';
@@ -31,15 +32,15 @@ export function NotePicker({
   onClose: () => void;
 }) {
   return (
-    <PickerShell label={`Target note for ${voiceLabel}`} onClose={onClose}>
+    <PickerShell label={t({ id: 'note-picker-label', args: { drum: voiceLabel } })} onClose={onClose}>
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-baseline gap-2.25">
-          <MonoLabel tone="text-t4">TARGET · {voiceLabel}</MonoLabel>
+          <MonoLabel tone="text-t4">{t({ id: 'note-picker-heading', args: { drum: voiceLabel } })}</MonoLabel>
           <span className="font-mono text-brand font-bold text-accent">
             {currentNote === null ? '—' : noteName(currentNote, base)}
           </span>
         </div>
-        <IconButton label="Close" onClick={onClose}>×</IconButton>
+        <IconButton label={t({ id: 'close' })} onClick={onClose}>×</IconButton>
       </div>
       <div className="@container">
         <div

@@ -1,5 +1,6 @@
 import type { SavedMapping } from '../lib/mappings';
 import type { Edits, SrcEdits } from '../lib/overrides';
+import type { NoticeLine } from '../lib/notice';
 import { skippedNotice } from '../lib/presetImport';
 import type { SavedMappings } from './useSavedMappings';
 
@@ -21,10 +22,13 @@ export interface PresetSetup {
 export function usePresetActions(
   setup: PresetSetup,
   saved: SavedMappings,
-  notify: (message: string | null) => void,
+  notify: (lines: NoticeLine[] | null) => void,
 ) {
   const { src, tgt, edits, srcEdits, loadMapping, setPreset, setView } = setup;
-  const load = (m: SavedMapping) => notify(skippedNotice(m.name, loadMapping(m)));
+  const load = (m: SavedMapping) => {
+    const skipped = skippedNotice(m.name, loadMapping(m));
+    notify(skipped && [{ message: skipped }]);
+  };
   return {
     open: (id: string | null) => saved.mappings.find((m) => m.id === id),
     save: (name: string) => {

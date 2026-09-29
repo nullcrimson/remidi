@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import type { Channel } from '../lib/channel';
 import { convertBatch } from '../lib/converter';
-import { errorMessage } from '../lib/errors';
+import type { FailedFile } from '../lib/batch';
+import { toAppError, type AppError } from '../lib/errors';
 import type { Overrides } from '../lib/midiremap';
 import type { Missing } from '../lib/missing';
 import type { SelectionEvent } from '../lib/selection';
-import { MID_EXT, type FileFailure, type FileResult, type LoadedFile } from '../lib/files';
+import { MID_EXT, type FileResult, type LoadedFile } from '../lib/files';
 
 export type Conv
   = | { kind: 'idle' }
     | { kind: 'running' }
-    | { kind: 'done'; results: FileResult[]; failures: FileFailure[] }
-    | { kind: 'error'; failures: FileFailure[]; message: string };
+    | { kind: 'done'; results: FileResult[]; failures: FailedFile[] }
+    | { kind: 'error'; failures: FailedFile[]; error: AppError };
 
 type Stored = Exclude<Conv, { kind: 'idle' }> & { key: string };
 
@@ -29,8 +30,8 @@ type Action
     | { type: 'REMOVE_FILE'; name: string }
     | { type: 'CLEAR_FILES' }
     | { type: 'CONVERT_START'; key: string }
-    | { type: 'CONVERT_DONE'; key: string; results: FileResult[]; failures: FileFailure[] }
-    | { type: 'CONVERT_ERROR'; key: string; failures: FileFailure[]; message: string };
+    | { type: 'CONVERT_DONE'; key: string; results: FileResult[]; failures: FailedFile[] }
+    | { type: 'CONVERT_ERROR'; key: string; failures: FailedFile[]; error: AppError };
 
 const INITIAL: State = { files: [], skipped: [], conv: { kind: 'idle' } };
 
@@ -68,7 +69,7 @@ function reducer(state: State, action: Action): State {
     case 'CONVERT_ERROR':
       return {
         ...state,
-        conv: { kind: 'error', key: action.key, failures: action.failures, message: action.message },
+        conv: { kind: 'error', key: action.key, failures: action.failures, error: action.error },
       };
   }
 }
@@ -138,7 +139,7 @@ export function useConverter(src: string, tgt: string, settingsKey: string) {
             type: 'CONVERT_ERROR',
             key,
             failures: [],
-            message: errorMessage(err),
+            error: toAppError(err),
           });
         }
         return null;
@@ -150,15 +151,9 @@ export function useConverter(src: string, tgt: string, settingsKey: string) {
         bytes,
         report,
       }));
-      const bad: FileFailure[] = batch.failed;
-      if (ok.length > 0) dispatch({ type: 'CONVERT_DONE', key, results: ok, failures: bad });
-      else
-        dispatch({
-          type: 'CONVERT_ERROR',
-          key,
-          failures: bad,
-          message: bad[0]?.error ?? 'conversion failed',
-        });
+      const bad = batch.failed;
+      if (ok.length > 0 || bad.length === 0) dispatch({ type: 'CONVERT_DONE', key, results: ok, failures: bad });
+      else dispatch({ type: 'CONVERT_ERROR', key, failures: bad, error: bad[0].error });
       return ok;
     },
     [files, src, tgt],
@@ -166,7 +161,7 @@ export function useConverter(src: string, tgt: string, settingsKey: string) {
 
   const results = conv.kind === 'done' ? conv.results : [];
   const failures = conv.kind === 'done' || conv.kind === 'error' ? conv.failures : [];
-  const convError = conv.kind === 'error' ? conv.message : null;
+  const convError = conv.kind === 'error' ? conv.error : null;
 
   return {
     files,

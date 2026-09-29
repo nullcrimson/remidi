@@ -2,16 +2,15 @@ import type {
   CanonInfo,
   Drum,
   EngineInfo,
-  ErrorKind,
   Family,
   MissingDrums,
   Overrides,
   PresetView,
   RemapOutput,
   VoiceRow,
-  WasmError,
 } from '@wasm';
 import type { Channel } from './channel';
+import { isWasmError, WasmCallError } from './errors';
 
 type WasmModule = typeof import('@wasm');
 
@@ -19,7 +18,6 @@ export type {
   CanonInfo,
   Drum,
   EngineInfo as Engine,
-  ErrorKind,
   Family,
   FallbackTally,
   PresetView as ImportedPreset,
@@ -30,24 +28,8 @@ export type {
   Report as RemapReport,
   VoiceRow,
   PlanStatus as VoiceStatus,
+  WasmError,
 } from '@wasm';
-
-/** A call into the WASM module failed; `kind` and `id` say how and on what. */
-export class WasmCallError extends Error {
-  readonly kind: ErrorKind;
-  readonly id: string | null;
-
-  constructor(err: WasmError) {
-    super(err.message);
-    this.name = 'WasmCallError';
-    this.kind = err.kind;
-    this.id = err.id;
-  }
-}
-
-function isWasmError(err: unknown): err is WasmError {
-  return typeof err === 'object' && err !== null && 'kind' in err && 'message' in err;
-}
 
 function call<T>(f: (m: WasmModule) => T): T {
   try {

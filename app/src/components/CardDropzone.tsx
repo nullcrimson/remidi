@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { takeFiles, type OnFiles } from '../lib/files';
 
@@ -66,9 +67,9 @@ export function CardDropzone({
               +
             </span>
             <span className="font-mono text-label tracking-[0.18em] text-t3">
-              DROP .MID
+              {t({ id: 'dropzone-heading' })}
             </span>
-            <span className="text-label text-t5">or an exported preset (.drumverter.json)</span>
+            <span className="text-label text-t5">{t({ id: 'dropzone-presets' })}</span>
           </div>
         </div>
       )}

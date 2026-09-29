@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import { useId } from 'react';
 import type { EditFilter } from '../../lib/editFilter';
 import { ChipRadioGroup } from '../ChipRadioGroup';
@@ -25,15 +26,15 @@ export function EditFilters({
     "
     >
       <div className="sm:w-64">
-        <FilterInput value={q} onChange={onQ} ariaLabel="Filter drums" placeholder="filter drums…" />
+        <FilterInput value={q} onChange={onQ} ariaLabel={t({ id: 'edit-filter-label' })} placeholder={t({ id: 'edit-filter-placeholder' })} />
       </div>
-      <span id={showId} className="sr-only">Show</span>
+      <span id={showId} className="sr-only">{t({ id: 'edit-show' })}</span>
       <ChipRadioGroup
         labelledBy={showId}
         options={[
-          { value: 'all', label: `All ${counts.all}` },
-          { value: 'changed', label: `Changed ${counts.changed}` },
-          { value: 'issues', label: `Issues ${counts.issues}` },
+          { value: 'all', label: t({ id: 'edit-show-all', args: { count: counts.all } }) },
+          { value: 'changed', label: t({ id: 'edit-show-changed', args: { count: counts.changed } }) },
+          { value: 'issues', label: t({ id: 'edit-show-issues', args: { count: counts.issues } }) },
         ]}
         value={show}
         onChange={onShow}

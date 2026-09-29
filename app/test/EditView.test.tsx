@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { EditView } from '../src/components/EditView';
+import type { AppError } from '../src/lib/errors';
 import { family_order } from './stubs/wasm';
 
 const editor = {
@@ -10,7 +11,7 @@ const editor = {
   srcEdits: {},
   pick: null,
   notice: null,
-  planError: null as string | null,
+  planError: null as AppError | null,
   targetDrums: [],
   sourceNotes: [{ note: 24, canon: 'kick.main', label: 'Kick', family: 'Kick' as const }],
   canonOptions: [{ canon: 'kick.main', label: 'Kick', family: 'Kick' as const }],
@@ -51,8 +52,8 @@ const props = {
 describe('EditView', () => {
   it('shows a plan error with a way to reset the edits', async () => {
     const reset = vi.fn();
-    render(<EditView {...props} editor={{ ...editor, rows: [], planError: 'Error: unknown canon x', reset }} />);
-    expect(screen.getByRole('alert')).toHaveTextContent('The note editor could not load: Error: unknown canon x');
+    render(<EditView {...props} editor={{ ...editor, rows: [], planError: { kind: 'internal', detail: 'unknown canon x' }, reset }} />);
+    expect(screen.getByRole('alert')).toHaveTextContent('The note editor could not load: Something went wrong Details: unknown canon x');
     await userEvent.click(screen.getByRole('button', { name: 'Reset edits' }));
     expect(reset).toHaveBeenCalledOnce();
   });

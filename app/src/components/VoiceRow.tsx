@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useId, useState, type ReactNode } from 'react';
 import type { VoiceRow as VoiceRowData } from '../lib/midiremap';
 import { noteName, type OctaveBase } from '../lib/notes';
@@ -16,10 +17,10 @@ function noteChip(active: boolean, changed: boolean): string {
 }
 
 function extrasHint(label: string, extras: string[], target: string | null): string {
-  const one = extras.length === 1;
-  const lead = `${extras.length} more source ${one ? 'note plays' : 'notes play'} ${label}: ${extras.join(', ')}.`;
-  if (target === null) return `${lead} None has a target.`;
-  return `${lead} ${one ? 'Both' : 'All'} go to ${target}.`;
+  const args = { count: extras.length, drum: label, notes: extras.join(', ') };
+  return target === null
+    ? t({ id: 'row-extras-dropped', args })
+    : t({ id: 'row-extras', args: { ...args, target } });
 }
 
 export function VoiceRow({
@@ -135,7 +136,7 @@ export function VoiceRow({
         </span>
         {onReset
           ? (
-              <IconButton label={`Reset ${row.label}`} size="sm" onClick={onReset}>↺</IconButton>
+              <IconButton label={t({ id: 'row-reset', args: { drum: row.label } })} size="sm" onClick={onReset}>↺</IconButton>
             )
           : <span />}
       </div>

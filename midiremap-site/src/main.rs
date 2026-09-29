@@ -1,6 +1,11 @@
 mod content;
+mod ftl_vars;
+mod i18n;
 mod pages;
+#[cfg(test)]
+mod parity;
 mod render;
+mod shell;
 mod sitemap;
 
 use std::{
@@ -12,7 +17,11 @@ use std::{
 use clap::Parser;
 use midiremap_core::Catalog;
 
-use crate::{pages::Site, render::Shell};
+use crate::{
+    i18n::{Docs, I18nError, Locale, Messages, SectionKey},
+    pages::Site,
+    render::{Shell, Texts},
+};
 
 const FILTER_JS: &str = include_str!("../static/filter.js");
 
@@ -28,10 +37,14 @@ pub enum SiteError {
     UnknownEngine(String),
     #[error("no {what} in {}; run the app build first", path.display())]
     MissingFromIndex { what: &'static str, path: PathBuf },
+    #[error("no {0} marker in the app's index.html")]
+    MissingMarker(&'static str),
     #[error("slug collision: {0}")]
     SlugCollision(String),
     #[error(transparent)]
     Render(#[from] askama::Error),
+    #[error(transparent)]
+    I18n(#[from] I18nError),
     #[error("cannot write {path}: {source}")]
     Io {
         path: PathBuf,
@@ -104,11 +117,22 @@ fn run(args: Args) -> Result<Site, SiteError> {
     })?;
     let shell = app_shell(&html, &index)?;
     let site = Site::build(&Catalog::builtin())?;
-    for (rel, html) in render::render_site(&site, &shell)? {
+    let messages = Messages::load()?;
+    let docs = Docs::load()?;
+    let texts = Texts {
+        messages: &messages,
+        docs: &docs,
+        locale: Locale::En,
+    };
+    for (rel, html) in render::render_site(&site, &shell, &texts)? {
         write(args.out_dir.join(rel), &html)?;
     }
+    write(index, &shell::localize_shell(&html, Locale::En, &messages)?)?;
     write(args.out_dir.join("filter.js"), FILTER_JS)?;
-    write(args.out_dir.join("sitemap.xml"), &sitemap::sitemap(&site))?;
+    write(
+        args.out_dir.join("sitemap.xml"),
+        &sitemap::sitemap(&site, &docs),
+    )?;
     write(args.out_dir.join("robots.txt"), &sitemap::robots())?;
     Ok(site)
 }
@@ -122,7 +146,7 @@ fn main() -> ExitCode {
                 "wrote {} engine pages, {} pair pages, {} content pages, index, sitemap and robots.txt to {}",
                 site.engines.len(),
                 site.pairs.len(),
-                site.content.len(),
+                SectionKey::ALL.len(),
                 out_dir.display()
             );
             ExitCode::SUCCESS

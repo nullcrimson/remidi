@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import type { Conv } from '../hooks/useRemapper';
 import type { FocusRef } from '../hooks/useFocusIntent';
 import { Button } from './Button';
@@ -20,7 +21,7 @@ export function ConvertButton({
           mb-2.25 flex justify-between font-mono text-label text-t4
         "
         >
-          <span>remapping</span>
+          <span>{t({ id: 'convert-running' })}</span>
           <span className="text-accent">…</span>
         </div>
         <div className="h-0.5 overflow-hidden bg-white/8">
@@ -38,7 +39,7 @@ export function ConvertButton({
       reason={blockedBy ?? undefined}
       onClick={onConvert}
     >
-      Convert &amp; download
+      {t({ id: 'convert-button' })}
     </Button>
   );
 }

@@ -9,9 +9,9 @@ export const engine_catalog: typeof Wasm.engine_catalog = () => [
   { id: 'ezdrummer', name: 'EZdrummer', fullName: 'Toontrack EZdrummer 3' },
 ];
 
-const unknownEngine = (role: string, id: string): Wasm.WasmError => ({
+const unknownEngine = (role: Wasm.Role, id: string): Wasm.WasmError => ({
   kind: 'unknownEngine',
-  message: `unknown ${role} engine '${id}'`,
+  role,
   id,
 });
 

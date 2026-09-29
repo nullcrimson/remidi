@@ -1,4 +1,7 @@
-import type { FileFailure, LoadedFile, OnFiles } from '../lib/files';
+import { t } from '../i18n';
+import type { FailedFile } from '../lib/batch';
+import type { LoadedFile, OnFiles } from '../lib/files';
+import { errorTitle } from './errorTitle';
 import type { FocusRef } from '../hooks/useFocusIntent';
 import { FilePicker } from './FilePicker';
 import { IconButton } from './IconButton';
@@ -17,7 +20,7 @@ export function FileChips({
 }: {
   pickerRef?: FocusRef;
   files: LoadedFile[];
-  failures: FileFailure[];
+  failures: FailedFile[];
   skipped?: string[];
   onFiles: OnFiles;
   onRemove: (name: string) => void;
@@ -25,8 +28,7 @@ export function FileChips({
 }) {
   const skippedLine = skipped.length > 0 && (
     <p role="status" className="w-full text-label text-t4">
-      Skipped {skipped.join(', ')} — only .mid files and exported presets (.drumverter.json) can be
-      added
+      {t({ id: 'files-skipped', args: { names: skipped.join(', ') } })}
     </p>
   );
   if (files.length === 0) {
@@ -36,18 +38,18 @@ export function FileChips({
           <div className="flex items-center gap-3">
             <MidBadge />
             <span className="flex-1 text-body text-t4">
-              Drop a .mid anywhere, or click to choose
+              {t({ id: 'files-drop' })}
             </span>
           </div>
         </FilePicker>
         <p className="text-label text-t5">
-          Preset files you exported (.drumverter.json) can be dropped or chosen the same way.
+          {t({ id: 'files-presets' })}
         </p>
         {skippedLine}
       </div>
     );
   }
-  const failed = new Map(failures.map((f) => [f.name, f.error]));
+  const failed = new Map(failures.map((f) => [f.name, errorTitle(f.error)]));
   return (
     <div className="
       flex flex-wrap items-center gap-2 border-b border-hairline pb-4.5
@@ -74,7 +76,7 @@ export function FileChips({
             <MidBadge />
             <span className="h-3.5 w-px shrink-0 bg-white/12" />
             <span className="min-w-0 truncate text-ui text-t1">{f.name}</span>
-            <IconButton label={`Remove ${f.name}`} size="sm" tone="danger" onClick={() => onRemove(f.name)}>
+            <IconButton label={t({ id: 'files-remove', args: { name: f.name } })} size="sm" tone="danger" onClick={() => onRemove(f.name)}>
               ×
             </IconButton>
           </div>
@@ -82,9 +84,9 @@ export function FileChips({
       })}
       <div className="flex w-full items-center justify-between pt-0.5">
         <FilePicker onFiles={onFiles} fullWidth={false}>
-          <span className={textAction()}>+ add more</span>
+          <span className={textAction()}>{t({ id: 'files-add-more' })}</span>
         </FilePicker>
-        <TextButton tone="danger" onClick={onClear}>clear all</TextButton>
+        <TextButton tone="danger" onClick={onClear}>{t({ id: 'files-clear' })}</TextButton>
       </div>
       {skippedLine}
     </div>

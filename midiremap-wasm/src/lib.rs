@@ -15,91 +15,65 @@ pub fn start() {
     console_error_panic_hook::set_once();
 }
 
-/// What went wrong in a call, thrown to JavaScript inside a [`WasmError`].
+/// Which side of a conversion an engine id was given for.
 #[derive(Serialize, Tsify, Debug, Clone, Copy, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum ErrorKind {
-    UnknownEngine,
-    BadOverrides,
-    BadMissing,
-    BadChannel,
-    BadMidi,
-    BadPreset,
-    Internal,
+#[serde(rename_all = "lowercase")]
+pub enum Role {
+    Source,
+    Target,
 }
 
-/// The value every export throws; `id` names the offending engine when there is one.
+/// The value every export throws. `detail` is the technical cause chain, shown to the
+/// user untranslated.
 #[derive(Serialize, Tsify, Debug, PartialEq, Eq)]
-#[tsify(missing_as_null, hashmap_as_object)]
-pub struct WasmError {
-    kind: ErrorKind,
-    message: String,
-    id: Option<String>,
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum WasmError {
+    UnknownEngine { role: Role, id: String },
+    BadOverrides { detail: String },
+    BadMissing { detail: String },
+    BadChannel { detail: String },
+    BadMidi { detail: String },
+    BadPreset { detail: String },
+    Internal { detail: String },
 }
 
-impl WasmError {
-    fn new(kind: ErrorKind, message: impl ToString) -> Self {
-        Self {
-            kind,
-            message: message.to_string(),
-            id: None,
-        }
-    }
-
-    /// An error and its causes as one message, `outer: inner: innermost`.
-    fn caused(kind: ErrorKind, err: &(dyn Error + 'static)) -> Self {
-        let chain: Vec<String> = std::iter::successors(Some(err), |&e| e.source())
-            .map(ToString::to_string)
-            .collect();
-        Self::new(kind, chain.join(": "))
-    }
-
-    fn unknown_engine(message: String, id: &str) -> Self {
-        Self {
-            kind: ErrorKind::UnknownEngine,
-            message,
-            id: Some(id.to_owned()),
-        }
-    }
+fn chain(err: &(dyn Error + 'static)) -> String {
+    std::iter::successors(Some(err), |&e| e.source())
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(": ")
 }
 
 impl From<WasmError> for JsValue {
     fn from(err: WasmError) -> Self {
         err.into_ts()
-            .map_or_else(|_| Self::from_str(&err.message), Self::from)
+            .map_or_else(|e| Self::from_str(&e.to_string()), Self::from)
     }
 }
 
 impl From<tsify::Error> for WasmError {
     fn from(err: tsify::Error) -> Self {
-        Self::new(ErrorKind::Internal, err)
+        Self::Internal {
+            detail: err.to_string(),
+        }
     }
 }
 
-#[derive(Clone, Copy)]
-enum Role {
-    Source,
-    Target,
-}
-
 fn engine<'a>(catalog: &'a Catalog, id: &str, role: Role) -> Result<&'a EngineMap, WasmError> {
-    let role = match role {
-        Role::Source => "source",
-        Role::Target => "target",
-    };
-    catalog
-        .get(id)
-        .ok_or_else(|| WasmError::unknown_engine(format!("unknown {role} engine '{id}'"), id))
+    catalog.get(id).ok_or_else(|| WasmError::UnknownEngine {
+        role,
+        id: id.to_owned(),
+    })
 }
 
-fn from_js<T>(value: Option<Ts<T>>, kind: ErrorKind) -> Result<T, WasmError>
+fn from_js<T>(value: Option<Ts<T>>, error: fn(String) -> WasmError) -> Result<T, WasmError>
 where
     T: Tsify + DeserializeOwned + Default,
     T::JsType: Clone,
 {
     value.map_or_else(
         || Ok(T::default()),
-        |v| v.to_rust().map_err(|e| WasmError::new(kind, e)),
+        |v| v.to_rust().map_err(|e| error(e.to_string())),
     )
 }
 
@@ -133,9 +107,11 @@ fn convert_file(
     let tgt = engine(catalog, tgt_id, Role::Target)?;
     let scope: ChannelScope = channel
         .map_or(Ok(ChannelScope::Auto), str::parse)
-        .map_err(|e| WasmError::new(ErrorKind::BadChannel, e))?;
+        .map_err(|e| WasmError::BadChannel {
+            detail: e.to_string(),
+        })?;
     let out = convert(mid, &Mapping::new(src, tgt, ov, missing), scope)
-        .map_err(|e| WasmError::caused(ErrorKind::BadMidi, &e))?;
+        .map_err(|e| WasmError::BadMidi { detail: chain(&e) })?;
     Ok(RemapOutput {
         bytes: out.bytes,
         report: out.report,
@@ -151,8 +127,8 @@ pub fn remap(
     channel: Option<String>,
     missing: Option<Ts<MissingDrums>>,
 ) -> Result<Ts<RemapOutput>, WasmError> {
-    let ov = from_js(overrides, ErrorKind::BadOverrides)?;
-    let missing = from_js(missing, ErrorKind::BadMissing)?;
+    let ov = from_js(overrides, |detail| WasmError::BadOverrides { detail })?;
+    let missing = from_js(missing, |detail| WasmError::BadMissing { detail })?;
     let out = convert_file(
         Catalog::shared(),
         mid,
@@ -205,8 +181,8 @@ pub fn plan(
     overrides: Option<Ts<Overrides>>,
     missing: Option<Ts<MissingDrums>>,
 ) -> Result<Vec<Ts<VoiceRow>>, WasmError> {
-    let ov = from_js(overrides, ErrorKind::BadOverrides)?;
-    let missing = from_js(missing, ErrorKind::BadMissing)?;
+    let ov = from_js(overrides, |detail| WasmError::BadOverrides { detail })?;
+    let missing = from_js(missing, |detail| WasmError::BadMissing { detail })?;
     to_js_all(&voice_rows(
         Catalog::shared(),
         src_id,
@@ -232,16 +208,19 @@ pub struct PresetView {
 
 fn preset_view(json: &str, catalog: &Catalog) -> Result<PresetView, WasmError> {
     let LoadedPreset { preset, skipped } =
-        parse_preset(json).map_err(|e| WasmError::caused(ErrorKind::BadPreset, &e))?;
-    let engine = |id: &str| {
+        parse_preset(json).map_err(|e| WasmError::BadPreset { detail: chain(&e) })?;
+    let engine = |id: &str, role| {
         catalog
             .canonical_id(id)
             .map(str::to_owned)
-            .ok_or_else(|| WasmError::unknown_engine(format!("unknown engine '{id}'"), id))
+            .ok_or_else(|| WasmError::UnknownEngine {
+                role,
+                id: id.to_owned(),
+            })
     };
     Ok(PresetView {
-        src: engine(&preset.src)?,
-        tgt: engine(&preset.tgt)?,
+        src: engine(&preset.src, Role::Source)?,
+        tgt: engine(&preset.tgt, Role::Target)?,
         edits: preset
             .edits
             .iter()
@@ -313,9 +292,9 @@ pub fn family_order() -> Result<Vec<Ts<Family>>, WasmError> {
 /// The names of all 128 notes in the given octave convention.
 #[wasm_bindgen]
 pub fn note_names(base: Ts<OctaveBase>) -> Result<Vec<String>, WasmError> {
-    let base: OctaveBase = base
-        .to_rust()
-        .map_err(|e| WasmError::new(ErrorKind::Internal, e))?;
+    let base: OctaveBase = base.to_rust().map_err(|e| WasmError::Internal {
+        detail: e.to_string(),
+    })?;
     Ok(Note::all().map(|n| n.name(base)).collect())
 }
 
@@ -389,16 +368,15 @@ mod tests {
         let unknown = FIXTURE.replace("ezdrummer", "gone_engine");
         assert_eq!(
             preset_view(&unknown, &catalog).unwrap_err(),
-            WasmError {
-                kind: ErrorKind::UnknownEngine,
-                message: "unknown engine 'gone_engine'".to_owned(),
-                id: Some("gone_engine".to_owned()),
+            WasmError::UnknownEngine {
+                role: Role::Target,
+                id: "gone_engine".to_owned(),
             }
         );
-        assert_eq!(
-            preset_view("{}", &catalog).unwrap_err().kind,
-            ErrorKind::BadPreset
-        );
+        assert!(matches!(
+            preset_view("{}", &catalog).unwrap_err(),
+            WasmError::BadPreset { .. }
+        ));
     }
 
     #[test]
@@ -415,30 +393,43 @@ mod tests {
         .unwrap();
         assert_eq!(
             err,
-            WasmError {
-                kind: ErrorKind::UnknownEngine,
-                message: "unknown source engine 'nope'".to_owned(),
-                id: Some("nope".to_owned()),
+            WasmError::UnknownEngine {
+                role: Role::Source,
+                id: "nope".to_owned(),
             }
         );
-        let err = drums_of(&catalog, "gone", Role::Target).err().unwrap();
-        assert_eq!(err.message, "unknown target engine 'gone'");
-        assert_eq!(err.id.as_deref(), Some("gone"));
+        assert_eq!(
+            drums_of(&catalog, "gone", Role::Target).err().unwrap(),
+            WasmError::UnknownEngine {
+                role: Role::Target,
+                id: "gone".to_owned(),
+            }
+        );
     }
 
     #[test]
-    fn a_wasm_error_serializes_its_kind_in_camel_case() {
-        let err = WasmError::new(ErrorKind::BadMidi, "not a MIDI file");
+    fn a_wasm_error_serializes_as_a_tagged_object() {
         assert_eq!(
-            serde_json::to_value(&err).unwrap(),
-            serde_json::json!({ "kind": "badMidi", "message": "not a MIDI file", "id": null })
+            serde_json::to_value(WasmError::BadMidi {
+                detail: "invalid midi".into()
+            })
+            .unwrap(),
+            serde_json::json!({ "kind": "badMidi", "detail": "invalid midi" })
+        );
+        assert_eq!(
+            serde_json::to_value(WasmError::UnknownEngine {
+                role: Role::Target,
+                id: "x".into()
+            })
+            .unwrap(),
+            serde_json::json!({ "kind": "unknownEngine", "role": "target", "id": "x" })
         );
     }
 
     #[test]
     fn conversion_errors_are_typed() {
         let catalog = Catalog::builtin();
-        let kind_of = |mid: &[u8], channel: Option<&str>| {
+        let err = |mid: &[u8], channel: Option<&str>| {
             convert_file(
                 &catalog,
                 mid,
@@ -449,14 +440,19 @@ mod tests {
                 MissingDrums::Nearest,
             )
             .err()
-            .map(|e| e.kind)
         };
-        assert_eq!(kind_of(b"nope", None), Some(ErrorKind::BadMidi));
-        assert_eq!(kind_of(b"nope", Some("17")), Some(ErrorKind::BadChannel));
+        assert!(matches!(
+            err(b"nope", None),
+            Some(WasmError::BadMidi { .. })
+        ));
+        assert!(matches!(
+            err(b"nope", Some("17")),
+            Some(WasmError::BadChannel { .. })
+        ));
     }
 
     #[test]
-    fn a_bad_file_message_carries_its_cause() {
+    fn a_bad_files_detail_carries_its_cause() {
         let catalog = Catalog::builtin();
         let midi = convert_file(
             &catalog,
@@ -470,16 +466,17 @@ mod tests {
         .err()
         .unwrap();
         assert_eq!(
-            midi.message,
-            "MIDI parse error: invalid midi: not a midi file"
+            midi,
+            WasmError::BadMidi {
+                detail: "MIDI parse error: invalid midi: not a midi file".to_owned()
+            }
         );
-        let preset = preset_view("{", &catalog).unwrap_err();
+        let WasmError::BadPreset { detail } = preset_view("{", &catalog).unwrap_err() else {
+            panic!("not BadPreset");
+        };
         assert!(
-            preset
-                .message
-                .starts_with("not a preset file: EOF while parsing"),
-            "{}",
-            preset.message
+            detail.starts_with("not a preset file: EOF while parsing"),
+            "{detail}"
         );
     }
 

@@ -5,7 +5,8 @@ import { DonePanel } from '../src/components/DonePanel';
 
 vi.mock('../src/lib/download', () => ({ saveFile: vi.fn() }));
 import { saveFile } from '../src/lib/download';
-import type { FileFailure, FileResult } from '../src/lib/files';
+import type { FailedFile } from '../src/lib/batch';
+import type { FileResult } from '../src/lib/files';
 import type { ReportGroups, ReportView } from '../src/lib/report';
 
 const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 };
@@ -30,7 +31,7 @@ function view(overrides: Partial<ReportView['totals']> = {}, files: ReportView['
 
 function renderPanel({
   results = [result('groove-ezd.mid', 'blob:x')],
-  failures = [] as FileFailure[],
+  failures = [] as FailedFile[],
   report = view(),
   onViewReport = vi.fn(),
   onConvertMore = vi.fn(),
@@ -108,7 +109,7 @@ describe('DonePanel', () => {
   it('offers a zip and lists every file of a batch, failures inline', () => {
     renderPanel({
       results: [result('a-ezd.mid', 'blob:a'), result('b-ezd.mid', 'blob:b')],
-      failures: [{ name: 'c.mid', error: 'not a MIDI file' }],
+      failures: [{ name: 'c.mid', error: { kind: 'badMidi', detail: 'invalid midi' } }],
       report: view({ approximated: 2 }, [
         { name: 'a-ezd.mid', groups: NONE, untouched: 0, converted: 10 },
         {
@@ -129,7 +130,7 @@ describe('DonePanel', () => {
     expect(within(a).getByRole('link', { name: '↓ .mid' })).toHaveAttribute('href', 'blob:a');
     expect(b).toHaveTextContent('2 approx');
     expect(c).toHaveTextContent('c.mid');
-    expect(c).toHaveTextContent('not a MIDI file');
+    expect(c).toHaveTextContent('Not a MIDI file this converter can read Details: invalid midi');
   });
 
   it('keeps a single file off the per-file list', () => {

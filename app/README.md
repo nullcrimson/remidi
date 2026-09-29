@@ -16,7 +16,7 @@ is no backend.
 ```bash
 cd app
 npm install
-npm run dev      # runs build:wasm first, then Vite dev server
+npm run dev      # runs gen:i18n and build:wasm first, then Vite dev server
 ```
 
 Open the printed `http://localhost:5173` URL.
@@ -24,7 +24,7 @@ Open the printed `http://localhost:5173` URL.
 ## Build
 
 ```bash
-npm run build    # build:wasm, tsc --noEmit, vite build -> app/dist
+npm run build    # gen:i18n, build:wasm, tsc --noEmit, vite build -> app/dist
 ```
 
 Deploy the static contents of `app/dist/` to any static host.
@@ -36,6 +36,11 @@ npm run test     # Vitest; needs npm run build:wasm once (the contract test load
 npm run e2e      # Playwright against vite preview of dist; run npm run build:site first
 npm run size     # size budgets for dist/assets (wasm, JS, CSS gzipped; latin fonts)
 ```
+
+`npm run gen:i18n` writes `src/generated/` (message, locale and section types, and
+`lang.css`) from `../locales/` and `src/content/structure.json`. It runs before `dev`,
+`build`, `test`, `lint` and `typecheck`; run it by hand after editing a `.ftl` file while
+the dev server is up. The folder is not committed.
 
 `e2e/` holds the browser smoke tests (Chromium desktop and Pixel 7): conversion through
 the real WASM with the downloaded file read back, keyboard walk and focus steps, drag and
@@ -79,8 +84,8 @@ page logs an error.
   PageFrame (Page, Card). Overlays: Modal, PickerShell (+ `overlayAnchor`), on Floating UI. Shared primitives: `styles.ts`, Button,
   TextButton, IconButton, ChipRadioGroup, ChipSelect, TextField, MonoLabel, ProseLink.
   Frame: SiteHeader (brand + Converter · Note maps · FAQ), SiteFooter (section links that
-  open modals, rendered by ContentBlocks from `src/content/pages.json`, the same source
-  the static site pages use).
+  open modals, rendered by ContentBlocks from `src/content/docs/en.json`, the same source
+  the static site pages use). Every text comes from `../locales/en/app.ftl` through `t()`.
 
 ## Views
 

@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import type { ReactNode } from 'react';
 import type { FocusRef } from '../hooks/useFocusIntent';
 import { SiteFooter } from './SiteFooter';
@@ -39,7 +40,7 @@ export function Page({
           }}
           className="skip-link"
         >
-          Skip to content
+          {t({ id: 'skip-to-content' })}
         </a>
         <SiteHeader />
         {children}

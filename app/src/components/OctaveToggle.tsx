@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import type { OctaveBase } from '../lib/notes';
 import { ChipRadioGroup } from './ChipRadioGroup';
 import { SettingRow } from './SettingRow';
@@ -21,9 +22,9 @@ export function OctaveToggle({
 }) {
   return (
     <SettingRow
-      label="Octaves start at"
-      tipTitle="Octave naming only"
-      tip="Sets which octave MIDI note 0 sits in, so note names match your DAW. Display label only — the notes written to the file never change."
+      label={t({ id: 'octave-label' })}
+      tipTitle={t({ id: 'octave-tip-title' })}
+      tip={t({ id: 'octave-tip' })}
       hint={DAWS[value]}
     >
       {(ids) => <ChipRadioGroup {...ids} options={OCTAVES} value={value} onChange={onChange} />}

@@ -1,5 +1,6 @@
 import { runBatch, type BatchResult } from './batch';
 import type { Channel } from './channel';
+import type { AppError } from './errors';
 import type { LoadedFile } from './files';
 import { ready, remap, type Overrides } from './midiremap';
 import type { Missing } from './missing';
@@ -15,14 +16,14 @@ export interface BatchRequest {
 }
 
 /** A converted batch, or why the worker could not convert it. */
-export type BatchReply = { id: number; result: BatchResult } | { id: number; error: string };
+export type BatchReply = { id: number; result: BatchResult } | { id: number; error: AppError };
 
 type MakeWorker = () => Worker;
 
 interface Pending {
   request: BatchRequest;
   resolve: (result: BatchResult) => void;
-  reject: (error: Error) => void;
+  reject: (error: unknown) => void;
 }
 
 async function onMainThread({
@@ -74,7 +75,7 @@ export function createConverter(makeWorker: MakeWorker = moduleWorker) {
       const p = pending.get(reply.id);
       pending.delete(reply.id);
       if (!p) return;
-      if ('error' in reply) p.reject(new Error(reply.error));
+      if ('error' in reply) p.reject(reply.error);
       else p.resolve(reply.result);
     };
     worker.onerror = fail;

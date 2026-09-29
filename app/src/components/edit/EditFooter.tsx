@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import type { SavedMapping } from '../../lib/mappings';
 import { Button } from '../Button';
 import { TextButton } from '../TextButton';
@@ -27,7 +28,7 @@ export function EditFooter({
 }) {
   return (
     <section
-      aria-label="Edit actions"
+      aria-label={t({ id: 'edit-actions' })}
       className="
         sticky bottom-0 z-10 flex flex-wrap items-center gap-x-4 gap-y-2
         border-t border-hairline bg-card/95 px-5 py-3 backdrop-blur-sm
@@ -35,9 +36,9 @@ export function EditFooter({
       "
     >
       <span className="font-mono text-label text-t4">
-        {changes === 0 ? 'No changes' : `${changes} change${changes === 1 ? '' : 's'}`}
+        {t({ id: 'edit-changes', args: { count: changes } })}
       </span>
-      <TextButton tone="danger" onClick={onResetAll} disabled={changes === 0}>Reset all</TextButton>
+      <TextButton tone="danger" onClick={onResetAll} disabled={changes === 0}>{t({ id: 'edit-reset-all' })}</TextButton>
       <span className="flex-1" />
       <div className="
         flex w-full flex-wrap items-center justify-end gap-3
@@ -53,7 +54,7 @@ export function EditFooter({
           onUpdate={onUpdatePreset}
         />
         <Button variant="primary" size="md" onClick={onDone}>
-          Done
+          {t({ id: 'edit-done' })}
         </Button>
       </div>
     </section>

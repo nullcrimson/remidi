@@ -21,6 +21,7 @@ vi.mock('../src/lib/download', () => ({ saveFile: vi.fn() }));
 import App from '../src/App';
 import { saveFile } from '../src/lib/download';
 import { MAPPINGS_CAP, MAPPINGS_KEY } from '../src/lib/mappings';
+import { WasmCallError } from '../src/lib/errors';
 
 const PRESET = {
   id: 'p1',
@@ -106,13 +107,13 @@ describe('App presets', () => {
 
   it('explains a file it cannot import', async () => {
     parsePresetMock.mockImplementation(() => {
-      throw new Error("not a Drumverter preset (format is 'other')");
+      throw new WasmCallError({ kind: 'badPreset', detail: "not a Drumverter preset (format is 'other')" });
     });
     await start([]);
     await importFile('other.json');
     await waitFor(() =>
       expect(screen.getByRole('status')).toHaveTextContent(
-        "Couldn't import other.json: not a Drumverter preset (format is 'other')",
+        "Couldn't import other.json: Not a preset file Details: not a Drumverter preset (format is 'other')",
       ),
     );
   });

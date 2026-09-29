@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { noteName, type OctaveBase } from '../lib/notes';
 import { IconButton } from './IconButton';
 import { MonoLabel } from './MonoLabel';
@@ -24,7 +25,7 @@ export function SourceNotePicker({
 }) {
   return (
     <PickerShell
-      label={`Source note for ${voiceLabel}`}
+      label={t({ id: 'source-picker-label', args: { drum: voiceLabel } })}
       onClose={onClose}
       className="sm:ml-auto sm:w-max"
     >
@@ -35,12 +36,12 @@ export function SourceNotePicker({
       >
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2.25">
-            <MonoLabel tone="text-t4">INCOMING · {voiceLabel}</MonoLabel>
+            <MonoLabel tone="text-t4">{t({ id: 'source-picker-heading', args: { drum: voiceLabel } })}</MonoLabel>
             <span className="font-mono text-brand font-bold text-accent">
               {currentNote === null ? '—' : noteName(currentNote, base)}
             </span>
           </div>
-          <IconButton label="Close" onClick={onClose}>×</IconButton>
+          <IconButton label={t({ id: 'close' })} onClick={onClose}>×</IconButton>
         </div>
         <OctaveTabs value={octIndex} base={base} onChange={onSetOct} />
         <PianoKeyboard

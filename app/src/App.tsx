@@ -25,13 +25,15 @@ import type { EditFilter } from './lib/editFilter';
 import { shortCode } from './lib/format';
 import { missingHint } from './lib/missing';
 import { downloadPreset } from './lib/presetFile';
+import { ErrorText } from './components/ErrorText';
+import { Rich } from './components/Rich';
+import { t } from './i18n';
+import type { NoticeLine } from './lib/notice';
 
 function Intro() {
   return (
     <p className="text-ui/relaxed text-t4">
-      Convert drum MIDI between GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2,
-      General MIDI, Guitar Pro and 80+ other engine layouts. Runs in your browser; files are never
-      uploaded.
+      {t({ id: 'app-intro' })}
     </p>
   );
 }
@@ -44,7 +46,7 @@ export default function App() {
   const saved = useSavedMappings();
   const [reportOpen, setReportOpen] = useState(false);
   const [assignNote, setAssignNote] = useState<number | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<NoticeLine[] | null>(null);
   const [editShow, setEditShow] = useState<EditFilter>('all');
   const presets = usePresetActions(
     { ...c, edits: editor.edits, srcEdits: editor.srcEdits },
@@ -65,6 +67,7 @@ export default function App() {
   const { view: reportView, dropMissing } = useConversionReport({ ...editor, ...c });
   const targetName = c.engines.find((e) => e.id === c.tgt)?.name ?? c.tgt;
   const sourceName = c.engines.find((e) => e.id === c.src)?.name ?? c.src;
+  const blocker = convertBlocker({ files: c.files.length, src: c.src, tgt: c.tgt });
   const openEditor = (show: EditFilter = 'all', note: number | null = null) => {
     setEditShow(show);
     setAssignNote(note);
@@ -113,10 +116,10 @@ export default function App() {
           >
             <Intro />
 
-            {c.status === 'loading' && <p className="text-ui text-t3">Loading converter…</p>}
+            {c.status === 'loading' && <p className="text-ui text-t3">{t({ id: 'app-loading' })}</p>}
 
             {c.status === 'error' && (
-              <p className="text-ui text-danger">Failed to load converter: {c.error}</p>
+              <p className="text-ui text-danger">{c.error && <ErrorText error={c.error} />}</p>
             )}
 
             {c.status === 'ready' && (
@@ -142,7 +145,7 @@ export default function App() {
                   toRef={focus.ref('to')}
                 />
 
-                {notice && <StatusNotice message={notice} onDismiss={() => setNotice(null)} />}
+                {notice && <StatusNotice lines={notice} onDismiss={() => setNotice(null)} />}
 
                 <SavedMappingChips
                   onFocusFallback={() => request('from')}
@@ -164,12 +167,12 @@ export default function App() {
                   onChannel={c.setChannel}
                   channelRef={focus.ref('channel')}
                   missing={c.missing}
-                  missingHint={missingHint(c.missing, editor.rows)}
+                  missingHint={t(missingHint(c.missing, editor.rows))}
                   onMissing={c.setMissing}
                 />
 
                 {bothSelected && editor.planError !== null && (
-                  <PlanErrorNotice message={editor.planError} onReset={editor.reset} />
+                  <PlanErrorNotice error={editor.planError} onReset={editor.reset} />
                 )}
 
                 {bothSelected && editor.planError === null && (
@@ -203,7 +206,7 @@ export default function App() {
                       <ConvertButton
                         ref={focus.ref('convert')}
                         conv={c.conv}
-                        blockedBy={convertBlocker({ files: c.files.length, src: c.src, tgt: c.tgt })}
+                        blockedBy={blocker && t(blocker)}
                         onConvert={() => void c.convert()}
                       />
                     )}
@@ -215,7 +218,7 @@ export default function App() {
                       rounded-chip bg-danger/10 p-3 text-ui text-danger
                     "
                   >
-                    Error: {c.error}
+                    <Rich id="convert-error" slots={{ error: <ErrorText error={c.error} /> }} />
                   </p>
                 )}
               </>

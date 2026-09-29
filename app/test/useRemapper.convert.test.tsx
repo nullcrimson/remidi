@@ -115,7 +115,7 @@ describe('useRemapper convert path', () => {
     await waitFor(() => expect(result.current.conv.kind).toBe('done'));
     expect(result.current.results.map((r) => r.name)).toEqual(['ok-ezdrummer.mid']);
     expect(result.current.failures).toEqual([
-      { name: 'bad.mid', error: 'unknown source engine' },
+      { name: 'bad.mid', error: { kind: 'internal', detail: 'unknown source engine' } },
     ]);
   });
 
@@ -131,7 +131,7 @@ describe('useRemapper convert path', () => {
     await act(() => result.current.convert());
     await waitFor(() => expect(result.current.conv.kind).toBe('error'));
     expect(result.current.failures).toHaveLength(1);
-    expect(result.current.error).toContain('unknown source engine');
+    expect(result.current.error).toEqual({ kind: 'internal', detail: 'unknown source engine' });
   });
 
   it('remembers skipped files until the next add', async () => {

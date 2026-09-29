@@ -367,9 +367,11 @@ agree: missing notes are `null`, maps are plain objects, `Note` is `number`, `Ca
 is `string`, converted bytes are a `Uint8Array`. A field renamed in Rust changes the
 `.d.ts`, and the app's `tsc` fails.
 
-Every export throws a `WasmError { kind, message, id }`; `kind` is `unknownEngine`
-(`id` names the engine), `badOverrides`, `badMissing`, `badChannel`, `badMidi`,
-`badPreset` or `internal`.
+Every export throws a `WasmError`, a tagged enum: `{ kind: "unknownEngine", role, id }`
+(`role` is `source` or `target`), or `{ kind, detail }` for `badOverrides`,
+`badMissing`, `badChannel`, `badMidi`, `badPreset` and `internal`. It carries no English
+sentence: the app translates `kind` (and `role`), and `detail` is the technical cause
+chain (`outer: inner: innermost`), shown untranslated under the message.
 
 ### Web app (`app/`)
 
@@ -456,9 +458,13 @@ The pages link the app's own built stylesheet (read from `dist/index.html`); Tai
 scans the askama templates through `@source`, so both surfaces share one set of tokens
 and utilities. Octave naming and "Changes only" on pair pages are CSS-only radios; the
 filters on the engine and index pages are the only script. FAQ, How it works, Report an
-issue, Contact and Terms come from `app/src/content/pages.json`, which also feeds the
-app's modals; their FAQPage / HowTo schema is written on `/faq/` and `/how-it-works/`,
-and `/` carries only the SoftwareApplication block in `index.html`. Besides the
+issue, Contact and Terms are the documents in `app/src/content/docs/<code>.json`, which
+also feed the app's modals; their FAQPage / HowTo schema is written on `/faq/` and
+`/how-it-works/`. The generator also writes the converter shell: the marked regions of
+the built `index.html` (`<!--app-head-->`, `<!--app-noscript-->`) get the title,
+descriptions, social cards, the SoftwareApplication block, the no-script text and the
+hidden load-failure notice from `app.ftl`; the markers stay, so a second run rewrites the
+same regions. Besides the
 stylesheet, each page copies two things from the built `index.html`: the content security
 policy (defined once in `vite.config.ts`, injected into the build only) and the
 Cloudflare Web Analytics beacon, so every page states the same policy and counts visits
@@ -469,6 +475,42 @@ that both surfaces draw are `@utility` classes in `index.css` (`prose-link`,
 alike. Pair-page rows take their status from the core (`PlanStatus` of each source
 note's resolution); the site only names it (exact / approximated / dropped) and sorts
 changes first.
+
+## Translations
+
+Sources, one owner per text:
+
+- `locales/locales.json` — the locales (code, URL prefix, language tag, native name,
+  system fonts). I1 lists only `en`.
+- `locales/<code>/app.ftl` — every UI message, in [Fluent](https://projectfluent.org/)
+  syntax; `en` is the reference. `locales/GLOSSARY.md` lists what is never translated.
+- `app/src/content/structure.json` — section keys and slugs, and the nav and footer as
+  targets (`{ route: "converter" | "noteMaps" }` or `{ section }`).
+- `app/src/content/docs/<code>.json` — the guide, FAQ and legal documents, by section.
+
+Generated, never committed: `midiremap-site/build.rs` (with `fluent-syntax`) writes
+`Locale`, `SectionKey`, `NavTarget`, `NAV`/`FOOTER` and `MessageId` (with each message's
+variables) into `OUT_DIR`; `npm run gen:i18n` (`app/scripts/gen-i18n.ts`, with
+`@fluent/syntax`) writes the same types to `app/src/generated/i18n.ts`, plus
+`lang.css` (`:lang()` font stacks). A nav target naming an unknown section fails both
+generators; a section missing one of its four messages fails `tsc` and `rustc`.
+
+Runtime: the app's `t(message)` formats a `Message` — `{ id }`, or `{ id, args }` with
+exactly the variables `en` declares, checked by `tsc`. `main.tsx` awaits
+`loadMessages(LOCALE)` before mounting (English is bundled; other locales are fetched),
+so `t` is total; if loading fails, the shell's `#load-failed` notice is shown instead.
+`src/locale.ts` is the only reader of `location.pathname`. Library code returns
+`Message` values, never English strings; components call `t`. Errors are `AppError`
+(`WasmError` or `wasmUnavailable`); `toAppError` is the one conversion from anything
+caught, and `ErrorText` shows the translated line with the untranslated `detail`.
+
+The site formats with `fluent-bundle`: `Messages::load` proves every locale's `app.ftl`
+has every English id with exactly its variables; `href(target, locale, docs)` links a
+section to the locale's page, or to the English page when the locale lacks it. The
+parity test checks every locale's documents keep English's block shapes and links.
+
+Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props; symbols,
+"Drumverter", "MIDI" and ".mid" are allowed.
 
 ## Design rules (enforced)
 

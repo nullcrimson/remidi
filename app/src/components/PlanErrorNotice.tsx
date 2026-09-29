@@ -1,6 +1,10 @@
+import { t } from '../i18n';
+import type { AppError } from '../lib/errors';
+import { ErrorText } from './ErrorText';
+import { Rich } from './Rich';
 import { TextButton } from './TextButton';
 
-export function PlanErrorNotice({ message, onReset }: { message: string; onReset: () => void }) {
+export function PlanErrorNotice({ error, onReset }: { error: AppError; onReset: () => void }) {
   return (
     <div
       role="alert"
@@ -9,8 +13,10 @@ export function PlanErrorNotice({ message, onReset }: { message: string; onReset
         bg-danger/10 p-3 text-ui text-danger
       "
     >
-      <span className="min-w-0 wrap-break-word">The note editor could not load: {message}</span>
-      <TextButton onClick={onReset}>Reset edits</TextButton>
+      <span className="min-w-0 wrap-break-word">
+        <Rich id="plan-error" slots={{ error: <ErrorText error={error} /> }} />
+      </span>
+      <TextButton onClick={onReset}>{t({ id: 'plan-error-reset' })}</TextButton>
     </div>
   );
 }

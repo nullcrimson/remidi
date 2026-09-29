@@ -2,8 +2,9 @@ use askama::Template;
 use midiremap_core::PlanStatus;
 
 use crate::{
-    content::{Block, ContentPage, Link, CONTENT},
-    pages::{EnginePage, IndexPage, PairPage, Site, ORIGIN},
+    content::{faq_schema, how_to_schema, Block, ContentPage},
+    i18n::{home, href, label, Docs, Locale, Messages, NavTarget, Plain, SectionKey, FOOTER, NAV},
+    pages::{EnginePage, IndexPage, PairPage, Site, NOTE_MAPS, ORIGIN},
 };
 
 pub const DESCRIPTION_MAX: usize = 155;
@@ -118,7 +119,7 @@ pub fn pair_meta(p: &PairPage) -> Meta {
             &["Free in-browser converter.".to_string()],
             DESCRIPTION_MAX,
         ),
-        canonical: format!("{ORIGIN}/convert/{}/", p.slug),
+        canonical: format!("{ORIGIN}{}", p.href()),
     }
 }
 
@@ -136,22 +137,22 @@ pub fn index_meta(p: &IndexPage) -> Meta {
             &[],
             DESCRIPTION_MAX,
         ),
-        canonical: format!("{ORIGIN}/engines/"),
+        canonical: format!("{ORIGIN}{NOTE_MAPS}"),
     }
 }
 
-pub fn content_meta(p: &ContentPage) -> Meta {
+pub fn content_meta(title: String, description: String, path: &str) -> Meta {
     Meta {
-        title: p.section.title.clone(),
-        description: p.section.description.clone(),
-        canonical: format!("{ORIGIN}{}", p.section.href()),
+        title,
+        description,
+        canonical: format!("{ORIGIN}{path}"),
     }
 }
 
-pub struct NavItem {
-    pub label: String,
-    pub href: String,
-    pub current: bool,
+struct NavItem<'a> {
+    label: &'a str,
+    href: String,
+    current: bool,
 }
 
 /// What the static pages take from the app's built `index.html`: its stylesheet, its
@@ -163,46 +164,89 @@ pub struct Shell<'a> {
     pub beacon: &'a str,
 }
 
-/// What every page shares: the app shell, header nav, footer and optional schema.
-pub struct Frame {
-    pub css: String,
-    pub csp: String,
-    pub beacon: String,
-    pub nav: Vec<NavItem>,
-    pub footer: Vec<Link>,
-    pub trademark: String,
-    pub json_ld: Option<String>,
+/// The words pages are written in: one locale's messages and documents.
+pub struct Texts<'a> {
+    pub messages: &'a Messages,
+    pub docs: &'a Docs,
+    pub locale: Locale,
 }
 
-impl Frame {
-    fn new(shell: &Shell, current: Option<&str>, json_ld: Option<String>) -> Self {
+impl<'a> Texts<'a> {
+    fn get(&self, id: Plain) -> &'a str {
+        self.messages.get(self.locale, id)
+    }
+
+    fn links(&self, targets: &[NavTarget], current: Option<NavTarget>) -> Vec<NavItem<'a>> {
+        targets
+            .iter()
+            .map(|&t| NavItem {
+                label: self.get(label(t)),
+                href: href(t, self.locale, self.docs),
+                current: current == Some(t),
+            })
+            .collect()
+    }
+}
+
+/// What every page shares: the app shell, header nav, footer and optional schema.
+struct Frame<'a> {
+    css: &'a str,
+    csp: &'a str,
+    beacon: &'a str,
+    skip: &'a str,
+    nav_main: &'a str,
+    nav_site: &'a str,
+    nav: Vec<NavItem<'a>>,
+    footer: Vec<NavItem<'a>>,
+    trademark: &'a str,
+    home: String,
+    open_converter: &'a str,
+    json_ld: Option<String>,
+}
+
+impl<'a> Frame<'a> {
+    fn new(
+        shell: &Shell<'a>,
+        texts: &Texts<'a>,
+        current: Option<NavTarget>,
+        json_ld: Option<String>,
+    ) -> Self {
         Self {
-            css: shell.css.to_string(),
-            csp: shell.csp.to_string(),
-            beacon: shell.beacon.to_string(),
-            nav: CONTENT
-                .nav
-                .iter()
-                .map(|l| NavItem {
-                    label: l.label.clone(),
-                    href: l.href.clone(),
-                    current: current == Some(l.href.as_str()),
-                })
-                .collect(),
-            footer: CONTENT.footer_links(),
-            trademark: CONTENT.trademark.clone(),
+            css: shell.css,
+            csp: shell.csp,
+            beacon: shell.beacon,
+            skip: texts.get(Plain::SkipToContent),
+            nav_main: texts.get(Plain::NavMain),
+            nav_site: texts.get(Plain::NavSite),
+            nav: texts.links(NAV, current),
+            footer: texts.links(FOOTER, None),
+            trademark: texts.get(Plain::Trademark),
+            home: home(texts.locale),
+            open_converter: texts.get(Plain::OpenConverter),
             json_ld,
         }
     }
 }
 
-const NOTE_MAPS: Option<&str> = Some("/engines/");
+const IN_NOTE_MAPS: Option<NavTarget> = Some(NavTarget::NoteMaps);
+
+fn section_schema(key: SectionKey, page: &ContentPage) -> Option<String> {
+    match key {
+        SectionKey::Faq => Some(faq_schema(page.blocks)),
+        SectionKey::Guide => Some(how_to_schema(page.heading, page.blocks)),
+        SectionKey::Issue | SectionKey::Contact | SectionKey::Terms => None,
+    }
+}
+
+fn page_file(path: &str) -> String {
+    format!("{}index.html", path.trim_start_matches('/'))
+}
 
 #[derive(Template)]
 #[template(path = "engine.html")]
 struct EngineHtml<'a> {
     meta: Meta,
-    frame: Frame,
+    frame: Frame<'a>,
     page: &'a EnginePage,
 }
 
@@ -210,7 +254,7 @@ struct EngineHtml<'a> {
 #[template(path = "pair.html")]
 struct PairHtml<'a> {
     meta: Meta,
-    frame: Frame,
+    frame: Frame<'a>,
     heading: String,
     summary: String,
     page: &'a PairPage,
@@ -220,7 +264,7 @@ struct PairHtml<'a> {
 #[template(path = "index.html")]
 struct IndexHtml<'a> {
     meta: Meta,
-    frame: Frame,
+    frame: Frame<'a>,
     page: &'a IndexPage,
 }
 
@@ -228,26 +272,30 @@ struct IndexHtml<'a> {
 #[template(path = "content.html")]
 struct ContentHtml<'a> {
     meta: Meta,
-    frame: Frame,
-    page: &'a ContentPage,
+    frame: Frame<'a>,
+    page: &'a ContentPage<'a>,
 }
 
-pub fn render_site(site: &Site, shell: &Shell) -> Result<Vec<(String, String)>, askama::Error> {
+pub fn render_site(
+    site: &Site,
+    shell: &Shell,
+    texts: &Texts,
+) -> Result<Vec<(String, String)>, askama::Error> {
     let mut out = vec![(
-        "engines/index.html".to_string(),
+        page_file(NOTE_MAPS),
         IndexHtml {
             meta: index_meta(&site.index),
-            frame: Frame::new(shell, NOTE_MAPS, None),
+            frame: Frame::new(shell, texts, IN_NOTE_MAPS, None),
             page: &site.index,
         }
         .render()?,
     )];
     for p in &site.engines {
         out.push((
-            format!("engines/{}/index.html", p.engine.slug),
+            page_file(&p.engine.href()),
             EngineHtml {
                 meta: engine_meta(p),
-                frame: Frame::new(shell, NOTE_MAPS, None),
+                frame: Frame::new(shell, texts, IN_NOTE_MAPS, None),
                 page: p,
             }
             .render()?,
@@ -255,10 +303,10 @@ pub fn render_site(site: &Site, shell: &Shell) -> Result<Vec<(String, String)>, 
     }
     for p in &site.pairs {
         out.push((
-            format!("convert/{}/index.html", p.slug),
+            page_file(&p.href()),
             PairHtml {
                 meta: pair_meta(p),
-                frame: Frame::new(shell, NOTE_MAPS, None),
+                frame: Frame::new(shell, texts, IN_NOTE_MAPS, None),
                 heading: pair_heading(p),
                 summary: pair_summary(
                     &p.src.name,
@@ -273,14 +321,26 @@ pub fn render_site(site: &Site, shell: &Shell) -> Result<Vec<(String, String)>, 
             .render()?,
         ));
     }
-    for p in &site.content {
-        let href = p.section.href();
+    for &k in SectionKey::ALL {
+        let Some(blocks) = texts.docs.blocks(texts.locale, k) else {
+            continue;
+        };
+        let target = NavTarget::Section(k);
+        let path = href(target, texts.locale, texts.docs);
+        let page = ContentPage {
+            heading: texts.get(k.heading()),
+            blocks,
+        };
         out.push((
-            format!("{}/index.html", p.section.slug),
+            page_file(&path),
             ContentHtml {
-                meta: content_meta(p),
-                frame: Frame::new(shell, Some(&href), p.json_ld.clone()),
-                page: p,
+                meta: content_meta(
+                    texts.get(k.title()).to_owned(),
+                    texts.get(k.description()).to_owned(),
+                    &path,
+                ),
+                frame: Frame::new(shell, texts, Some(target), section_schema(k, &page)),
+                page: &page,
             }
             .render()?,
         ));
@@ -311,7 +371,14 @@ mod tests {
     };
 
     fn rendered() -> Vec<(String, String)> {
-        render_site(&Site::build(&Catalog::builtin()).unwrap(), &SHELL).unwrap()
+        let messages = Messages::load().unwrap();
+        let docs = Docs::load().unwrap();
+        let texts = Texts {
+            messages: &messages,
+            docs: &docs,
+            locale: Locale::En,
+        };
+        render_site(&Site::build(&Catalog::builtin()).unwrap(), &SHELL, &texts).unwrap()
     }
 
     #[test]
@@ -325,6 +392,14 @@ mod tests {
                 "{path}"
             );
             assert_eq!(html.matches(SHELL.beacon).count(), 1, "{path}");
+        }
+    }
+
+    #[test]
+    fn no_page_shows_an_unformatted_placeable() {
+        for (path, html) in rendered() {
+            assert!(!html.contains("{$"), "{path}");
+            assert!(!html.contains("{ $"), "{path}");
         }
     }
 
@@ -633,5 +708,20 @@ mod tests {
             assert!(pair_meta(p).description.chars().count() <= DESCRIPTION_MAX);
         }
         assert!(index_meta(&site.index).description.chars().count() <= DESCRIPTION_MAX);
+    }
+
+    #[test]
+    fn section_descriptions_fit() {
+        let messages = Messages::load().unwrap();
+        for &l in Locale::ALL {
+            for &k in SectionKey::ALL {
+                assert!(
+                    messages.get(l, k.description()).chars().count() <= DESCRIPTION_MAX,
+                    "{} {}",
+                    l.code(),
+                    k.key()
+                );
+            }
+        }
     }
 }

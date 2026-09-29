@@ -1,3 +1,4 @@
+import type { Message } from '../generated/i18n';
 import type { RemapReport } from './midiremap';
 
 export const MID_EXT = /\.midi?$/i;
@@ -41,8 +42,8 @@ async function readEach<T>(files: File[], read: (f: File) => Promise<T>): Promis
 }
 
 /** The notice for files the browser could not read. */
-export function unreadableNotice(names: string[]): string {
-  return `Couldn't read ${names.join(', ')} — pick ${names.length === 1 ? 'it' : 'them'} again.`;
+export function unreadableNotice(names: string[]): Message {
+  return { id: 'files-unreadable', args: { names: names.join(', '), count: names.length } };
 }
 
 /** Reads picked or dropped files and hands MIDI and preset files to `onFiles`. */
@@ -72,9 +73,4 @@ export interface FileResult {
   url: string;
   bytes: Uint8Array;
   report: RemapReport;
-}
-
-export interface FileFailure {
-  name: string;
-  error: string;
 }

@@ -82,7 +82,7 @@ describe('FileChips', () => {
     render(
       <FileChips
         files={[{ bytes: new Uint8Array(1), name: 'bad.mid' }]}
-        failures={[{ name: 'bad.mid', error: 'parse failed' }]}
+        failures={[{ name: 'bad.mid', error: { kind: 'badMidi', detail: 'parse failed' } }]}
         onFiles={() => {}}
         onRemove={() => {}}
         onClear={() => {}}
@@ -90,6 +90,6 @@ describe('FileChips', () => {
     );
     const chip = screen.getByText('bad.mid').closest('[data-state]');
     expect(chip).toHaveAttribute('data-state', 'failed');
-    expect(chip).toHaveAttribute('title', 'parse failed');
+    expect(chip).toHaveAttribute('title', 'Not a MIDI file this converter can read Details: parse failed');
   });
 });

@@ -1,5 +1,10 @@
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, vi } from 'vitest';
+import enFtl from '../../locales/en/app.ftl?raw';
+import { MESSAGE_IDS } from '../src/generated/i18n';
+import { initForTests } from '../src/i18n';
+
+initForTests(enFtl, MESSAGE_IDS);
 
 globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
 globalThis.URL.revokeObjectURL = vi.fn();

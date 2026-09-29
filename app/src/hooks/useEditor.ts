@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useReducer } from 'react';
 import { EDITOR_START, editorReducer } from '../lib/editorState';
-import { errorMessage } from '../lib/errors';
+import { toAppError, type AppError } from '../lib/errors';
 import { plan as computePlan, type VoiceRow } from '../lib/midiremap';
 import type { Missing } from '../lib/missing';
 import { noteInOctave, octaveIndexOf } from '../lib/notes';
@@ -25,12 +25,12 @@ export function useEditor(
   );
   const { targetDrums, sourceNotes, canonOptions, families } = useEngineData(status, src, tgt);
 
-  const { rows, planError } = useMemo<{ rows: VoiceRow[]; planError: string | null }>(() => {
+  const { rows, planError } = useMemo<{ rows: VoiceRow[]; planError: AppError | null }>(() => {
     if (status !== 'ready' || !src || !tgt) return { rows: [], planError: null };
     try {
       return { rows: computePlan(src, tgt, editsToOverrides(edits, srcEdits), missing), planError: null };
     } catch (err) {
-      return { rows: [], planError: errorMessage(err) };
+      return { rows: [], planError: toAppError(err) };
     }
   }, [status, src, tgt, edits, srcEdits, missing]);
 

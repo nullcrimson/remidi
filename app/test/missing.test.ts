@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { VoiceRow } from '../src/lib/midiremap';
 import { MISSING_OPTIONS, missingHint, swappedCanons } from '../src/lib/missing';
+import { t } from '../src/i18n';
 
 function row(canon: string, extra: Partial<VoiceRow>): VoiceRow {
   return {
@@ -22,29 +23,29 @@ const SILENT_SWAP = row('splash.1.hit', { status: 'fallback', otherDrum: true, s
 
 describe('missing drums setting', () => {
   it('offers Nearest then Drop', () => {
-    expect(MISSING_OPTIONS).toEqual([
-      { value: 'nearest', label: 'Nearest' },
-      { value: 'drop', label: 'Drop' },
+    expect(MISSING_OPTIONS.map((o) => [o.value, t(o.label)])).toEqual([
+      ['nearest', 'Nearest'],
+      ['drop', 'Drop'],
     ]);
   });
 
   it('explains the choice before a pair is picked', () => {
-    expect(missingHint('nearest', [])).toBe('play on the closest drum');
-    expect(missingHint('drop', [])).toBe('leave them out');
+    expect(t(missingHint('nearest', []))).toBe('play on the closest drum');
+    expect(t(missingHint('drop', []))).toBe('leave them out');
   });
 
   it('counts drums played on another drum under Nearest', () => {
-    expect(missingHint('nearest', [SAME])).toBe('no drum moves to another drum');
-    expect(missingHint('nearest', [SWAP, SAME, SILENT_SWAP])).toBe('1 drum played on another drum');
-    expect(missingHint('nearest', [SWAP, row('x', { status: 'fallback', otherDrum: true })])).toBe(
+    expect(t(missingHint('nearest', [SAME]))).toBe('no drum moves to another drum');
+    expect(t(missingHint('nearest', [SWAP, SAME, SILENT_SWAP]))).toBe('1 drum played on another drum');
+    expect(t(missingHint('nearest', [SWAP, row('x', { status: 'fallback', otherDrum: true })]))).toBe(
       '2 drums played on another drum',
     );
   });
 
   it('counts drums the setting drops under Drop', () => {
-    expect(missingHint('drop', [SAME])).toBe('no drums dropped');
-    expect(missingHint('drop', [DROPPED_SWAP, SAME])).toBe('1 drum dropped');
-    expect(missingHint('drop', [DROPPED_SWAP, row('y', { status: 'dropped', tgtNote: null, otherDrum: true })])).toBe(
+    expect(t(missingHint('drop', [SAME]))).toBe('no drums dropped');
+    expect(t(missingHint('drop', [DROPPED_SWAP, SAME]))).toBe('1 drum dropped');
+    expect(t(missingHint('drop', [DROPPED_SWAP, row('y', { status: 'dropped', tgtNote: null, otherDrum: true })]))).toBe(
       '2 drums dropped',
     );
   });

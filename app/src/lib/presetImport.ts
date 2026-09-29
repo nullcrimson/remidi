@@ -1,19 +1,17 @@
-import { errorMessage } from './errors';
+import type { Message } from '../generated/i18n';
+import { toAppError } from './errors';
 import type { PresetText } from './files';
 import { MAPPINGS_CAP, type SavedMapping } from './mappings';
 import type { ImportedPreset } from './midiremap';
+import type { NoticeLine } from './notice';
 import { uniqueName, type PresetContent } from './presetFile';
 
-function plural(n: number, one: string, many: string): string {
-  return `${n} ${n === 1 ? one : many}`;
-}
+const atCap = (file: string): NoticeLine => ({ message: { id: 'import-at-cap', args: { file, cap: MAPPINGS_CAP } } });
 
 /** Why a loaded preset lost edits, or null when it kept them all. */
-export function skippedNotice(name: string, skipped: number): string | null {
+export function skippedNotice(name: string, skipped: number): Message | null {
   if (skipped === 0) return null;
-  return skipped === 1
-    ? `1 edit in '${name}' uses a drum this version doesn't know; skipped.`
-    : `${skipped} edits in '${name}' use drums this version doesn't know; skipped.`;
+  return { id: 'preset-skipped', args: { name, count: skipped } };
 }
 
 /**
@@ -25,25 +23,28 @@ export function importPresets(
   existing: SavedMapping[],
   parse: (json: string) => ImportedPreset,
   save: (p: PresetContent) => string | null,
-): string {
+): NoticeLine[] {
   const taken = existing.map((m) => m.name);
   let count = existing.length;
-  const lines = files.map((file) => {
+  return files.map((file): NoticeLine => {
     let preset: ImportedPreset;
     try {
       preset = parse(file.text);
     } catch (err) {
-      return `Couldn't import ${file.name}: ${errorMessage(err)}`;
+      return { failed: file.name, error: toAppError(err) };
     }
-    if (count >= MAPPINGS_CAP) return `Couldn't import ${file.name}: preset limit reached (${MAPPINGS_CAP})`;
+    if (count >= MAPPINGS_CAP) return atCap(file.name);
     const name = uniqueName(preset.name, taken);
     if (!save({ name, src: preset.src, tgt: preset.tgt, edits: preset.edits, srcEdits: preset.srcEdits })) {
-      return `Couldn't import ${file.name}: preset limit reached (${MAPPINGS_CAP})`;
+      return atCap(file.name);
     }
     taken.push(name);
     count += 1;
     const skipped = preset.skipped.length;
-    return skipped > 0 ? `Imported '${name}' (${plural(skipped, 'edit', 'edits')} skipped).` : `Imported '${name}'.`;
+    return {
+      message: skipped > 0
+        ? { id: 'import-done-skipped', args: { name, count: skipped } }
+        : { id: 'import-done', args: { name } },
+    };
   });
-  return lines.join(' ');
 }

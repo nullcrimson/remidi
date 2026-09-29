@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useEffect, useRef, useState } from 'react';
 import type { Editor } from '../hooks/useEditor';
 import { useFilter } from '../hooks/useFilter';
@@ -70,13 +71,13 @@ export function EditView({
       >
         <div className="flex flex-col gap-1">
           <div className="flex items-baseline gap-3">
-            <TextButton onClick={() => setView('convert')}>← Back</TextButton>
+            <TextButton onClick={() => setView('convert')}>{t({ id: 'edit-back' })}</TextButton>
             <h2
               ref={headingRef}
               tabIndex={-1}
               className="text-body font-semibold text-t1 outline-none"
             >
-              Edit notes
+              {t({ id: 'edit-heading' })}
             </h2>
           </div>
           <span className="truncate text-label text-t4">
@@ -84,7 +85,7 @@ export function EditView({
           </span>
         </div>
 
-        {planError !== null && <PlanErrorNotice message={planError} onReset={reset} />}
+        {planError !== null && <PlanErrorNotice error={planError} onReset={reset} />}
 
         <EditFilters
           q={q}
@@ -117,7 +118,7 @@ export function EditView({
               ${textAction()}
             `}
           >
-            {advanced ? '▾' : '▸'} Advanced — reassign source notes
+            {advanced ? '▾' : '▸'} {t({ id: 'edit-advanced' })}
           </button>
           {advanced && (
             <SourceEditor

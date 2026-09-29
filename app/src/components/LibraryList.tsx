@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import type { FocusRef } from '../hooks/useFocusIntent';
 import type { Engine } from '../lib/midiremap';
@@ -175,7 +176,7 @@ export function LibraryList({
   const grouped = starred.length > 0 && rest.length > 0;
 
   return (
-    <div role="group" aria-label={`${label} engine`}>
+    <div role="group" aria-label={t({ id: 'library-group', args: { side: label } })}>
       <div className="mb-3 flex min-w-0 items-baseline gap-2">
         <MonoLabel>{label}</MonoLabel>
         {chosen && (
@@ -197,7 +198,7 @@ export function LibraryList({
           setActiveId(null);
           setFollowSelection(v === '');
         }}
-        ariaLabel={`Filter ${label} engines`}
+        ariaLabel={t({ id: 'library-filter', args: { side: label } })}
         inputRef={filterRef}
         inputProps={{
           role: 'combobox',
@@ -212,14 +213,14 @@ export function LibraryList({
         }}
       />
       <span id={hintId} className="sr-only">
-        Type to filter. Arrow keys move, Enter picks, Ctrl+Enter adds or removes a favourite.
+        {t({ id: 'library-hint' })}
       </span>
       <div
         ref={listRef}
         id={listId}
         role="listbox"
         tabIndex={-1}
-        aria-label={`${label} engines`}
+        aria-label={t({ id: 'library-list', args: { side: label } })}
         className="mr-scroll relative flex max-h-60 flex-col"
       >
         {grouped
@@ -227,12 +228,12 @@ export function LibraryList({
               <>
                 <div
                   role="group"
-                  aria-label="Favourites"
+                  aria-label={t({ id: 'library-favourites' })}
                   className="mb-1 border-b border-hairline pb-1"
                 >
                   {starred.map(option)}
                 </div>
-                <div role="group" aria-label="All engines">
+                <div role="group" aria-label={t({ id: 'library-all' })}>
                   {rest.map(option)}
                 </div>
               </>
@@ -240,7 +241,7 @@ export function LibraryList({
           : [...starred, ...rest].map(option)}
       </div>
       {filtered.length === 0 && (
-        <span className="block py-1.75 pl-3 font-mono text-label text-t5">no matches</span>
+        <span className="block py-1.75 pl-3 font-mono text-label text-t5">{t({ id: 'library-none' })}</span>
       )}
       {tooltip}
     </div>

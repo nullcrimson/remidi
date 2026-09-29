@@ -1,3 +1,4 @@
+import type { Message } from '../generated/i18n';
 import type { SavedMapping } from './mappings';
 import type { Drum, VoiceRow } from './midiremap';
 import { noteName, type OctaveBase } from './notes';
@@ -30,20 +31,23 @@ export function editLines(
   changed: Set<string>,
   defaultSrc: Map<string, number[]>,
   oct: OctaveBase,
-): string[] {
+): Message[] {
   return rows
     .filter((r) => changed.has(r.canon))
-    .map((r) => {
-      const now = `${notes(r.srcNotes, oct)} → ${target(r.tgtNote, oct)}`;
-      const byDefault = `${notes(defaultSrc.get(r.canon) ?? [], oct)} → ${target(r.defaultTgtNote, oct)}`;
-      return `${r.label}: ${now} (default ${byDefault})`;
-    });
+    .map((r) => ({
+      id: 'edit-line',
+      args: {
+        drum: r.label,
+        now: `${notes(r.srcNotes, oct)} → ${target(r.tgtNote, oct)}`,
+        byDefault: `${notes(defaultSrc.get(r.canon) ?? [], oct)} → ${target(r.defaultTgtNote, oct)}`,
+      },
+    }));
 }
 
 /** The first few lines, then how many more there are. */
-export function previewLines(lines: string[]): string[] {
+export function previewLines(lines: Message[]): Message[] {
   if (lines.length <= PREVIEW_LIMIT) return lines;
-  return [...lines.slice(0, PREVIEW_LIMIT), `+${lines.length - PREVIEW_LIMIT} more`];
+  return [...lines.slice(0, PREVIEW_LIMIT), { id: 'edit-more', args: { count: lines.length - PREVIEW_LIMIT } }];
 }
 
 interface EditSet {

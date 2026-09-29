@@ -1,6 +1,6 @@
 import { runBatch } from './batch';
 import type { BatchReply, BatchRequest } from './converter';
-import { errorMessage } from './errors';
+import { toAppError } from './errors';
 import { ready, remap } from './midiremap';
 
 self.onmessage = async (e: MessageEvent<BatchRequest>) => {
@@ -11,7 +11,7 @@ self.onmessage = async (e: MessageEvent<BatchRequest>) => {
     const reply: BatchReply = { id, result };
     self.postMessage(reply, { transfer: result.ok.map((c) => c.bytes.buffer) });
   } catch (err) {
-    const reply: BatchReply = { id, error: errorMessage(err) };
+    const reply: BatchReply = { id, error: toAppError(err) };
     self.postMessage(reply);
   }
 };

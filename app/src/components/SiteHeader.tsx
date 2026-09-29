@@ -1,4 +1,7 @@
-import { content } from '../content/site';
+import { href, targetLabel } from '../content/site';
+import { NAV } from '../generated/i18n';
+import { t } from '../i18n';
+import { LOCALE } from '../locale';
 
 export function SiteHeader() {
   return (
@@ -14,19 +17,19 @@ export function SiteHeader() {
             sm:inline
           "
           >{'— '}
-          </span>drum MIDI converter & remapper
+          </span>{t({ id: 'brand-tagline' })}
         </span>
       </h1>
-      <nav aria-label="Main">
+      <nav aria-label={t({ id: 'nav-main' })}>
         <ul className="flex gap-5 text-ui">
-          {content.nav.map((link) => (
-            <li key={link.href}>
+          {NAV.map((target) => (
+            <li key={href(target, LOCALE)}>
               <a
-                href={link.href}
-                aria-current={link.href === '/' ? 'page' : undefined}
+                href={href(target, LOCALE)}
+                aria-current={'route' in target && target.route === 'converter' ? 'page' : undefined}
                 className="nav-link"
               >
-                {link.label}
+                {t(targetLabel(target))}
               </a>
             </li>
           ))}

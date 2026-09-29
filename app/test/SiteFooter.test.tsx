@@ -2,8 +2,8 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { SiteFooter } from '../src/components/SiteFooter';
-import { content } from '../src/content/site';
 
+const TRADEMARK = 'All engine and product names are trademarks of their respective owners. Drumverter is not affiliated with them.';
 const footerLinks = () => within(screen.getByRole('navigation', { name: 'Site' })).getAllByRole('link');
 
 describe('SiteFooter', () => {
@@ -17,14 +17,14 @@ describe('SiteFooter', () => {
       ['Contact', '/contact/'],
       ['Terms', '/terms/'],
     ]);
-    expect(screen.getByText(content.trademark)).toBeInTheDocument();
+    expect(screen.getByText(TRADEMARK)).toBeInTheDocument();
   });
 
   it('shows gold links, centred', () => {
     render(<SiteFooter />);
     for (const link of footerLinks()) expect(link).toHaveClass('prose-link');
     expect(screen.getByRole('navigation', { name: 'Site' }).firstElementChild).toHaveClass('justify-center');
-    expect(screen.getByText(content.trademark)).toHaveClass('text-center');
+    expect(screen.getByText(TRADEMARK)).toHaveClass('text-center');
   });
 
   it('opens a section in a dialog on a plain click and closes it', async () => {

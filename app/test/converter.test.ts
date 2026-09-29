@@ -8,6 +8,7 @@ vi.mock('../src/lib/midiremap', () => ({
 }));
 
 import { createConverter, type BatchRequest } from '../src/lib/converter';
+import type { AppError } from '../src/lib/errors';
 
 const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 };
 const FILES = [{ name: 'a.mid', bytes: new Uint8Array([1]) }];
@@ -26,7 +27,7 @@ class FakeWorker {
     this.terminated = true;
   }
 
-  fail(id: number, error: string) {
+  fail(id: number, error: AppError) {
     this.onmessage?.({ data: { id, error } } as MessageEvent);
   }
 
@@ -47,8 +48,8 @@ describe('createConverter', () => {
     const worker = new FakeWorker();
     const { convert } = createConverter(() => worker as unknown as Worker);
     const pending = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest');
-    worker.fail(worker.sent[0].id, 'Error: wasm fetch failed');
-    await expect(pending).rejects.toThrow('wasm fetch failed');
+    worker.fail(worker.sent[0].id, { kind: 'internal', detail: 'wasm fetch failed' });
+    await expect(pending).rejects.toEqual({ kind: 'internal', detail: 'wasm fetch failed' });
     expect(remapMock).not.toHaveBeenCalled();
     expect(worker.terminated).toBe(false);
   });

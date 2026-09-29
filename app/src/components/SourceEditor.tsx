@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useId, useMemo, useState } from 'react';
 import type { CanonInfo, Drum } from '../lib/midiremap';
 import type { SrcEdits } from '../lib/overrides';
@@ -64,12 +65,12 @@ function SourceEditorRow({
                   : `truncate text-danger`
             }
           >
-            {current ? label : changed ? '— unassigned' : 'unmapped'}
+            {current ? label : t({ id: changed ? 'source-unassigned' : 'source-unmapped' })}
           </span>
         </button>
         {changed && (
           <IconButton
-            label={`Clear source note ${noteName(note, base)}`}
+            label={t({ id: 'source-clear', args: { note: noteName(note, base) } })}
             size="sm"
             tone="danger"
             onClick={() => onClear(note)}
@@ -189,15 +190,15 @@ export function SourceEditor({
             if (e.key === 'Enter') addNote();
           }}
           inputMode="numeric"
-          aria-label="Add source note"
-          placeholder="add note 0–127"
+          aria-label={t({ id: 'source-add-label' })}
+          placeholder={t({ id: 'source-add-placeholder' })}
           className="w-32"
         />
-        <Button variant="secondary" size="sm" onClick={addNote}>add</Button>
+        <Button variant="secondary" size="sm" onClick={addNote}>{t({ id: 'source-add' })}</Button>
       </div>
       {invalid && (
         <p id={errorId} className="text-caption text-danger">
-          Enter a note number from 0 to 127
+          {t({ id: 'source-add-invalid' })}
         </p>
       )}
     </div>

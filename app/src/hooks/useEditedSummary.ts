@@ -1,3 +1,4 @@
+import type { Message } from '../generated/i18n';
 import { useMemo } from 'react';
 import { editLines, presetMatch, previewLines, sourceDefaults, type PresetMatch } from '../lib/editSummary';
 import type { SavedMapping } from '../lib/mappings';
@@ -9,7 +10,7 @@ export function useEditedSummary(
   editor: Pick<Editor, 'rows' | 'changed' | 'sourceNotes' | 'canonOptions' | 'edits' | 'srcEdits'>,
   oct: OctaveBase,
   preset: SavedMapping | undefined,
-): { count: number; lines: string[]; preset: PresetMatch } {
+): { count: number; lines: Message[]; preset: PresetMatch } {
   const { rows, changed, sourceNotes, canonOptions, edits, srcEdits } = editor;
   const defaults = useMemo(() => sourceDefaults(sourceNotes), [sourceNotes]);
   const canons = useMemo(() => new Set(canonOptions.map((c) => c.canon)), [canonOptions]);

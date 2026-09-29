@@ -32,13 +32,13 @@
         <a
           href="#main"
           class="skip-link"
-        >Skip to content</a>
+        >{{ frame.skip }}</a>
         <header class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 px-1">
           <a
             href="/"
             class="tap brand-mark hover:text-t1"
           >Drumverter</a>
-          <nav aria-label="Main">
+          <nav aria-label="{{ frame.nav_main }}">
             <ul class="flex gap-5 text-ui">
               {% for n in frame.nav %}
               <li>
@@ -56,7 +56,7 @@
           <div class="flex flex-col gap-6 p-5 sm:p-8.5">{% block content %}{% endblock %}</div>
         </main>
         <footer class="flex flex-col gap-2 px-1">
-          <nav aria-label="Site">
+          <nav aria-label="{{ frame.nav_site }}">
             <ul class="flex flex-wrap justify-center gap-x-5 gap-y-2 text-ui">
               {% for l in frame.footer %}
               <li><a href="{{ l.href }}" class="prose-link">{{ l.label }}</a></li>

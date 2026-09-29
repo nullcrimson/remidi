@@ -105,7 +105,7 @@ describe('real WASM module', () => {
   it('throws typed errors', () => {
     expect(thrown(() => real.engine_drums('nope'))).toEqual({
       kind: 'unknownEngine',
-      message: "unknown target engine 'nope'",
+      role: 'target',
       id: 'nope',
     });
     const kind = (f: () => unknown) => (thrown(f) as { kind: string }).kind;

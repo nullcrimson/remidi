@@ -9,7 +9,7 @@ import { gzipSync } from 'node:zlib';
  */
 export const BUDGETS = {
   wasm: 166_000,
-  js: 136_000,
+  js: 146_000,
   css: 10_100,
   fonts: 108_000,
 } as const;

@@ -39,6 +39,7 @@ function contentSecurityPolicy(): Plugin {
 export default defineConfig({
   plugins: [react(), tailwindcss(), contentSecurityPolicy()],
   worker: { format: 'es' },
+  server: { fs: { allow: ['.', '../locales'] } },
   resolve: {
     alias: {
       '@wasm': fileURLToPath(new URL('./src/wasm/midiremap_wasm.js', import.meta.url)),

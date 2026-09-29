@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { usePresetActions, type PresetSetup } from '../src/hooks/usePresetActions';
 import type { SavedMappings } from '../src/hooks/useSavedMappings';
 import type { SavedMapping } from '../src/lib/mappings';
+import { t } from '../src/i18n';
+import type { NoticeLine } from '../src/lib/notice';
 
 const kit: SavedMapping = {
   id: 'p1',
@@ -77,9 +79,9 @@ describe('usePresetActions', () => {
     const { actions, pair, notify } = arrange(2);
     actions.load(kit);
     expect(pair.loadMapping).toHaveBeenCalledWith(kit);
-    expect(notify).toHaveBeenLastCalledWith(
+    expect(notify.mock.lastCall?.[0].map((l: NoticeLine) => ('message' in l ? t(l.message) : l.failed))).toEqual([
       "2 edits in 'My kit' use drums this version doesn't know; skipped.",
-    );
+    ]);
     expect(pair.setView).not.toHaveBeenCalled();
     actions.edit(kit);
     expect(pair.setView).toHaveBeenCalledWith('edit');

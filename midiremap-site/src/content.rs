@@ -1,13 +1,5 @@
-use std::sync::LazyLock;
-
 use serde::Deserialize;
 use serde_json::json;
-
-const PAGES_JSON: &str = include_str!("../../app/src/content/pages.json");
-
-/// The FAQ, guide and legal text the app's modals show, shared through `pages.json`.
-pub static CONTENT: LazyLock<Content> =
-    LazyLock::new(|| serde_json::from_str(PAGES_JSON).expect("pages.json must parse"));
 
 #[derive(Deserialize)]
 #[serde(untagged)]
@@ -59,47 +51,37 @@ pub enum Block {
     Note(Step),
 }
 
-#[derive(Deserialize)]
-pub struct Section {
-    pub key: String,
-    pub slug: String,
-    pub label: String,
-    pub heading: String,
-    pub title: String,
-    pub description: String,
-    pub blocks: Vec<Block>,
-}
-
-impl Section {
-    pub fn href(&self) -> String {
-        format!("/{}/", self.slug)
+#[cfg(test)]
+impl Block {
+    /// The block's structure without its words: the kind, item counts and link targets,
+    /// which every translation must keep.
+    pub fn shape(&self) -> String {
+        let links = |parts: &[Inline]| {
+            parts
+                .iter()
+                .filter_map(Inline::href)
+                .collect::<Vec<_>>()
+                .join(",")
+        };
+        match self {
+            Block::P(parts) => format!("p:[{}]", links(parts)),
+            Block::Steps(s) => format!("steps:{}", s.len()),
+            Block::List(items) => format!(
+                "list:{}:[{}]",
+                items.len(),
+                items.iter().map(|i| links(i)).collect::<Vec<_>>().join("|")
+            ),
+            Block::Faq(q) => format!("faq:{}", q.len()),
+            Block::H(_) => "h".to_owned(),
+            Block::Note(_) => "note".to_owned(),
+        }
     }
 }
 
-#[derive(Deserialize, Clone)]
-pub struct Link {
-    pub label: String,
-    pub href: String,
-}
-
-#[derive(Deserialize)]
-#[serde(untagged)]
-pub enum FooterItem {
-    Section(String),
-    Link(Link),
-}
-
-#[derive(Deserialize)]
-pub struct Content {
-    pub nav: Vec<Link>,
-    pub footer: Vec<FooterItem>,
-    pub trademark: String,
-    pub sections: Vec<Section>,
-}
-
-pub struct ContentPage {
-    pub section: &'static Section,
-    pub json_ld: Option<String>,
+/// A guide, FAQ or legal page in one locale.
+pub struct ContentPage<'a> {
+    pub heading: &'a str,
+    pub blocks: &'a [Block],
 }
 
 /// JSON for a `<script type="application/ld+json">`, with `<` escaped so the text cannot
@@ -108,9 +90,9 @@ pub fn script_json(value: &serde_json::Value) -> String {
     value.to_string().replace('<', "\\u003c")
 }
 
-fn faq_schema(section: &Section) -> serde_json::Value {
-    let entities: Vec<serde_json::Value> = section
-        .blocks
+/// The FAQPage schema for the questions in `blocks`.
+pub fn faq_schema(blocks: &[Block]) -> String {
+    let entities: Vec<serde_json::Value> = blocks
         .iter()
         .flat_map(|b| match b {
             Block::Faq(qas) => qas.as_slice(),
@@ -124,12 +106,14 @@ fn faq_schema(section: &Section) -> serde_json::Value {
             })
         })
         .collect();
-    json!({ "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": entities })
+    script_json(
+        &json!({ "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": entities }),
+    )
 }
 
-fn how_to_schema(section: &Section) -> serde_json::Value {
-    let steps: Vec<serde_json::Value> = section
-        .blocks
+/// The HowTo schema for the steps in `blocks`.
+pub fn how_to_schema(heading: &str, blocks: &[Block]) -> String {
+    let steps: Vec<serde_json::Value> = blocks
         .iter()
         .flat_map(|b| match b {
             Block::Steps(steps) => steps.as_slice(),
@@ -143,78 +127,43 @@ fn how_to_schema(section: &Section) -> serde_json::Value {
             })
         })
         .collect();
-    json!({
+    script_json(&json!({
         "@context": "https://schema.org",
         "@type": "HowTo",
-        "name": section.heading,
+        "name": heading,
         "step": steps,
-    })
-}
-
-impl Content {
-    pub fn pages(&'static self) -> Vec<ContentPage> {
-        self.sections
-            .iter()
-            .map(|section| ContentPage {
-                section,
-                json_ld: match section.key.as_str() {
-                    "faq" => Some(script_json(&faq_schema(section))),
-                    "guide" => Some(script_json(&how_to_schema(section))),
-                    _ => None,
-                },
-            })
-            .collect()
-    }
-
-    /// Footer links in order, sections resolved to their pages.
-    pub fn footer_links(&self) -> Vec<Link> {
-        self.footer
-            .iter()
-            .filter_map(|item| match item {
-                FooterItem::Link(link) => Some(link.clone()),
-                FooterItem::Section(key) => {
-                    self.sections.iter().find(|s| &s.key == key).map(|s| Link {
-                        label: s.label.clone(),
-                        href: s.href(),
-                    })
-                }
-            })
-            .collect()
-    }
+    }))
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
     use super::*;
 
-    #[test]
-    fn every_footer_key_names_a_section_and_slugs_are_unique() {
-        let keys: HashSet<&str> = CONTENT.sections.iter().map(|s| s.key.as_str()).collect();
-        for item in &CONTENT.footer {
-            if let FooterItem::Section(key) = item {
-                assert!(keys.contains(key.as_str()), "{key}");
-            }
-        }
-        assert_eq!(CONTENT.footer_links().len(), CONTENT.footer.len());
-        let slugs: HashSet<&str> = CONTENT.sections.iter().map(|s| s.slug.as_str()).collect();
-        assert_eq!(slugs.len(), CONTENT.sections.len());
+    fn blocks(json: &str) -> Vec<Block> {
+        serde_json::from_str(json).unwrap()
     }
 
     #[test]
-    fn faq_and_guide_pages_carry_schema_built_from_the_text() {
-        let pages = CONTENT.pages();
-        let by_slug = |slug: &str| pages.iter().find(|p| p.section.slug == slug).unwrap();
-        let faq: serde_json::Value =
-            serde_json::from_str(by_slug("faq").json_ld.as_deref().unwrap()).unwrap();
+    fn faq_schema_lists_each_question_with_its_answer() {
+        let faq: serde_json::Value = serde_json::from_str(&faq_schema(&blocks(
+            r#"[{ "p": ["intro"] }, { "faq": [{ "q": "Free?", "a": "Yes." }] }]"#,
+        )))
+        .unwrap();
         assert_eq!(faq["@type"], "FAQPage");
-        assert_eq!(faq["mainEntity"][0]["name"], "Is Drumverter free?");
-        let how: serde_json::Value =
-            serde_json::from_str(by_slug("how-it-works").json_ld.as_deref().unwrap()).unwrap();
-        assert_eq!(how["@type"], "HowTo");
-        assert_eq!(how["step"][0]["name"], "Add your files");
-        assert!(by_slug("terms").json_ld.is_none());
+        assert_eq!(faq["mainEntity"][0]["name"], "Free?");
+        assert_eq!(faq["mainEntity"][0]["acceptedAnswer"]["text"], "Yes.");
+    }
+
+    #[test]
+    fn how_to_schema_names_each_step_without_its_full_stop() {
+        let how: serde_json::Value = serde_json::from_str(&how_to_schema(
+            "Heading",
+            &blocks(r#"[{ "steps": [{ "title": "Add files.", "body": "Drop them." }] }]"#),
+        ))
+        .unwrap();
+        assert_eq!(how["name"], "Heading");
+        assert_eq!(how["step"][0]["name"], "Add files");
+        assert_eq!(how["step"][0]["text"], "Drop them.");
     }
 
     #[test]
