@@ -8,10 +8,22 @@ describe('FileChips', () => {
     render(
       <FileChips files={[]} failures={[]} onFiles={() => {}} onRemove={() => {}} onClear={() => {}} />,
     );
-    expect(screen.getByText(/drop a .mid/i)).toBeInTheDocument();
+    expect(screen.getByText(/drop one or more .mid files/i)).toBeInTheDocument();
     expect(
-      screen.getByText('Preset files you exported (.drumverter.json) can be dropped or chosen the same way.'),
+      screen.getByText('Preset files you exported (.json) can be dropped or chosen the same way.'),
     ).toBeInTheDocument();
+  });
+
+  it('shows a choose-files button that opens the file picker', async () => {
+    const click = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
+    render(
+      <FileChips files={[]} failures={[]} onFiles={() => {}} onRemove={() => {}} onClear={() => {}} />,
+    );
+    const picker = screen.getByRole('button', { name: /Drop one or more \.mid files anywhere Choose files$/ });
+    expect(screen.getByText('Choose files')).toHaveClass('border-accent/40');
+    await userEvent.click(picker);
+    expect(click).toHaveBeenCalledOnce();
+    click.mockRestore();
   });
 
   it('keeps the preset line out of the way once files are added', () => {
@@ -39,7 +51,7 @@ describe('FileChips', () => {
       />,
     );
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Skipped notes.txt, cover.png — only .mid files and exported presets (.drumverter.json) can be added',
+      'Skipped notes.txt, cover.png — only .mid files and exported presets (.json) can be added',
     );
   });
 

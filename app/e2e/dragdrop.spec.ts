@@ -11,9 +11,9 @@ async function drop(page: Page, name: string, bytes: Buffer) {
     { name, data: [...bytes] },
   );
   await page.dispatchEvent('main', 'dragenter', { dataTransfer });
-  await expect(page.getByText('DROP .MID')).toBeVisible();
+  await expect(page.getByText('DROP .MID', { exact: true })).toBeVisible();
   await page.dispatchEvent('main', 'drop', { dataTransfer });
-  await expect(page.getByText('DROP .MID')).toBeHidden();
+  await expect(page.getByText('DROP .MID', { exact: true })).toBeHidden();
 }
 
 test('a dropped MIDI file joins the list', async ({ page }) => {

@@ -21,8 +21,8 @@ type Props = {
   size: keyof typeof SIZE;
   children: ReactNode;
 } & (
-  | { href: string; download?: string; onClick?: never; disabled?: never; reason?: never }
-  | { href?: never; download?: never; onClick: () => void; disabled?: boolean; reason?: string }
+  | { href: string; download?: string; onClick?: () => void; disabled?: never; reason?: never }
+  | { href?: never; download?: never; onClick: () => void; disabled?: boolean; reason?: string; quietReason?: boolean }
 );
 
 export function Button({ ref, variant, size, children, ...rest }: Props) {
@@ -30,14 +30,14 @@ export function Button({ ref, variant, size, children, ...rest }: Props) {
   const className = `
     inline-flex items-center justify-center gap-1.75 font-display text-ui
     font-semibold transition
-    disabled:cursor-not-allowed disabled:opacity-40
+    disabled:pointer-events-none disabled:opacity-40
     pointer-coarse:min-h-11
     ${VARIANT[variant]}
     ${SIZE[size]}
   `;
   if (rest.href !== undefined) {
     return (
-      <a ref={ref} href={rest.href} download={rest.download} className={className}>
+      <a ref={ref} href={rest.href} download={rest.download} onClick={rest.onClick} className={className}>
         {children}
       </a>
     );
@@ -60,7 +60,13 @@ export function Button({ ref, variant, size, children, ...rest }: Props) {
   return (
     <div className="flex flex-col items-center gap-2">
       {button}
-      <p id={reasonId} className="text-caption text-t4">{rest.reason}</p>
+      <p
+        id={reasonId}
+        className={rest.quietReason
+          ? 'sr-only'
+          : `text-caption text-t4`}
+      >{rest.reason}
+      </p>
     </div>
   );
 }

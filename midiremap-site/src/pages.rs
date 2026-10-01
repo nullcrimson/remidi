@@ -12,6 +12,9 @@ pub const ORIGIN: &str = "https://drumverter.com";
 /// The note-map index page, and the folder every engine page lives in.
 pub const NOTE_MAPS: &str = "/engines/";
 
+/// Where Stripe sends a visitor back after a tip.
+pub const THANKS: &str = "/thanks/";
+
 /// The file a page's address is served from, relative to the site root.
 pub fn page_file(path: &str) -> String {
     format!("{}index.html", path.trim_start_matches('/'))

@@ -1,5 +1,6 @@
 import type { Message } from '../generated/i18n';
-import type { MissingDrums, VoiceRow } from './midiremap';
+import type { Drum, MissingDrums, VoiceRow } from './midiremap';
+import { noteName, type OctaveBase } from './notes';
 
 /** What a conversion does with a drum the target lacks, as the converter defines it. */
 export type Missing = MissingDrums;
@@ -17,6 +18,33 @@ const swaps = (rows: VoiceRow[]) => rows.filter((r) => r.otherDrum && r.srcNotes
 /** Drums played by the source that the setting moves to another drum or drops. */
 export function swappedCanons(rows: VoiceRow[]): Set<string> {
   return new Set(swaps(rows).map((r) => r.canon));
+}
+
+/** A target drum's name for each note, the first drum listed on a note winning. */
+export function labelByNote(drums: Drum[]): Map<number, string> {
+  const labels = new Map<number, string>();
+  for (const d of drums) if (!labels.has(d.note)) labels.set(d.note, d.label);
+  return labels;
+}
+
+/** A drum the setting moves: its name and the target drum that plays it now, or `null` when dropped. */
+export interface Swap {
+  drum: string;
+  now: string | null;
+}
+
+/** Each row's drum and the target drum that plays it now, in row order. */
+export function playedOn(rows: VoiceRow[], targetDrums: Drum[], oct: OctaveBase): Swap[] {
+  const labels = labelByNote(targetDrums);
+  return rows.map((r) => ({
+    drum: r.label,
+    now: r.status === 'dropped' || r.tgtNote === null ? null : (labels.get(r.tgtNote) ?? noteName(r.tgtNote, oct)),
+  }));
+}
+
+/** The drums behind {@link missingHint}, in row order. */
+export function swapList(rows: VoiceRow[], targetDrums: Drum[], oct: OctaveBase): Swap[] {
+  return playedOn(swaps(rows), targetDrums, oct);
 }
 
 export function missingHint(missing: Missing, rows: VoiceRow[]): Message {

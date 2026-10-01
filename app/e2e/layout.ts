@@ -26,3 +26,10 @@ export const clipped = (page: Page) => page.evaluate(() => {
   }
   return out;
 });
+
+/** Main-nav labels broken across lines. */
+export const brokenNav = (page: Page) => page.evaluate(() =>
+  [...document.querySelectorAll<HTMLElement>('header nav > ul > li > a')]
+    .filter((a) => a.getClientRects().length > 1 || a.getBoundingClientRect().height > parseFloat(getComputedStyle(a).lineHeight) * 1.5)
+    .map((a) => a.textContent?.trim() ?? ''),
+);

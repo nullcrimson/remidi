@@ -27,7 +27,7 @@ describe('App convert view', () => {
 
     const editButton = () => screen.queryByRole('button', { name: /Edit individual notes/i });
     expect(editButton()).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Convert & download/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Convert' })).toBeDisabled();
 
     await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
     await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);

@@ -11,7 +11,6 @@ import { EditFooter } from './edit/EditFooter';
 import { FamilyRows } from './edit/FamilyRows';
 import { PlanErrorNotice } from './PlanErrorNotice';
 import { SourceEditor } from './SourceEditor';
-import { textAction } from './styles';
 import { TextButton } from './TextButton';
 
 export interface EditViewProps {
@@ -114,12 +113,24 @@ export function EditView({
             type="button"
             onClick={() => setAdvanced((v) => !v)}
             aria-expanded={advanced}
-            className={`
-              self-start
-              ${textAction()}
-            `}
+            className="
+              tap flex w-full items-center justify-between gap-3 rounded-panel
+              border border-hairline px-4 py-3 text-left text-ui text-t2
+              transition-colors
+              hover:border-accent/40 hover:bg-accent/4 hover:text-t1
+              aria-expanded:border-accent/40 aria-expanded:text-t1
+            "
           >
-            {advanced ? '▾' : '▸'} {t({ id: 'edit-advanced' })}
+            {t({ id: 'edit-advanced' })}
+            <span
+              aria-hidden="true"
+              className={`
+                text-accent transition-transform
+                ${advanced ? 'rotate-180' : ''}
+              `}
+            >
+              ▾
+            </span>
           </button>
           {advanced && (
             <SourceEditor

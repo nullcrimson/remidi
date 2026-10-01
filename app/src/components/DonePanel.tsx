@@ -1,7 +1,8 @@
 import type { Translate } from '../i18n';
-import { useT } from '../localeContext';
-import { useEffect, useRef } from 'react';
+import { useLocale } from '../localeContext';
+import { useEffect, useRef, useState } from 'react';
 import { saveFile } from '../lib/download';
+import { reportLink } from '../lib/reportLink';
 import type { FailedFile } from '../lib/batch';
 import type { FileResult } from '../lib/files';
 import { ErrorText } from './ErrorText';
@@ -10,6 +11,7 @@ import { zipFiles } from '../lib/zip';
 import { Button } from './Button';
 import { tag, type TagTone } from './styles';
 import { TextButton } from './TextButton';
+import { TipCard } from './TipCard';
 
 const FREE_ZIP_AFTER_MS = 10_000;
 
@@ -47,6 +49,8 @@ export function DonePanel({
   view,
   targetName,
   targetShort,
+  from,
+  to,
   onViewReport,
   onConvertMore,
   onDropMissing,
@@ -57,16 +61,22 @@ export function DonePanel({
   view: ReportView;
   targetName: string;
   targetShort: string;
+  from: string;
+  to: string;
   onViewReport: () => void;
   onConvertMore: () => void;
   onDropMissing?: () => void;
   editedDrums?: number;
 }) {
-  const t = useT();
+  const { translator } = useLocale();
+  const { t, locale } = translator;
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => headingRef.current?.focus(), []);
+  const [saved, setSaved] = useState(false);
+  const markSaved = () => setSaved(true);
   const single = results.length === 1;
   const downloadZip = () => {
+    markSaved();
     const url = URL.createObjectURL(zipFiles(results));
     saveFile(url, `remapped-${targetShort}.zip`);
     setTimeout(() => URL.revokeObjectURL(url), FREE_ZIP_AFTER_MS);
@@ -100,7 +110,7 @@ export function DonePanel({
 
       {single
         ? (
-            <Button variant="primary" size="lg" href={results[0].url} download={results[0].name}>
+            <Button variant="primary" size="lg" href={results[0].url} download={results[0].name} onClick={markSaved}>
               {t({ id: 'done-download-one' })}
             </Button>
           )
@@ -123,7 +133,7 @@ export function DonePanel({
               <span className="min-w-0 truncate font-mono text-t2">{r.name}</span>
               <span className="flex shrink-0 items-center gap-3">
                 <span className="text-t4">{fileStatus(reportByName.get(r.name), t)}</span>
-                <TextButton href={r.url} download={r.name}>{t({ id: 'done-file-download' })}</TextButton>
+                <TextButton href={r.url} download={r.name} onClick={markSaved}>{t({ id: 'done-file-download' })}</TextButton>
               </span>
             </li>
           ))}
@@ -142,12 +152,22 @@ export function DonePanel({
         </ul>
       )}
 
+      {saved && <TipCard />}
+
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         <TextButton onClick={onViewReport}>{t({ id: 'done-view-report' })}</TextButton>
         <TextButton onClick={onConvertMore}>{t({ id: 'done-convert-more' })}</TextButton>
         {onDropMissing && (
           <TextButton onClick={onDropMissing}>{t({ id: 'drop-missing' })}</TextButton>
         )}
+        <a
+          href={reportLink({ from, to, lang: locale })}
+          target="_blank"
+          rel="noopener"
+          className="prose-link text-ui"
+        >
+          {t({ id: 'done-report-mapping' })}
+        </a>
       </div>
     </div>
   );

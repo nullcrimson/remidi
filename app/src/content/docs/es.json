@@ -1,85 +1,39 @@
 {
   "guide": [
     {
-      "p": [
-        "Drumverter es un conversor gratuito de MIDI de batería que funciona con cualquier plugin. Convierte un groove MIDI de batería escrito para el mapa de notas de un plugin al de otro, todo en tu navegador. Suelta un .mid de GetGood Drums, pásalo a EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI o Guitar Pro, y descarga un archivo listo para usar. Sin subir nada, sin registrarte y sin pagar: tus archivos nunca salen de tu equipo."
-      ]
-    },
-    {
       "steps": [
         {
-          "title": "Agrega tus archivos.",
-          "body": "Suelta uno o más archivos .mid en cualquier lugar de la página, o haz clic para elegirlos."
+          "title": "Añade tus archivos.",
+          "body": "Suelta archivos .mid en cualquier parte de la página o elígelos."
         },
         {
-          "title": "Elige el origen y el destino.",
-          "body": "Elige el plugin para el que se escribió tu MIDI y el plugin al que quieres pasarlo."
+          "title": "Elige dos plugins.",
+          "body": "ORIGEN es el plugin para el que se hizo tu archivo; DESTINO, al que va."
         },
         {
-          "title": "Ajusta los detalles (opcional).",
-          "body": "Abre el editor de notas para cambiar qué nota usa cada pieza, o qué pieza dispara una nota de tu archivo."
-        },
-        {
-          "title": "Descarga.",
-          "body": "Obtén un solo .mid, o un .zip si conviertes varios a la vez."
+          "title": "Convierte y descarga.",
+          "body": "Pulsa «Convertir» y descarga el resultado."
         }
       ]
     },
     {
-      "note": {
-        "title": "Guarda un preset (opcional).",
-        "body": "Usa Guardar como preset en el editor para conservar un par origen→destino con los cambios de notas que hayas hecho. Aparece como un botón debajo de las listas de plugins: con un clic lo vuelves a cargar, ✎ lo abre de nuevo en el editor y el menú ⋯ permite cambiarle el nombre, duplicarlo o eliminarlo. Los presets se quedan en este navegador."
-      }
-    },
-    {
-      "h": "Plugins de batería compatibles"
-    },
-    {
-      "p": [
-        "Drumverter convierte entre los mapas de notas de decenas de plugins de batería, en cualquier dirección, entre ellos:"
-      ]
+      "h": "Consejos"
     },
     {
       "list": [
         [
-          "GetGood Drums (Invasion, Modern & Massive y más)"
+          "Pasa el ratón por el texto punteado para ver qué cambia. En el editor de notas ajustas cualquier pieza."
         ],
         [
-          "Toontrack EZdrummer y Superior Drummer 3"
+          "Guarda un preset para reutilizar tu configuración. Los presets se quedan en este navegador; expórtalo (.json) y suéltalo en la página para usarlo en otro sitio."
         ],
         [
-          "Addictive Drums 2 (XLN Audio)"
-        ],
-        [
-          "Steven Slate Drums SSD5"
-        ],
-        [
-          "BFD3"
-        ],
-        [
-          "Native Instruments Studio Drummer y Abbey Road"
-        ],
-        [
-          "ML Drums y Perfect Drums"
-        ],
-        [
-          "Kits signature de bateristas de MixWave"
-        ],
-        [
-          "General MIDI y Guitar Pro"
-        ],
-        [
-          "…y decenas más: consulta ",
+          "Todos los plugins compatibles y sus notas: ",
           {
-            "text": "el mapa de notas de cada plugin",
+            "text": "mapas de notas",
             "href": "/engines/"
           }
         ]
-      ]
-    },
-    {
-      "p": [
-        "Cada conversión pasa por un vocabulario común de piezas, con alternativas para cada una, así que una nota sin equivalente exacto pasa a la pieza disponible más parecida en lugar de perderse."
       ]
     }
   ],
@@ -95,6 +49,10 @@
           "a": "No. La conversión se hace en tu navegador; los archivos nunca salen de tu dispositivo."
         },
         {
+          "q": "¿Dónde se guardan mis presets?",
+          "a": "Solo en este navegador y en este dispositivo: nunca se suben, y si borras los datos del sitio, se pierden. Para pasar uno a otro navegador, elige «Exportar» en su menú y suelta el archivo .json en la página."
+        },
+        {
           "q": "¿Cómo paso un MIDI de GetGood Drums a EZdrummer?",
           "a": "Agrega el .mid, elige GetGood Drums como origen y EZdrummer como destino, y descarga el archivo convertido."
         },
@@ -108,7 +66,7 @@
         },
         {
           "q": "¿Qué pasa si una pieza no existe en el plugin de destino?",
-          "a": "Drumverter usa una cadena de alternativas para cada pieza y elige la más parecida que haya disponible. Además, te avisa de todo lo que no pudo convertir."
+          "a": "Drumverter la reemplaza por la pieza más parecida que tenga el plugin y, en el informe, te muestra todo lo que no pudo convertir."
         }
       ]
     }
@@ -116,12 +74,22 @@
   "issue": [
     {
       "p": [
-        "¿Encontraste un mapeo incorrecto o quieres que se agregue un plugin? Abre un ",
+        "¿Encontraste un mapeo incorrecto o quieres que se agregue un plugin? ",
+        {
+          "text": "Cuéntamelo aquí",
+          "href": "https://tally.so/r/J95eYd"
+        },
+        ", sin necesidad de cuenta."
+      ]
+    },
+    {
+      "p": [
+        "¿Tienes cuenta de GitHub? También puedes abrir un ",
         {
           "text": "issue en GitHub",
           "href": "https://github.com/nullcrimson/remidi/issues"
         },
-        " con los detalles."
+        "."
       ]
     },
     {
@@ -170,7 +138,7 @@
     },
     {
       "p": [
-        "La conversión se hace completamente en tu navegador: los archivos no se suben ni se almacenan. Drumverter solo recopila estadísticas de uso anónimas y sin cookies (como las visitas a las páginas) para saber si la herramienta resulta útil; tu MIDI nunca sale de tu dispositivo. Drumverter puede cambiar o dejar de funcionar en cualquier momento. Al usarlo, aceptas estos términos."
+        "La conversión se hace completamente en tu navegador: los archivos no se suben ni se almacenan. Drumverter solo recopila estadísticas de uso anónimas y sin cookies (como las visitas a las páginas) para saber si la herramienta resulta útil; tu MIDI nunca sale de tu dispositivo. Drumverter puede cambiar o dejar de funcionar en cualquier momento. Al usarlo, aceptas estos términos. Si me invitas a un café, el pago se hace en la propia página de Stripe; Drumverter nunca ve los datos de tu tarjeta ni del pago."
       ]
     }
   ]

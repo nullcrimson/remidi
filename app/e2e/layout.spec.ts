@@ -1,16 +1,17 @@
 import type { Page } from '@playwright/test';
 import { addFiles, expect, kickAndChina, test } from './fixtures';
-import { clipped, overflowing } from './layout';
+import { brokenNav, clipped, overflowing } from './layout';
 import { messages, pseudoFtl } from './messages';
 
 const LOCALES = ['en-XA', 'es', 'pt', 'de', 'ja', 'fr', 'ru', 'pl', 'it', 'zh', 'ko'];
-const STATIC = ['engines/', 'engines/ezdrummer/', 'convert/ggd-invasion-to-ezdrummer/', 'how-it-works/', 'faq/', 'terms/'];
+const STATIC = ['engines/', 'engines/ezdrummer/', 'convert/ggd-invasion-to-ezdrummer/', 'how-it-works/', 'faq/', 'terms/', 'thanks/'];
 
 const prefix = (code: string) => (code === 'en-XA' ? 'pl' : code);
 
 async function fits(page: Page, state: string) {
   expect(await overflowing(page), `${state}: page scrolls sideways`).toBe(false);
   expect(await clipped(page), `${state}: clipped text`).toEqual([]);
+  expect(await brokenNav(page), `${state}: nav label on two lines`).toEqual([]);
 }
 
 test('the probe flags text cut off by its box', async ({ page }) => {
@@ -48,7 +49,7 @@ for (const code of LOCALES) {
       await page.getByRole('button', { name: m('summary-edit') }).click();
       await fits(page, 'edit view');
       await page.getByRole('button', { name: m('edit-back') }).click();
-      await page.getByRole('button', { name: m('convert-button') }).click();
+      await page.getByRole('button', { name: m('convert-button'), exact: true }).click();
       await fits(page, 'done');
       await page.getByRole('button', { name: m('done-view-report') }).click();
       await fits(page, 'report');

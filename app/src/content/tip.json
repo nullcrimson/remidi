@@ -1,0 +1,8 @@
+{
+  "amounts": [
+    { "euros": 3, "href": "https://buy.stripe.com/aFacN5bdV6xx5Pg8ZG6wE00" },
+    { "euros": 5, "href": "https://buy.stripe.com/dRm8wPdm39JJb9A2Bi6wE01", "featured": true },
+    { "euros": 10, "href": "https://buy.stripe.com/5kQeVddm3aNN91sa3K6wE02" }
+  ],
+  "other": "https://buy.stripe.com/eVq7sL81J4pp91s1xe6wE03"
+}

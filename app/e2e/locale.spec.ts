@@ -136,7 +136,8 @@ test('a blocked language file on /pl/ shows the Polish load-failure notice and n
   await expect(page.locator('#load-failed')).toBeVisible();
   await expect(page.locator('#load-failed')).toContainText('Nie udało się wczytać aplikacji Drumverter.');
   await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
-  await expect(page.locator('#root')).toBeEmpty();
+  await expect(page.locator('#root > :not(h1.sr-only)')).toHaveCount(0);
+  await expect(page.locator('#root > h1.sr-only')).toHaveCount(1);
   expect(pageErrors.every((e) => /locale-[\w-]+\.js|Failed to load resource/.test(e))).toBe(true);
   pageErrors.length = 0;
 });

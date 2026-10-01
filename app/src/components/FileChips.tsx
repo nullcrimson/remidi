@@ -36,10 +36,28 @@ export function FileChips({
     return (
       <div className="flex flex-col gap-2 border-b border-hairline pb-4.5">
         <FilePicker ref={pickerRef} onFiles={onFiles}>
-          <div className="flex items-center gap-3">
+          <div className="
+            group flex flex-wrap items-center gap-3 rounded-panel border
+            border-dashed border-white/15 px-4 py-3.5 transition-colors
+            hover:border-accent/60 hover:bg-accent/4
+            in-focus-visible:border-accent/60
+          "
+          >
             <MidBadge />
-            <span className="flex-1 text-body text-t4">
+            <span className="flex-1 text-body text-t3">
               {t({ id: 'files-drop' })}
+            </span>
+            {' '}
+            <span className="
+              inline-flex items-center justify-center rounded-chip border
+              border-accent/40 px-3 py-1.5 font-display text-ui font-semibold
+              text-accent transition
+              group-hover:border-accent group-hover:bg-accent/8
+              max-sm:w-full
+              pointer-coarse:min-h-11
+            "
+            >
+              {t({ id: 'files-choose' })}
             </span>
           </div>
         </FilePicker>

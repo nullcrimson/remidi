@@ -9,13 +9,22 @@ describe('SiteFooter', () => {
   it('links every section to its page, plus the note maps', () => {
     render(<SiteFooter />);
     expect(footerLinks().map((l) => [l.textContent, l.getAttribute('href')])).toEqual([
-      ['How it works', '/how-it-works/'],
+      ['How to use', '/how-it-works/'],
       ['FAQ', '/faq/'],
       ['Note maps', '/engines/'],
       ['Report an issue', '/report-an-issue/'],
       ['Contact', '/contact/'],
       ['Terms', '/terms/'],
+      ['Buy me a coffee', 'https://buy.stripe.com/eVq7sL81J4pp91s1xe6wE03'],
     ]);
+  });
+
+  it('opens the tip page in a new tab, marked with a coffee', () => {
+    render(<SiteFooter />);
+    const tip = screen.getByRole('link', { name: 'Buy me a coffee' });
+    expect(tip).toHaveAttribute('target', '_blank');
+    expect(tip).toHaveAttribute('rel', 'noopener');
+    expect(tip).toHaveClass('tip-link');
   });
 
   it('leaves the trademark notice to the terms', () => {
@@ -66,22 +75,37 @@ describe('SiteFooter', () => {
     );
   });
 
-  it('shows the steps and supported engines in How it works, linking internal pages in place', async () => {
+  it('shows three short steps and tips in How to use, linking internal pages in place', async () => {
     render(<SiteFooter />);
-    await userEvent.click(screen.getByRole('link', { name: 'How it works' }));
+    await userEvent.click(screen.getByRole('link', { name: 'How to use' }));
     const dialog = screen.getByRole('dialog', { name: 'How to convert drum MIDI' });
-    expect(within(dialog).getByText('Pick source and target.')).toBeVisible();
-    expect(within(dialog).getByRole('heading', { name: 'Supported drum engines' })).toBeVisible();
-    const maps = within(dialog).getByRole('link', { name: 'every engine’s note map' });
+    expect(within(dialog).getAllByRole('listitem').map((li) => li.textContent?.split('.')[0])).toEqual([
+      'Add your files',
+      'Pick two engines',
+      'Convert and download',
+      'Hover dotted text to see what changed; the note editor fixes any drum',
+      'Save a preset to reuse your setup',
+      'Every supported engine and its notes: note maps',
+    ]);
+    expect(within(dialog).queryByRole('heading', { name: 'Supported drum engines' })).not.toBeInTheDocument();
+    const maps = within(dialog).getByRole('link', { name: 'note maps' });
     expect(maps).toHaveAttribute('href', '/engines/');
     expect(maps).not.toHaveAttribute('target');
   });
 
+  it('tells where presets live and how to move them', async () => {
+    render(<SiteFooter />);
+    await userEvent.click(within(screen.getByRole('navigation', { name: 'Site' })).getByRole('link', { name: 'FAQ' }));
+    const dialog = screen.getByRole('dialog', { name: 'Frequently asked questions' });
+    expect(within(dialog).getByRole('heading', { name: 'Where are my presets saved?' })).toBeVisible();
+    expect(within(dialog).getByText(/Only in this browser on this device/)).toBeVisible();
+    expect(within(dialog).getByText(/choose Export in its menu/)).toBeVisible();
+  });
+
   it('keeps dialog content in the DOM while collapsed (crawlable)', () => {
     render(<SiteFooter />);
-    expect(screen.getByText(/free drum MIDI remapper for every sample engine/i)).toBeInTheDocument();
+    expect(screen.getByText('Pick two engines.')).toBeInTheDocument();
     expect(screen.getByText(/files never leave your device/i)).toBeInTheDocument();
-    expect(screen.getByText('Steven Slate Drums SSD5')).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

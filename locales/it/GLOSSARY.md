@@ -17,21 +17,27 @@
 | drag & drop a file | trascina (dropzone: "TRASCINA .MID", "Trascina un .mid ovunque") |
 | pick a file | scegli / fai clic per sceglierlo |
 | the on-screen piano | tastiera |
-| exact / approximated / dropped / unrecognized | esatta / approssimata / scartata / non riconosciuta (feminine: they qualify "nota"; "scartato" when it qualifies a strumento) |
-| Nearest / Drop (missing-drums options) | Più vicino / Scarta |
+| exact / approximated / dropped / unrecognized | esatta / sostituita / rimossa / non riconosciuta (feminine: they qualify "nota"; "rimosso" when it qualifies a strumento). Never "approssimata" or "scartata" (2026-10-01: they read technical; the words now match the options) |
+| missing drums (setting) | Strumenti mancanti — plain words, as label and in errors |
+| Nearest / Drop (missing-drums options) | Sostituisci / Rimuovi (verbs, so the option says what happens); hints "sostituiti con lo strumento più simile" / "rimossi dal file" |
+| closest / nearest drum | lo strumento più simile (not "più vicino", which reads as physical distance) |
+| tip / Leave a tip | "Offrimi un caffè" (footer link), "Sostieni Drumverter" (tip card), "Se offri un caffè…" in prose — never "mancia" (restaurant word) |
+| limit reached | said plainly: "Non c'è spazio per altri preset: massimo 20" — never "limite raggiunto" |
 | reset | ripristina |
 | cancel / close / dismiss | annulla / chiudi / ignora |
 | download / save / delete | scarica / salva / elimina |
 | reload | ricarica |
 | favourites | preferiti |
 | report | report |
-| fallback | sostituto |
+| fallback | sostituto ("ogni strumento ha i suoi sostituti") — never "vocabolario comune", "catena di sostituti" or "slot" in user text |
 
 ## Tone and forms
 
 Informal "tu", as in Apple and Google Italian UIs, with bare imperatives on buttons and in instructions ("Scegli", "Aggiungi", "Fai clic", "Controlla la connessione e riprova"). Errors use the standard impersonal "Impossibile …" (Windows, macOS, Google). Confirmation questions use the infinitive ("Eliminare i preset salvati…?").
 
-Short hint text under an option describes what the option does, third person ("li suona sullo strumento più vicino", "li scarta"), matching the tooltip.
+Short hint text under an option says what happens to the missing drums ("sostituiti con lo strumento più simile", "rimossi dal file"), matching the tooltip.
+
+Register: friendly and plain, one musician to another. Errors say what happened in plain words ("Il convertitore non riesce a leggere questo file: non sembra un file MIDI"); prefer verbs to abstract nouns ("Le note nel file restano come sono" rather than "Cambia solo l'etichetta"); no calques of English legal or technical phrasing ("secondo disponibilità", not "come disponibile"; "C-1 o C-2", not "convenzioni di ottava").
 
 Counted words agree in gender and number with the implied noun, so number-only chips get a one/other select even where English has none ("1 approssimata" / "3 approssimate"). "File", "plugin" and "preset" are invariable, so "3 file", "80 plugin", "2 preset".
 

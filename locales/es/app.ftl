@@ -1,10 +1,10 @@
 brand-tagline = conversor de MIDI de batería
 nav-converter = Conversor
 nav-note-maps = Mapas de notas
-section-guide-label = Cómo funciona
+section-guide-label = Cómo usarlo
 section-guide-heading = Cómo convertir MIDI de batería
 section-guide-title = Cómo convertir MIDI de batería entre plugins | Drumverter
-section-guide-description = Convierte MIDI de batería entre GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums y más de 80 plugins en cuatro pasos, gratis y en tu navegador.
+section-guide-description = Convierte MIDI de batería entre GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums y más de 80 plugins en tres pasos, gratis y en tu navegador.
 section-faq-label = FAQ
 section-faq-heading = Preguntas frecuentes
 section-faq-title = Preguntas frecuentes sobre el conversor de MIDI de batería | Drumverter
@@ -25,14 +25,14 @@ skip-to-content = Saltar al contenido
 nav-main = Principal
 nav-site = Sitio
 lang-menu-label = Idioma
-lang-load-failed = No se pudo cargar el idioma { $language }. Revisa tu conexión y vuelve a intentarlo.
+lang-load-failed = No se pudo cargar el idioma { $language }. Revisa tu conexión a internet y vuelve a intentarlo.
 lang-offer = Esta página está disponible en español →
 open-converter = Abrir el conversor →
 error-unknown-engine = Plugin de { $role ->
     [source] origen
    *[target] destino
 } desconocido: “{ $id }”
-error-bad-midi = No es un archivo MIDI que este conversor pueda leer
+error-bad-midi = El conversor no puede leer este archivo: no parece un MIDI
 error-bad-preset = No es un archivo de preset
 error-bad-overrides = No se pudieron leer los cambios de notas
 error-bad-missing = Opción desconocida para las piezas que faltan
@@ -41,7 +41,7 @@ error-internal = Algo salió mal
 error-wasm-unavailable = No se pudo cargar el conversor
 error-detail = Detalles: { $detail }
 blocker-files-and-engines = Agrega un archivo .mid y elige los dos plugins
-blocker-files = Agrega un archivo .mid para convertir
+blocker-files = Primero agrega un archivo .mid
 blocker-engines = Elige el ORIGEN y el DESTINO
 channel-auto = Auto
 channel-all = Todos los canales
@@ -49,19 +49,19 @@ channel-number = { $channel }
 channel-hint-auto = pistas con golpes en el canal 10 · las demás sin cambios
 channel-hint-all = se convierten todos los canales
 channel-hint-one = solo se convierte el canal { $channel }
-missing-nearest = Aproximar
-missing-drop = Omitir
-missing-hint-nearest = suenan en la pieza más parecida
-missing-hint-drop = se omiten
+missing-nearest = Reemplazar
+missing-drop = Quitar
+missing-hint-nearest = se reemplazan por la pieza más parecida
+missing-hint-drop = se quitan del archivo
 missing-hint-moved = { $count ->
-    [0] ninguna pieza suena en otra
-    [one] { $count } pieza suena en otra
-   *[other] { $count } piezas suenan en otras
+    [0] no se reemplaza ninguna pieza
+    [one] se reemplaza { $count } pieza
+   *[other] se reemplazan { $count } piezas
 }
 missing-hint-dropped = { $count ->
-    [0] no se omite ninguna pieza
-    [one] { $count } pieza omitida
-   *[other] { $count } piezas omitidas
+    [0] no se quita ninguna pieza
+    [one] se quita { $count } pieza
+   *[other] se quitan { $count } piezas
 }
 files-unreadable = { $count ->
     [one] No se pudo leer { $names } — vuelve a elegirlo.
@@ -72,15 +72,15 @@ preset-skipped = { $count ->
    *[other] { $count } cambios en “{ $name }” usan piezas que esta versión no reconoce; se omitieron.
 }
 import-failed = No se pudo importar { $file }: { $error }
-import-at-cap = No se pudo importar { $file }: se alcanzó el límite de presets ({ $cap })
-import-done = Se importó “{ $name }”.
-import-done-skipped = Se importó “{ $name }” ({ $count ->
+import-at-cap = No se pudo importar { $file }: ya no caben más presets (máximo { $cap })
+import-done = Preset “{ $name }” importado.
+import-done-skipped = Preset “{ $name }” importado ({ $count ->
     [one] se omitió { $count } cambio
    *[other] se omitieron { $count } cambios
 }).
 edit-line = { $drum }: { $now } (predeterminado: { $byDefault })
 edit-more = +{ $count } más
-app-intro = Convierte MIDI de batería entre los mapas de notas de GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro y más de 80 plugins distintos. Funciona en tu navegador; los archivos nunca se suben.
+app-intro = Pasa MIDI de batería entre GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro y más de 80 plugins. Todo pasa en tu navegador: tus archivos no se suben a ningún servidor.
 app-loading = Cargando el conversor…
 convert-error = Error: { $error }
 notice-dismiss = Descartar
@@ -89,7 +89,7 @@ channel-tip-title = Qué notas se convierten
 channel-tip = Auto convierte todas las pistas que usan el canal 10 —el canal de batería de General MIDI— y no toca los demás instrumentos. Si tu batería está en otro canal, elige ese canal o Todos los canales.
 missing-label = Piezas que faltan
 missing-tip-title = Si al plugin de destino le falta una pieza
-missing-tip = Aproximar la hace sonar en la pieza más parecida que tenga el plugin de destino: un China suena en un crash, el Tom 4 en el Tom 3. Omitir la quita. Las ghost notes, los rimshots y otras formas de tocar una pieza que el destino sí tiene siempre pasan a un golpe normal en esa pieza.
+missing-tip = Reemplazar la cambia por la pieza más parecida que tenga el plugin de destino: un China pasa a un crash, el Tom 4 al Tom 3. Quitar la saca del archivo. Las ghost notes, los rimshots y otras formas de tocar una pieza que el destino sí tiene siempre pasan a un golpe normal en esa pieza.
 edited-review = { $count ->
     [one] { $count } pieza editada
    *[other] { $count } piezas editadas
@@ -117,14 +117,14 @@ edited-count-unsaved = { $count ->
 } · sin guardar
 octave-label = Las octavas empiezan en
 octave-tip-title = Solo cambia los nombres
-octave-tip = Define en qué octava está la nota MIDI 0, para que los nombres de las notas coincidan con los de tu DAW. Solo cambia lo que se muestra: las notas que se escriben en el archivo nunca cambian.
+octave-tip = Define en qué octava está la nota MIDI 0, para que los nombres de las notas coincidan con los de tu DAW. Solo cambia cómo se muestran: las notas del archivo no cambian.
 canon-picker-label = Pieza para { $note }
 canon-picker-heading = ORIGEN · { $note }
 close = Cerrar
 dropzone-heading = SUELTA .MID
-dropzone-presets = o un preset exportado (.drumverter.json)
+dropzone-presets = o un preset exportado (.json)
 convert-running = convirtiendo
-convert-button = Convertir y descargar
+convert-button = Convertir
 engine-from = ORIGEN
 engine-to = DESTINO
 engine-swap = Intercambiar origen y destino
@@ -137,7 +137,7 @@ mid-badge = MID
 plan-error = No se pudo cargar el editor de notas: { $error }
 plan-error-reset = Restablecer cambios
 crash-heading = Algo salió mal
-crash-body = El conversor encontró un error del que no pudo recuperarse. Normalmente se soluciona al recargar la página; si sigue pasando, puede que un preset guardado esté dañado.
+crash-body = El conversor tuvo un error y no pudo seguir. Casi siempre se arregla recargando la página; si vuelve a pasar, puede que un preset guardado esté dañado.
 crash-reload = Recargar
 crash-reset = Borrar datos guardados…
 crash-reset-confirm = ¿Eliminar los presets guardados, los favoritos y la configuración?
@@ -152,6 +152,24 @@ summary-remapped = Piezas reasignadas: { $remapped } de { $total }
 summary-edit-tip-title = Ajusta cada pieza
 summary-edit-tip = Asigna cualquier pieza a otra nota de destino: elígela en la lista de piezas o en el piano. Tus cambios se aplican a la conversión y puedes guardarlos como preset.
 summary-edit = Editar notas una por una →
+missing-detail-moved = Reemplazadas por otra pieza
+missing-detail-dropped = Quitadas del archivo
+detail-edit = Cambiar en el editor de notas →
+summary-detail-heading = { $total ->
+    [one] { $total } pieza en este mapa
+   *[other] { $total } piezas en este mapa
+}
+summary-detail-moved = en una nota nueva
+summary-detail-same = ya en la nota correcta
+summary-detail-variant = en una variante parecida
+summary-detail-swapped = reemplazadas por otra pieza
+summary-detail-dropped = quitadas
+summary-detail-unplayed = no están en el plugin de origen
+summary-reason-same = misma nota en ambos plugins
+summary-reason-variant = sin equivalente exacto en { $target }: suena una variante de la misma pieza
+summary-reason-swapped = sin equivalente en { $target }: suena la pieza más parecida
+summary-reason-dropped = sin equivalente en { $target }
+summary-reason-unplayed = sin nota en { $source }
 row-extras-dropped = { $count ->
     [one] Hay { $count } nota de origen más que hace sonar { $drum }: { $notes }. Ninguna tiene destino.
    *[other] Hay { $count } notas de origen más que hacen sonar { $drum }: { $notes }. Ninguna tiene destino.
@@ -177,7 +195,7 @@ edit-changes = { $count ->
 edit-reset-all = Restablecer todo
 edit-done = Listo
 row-no-source = sin origen
-row-dropped = omitida
+row-dropped = quitada
 rows-drum = PIEZA
 rows-source = ORIGEN
 rows-target = DESTINO
@@ -193,7 +211,7 @@ preset-update = Actualizar
 preset-save-new = Guardar nuevo
 preset-save = Guardar
 preset-exists = Ya existe un preset para { $pair }.
-preset-at-cap = Se alcanzó el límite de presets ({ $cap }).
+preset-at-cap = Ya no caben más presets: el máximo es { $cap }.
 source-unassigned = — sin asignar
 source-unmapped = sin mapear
 source-clear = Quitar la nota de origen { $note }
@@ -208,9 +226,10 @@ library-list = Plugins de { $side }
 library-favourites = Favoritos
 library-all = Todos los plugins
 library-none = sin resultados
-files-skipped = Omitidos: { $names } — solo se pueden agregar archivos .mid y presets exportados (.drumverter.json)
-files-drop = Suelta un .mid en cualquier lugar o haz clic para elegirlo
-files-presets = Los archivos de preset que exportaste (.drumverter.json) se pueden soltar o elegir de la misma forma.
+files-skipped = Omitidos: { $names } — solo se pueden agregar archivos .mid y presets exportados (.json)
+files-drop = Suelta uno o varios .mid en cualquier lugar
+files-choose = Elegir archivos
+files-presets = Los archivos de preset que exportaste (.json) se pueden soltar o elegir de la misma forma.
 files-remove = Quitar { $name }
 files-add-more = + agregar más
 files-clear = quitar todo
@@ -228,19 +247,19 @@ chip-overrides = { $count ->
 chip-unavailable = plugin no disponible
 chip-edit = Editar notas de { $name }
 chip-more = Más acciones para { $name }
-chip-at-cap = límite de presets alcanzado
+chip-at-cap = no caben más presets
 done-tag-converted = { $count ->
     [one] { $count } nota convertida
    *[other] { $count } notas convertidas
 }
 done-tag-nothing = no se convirtió nada
 done-tag-approximated = { $count ->
-    [one] { $count } aproximada
-   *[other] { $count } aproximadas
+    [one] { $count } reemplazada
+   *[other] { $count } reemplazadas
 }
 done-tag-dropped = { $count ->
-    [one] { $count } omitida
-   *[other] { $count } omitidas
+    [one] { $count } quitada
+   *[other] { $count } quitadas
 }
 done-tag-unrecognized = { $count ->
     [one] { $count } no reconocida
@@ -248,10 +267,10 @@ done-tag-unrecognized = { $count ->
 }
 done-tag-untouched = { $count } sin cambios en otros canales
 done-tag-failed = { $count } con error
-done-file-approximated = { $count } aprox.
+done-file-approximated = { $count } reempl.
 done-file-dropped = { $count ->
-    [one] { $count } omitida
-   *[other] { $count } omitidas
+    [one] { $count } quitada
+   *[other] { $count } quitadas
 }
 done-file-unrecognized = { $count } no rec.
 done-file-clean = sin pérdidas
@@ -267,14 +286,23 @@ done-download-one = ↓ Descargar .mid
 done-download-zip = ↓ Descargar { $count } archivos (.zip)
 done-files = Archivos convertidos
 done-file-download = ↓ .mid
+tip-link = Invítame a un café
+tip-ask = Hago Drumverter yo solo, en mi tiempo libre. Si te ahorró reasignar notas a mano, un café me ayuda a mantenerlo gratis y sin anuncios.
+tip-amounts = Apoya el proyecto
+tip-other = Otra cantidad
+thanks-title = Gracias | Drumverter
+thanks-description = Gracias por apoyar Drumverter, el conversor gratuito de MIDI de batería.
+thanks-heading = ¡Gracias!
+thanks-body = Tu café ayuda a que Drumverter siga siendo gratis y sin anuncios. Stripe te enviará el recibo por correo.
 done-view-report = Ver informe →
-done-convert-more = Convertir más
-drop-missing = Volver a convertir sin las piezas que faltan
-report-dropped = Omitidas
-report-approximated = Aproximadas
+done-convert-more = Nueva conversión
+done-report-mapping = ¿Mapeo incorrecto? Avísame
+drop-missing = Quitar las piezas que faltan y convertir de nuevo
+report-dropped = Quitadas
+report-approximated = Reemplazadas
 report-unrecognized = No reconocidas
 report-dropped-hint = { $target } no tiene esta pieza
-report-approximated-hint = suenan en la pieza más parecida
+report-approximated-hint = se reemplazaron por la pieza más parecida
 report-unrecognized-hint = no están en el mapa de { $source } — se quitaron del archivo
 report-pick-target = Elegir destino →
 report-assign = Asignar →
@@ -286,7 +314,7 @@ report-contact = ¿Un mapeo incorrecto o falta un plugin? Abre un { $issue } o e
 report-contact-issue = issue en GitHub
 report-unchanged = Sin cambios
 report-unchanged-hint = otras pistas / canales
-report-unchanged-entry = Notas de otras pistas o canales, que se dejaron como estaban
+report-unchanged-entry = Notas de otras pistas o canales: quedan como estaban
 report-channel = Canal de batería →
 report-nothing = No se convirtió nada
 report-nothing-channel = — no hay notas en el canal de batería elegido. Elige otro canal de batería o Todos los canales.
@@ -300,8 +328,8 @@ converter-og-description = Convierte MIDI de batería entre GetGood Drums, EZdru
 converter-image-alt = Drumverter — conversor de MIDI de batería entre plugins
 converter-twitter-description = Reasigna MIDI de batería entre los mapas de notas de distintos plugins, gratis y en el navegador.
 converter-app-description = Herramienta gratuita en el navegador que reasigna MIDI de batería entre los mapas de notas de distintos plugins.
-converter-noscript = Drumverter es un conversor gratuito de MIDI de batería. Reasigna un archivo MIDI de batería escrito para el mapa de notas de un plugin al de otro —por ejemplo, de GetGood Drums a EZdrummer, Superior Drummer, Addictive Drums, General MIDI o Guitar Pro— mediante un vocabulario común de piezas con alternativas para cada una. Todo funciona en tu navegador; activa JavaScript para usar el conversor.
-load-failed = No se pudo cargar Drumverter. Revisa tu conexión y vuelve a cargar la página.
+converter-noscript = Drumverter es un conversor gratuito de MIDI de batería. Reasigna un archivo MIDI de batería escrito para el mapa de notas de un plugin al de otro —por ejemplo, de GetGood Drums a EZdrummer, Superior Drummer, Addictive Drums, General MIDI o Guitar Pro— y, si al destino le falta una pieza, usa la más parecida que tenga. Todo pasa en tu navegador; activa JavaScript para usar el conversor.
+load-failed = No se pudo cargar Drumverter. Revisa tu conexión a internet y recarga la página.
 load-failed-reload = Recargar
 maps-breadcrumb = Ruta de navegación
 maps-index-title = Mapas de notas MIDI de batería de { $count } plugins | Drumverter
@@ -334,15 +362,15 @@ maps-column-drum = Pieza
 maps-conversion-tables = Tablas de conversión
 maps-pair-heading = Convertir { $sourceMidi } a { $target }
 maps-pair-title = Convertir { $sourceMidi } a { $target } | Drumverter
-maps-pair-description = Convierte MIDI de batería de { $source } a { $target }. Notas exactas: { $exact }, aproximadas: { $approximated }, omitidas: { $dropped }.
+maps-pair-description = Convierte MIDI de batería de { $source } a { $target }. Notas exactas: { $exact }, reemplazadas: { $approximated }, quitadas: { $dropped }.
 maps-pair-description-more = Conversor gratuito en el navegador.
 maps-pair-summary = De las { $total } notas de { $source }, { $exact } { $exact ->
     [one] coincide
    *[other] coinciden
 } exactamente con { $target }, { $approximated } { $approximated ->
-    [one] se aproxima
-   *[other] se aproximan
-} con la pieza disponible más parecida y { $dropped } { $dropped ->
+    [one] se reemplaza
+   *[other] se reemplazan
+} por la pieza disponible más parecida y { $dropped } { $dropped ->
     [one] no tiene
    *[other] no tienen
 } equivalente.
@@ -353,12 +381,12 @@ maps-exact-count = { $count ->
    *[other] { $count } exactas
 }
 maps-approximated-count = { $count ->
-    [one] { $count } aproximada
-   *[other] { $count } aproximadas
+    [one] { $count } reemplazada
+   *[other] { $count } reemplazadas
 }
 maps-dropped-count = { $count ->
-    [one] { $count } omitida
-   *[other] { $count } omitidas
+    [one] { $count } quitada
+   *[other] { $count } quitadas
 }
 maps-rows = Filas
 maps-rows-changes = Cambios { $count }
@@ -368,7 +396,7 @@ maps-column-to = a
 maps-column-result = Resultado
 maps-no-equivalent = sin equivalente
 maps-status-exact = exacta
-maps-status-approximated = aproximada
-maps-status-dropped = omitida
+maps-status-approximated = reemplazada
+maps-status-dropped = quitada
 maps-more-from = Más conversiones desde { $engine }
 maps-full-maps = Mapas de notas completos:

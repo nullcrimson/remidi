@@ -45,6 +45,8 @@ function renderPanel({
       view={report}
       targetName="Toontrack EZdrummer 3"
       targetShort="EZD"
+      from="ggd_invasion"
+      to="ezdrummer"
       onViewReport={onViewReport}
       onConvertMore={onConvertMore}
       onDropMissing={onDropMissing}
@@ -136,6 +138,63 @@ describe('DonePanel', () => {
   it('keeps a single file off the per-file list', () => {
     renderPanel();
     expect(screen.queryByRole('list', { name: 'Converted files' })).not.toBeInTheDocument();
+  });
+
+  describe('tip', () => {
+    const tip = () => screen.queryByRole('group', { name: 'Leave a tip' });
+
+    it('asks only once the file is downloaded', async () => {
+      renderPanel();
+      expect(tip()).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('link', { name: '↓ Download .mid' }));
+      expect(tip()).toBeVisible();
+    });
+
+    it('asks in plain words, without a signature', async () => {
+      renderPanel();
+      await userEvent.click(screen.getByRole('link', { name: '↓ Download .mid' }));
+      expect(tip()).not.toHaveTextContent('null.crimson');
+    });
+
+    it('asks for a batch only once a file of it is downloaded', async () => {
+      renderPanel({ results: [result('a.mid', 'blob:a'), result('b.mid', 'blob:b')] });
+      expect(tip()).not.toBeInTheDocument();
+      await userEvent.click(screen.getAllByRole('link', { name: '↓ .mid' })[0]);
+      expect(tip()).toBeVisible();
+    });
+
+    it('offers three amounts and any other, each on its own Stripe page in a new tab', async () => {
+      renderPanel();
+      await userEvent.click(screen.getByRole('link', { name: '↓ Download .mid' }));
+      const links = within(tip()!).getAllByRole('link');
+      expect(links.map((l) => [l.textContent, l.getAttribute('href')])).toEqual([
+        ['€3', 'https://buy.stripe.com/aFacN5bdV6xx5Pg8ZG6wE00'],
+        ['€5', 'https://buy.stripe.com/dRm8wPdm39JJb9A2Bi6wE01'],
+        ['€10', 'https://buy.stripe.com/5kQeVddm3aNN91sa3K6wE02'],
+        ['Other amount', 'https://buy.stripe.com/eVq7sL81J4pp91s1xe6wE03'],
+      ]);
+      for (const link of links) {
+        expect(link).toHaveAttribute('target', '_blank');
+        expect(link).toHaveAttribute('rel', 'noopener');
+      }
+    });
+
+    it('marks the middle amount as the suggested one', async () => {
+      renderPanel();
+      await userEvent.click(screen.getByRole('link', { name: '↓ Download .mid' }));
+      const [three, five, ten] = within(tip()!).getAllByRole('link');
+      expect(five).toHaveClass('tip-amount-featured');
+      expect(three).not.toHaveClass('tip-amount-featured');
+      expect(ten).not.toHaveClass('tip-amount-featured');
+    });
+  });
+
+  it('links a wrong mapping to the no-account form, naming both engines and the language', () => {
+    renderPanel();
+    const link = screen.getByRole('link', { name: 'Wrong mapping? Report it' });
+    expect(link).toHaveAttribute('href', 'https://tally.so/r/J95eYd?from=ggd_invasion&to=ezdrummer&lang=en');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener');
   });
 
   it('opens the report and starts over', async () => {

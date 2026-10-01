@@ -31,7 +31,7 @@ export function presetFileName(name: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  return `${slug || 'preset'}.drumverter.json`;
+  return `${slug || 'preset'}-drumverter.json`;
 }
 
 /** `name`, or the first "name copy", "name copy 2", … not in `taken`. */
@@ -44,7 +44,7 @@ export function uniqueName(name: string, taken: string[]): string {
   }
 }
 
-/** Downloads a preset as a `.drumverter.json` file. */
+/** Downloads a preset as a `<name>-drumverter.json` file. */
 export function downloadPreset(p: PresetContent): void {
   const url = URL.createObjectURL(new Blob([toPresetFile(p)], { type: 'application/json' }));
   saveFile(url, presetFileName(p.name));

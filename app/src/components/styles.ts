@@ -43,7 +43,7 @@ const TEXT_TONE: Record<TextTone, string> = {
 export function textAction(tone: TextTone = 'default'): string {
   return `
     tap inline-flex items-center gap-1.5 text-ui transition-colors
-    disabled:cursor-not-allowed disabled:opacity-40
+    disabled:cursor-default disabled:opacity-40
     ${TEXT_TONE[tone]}
   `;
 }

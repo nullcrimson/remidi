@@ -126,7 +126,7 @@ export function LibraryList({
           ${highlighted ? 'bg-accent/8' : ''}
           ${
       disabled
-        ? 'cursor-not-allowed border-transparent text-t5 opacity-40'
+        ? 'cursor-default border-transparent text-t5 opacity-40'
         : selected
           ? 'cursor-pointer border-accent font-semibold text-t1'
           : `

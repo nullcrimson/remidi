@@ -33,6 +33,11 @@ enum Target {
 }
 
 #[derive(Deserialize)]
+struct Tip {
+    other: String,
+}
+
+#[derive(Deserialize)]
 struct Structure {
     sections: Vec<Section>,
     nav: Vec<Target>,
@@ -127,6 +132,7 @@ fn main() {
         serde_json::from_str(&read(&root.join("locales/locales.json"))).unwrap();
     let structure: Structure =
         serde_json::from_str(&read(&root.join("app/src/content/structure.json"))).unwrap();
+    let tip: Tip = serde_json::from_str(&read(&root.join("app/src/content/tip.json"))).unwrap();
     let en = read(&root.join("locales/en/app.ftl"));
     let messages: Vec<(&str, Vec<&str>)> = ftl_vars::message_vars(&en)
         .unwrap_or_else(|e| panic!("en/app.ftl: {e:?}"))
@@ -215,6 +221,12 @@ fn main() {
     out += &format!(
         "pub const FOOTER: &[NavTarget] = &[{}];\n",
         list(structure.footer.iter().map(|t| target(t, &keys)))
+    );
+
+    out += &format!(
+        "pub const TIP_HREF: &str = {:?};
+",
+        tip.other
     );
 
     let message_variants: Vec<String> = messages

@@ -22,13 +22,13 @@ export function SiteHeader() {
         </span>
       </h1>
       <nav aria-label={t({ id: 'nav-main' })}>
-        <ul className="flex gap-5 text-ui">
+        <ul className="flex flex-wrap gap-x-5 gap-y-1 text-ui">
           {NAV.map((target) => (
             <li key={href(target, locale)}>
               <a
                 href={href(target, locale)}
                 aria-current={'route' in target && target.route === 'converter' ? 'page' : undefined}
-                className="nav-link"
+                className="nav-link whitespace-nowrap"
               >
                 {t(targetLabel(target))}
               </a>

@@ -10,6 +10,7 @@ describe('SiteHeader', () => {
     const links = within(nav).getAllByRole('link');
     expect(links.map((l) => [l.textContent, l.getAttribute('href')])).toEqual([
       ['Converter', '/'],
+      ['How to use', '/how-it-works/'],
       ['Note maps', '/engines/'],
       ['FAQ', '/faq/'],
     ]);

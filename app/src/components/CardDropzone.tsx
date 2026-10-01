@@ -55,10 +55,12 @@ export function CardDropzone({
         "
         >
           <div className="
-            flex flex-col items-center gap-3.5 rounded-card border-2
-            border-dashed border-accent/45 px-16 py-12
+            drop-target flex flex-col items-center gap-3.5 px-16 py-12
           "
           >
+            <svg aria-hidden="true" className="drop-frame">
+              <rect x="1" y="1" rx="17" style={{ width: 'calc(100% - 2px)', height: 'calc(100% - 2px)' }} />
+            </svg>
             <span className="
               flex size-12 items-center justify-center rounded-full border
               border-accent/40 font-display text-display leading-none

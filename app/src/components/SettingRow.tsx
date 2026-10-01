@@ -16,7 +16,7 @@ export function SettingRow({
   label: string;
   tipTitle: string;
   tip: ReactNode;
-  hint: string;
+  hint: ReactNode;
   children: (ids: SettingIds) => ReactElement;
 }) {
   const labelId = useId();
@@ -38,7 +38,7 @@ export function SettingRow({
         {children({ labelledBy: labelId, describedBy: `${hintId} ${tipId}` })}
         <span id={tipId} className="sr-only">{tip}</span>
       </div>
-      <span id={hintId} className="font-mono text-caption text-monodim">{hint}</span>
+      <div id={hintId} className="font-mono text-caption text-monodim">{hint}</div>
     </div>
   );
 }

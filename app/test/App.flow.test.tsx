@@ -46,7 +46,7 @@ async function convertAndOpenReport() {
   await start();
   await pickEngines();
   await upload('groove.mid');
-  await userEvent.click(screen.getByRole('button', { name: /Convert & download/i }));
+  await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
   await userEvent.click(await screen.findByRole('button', { name: /View report/i }));
   return screen.findByRole('dialog', { name: 'Conversion report' });
 }
@@ -104,16 +104,19 @@ describe('App convert flow', () => {
     expect(within(to).getByTestId('chosen-engine')).toHaveTextContent('GGD Invasion');
   });
 
-  it('downloads a single file and offers Convert more', async () => {
+  it('converts first, offers the file to download, and Convert more', async () => {
     await start();
     await pickEngines();
     await upload('groove.mid');
-    await userEvent.click(screen.getByRole('button', { name: /Convert & download/i }));
+    await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
     expect(await screen.findByText('1 file converted → EZdrummer')).toBeInTheDocument();
-    expect(saveFile).toHaveBeenCalledWith('blob:mock-url', 'groove-ezdrummer.mid');
+    expect(saveFile).not.toHaveBeenCalled();
+    const download = screen.getByRole('link', { name: '↓ Download .mid' });
+    expect(download).toHaveAttribute('href', 'blob:mock-url');
+    expect(download).toHaveAttribute('download', 'groove-ezdrummer.mid');
     await userEvent.click(screen.getByRole('button', { name: 'Convert more' }));
     expect(screen.queryByText('groove.mid')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Convert & download/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Convert' })).toBeDisabled();
     expect(within(screen.getByRole('group', { name: 'FROM engine' })).getByTestId('chosen-engine')).toHaveTextContent(
       'GGD Invasion',
     );

@@ -3,6 +3,7 @@ import { useT } from '../../localeContext';
 import { Fragment } from 'react';
 import type { Editor } from '../../hooks/useEditor';
 import type { Drum, VoiceRow as VoiceRowData } from '../../lib/midiremap';
+import { labelByNote } from '../../lib/missing';
 import { noteName, type OctaveBase } from '../../lib/notes';
 import { MonoLabel } from '../MonoLabel';
 import { NotePicker } from '../NotePicker';
@@ -81,8 +82,7 @@ export function FamilyRows({
   actions: RowActions;
 }) {
   const t = useT();
-  const drumByNote = new Map<number, string>();
-  for (const d of targetDrums) if (!drumByNote.has(d.note)) drumByNote.set(d.note, d.label);
+  const drumByNote = labelByNote(targetDrums);
   const drumAt = (note: number) => drumByNote.get(note) ?? noteName(note, oct);
 
   return (

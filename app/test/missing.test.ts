@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { VoiceRow } from '../src/lib/midiremap';
-import { MISSING_OPTIONS, missingHint, swappedCanons } from '../src/lib/missing';
+import type { Drum, VoiceRow } from '../src/lib/midiremap';
+import { MISSING_OPTIONS, missingHint, swapList, swappedCanons } from '../src/lib/missing';
 import { ENGLISH } from '../src/i18n';
 
 const { t } = ENGLISH;
@@ -50,6 +50,24 @@ describe('missing drums setting', () => {
     expect(t(missingHint('drop', [DROPPED_SWAP, row('y', { status: 'dropped', tgtNote: null, otherDrum: true })]))).toBe(
       '2 drums dropped',
     );
+  });
+
+  it('lists each drum the setting moves and the target drum that plays it now', () => {
+    const drums = [
+      { note: 49, canon: 'crash.1.hit', label: 'Crash 1', family: 'Cymbals' },
+      { note: 49, canon: 'crash.1.choke', label: 'Crash 1 choke', family: 'Cymbals' },
+      { note: 45, canon: 'tom.rack3.hit', label: 'Tom 3', family: 'Toms' },
+    ] as Drum[];
+    const china = row('china.1.hit', { label: 'China', status: 'fallback', otherDrum: true, tgtNote: 49 });
+    const tom = row('tom.rack4.hit', { label: 'Tom 4', status: 'fallback', otherDrum: true, tgtNote: 45 });
+    expect(swapList([china, SAME, tom, SILENT_SWAP], drums, 'c1')).toEqual([
+      { drum: 'China', now: 'Crash 1' },
+      { drum: 'Tom 4', now: 'Tom 3' },
+    ]);
+  });
+
+  it('lists a dropped drum as played by nothing', () => {
+    expect(swapList([{ ...DROPPED_SWAP, label: 'Tom 4' }], [], 'c1')).toEqual([{ drum: 'Tom 4', now: null }]);
   });
 
   it('collects the canons that play on another drum', () => {

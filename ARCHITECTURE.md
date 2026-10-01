@@ -426,7 +426,7 @@ the UI is pure data.
     wins (dropping edits made for another pair), unknown engines are cleared and
     unknown drums in restored edits are left out.
   - Loading a preset leaves out edits for drums this version does not know and says
-    so; presets export to and import from `.drumverter.json` files (import parses
+    so; presets export to `<name>-drumverter.json` and import from any `.json` file (import parses
     through the WASM `parse_preset_file`).
 - **`components/`** — the converter card (engine pickers, file chips, convert
   button, summary), the note editor (`EditView` + note/source pickers), and shared
@@ -475,6 +475,13 @@ that both surfaces draw are `@utility` classes in `index.css` (`prose-link`,
 alike. Pair-page rows take their status from the core (`PlanStatus` of each source
 note's resolution); the site only names it (exact / approximated / dropped) and sorts
 changes first.
+
+Tips go through Stripe Payment Links, listed once in `app/src/content/tip.json` (the
+app imports it; `build.rs` turns its `other` link into `TIP_HREF`). Every footer ends
+with a `tip-link` to the any-amount page; the app's done card (`TipCard`) appears once a
+file is saved and offers the fixed amounts. All are plain links in a new tab, so no
+Stripe code loads here. Stripe returns the visitor to `/thanks/`, rendered in every
+locale, marked `noindex` and left out of the sitemap.
 
 ## Translations
 

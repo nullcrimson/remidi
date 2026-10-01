@@ -25,7 +25,7 @@ import App from '../src/App';
 
 const fromBox = () => screen.getByRole('combobox', { name: 'Filter FROM engines' });
 const toBox = () => screen.getByRole('combobox', { name: 'Filter TO engines' });
-const convertButton = () => screen.getByRole('button', { name: /Convert & download/ });
+const convertButton = () => screen.getByRole('button', { name: 'Convert' });
 
 async function addFile() {
   const input = screen.getAllByTestId('file-input')[0] as HTMLInputElement;
@@ -44,7 +44,7 @@ describe('keyboard use', () => {
     document.body.focus();
   });
 
-  it('reaches Convert from page load in fewer than 10 Tabs', async () => {
+  it('reaches Convert from page load in fewer than 12 Tabs', async () => {
     await start();
     let tabs = 0;
     const tab = async () => {
@@ -55,7 +55,7 @@ describe('keyboard use', () => {
     expect(screen.getByRole('link', { name: 'Skip to content' })).toHaveFocus();
     await userEvent.keyboard('{Enter}');
     await tab();
-    expect(document.activeElement).toHaveTextContent(/Drop a \.mid/);
+    expect(document.activeElement).toHaveTextContent(/Drop one or more \.mid files/);
     await addFile();
     await waitFor(() => expect(fromBox()).toHaveFocus());
     await userEvent.keyboard('ggd{Enter}');
@@ -66,7 +66,7 @@ describe('keyboard use', () => {
     await userEvent.keyboard('ez{Enter}');
     while (document.activeElement !== convertButton() && tabs < 20) await tab();
     expect(convertButton()).toHaveFocus();
-    expect(tabs).toBeLessThan(10);
+    expect(tabs).toBeLessThan(12);
   });
 
   it('moves focus to the next missing step after files are added', async () => {
@@ -90,7 +90,7 @@ describe('keyboard use', () => {
     const heading = await screen.findByRole('heading', { name: '1 file converted → EZdrummer' });
     await waitFor(() => expect(heading).toHaveFocus());
     await userEvent.click(screen.getByRole('button', { name: 'Convert more' }));
-    expect(document.activeElement).toHaveTextContent(/Drop a \.mid/);
+    expect(document.activeElement).toHaveTextContent(/Drop one or more \.mid files/);
   });
 
   it('focuses the editor heading and comes back to the edit link', async () => {

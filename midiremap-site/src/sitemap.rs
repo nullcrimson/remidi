@@ -137,6 +137,11 @@ mod tests {
     }
 
     #[test]
+    fn leaves_out_the_thanks_page() {
+        assert!(all_urls().iter().all(|(url, _)| !url.contains("/thanks/")));
+    }
+
+    #[test]
     fn a_translated_page_lists_its_versions_and_the_default() {
         let all = all_urls();
         let pl_faq = all

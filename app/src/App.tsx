@@ -1,20 +1,19 @@
 import { useState } from 'react';
 import { CardDropzone } from './components/CardDropzone';
 import { ConvertButton } from './components/ConvertButton';
-import { ConvertSettings } from './components/ConvertSettings';
 import { DonePanel } from './components/DonePanel';
 import { EditView } from './components/EditView';
 import { EngineColumns } from './components/EngineColumns';
 import { FileChips } from './components/FileChips';
 import { Card, Page } from './components/PageFrame';
-import { PlanErrorNotice } from './components/PlanErrorNotice';
+import { PlanControls } from './components/PlanControls';
 import { ReportModal } from './components/ReportModal';
 import { SavedMappingChips } from './components/SavedMappingChips';
 import { StatusNotice } from './components/StatusNotice';
-import { SummaryRow } from './components/SummaryRow';
 import { useDropGuard } from './hooks/useDropGuard';
 import { useConversionReport } from './hooks/useConversionReport';
 import { useEditedSummary } from './hooks/useEditedSummary';
+import { useEditorHistory } from './hooks/useEditorHistory';
 import { useFileIntake } from './hooks/useFileIntake';
 import { useFocusIntent } from './hooks/useFocusIntent';
 import { usePresetActions } from './hooks/usePresetActions';
@@ -23,7 +22,6 @@ import { useSavedMappings } from './hooks/useSavedMappings';
 import { convertBlocker } from './lib/blocker';
 import type { EditFilter } from './lib/editFilter';
 import { shortCode } from './lib/format';
-import { missingHint } from './lib/missing';
 import { downloadPreset } from './lib/presetFile';
 import { ErrorText } from './components/ErrorText';
 import { Rich } from './components/Rich';
@@ -75,6 +73,13 @@ export default function App() {
     setAssignNote(note);
     c.setView('edit');
   };
+  const closeEditor = () => {
+    setAssignNote(null);
+    setEditShow('all');
+    c.setView('convert');
+    request('editLink');
+  };
+  useEditorHistory(c.view, { open: openEditor, close: closeEditor });
 
   if (c.view === 'edit') {
     return (
@@ -91,12 +96,7 @@ export default function App() {
             presetsAtCap={saved.atCap}
             assignNote={assignNote}
             initialShow={editShow}
-            setView={(v) => {
-              setAssignNote(null);
-              setEditShow('all');
-              c.setView(v);
-              if (v === 'convert') request('editLink');
-            }}
+            setView={(v) => (v === 'convert' ? closeEditor() : c.setView(v))}
             onSavePreset={presets.save}
             onUpdatePreset={presets.update}
           />
@@ -104,8 +104,6 @@ export default function App() {
       </Page>
     );
   }
-
-  const bothSelected = c.src !== '' && c.tgt !== '';
 
   return (
     <Page wide onSkip={() => request('main')}>
@@ -162,30 +160,15 @@ export default function App() {
                   onDelete={saved.remove}
                 />
 
-                <ConvertSettings
-                  oct={c.oct}
-                  onOct={c.setOct}
-                  channel={c.channel}
-                  onChannel={c.setChannel}
+                <PlanControls
+                  c={c}
+                  editor={editor}
+                  edited={edited}
+                  names={{ source: sourceName, target: targetName }}
                   channelRef={focus.ref('channel')}
-                  missing={c.missing}
-                  missingHint={t(missingHint(c.missing, editor.rows))}
-                  onMissing={c.setMissing}
+                  editRef={focus.ref('editLink')}
+                  onOpenEditor={openEditor}
                 />
-
-                {bothSelected && editor.planError !== null && (
-                  <PlanErrorNotice error={editor.planError} onReset={editor.reset} />
-                )}
-
-                {bothSelected && editor.planError === null && (
-                  <SummaryRow
-                    remapped={editor.remappedCount}
-                    total={editor.rows.length}
-                    onEdit={() => openEditor()}
-                    editRef={focus.ref('editLink')}
-                    edited={edited.count > 0 ? { ...edited, onReview: () => openEditor('changed') } : undefined}
-                  />
-                )}
 
                 {c.conv.kind === 'done' && c.results.length > 0
                   ? (
@@ -195,6 +178,8 @@ export default function App() {
                         view={reportView}
                         targetName={targetName}
                         targetShort={shortCode(c.tgt)}
+                        from={c.src}
+                        to={c.tgt}
                         onViewReport={() => setReportOpen(true)}
                         onDropMissing={dropMissing}
                         editedDrums={edited.count}
@@ -208,7 +193,7 @@ export default function App() {
                       <ConvertButton
                         ref={focus.ref('convert')}
                         conv={c.conv}
-                        blockedBy={blocker && t(blocker)}
+                        blockedBy={blocker && { reason: t(blocker.reason), quiet: blocker.quiet }}
                         onConvert={() => void c.convert()}
                       />
                     )}

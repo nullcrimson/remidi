@@ -10,6 +10,13 @@ use crate::{
 
 const HEAD: (&str, &str) = ("<!--app-head-->", "<!--/app-head-->");
 const NOSCRIPT: (&str, &str) = ("<!--app-noscript-->", "<!--/app-noscript-->");
+const TITLE: (&str, &str) = ("<!--app-title-->", "<!--/app-title-->");
+
+#[derive(Template)]
+#[template(source = r#"<h1 class="sr-only">{{ title }}</h1>"#, ext = "html")]
+struct AppTitle<'a> {
+    title: &'a str,
+}
 
 #[derive(Template)]
 #[template(path = "app_head.html")]
@@ -84,6 +91,11 @@ pub fn localize_shell(index_html: &str, locale: Locale, m: &Messages) -> Result<
     let missing = |what| SiteError::MissingMarker(what);
     let html = replace_region(index_html, HEAD, &head).ok_or_else(|| missing(HEAD.0))?;
     let html = replace_region(&html, NOSCRIPT, &noscript).ok_or_else(|| missing(NOSCRIPT.0))?;
+    let title = AppTitle {
+        title: get(Plain::ConverterTitle),
+    }
+    .render()?;
+    let html = replace_region(&html, TITLE, &title).ok_or_else(|| missing(TITLE.0))?;
     Ok(html.replacen(
         r#"<html lang="en">"#,
         &format!(r#"<html lang="{}">"#, locale.lang_tag()),
@@ -96,7 +108,7 @@ mod tests {
     use super::*;
     use crate::i18n::{Locale, Messages};
 
-    const MARKED: &str = "<html lang=\"en\"><head><!--app-head--><title>Drumverter</title><!--/app-head--></head><body><!--app-noscript--><!--/app-noscript--></body></html>";
+    const MARKED: &str = "<html lang=\"en\"><head><!--app-head--><title>Drumverter</title><!--/app-head--></head><body><div id=\"root\"><!--app-title--><!--/app-title--></div><!--app-noscript--><!--/app-noscript--></body></html>";
 
     #[test]
     fn the_english_shell_carries_todays_head_and_noscript_text() {
@@ -109,6 +121,18 @@ mod tests {
         assert!(out.contains("enable JavaScript to use the converter"));
         assert!(out.contains(r#"<div id="load-failed" hidden"#));
         assert_eq!(out.matches("application/ld+json").count(), 1);
+    }
+
+    #[test]
+    fn the_shell_carries_a_heading_the_app_replaces_on_mount() {
+        let m = Messages::load().unwrap();
+        let en = localize_shell(MARKED, Locale::En, &m).unwrap();
+        assert!(en.contains(r#"<div id="root"><!--app-title--><h1 class="sr-only">Drumverter — free drum MIDI remapper &#38; converter</h1><!--/app-title--></div>"#));
+        let pl = localize_shell(MARKED, Locale::Pl, &m).unwrap();
+        assert!(pl.contains(&format!(
+            r#"<h1 class="sr-only">{}</h1>"#,
+            m.get(Locale::Pl, Plain::ConverterTitle)
+        )));
     }
 
     #[test]

@@ -33,17 +33,19 @@ export function Page({
       : ''}
         `}
       >
-        <a
-          href={`#${MAIN_ID}`}
-          onClick={(e) => {
-            e.preventDefault();
-            onSkip();
-          }}
-          className="skip-link"
-        >
-          {t({ id: 'skip-to-content' })}
-        </a>
-        <SiteHeader />
+        <div data-nosnippet>
+          <a
+            href={`#${MAIN_ID}`}
+            onClick={(e) => {
+              e.preventDefault();
+              onSkip();
+            }}
+            className="skip-link"
+          >
+            {t({ id: 'skip-to-content' })}
+          </a>
+          <SiteHeader />
+        </div>
         {children}
         <SiteFooter />
       </div>

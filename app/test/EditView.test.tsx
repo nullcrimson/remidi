@@ -126,6 +126,16 @@ describe('EditView', () => {
     expect(screen.getByLabelText('Add source note')).toBeInTheDocument();
   });
 
+  it('shows the advanced toggle as a full-width row with a turning chevron', async () => {
+    render(<EditView {...props} />);
+    const toggle = screen.getByRole('button', { name: /Advanced/i });
+    expect(toggle).toHaveClass('w-full', 'rounded-panel', 'border');
+    const chevron = toggle.querySelector('[aria-hidden="true"]');
+    expect(chevron).not.toHaveClass('rotate-180');
+    await userEvent.click(toggle);
+    expect(chevron).toHaveClass('rotate-180');
+  });
+
   it('enables Save as preset when only source edits exist', () => {
     render(<EditView {...props} editor={{ ...editor, edits: {}, srcEdits: { 60: 'china.1.hit' } }} />);
     expect(screen.getByRole('button', { name: 'Save as preset' })).toBeEnabled();

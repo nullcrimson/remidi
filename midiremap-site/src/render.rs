@@ -8,9 +8,9 @@ use crate::{
     content::{faq_schema, how_to_schema, Block, ContentPage},
     i18n::{
         alternates, base, home, href, label, local_href, page_in, Docs, Locale, MessageId,
-        Messages, NavTarget, Page, Plain, SectionKey, FOOTER, NAV,
+        Messages, NavTarget, Page, Plain, SectionKey, FOOTER, NAV, TIP_HREF,
     },
-    pages::{page_file, EnginePage, IndexPage, PairPage, Site, NOTE_MAPS, ORIGIN},
+    pages::{page_file, EnginePage, IndexPage, PairPage, Site, NOTE_MAPS, ORIGIN, THANKS},
 };
 
 pub const DESCRIPTION_MAX: usize = 155;
@@ -265,6 +265,8 @@ struct Frame<'a> {
     nav_site: &'a str,
     nav: Vec<NavItem<'a>>,
     footer: Vec<NavItem<'a>>,
+    tip: &'a str,
+    tip_href: &'static str,
     home: String,
     open_converter: &'a str,
     json_ld: Option<String>,
@@ -317,6 +319,8 @@ impl<'a> Frame<'a> {
             nav_site: texts.get(Plain::NavSite),
             nav: texts.links(NAV, current),
             footer: texts.links(FOOTER, None),
+            tip: texts.get(Plain::TipLink),
+            tip_href: TIP_HREF,
             home: home(texts.locale),
             open_converter: texts.get(Plain::OpenConverter),
             json_ld,
@@ -373,8 +377,16 @@ struct ContentHtml<'a> {
     page: &'a ContentPage<'a>,
 }
 
-/// Every static page in every locale: the note-map index, engine and pair pages, and each
-/// locale's translated sections.
+#[derive(Template)]
+#[template(path = "thanks.html")]
+struct ThanksHtml<'a> {
+    meta: Meta,
+    frame: Frame<'a>,
+    texts: &'a Texts<'a>,
+}
+
+/// Every static page in every locale: the note-map index, engine and pair pages, each
+/// locale's translated sections and its thank-you page.
 pub fn render_site(
     site: &Site,
     shell: &Shell,
@@ -390,8 +402,24 @@ pub fn render_site(
         };
         out.extend(render_note_maps(site, shell, &texts)?);
         out.extend(render_sections(shell, &texts)?);
+        out.push(render_thanks(shell, &texts)?);
     }
     Ok(out)
+}
+
+fn render_thanks(shell: &Shell, texts: &Texts) -> Result<(String, String), askama::Error> {
+    let path = texts.path(THANKS);
+    let html = ThanksHtml {
+        meta: content_meta(
+            texts.get(Plain::ThanksTitle).to_owned(),
+            texts.get(Plain::ThanksDescription).to_owned(),
+            &path,
+        ),
+        frame: Frame::new(shell, texts, None, None, &Page::Everywhere(THANKS)),
+        texts,
+    }
+    .render()?;
+    Ok((page_file(&path), html))
 }
 
 fn render_note_maps(
@@ -499,10 +527,11 @@ mod tests {
     use super::*;
     use crate::pages::Site;
 
-    const STATIC_ASSETS: [&str; 5] = [
+    const STATIC_ASSETS: [&str; 6] = [
         "/favicon.ico",
         "/favicon-32x32.png",
         "/favicon-16x16.png",
+        "/icon-192.png",
         "/apple-touch-icon.png",
         "/site.webmanifest",
     ];
@@ -647,10 +676,45 @@ mod tests {
                     vec![messages.get(locale, Plain::NavNoteMaps)]
                 } else if rest == "faq/index.html" {
                     vec![messages.get(locale, SectionKey::Faq.label())]
+                } else if rest == "how-it-works/index.html" {
+                    vec![messages.get(locale, SectionKey::Guide.label())]
                 } else {
                     vec![]
                 };
             assert_eq!(current_nav(&html), expected, "{path}");
+        }
+    }
+
+    #[test]
+    fn site_chrome_stays_out_of_search_snippets() {
+        for (path, html) in rendered() {
+            let body = html.split("<body").nth(1).unwrap();
+            let before_header = body.split("<header").next().unwrap();
+            assert!(
+                before_header.contains("<div data-nosnippet>"),
+                "{path}: header"
+            );
+            let footer = body.split("<footer").nth(1).unwrap();
+            assert!(
+                footer
+                    .split("<nav")
+                    .next()
+                    .unwrap()
+                    .contains("<div data-nosnippet>"),
+                "{path}: footer"
+            );
+        }
+    }
+
+    #[test]
+    fn pages_offer_a_large_icon_for_search_results() {
+        for (path, html) in rendered() {
+            assert!(
+                html.contains(
+                    r#"<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />"#
+                ),
+                "{path}"
+            );
         }
     }
 
@@ -662,8 +726,40 @@ mod tests {
         assert!(!footer.contains("trademarks"));
         assert_eq!(
             footer.matches("<a ").count(),
-            footer.matches(r#"class="prose-link""#).count()
+            footer.matches(r#"class="prose-link"#).count()
         );
+    }
+
+    #[test]
+    fn every_footer_ends_with_a_tip_link_opening_in_a_new_tab() {
+        let tip = format!(
+            r#"<a href="{TIP_HREF}" target="_blank" rel="noopener" class="prose-link tip-link">"#
+        );
+        for (path, html) in rendered() {
+            let footer = html.split("<footer").nth(1).unwrap();
+            let last = footer.split("<li>").last().unwrap();
+            assert!(last.contains(&tip), "{path}");
+        }
+        assert!(page("pl/faq/index.html").contains("Postaw mi kawę"));
+    }
+
+    #[test]
+    fn the_thanks_page_is_in_every_locale_and_kept_out_of_search() {
+        let pages = rendered();
+        for &l in Locale::ALL {
+            let file = page_file(&format!("{}{THANKS}", base(l)));
+            let (_, html) = pages
+                .iter()
+                .find(|(p, _)| *p == file)
+                .unwrap_or_else(|| panic!("{file}"));
+            let head = html.split("</head>").next().unwrap();
+            assert!(
+                head.contains(r#"<meta name="robots" content="noindex" />"#),
+                "{file}"
+            );
+            assert!(html.contains(&format!(r#"href="{}""#, home(l))), "{file}");
+        }
+        assert!(page("thanks/index.html").contains(">Thank you!</h1>"));
     }
 
     #[test]
@@ -674,6 +770,7 @@ mod tests {
         assert!(faq.contains(r#"<script type="application/ld+json">"#));
         let issue = page("report-an-issue/index.html");
         assert!(issue.contains(r#"href="https://github.com/nullcrimson/remidi/issues""#));
+        assert!(issue.contains(r#"<a href="https://tally.so/r/J95eYd" target="_blank""#));
         assert!(!issue.contains("application/ld+json"));
         let guide = page("how-it-works/index.html");
         assert!(guide.contains(r#"href="/engines/""#));

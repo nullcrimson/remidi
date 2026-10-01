@@ -59,11 +59,11 @@ describe('App presets', () => {
     expect(screen.queryByText(/this version doesn't know/)).not.toBeInTheDocument();
   });
 
-  it('exports a preset as a .drumverter.json file', async () => {
+  it('exports a preset as a plain -drumverter.json file', async () => {
     await start();
     await userEvent.click(screen.getByRole('button', { name: 'More actions for My kit' }));
     await userEvent.click(screen.getByRole('menuitem', { name: 'Export' }));
-    expect(saveFile).toHaveBeenCalledWith('blob:mock-url', 'my-kit.drumverter.json');
+    expect(saveFile).toHaveBeenCalledWith('blob:mock-url', 'my-kit-drumverter.json');
   });
 
   it('says which files the browser could not read and keeps the rest', async () => {

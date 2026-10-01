@@ -61,7 +61,7 @@ describe('App states', () => {
       screen.getByTestId('file-input'),
       new File([new Uint8Array([1])], 'g.mid', { type: 'audio/midi' }),
     );
-    await userEvent.click(screen.getByRole('button', { name: /Convert & download/i }));
+    await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Error: Something went wrong Details: bad midi');
   });
 });

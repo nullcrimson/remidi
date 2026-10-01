@@ -36,13 +36,13 @@ async function pickEnginesAndFile() {
   const input = screen.getAllByTestId('file-input')[0];
   await userEvent.upload(input, new File([new Uint8Array([1])], 'groove.mid'));
   await waitFor(() =>
-    expect(screen.getByRole('button', { name: /Convert & download/i })).toBeEnabled(),
+    expect(screen.getByRole('button', { name: 'Convert' })).toBeEnabled(),
   );
 }
 
 async function convertOneFile() {
   await pickEnginesAndFile();
-  await userEvent.click(screen.getByRole('button', { name: /Convert & download/i }));
+  await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
   await waitFor(() =>
     expect(screen.getByRole('button', { name: /View report/i })).toBeInTheDocument(),
   );
@@ -90,7 +90,7 @@ describe('App loss report', () => {
   it('converts with the drum channel picked under the octave toggle', async () => {
     await pickEnginesAndFile();
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Drum channel' }), '10');
-    await userEvent.click(screen.getByRole('button', { name: /Convert & download/i }));
+    await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
     await waitFor(() => expect(remapMock).toHaveBeenCalled());
     expect(remapMock.mock.calls[0][4]).toBe('10');
   });

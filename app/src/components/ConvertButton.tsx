@@ -1,7 +1,9 @@
 import { useT } from '../localeContext';
 import type { Conv } from '../hooks/useRemapper';
 import type { FocusRef } from '../hooks/useFocusIntent';
+import type { Blocker } from '../lib/blocker';
 import { Button } from './Button';
+import { FollowTip } from './FollowTip';
 
 export function ConvertButton({
   ref,
@@ -11,7 +13,7 @@ export function ConvertButton({
 }: {
   ref?: FocusRef;
   conv: Conv;
-  blockedBy: string | null;
+  blockedBy: Blocker<string> | null;
   onConvert: () => void;
 }) {
   const t = useT();
@@ -32,15 +34,18 @@ export function ConvertButton({
     );
   }
   return (
-    <Button
-      ref={ref}
-      variant="primary"
-      size="lg"
-      disabled={blockedBy !== null}
-      reason={blockedBy ?? undefined}
-      onClick={onConvert}
-    >
-      {t({ id: 'convert-button' })}
-    </Button>
+    <FollowTip text={blockedBy?.reason ?? null}>
+      <Button
+        ref={ref}
+        variant="primary"
+        size="lg"
+        disabled={blockedBy !== null}
+        reason={blockedBy?.reason}
+        quietReason={blockedBy?.quiet}
+        onClick={onConvert}
+      >
+        {t({ id: 'convert-button' })}
+      </Button>
+    </FollowTip>
   );
 }

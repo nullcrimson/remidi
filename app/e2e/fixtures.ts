@@ -75,11 +75,16 @@ export function midFile(name: string, ...tracks: Hit[][]) {
   return { name, mimeType: 'audio/midi', buffer: midi(...tracks) };
 }
 
+/** Every note-on with a velocity, across tracks, in order: its channel (1..=16) and key. */
+export function hitsOf(bytes: Uint8Array): Hit[] {
+  return parseMidi(bytes).tracks.flatMap((track) =>
+    track.flatMap((e) => (e.type === 'noteOn' && e.velocity > 0 ? [{ channel: e.channel + 1, key: e.noteNumber }] : [])),
+  );
+}
+
 /** Keys of every note-on with a velocity, across tracks, in order. */
 export function hitKeys(bytes: Uint8Array): number[] {
-  return parseMidi(bytes).tracks.flatMap((track) =>
-    track.flatMap((e) => (e.type === 'noteOn' && e.velocity > 0 ? [e.noteNumber] : [])),
-  );
+  return hitsOf(bytes).map((hit) => hit.key);
 }
 
 export const DRUMS = 10;

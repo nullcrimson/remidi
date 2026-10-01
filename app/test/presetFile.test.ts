@@ -15,9 +15,9 @@ describe('preset file', () => {
   });
 
   it('names the file after the preset', () => {
-    expect(presetFileName('My kit')).toBe('my-kit.drumverter.json');
-    expect(presetFileName('  GGD → EZD (live)! ')).toBe('ggd-ezd-live.drumverter.json');
-    expect(presetFileName('→→')).toBe('preset.drumverter.json');
+    expect(presetFileName('My kit')).toBe('my-kit-drumverter.json');
+    expect(presetFileName('  GGD → EZD (live)! ')).toBe('ggd-ezd-live-drumverter.json');
+    expect(presetFileName('→→')).toBe('preset-drumverter.json');
   });
 
   it('picks a free name for an import', () => {

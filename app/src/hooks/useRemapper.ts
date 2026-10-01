@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { Channel } from '../lib/channel';
-import { saveFile } from '../lib/download';
 import { canonCatalog, type Engine } from '../lib/midiremap';
 import type { Missing } from '../lib/missing';
 import type { OctaveBase } from '../lib/notes';
@@ -177,8 +176,7 @@ export function useRemapper() {
 
   const run = useCallback(
     async (m: Missing) => {
-      const results = await runConvert(overrides, channel, m, keyFor(m));
-      if (results?.length === 1) saveFile(results[0].url, results[0].name);
+      await runConvert(overrides, channel, m, keyFor(m));
     },
     [runConvert, overrides, channel, keyFor],
   );

@@ -84,6 +84,69 @@
   @apply tap text-star/85 underline decoration-star/30 decoration-1 underline-offset-4 transition [text-shadow:0_0_10px_rgba(224,196,106,0.35)] hover:text-star hover:decoration-star/60 hover:[text-shadow:0_0_15px_rgba(224,196,106,0.6)];
 }
 
+@utility tip-link {
+  @apply text-star;
+
+  &::before {
+    content: '☕';
+    display: inline-block;
+    margin-inline-end: 0.35em;
+  }
+}
+
+@utility tip-card {
+  @apply flex flex-col gap-3 rounded-panel border border-star/25 bg-star/4 p-4 motion-safe:animate-[tip-in_400ms_ease-out];
+}
+
+@utility tip-amount {
+  @apply tap inline-flex min-w-14 items-center justify-center rounded-chip border border-star/40 px-3 py-1.5 font-mono text-ui font-semibold text-star transition-colors hover:border-star hover:bg-star/10 pointer-coarse:min-h-11;
+}
+
+@utility tip-amount-featured {
+  @apply border-star bg-star text-ink hover:bg-star hover:brightness-110;
+}
+
+@keyframes tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@utility drop-target {
+  @apply relative motion-safe:animate-[drop-breathe_1.6s_ease-in-out_infinite_alternate];
+}
+
+@utility drop-frame {
+  @apply pointer-events-none absolute inset-0 size-full overflow-visible fill-none stroke-accent stroke-2 [stroke-dasharray:10_8] motion-safe:[animation:drop-march_1.2s_linear_infinite,drop-glow_1.6s_ease-in-out_infinite_alternate];
+}
+
+@keyframes drop-breathe {
+  from {
+    transform: scale(0.985);
+  }
+
+  to {
+    transform: scale(1.015);
+  }
+}
+
+@keyframes drop-glow {
+  from {
+    stroke-opacity: 0.45;
+  }
+
+  to {
+    stroke-opacity: 1;
+  }
+}
+
+@keyframes drop-march {
+  to {
+    stroke-dashoffset: -36;
+  }
+}
+
 @utility nav-link {
   @apply tap border-b border-transparent pb-0.5 text-t4 transition-colors hover:text-t1 aria-[current=page]:border-accent aria-[current=page]:text-t1;
 }

@@ -71,12 +71,12 @@ describe('useRemapper missing drums', () => {
   it('drops missing drums and converts again in one step', async () => {
     const result = await ready();
     await act(() => result.current.convert());
-    expect(saveFile).toHaveBeenCalledTimes(1);
+    expect(result.current.conv.kind).toBe('done');
 
     await act(() => result.current.dropMissingAndConvert());
     expect(result.current.missing).toBe('drop');
     expect(remapMock.mock.lastCall?.[5]).toBe('drop');
     expect(result.current.conv.kind).toBe('done');
-    expect(saveFile).toHaveBeenCalledTimes(2);
+    expect(saveFile).not.toHaveBeenCalled();
   });
 });

@@ -44,7 +44,7 @@ async function convertOneFile() {
   await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
   await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
   await userEvent.upload(screen.getAllByTestId('file-input')[0], new File([new Uint8Array([1])], 'groove.mid'));
-  await userEvent.click(await screen.findByRole('button', { name: /Convert & download/i }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Convert' }));
   await screen.findByRole('button', { name: /View report/i });
 }
 

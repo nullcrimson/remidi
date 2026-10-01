@@ -1,6 +1,6 @@
 import type { FocusRef } from '../hooks/useFocusIntent';
 import type { Channel } from '../lib/channel';
-import type { Missing } from '../lib/missing';
+import type { Missing, Swap } from '../lib/missing';
 import type { OctaveBase } from '../lib/notes';
 import { ChannelSelect } from './ChannelSelect';
 import { MissingDrumsSetting } from './MissingDrumsSetting';
@@ -15,6 +15,8 @@ export function ConvertSettings({
   channelRef,
   missing,
   missingHint,
+  missingSwaps,
+  onMissingDetail,
   onMissing,
 }: {
   oct: OctaveBase;
@@ -24,6 +26,8 @@ export function ConvertSettings({
   channelRef: FocusRef;
   missing: Missing;
   missingHint: string;
+  missingSwaps?: Swap[];
+  onMissingDetail?: () => void;
   onMissing: (missing: Missing) => void;
 }) {
   return (
@@ -35,7 +39,13 @@ export function ConvertSettings({
     >
       <OctaveToggle value={oct} onChange={onOct} />
       <ChannelSelect ref={channelRef} value={channel} onChange={onChannel} />
-      <MissingDrumsSetting value={missing} hint={missingHint} onChange={onMissing} />
+      <MissingDrumsSetting
+        value={missing}
+        hint={missingHint}
+        swaps={missingSwaps}
+        onOpenEditor={onMissingDetail}
+        onChange={onMissing}
+      />
     </div>
   );
 }

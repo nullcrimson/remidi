@@ -6,6 +6,6 @@
     { "key": "contact", "slug": "contact" },
     { "key": "terms", "slug": "terms" }
   ],
-  "nav": [{ "route": "converter" }, { "route": "noteMaps" }, { "section": "faq" }],
+  "nav": [{ "route": "converter" }, { "section": "guide" }, { "route": "noteMaps" }, { "section": "faq" }],
   "footer": [{ "section": "guide" }, { "section": "faq" }, { "route": "noteMaps" }, { "section": "issue" }, { "section": "contact" }, { "section": "terms" }]
 }

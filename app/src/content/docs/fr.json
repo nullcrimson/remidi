@@ -1,85 +1,39 @@
 {
   "guide": [
     {
-      "p": [
-        "Drumverter est un outil gratuit de remapping MIDI batterie qui fonctionne avec tous les plugins. Il adapte un groove MIDI batterie écrit pour le mapping de notes d’un plugin à celui d’un autre — entièrement dans votre navigateur. Déposez un .mid prévu pour GetGood Drums, remappez-le pour EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI ou Guitar Pro, et téléchargez un fichier prêt à l’emploi. Sans envoi, sans inscription, sans frais : vos fichiers ne quittent jamais votre ordinateur."
-      ]
-    },
-    {
       "steps": [
         {
           "title": "Ajoutez vos fichiers.",
-          "body": "Déposez un ou plusieurs fichiers .mid n’importe où sur la page, ou cliquez pour les choisir."
+          "body": "Déposez des fichiers .mid n’importe où sur la page, ou choisissez-les."
         },
         {
-          "title": "Choisissez la source et la cible.",
-          "body": "Sélectionnez le plugin pour lequel votre MIDI a été écrit, puis celui vers lequel vous voulez le convertir."
+          "title": "Choisissez deux plugins.",
+          "body": "SOURCE est le plugin d’origine du fichier, CIBLE celui de destination."
         },
         {
-          "title": "Ajustez (facultatif).",
-          "body": "Ouvrez l’éditeur de notes pour changer la note que joue chaque élément, ou l’élément que déclenche une note de votre fichier."
-        },
-        {
-          "title": "Téléchargez.",
-          "body": "Récupérez un seul .mid, ou un .zip si vous en convertissez plusieurs à la fois."
+          "title": "Convertissez et téléchargez.",
+          "body": "Cliquez sur « Convertir » puis téléchargez le résultat."
         }
       ]
     },
     {
-      "note": {
-        "title": "Enregistrez un preset (facultatif).",
-        "body": "Dans l’éditeur, cliquez sur « Enregistrer comme preset » pour conserver une paire source→cible avec vos modifications de notes. Le preset apparaît sous les listes de plugins sous forme de raccourci : un clic le recharge, ✎ le rouvre dans l’éditeur et le menu ⋯ permet de le renommer, de le dupliquer ou de le supprimer. Les presets restent dans ce navigateur."
-      }
-    },
-    {
-      "h": "Plugins de batterie pris en charge"
-    },
-    {
-      "p": [
-        "Drumverter passe d’un mapping de notes à l’autre parmi des dizaines de plugins de batterie, dans les deux sens, notamment :"
-      ]
+      "h": "Astuces"
     },
     {
       "list": [
         [
-          "GetGood Drums (Invasion, Modern & Massive et d’autres)"
+          "Survolez un texte souligné en pointillés pour voir ce qui change. L’éditeur de notes permet d’ajuster chaque élément."
         ],
         [
-          "Toontrack EZdrummer et Superior Drummer 3"
+          "Enregistrez un preset pour réutiliser vos réglages. Les presets restent dans ce navigateur ; exportez-en un (.json) et déposez-le sur la page pour l’utiliser ailleurs."
         ],
         [
-          "Addictive Drums 2 (XLN Audio)"
-        ],
-        [
-          "Steven Slate Drums SSD5"
-        ],
-        [
-          "BFD3"
-        ],
-        [
-          "Native Instruments Studio Drummer et Abbey Road"
-        ],
-        [
-          "ML Drums et Perfect Drums"
-        ],
-        [
-          "Kits signature de batteurs MixWave"
-        ],
-        [
-          "General MIDI et Guitar Pro"
-        ],
-        [
-          "…et des dizaines d’autres — voir ",
+          "Tous les plugins pris en charge et leurs notes : ",
           {
-            "text": "le mapping de chaque plugin",
+            "text": "mappings",
             "href": "/engines/"
           }
         ]
-      ]
-    },
-    {
-      "p": [
-        "Chaque conversion passe par un vocabulaire de batterie commun, avec des solutions de repli pour chaque élément : une note sans correspondance exacte est jouée sur l’élément disponible le plus proche au lieu d’être supprimée."
       ]
     }
   ],
@@ -95,12 +49,16 @@
           "a": "Non. La conversion se fait localement dans votre navigateur ; vos fichiers ne quittent jamais votre appareil."
         },
         {
+          "q": "Où sont enregistrés mes presets ?",
+          "a": "Uniquement dans ce navigateur, sur cet appareil : ils ne sont jamais envoyés, et effacer les données du site les supprime. Pour en transférer un, choisissez « Exporter » dans son menu, puis déposez le fichier .json sur la page dans l’autre navigateur."
+        },
+        {
           "q": "Comment convertir un MIDI GetGood Drums pour EZdrummer ?",
           "a": "Ajoutez le .mid, choisissez GetGood Drums comme source et EZdrummer comme cible, puis téléchargez le fichier converti."
         },
         {
-          "q": "Quels DAW et quelles conventions d’octave sont pris en charge ?",
-          "a": "Les deux conventions d’octave courantes sont prises en charge : basculez entre C-1 (Reaper, Logic, Ableton, Guitar Pro) et C-2 (Studio One, Cubase, FL Studio) pour que les noms de notes correspondent à ceux de votre DAW."
+          "q": "Ça marche avec mon DAW ?",
+          "a": "Oui, avec tous. Les DAW ne numérotent simplement pas les octaves de la même façon : basculez entre C-1 (Reaper, Logic, Ableton, Guitar Pro) et C-2 (Studio One, Cubase, FL Studio) pour que les noms de notes correspondent à ceux de votre DAW."
         },
         {
           "q": "Puis-je convertir plusieurs fichiers à la fois ?",
@@ -108,7 +66,7 @@
         },
         {
           "q": "Que se passe-t-il si un élément n’a pas d’équivalent dans le plugin cible ?",
-          "a": "Pour chaque élément, Drumverter suit une chaîne de solutions de repli pour choisir l’élément disponible le plus proche, et signale tout ce qu’il n’a pas pu convertir."
+          "a": "Drumverter prend l’élément le plus proche qui existe dans le plugin cible, et le rapport liste tout ce qu’il n’a pas pu convertir."
         }
       ]
     }
@@ -116,12 +74,22 @@
   "issue": [
     {
       "p": [
-        "Un mapping erroné, ou un plugin à ajouter ? Ouvrez un ",
+        "Un mapping erroné, ou un plugin à ajouter ? ",
+        {
+          "text": "Signalez-le ici",
+          "href": "https://tally.so/r/J95eYd"
+        },
+        ", sans créer de compte."
+      ]
+    },
+    {
+      "p": [
+        "Vous avez un compte GitHub ? Vous pouvez aussi ouvrir un ",
         {
           "text": "ticket GitHub",
           "href": "https://github.com/nullcrimson/remidi/issues"
         },
-        " avec les détails."
+        "."
       ]
     },
     {
@@ -155,7 +123,7 @@
     },
     {
       "p": [
-        "Les correspondances d’éléments et les solutions de repli sont fournies au mieux. Les fichiers convertis peuvent être incomplets ou incorrects. Il vous appartient de vérifier le résultat et de conserver une sauvegarde de vos fichiers d’origine avant de les utiliser."
+        "Les mappings et les remplacements d’éléments sont établis au mieux. Les fichiers convertis peuvent être incomplets ou incorrects. Il vous appartient de vérifier le résultat et de conserver une sauvegarde de vos fichiers d’origine avant de les utiliser."
       ]
     },
     {
@@ -170,7 +138,7 @@
     },
     {
       "p": [
-        "La conversion s’effectue entièrement dans votre navigateur : les fichiers ne sont ni envoyés ni stockés. Drumverter collecte uniquement des statistiques d’utilisation anonymes, sans cookies (comme les pages vues), pour savoir si l’outil est utile ; vos fichiers MIDI ne quittent jamais votre appareil. Drumverter peut être modifié ou arrêté à tout moment. En l’utilisant, vous acceptez ces conditions."
+        "La conversion s’effectue entièrement dans votre navigateur : les fichiers ne sont ni envoyés ni stockés. Drumverter collecte uniquement des statistiques d’utilisation anonymes, sans cookies (comme les pages vues), pour savoir si l’outil est utile ; vos fichiers MIDI ne quittent jamais votre appareil. Drumverter peut être modifié ou arrêté à tout moment. En l’utilisant, vous acceptez ces conditions. Si vous offrez un café, le paiement se fait sur la page de Stripe ; Drumverter ne voit jamais vos données de carte ou de paiement."
       ]
     }
   ]

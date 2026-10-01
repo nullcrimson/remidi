@@ -15,6 +15,22 @@ test('converts a kick through the real engine and downloads the file', async ({ 
   const file = await download;
   expect(file.suggestedFilename()).toMatch(/\.mid$/);
   expect(hitKeys(await readFile(await file.path()))).toEqual([36]);
+  await expect(page.getByRole('group', { name: 'Leave a tip' })).toBeVisible();
+});
+
+test('explains a disabled Convert beside the mouse', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'no hover on touch');
+  await openPair(page);
+  await expect(page.getByRole('button', { name: /Edit individual notes/ })).toBeVisible();
+  const convert = page.getByRole('button', { name: 'Convert', exact: true });
+  await convert.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  const box = (await convert.boundingBox())!;
+  await page.mouse.move(box.x + 40, box.y + box.height / 2);
+  await expect(page.getByRole('tooltip')).toHaveText('Add a .mid file to convert');
+  await page.mouse.move(box.x + 80, box.y + box.height / 2);
+  await expect(page.getByRole('tooltip')).toHaveCSS('left', `${Math.round(box.x + 80 + 14)}px`);
+  await page.mouse.move(box.x + 40, box.y - 60);
+  await expect(page.getByRole('tooltip')).toHaveCount(0);
 });
 
 test('downloads several converted files as one zip', async ({ page }) => {

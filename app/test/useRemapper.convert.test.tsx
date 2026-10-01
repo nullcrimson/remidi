@@ -260,15 +260,15 @@ describe('useRemapper convert path', () => {
     expect(result.current.engines.map((e) => e.name)).toEqual(['EZdrummer', 'GGD Invasion']);
   });
 
-  it('saves a single converted file straight away', async () => {
+  it('leaves even a single converted file for the download button', async () => {
     const { result } = renderHook(() => useRemapper());
     await waitFor(() => expect(result.current.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
     await act(() => result.current.convert());
-    expect(saveFile).toHaveBeenCalledOnce();
-    expect(saveFile).toHaveBeenCalledWith('blob:mock-url', 'groove-ezdrummer.mid');
+    expect(result.current.conv.kind).toBe('done');
+    expect(saveFile).not.toHaveBeenCalled();
   });
 
   it('leaves a batch for the zip download', async () => {

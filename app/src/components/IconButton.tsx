@@ -37,7 +37,7 @@ export function IconButton({
       className={`
         tap flex shrink-0 items-center justify-center leading-none
         transition-colors
-        disabled:cursor-not-allowed disabled:opacity-40
+        disabled:cursor-default disabled:opacity-40
         ${SIZE[size]}
         ${TONE[tone]}
       `}

@@ -19,8 +19,12 @@ Neutral Spanish for Spain and Latin America (`es`).
 | drag & drop a file | suelta un .mid / soltar (the word Google Drive uses: "Suelta los archivos aquí") |
 | pick a file | elegir (haz clic para elegirlo) |
 | the on-screen piano | el piano |
-| exact / approximated / dropped / unrecognized | exacta / aproximada / omitida / no reconocida (feminine: they describe notas and piezas) |
-| Nearest / Drop (missing-drums options) | Aproximar / Omitir |
+| exact / approximated / dropped / unrecognized | exacta / reemplazada / quitada / no reconocida (feminine: they describe notas and piezas); never "aproximada" / "omitida" |
+| missing drums (setting) | Piezas que faltan |
+| Nearest / Drop (missing-drums options) | Reemplazar / Quitar (verbs; hints "se reemplazan por la pieza más parecida" / "se quitan del archivo") |
+| tip (Stripe payment) / tip group label | "Invítame a un café"; group label "Apoya el proyecto"; never "propina" (reads like a restaurant) |
+| skipped (preset edits, unsupported files) | se omitió / omitidos (only for skipping; dropped drums are "quitadas") |
+| Convert more (after a conversion) | Nueva conversión (keeps "Convertir" from being a prefix of another button) |
 | clean (conversion with no losses) | sin pérdidas |
 | report | informe |
 | edit / override (a changed note) | cambio |
@@ -37,9 +41,11 @@ Neutral Spanish for Spain and Latin America (`es`).
 
 Forms: tú, never vosotros and never usted. Imperatives in the tú form ("Agrega", "Elige", "Suelta", "Revisa tu conexión y vuelve a intentarlo"); buttons and menu items use the infinitive, as Windows, macOS, Google apps and DAWs do in Spanish ("Convertir y descargar", "Guardar como preset", "Cambiar nombre", "Cancelar"). Neutral vocabulary understood everywhere: archivo, descargar, agregar, correo, equipo, "revisa" instead of "comprueba"/"chequea", no regional words (ordenador/computadora avoided). Errors use the impersonal "No se pudo…". Brand and engine names are never inflected; "de { $engine }" or a colon is used instead.
 
-Short hint text under an option describes what the option does, third person ("suenan en la pieza más parecida", "se omiten"), matching the longer tooltip.
+Short hint text under an option describes what the option does, third person ("se reemplazan por la pieza más parecida", "se quitan del archivo"), matching the longer tooltip.
 
-Count messages agree in gender and number: Spanish has one/other in the app's range, so every chip or tag with a count and an adjective ("3 aproximadas", "1 omitida") has a one/other select even where English has none. Sentences where agreement would need several selects are rephrased with a colon ("Piezas reasignadas: 3 de 12", "Notas exactas: 5, aproximadas: 2, omitidas: 1").
+Count messages agree in gender and number: Spanish has one/other in the app's range, so every chip or tag with a count and an adjective ("3 reemplazadas", "1 quitada") has a one/other select even where English has none. Sentences where agreement would need several selects are rephrased with a colon ("Piezas reasignadas: 3 de 12", "Notas exactas: 5, reemplazadas: 2, quitadas: 1").
+
+Limits are said like a person ("Ya no caben más presets: el máximo es 20"), never "se alcanzó el límite". Errors say what happened in plain words ("El conversor no puede leer este archivo: no parece un MIDI"). Connection problems say "Revisa tu conexión a internet".
 
 English words kept, because that is what Spanish-speaking drummers and producers actually say:
 - plugin — the everyday word for a drum engine / virtual instrument in Spanish-speaking studios; "motor" would read as a calque.

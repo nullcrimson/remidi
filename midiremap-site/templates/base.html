@@ -7,10 +7,12 @@
     <title>{{ meta.title }}</title>
     <meta name="description" content="{{ meta.description }}" />
     <link rel="canonical" href="{{ meta.canonical }}" />
+    {% block robots %}{% endblock %}
     {% for (tag, url) in frame.alternates %}<link rel="alternate" hreflang="{{ tag }}" href="{{ url }}" />
     {% endfor %}    <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#100f0d" />
@@ -30,6 +32,7 @@
   <body class="text-t3">
     <div class="flex min-h-screen flex-col items-center px-5 pt-[6vh] pb-16">
       <div class="flex w-200 max-w-full flex-col gap-5">
+        <div data-nosnippet>
         <a
           href="#main"
           class="skip-link"
@@ -40,16 +43,17 @@
             class="tap brand-mark hover:text-t1"
           >Drumverter</a>
           <nav aria-label="{{ frame.nav_main }}">
-            <ul class="flex gap-5 text-ui">
+            <ul class="flex flex-wrap gap-x-5 gap-y-1 text-ui">
               {% for n in frame.nav %}
               <li>
-                <a href="{{ n.href }}"{% if n.current %} aria-current="page"{% endif %} class="nav-link">{{ n.label }}</a>
+                <a href="{{ n.href }}"{% if n.current %} aria-current="page"{% endif %} class="nav-link whitespace-nowrap">{{ n.label }}</a>
               </li>
               {% endfor %}
               <li>{% include "lang_menu.html" %}</li>
             </ul>
           </nav>
         </header>
+        </div>
         {% include "lang_offer.html" %}
         <main
           id="main"
@@ -59,13 +63,16 @@
           <div class="flex flex-col gap-6 p-5 sm:p-8.5">{% block content %}{% endblock %}</div>
         </main>
         <footer class="flex flex-col gap-2 px-1">
+          <div data-nosnippet>
           <nav aria-label="{{ frame.nav_site }}">
             <ul class="flex flex-wrap justify-center gap-x-5 gap-y-2 text-ui">
               {% for l in frame.footer %}
               <li><a href="{{ l.href }}" class="prose-link">{{ l.label }}</a></li>
               {% endfor %}
+              <li><a href="{{ frame.tip_href }}" target="_blank" rel="noopener" class="prose-link tip-link">{{ frame.tip }}</a></li>
             </ul>
           </nav>
+          </div>
         </footer>
       </div>
     </div>
