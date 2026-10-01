@@ -189,16 +189,6 @@ impl CymSlot {
             Self::Bell(i) => i.get(),
         }
     }
-
-    fn prev(self) -> Option<Self> {
-        match self {
-            Self::Crash(i) => i.prev().map(Self::Crash),
-            Self::China(i) => i.prev().map(Self::China),
-            Self::Splash(i) => i.prev().map(Self::Splash),
-            Self::Stack(i) => i.prev().map(Self::Stack),
-            Self::Bell(i) => i.prev().map(Self::Bell),
-        }
-    }
 }
 
 fn each<T: VariantArray + Copy>() -> impl Iterator<Item = T> + Clone {

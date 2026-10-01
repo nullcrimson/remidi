@@ -39,7 +39,7 @@ fn expected_resolution(canon: Canon, tgt: &EngineMap) -> Expected {
     if let Some(note) = tgt.encode(canon) {
         return Expected::Direct(note);
     }
-    for alt in canon.fallback_chain() {
+    for &alt in canon.fallback_chain() {
         if let Some(note) = tgt.encode(alt) {
             return Expected::Fallback(note);
         }

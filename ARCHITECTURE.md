@@ -112,10 +112,18 @@ chain through anyhow and the WASM joins it into one message (`outer: inner`).
   `strum::EnumDiscriminants` that `all()` reaches every variant of `Canon`, `HatOpen`,
   `TomPos` and `CymSlot`.
 
-**Fallback invariant.** `single_step` gives a slot's immediate, nearest
-alternatives; `fallback` is the breadth-first closure of that relation, so a chain
-lists every reachable alternative once, nearest first, never the slot itself. The
-`chain_is_closed_no_self_no_dupes` test enforces this.
+**Fallback rules.** A chain first lists the strokes of the same drum that may stand in
+(`variants`, explicit allow-lists: a fancy stroke falls to a plain one, never the
+reverse; hi-hats keep closed with closed and open with open, foot with foot, and never
+fall onto the bell), then walks breadth-first to other drums (`neighbours`, used only
+by Nearest: the other snare, the nearest toms, the nearest cymbal of the same kind,
+crash 1 for china/splash/stack and for a ride edge, the ride bell for a cymbal bell,
+the main hat for an aux hat), each with its own allow-list. No stand-in → the drum is
+dropped. Chains are built once for every slot. `tests/same_drum_stands_in.rs` holds the
+agreed rules as an independent table and checks every slot's chain against it, and
+every built-in engine pair in both missing-drum modes: the first agreed stand-in the
+target has is played, nothing else on the same drum, and Nearest only crosses to drums
+the rules allow.
 
 ### `engine_map` — one engine's note table
 

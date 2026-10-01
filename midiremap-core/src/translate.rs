@@ -132,7 +132,8 @@ pub(crate) fn substitute(
 ) -> Option<(Canon, Note)> {
     canon
         .fallback_chain()
-        .into_iter()
+        .iter()
+        .copied()
         .filter(|&alt| missing.allows(canon, alt))
         .find_map(|alt| tgt.encode(alt).map(|note| (alt, note)))
 }
@@ -257,6 +258,7 @@ mod tests {
         notes = [
           { note = 50, canon = "kick.main", primary = true },
           { note = 60, canon = "hat.closed", primary = true },
+          { note = 61, canon = "hat.open1", primary = true },
         ]
     "#;
 
@@ -313,12 +315,12 @@ notes = [ {} ]",
     }
 
     #[test]
-    fn drop_prefers_the_same_drum_where_nearest_swaps() {
+    fn both_modes_keep_the_same_drum_before_another() {
         let tgt = target(&[(40, "snare1.rimshot"), (41, "snare2.hit")]);
         let canon = k("snare2.rimshot");
         assert_eq!(
             resolve(canon, &tgt, MissingDrums::Nearest).note(),
-            Some(n(40))
+            Some(n(41))
         );
         assert_eq!(resolve(canon, &tgt, MissingDrums::Drop).note(), Some(n(41)));
     }
@@ -425,9 +427,21 @@ notes = [ {} ]",
             mapping().translate(n(11)),
             Resolution::Resolved(CanonResolution::Fallback {
                 canon: Canon::Hat(HatOpen::Open(idx(3)), HatZone::Plain),
-                note: n(60)
+                note: n(61)
             })
         );
+    }
+
+    #[test]
+    fn an_open_hat_never_plays_closed() {
+        let tgt = target(&[(60, "hat.closed")]);
+        let canon = k("hat.open3");
+        for missing in [MissingDrums::Nearest, MissingDrums::Drop] {
+            assert_eq!(
+                resolve(canon, &tgt, missing),
+                CanonResolution::Dropped { canon }
+            );
+        }
     }
 
     #[test]
