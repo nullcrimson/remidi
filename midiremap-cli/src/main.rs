@@ -41,7 +41,7 @@ struct ConvertArgs {
     /// "src":[{"note":24,"canon":"snare1.hit"}]}; a null canon silences a source note
     #[arg(long, value_name = "FILE", conflicts_with = "preset")]
     overrides: Option<PathBuf>,
-    /// A preset exported from the web app (.drumverter.json); its engines must match
+    /// A preset exported from the web app (<name>-drumverter.json); its engines must match
     #[arg(long, value_name = "FILE")]
     preset: Option<PathBuf>,
     /// Drums the target lacks: nearest (play on the closest drum) or drop (leave out;

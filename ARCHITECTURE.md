@@ -318,7 +318,7 @@ stderr and exits non-zero):
 ```
 midiremap convert <input.mid> <src_id> <tgt_id> <output.mid>
                   [--user-map map.json] [--overrides edits.json] [--channel auto|all|1-16]
-                  [--missing nearest|drop] [--preset my-kit.drumverter.json]
+                  [--missing nearest|drop] [--preset my-kit-drumverter.json]
 midiremap list [--user-map map.json]
 ```
 
@@ -457,14 +457,16 @@ one per pair of the eight popular engines, and one per content section into `dis
 The pages link the app's own built stylesheet (read from `dist/index.html`); Tailwind
 scans the askama templates through `@source`, so both surfaces share one set of tokens
 and utilities. Octave naming and "Changes only" on pair pages are CSS-only radios; the
-filters on the engine and index pages are the only script. FAQ, How it works, Report an
+filters on the engine and index pages are the only script. FAQ, How to use, Report an
 issue, Contact and Terms are the documents in `app/src/content/docs/<code>.json`, which
 also feed the app's modals; their FAQPage / HowTo schema is written on `/faq/` and
 `/how-it-works/`. The generator also writes the converter shell: the marked regions of
-the built `index.html` (`<!--app-head-->`, `<!--app-noscript-->`) get the title,
-descriptions, social cards, the SoftwareApplication block, the no-script text and the
-hidden load-failure notice from `app.ftl`; the markers stay, so a second run rewrites the
-same regions. Besides the
+the built `index.html` (`<!--app-head-->`, `<!--app-noscript-->`, `<!--app-title-->`) get
+the title, descriptions, social cards, the SoftwareApplication block, the no-script text,
+the hidden load-failure notice and a visually hidden `<h1>` inside `#root` (for crawlers
+that run no script; React replaces it on mount) from `app.ftl`; the markers stay, so a second run rewrites the
+same regions. On every page the skip link, header and footer links sit in
+`data-nosnippet` blocks, so search results quote the page, not its chrome. Besides the
 stylesheet, each page copies two things from the built `index.html`: the content security
 policy (defined once in `vite.config.ts`, injected into the build only) and the
 Cloudflare Web Analytics beacon, so every page states the same policy and counts visits

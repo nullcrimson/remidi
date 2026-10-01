@@ -12,9 +12,13 @@ are never uploaded.
 - A drum the target lacks is played on the nearest one it has (a China on a crash), or
   left out if you choose **Drop**; ghost notes and rimshots always fall back to a plain
   hit on the same drum.
-- Each conversion comes with a report of approximated, dropped and unrecognized notes,
-  with links to fix them in the note editor. Edits can be saved as presets.
-- Batch conversion, drum-channel selection, and a command-line tool for offline use.
+- Hover the dotted counts to see what happens to every drum before converting; each
+  conversion comes with a report of approximated, dropped and unrecognized notes, with
+  links to fix them in the note editor.
+- Edits can be saved as presets. Presets stay in your browser; export one (`.json`) and
+  drop it on the page to use it elsewhere.
+- Batch conversion, drum-channel selection, 11 languages, and a command-line tool for
+  offline use.
 
 ## Workspace
 
@@ -49,7 +53,7 @@ npm run lint
 npm test
 npm run build:site   # app + static pages into app/dist
 npx playwright install chromium   # once
-npm run e2e          # browser smoke tests against app/dist
+npm run e2e          # browser tests of every user story against app/dist, desktop and phone
 ```
 
 Every push to `master` runs the same checks in CI and deploys only when all pass. A
@@ -60,7 +64,7 @@ daily job fuzzes the converter (see ARCHITECTURE.md).
 ```bash
 cargo run -p midiremap-cli -- list
 cargo run -p midiremap-cli -- convert in.mid ggd_invasion ezdrummer out.mid \
-    [--channel auto|all|1-16] [--missing nearest|drop] [--preset my-kit.drumverter.json]
+    [--channel auto|all|1-16] [--missing nearest|drop] [--preset my-kit-drumverter.json]
 ```
 
 `--preset` applies a preset exported from the app (⋯ → Export). The loss report is

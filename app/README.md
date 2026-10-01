@@ -49,11 +49,17 @@ note-map and document pages from the last `npm run build:site` in `dist/`.
 
 `e2e/layout.spec.ts` checks every locale, and a pseudo-locale served in place of the Polish messages, for sideways scrolling and cut-off text on desktop and phone.
 
-`e2e/` holds the browser smoke tests (Chromium desktop and Pixel 7): conversion through
-the real WASM with the downloaded file read back, keyboard walk and focus steps, drag and
-drop, the report dialog, tap-target sizes on a phone, and the static pages' filters and
-toggles. `e2e/fixtures.ts` writes the MIDI files with `midi-file` and fails any test whose
-page logs an error.
+`e2e/` holds the browser tests (Chromium desktop and Pixel 7), one or more per user
+story, all through the real WASM with downloaded files read back: adding, dropping and
+removing files; picking, swapping and starring engines; the drum channel, octave and
+missing-drums settings; the note editor (targets, filters, search, reset, Advanced source
+notes, Back); presets (save, update, rename, duplicate, delete, export, import into a
+fresh browser); the breakdown pop-ups and the edited chip; single and zip downloads, the
+report and its fixes; what a reload brings back; the note-map pages' converter links; the
+footer dialogs; keyboard walk and focus; tap sizes; languages; and the crawler heading.
+`e2e/fixtures.ts` writes the MIDI files with `midi-file` and fails any test whose page
+logs an error or reaches another origin; `e2e/steps.ts` holds the shared steps, which tap
+on a phone and click elsewhere.
 
 ## How it works
 
@@ -76,7 +82,11 @@ page logs an error.
   default mapping, their preview lines, and whether they match the open preset.
 - `src/lib/session.ts` — the setup a reload brings back (engines, settings, unsaved edits).
 - `src/lib/mappings.ts`, `presetFile.ts`, `presetImport.ts` — stored presets (versioned,
-  quarantine), `.drumverter.json` export and import.
+  quarantine), `<name>-drumverter.json` export and import (any `.json` file imports).
+- `src/lib/planBreakdown.ts` — the groups behind the "N of M drums remapped" pop-up
+  (new note, same note, close variant, another drum, left out, not in the source).
+- `src/lib/reportLink.ts` — the "Wrong mapping? Report it" form link, told the engines
+  and language.
 - `src/hooks/useRemapper.ts` — screen state (Convert + Edit); every selection change is
   one `SelectionEvent` (`src/lib/selection.ts`) handed to each reducer.
 - `src/lib/editorState.ts` — the note editor's reducer; `src/hooks/useEngineData.ts` — the
@@ -84,13 +94,16 @@ page logs an error.
 - `src/hooks/usePresetActions.ts`, `useFileIntake.ts`, `useConversionReport.ts` — preset
   payloads, dropped files and presets, the report.
 - `src/hooks/useFocusIntent.ts` — moves focus after an action (`ref` / `request`).
+- `src/hooks/useEditorHistory.ts` — opening the note editor adds a history entry, so the
+  browser's Back closes it instead of leaving the converter.
 - `src/components/*` — FileChips/CardDropzone, LibraryList, OctaveToggle, ChannelSelect,
-  MissingDrumsSetting, ConvertSettings, EngineColumns, SummaryRow, ConvertButton, DonePanel,
-  ReportModal (Convert); EditView with `edit/` (EditFilters, FamilyRows, EditFooter,
+  MissingDrumsSetting, ConvertSettings, PlanControls, EngineColumns, SummaryRow,
+  ConvertButton (FollowTip: the reason beside the mouse), DonePanel, TipCard,
+  ReportModal (Convert); InfoPopover (the hover/click breakdowns); EditView with `edit/` (EditFilters, FamilyRows, EditFooter,
   SavePreset), VoiceRow, NotePicker, SourceEditor, PianoKeyboard (Edit). Page chrome:
   PageFrame (Page, Card). Overlays: Modal, PickerShell (+ `overlayAnchor`), on Floating UI. Shared primitives: `styles.ts`, Button,
   TextButton, IconButton, ChipRadioGroup, ChipSelect, TextField, MonoLabel, ProseLink.
-  Frame: SiteHeader (brand + Converter · Note maps · FAQ), SiteFooter (section links that
+  Frame: SiteHeader (brand + Converter · How to use · Note maps · FAQ), SiteFooter (section links that
   open modals, rendered by ContentBlocks from `src/content/docs/<code>.json`, the same
   source the static site pages use) and LanguageMenu. Every text comes from
   `../locales/<code>/app.ftl` through `useT()`, provided by LocaleProvider.
@@ -101,15 +114,19 @@ page logs an error.
   drum channel and missing drums (Nearest plays a drum the target lacks on the closest
   one, Drop leaves it out; remembered in the browser), convert. A single file downloads
   straight away; a batch offers a zip. A reload brings back the engines, settings and
-  unsaved note edits. Presets can be exported (⋯ → Export) and imported by dropping or
-  picking a `.drumverter.json` file. The report groups dropped / approximated /
+  unsaved note edits. Hovering (or tapping) the dotted "N of M drums remapped" and
+  missing-drums counts lists what happens to each drum, with a link into the editor; a
+  disabled Convert says why beside the mouse. Presets live in the browser; they can be
+  exported (⋯ → Export) as `<name>-drumverter.json` and imported by dropping or picking
+  the file. The report groups dropped / approximated /
   unrecognized / unchanged notes with links to fix each one; after a conversion that
   moved drums to another drum, "Drop missing drums & convert again" re-runs it with Drop.
 - **Edit notes**: drums grouped by family with a filter and All / Changed / Issues chips;
   each row shows source → target and the result (direct, approx, dropped, edited) and can
   be reset. Target and source notes are picked from the drum list or an octave-tabbed
   piano (a bottom sheet on phones); Advanced reassigns raw source notes. A sticky footer
-  holds the change count, Reset all, Save as preset and Done. A Plays column names the
+  holds the change count, Reset all, Save as preset and Done; edits apply as you make
+  them, and the browser's Back returns to the converter. A Plays column names the
   target drum each row lands on (≈ when approximated).
 
 ## Keyboard
