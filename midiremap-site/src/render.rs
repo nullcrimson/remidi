@@ -920,7 +920,7 @@ mod tests {
     #[test]
     fn converter_links_carry_known_distinct_engine_ids() {
         let maps = Catalog::builtin().unwrap();
-        let ids: HashSet<&str> = maps.ids().into_iter().collect();
+        let ids: HashSet<&str> = maps.ids().collect();
         let mut checked = 0;
         for (path, html) in rendered() {
             for href in html

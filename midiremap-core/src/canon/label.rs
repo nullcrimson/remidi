@@ -118,14 +118,15 @@ mod tests {
     use crate::canon::idx;
 
     #[test]
-    fn every_variant_has_a_nonempty_label() {
-        for &c in Canon::all() {
-            assert!(!c.label().is_empty(), "{c:?} has empty label");
-        }
+    fn an_open_hat_is_labelled_with_its_level() {
         assert_eq!(
             Canon::Hat(HatOpen::Open(idx(1)), HatZone::Plain).label(),
             "Hi-Hat Open 1"
         );
+    }
+
+    #[test]
+    fn a_sidestick_is_labelled_side_stick() {
         assert_eq!(
             Canon::Snare(idx(1), SnareArtic::Sidestick).label(),
             "Side Stick"

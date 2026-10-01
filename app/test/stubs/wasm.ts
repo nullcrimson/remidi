@@ -49,11 +49,11 @@ export const note_names: typeof Wasm.note_names = (base) =>
   Array.from({ length: 128 }, (_, n) => `${NAMES[n % 12]}${Math.floor(n / 12) - (base === 'c1' ? 1 : 2)}`);
 
 const BASE_ROWS: Wasm.VoiceRow[] = [
-  { canon: 'kick.main', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct', otherDrum: false },
-  { canon: 'snare1.hit', label: 'Snare', srcNotes: [26], tgtNote: 38, defaultTgtNote: 38, status: 'direct', otherDrum: false },
-  { canon: 'hat.open3', label: 'Hi-Hat Open 3', srcNotes: [47], tgtNote: 46, defaultTgtNote: 46, status: 'fallback', otherDrum: false },
-  { canon: 'china.1.hit', label: 'China 1', srcNotes: [59], tgtNote: null, defaultTgtNote: null, status: 'dropped', otherDrum: true },
-  { canon: 'hat.cc', label: 'Hi-Hat CC', srcNotes: [4], tgtNote: null, defaultTgtNote: null, status: 'dropped', otherDrum: false },
+  { canon: 'kick.main', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+  { canon: 'snare1.hit', label: 'Snare', srcNotes: [26], defaultTgtNote: 38, outcome: { status: 'direct', tgtNote: 38 } },
+  { canon: 'hat.open3', label: 'Hi-Hat Open 3', srcNotes: [47], defaultTgtNote: 46, outcome: { status: 'fallback', tgtNote: 46, otherDrum: false } },
+  { canon: 'china.1.hit', label: 'China 1', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: true } },
+  { canon: 'hat.cc', label: 'Hi-Hat CC', srcNotes: [4], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
 ];
 
 export const parse_preset_file: typeof Wasm.parse_preset_file = (json) => {
@@ -70,7 +70,7 @@ export const plan: typeof Wasm.plan = (_src, _tgt, overrides, missing) => {
   const rows = BASE_ROWS.map((r) => ({ ...r, srcNotes: [...r.srcNotes] }));
   for (const o of overrides?.tgt ?? []) {
     const row = rows.find((r) => r.canon === o.canon);
-    if (row) row.tgtNote = o.note;
+    if (row) row.outcome = { status: 'direct', tgtNote: o.note };
   }
   for (const s of overrides?.src ?? []) {
     for (const r of rows) r.srcNotes = r.srcNotes.filter((n) => n !== s.note);

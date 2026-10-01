@@ -10,6 +10,7 @@ import { NotePicker } from '../NotePicker';
 import { SourceNotePicker } from '../SourceNotePicker';
 import { ROW_GRID } from '../styles';
 import { VoiceRow, type RowResult } from '../VoiceRow';
+import { playedNote } from '../../lib/outcome';
 
 /** The editor actions a row and its pickers use. */
 export type RowActions = Pick<
@@ -26,10 +27,10 @@ export type RowActions = Pick<
 
 function playsOf(row: VoiceRowData, changed: boolean, drumAt: (note: number) => string, t: Translate): RowResult {
   if (row.srcNotes.length === 0) return { text: t({ id: 'row-no-source' }), tone: 'text-t5' };
-  if (row.tgtNote === null) return { text: t({ id: 'row-dropped' }), tone: 'text-danger' };
-  const name = drumAt(row.tgtNote);
+  if (row.outcome.status === 'dropped') return { text: t({ id: 'row-dropped' }), tone: 'text-danger' };
+  const name = drumAt(row.outcome.tgtNote);
   if (changed) return { text: name, tone: 'text-t2' };
-  if (row.status === 'fallback') return { text: `≈ ${name}`, tone: 'text-star' };
+  if (row.outcome.status === 'fallback') return { text: `≈ ${name}`, tone: 'text-star' };
   return { text: name, tone: 'text-t5' };
 }
 
@@ -108,7 +109,6 @@ export function FamilyRows({
               <Fragment key={row.canon}>
                 <VoiceRow
                   row={row}
-                  effectiveTgt={row.tgtNote}
                   base={oct}
                   srcChanged={changedSrc.has(row.canon)}
                   tgtChanged={row.canon in edits}
@@ -133,7 +133,7 @@ export function FamilyRows({
                   {tgtExpanded && pick && (
                     <NotePicker
                       voiceLabel={row.label}
-                      currentNote={row.tgtNote}
+                      currentNote={playedNote(row.outcome)}
                       octIndex={pick.octIndex}
                       base={oct}
                       drums={targetDrums}

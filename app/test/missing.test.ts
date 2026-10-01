@@ -10,18 +10,16 @@ function row(canon: string, extra: Partial<VoiceRow>): VoiceRow {
     canon,
     label: canon,
     srcNotes: [1],
-    tgtNote: 36,
     defaultTgtNote: 36,
-    status: 'direct',
-    otherDrum: false,
+    outcome: { status: 'direct', tgtNote: 36 },
     ...extra,
   };
 }
 
-const SWAP = row('china.1.hit', { status: 'fallback', otherDrum: true });
-const SAME = row('snare1.rimshot', { status: 'fallback' });
-const DROPPED_SWAP = row('tom.rack4.hit', { status: 'dropped', tgtNote: null, otherDrum: true });
-const SILENT_SWAP = row('splash.1.hit', { status: 'fallback', otherDrum: true, srcNotes: [] });
+const SWAP = row('china.1.hit', { outcome: { status: 'fallback', tgtNote: 36, otherDrum: true } });
+const SAME = row('snare1.rimshot', { outcome: { status: 'fallback', tgtNote: 36, otherDrum: false } });
+const DROPPED_SWAP = row('tom.rack4.hit', { outcome: { status: 'dropped', otherDrum: true } });
+const SILENT_SWAP = row('splash.1.hit', { srcNotes: [], outcome: { status: 'fallback', tgtNote: 36, otherDrum: true } });
 
 describe('missing drums setting', () => {
   it('offers Nearest then Drop', () => {
@@ -39,7 +37,7 @@ describe('missing drums setting', () => {
   it('counts drums played on another drum under Nearest', () => {
     expect(t(missingHint('nearest', [SAME]))).toBe('no drum moves to another drum');
     expect(t(missingHint('nearest', [SWAP, SAME, SILENT_SWAP]))).toBe('1 drum played on another drum');
-    expect(t(missingHint('nearest', [SWAP, row('x', { status: 'fallback', otherDrum: true })]))).toBe(
+    expect(t(missingHint('nearest', [SWAP, row('x', { outcome: { status: 'fallback', tgtNote: 36, otherDrum: true } })]))).toBe(
       '2 drums played on another drum',
     );
   });
@@ -47,7 +45,7 @@ describe('missing drums setting', () => {
   it('counts drums the setting drops under Drop', () => {
     expect(t(missingHint('drop', [SAME]))).toBe('no drums dropped');
     expect(t(missingHint('drop', [DROPPED_SWAP, SAME]))).toBe('1 drum dropped');
-    expect(t(missingHint('drop', [DROPPED_SWAP, row('y', { status: 'dropped', tgtNote: null, otherDrum: true })]))).toBe(
+    expect(t(missingHint('drop', [DROPPED_SWAP, row('y', { outcome: { status: 'dropped', otherDrum: true } })]))).toBe(
       '2 drums dropped',
     );
   });
@@ -58,8 +56,8 @@ describe('missing drums setting', () => {
       { note: 49, canon: 'crash.1.choke', label: 'Crash 1 choke', family: 'Cymbals' },
       { note: 45, canon: 'tom.rack3.hit', label: 'Tom 3', family: 'Toms' },
     ] as Drum[];
-    const china = row('china.1.hit', { label: 'China', status: 'fallback', otherDrum: true, tgtNote: 49 });
-    const tom = row('tom.rack4.hit', { label: 'Tom 4', status: 'fallback', otherDrum: true, tgtNote: 45 });
+    const china = row('china.1.hit', { label: 'China', outcome: { status: 'fallback', tgtNote: 49, otherDrum: true } });
+    const tom = row('tom.rack4.hit', { label: 'Tom 4', outcome: { status: 'fallback', tgtNote: 45, otherDrum: true } });
     expect(swapList([china, SAME, tom, SILENT_SWAP], drums, 'c1')).toEqual([
       { drum: 'China', now: 'Crash 1' },
       { drum: 'Tom 4', now: 'Tom 3' },

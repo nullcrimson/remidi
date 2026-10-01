@@ -20,7 +20,7 @@ vi.mock('../src/lib/midiremap', () => ({
 
 import { useRemapper } from '../src/hooks/useRemapper';
 
-const ROWS = [{ canon: 'KickMain', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct' }];
+const ROWS = [{ canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } }];
 
 describe('useRemapper edit path', () => {
   beforeEach(() => {
@@ -96,7 +96,7 @@ describe('useRemapper edit path', () => {
 
   it('takes the reset note from the row default, not the edited target', async () => {
     planMock.mockReturnValue([
-      { canon: 'KickMain', label: 'Kick', srcNotes: [24], tgtNote: 50, defaultTgtNote: 36, status: 'direct' },
+      { canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 50 } },
     ]);
     const { result } = renderHook(() => useRemapper());
     await waitFor(() => expect(result.current.status).toBe('ready'));
@@ -109,8 +109,8 @@ describe('useRemapper edit path', () => {
 
   it('opens pickers on a silent row and leaves it out of the counts', async () => {
     planMock.mockReturnValue([
-      { canon: 'KickMain', label: 'Kick', srcNotes: [], tgtNote: 36, defaultTgtNote: 36, status: 'direct' },
-      { canon: 'China', label: 'China', srcNotes: [], tgtNote: null, defaultTgtNote: null, status: 'dropped' },
+      { canon: 'KickMain', label: 'Kick', srcNotes: [], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+      { canon: 'China', label: 'China', srcNotes: [], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
     ]);
     const { result } = renderHook(() => useRemapper());
     await waitFor(() => expect(result.current.status).toBe('ready'));
@@ -126,8 +126,8 @@ describe('useRemapper edit path', () => {
 
   it('counts a row as remapped only when its shown source note moves', async () => {
     planMock.mockReturnValue([
-      { canon: 'KickMain', label: 'Kick', srcNotes: [36, 35], tgtNote: 36, defaultTgtNote: 36, status: 'direct' },
-      { canon: 'Snare', label: 'Snare', srcNotes: [26], tgtNote: 38, defaultTgtNote: 38, status: 'direct' },
+      { canon: 'KickMain', label: 'Kick', srcNotes: [36, 35], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+      { canon: 'Snare', label: 'Snare', srcNotes: [26], defaultTgtNote: 38, outcome: { status: 'direct', tgtNote: 38 } },
     ]);
     const { result } = renderHook(() => useRemapper());
     await waitFor(() => expect(result.current.status).toBe('ready'));

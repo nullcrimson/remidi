@@ -11,8 +11,8 @@ vi.mock('../src/lib/midiremap', () => ({
     { id: 'ezdrummer', name: 'EZdrummer' },
   ],
   plan: () => [
-    { canon: 'KickMain', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct' },
-    { canon: 'China', label: 'China', srcNotes: [59], tgtNote: null, defaultTgtNote: null, status: 'dropped' },
+    { canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+    { canon: 'China', label: 'China', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
   ],
   remap: () => ({
     bytes: new Uint8Array([1]),

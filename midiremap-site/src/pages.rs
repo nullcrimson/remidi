@@ -419,7 +419,7 @@ mod tests {
     fn one_page_per_engine_except_excluded() {
         let maps = Catalog::builtin().unwrap();
         let s = site();
-        assert_eq!(s.engines.len(), maps.ids().len() - EXCLUDED_IDS.len());
+        assert_eq!(s.engines.len(), maps.ids().count() - EXCLUDED_IDS.len());
         assert!(s
             .engines
             .iter()

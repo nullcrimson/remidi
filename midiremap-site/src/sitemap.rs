@@ -85,7 +85,7 @@ mod tests {
             .filter(|n| n.has_tag_name("loc"))
             .filter_map(|n| n.text())
             .collect();
-        let engines = catalog.ids().len() - EXCLUDED_IDS.len();
+        let engines = catalog.ids().count() - EXCLUDED_IDS.len();
         let pairs = MAJORS.len() * (MAJORS.len() - 1);
         let docs = Docs::load().unwrap();
         let sections: usize = Locale::ALL

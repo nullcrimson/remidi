@@ -3,6 +3,7 @@ import { useT } from '../localeContext';
 import { useId, useState, type ReactNode } from 'react';
 import type { VoiceRow as VoiceRowData } from '../lib/midiremap';
 import { noteName, type OctaveBase } from '../lib/notes';
+import { playedNote } from '../lib/outcome';
 import { IconButton } from './IconButton';
 import { OverlayAnchor } from './overlayAnchor';
 import { chip, ROW_GRID } from './styles';
@@ -26,7 +27,6 @@ function extrasHint(label: string, extras: string[], target: string | null, t: T
 
 export function VoiceRow({
   row,
-  effectiveTgt,
   base,
   srcChanged,
   tgtChanged,
@@ -39,7 +39,6 @@ export function VoiceRow({
   children,
 }: {
   row: VoiceRowData;
-  effectiveTgt: number | null;
   base: OctaveBase;
   srcChanged: boolean;
   tgtChanged: boolean;
@@ -54,13 +53,13 @@ export function VoiceRow({
   const t = useT();
   const [rowEl, setRowEl] = useState<HTMLDivElement | null>(null);
   const playsId = useId();
-  const dropped = row.status === 'dropped' || effectiveTgt === null;
+  const tgt = playedNote(row.outcome);
   const [srcNote, ...extraNotes] = row.srcNotes;
   const silent = srcNote === undefined;
   const extraHint = extrasHint(
     row.label,
     extraNotes.map((n) => noteName(n, base)),
-    dropped ? null : noteName(effectiveTgt, base),
+    tgt === null ? null : noteName(tgt, base),
     t,
   );
   return (
@@ -69,7 +68,7 @@ export function VoiceRow({
       data-row
       className={`
         border-b border-white/4.5
-        ${dropped || silent ? 'opacity-60' : ''}
+        ${tgt === null || silent ? 'opacity-60' : ''}
       `}
     >
       <div className={`
@@ -112,7 +111,7 @@ export function VoiceRow({
           aria-describedby={playsId}
           onClick={onToggle}
           className={
-            dropped && effectiveTgt === null
+            tgt === null
               ? `
                 ${chip('off', 'md')}
                 justify-self-end border-dashed
@@ -123,7 +122,7 @@ export function VoiceRow({
               `
           }
         >
-          {effectiveTgt === null ? '—' : noteName(effectiveTgt, base)}
+          {tgt === null ? '—' : noteName(tgt, base)}
         </button>
         <span
           id={playsId}

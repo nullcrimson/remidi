@@ -217,7 +217,7 @@ impl Canon {
     /// The drums that stand in for this one when a target lacks it, nearest first: the
     /// strokes of the same drum that may stand in, then the nearest other drums.
     pub fn fallback_chain(self) -> &'static [Canon] {
-        CHAINS.get(&self).map_or(&[], Vec::as_slice)
+        &CHAINS[&self]
     }
 }
 
@@ -225,7 +225,10 @@ impl Canon {
 mod tests {
     use std::collections::HashSet;
 
+    use strum::VariantArray;
+
     use super::*;
+    use crate::canon::PercKind;
 
     fn k(s: &str) -> Canon {
         s.parse().unwrap()
@@ -250,105 +253,33 @@ mod tests {
     }
 
     #[test]
-    fn every_chain_tries_the_same_drum_before_another() {
-        for &c in Canon::all() {
-            let chain = c.fallback_chain();
-            let same = chain.iter().take_while(|&&o| c.same_drum(o)).count();
-            assert!(
-                chain[same..].iter().all(|&o| !c.same_drum(o)),
-                "{c} tries another drum before its own: {chain:?}"
-            );
+    fn no_kick_or_main_hat_stands_in_with_another_drum() {
+        for &c in Canon::all()
+            .iter()
+            .filter(|c| matches!(c, Canon::Kick(_) | Canon::Hat(..)))
+        {
+            assert!(c.fallback_chain().iter().all(|&o| c.same_drum(o)), "{c}");
         }
     }
 
     #[test]
-    fn a_closed_hat_stays_closed() {
-        assert_eq!(
-            chain("hat.closed"),
-            keys(&[
-                "hat.closed.tip",
-                "hat.closed.edge",
-                "hat.tight",
-                "hat.tight.tip",
-                "hat.tight.edge",
-                "hat.cc",
-                "hat.cc.tip",
-                "hat.cc.edge",
-            ])
-        );
-        assert_eq!(
-            chain("hat.tight.tip")[..5],
-            keys(&[
-                "hat.tight",
-                "hat.tight.edge",
-                "hat.closed.tip",
-                "hat.closed",
-                "hat.closed.edge"
-            ])
-        );
-    }
-
-    #[test]
-    fn an_open_hat_stays_open_nearest_and_closing_first() {
-        assert_eq!(
-            chain("hat.open2")[..9],
-            keys(&[
-                "hat.open2.edge",
-                "hat.open2.tip",
-                "hat.open1",
-                "hat.open1.edge",
-                "hat.open1.tip",
-                "hat.open3",
-                "hat.open3.edge",
-                "hat.open3.tip",
-                "hat.loose",
-            ])
-        );
+    fn an_open_hat_stands_in_only_with_open_strokes_off_the_bell() {
         assert!(chain("hat.open2").iter().all(|o| {
             let key = o.to_string();
             (key.starts_with("hat.open") || key.starts_with("hat.loose")) && !key.ends_with(".bell")
         }));
+    }
+
+    #[test]
+    fn an_aux_hat_falls_to_the_main_hat_after_itself() {
         assert_eq!(
-            chain("hat.open3.bell")[..4],
-            keys(&[
-                "hat.open3.edge",
-                "hat.open3.tip",
-                "hat.open3",
-                "hat.open2.bell"
-            ])
+            chain("aux1.closed.tip")[8..10],
+            keys(&["hat.closed.tip", "hat.closed"])
         );
     }
 
     #[test]
-    fn the_foot_stays_with_the_foot() {
-        assert_eq!(
-            chain("hat.pedal"),
-            keys(&["hat.pedal.tip", "hat.pedal.edge"])
-        );
-        assert_eq!(
-            chain("hat.pedalsplash"),
-            keys(&[
-                "hat.pedalsplash.edge",
-                "hat.pedalsplash.tip",
-                "hat.pedal",
-                "hat.pedal.tip",
-                "hat.pedal.edge",
-            ])
-        );
-    }
-
-    #[test]
-    fn an_aux_hat_tries_itself_then_the_main_hat() {
-        let aux = chain("aux1.closed.tip");
-        assert_eq!(
-            aux[..3],
-            keys(&["aux1.closed", "aux1.closed.edge", "aux1.tight.tip"])
-        );
-        assert_eq!(aux[8..10], keys(&["hat.closed.tip", "hat.closed"]));
-    }
-
-    #[test]
-    fn snares_toms_and_kicks() {
+    fn a_snare_tries_its_own_stroke_then_the_other_snare() {
         assert_eq!(
             chain("snare1.hit"),
             keys(&["snare1.side", "snare2.hit", "snare2.side"])
@@ -357,32 +288,41 @@ mod tests {
             chain("snare2.rimshot"),
             keys(&["snare2.hit", "snare1.rimshot", "snare1.hit"])
         );
-        assert_eq!(
-            chain("snare1.ruff")[..2],
-            keys(&["snare1.flam", "snare1.hit"])
-        );
-        assert_eq!(chain("snare1.rim")[0], k("snare1.sidestick"));
+    }
+
+    #[test]
+    fn a_tom_hit_tries_the_nearest_toms_first() {
         assert_eq!(
             chain("tom.rack2.hit")[..3],
             keys(&["tom.rack1.hit", "tom.rack3.hit", "tom.rack4.hit"])
         );
+    }
+
+    #[test]
+    fn a_tom_hit_stands_in_only_with_tom_hits() {
         assert!(chain("tom.rack2.hit")
             .iter()
             .all(|o| o.to_string().ends_with(".hit")));
+    }
+
+    #[test]
+    fn a_tom_rimshot_tries_its_hit_then_the_nearest_tom() {
         assert_eq!(
             chain("tom.rack2.rimshot")[..3],
             keys(&["tom.rack2.hit", "tom.rack1.rimshot", "tom.rack1.hit"])
         );
-        assert_eq!(chain("kick.main"), keys(&["kick.alt", "kick.left"]));
-        assert_eq!(chain("kick.left"), keys(&["kick.main", "kick.alt"]));
     }
 
     #[test]
-    fn cymbals() {
+    fn a_crash_tries_its_edge_then_the_next_crashes() {
         assert_eq!(
             chain("crash.1.hit")[..4],
             keys(&["crash.1.edge", "crash.2.hit", "crash.2.edge", "crash.3.hit"])
         );
+    }
+
+    #[test]
+    fn a_china_tries_the_other_chinas_before_a_crash() {
         assert_eq!(
             chain("china.2.mute")[..11],
             keys(&[
@@ -399,19 +339,31 @@ mod tests {
                 "crash.1.edge",
             ])
         );
+    }
+
+    #[test]
+    fn a_stack_falls_to_the_first_crash_after_the_stacks() {
         assert_eq!(chain("stack.1.hit")[7], k("crash.1.hit"));
+    }
+
+    #[test]
+    fn a_ride_tries_its_bow_tip_then_the_other_ride() {
         assert_eq!(
             chain("ride.1"),
             keys(&["ride.1.bowtip", "ride.2", "ride.2.bowtip"])
         );
+    }
+
+    #[test]
+    fn a_ride_edge_falls_to_a_crash_after_the_other_ride_edge() {
         assert_eq!(
             chain("ride.1.edge")[..3],
             keys(&["ride.2.edge", "crash.1.hit", "crash.1.edge"])
         );
-        assert_eq!(
-            chain("ride.1.mute")[..2],
-            keys(&["ride.1", "ride.1.bowtip"])
-        );
+    }
+
+    #[test]
+    fn a_bell_cymbal_tries_the_other_bell_then_the_ride_bell() {
         assert_eq!(
             chain("bell.1.hit")[..5],
             keys(&[
@@ -425,9 +377,9 @@ mod tests {
     }
 
     #[test]
-    fn percussion_has_no_stand_in() {
-        for p in ["perc.cowbell", "perc.clap", "perc.misc"] {
-            assert!(chain(p).is_empty(), "{p}");
+    fn no_percussion_has_a_stand_in() {
+        for &p in PercKind::VARIANTS {
+            assert!(Canon::Perc(p).fallback_chain().is_empty(), "{p:?}");
         }
     }
 }

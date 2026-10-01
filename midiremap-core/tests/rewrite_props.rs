@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::LazyLock};
+use std::collections::HashMap;
 
 use midiremap_core::{convert, Catalog, Channel, ChannelScope, Mapping, MissingDrums, Overrides};
 use midiremap_testkit::{cc, choke, event, off, on, silent_on, smf, DRUMS};
@@ -7,8 +7,6 @@ use midly::{
     MetaMessage, MidiMessage, PitchBend, Smf, TrackEvent, TrackEventKind,
 };
 use proptest::{prelude::*, sample::Index};
-
-static CATALOG: LazyLock<Catalog> = LazyLock::new(|| Catalog::builtin().unwrap());
 
 #[derive(Debug, Clone)]
 enum Item {
@@ -144,7 +142,7 @@ struct Pair {
 
 impl Pair {
     fn mapping(&self) -> Mapping {
-        let engine = |id| CATALOG.get(id).unwrap();
+        let engine = |id| Catalog::shared().unwrap().get(id).unwrap();
         Mapping::new(
             engine(self.src),
             engine(self.tgt),
@@ -155,7 +153,7 @@ impl Pair {
 }
 
 fn pair() -> impl Strategy<Value = Pair> {
-    let ids: Vec<&'static str> = CATALOG.engines().map(|e| e.id()).collect();
+    let ids: Vec<&'static str> = Catalog::shared().unwrap().ids().collect();
     let missing = prop_oneof![Just(MissingDrums::Nearest), Just(MissingDrums::Drop)];
     (any::<Index>(), any::<Index>(), missing).prop_map(move |(src, tgt, missing)| Pair {
         src: ids[src.index(ids.len())],
@@ -292,11 +290,7 @@ proptest! {
     #[test]
     fn every_hit_is_counted_once(midi in file(), pair in pair(), scope in scope()) {
         let report = convert(&midi, &pair.mapping(), scope).unwrap().report;
-        let counted = report.converted()
-            + report.dropped().values().sum::<u32>()
-            + report.unmapped_source().values().sum::<u32>()
-            + report.untouched();
-        prop_assert_eq!(counted, hits(&midi));
+        prop_assert_eq!(report.hits(), hits(&midi));
     }
 }
 

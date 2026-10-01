@@ -12,9 +12,9 @@ use crate::{canon::Canon, note::Note};
 )]
 pub struct Overrides {
     #[serde(default)]
-    pub tgt: Vec<CanonNote>,
+    pub(crate) tgt: Vec<CanonNote>,
     #[serde(default)]
-    pub src: Vec<SrcNote>,
+    pub(crate) src: Vec<SrcNote>,
 }
 
 #[derive(Deserialize)]
@@ -23,9 +23,9 @@ pub struct Overrides {
     derive(tsify::Tsify),
     tsify(missing_as_null, hashmap_as_object)
 )]
-pub struct CanonNote {
-    pub canon: Canon,
-    pub note: Note,
+pub(crate) struct CanonNote {
+    pub(crate) canon: Canon,
+    pub(crate) note: Note,
 }
 
 /// A source note played as `canon`, or no drum at all when `canon` is `None`.
@@ -35,9 +35,9 @@ pub struct CanonNote {
     derive(tsify::Tsify),
     tsify(missing_as_null, hashmap_as_object)
 )]
-pub struct SrcNote {
-    pub note: Note,
-    pub canon: Option<Canon>,
+pub(crate) struct SrcNote {
+    pub(crate) note: Note,
+    pub(crate) canon: Option<Canon>,
 }
 
 #[cfg(test)]
@@ -52,7 +52,10 @@ mod tests {
     const TGT: &str = r#"
         id = "t"
         name = "T"
-        notes = [ { note = 36, canon = "kick.main", primary = true } ]
+        notes = [
+          { note = 36, canon = "kick.main", primary = true },
+          { note = 38, canon = "snare1.hit", primary = true },
+        ]
     "#;
 
     #[test]
@@ -114,7 +117,10 @@ mod tests {
             serde_json::from_str(r#"{"tgt":[{"canon":"kick.main","note":35}]}"#).unwrap();
         let enc = base.with_target_overrides(&ov.tgt);
         assert_eq!(enc.encode(Canon::Kick(KickKind::Main)), Some(n(35)));
-        assert_eq!(enc.encode(Canon::Snare(idx(1), SnareArtic::Hit)), None);
+        assert_eq!(
+            enc.encode(Canon::Snare(idx(1), SnareArtic::Hit)),
+            Some(n(38))
+        );
     }
 
     #[test]

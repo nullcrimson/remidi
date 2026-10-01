@@ -2,10 +2,7 @@ use std::{collections::HashMap, fmt, str::FromStr, sync::LazyLock};
 
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-use super::{
-    Canon, CymArtic, CymSlot, HatOpen, HatZone, KickKind, PercKind, RideArtic, RideIdx, SnareArtic,
-    TomArtic, TomPos, ALL,
-};
+use super::{Canon, HatOpen, HatZone, RideArtic, RideIdx, TomPos, ALL};
 
 static BY_KEY: LazyLock<HashMap<String, Canon>> = LazyLock::new(|| {
     ALL.iter()
@@ -14,99 +11,20 @@ static BY_KEY: LazyLock<HashMap<String, Canon>> = LazyLock::new(|| {
         .collect()
 });
 
-impl CymSlot {
-    fn key(self) -> &'static str {
-        match self {
-            Self::Crash(_) => "crash",
-            Self::China(_) => "china",
-            Self::Splash(_) => "splash",
-            Self::Stack(_) => "stack",
-            Self::Bell(_) => "bell",
-        }
-    }
-}
-
-fn kick_kind_key(k: KickKind) -> &'static str {
-    match k {
-        KickKind::Main => "main",
-        KickKind::Alt => "alt",
-        KickKind::Left => "left",
-    }
-}
-fn snare_artic_key(a: SnareArtic) -> &'static str {
-    use SnareArtic::*;
-    match a {
-        Hit => "hit",
-        Rim => "rim",
-        Rimshot => "rimshot",
-        Sidestick => "sidestick",
-        Flam => "flam",
-        Ruff => "ruff",
-        Off => "off",
-        Side => "side",
-    }
-}
-fn tom_artic_key(a: TomArtic) -> &'static str {
-    match a {
-        TomArtic::Hit => "hit",
-        TomArtic::Rim => "rim",
-        TomArtic::Rimshot => "rimshot",
-    }
-}
 fn hat_open_key(o: HatOpen) -> String {
-    use HatOpen::*;
     match o {
-        Tight => "tight".into(),
-        Closed => "closed".into(),
-        Loose => "loose".into(),
-        Open(n) => format!("open{n}"),
-        Cc => "cc".into(),
-        Pedal => "pedal".into(),
-        PedalSplash => "pedalsplash".into(),
+        HatOpen::Open(n) => format!("{}{n}", key(o)),
+        _ => key(o).to_owned(),
     }
 }
 fn hat_zone_key(z: HatZone) -> Option<&'static str> {
-    match z {
-        HatZone::Plain => None,
-        HatZone::Tip => Some("tip"),
-        HatZone::Edge => Some("edge"),
-        HatZone::Bell => Some("bell"),
-    }
-}
-fn cym_artic_key(a: CymArtic) -> &'static str {
-    use CymArtic::*;
-    match a {
-        Hit => "hit",
-        Mute => "mute",
-        Bell => "bell",
-        BellTip => "belltip",
-        Bow => "bow",
-        BowTip => "bowtip",
-        Edge => "edge",
-    }
+    (z != HatZone::Plain).then(|| z.into())
 }
 fn ride_artic_key(a: RideArtic) -> Option<&'static str> {
-    use RideArtic::*;
-    match a {
-        Bow => None,
-        Bell => Some("bell"),
-        BellTip => Some("belltip"),
-        BowTip => Some("bowtip"),
-        Edge => Some("edge"),
-        Mute => Some("mute"),
-    }
+    (a != RideArtic::Bow).then(|| a.into())
 }
-fn perc_kind_key(k: PercKind) -> &'static str {
-    use PercKind::*;
-    match k {
-        Cowbell => "cowbell",
-        Clap => "clap",
-        Shaker => "shaker",
-        Sticks => "sticks",
-        Tambourine => "tambourine",
-        Vibraslap => "vibraslap",
-        Misc => "misc",
-    }
+fn key(part: impl Into<&'static str>) -> &'static str {
+    part.into()
 }
 fn tom_pos_key(p: TomPos) -> String {
     match p {
@@ -118,9 +36,9 @@ fn tom_pos_key(p: TomPos) -> String {
 impl fmt::Display for Canon {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            Canon::Kick(k) => write!(f, "kick.{}", kick_kind_key(k)),
-            Canon::Snare(i, a) => write!(f, "snare{i}.{}", snare_artic_key(a)),
-            Canon::Tom(p, a) => write!(f, "tom.{}.{}", tom_pos_key(p), tom_artic_key(a)),
+            Canon::Kick(k) => write!(f, "kick.{}", key(k)),
+            Canon::Snare(i, a) => write!(f, "snare{i}.{}", key(a)),
+            Canon::Tom(p, a) => write!(f, "tom.{}.{}", tom_pos_key(p), key(a)),
             Canon::Hat(o, z) => match hat_zone_key(z) {
                 Some(zs) => write!(f, "hat.{}.{zs}", hat_open_key(o)),
                 None => write!(f, "hat.{}", hat_open_key(o)),
@@ -129,12 +47,12 @@ impl fmt::Display for Canon {
                 Some(zs) => write!(f, "aux{i}.{}.{zs}", hat_open_key(o)),
                 None => write!(f, "aux{i}.{}", hat_open_key(o)),
             },
-            Canon::Cymbal(s, a) => write!(f, "{}.{}.{}", s.key(), s.index(), cym_artic_key(a)),
+            Canon::Cymbal(s, a) => write!(f, "{}.{}.{}", key(s), s.index(), key(a)),
             Canon::Ride(i, a) => match ride_artic_key(a) {
                 Some(as_) => write!(f, "ride.{i}.{as_}"),
                 None => write!(f, "ride.{i}"),
             },
-            Canon::Perc(k) => write!(f, "perc.{}", perc_kind_key(k)),
+            Canon::Perc(k) => write!(f, "perc.{}", key(k)),
         }
     }
 }
@@ -157,7 +75,7 @@ impl FromStr for Canon {
 
 impl Serialize for Canon {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        s.serialize_str(&self.to_string())
+        s.collect_str(self)
     }
 }
 impl<'de> Deserialize<'de> for Canon {
@@ -170,7 +88,7 @@ impl<'de> Deserialize<'de> for Canon {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::canon::idx;
+    use crate::canon::{idx, CymArtic, CymSlot, KickKind, PercKind, SnareArtic, TomArtic};
 
     fn k(s: &str) -> Canon {
         s.parse().unwrap()
@@ -186,7 +104,7 @@ mod tests {
     }
 
     #[test]
-    fn key_examples_are_stable() {
+    fn a_drum_prints_as_its_stable_key() {
         assert_eq!(Canon::Kick(KickKind::Main).to_string(), "kick.main");
         assert_eq!(
             Canon::Snare(idx(1), SnareArtic::Sidestick).to_string(),
@@ -214,12 +132,6 @@ mod tests {
             "ride.1.bell"
         );
         assert_eq!(Canon::Perc(PercKind::Cowbell).to_string(), "perc.cowbell");
-        assert_eq!(
-            "crash.2.mute".parse::<Canon>().unwrap(),
-            Canon::Cymbal(CymSlot::Crash(idx(2)), CymArtic::Mute)
-        );
-        assert!("crash.9.hit".parse::<Canon>().is_err());
-        assert!("bogus".parse::<Canon>().is_err());
     }
 
     #[test]

@@ -10,10 +10,8 @@ const row = (canon: string, label: string, srcNotes: number[], tgtNote: number |
   canon,
   label,
   srcNotes,
-  tgtNote,
   defaultTgtNote,
-  status: tgtNote === null ? 'dropped' : 'direct',
-  otherDrum: false,
+  outcome: tgtNote === null ? { status: 'dropped', otherDrum: false } : { status: 'direct', tgtNote },
 });
 
 const ROWS = [

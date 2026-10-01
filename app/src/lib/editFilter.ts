@@ -4,4 +4,4 @@ import type { VoiceRow } from './midiremap';
 export type EditFilter = 'all' | 'changed' | 'issues';
 
 /** A drum some source note plays that the target does not play as written. */
-export const isIssue = (row: VoiceRow) => row.srcNotes.length > 0 && row.status !== 'direct';
+export const isIssue = (row: VoiceRow) => row.srcNotes.length > 0 && row.outcome.status !== 'direct';

@@ -20,7 +20,7 @@ import App from '../src/App';
 import { useRemapper } from '../src/hooks/useRemapper';
 import { MAPPINGS_KEY } from '../src/lib/mappings';
 
-const ROW = { canon: 'kick.main', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct', otherDrum: false };
+const ROW = { canon: 'kick.main', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } };
 
 function planThatRejectsBogus(_s: string, _t: string, ov: { tgt: { canon: string }[] }) {
   if (ov.tgt.some((e) => e.canon === 'bogus.canon')) throw new Error('unknown canon bogus.canon');

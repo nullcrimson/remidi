@@ -2,7 +2,8 @@ use std::{collections::BTreeMap, error::Error};
 
 use midiremap_core::{
     convert, parse_preset, plan as core_plan, Canon, Catalog, ChannelScope, Drum, EngineMap,
-    Family, LoadedPreset, Mapping, MissingDrums, Note, OctaveBase, Overrides, Report, VoicePlan,
+    Family, LoadedPreset, Mapping, MissingDrums, Note, OctaveBase, Overrides, Report, SkippedEdit,
+    VoicePlan,
 };
 use serde::{de::DeserializeOwned, Serialize};
 use tsify::{Ts, Tsify};
@@ -201,7 +202,7 @@ pub struct PresetView {
     tgt: String,
     edits: BTreeMap<String, u8>,
     src_edits: BTreeMap<String, Option<String>>,
-    skipped: Vec<String>,
+    skipped: Vec<SkippedEdit>,
 }
 
 fn preset_view(json: &str, catalog: &Catalog) -> Result<PresetView, WasmError> {
@@ -217,8 +218,8 @@ fn preset_view(json: &str, catalog: &Catalog) -> Result<PresetView, WasmError> {
             })
     };
     Ok(PresetView {
-        src: engine(&preset.src, Role::Source)?,
-        tgt: engine(&preset.tgt, Role::Target)?,
+        src: engine(preset.src.as_str(), Role::Source)?,
+        tgt: engine(preset.tgt.as_str(), Role::Target)?,
         edits: preset
             .edits
             .iter()
@@ -229,7 +230,7 @@ fn preset_view(json: &str, catalog: &Catalog) -> Result<PresetView, WasmError> {
             .iter()
             .map(|(note, canon)| (note.get().to_string(), canon.map(|c| c.to_string())))
             .collect(),
-        name: preset.name,
+        name: preset.name.into(),
         skipped,
     })
 }
@@ -284,7 +285,7 @@ pub fn canon_catalog() -> Result<Vec<Ts<CanonInfo>>, WasmError> {
 /// Every drum family, in the order the app lists them.
 #[wasm_bindgen]
 pub fn family_order() -> Result<Vec<Ts<Family>>, WasmError> {
-    to_js_all(&Family::ALL)
+    to_js_all(Family::ALL)
 }
 
 /// The names of all 128 notes in the given octave convention.
@@ -324,7 +325,7 @@ pub fn engine_catalog() -> Result<Vec<Ts<EngineInfo>>, WasmError> {
 
 #[cfg(test)]
 mod tests {
-    use midiremap_core::PlanStatus;
+    use midiremap_core::PlanOutcome;
 
     use super::*;
 
@@ -360,7 +361,12 @@ mod tests {
             Some(&Some("snare1.hit".to_owned()))
         );
         assert_eq!(view.src_edits.get("60"), Some(&None));
-        assert_eq!(view.skipped, ["unknown drum 'bogus.drum'"]);
+        assert_eq!(
+            view.skipped,
+            [SkippedEdit::UnknownDrum {
+                key: "bogus.drum".into()
+            }]
+        );
     }
 
     #[test]
@@ -499,10 +505,14 @@ mod tests {
         };
         let china = find("china.1.hit");
         let json = serde_json::to_value(china).unwrap();
-        assert_eq!(json["status"], "dropped");
-        assert_eq!(json["otherDrum"], true);
+        assert_eq!(
+            json["outcome"],
+            serde_json::json!({ "status": "dropped", "otherDrum": true })
+        );
         assert_eq!(json["label"], china.plan.canon.label());
-        assert_eq!(json["tgtNote"], serde_json::Value::Null);
-        assert_eq!(find("kick.main").plan.status, PlanStatus::Direct);
+        assert!(matches!(
+            find("kick.main").plan.outcome,
+            PlanOutcome::Direct { .. }
+        ));
     }
 }

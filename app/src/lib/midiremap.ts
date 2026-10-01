@@ -27,7 +27,7 @@ export type {
   RemapOutput as RemapResult,
   Report as RemapReport,
   VoiceRow,
-  PlanStatus as VoiceStatus,
+  PlanOutcome,
   WasmError,
 } from '@wasm';
 

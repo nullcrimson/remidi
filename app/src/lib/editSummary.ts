@@ -3,6 +3,7 @@ import type { SavedMapping } from './mappings';
 import type { Drum, VoiceRow } from './midiremap';
 import { noteName, type OctaveBase } from './notes';
 import { knownEdits, type Edits, type SrcEdits } from './overrides';
+import { playedNote } from './outcome';
 
 /** How the current edits relate to the preset that is open, if any. */
 export type PresetMatch
@@ -38,7 +39,7 @@ export function editLines(
       id: 'edit-line',
       args: {
         drum: r.label,
-        now: `${notes(r.srcNotes, oct)} → ${target(r.tgtNote, oct)}`,
+        now: `${notes(r.srcNotes, oct)} → ${target(playedNote(r.outcome), oct)}`,
         byDefault: `${notes(defaultSrc.get(r.canon) ?? [], oct)} → ${target(r.defaultTgtNote, oct)}`,
       },
     }));

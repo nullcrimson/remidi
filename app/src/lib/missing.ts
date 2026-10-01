@@ -1,6 +1,7 @@
 import type { Message } from '../generated/i18n';
 import type { Drum, MissingDrums, VoiceRow } from './midiremap';
 import { noteName, type OctaveBase } from './notes';
+import { movesToOtherDrum } from './outcome';
 
 /** What a conversion does with a drum the target lacks, as the converter defines it. */
 export type Missing = MissingDrums;
@@ -13,7 +14,7 @@ export const MISSING_OPTIONS: { value: Missing; label: Message }[] = [
   { value: 'drop', label: { id: 'missing-drop' } },
 ];
 
-const swaps = (rows: VoiceRow[]) => rows.filter((r) => r.otherDrum && r.srcNotes.length > 0);
+const swaps = (rows: VoiceRow[]) => rows.filter((r) => movesToOtherDrum(r.outcome) && r.srcNotes.length > 0);
 
 /** Drums played by the source that the setting moves to another drum or drops. */
 export function swappedCanons(rows: VoiceRow[]): Set<string> {
@@ -38,7 +39,7 @@ export function playedOn(rows: VoiceRow[], targetDrums: Drum[], oct: OctaveBase)
   const labels = labelByNote(targetDrums);
   return rows.map((r) => ({
     drum: r.label,
-    now: r.status === 'dropped' || r.tgtNote === null ? null : (labels.get(r.tgtNote) ?? noteName(r.tgtNote, oct)),
+    now: r.outcome.status === 'dropped' ? null : (labels.get(r.outcome.tgtNote) ?? noteName(r.outcome.tgtNote, oct)),
   }));
 }
 
@@ -50,5 +51,5 @@ export function swapList(rows: VoiceRow[], targetDrums: Drum[], oct: OctaveBase)
 export function missingHint(missing: Missing, rows: VoiceRow[]): Message {
   if (rows.length === 0) return { id: missing === 'nearest' ? 'missing-hint-nearest' : 'missing-hint-drop' };
   if (missing === 'nearest') return { id: 'missing-hint-moved', args: { count: swaps(rows).length } };
-  return { id: 'missing-hint-dropped', args: { count: swaps(rows).filter((r) => r.status === 'dropped').length } };
+  return { id: 'missing-hint-dropped', args: { count: swaps(rows).filter((r) => r.outcome.status === 'dropped').length } };
 }

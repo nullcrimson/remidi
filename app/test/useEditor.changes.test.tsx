@@ -13,9 +13,8 @@ function fakePlan(_src: string, _tgt: string, ov?: { src: { note: number; canon:
     srcNotes: Object.entries(decode)
       .filter(([, c]) => c === canon)
       .map(([n]) => Number(n)),
-    tgtNote: 36,
     defaultTgtNote: 36,
-    status: 'direct',
+    outcome: { status: 'direct', tgtNote: 36 },
   }));
 }
 

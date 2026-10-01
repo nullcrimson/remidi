@@ -15,11 +15,11 @@ const base = {
   result: { text: 'direct', tone: 'text-t5' },
 };
 
-const kick = { canon: 'KickMain', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct' as const, otherDrum: false };
+const kick = { canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } };
 
 describe('VoiceRow', () => {
   it('shows the drum label plus source and target note buttons', () => {
-    render(<VoiceRow row={kick} effectiveTgt={36} {...base} />);
+    render(<VoiceRow row={kick} {...base} />);
     expect(screen.getByText('Kick')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'C1' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'C2' })).toBeInTheDocument();
@@ -27,14 +27,14 @@ describe('VoiceRow', () => {
 
   it('toggles the target picker on the target chip', async () => {
     const onToggle = vi.fn();
-    render(<VoiceRow row={kick} effectiveTgt={36} {...base} onToggle={onToggle} />);
+    render(<VoiceRow row={kick} {...base} onToggle={onToggle} />);
     await userEvent.click(screen.getByRole('button', { name: 'C2' }));
     expect(onToggle).toHaveBeenCalledOnce();
   });
 
   it('toggles the source picker on the source chip', async () => {
     const onSrcToggle = vi.fn();
-    render(<VoiceRow row={kick} effectiveTgt={36} {...base} onSrcToggle={onSrcToggle} />);
+    render(<VoiceRow row={kick} {...base} onSrcToggle={onSrcToggle} />);
     await userEvent.click(screen.getByRole('button', { name: 'C1' }));
     expect(onSrcToggle).toHaveBeenCalledOnce();
   });
@@ -42,8 +42,7 @@ describe('VoiceRow', () => {
   it('shows a dash for a dropped target but keeps the source chip', () => {
     render(
       <VoiceRow
-        row={{ canon: 'China', label: 'China', srcNotes: [59], tgtNote: null, defaultTgtNote: null, status: 'dropped', otherDrum: false }}
-        effectiveTgt={null}
+        row={{ canon: 'China', label: 'China', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } }}
         {...base}
       />,
     );
@@ -54,7 +53,7 @@ describe('VoiceRow', () => {
   it('keeps its picker open on a press inside the row and closes it on one outside', () => {
     const onClose = vi.fn();
     render(
-      <VoiceRow row={kick} effectiveTgt={36} {...base} tgtExpanded>
+      <VoiceRow row={kick} {...base} tgtExpanded>
         <PickerShell label="Target note for Kick" onClose={onClose}>
           <p>keys</p>
         </PickerShell>
@@ -68,13 +67,13 @@ describe('VoiceRow', () => {
 
   it('renders the picker slot only when a side is expanded', () => {
     const { rerender } = render(
-      <VoiceRow row={kick} effectiveTgt={36} {...base}>
+      <VoiceRow row={kick} {...base}>
         <div data-testid="picker-slot" />
       </VoiceRow>,
     );
     expect(screen.queryByTestId('picker-slot')).toBeNull();
     rerender(
-      <VoiceRow row={kick} effectiveTgt={36} {...base} tgtExpanded>
+      <VoiceRow row={kick} {...base} tgtExpanded>
         <div data-testid="picker-slot" />
       </VoiceRow>,
     );
@@ -82,7 +81,7 @@ describe('VoiceRow', () => {
   });
 
   it('marks extra source notes with a count', () => {
-    render(<VoiceRow row={{ ...kick, srcNotes: [24, 23, 22] }} effectiveTgt={36} {...base} />);
+    render(<VoiceRow row={{ ...kick, srcNotes: [24, 23, 22] }} {...base} />);
     expect(screen.getByRole('button', { name: 'C1' })).toBeInTheDocument();
     expect(screen.getByText('+2')).toBeInTheDocument();
     expect(
@@ -91,7 +90,7 @@ describe('VoiceRow', () => {
   });
 
   it('explains the marker in its tooltip', async () => {
-    render(<VoiceRow row={{ ...kick, srcNotes: [24, 23, 22] }} effectiveTgt={36} {...base} />);
+    render(<VoiceRow row={{ ...kick, srcNotes: [24, 23, 22] }} {...base} />);
     await userEvent.hover(screen.getByText('+2'));
     expect(await screen.findByRole('tooltip')).toHaveTextContent(
       '2 more source notes play Kick: B0, A#0. All go to C2.',
@@ -100,15 +99,14 @@ describe('VoiceRow', () => {
 
   it('explains a single extra note and a dropped row', () => {
     const { rerender } = render(
-      <VoiceRow row={{ ...kick, srcNotes: [24, 23] }} effectiveTgt={36} {...base} />,
+      <VoiceRow row={{ ...kick, srcNotes: [24, 23] }} {...base} />,
     );
     expect(
       screen.getByLabelText('1 more source note plays Kick: B0. Both go to C2.'),
     ).toBeInTheDocument();
     rerender(
       <VoiceRow
-        row={{ ...kick, srcNotes: [24, 23], tgtNote: null, status: 'dropped' }}
-        effectiveTgt={null}
+        row={{ ...kick, srcNotes: [24, 23], outcome: { status: 'dropped', otherDrum: false } }}
         {...base}
       />,
     );
@@ -118,14 +116,14 @@ describe('VoiceRow', () => {
   });
 
   it('shows no marker for a single source note', () => {
-    render(<VoiceRow row={kick} effectiveTgt={36} {...base} />);
+    render(<VoiceRow row={kick} {...base} />);
     expect(screen.queryByText(/^\+\d/)).toBeNull();
   });
 
   it('shows a dash on the source chip of a silent row and dims it', async () => {
     const onSrcToggle = vi.fn();
     const { container } = render(
-      <VoiceRow row={{ ...kick, srcNotes: [] }} effectiveTgt={36} {...base} onSrcToggle={onSrcToggle} />,
+      <VoiceRow row={{ ...kick, srcNotes: [] }} {...base} onSrcToggle={onSrcToggle} />,
     );
     const chip = screen.getByRole('button', { name: '—' });
     await userEvent.click(chip);

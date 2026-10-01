@@ -16,16 +16,16 @@ describe('midiremap wrapper', () => {
     const rows = plan('ggd_invasion', 'ezdrummer');
     const kick = rows.find((r) => r.canon === 'kick.main')!;
     expect(kick.srcNotes).toEqual([24]);
-    expect(kick.tgtNote).toBe(36);
+    expect(kick.outcome).toEqual({ status: 'direct', tgtNote: 36 });
     expect(kick.defaultTgtNote).toBe(36);
-    expect(rows.find((r) => r.canon === 'china.1.hit')!.tgtNote).toBeNull();
+    expect(rows.find((r) => r.canon === 'china.1.hit')!.outcome.status).toBe('dropped');
   });
 
   it('passes overrides to the module as an object', () => {
     const ov = { tgt: [{ canon: 'kick.main', note: 35 }], src: [] };
     const rows = plan('ggd_invasion', 'ezdrummer', ov);
     expect(stub.lastPlanOverrides).toEqual(ov);
-    expect(rows.find((r) => r.canon === 'kick.main')!.tgtNote).toBe(35);
+    expect(rows.find((r) => r.canon === 'kick.main')!.outcome).toEqual({ status: 'direct', tgtNote: 35 });
   });
 
   it('applies a source override that rescues a note in the plan', () => {
@@ -49,8 +49,8 @@ describe('midiremap wrapper', () => {
   it('passes the missing-drums choice to plan', () => {
     const rows = plan('ggd_invasion', 'ezdrummer', undefined, 'drop');
     expect(stub.lastPlanMissing).toBe('drop');
-    expect(rows.find((r) => r.canon === 'china.1.hit')!.otherDrum).toBe(true);
-    expect(rows.find((r) => r.canon === 'kick.main')!.otherDrum).toBe(false);
+    expect(rows.find((r) => r.canon === 'china.1.hit')!.outcome).toEqual({ status: 'dropped', otherDrum: true });
+    expect(rows.find((r) => r.canon === 'kick.main')!.outcome.status).toBe('direct');
   });
 
   it('passes the missing-drums choice to the converter', () => {

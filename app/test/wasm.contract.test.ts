@@ -48,15 +48,12 @@ describe('real WASM module', () => {
   it('plans a pair with camelCase rows, null for no note and the three statuses', () => {
     const rows = real.plan('ggd_invasion', 'ezdrummer', undefined, 'drop');
     const kick = rows.find((r) => r.canon === 'kick.main')!;
-    expect(keys(kick)).toEqual(['canon', 'defaultTgtNote', 'label', 'otherDrum', 'srcNotes', 'status', 'tgtNote']);
-    expect(kick.status).toBe('direct');
-    expect(kick.tgtNote).toBe(36);
+    expect(keys(kick)).toEqual(['canon', 'defaultTgtNote', 'label', 'outcome', 'srcNotes']);
+    expect(kick.outcome).toEqual({ status: 'direct', tgtNote: 36 });
     const china = rows.find((r) => r.canon === 'china.1.hit')!;
-    expect(china.status).toBe('dropped');
-    expect(china.tgtNote).toBeNull();
+    expect(china.outcome).toEqual({ status: 'dropped', otherDrum: true });
     expect(china.defaultTgtNote).toBeNull();
-    expect(china.otherDrum).toBe(true);
-    expect(new Set(rows.map((r) => r.status))).toEqual(new Set(['direct', 'fallback', 'dropped']));
+    expect(new Set(rows.map((r) => r.outcome.status))).toEqual(new Set(['direct', 'fallback', 'dropped']));
   });
 
   it('applies target and source overrides passed as an object', () => {
@@ -65,7 +62,7 @@ describe('real WASM module', () => {
       src: [{ note: 127, canon: 'china.1.hit' }],
     });
     const kick = rows.find((r) => r.canon === 'kick.main')!;
-    expect(kick.tgtNote).toBe(35);
+    expect(kick.outcome).toEqual({ status: 'direct', tgtNote: 35 });
     expect(kick.defaultTgtNote).toBe(36);
     expect(rows.find((r) => r.canon === 'china.1.hit')!.srcNotes[0]).toBe(127);
   });

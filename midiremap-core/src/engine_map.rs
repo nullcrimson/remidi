@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     canon::Canon,
     family::Family,
+    non_blank::NonBlank,
     note::Note,
     overrides::{CanonNote, SrcNote},
 };
@@ -22,9 +23,9 @@ struct RawMap {
     id: String,
     name: String,
     #[serde(default)]
-    short_name: Option<String>,
+    short_name: Option<NonBlank>,
     #[serde(default)]
-    vendor: Option<String>,
+    vendor: Option<NonBlank>,
     #[serde(default)]
     aliases: Vec<String>,
     notes: Vec<RawEntry>,
@@ -35,8 +36,8 @@ struct RawMap {
 pub struct EngineMap {
     id: String,
     name: String,
-    short_name: Option<String>,
-    vendor: Option<String>,
+    short_name: Option<NonBlank>,
+    vendor: Option<NonBlank>,
     aliases: Vec<String>,
     to_canon: HashMap<Note, Canon>,
     from_canon: HashMap<Canon, Note>,
@@ -83,7 +84,7 @@ impl EngineMap {
 
     /// A copy that reads each overridden source note as its canon, or as no drum when the
     /// canon is `None`; the last entry for a note wins.
-    pub fn with_source_overrides(&self, overrides: &[SrcNote]) -> Self {
+    pub(crate) fn with_source_overrides(&self, overrides: &[SrcNote]) -> Self {
         let mut map = self.clone();
         for sn in overrides {
             match sn.canon {
@@ -96,7 +97,7 @@ impl EngineMap {
 
     /// A copy that plays each overridden canon on its note; the last entry for a canon
     /// wins.
-    pub fn with_target_overrides(&self, overrides: &[CanonNote]) -> Self {
+    pub(crate) fn with_target_overrides(&self, overrides: &[CanonNote]) -> Self {
         let mut map = self.clone();
         map.from_canon
             .extend(overrides.iter().map(|cn| (cn.canon, cn.note)));
@@ -104,48 +105,41 @@ impl EngineMap {
     }
 
     pub fn display_name(&self) -> &str {
-        self.short_name.as_deref().unwrap_or(&self.name)
+        self.short_name
+            .as_ref()
+            .map_or(&self.name, NonBlank::as_str)
     }
 
     /// Who makes the engine, when the map says so.
     pub fn vendor(&self) -> Option<&str> {
-        self.vendor.as_deref()
+        self.vendor.as_ref().map(NonBlank::as_str)
     }
 
     /// Former ids that still find this engine.
-    pub fn aliases(&self) -> &[String] {
+    pub(crate) fn aliases(&self) -> &[String] {
         &self.aliases
     }
 
     pub fn drums(&self) -> Vec<Drum> {
-        let mut out: Vec<Drum> = self
-            .from_canon
-            .iter()
-            .map(|(&canon, &note)| Drum {
-                note,
-                canon,
-                label: canon.label(),
-                family: canon.family(),
-            })
-            .collect();
-        out.sort_by_key(|d| d.note);
-        out
+        listing(self.from_canon.iter().map(|(&canon, &note)| (note, canon)))
     }
 
     pub fn source_notes(&self) -> Vec<Drum> {
-        let mut out: Vec<Drum> = self
-            .to_canon
-            .iter()
-            .map(|(&note, &canon)| Drum {
-                note,
-                canon,
-                label: canon.label(),
-                family: canon.family(),
-            })
-            .collect();
-        out.sort_by_key(|d| d.note);
-        out
+        listing(self.to_canon.iter().map(|(&note, &canon)| (note, canon)))
     }
+}
+
+fn listing(pairs: impl Iterator<Item = (Note, Canon)>) -> Vec<Drum> {
+    let mut out: Vec<Drum> = pairs
+        .map(|(note, canon)| Drum {
+            note,
+            canon,
+            label: canon.label(),
+            family: canon.family(),
+        })
+        .collect();
+    out.sort_by_key(|d| d.note);
+    out
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -156,25 +150,11 @@ pub enum MapError {
     DuplicateNote { engine: String, note: Note },
     #[error("parse error")]
     Parse(#[source] serde_json::Error),
-    #[error("blank short_name for engine {0}")]
-    BlankShortName(String),
-    #[error("blank vendor for engine {0}")]
-    BlankVendor(String),
     #[error("alias {0} is already an engine id or another engine's alias")]
     AliasCollision(String),
 }
 
 fn build(raw: RawMap) -> Result<EngineMap, MapError> {
-    if raw
-        .short_name
-        .as_deref()
-        .is_some_and(|s| s.trim().is_empty())
-    {
-        return Err(MapError::BlankShortName(raw.id));
-    }
-    if raw.vendor.as_deref().is_some_and(|s| s.trim().is_empty()) {
-        return Err(MapError::BlankVendor(raw.id));
-    }
     let mut to_canon = HashMap::new();
     let mut from_canon: HashMap<Canon, Note> = HashMap::new();
     let mut primaries: HashSet<Canon> = HashSet::new();
@@ -316,10 +296,7 @@ mod tests {
             short_name = "  "
             notes = [ { note = 36, canon = "kick.main", primary = true } ]
         "#;
-        assert!(matches!(
-            from_toml(bad),
-            Err(MapError::BlankShortName(id)) if id == "x"
-        ));
+        assert!(matches!(from_toml(bad), Err(MapError::Parse(_))));
     }
 
     #[test]
@@ -345,10 +322,7 @@ mod tests {
             vendor = " "
             notes = [ { note = 36, canon = "kick.main", primary = true } ]
         "#;
-        assert!(matches!(
-            from_toml(bad),
-            Err(MapError::BlankVendor(id)) if id == "x"
-        ));
+        assert!(matches!(from_toml(bad), Err(MapError::Parse(_))));
     }
 
     #[test]
@@ -399,12 +373,16 @@ mod tests {
     }
 
     #[test]
-    fn from_json_reads_a_map_and_keeps_the_parse_cause() {
+    fn from_json_reads_a_map() {
         let m = EngineMap::from_json(
             r#"{"id":"j","name":"J","notes":[{"note":36,"canon":"kick.main","primary":true}]}"#,
         )
         .unwrap();
         assert_eq!((m.id(), m.name()), ("j", "J"));
+    }
+
+    #[test]
+    fn from_json_keeps_the_parse_cause() {
         let err = EngineMap::from_json("{").unwrap_err();
         assert_eq!(err.to_string(), "parse error");
         assert!(std::error::Error::source(&err).is_some());

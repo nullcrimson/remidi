@@ -62,8 +62,8 @@ impl Catalog {
     }
 
     /// Every engine id, sorted.
-    pub fn ids(&self) -> Vec<&str> {
-        self.maps.keys().map(String::as_str).collect()
+    pub fn ids(&self) -> impl Iterator<Item = &str> {
+        self.maps.keys().map(String::as_str)
     }
 
     /// Every engine, sorted by id.
@@ -91,21 +91,14 @@ mod tests {
     #[test]
     fn builtin_has_known_slugs() {
         let b = Catalog::builtin().unwrap();
-        for id in [
-            "ggd_invasion",
-            "ezdrummer",
-            "general_midi",
-            "guitar_pro",
-            "addictive_drums2",
-            "superior_drummer3",
-        ] {
-            assert!(b.get(id).is_some(), "missing {id}");
-        }
-        assert!(
-            b.ids().len() >= 40,
-            "expected ~50 engines, got {}",
-            b.ids().len()
-        );
+        assert!(b.get("ggd_invasion").is_some());
+        assert!(b.get("ezdrummer").is_some());
+        assert!(b.get("general_midi").is_some());
+        assert!(b.get("guitar_pro").is_some());
+        assert!(b.get("addictive_drums2").is_some());
+        assert!(b.get("superior_drummer3").is_some());
+        let count = b.ids().count();
+        assert!(count >= 40, "expected ~50 engines, got {count}");
     }
 
     #[test]
@@ -190,7 +183,7 @@ mod tests {
         assert_eq!(p.canonical_id("legacy_kit"), Some("custom"));
         assert_eq!(p.canonical_id("custom"), Some("custom"));
         assert_eq!(p.canonical_id("nope"), None);
-        assert!(!p.ids().contains(&"legacy_kit"));
+        assert!(!p.ids().any(|id| id == "legacy_kit"));
     }
 
     #[test]
@@ -211,8 +204,8 @@ mod tests {
     fn layered_ids_are_union() {
         let json = r#"{"id":"custom","name":"Custom","notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
         let p = Catalog::builtin().unwrap().with_user_json(json).unwrap();
-        let n = Catalog::builtin().unwrap().ids().len();
-        assert_eq!(p.ids().len(), n + 1);
+        let n = Catalog::builtin().unwrap().ids().count();
+        assert_eq!(p.ids().count(), n + 1);
         assert!(p.get("custom").is_some());
     }
 
@@ -228,23 +221,25 @@ mod tests {
             })
             .collect();
         stems.sort_unstable();
-        assert_eq!(Catalog::builtin().unwrap().ids(), stems);
+        assert!(Catalog::builtin()
+            .unwrap()
+            .ids()
+            .eq(stems.iter().map(String::as_str)));
     }
 
     #[test]
     fn ids_and_engines_come_sorted_by_id() {
         let json = r#"{"id":"aaa_first","name":"First","notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
         let c = Catalog::builtin().unwrap().with_user_json(json).unwrap();
-        let ids = c.ids();
-        assert!(ids.is_sorted(), "{ids:?}");
-        assert_eq!(ids[0], "aaa_first");
-        assert_eq!(c.engines().map(EngineMap::id).collect::<Vec<_>>(), ids);
+        assert!(c.ids().is_sorted());
+        assert_eq!(c.ids().next(), Some("aaa_first"));
+        assert!(c.engines().map(EngineMap::id).eq(c.ids()));
     }
 
     #[test]
     fn shared_is_parsed_once() {
         let shared = Catalog::shared().unwrap();
         assert!(std::ptr::eq(shared, Catalog::shared().unwrap()));
-        assert_eq!(shared.ids().len(), Catalog::builtin().unwrap().ids().len());
+        assert!(shared.ids().eq(Catalog::builtin().unwrap().ids()));
     }
 }

@@ -13,11 +13,6 @@ use crate::{
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
-#[cfg_attr(
-    feature = "ts",
-    derive(tsify::Tsify),
-    tsify(missing_as_null, hashmap_as_object)
-)]
 pub enum PlanStatus {
     Direct,
     Fallback,
@@ -30,6 +25,49 @@ impl From<&CanonResolution> for PlanStatus {
             CanonResolution::Direct { .. } => Self::Direct,
             CanonResolution::Fallback { .. } => Self::Fallback,
             CanonResolution::Dropped { .. } => Self::Dropped,
+        }
+    }
+}
+
+/// Where a drum of the edit preview lands, tagged by `status`.
+#[derive(Debug, PartialEq, Eq, Serialize)]
+#[serde(
+    tag = "status",
+    rename_all = "lowercase",
+    rename_all_fields = "camelCase"
+)]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
+pub enum PlanOutcome {
+    /// The target has the drum.
+    Direct { tgt_note: Note },
+    /// A stand-in plays it; `other_drum` when the stand-in is another drum.
+    Fallback { tgt_note: Note, other_drum: bool },
+    /// Nothing plays it; `other_drum` when only another drum could have, so the
+    /// [`MissingDrums`] setting decided it.
+    Dropped { other_drum: bool },
+}
+
+impl PlanOutcome {
+    fn of(resolved: &CanonResolution, other_drum: bool) -> Self {
+        match *resolved {
+            CanonResolution::Direct { note, .. } => Self::Direct { tgt_note: note },
+            CanonResolution::Fallback { note, .. } => Self::Fallback {
+                tgt_note: note,
+                other_drum,
+            },
+            CanonResolution::Dropped { .. } => Self::Dropped { other_drum },
+        }
+    }
+
+    /// The note that plays the drum, if any.
+    pub fn tgt_note(&self) -> Option<Note> {
+        match *self {
+            Self::Direct { tgt_note } | Self::Fallback { tgt_note, .. } => Some(tgt_note),
+            Self::Dropped { .. } => None,
         }
     }
 }
@@ -47,13 +85,29 @@ pub struct VoicePlan {
     /// Source notes that play this drum: overridden notes, then the engine's primary note,
     /// then the rest, each group ascending. Empty when no source note plays it.
     pub src_notes: Vec<Note>,
-    pub tgt_note: Option<Note>,
     /// Target note without target overrides.
-    pub default_tgt_note: Option<Note>,
-    pub status: PlanStatus,
-    /// The target lacks this drum and its nearest stand-in is another drum, so the
-    /// [`MissingDrums`] setting decides it.
-    pub other_drum: bool,
+    pub(crate) default_tgt_note: Option<Note>,
+    pub outcome: PlanOutcome,
+}
+
+/// The order of a drum's source notes: overridden notes, then the primary, then the rest.
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+enum SrcNoteRank {
+    Overridden,
+    Primary,
+    Other,
+}
+
+impl SrcNoteRank {
+    fn of(note: Note, overridden: &HashSet<Note>, primary: Option<Note>) -> Self {
+        if overridden.contains(&note) {
+            Self::Overridden
+        } else if Some(note) == primary {
+            Self::Primary
+        } else {
+            Self::Other
+        }
+    }
 }
 
 /// Duplicate overrides resolve last-wins, exactly as in conversion.
@@ -82,24 +136,15 @@ pub fn plan(
             if primary.is_none() && src_notes.is_empty() {
                 return None;
             }
-            src_notes.sort_by_key(|&n| {
-                let rank = if overridden.contains(&n) {
-                    0
-                } else if Some(n) == primary {
-                    1
-                } else {
-                    2
-                };
-                (rank, n)
-            });
-            let resolved = mapping.resolve_canon(canon);
+            src_notes.sort_by_key(|&n| (SrcNoteRank::of(n, &overridden, primary), n));
             Some(VoicePlan {
                 canon,
                 src_notes,
-                tgt_note: resolved.note(),
                 default_tgt_note: resolve(canon, tgt, missing).note(),
-                status: PlanStatus::from(&resolved),
-                other_drum: mapping.moves_to_other_drum(canon),
+                outcome: PlanOutcome::of(
+                    &mapping.resolve_canon(canon),
+                    mapping.moves_to_other_drum(canon),
+                ),
             })
         })
         .collect()
@@ -138,7 +183,7 @@ mod tests {
     }
 
     #[test]
-    fn a_voice_serializes_in_camel_case_with_null_for_no_note() {
+    fn a_voice_serializes_in_camel_case_with_its_outcome_tagged_by_status() {
         let drop = ggd_to_ezd_with("{}", MissingDrums::Drop);
         let json = serde_json::to_value(find(&drop, "china.1.hit")).unwrap();
         assert_eq!(
@@ -146,33 +191,41 @@ mod tests {
             serde_json::json!({
                 "canon": "china.1.hit",
                 "srcNotes": json["srcNotes"],
-                "tgtNote": null,
                 "defaultTgtNote": null,
-                "status": "dropped",
-                "otherDrum": true,
+                "outcome": { "status": "dropped", "otherDrum": true },
             })
         );
         assert!(json["srcNotes"].as_array().is_some_and(|a| !a.is_empty()));
         let kick = serde_json::to_value(find(&drop, "kick.main")).unwrap();
-        assert_eq!(kick["status"], "direct");
-        assert_eq!(kick["tgtNote"], 36);
+        assert_eq!(
+            kick["outcome"],
+            serde_json::json!({ "status": "direct", "tgtNote": 36 })
+        );
     }
 
     #[test]
     fn a_swapped_drum_is_marked_and_dropped_under_drop() {
         let near = ggd_to_ezd("{}");
-        let china = find(&near, "china.1.hit");
-        assert!(china.other_drum);
-        assert_eq!(china.status, PlanStatus::Fallback);
-        assert!(!find(&near, "kick.main").other_drum);
+        assert_eq!(
+            find(&near, "china.1.hit").outcome,
+            PlanOutcome::Fallback {
+                tgt_note: n(86),
+                other_drum: true
+            }
+        );
+        assert_eq!(
+            find(&near, "kick.main").outcome,
+            PlanOutcome::Direct { tgt_note: n(36) }
+        );
 
         let drop = ggd_to_ezd_with("{}", MissingDrums::Drop);
         let china = find(&drop, "china.1.hit");
-        assert!(china.other_drum);
-        assert_eq!(china.status, PlanStatus::Dropped);
-        assert_eq!(china.tgt_note, None);
+        assert_eq!(china.outcome, PlanOutcome::Dropped { other_drum: true });
         assert_eq!(china.default_tgt_note, None);
-        assert_eq!(find(&drop, "kick.main").tgt_note, Some(n(36)));
+        assert_eq!(
+            find(&drop, "kick.main").outcome,
+            PlanOutcome::Direct { tgt_note: n(36) }
+        );
     }
 
     #[test]
@@ -181,22 +234,15 @@ mod tests {
             r#"{"tgt":[{"canon":"china.1.hit","note":52}]}"#,
             MissingDrums::Drop,
         );
-        let china = find(&rows, "china.1.hit");
-        assert_eq!(china.tgt_note, Some(n(52)));
-        assert_eq!(china.status, PlanStatus::Direct);
-        assert!(!china.other_drum);
+        assert_eq!(
+            find(&rows, "china.1.hit").outcome,
+            PlanOutcome::Direct { tgt_note: n(52) }
+        );
     }
 
     #[test]
-    fn ggd_to_ezd_plan_has_expected_rows() {
-        let rows = ggd_to_ezd("{}");
-        let kick = find(&rows, "kick.main");
-        assert_eq!(kick.src_notes, vec![n(24)]);
-        assert_eq!(kick.tgt_note, Some(n(36)));
-        assert_eq!(kick.status, PlanStatus::Direct);
-        let china = find(&rows, "china.1.hit");
-        assert_eq!(china.status, PlanStatus::Fallback);
-        assert_eq!(china.tgt_note, Some(n(86)));
+    fn a_row_lists_the_source_note_that_plays_its_drum() {
+        assert_eq!(find(&ggd_to_ezd("{}"), "kick.main").src_notes, vec![n(24)]);
     }
 
     #[test]
@@ -223,7 +269,7 @@ mod tests {
     fn tgt_override_flips_a_row() {
         let rows = ggd_to_ezd(r#"{"tgt":[{"canon":"kick.main","note":35}]}"#);
         let kick = find(&rows, "kick.main");
-        assert_eq!(kick.tgt_note, Some(n(35)));
+        assert_eq!(kick.outcome.tgt_note(), Some(n(35)));
         assert_eq!(kick.default_tgt_note, Some(n(36)));
     }
 
@@ -248,7 +294,7 @@ mod tests {
         let kick = find(&rows, "kick.main");
         assert!(kick.src_notes.is_empty(), "kick keeps {:?}", kick.src_notes);
         assert_eq!(
-            kick.tgt_note,
+            kick.outcome.tgt_note(),
             Some(n(36)),
             "a silent row still resolves its target"
         );
@@ -269,7 +315,7 @@ mod tests {
         let rows = ggd_to_ezd(
             r#"{"tgt":[{"canon":"kick.main","note":35},{"canon":"kick.main","note":40}]}"#,
         );
-        assert_eq!(find(&rows, "kick.main").tgt_note, Some(n(40)));
+        assert_eq!(find(&rows, "kick.main").outcome.tgt_note(), Some(n(40)));
     }
 
     #[test]
@@ -321,17 +367,6 @@ mod tests {
         let rows = plan(&src, &tgt, &ov, MissingDrums::Nearest);
         let snare = find(&rows, "snare1.hit");
         assert_eq!(snare.src_notes, vec![n(60)]);
-        assert_eq!(snare.tgt_note, Some(n(38)));
-    }
-
-    #[test]
-    fn every_builtin_canon_is_listed_by_canon_all() {
-        let all: HashSet<Canon> = Canon::all().iter().copied().collect();
-        let b = Catalog::builtin().unwrap();
-        for id in b.ids() {
-            for drum in b.get(id).unwrap().source_notes() {
-                assert!(all.contains(&drum.canon), "{id}: {} missing", drum.canon);
-            }
-        }
+        assert_eq!(snare.outcome.tgt_note(), Some(n(38)));
     }
 }

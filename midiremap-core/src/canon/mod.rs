@@ -2,49 +2,12 @@ mod fallback;
 mod key;
 mod label;
 
-use std::{fmt, sync::LazyLock};
+use std::sync::LazyLock;
 
-use strum::VariantArray;
+use strum::{IntoStaticStr, VariantArray};
 
 pub use self::key::CanonParseError;
-use crate::family::Family;
-
-/// A 1-based position, always within `1..=MAX`.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub struct Idx<const MAX: u8>(u8);
-
-impl<const MAX: u8> Idx<MAX> {
-    pub const FIRST: Self = Self(1);
-    pub const MAX: u8 = MAX;
-
-    pub const fn new(n: u8) -> Option<Self> {
-        if n >= 1 && n <= MAX {
-            Some(Self(n))
-        } else {
-            None
-        }
-    }
-
-    pub const fn get(self) -> u8 {
-        self.0
-    }
-
-    /// Every position, ascending.
-    pub fn all() -> impl Iterator<Item = Self> {
-        (1..=MAX).map(Self)
-    }
-
-    /// The position below this one, if any.
-    pub fn prev(self) -> Option<Self> {
-        Self::new(self.0 - 1)
-    }
-}
-
-impl<const MAX: u8> fmt::Display for Idx<MAX> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
-    }
-}
+use crate::{family::Family, idx::Idx};
 
 pub(crate) type SnareIdx = Idx<2>;
 pub(crate) type AuxIdx = Idx<2>;
@@ -72,13 +35,15 @@ pub enum Canon {
     Perc(PercKind),
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
 pub enum KickKind {
     Main,
     Alt,
     Left,
 }
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
 pub enum SnareArtic {
     Hit,
     Rim,
@@ -99,13 +64,15 @@ pub enum TomPos {
     Rack(RackIdx),
     Floor(FloorIdx),
 }
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
 pub enum TomArtic {
     Hit,
     Rim,
     Rimshot,
 }
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
 #[cfg_attr(
     test,
     derive(strum::EnumDiscriminants),
@@ -120,7 +87,8 @@ pub enum HatOpen {
     Pedal,
     PedalSplash,
 }
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
 pub enum HatZone {
     Plain,
     Tip,
@@ -128,7 +96,8 @@ pub enum HatZone {
     Bell,
 }
 /// A cymbal and its position; each kind has its own number of positions.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
 #[cfg_attr(
     test,
     derive(strum::EnumDiscriminants),
@@ -141,7 +110,8 @@ pub enum CymSlot {
     Stack(Idx<4>),
     Bell(Idx<2>),
 }
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
 pub enum CymArtic {
     Hit,
     Mute,
@@ -151,7 +121,8 @@ pub enum CymArtic {
     BowTip,
     Edge,
 }
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
 pub enum RideArtic {
     Bow,
     Bell,
@@ -160,7 +131,8 @@ pub enum RideArtic {
     Edge,
     Mute,
 }
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
 pub enum PercKind {
     Cowbell,
     Clap,
@@ -275,25 +247,24 @@ mod tests {
         s.parse().unwrap()
     }
 
-    fn kinds<D: VariantArray + Eq + std::hash::Hash>(seen: impl Iterator<Item = D>) -> usize {
+    fn assert_reaches_every<D: VariantArray + Eq + std::hash::Hash>(seen: impl Iterator<Item = D>) {
         let seen: HashSet<D> = seen.collect();
         assert!(D::VARIANTS.iter().all(|d| seen.contains(d)));
-        seen.len()
     }
 
     #[test]
     fn all_reaches_every_variant() {
         let all = Canon::all().iter().copied();
-        kinds(all.clone().map(CanonDiscriminants::from));
-        kinds(all.clone().filter_map(|c| match c {
+        assert_reaches_every(all.clone().map(CanonDiscriminants::from));
+        assert_reaches_every(all.clone().filter_map(|c| match c {
             Canon::Hat(o, _) | Canon::Aux(_, o, _) => Some(HatOpenDiscriminants::from(o)),
             _ => None,
         }));
-        kinds(all.clone().filter_map(|c| match c {
+        assert_reaches_every(all.clone().filter_map(|c| match c {
             Canon::Tom(p, _) => Some(TomPosDiscriminants::from(p)),
             _ => None,
         }));
-        kinds(all.filter_map(|c| match c {
+        assert_reaches_every(all.filter_map(|c| match c {
             Canon::Cymbal(s, _) => Some(CymSlotDiscriminants::from(s)),
             _ => None,
         }));
@@ -368,15 +339,6 @@ mod tests {
         for &c in Canon::all() {
             assert!(c.same_drum(c), "{c}");
         }
-    }
-
-    #[test]
-    fn idx_holds_only_one_to_max() {
-        assert_eq!(Idx::<2>::new(0), None);
-        assert_eq!(Idx::<2>::new(3), None);
-        assert_eq!(Idx::<2>::all().map(Idx::get).collect::<Vec<_>>(), [1, 2]);
-        assert_eq!(Idx::<2>::FIRST.prev(), None);
-        assert_eq!(idx::<2>(2).prev(), Some(Idx::FIRST));
     }
 
     #[test]

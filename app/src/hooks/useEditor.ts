@@ -8,6 +8,7 @@ import { editsToOverrides, type Edits, type SrcEdits } from '../lib/overrides';
 import type { SelectionEvent } from '../lib/selection';
 import type { CatalogStatus } from './useEngineCatalog';
 import { useEngineData } from './useEngineData';
+import { playedNote } from '../lib/outcome';
 
 export type { Notice, Pick } from '../lib/editorState';
 
@@ -73,7 +74,7 @@ export function useEditor(
     (canon: string) => {
       const row = rows.find((r) => r.canon === canon);
       if (!row) return;
-      const note = edits[canon] ?? row.tgtNote ?? row.srcNotes[0] ?? DEFAULT_PICK_NOTE;
+      const note = edits[canon] ?? playedNote(row.outcome) ?? row.srcNotes[0] ?? DEFAULT_PICK_NOTE;
       dispatch({
         type: 'OPEN_PICK',
         canon,
@@ -92,7 +93,7 @@ export function useEditor(
       dispatch({
         type: 'OPEN_PICK',
         canon,
-        octIndex: octaveIndexOf(row.srcNotes[0] ?? row.tgtNote ?? DEFAULT_PICK_NOTE),
+        octIndex: octaveIndexOf(row.srcNotes[0] ?? playedNote(row.outcome) ?? DEFAULT_PICK_NOTE),
         side: 'src',
         defaultNote: null,
         prevNote: row.srcNotes[0] ?? null,
@@ -103,12 +104,12 @@ export function useEditor(
 
   const remappedCount = useMemo(
     () =>
-      rows.filter((r) => r.status !== 'dropped' && r.srcNotes.length > 0 && r.srcNotes[0] !== r.tgtNote)
+      rows.filter((r) => r.outcome.status !== 'dropped' && r.srcNotes.length > 0 && r.srcNotes[0] !== r.outcome.tgtNote)
         .length,
     [rows],
   );
   const droppedCount = useMemo(
-    () => rows.filter((r) => r.status === 'dropped' && r.srcNotes.length > 0).length,
+    () => rows.filter((r) => r.outcome.status === 'dropped' && r.srcNotes.length > 0).length,
     [rows],
   );
   const defaultCanon = useMemo(

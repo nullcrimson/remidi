@@ -141,17 +141,16 @@ mod tests {
 
     #[test]
     fn names_notes_in_both_octave_conventions() {
-        let cases = [
-            (0, "C-1", "C-2"),
-            (36, "C2", "C1"),
-            (42, "F#2", "F#1"),
-            (60, "C4", "C3"),
-            (127, "G9", "G8"),
-        ];
-        for (note, c1, c2) in cases {
-            assert_eq!(n(note).name(OctaveBase::C1), c1);
-            assert_eq!(n(note).name(OctaveBase::C2), c2);
-        }
+        assert_eq!(n(0).name(OctaveBase::C1), "C-1");
+        assert_eq!(n(0).name(OctaveBase::C2), "C-2");
+        assert_eq!(n(36).name(OctaveBase::C1), "C2");
+        assert_eq!(n(36).name(OctaveBase::C2), "C1");
+        assert_eq!(n(42).name(OctaveBase::C1), "F#2");
+        assert_eq!(n(42).name(OctaveBase::C2), "F#1");
+        assert_eq!(n(60).name(OctaveBase::C1), "C4");
+        assert_eq!(n(60).name(OctaveBase::C2), "C3");
+        assert_eq!(n(127).name(OctaveBase::C1), "G9");
+        assert_eq!(n(127).name(OctaveBase::C2), "G8");
     }
 
     #[test]
@@ -184,10 +183,10 @@ mod tests {
 
     #[test]
     fn deserialize_rejects_out_of_range_with_the_range() {
-        for bad in ["128", "200", "70000"] {
-            let err = serde_json::from_str::<Note>(bad).unwrap_err();
-            assert!(err.to_string().contains("0..=127"), "{bad}: {err}");
-        }
+        let error = |s: &str| serde_json::from_str::<Note>(s).unwrap_err().to_string();
+        assert!(error("128").contains("0..=127"));
+        assert!(error("200").contains("0..=127"));
+        assert!(error("70000").contains("0..=127"));
     }
 
     #[test]

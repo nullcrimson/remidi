@@ -14,7 +14,7 @@ vi.mock('../src/lib/midiremap', () => ({
   engineNotes: () => [],
   canonCatalog: () => [{ canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' }],
   plan: () => [
-    { canon: 'china.1.hit', label: 'China 1', srcNotes: [60], tgtNote: null, defaultTgtNote: null, status: 'dropped' },
+    { canon: 'china.1.hit', label: 'China 1', srcNotes: [60], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
   ],
   remap: (...a: unknown[]) => remapMock(...a),
 }));

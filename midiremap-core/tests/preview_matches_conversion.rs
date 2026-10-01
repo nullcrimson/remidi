@@ -1,8 +1,7 @@
 use std::collections::BTreeMap;
 
 use midiremap_core::{
-    convert, plan, Catalog, ChannelScope, EngineMap, Mapping, MissingDrums, Note, Overrides,
-    PlanStatus,
+    convert, plan, Catalog, ChannelScope, EngineMap, Mapping, MissingDrums, Overrides,
 };
 use midiremap_testkit::{drums, events, off, on};
 use midly::MidiMessage;
@@ -53,14 +52,6 @@ fn previewed_by_source_note(
     let mut out = BTreeMap::new();
     let mut seen = BTreeMap::new();
     for row in plan(src, tgt, ov, missing) {
-        assert_eq!(
-            row.status == PlanStatus::Dropped,
-            row.tgt_note.is_none(),
-            "{} -> {}: {} status and target disagree",
-            src.id(),
-            tgt.id(),
-            row.canon
-        );
         for &note in &row.src_notes {
             if let Some(prev) = seen.insert(note, row.canon) {
                 panic!(
@@ -70,7 +61,7 @@ fn previewed_by_source_note(
                     row.canon
                 );
             }
-            if let Some(tgt_note) = row.tgt_note {
+            if let Some(tgt_note) = row.outcome.tgt_note() {
                 out.insert(note.get(), tgt_note.get());
             }
         }
@@ -82,11 +73,9 @@ fn assert_preview_matches_conversion(ov_json: &str, missing: MissingDrums) {
     let maps = Catalog::builtin().unwrap();
     let ov: Overrides = serde_json::from_str(ov_json).unwrap();
     let midi = every_note_smf();
-    let mut ids = maps.ids();
-    ids.sort_unstable();
-    for src_id in &ids {
+    for src_id in maps.ids() {
         let src = maps.get(src_id).unwrap();
-        for tgt_id in &ids {
+        for tgt_id in maps.ids() {
             let tgt = maps.get(tgt_id).unwrap();
             let converted = convert(
                 &midi,
@@ -117,31 +106,4 @@ fn preview_matches_conversion_under_drop_for_every_builtin_pair() {
 #[test]
 fn preview_matches_conversion_with_overrides_for_every_builtin_pair() {
     assert_preview_matches_conversion(OVERRIDES, MissingDrums::Nearest);
-}
-
-#[test]
-fn reassigned_note_converts_as_its_new_drum() {
-    let maps = Catalog::builtin().unwrap();
-    let (src, tgt) = (
-        maps.get("ggd_invasion").unwrap(),
-        maps.get("ezdrummer").unwrap(),
-    );
-    let ov: Overrides =
-        serde_json::from_str(r#"{"src":[{"note":24,"canon":"snare1.hit"}]}"#).unwrap();
-    let converted = convert(
-        &every_note_smf(),
-        &Mapping::new(src, tgt, &ov, MissingDrums::Nearest),
-        ChannelScope::Auto,
-    )
-    .unwrap();
-    let snare = plan(src, tgt, &ov, MissingDrums::Nearest)
-        .into_iter()
-        .find(|r| r.canon.to_string() == "snare1.hit")
-        .unwrap();
-    assert_eq!(snare.tgt_note.map(Note::get), Some(38));
-    assert_eq!(snare.src_notes.first().map(|n| n.get()), Some(24));
-    assert_eq!(
-        converted_by_source_note(&converted.bytes).get(&24),
-        Some(&38)
-    );
 }

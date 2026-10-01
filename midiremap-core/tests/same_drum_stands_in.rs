@@ -136,7 +136,7 @@ fn agreed(c: Canon) -> Vec<String> {
 
 fn kind(c: Canon) -> String {
     let key = c.to_string();
-    let head = key.split('.').next().unwrap_or_default();
+    let (head, _) = key.split_once('.').expect("every drum key has a dot");
     head.trim_end_matches(char::is_numeric).to_owned()
 }
 

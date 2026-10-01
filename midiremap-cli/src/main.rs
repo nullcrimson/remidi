@@ -78,7 +78,7 @@ fn read_preset(path: &PathBuf, catalog: &Catalog, src: &str, tgt: &str) -> Resul
         parse_preset(&json).with_context(|| format!("invalid preset {}", path.display()))?;
     let preset = loaded.preset;
     let resolve = |id: &str| catalog.canonical_id(id).unwrap_or(id).to_owned();
-    let (p_src, p_tgt) = (resolve(&preset.src), resolve(&preset.tgt));
+    let (p_src, p_tgt) = (resolve(preset.src.as_str()), resolve(preset.tgt.as_str()));
     if (p_src.as_str(), p_tgt.as_str()) != (src, tgt) {
         anyhow::bail!(
             "preset {} is for {p_src} → {p_tgt}, not {src} → {tgt}",

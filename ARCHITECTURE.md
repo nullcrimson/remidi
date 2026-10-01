@@ -43,8 +43,8 @@ Five crates, a web app, and embedded engine presets:
 | `midiremap-testkit` | Test-only: builds and reads small SMFs (channels `1..=16`) for the other crates' tests. | `midly` |
 | `engines/*.toml` | Preset note↔canon maps; core's `build.rs` converts them to one embedded JSON table. | — |
 
-`midiremap-core` never learns that `midly` or `std::fs` exist above its own
-`midi` module; the CLI, WASM, and app layers own all real-world I/O and
+`midiremap-core` never learns that `midly` or `std::fs` exist above its
+`midi`, `channel` and `rewrite` modules; the CLI, WASM, and app layers own all real-world I/O and
 presentation.
 
 ## Core modules (`midiremap-core/src`)
@@ -55,14 +55,21 @@ higher.
 ```
 conversion   ── convert(bytes, &Mapping, ChannelScope) → bytes + report
    │
-   ├── midi        ── parse / write (midly) + rewrite over the SMF stream
-   │      │
-   │      └── table      ── NoteTable: every source note's Resolution, compiled once
+   ├── midi        ── parse / write (midly), is_hit
    │
-   └── translate   ── Mapping: note → Resolution; Report
-          │              (used by table, midi, conversion and plan)
+   └── rewrite     ── applies a NoteTable to the SMF stream, folds removed deltas
+          │
+          ├── channel     ── Channel (Idx<16>), ChannelScope → per-track ChannelFilter
+          │      └── midi, idx
+          ├── midi
+          ├── report      ── Report: what a conversion did with each hit
+          └── table       ── NoteTable: every source note's Resolution, compiled once
+   │
+   └── translate   ── Mapping: note → Resolution
+          │              (used by table, rewrite, report, conversion and plan)
           ├── engine_map  ── EngineMap (+ override patching), Note
           └── canon       ── Canon enum + fallback chains
+                 └── idx  ── Idx<MAX>: a 1-based position in 1..=MAX
 
 catalog     ── Catalog: builtin presets (embedded) + user maps
 overrides   ── Overrides: per-note / per-drum edits, applied by EngineMap
@@ -93,8 +100,8 @@ chain through anyhow and the WASM joins it into one message (`outer: inner`).
 - `Note::name(OctaveBase)` names a note (`F#2`); `OctaveBase::{C1, C2}` is the octave
   convention. The site uses it directly; the app keeps a synchronous copy that the
   contract test checks against the WASM `note_names` for all 128 notes.
-- `Idx<const MAX: u8>` holds a 1-based position that is always in `1..=MAX`
-  (`SnareIdx = Idx<2>`, `RackIdx = Idx<8>`, `FloorIdx = Idx<4>`, `OpenLevel = Idx<6>`,
+- `Idx<const MAX: u8>` (module `idx`, shared with `Channel`) holds a 1-based position
+  that is always in `1..=MAX` (`SnareIdx = Idx<2>`, `RackIdx = Idx<8>`, `FloorIdx = Idx<4>`, `OpenLevel = Idx<6>`,
   …); `CymSlot { Crash(Idx<6>) | China(Idx<3>) | Splash(Idx<3>) | Stack(Idx<4>) |
   Bell(Idx<2>) }` gives each cymbal kind its own range. Every valid range is written
   once, as a type, so an out-of-range slot cannot be constructed.
@@ -157,7 +164,8 @@ the rules allow.
   - `translate(note)` decodes then wraps `resolve_canon` in `Resolved`;
     `resolve_canon(canon)` is used directly by `plan`.
   - Every `CanonResolution` carries the canon it resolved.
-- `Report`'s counters are private, read through accessors; only the converter tallies
+- `Report` (module `report`) keeps its counters private and hands them out as
+  iterators and totals (`hits()` is every note-on seen); only the converter tallies
   them (`record`, `record_untouched`).
 - `Report::record` keeps the counting policy in one place: it tallies unmapped
   source notes, fallbacks used (with the target note each one landed on), and
@@ -175,13 +183,14 @@ the rules allow.
   same table, so the fallback search never runs per MIDI event and the preview
   cannot disagree with the downloaded file.
 
-### `midi` — the only module that knows `midly`
+### `midi`, `channel`, `rewrite` — the modules that know `midly`
 
-- `parse(bytes)` / `write(&smf)`: the `midly` codec. `parse` refuses a header whose
-  SMPTE rate byte is `0x80` before midly sees it: midly 0.5.3 negates it with an
+- `midi`: `parse(bytes)` / `write(&smf)`, the `midly` codec, and `is_hit` (a note-on
+  with velocity > 0). `parse` refuses a header whose SMPTE rate byte is `0x80`
+  (`CodecError::SmpteRate`) before midly sees it: midly 0.5.3 negates it with an
   overflow, a panic in builds with overflow checks (found by fuzzing).
-- `Channel` is a MIDI channel `1..=16`, numbered as people count them
-  (`Channel::DRUMS` is 10).
+- `channel`: `Channel` is a MIDI channel `1..=16` (an `Idx<16>`), numbered as people
+  count them (`Channel::DRUMS` is 10).
 - `ChannelScope { Auto | Only(Channel) | All }` chooses which channels a conversion
   rewrites; `resolve(&smf)` turns it into one `ChannelFilter { Only | All | Skip }`
   per track. `Auto` (the default) converts every channel of each track that has a
@@ -189,13 +198,14 @@ the rules allow.
   everything. Multi-track song exports keep their bass and keys, drum tracks split
   across channels convert whole, and files with drums elsewhere convert as before.
   Parses from `auto`, `all` or `1`..=`16`.
-- `rewrite(&mut smf, &NoteTable, ChannelScope, &mut Report)` applies the table to
-  the events each track's filter accepts:
+- `rewrite`: `rewrite(&mut smf, &NoteTable, ChannelScope, &mut Report)` applies the
+  table to the events each track's filter accepts:
   - Note-on/off and poly aftertouch keys are rewritten to the resolved target
     note, so cymbal chokes follow their cymbal.
   - Unmapped / dropped notes (and their aftertouch) are removed; a removed event's
-    delta is folded into the next kept event so timing does not shift. Folded
-    deltas saturate at the `u28` maximum instead of wrapping.
+    delta is folded into the next kept event (`DeltaFold`) so timing does not shift.
+    A folded gap past the `u28` maximum fails the conversion with
+    `CodecError::DeltaOverflow` instead of moving later events.
   - Every other event, and every event on a rejected channel, passes through
     untouched.
   - Each real note-on (velocity > 0) is reported once; those on a rejected
@@ -250,8 +260,9 @@ the rules allow.
 - `parse_preset(json) → LoadedPreset { preset: SavedPreset, skipped }` reads
   `{ "format": "drumverter-preset", "version": 1, name, src, tgt, edits: { canon: note },
   srcEdits: { "note": canon | null } }` — the file the web app exports. Another format or
-  version, or a blank name/engine, is an error; an edit it cannot read (unknown drum,
-  note out of range) is skipped and described in `skipped`, never fatal.
+  version, or a blank name/engine (`NonBlank`), is an error; an edit it cannot read
+  (unknown drum, note out of range) is skipped and listed in `skipped` as a
+  `SkippedEdit` (kind + key/value; `Display` gives the CLI's line), never fatal.
   `SavedPreset::overrides()` turns it into `Overrides`. The app's export and this parser
   share the fixture `app/test/fixtures/my-kit.drumverter.json`.
 
@@ -272,13 +283,14 @@ the rules allow.
 - `plan(src, tgt, ov, missing) → Vec<VoicePlan>`: a per-drum view of the `NoteTable`
   compiled with the same `Overrides` and `MissingDrums` conversion uses. One row per
   canon the source engine defines or any note decodes to, in `Canon::all()` order,
-  giving `{ canon, src_notes, tgt_note, default_tgt_note, status, other_drum }`
-  (`other_drum`: the missing-drums setting decides this row):
+  giving `{ canon, src_notes, default_tgt_note, outcome }`:
   - `src_notes`: every source note that plays this drum — overridden notes first,
     then the engine's primary note, then the rest. Empty for a *silent* drum (its
     notes were reassigned); the row stays so its target remains editable.
-  - `tgt_note` / `status` (`Direct | Fallback | Dropped`): the drum resolved with
-    target overrides; `default_tgt_note`: without them.
+  - `outcome` (`PlanOutcome`): `Direct { tgt_note }`, `Fallback { tgt_note, other_drum }`
+    or `Dropped { other_drum }`, the drum resolved with target overrides, so a dropped
+    drum cannot carry a note; `other_drum` means the missing-drums setting decides the
+    row. `default_tgt_note`: the target note without target overrides.
   - Duplicate overrides resolve last-wins, as in conversion.
   A property test converts every note for every builtin pair and checks the
   preview against the output.
@@ -304,7 +316,7 @@ notes = [
   back to `name`. The app's engine filter still matches `name`.
 - `vendor` — who makes the engine; groups the site's engine index. Optional for user
   maps, required for every built-in preset (a catalog test checks it). Blank values are
-  errors.
+  errors (`NonBlank`).
 - `note` — MIDI note number `0..=127`.
 - `canon` — a canon's dotted string key (see the `canon` module).
 - `primary` — optional (default `false`); the note used when *encoding* this
@@ -346,7 +358,8 @@ prints available engine ids.
   `overrides` is an `Overrides` object; `channel` is `auto` (the default), `all` or
   `1`-`16`; `missing` is `nearest` (the default) or `drop`.
 - `plan(src_id, tgt_id, overrides?, missing?) → VoiceRow[]` — a core `VoicePlan`
-  (`canon, srcNotes, tgtNote, defaultTgtNote, status, otherDrum`) plus its `label`.
+  (`canon, srcNotes, defaultTgtNote, outcome`, the outcome tagged by `status`) plus its
+  `label`; the app reads it through `lib/outcome.ts` (`playedNote`, `movesToOtherDrum`).
 - `engine_catalog() → [{ id, name, fullName }]` — `name` is the display name,
   `fullName` the catalog name.
 - `family_order() → Family[]` — drum families in display order; `note_names(base) →
@@ -359,6 +372,7 @@ prints available engine ids.
   the source-note canon picker.
 - `parse_preset_file(json) → { name, src, tgt, edits, srcEdits, skipped }` — a preset
   file for import, engines resolved to current ids; an unknown engine is an error.
+  `skipped` is a list of tagged `SkippedEdit`s; the app shows only their count.
 - A `start` function installs `console_error_panic_hook`, so a panic prints its message.
 
 The browser build uses the `wasm` Cargo profile (release with LTO and one codegen

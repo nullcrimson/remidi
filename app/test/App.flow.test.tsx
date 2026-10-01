@@ -17,8 +17,8 @@ vi.mock('../src/lib/midiremap', () => ({
     { canon: 'kick.main', label: 'Kick', family: 'Kick' },
   ],
   plan: () => [
-    { canon: 'kick.main', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct' },
-    { canon: 'china.1.hit', label: 'China 1', srcNotes: [60], tgtNote: null, defaultTgtNote: null, status: 'dropped' },
+    { canon: 'kick.main', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+    { canon: 'china.1.hit', label: 'China 1', srcNotes: [60], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
   ],
   remap: (...a: unknown[]) => remapMock(...a),
 }));

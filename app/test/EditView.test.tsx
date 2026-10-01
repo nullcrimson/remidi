@@ -6,7 +6,7 @@ import type { AppError } from '../src/lib/errors';
 import { family_order } from './stubs/wasm';
 
 const editor = {
-  rows: [{ canon: 'KickMain', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct' as const, otherDrum: false }],
+  rows: [{ canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } }],
   edits: {},
   srcEdits: {},
   pick: null,
@@ -184,7 +184,7 @@ describe('EditView', () => {
         editor={{
           ...editor,
           changedSrc: new Set(['KickMain']),
-          rows: [{ canon: 'KickMain', label: 'Kick', srcNotes: [], tgtNote: 36, defaultTgtNote: 36, status: 'direct' as const, otherDrum: false }],
+          rows: [{ canon: 'KickMain', label: 'Kick', srcNotes: [], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } }],
         }}
       />,
     );
@@ -198,7 +198,7 @@ describe('EditView', () => {
         editor={{
           ...editor,
           pick: { canon: 'China', octIndex: 3, side: 'tgt' as const, defaultNote: null, prevNote: null },
-          rows: [{ canon: 'China', label: 'China', srcNotes: [59], tgtNote: null, defaultTgtNote: null, status: 'dropped' as const, otherDrum: false }],
+          rows: [{ canon: 'China', label: 'China', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped' as const, otherDrum: false } }],
         }}
       />,
     );
@@ -214,11 +214,11 @@ describe('EditView', () => {
     { canon: 'hat.cc', label: 'Hi-Hat CC', family: 'Hi-Hat' as const },
   ];
   const ROWS = [
-    { canon: 'ride.bell', label: 'Ride Bell', srcNotes: [53], tgtNote: 51, defaultTgtNote: 51, status: 'fallback' as const, otherDrum: false },
-    { canon: 'kick.main', label: 'Kick', srcNotes: [24], tgtNote: 36, defaultTgtNote: 36, status: 'direct' as const, otherDrum: false },
-    { canon: 'china.1', label: 'China 1', srcNotes: [52], tgtNote: null, defaultTgtNote: null, status: 'dropped' as const, otherDrum: false },
-    { canon: 'snare.main', label: 'Snare', srcNotes: [26], tgtNote: 40, defaultTgtNote: 38, status: 'direct' as const, otherDrum: false },
-    { canon: 'hat.cc', label: 'Hi-Hat CC', srcNotes: [], tgtNote: null, defaultTgtNote: null, status: 'dropped' as const, otherDrum: false },
+    { canon: 'ride.bell', label: 'Ride Bell', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback' as const, tgtNote: 51, otherDrum: false } },
+    { canon: 'kick.main', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } },
+    { canon: 'china.1', label: 'China 1', srcNotes: [52], defaultTgtNote: null, outcome: { status: 'dropped' as const, otherDrum: false } },
+    { canon: 'snare.main', label: 'Snare', srcNotes: [26], defaultTgtNote: 38, outcome: { status: 'direct' as const, tgtNote: 40 } },
+    { canon: 'hat.cc', label: 'Hi-Hat CC', srcNotes: [], defaultTgtNote: null, outcome: { status: 'dropped' as const, otherDrum: false } },
   ];
   const full = {
     ...editor,

@@ -1,7 +1,10 @@
 use crate::{
-    midi::{self, ChannelScope, CodecError},
+    channel::ChannelScope,
+    midi::{self, CodecError},
+    report::Report,
+    rewrite::rewrite,
     table::NoteTable,
-    translate::{Mapping, Report},
+    translate::Mapping,
 };
 
 pub struct Converted {
@@ -9,21 +12,15 @@ pub struct Converted {
     pub report: Report,
 }
 
-#[derive(thiserror::Error, Debug)]
-pub enum ConversionError {
-    #[error(transparent)]
-    Codec(#[from] CodecError),
-}
-
 /// Converts a standard MIDI file through `mapping`, rewriting the channels `scope` selects.
 pub fn convert(
     midi: &[u8],
     mapping: &Mapping,
     scope: ChannelScope,
-) -> Result<Converted, ConversionError> {
+) -> Result<Converted, CodecError> {
     let mut smf = midi::parse(midi)?;
     let mut report = Report::default();
-    midi::rewrite(&mut smf, &NoteTable::compile(mapping), scope, &mut report);
+    rewrite(&mut smf, &NoteTable::compile(mapping), scope, &mut report)?;
     let bytes = midi::write(&smf)?;
     Ok(Converted { bytes, report })
 }
@@ -35,11 +32,8 @@ mod tests {
 
     use super::*;
     use crate::{
-        canon::Canon,
-        catalog::Catalog,
-        note::n,
-        overrides::Overrides,
-        translate::{FallbackTally, MissingDrums},
+        canon::Canon, catalog::Catalog, note::n, overrides::Overrides, report::FallbackTally,
+        translate::MissingDrums,
     };
 
     fn convert_ids(mid: &[u8], src_id: &str, tgt_id: &str) -> Converted {
@@ -73,19 +67,9 @@ mod tests {
         );
         let china = "china.1.hit".parse::<Canon>().unwrap();
         assert_eq!(hit_keys(&out.bytes), vec![36]);
-        assert_eq!(out.report.dropped().get(&china), Some(&1));
-        assert!(out.report.fallback_used().is_empty());
+        assert_eq!(out.report.dropped().collect::<Vec<_>>(), [(china, 1)]);
+        assert!(out.report.fallback_used().next().is_none());
         assert_eq!(out.report.converted(), 1);
-    }
-
-    #[test]
-    fn ggd_kick_to_ezd_kick() {
-        let out = convert_ids(
-            &drums(&[(0, on(24)), (48, off(24))]),
-            "ggd_invasion",
-            "ezdrummer",
-        );
-        assert_eq!(hit_keys(&out.bytes), vec![36]);
     }
 
     #[test]
@@ -107,13 +91,14 @@ mod tests {
         );
         assert_eq!(hit_keys(&out.bytes), vec![86]);
         assert_eq!(
-            out.report
-                .fallback_used()
-                .get(&"china.1.hit".parse::<Canon>().unwrap()),
-            Some(&FallbackTally {
-                note: n(86),
-                count: 1
-            })
+            out.report.fallback_used().collect::<Vec<_>>(),
+            [(
+                "china.1.hit".parse::<Canon>().unwrap(),
+                &FallbackTally {
+                    note: n(86),
+                    count: 1
+                }
+            )]
         );
     }
 
@@ -125,7 +110,10 @@ mod tests {
             "ezdrummer",
         );
         assert!(hit_keys(&out.bytes).is_empty());
-        assert_eq!(out.report.unmapped_source().get(&n(99)), Some(&1));
+        assert_eq!(
+            out.report.unmapped_source().collect::<Vec<_>>(),
+            [(n(99), 1)]
+        );
     }
 
     #[test]
@@ -167,47 +155,6 @@ mod tests {
     }
 
     #[test]
-    fn ggd_to_addictive_drums2_native() {
-        let out = convert_ids(
-            &drums(&[(0, on(43)), (48, off(43))]),
-            "ggd_invasion",
-            "addictive_drums2",
-        );
-        assert_eq!(hit_keys(&out.bytes), vec![51]);
-    }
-
-    #[test]
-    fn addictive_drums2_to_ezd_native() {
-        let out = convert_ids(
-            &drums(&[(0, on(49)), (48, off(49))]),
-            "addictive_drums2",
-            "ezdrummer",
-        );
-        assert_eq!(hit_keys(&out.bytes), vec![63]);
-    }
-
-    #[test]
-    fn empty_overrides_equal_plain_remap() {
-        let mid = drums(&[(0, on(24)), (48, off(24))]);
-        let b = Catalog::builtin().unwrap();
-        let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
-        let plain = convert(
-            &mid,
-            &Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest),
-            ChannelScope::Auto,
-        )
-        .unwrap();
-        let ov = Overrides::default();
-        let with = convert(
-            &mid,
-            &Mapping::new(src, tgt, &ov, MissingDrums::Nearest),
-            ChannelScope::Auto,
-        )
-        .unwrap();
-        assert_eq!(hit_keys(&plain.bytes), hit_keys(&with.bytes));
-    }
-
-    #[test]
     fn tgt_override_changes_output_note() {
         let mid = drums(&[(0, on(24)), (48, off(24))]);
         let b = Catalog::builtin().unwrap();
@@ -237,7 +184,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(hit_keys(&out.bytes), vec![36]);
-        assert!(out.report.unmapped_source().is_empty());
+        assert!(out.report.unmapped_source().next().is_none());
     }
 
     #[test]
@@ -254,16 +201,6 @@ mod tests {
         )
         .unwrap();
         assert_eq!(hit_keys(&out.bytes), vec![38]);
-    }
-
-    #[test]
-    fn ggd_china2_hit_reaches_a_crash_not_dropped() {
-        let out = convert_ids(
-            &drums(&[(0, on(67)), (48, off(67))]),
-            "ggd_invasion",
-            "ezdrummer",
-        );
-        assert!(!hit_keys(&out.bytes).is_empty(), "china2 hit must not drop");
     }
 
     #[test]

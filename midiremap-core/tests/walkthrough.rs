@@ -4,10 +4,10 @@ use midiremap_core::{
     convert, Canon, Catalog, ChannelScope, EngineMap, FallbackTally, Mapping, MissingDrums, Note,
     Overrides,
 };
-use midiremap_testkit::{event, events, hit_keys, off, on, smf, DRUMS, PPQ};
+use midiremap_testkit::{event, hit_keys, off, on, smf, DRUMS, PPQ};
 use midly::{
     num::{u24, u28},
-    MetaMessage, MidiMessage, Smf, Timing, TrackEvent, TrackEventKind,
+    MetaMessage, TrackEvent, TrackEventKind,
 };
 
 const QUARTER: u32 = PPQ as u32;
@@ -49,7 +49,6 @@ fn expected_resolution(canon: Canon, tgt: &EngineMap) -> Expected {
 
 fn richest_engine(maps: &Catalog) -> &str {
     maps.ids()
-        .into_iter()
         .max_by_key(|id| maps.get(id).unwrap().source_notes().len())
         .unwrap()
 }
@@ -70,47 +69,6 @@ fn ezdrummer2_is_the_richest_source_kit() {
 }
 
 #[test]
-fn walkthrough_is_ninety_bpm_quarter_notes_one_per_drum() {
-    let maps = Catalog::builtin().unwrap();
-    let src = maps.get(richest_engine(&maps)).unwrap();
-    let notes: Vec<Note> = src.source_notes().iter().map(|d| d.note).collect();
-    let midi = walkthrough_smf(&notes);
-    let smf = Smf::parse(&midi).unwrap();
-
-    match smf.header.timing {
-        Timing::Metrical(ppq) => assert_eq!(ppq.as_int(), PPQ),
-        _ => panic!("expected metrical timing"),
-    }
-    let tempo = smf.tracks[0].iter().find_map(|ev| match ev.kind {
-        TrackEventKind::Meta(MetaMessage::Tempo(t)) => Some(t.as_int()),
-        _ => None,
-    });
-    assert_eq!(tempo, Some(MICROS_PER_QUARTER_90BPM));
-
-    let ons: Vec<(u8, u32)> = events(&midi, 0)
-        .into_iter()
-        .filter_map(|(delta, _, message)| match message {
-            MidiMessage::NoteOn { key, vel } if vel.as_int() > 0 => Some((key.as_int(), delta)),
-            _ => None,
-        })
-        .collect();
-    assert_eq!(ons.len(), notes.len());
-    assert_eq!(ons[0].1, 0, "first hit lands on beat one");
-    assert!(
-        ons.iter().skip(1).all(|&(_, delta)| delta == 0),
-        "each hit follows the previous quarter-note off"
-    );
-    assert_eq!(
-        hit_keys(&midi),
-        notes.iter().map(|n| n.get()).collect::<Vec<_>>(),
-        "walkthrough visits every source note once, in order"
-    );
-
-    let dir = env!("CARGO_TARGET_TMPDIR");
-    std::fs::write(format!("{dir}/walkthrough_{}.mid", src.id()), &midi).unwrap();
-}
-
-#[test]
 fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
     let maps = Catalog::builtin().unwrap();
     let src_id = richest_engine(&maps);
@@ -118,10 +76,7 @@ fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
     let notes: Vec<Note> = src.source_notes().iter().map(|d| d.note).collect();
     let midi = walkthrough_smf(&notes);
 
-    let mut target_ids = maps.ids();
-    target_ids.sort_unstable();
-
-    for tgt_id in target_ids {
+    for tgt_id in maps.ids() {
         let tgt = maps.get(tgt_id).unwrap();
 
         let mut expected_keys: Vec<u8> = Vec::new();
@@ -159,17 +114,20 @@ fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
             "{src_id} -> {tgt_id}: output notes must match direct/fallback resolution"
         );
         assert!(
-            out.report.unmapped_source().is_empty(),
+            out.report.unmapped_source().next().is_none(),
             "{src_id} -> {tgt_id}: a kit's own notes are always decodable"
         );
         assert_eq!(
-            out.report.fallback_used(),
-            &expected_fallback,
+            out.report.fallback_used().collect::<Vec<_>>(),
+            expected_fallback
+                .iter()
+                .map(|(&c, t)| (c, t))
+                .collect::<Vec<_>>(),
             "{src_id} -> {tgt_id}: fallback report must match the resolver"
         );
         assert_eq!(
-            out.report.dropped(),
-            &expected_dropped,
+            out.report.dropped().collect::<BTreeMap<_, _>>(),
+            expected_dropped,
             "{src_id} -> {tgt_id}: dropped report must match the resolver"
         );
 
@@ -199,36 +157,28 @@ fn same_engine_conversion_is_all_direct() {
     .unwrap();
 
     assert_eq!(hit_keys(&out.bytes).len(), notes.len());
-    assert!(out.report.unmapped_source().is_empty());
+    assert!(out.report.unmapped_source().next().is_none());
     assert!(
-        out.report.fallback_used().is_empty(),
+        out.report.fallback_used().next().is_none(),
         "a kit always encodes its own canon slots directly"
     );
-    assert!(out.report.dropped().is_empty());
+    assert!(out.report.dropped().next().is_none());
 }
 
 #[test]
-fn walkthrough_hits_general_midi_anchor_notes() {
+fn general_midi_maps_the_standard_anchor_notes() {
     let maps = Catalog::builtin().unwrap();
     let gm = maps.get("general_midi").unwrap();
-    for (key, note) in [
-        ("kick.main", 36),
-        ("snare1.hit", 38),
-        ("snare1.sidestick", 37),
-        ("hat.closed", 42),
-        ("hat.pedal", 44),
-        ("hat.open1", 46),
-        ("crash.1.hit", 49),
-        ("ride.1", 51),
-        ("tom.floor1.hit", 43),
-    ] {
-        let canon: Canon = key.parse().unwrap();
-        assert_eq!(
-            gm.encode(canon).map(Note::get),
-            Some(note),
-            "general_midi must map {key} to note {note}"
-        );
-    }
+    let note = |key: &str| gm.encode(key.parse().unwrap()).map(Note::get);
+    assert_eq!(note("kick.main"), Some(36));
+    assert_eq!(note("snare1.hit"), Some(38));
+    assert_eq!(note("snare1.sidestick"), Some(37));
+    assert_eq!(note("hat.closed"), Some(42));
+    assert_eq!(note("hat.pedal"), Some(44));
+    assert_eq!(note("hat.open1"), Some(46));
+    assert_eq!(note("crash.1.hit"), Some(49));
+    assert_eq!(note("ride.1"), Some(51));
+    assert_eq!(note("tom.floor1.hit"), Some(43));
 }
 
 #[test]

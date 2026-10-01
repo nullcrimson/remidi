@@ -1,20 +1,19 @@
 use std::fmt;
 
-use serde::{Serialize, Serializer};
+use serde::Serialize;
+use strum::{IntoStaticStr, VariantArray};
 
 /// A group of drums, declared in the order the app and the site list them.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(
-    feature = "ts",
-    derive(tsify::Tsify),
-    tsify(
-        type = "\"Kick\" | \"Snare\" | \"Toms\" | \"Hi-Hat\" | \"Cymbals\" | \"Percussion\" | \"Aux\""
-    )
+#[derive(
+    Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, VariantArray, IntoStaticStr,
 )]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify))]
 pub enum Family {
     Kick,
     Snare,
     Toms,
+    #[serde(rename = "Hi-Hat")]
+    #[strum(serialize = "Hi-Hat")]
     HiHat,
     Cymbals,
     Percussion,
@@ -23,38 +22,16 @@ pub enum Family {
 
 impl Family {
     /// Every family, in display order.
-    pub const ALL: [Self; 7] = [
-        Self::Kick,
-        Self::Snare,
-        Self::Toms,
-        Self::HiHat,
-        Self::Cymbals,
-        Self::Percussion,
-        Self::Aux,
-    ];
+    pub const ALL: &[Self] = Self::VARIANTS;
 
-    pub const fn label(self) -> &'static str {
-        match self {
-            Self::Kick => "Kick",
-            Self::Snare => "Snare",
-            Self::Toms => "Toms",
-            Self::HiHat => "Hi-Hat",
-            Self::Cymbals => "Cymbals",
-            Self::Percussion => "Percussion",
-            Self::Aux => "Aux",
-        }
+    pub fn label(self) -> &'static str {
+        self.into()
     }
 }
 
 impl fmt::Display for Family {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.label())
-    }
-}
-
-impl Serialize for Family {
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        s.serialize_str(self.label())
     }
 }
 
@@ -78,7 +55,7 @@ mod tests {
                 "Aux"
             ]
         );
-        let mut sorted = Family::ALL;
+        let mut sorted = Family::ALL.to_vec();
         sorted.sort_unstable();
         assert_eq!(sorted, Family::ALL);
     }

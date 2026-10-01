@@ -55,11 +55,7 @@ fn every_current_canon_key_is_recorded() {
 fn every_current_engine_id_is_recorded() {
     let recorded = lines(ENGINE_IDS);
     let catalog = Catalog::builtin().unwrap();
-    let missing: Vec<&str> = catalog
-        .ids()
-        .into_iter()
-        .filter(|id| !recorded.contains(id))
-        .collect();
+    let missing: Vec<&str> = catalog.ids().filter(|id| !recorded.contains(id)).collect();
     assert!(
         missing.is_empty(),
         "append to tests/golden/engine_ids.txt: {missing:?}"

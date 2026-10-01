@@ -1,34 +1,53 @@
 use std::collections::BTreeMap;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
     canon::Canon,
+    non_blank::NonBlank,
     note::Note,
     overrides::{CanonNote, Overrides, SrcNote},
 };
 
-/// The `format` tag of a preset file.
-pub const PRESET_FORMAT: &str = "drumverter-preset";
-/// The newest preset file version this build reads.
-pub const PRESET_VERSION: u64 = 1;
+const PRESET_FORMAT: &str = "drumverter-preset";
+const PRESET_VERSION: u64 = 1;
 
 /// A named set of note edits for one engine pair, as the web app saves and exports it.
 #[derive(Debug, PartialEq, Eq)]
 pub struct SavedPreset {
-    pub name: String,
-    pub src: String,
-    pub tgt: String,
+    pub name: NonBlank,
+    pub src: NonBlank,
+    pub tgt: NonBlank,
     pub edits: BTreeMap<Canon, Note>,
     pub src_edits: BTreeMap<Note, Option<Canon>>,
 }
 
-/// A parsed preset and the edits it had to skip, described for a person.
+/// A parsed preset and the edits it had to skip.
 #[derive(Debug, PartialEq, Eq)]
 pub struct LoadedPreset {
     pub preset: SavedPreset,
-    pub skipped: Vec<String>,
+    pub skipped: Vec<SkippedEdit>,
+}
+
+/// An edit a preset file holds but this build cannot read; the rest of the preset still
+/// loads.
+#[derive(thiserror::Error, Serialize, Debug, PartialEq, Eq)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify))]
+pub enum SkippedEdit {
+    /// A drum edit whose key is no drum.
+    #[error("unknown drum '{key}'")]
+    UnknownDrum { key: String },
+    /// A drum edit whose value is no note.
+    #[error("{key}: not a note ({value})")]
+    NotANote { key: String, value: String },
+    /// A source edit whose key is no note.
+    #[error("{key}: not a note")]
+    NotASourceNote { key: String },
+    /// A source edit whose value is no drum.
+    #[error("{note}: not a drum ({value})")]
+    NotADrum { note: Note, value: String },
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -39,8 +58,6 @@ pub enum PresetError {
     Format(String),
     #[error("preset version {0} is not supported by this version of Drumverter")]
     Version(u64),
-    #[error("preset has a blank {0}")]
-    Blank(&'static str),
 }
 
 #[derive(Deserialize)]
@@ -48,24 +65,16 @@ pub enum PresetError {
 struct RawPreset {
     format: String,
     version: u64,
-    name: String,
-    src: String,
-    tgt: String,
+    name: NonBlank,
+    src: NonBlank,
+    tgt: NonBlank,
     #[serde(default)]
     edits: BTreeMap<String, Value>,
     #[serde(default)]
     src_edits: BTreeMap<String, Value>,
 }
 
-fn non_blank(value: String, field: &'static str) -> Result<String, PresetError> {
-    if value.trim().is_empty() {
-        Err(PresetError::Blank(field))
-    } else {
-        Ok(value)
-    }
-}
-
-/// Reads a preset file; an edit it cannot read is skipped and described, never fatal.
+/// Reads a preset file; an edit it cannot read is skipped and listed, never fatal.
 pub fn parse_preset(json: &str) -> Result<LoadedPreset, PresetError> {
     let raw: RawPreset = serde_json::from_str(json).map_err(PresetError::Parse)?;
     if raw.format != PRESET_FORMAT {
@@ -78,8 +87,11 @@ pub fn parse_preset(json: &str) -> Result<LoadedPreset, PresetError> {
     let mut edits = BTreeMap::new();
     for (key, value) in raw.edits {
         match (key.parse::<Canon>(), Note::deserialize(&value)) {
-            (Err(_), _) => skipped.push(format!("unknown drum '{key}'")),
-            (Ok(_), Err(_)) => skipped.push(format!("{key}: not a note ({value})")),
+            (Err(_), _) => skipped.push(SkippedEdit::UnknownDrum { key }),
+            (Ok(_), Err(_)) => skipped.push(SkippedEdit::NotANote {
+                key,
+                value: value.to_string(),
+            }),
             (Ok(canon), Ok(note)) => {
                 edits.insert(canon, note);
             }
@@ -88,27 +100,24 @@ pub fn parse_preset(json: &str) -> Result<LoadedPreset, PresetError> {
     let mut src_edits = BTreeMap::new();
     for (key, value) in raw.src_edits {
         let Ok(note) = key.parse::<Note>() else {
-            skipped.push(format!("{key}: not a note"));
+            skipped.push(SkippedEdit::NotASourceNote { key });
             continue;
         };
-        match value {
-            Value::Null => {
-                src_edits.insert(note, None);
+        match Option::<Canon>::deserialize(&value) {
+            Ok(canon) => {
+                src_edits.insert(note, canon);
             }
-            Value::String(s) => match s.parse::<Canon>() {
-                Ok(canon) => {
-                    src_edits.insert(note, Some(canon));
-                }
-                Err(_) => skipped.push(format!("{key}: unknown drum '{s}'")),
-            },
-            other => skipped.push(format!("{key}: not a drum ({other})")),
+            Err(_) => skipped.push(SkippedEdit::NotADrum {
+                note,
+                value: value.to_string(),
+            }),
         }
     }
     Ok(LoadedPreset {
         preset: SavedPreset {
-            name: non_blank(raw.name, "name")?,
-            src: non_blank(raw.src, "src")?,
-            tgt: non_blank(raw.tgt, "tgt")?,
+            name: raw.name,
+            src: raw.src,
+            tgt: raw.tgt,
             edits,
             src_edits,
         },
@@ -190,27 +199,38 @@ mod tests {
     }
 
     #[test]
-    fn rejects_other_files_and_versions() {
-        assert!(matches!(parse_preset("nope"), Err(PresetError::Parse(_))));
+    fn a_file_without_the_preset_fields_is_not_a_preset() {
         assert!(matches!(
             parse_preset(r#"{"name":"N"}"#),
             Err(PresetError::Parse(_))
         ));
+    }
+
+    #[test]
+    fn another_format_is_rejected_by_name() {
         assert!(matches!(
             parse_preset(r#"{"format":"other","version":1,"name":"N","src":"a","tgt":"b"}"#),
             Err(PresetError::Format(f)) if f == "other"
         ));
+    }
+
+    #[test]
+    fn a_newer_version_is_rejected() {
         assert!(matches!(
             parse_preset(
                 r#"{"format":"drumverter-preset","version":2,"name":"N","src":"a","tgt":"b"}"#
             ),
             Err(PresetError::Version(2))
         ));
+    }
+
+    #[test]
+    fn a_blank_name_is_rejected() {
         assert!(matches!(
             parse_preset(
                 r#"{"format":"drumverter-preset","version":1,"name":" ","src":"a","tgt":"b"}"#
             ),
-            Err(PresetError::Blank("name"))
+            Err(PresetError::Parse(_))
         ));
     }
 
@@ -236,13 +256,14 @@ mod tests {
             loaded.preset.src_edits,
             BTreeMap::from([(n(24), Some(k("snare1.hit")))])
         );
+        let skipped: Vec<String> = loaded.skipped.iter().map(ToString::to_string).collect();
         assert_eq!(
-            loaded.skipped,
+            skipped,
             [
                 "unknown drum 'bogus.drum'",
                 "hat.closed: not a note (\"x\")",
                 "snare1.hit: not a note (200)",
-                "25: unknown drum 'nope.drum'",
+                "25: not a drum (\"nope.drum\")",
                 "26: not a drum (7)",
                 "999: not a note",
             ]

@@ -4,12 +4,12 @@ use std::sync::LazyLock;
 
 use libfuzzer_sys::fuzz_target;
 use midiremap_core::{
-    convert, Catalog, Channel, ChannelScope, EngineMap, Mapping, MissingDrums, Overrides, Report,
+    convert, Catalog, Channel, ChannelScope, EngineMap, Mapping, MissingDrums, Overrides,
 };
 use midly::{MidiMessage, Smf, TrackEventKind};
 
-static CATALOG: LazyLock<Catalog> = LazyLock::new(|| Catalog::builtin().unwrap());
-static ENGINES: LazyLock<Vec<&EngineMap>> = LazyLock::new(|| CATALOG.engines().collect());
+static ENGINES: LazyLock<Vec<&EngineMap>> =
+    LazyLock::new(|| Catalog::shared().unwrap().engines().collect());
 
 fn engine(pick: u8) -> &'static EngineMap {
     ENGINES[usize::from(pick) % ENGINES.len()]
@@ -46,13 +46,6 @@ fn hits(smf: &Smf) -> u32 {
     u32::try_from(count).expect("a parsed file has fewer than 2^32 events")
 }
 
-fn counted(report: &Report) -> u32 {
-    report.converted()
-        + report.dropped().values().sum::<u32>()
-        + report.unmapped_source().values().sum::<u32>()
-        + report.untouched()
-}
-
 fuzz_target!(|data: &[u8]| {
     let [src, tgt, byte, midi @ ..] = data else {
         return;
@@ -64,5 +57,5 @@ fuzz_target!(|data: &[u8]| {
     };
     Smf::parse(&out.bytes).expect("a converted file parses");
     let input = Smf::parse(midi).expect("convert parsed this file");
-    assert_eq!(counted(&out.report), hits(&input));
+    assert_eq!(out.report.hits(), hits(&input));
 });
