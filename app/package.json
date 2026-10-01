@@ -12,7 +12,7 @@
     "dev": "vite",
     "prebuild": "npm run gen:i18n && npm run build:wasm",
     "build": "tsc --noEmit && vite build",
-    "build:site": "npm run build && cargo run --manifest-path ../Cargo.toml -p midiremap-site --release --locked -- dist",
+    "build:site": "npm run build && cargo run --manifest-path ../Cargo.toml -p midiremap-site --locked -- dist",
     "preview": "vite preview",
     "prelint": "npm run gen:i18n",
     "lint": "eslint .",

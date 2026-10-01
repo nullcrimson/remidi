@@ -35,7 +35,12 @@ Deploy the static contents of `app/dist/` to any static host.
 npm run test     # Vitest; needs npm run build:wasm once (the contract test loads the real module)
 npm run e2e      # Playwright against vite preview of dist; run npm run build:site first
 npm run size     # size budgets for dist/assets (wasm, JS, CSS gzipped; latin fonts; largest locale chunk)
+../scripts/gate.sh  # every check: Rust and app checks side by side, then build:site, size, e2e (logs in target/gate/)
 ```
+
+`build:wasm` skips wasm-bindgen and wasm-opt when the compiled module, the tool versions and
+the script are unchanged (`src/wasm/.stamp`). `build:site` runs the site generator as a
+debug build; CI builds it in release.
 
 `npm run gen:i18n` writes `src/generated/` (message, locale and section types, and
 `lang.css`) from `../locales/` and `src/content/structure.json`. It runs before `dev`,
