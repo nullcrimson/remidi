@@ -158,7 +158,7 @@ export function DonePanel({
       {asking && <TipToast onClose={() => setAsking(false)} />}
 
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-        <TextButton onClick={onViewReport}>{t({ id: 'done-view-report' })}</TextButton>
+        <TextButton tone="link" onClick={onViewReport}>{t({ id: 'done-view-report' })}</TextButton>
         <TextButton onClick={onConvertMore}>{t({ id: 'done-convert-more' })}</TextButton>
         {onDropMissing && (
           <TextButton onClick={onDropMissing}>{t({ id: 'drop-missing' })}</TextButton>

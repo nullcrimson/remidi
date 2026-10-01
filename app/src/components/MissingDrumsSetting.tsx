@@ -37,7 +37,7 @@ export function MissingDrumsSetting({
           </li>
         ))}
       </ul>
-      {onOpenEditor && <TextButton onClick={onOpenEditor}>{t({ id: 'detail-edit' })}</TextButton>}
+      {onOpenEditor && <TextButton tone="link" onClick={onOpenEditor}>{t({ id: 'detail-edit' })}</TextButton>}
     </InfoPopover>
   );
   return (

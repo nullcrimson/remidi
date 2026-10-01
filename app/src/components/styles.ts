@@ -32,14 +32,15 @@ export function tag(tone: TagTone): string {
   return `rounded-chip border px-2 py-0.5 font-mono text-label ${TAG_TONE[tone]}`;
 }
 
-export type TextTone = 'default' | 'danger';
+export type TextTone = 'default' | 'danger' | 'link';
 
 const TEXT_TONE: Record<TextTone, string> = {
   default: 'text-t2 hover:text-accent disabled:hover:text-t2',
   danger: 'text-t4 hover:text-danger',
+  link: 'prose-link',
 };
 
-/** In-app action link: quiet text that lights up to the accent. */
+/** In-app action link: quiet text that lights up to the accent; `link` marks one that takes you elsewhere. */
 export function textAction(tone: TextTone = 'default'): string {
   return `
     tap inline-flex items-center gap-1.5 text-ui transition-colors

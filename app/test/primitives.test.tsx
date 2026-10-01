@@ -127,6 +127,13 @@ describe('TextButton', () => {
     render(<TextButton tone="danger" onClick={() => {}}>clear all</TextButton>);
     expect(screen.getByRole('button', { name: 'clear all' })).toHaveClass('text-t4', 'hover:text-danger');
   });
+
+  it('link tone looks like a link', () => {
+    render(<TextButton tone="link" onClick={() => {}}>Change in note editor →</TextButton>);
+    const button = screen.getByRole('button', { name: 'Change in note editor →' });
+    expect(button).toHaveClass('prose-link');
+    expect(button).not.toHaveClass('text-t2');
+  });
 });
 
 describe('IconButton', () => {

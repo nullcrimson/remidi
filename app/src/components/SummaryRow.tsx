@@ -74,7 +74,7 @@ export function SummaryRow({
           disabled={disabled}
           className={`
             whitespace-nowrap
-            ${textAction()}
+            ${textAction('link')}
           `}
         >
           <span aria-hidden="true">✎</span>
@@ -141,7 +141,7 @@ function BreakdownDetail({
           </li>
         ))}
       </ul>
-      <TextButton onClick={() => onEdit(issues ? 'issues' : 'all')}>{t({ id: 'detail-edit' })}</TextButton>
+      <TextButton tone="link" onClick={() => onEdit(issues ? 'issues' : 'all')}>{t({ id: 'detail-edit' })}</TextButton>
     </>
   );
 }
