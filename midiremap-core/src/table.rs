@@ -3,27 +3,20 @@ use crate::{
     translate::{Mapping, Resolution},
 };
 
-const NOTES: usize = Note::MAX as usize + 1;
-
 /// Every source note's resolution, compiled once per (source, target, overrides).
-pub(crate) struct NoteTable([Resolution; NOTES]);
+pub(crate) struct NoteTable([Resolution; Note::COUNT]);
 
 impl NoteTable {
     pub(crate) fn compile(mapping: &Mapping) -> Self {
-        let mut notes = Note::all();
-        Self(std::array::from_fn(|_| {
-            notes
-                .next()
-                .map_or(Resolution::Unmapped, |n| mapping.translate(n))
-        }))
+        Self(Note::ALL.map(|n| mapping.translate(n)))
     }
 
     pub(crate) fn get(&self, note: Note) -> &Resolution {
-        &self.0[usize::from(note.get())]
+        &self.0[note.index()]
     }
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = (Note, &Resolution)> {
-        Note::all().zip(&self.0)
+        Note::ALL.into_iter().zip(&self.0)
     }
 }
 
@@ -34,7 +27,7 @@ mod tests {
 
     #[test]
     fn agrees_with_translate_for_every_note() {
-        let b = Catalog::builtin();
+        let b = Catalog::builtin().unwrap();
         let ov: Overrides = serde_json::from_str(
             r#"{"src":[{"note":24,"canon":"snare1.hit"}],"tgt":[{"canon":"kick.main","note":35}]}"#,
         )
@@ -58,7 +51,7 @@ mod tests {
                     })
                 {
                     let table = NoteTable::compile(&t);
-                    for note in Note::all() {
+                    for note in Note::ALL {
                         assert_eq!(
                             table.get(note),
                             &t.translate(note),
@@ -72,7 +65,7 @@ mod tests {
 
     #[test]
     fn iter_yields_each_note_once_in_order() {
-        let b = Catalog::builtin();
+        let b = Catalog::builtin().unwrap();
         let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
         let table = NoteTable::compile(&Mapping::new(
             src,

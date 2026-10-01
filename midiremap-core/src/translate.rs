@@ -327,7 +327,7 @@ notes = [ {} ]",
 
     #[test]
     fn drop_never_plays_another_drum_on_any_builtin_target() {
-        let catalog = Catalog::builtin();
+        let catalog = Catalog::builtin().unwrap();
         for id in catalog.ids() {
             let tgt = catalog.get(id).unwrap();
             for &canon in Canon::all() {

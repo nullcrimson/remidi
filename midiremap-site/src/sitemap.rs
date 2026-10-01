@@ -77,7 +77,7 @@ mod tests {
 
     #[test]
     fn lists_every_page_once_on_the_canonical_origin() {
-        let catalog = Catalog::builtin();
+        let catalog = Catalog::builtin().unwrap();
         let xml = sitemap(&Site::build(&catalog).unwrap(), &Docs::load().unwrap());
         let doc = roxmltree::Document::parse(&xml).unwrap();
         let locs: Vec<&str> = doc
@@ -131,7 +131,7 @@ mod tests {
 
     fn all_urls() -> Vec<(String, Vec<(String, String)>)> {
         urls(&sitemap(
-            &Site::build(&Catalog::builtin()).unwrap(),
+            &Site::build(&Catalog::builtin().unwrap()).unwrap(),
             &Docs::load().unwrap(),
         ))
     }

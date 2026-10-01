@@ -8,7 +8,7 @@ use midly::{
 };
 use proptest::{prelude::*, sample::Index};
 
-static CATALOG: LazyLock<Catalog> = LazyLock::new(Catalog::builtin);
+static CATALOG: LazyLock<Catalog> = LazyLock::new(|| Catalog::builtin().unwrap());
 
 #[derive(Debug, Clone)]
 enum Item {

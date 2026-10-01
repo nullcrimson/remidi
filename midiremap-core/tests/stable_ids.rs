@@ -26,7 +26,7 @@ fn every_recorded_canon_key_still_parses() {
 
 #[test]
 fn every_recorded_engine_id_still_resolves() {
-    let catalog = Catalog::builtin();
+    let catalog = Catalog::builtin().unwrap();
     let gone: Vec<&str> = lines(ENGINE_IDS)
         .into_iter()
         .filter(|id| catalog.get(id).is_none())
@@ -54,7 +54,7 @@ fn every_current_canon_key_is_recorded() {
 #[test]
 fn every_current_engine_id_is_recorded() {
     let recorded = lines(ENGINE_IDS);
-    let catalog = Catalog::builtin();
+    let catalog = Catalog::builtin().unwrap();
     let missing: Vec<&str> = catalog
         .ids()
         .into_iter()

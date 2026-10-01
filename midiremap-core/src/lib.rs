@@ -19,7 +19,7 @@ pub use conversion::{convert, ConversionError, Converted};
 pub use engine_map::{Drum, EngineMap, MapError};
 pub use family::Family;
 pub use midi::{Channel, ChannelScope, ChannelScopeError, CodecError};
-pub use note::{Note, NoteOutOfRange, OctaveBase};
+pub use note::{Note, NoteOutOfRange, NoteParseError, OctaveBase};
 pub use overrides::{CanonNote, Overrides, SrcNote};
 pub use plan::{plan, PlanStatus, VoicePlan};
 pub use preset::{

@@ -52,7 +52,7 @@ mod tests {
         tgt_id: &str,
         missing: MissingDrums,
     ) -> Converted {
-        let b = Catalog::builtin();
+        let b = Catalog::builtin().unwrap();
         let src = b.get(src_id).unwrap();
         let tgt = b.get(tgt_id).unwrap();
         convert(
@@ -189,7 +189,7 @@ mod tests {
     #[test]
     fn empty_overrides_equal_plain_remap() {
         let mid = drums(&[(0, on(24)), (48, off(24))]);
-        let b = Catalog::builtin();
+        let b = Catalog::builtin().unwrap();
         let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
         let plain = convert(
             &mid,
@@ -210,7 +210,7 @@ mod tests {
     #[test]
     fn tgt_override_changes_output_note() {
         let mid = drums(&[(0, on(24)), (48, off(24))]);
-        let b = Catalog::builtin();
+        let b = Catalog::builtin().unwrap();
         let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
         let ov: Overrides =
             serde_json::from_str(r#"{"tgt":[{"canon":"kick.main","note":35}]}"#).unwrap();
@@ -226,7 +226,7 @@ mod tests {
     #[test]
     fn src_override_rescues_unmapped_note() {
         let mid = drums(&[(0, on(99)), (48, off(99))]);
-        let b = Catalog::builtin();
+        let b = Catalog::builtin().unwrap();
         let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
         let ov: Overrides =
             serde_json::from_str(r#"{"src":[{"note":99,"canon":"kick.main"}]}"#).unwrap();
@@ -243,7 +243,7 @@ mod tests {
     #[test]
     fn src_override_reassigns_mapped_note() {
         let mid = drums(&[(0, on(24)), (48, off(24))]);
-        let b = Catalog::builtin();
+        let b = Catalog::builtin().unwrap();
         let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
         let ov: Overrides =
             serde_json::from_str(r#"{"src":[{"note":24,"canon":"snare1.hit"}]}"#).unwrap();

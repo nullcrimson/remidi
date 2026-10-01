@@ -15,7 +15,7 @@ use std::{
 };
 
 use clap::Parser;
-use midiremap_core::Catalog;
+use midiremap_core::{Catalog, MapError};
 
 use crate::{
     i18n::{home, Docs, I18nError, Locale, Messages},
@@ -42,6 +42,8 @@ pub enum SiteError {
     MissingMarker(&'static str),
     #[error("slug collision: {0}")]
     SlugCollision(String),
+    #[error("the builtin engine maps are broken")]
+    Catalog(#[from] MapError),
     #[error(transparent)]
     Render(#[from] askama::Error),
     #[error(transparent)]
@@ -117,7 +119,7 @@ fn run(args: Args) -> Result<usize, SiteError> {
         source,
     })?;
     let shell = app_shell(&html, &index)?;
-    let site = Site::build(&Catalog::builtin())?;
+    let site = Site::build(&Catalog::builtin()?)?;
     let messages = Messages::load()?;
     let docs = Docs::load()?;
     let pages = render::render_site(&site, &shell, &messages, &docs)?;

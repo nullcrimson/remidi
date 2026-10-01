@@ -57,13 +57,6 @@ struct RawPreset {
     src_edits: BTreeMap<String, Value>,
 }
 
-fn note_of(value: &Value) -> Option<Note> {
-    value
-        .as_u64()
-        .and_then(|n| u8::try_from(n).ok())
-        .and_then(Note::new)
-}
-
 fn non_blank(value: String, field: &'static str) -> Result<String, PresetError> {
     if value.trim().is_empty() {
         Err(PresetError::Blank(field))
@@ -84,17 +77,17 @@ pub fn parse_preset(json: &str) -> Result<LoadedPreset, PresetError> {
     let mut skipped = Vec::new();
     let mut edits = BTreeMap::new();
     for (key, value) in raw.edits {
-        match (key.parse::<Canon>(), note_of(&value)) {
+        match (key.parse::<Canon>(), Note::deserialize(&value)) {
             (Err(_), _) => skipped.push(format!("unknown drum '{key}'")),
-            (Ok(_), None) => skipped.push(format!("{key}: not a note ({value})")),
-            (Ok(canon), Some(note)) => {
+            (Ok(_), Err(_)) => skipped.push(format!("{key}: not a note ({value})")),
+            (Ok(canon), Ok(note)) => {
                 edits.insert(canon, note);
             }
         }
     }
     let mut src_edits = BTreeMap::new();
     for (key, value) in raw.src_edits {
-        let Some(note) = key.parse::<u8>().ok().and_then(Note::new) else {
+        let Ok(note) = key.parse::<Note>() else {
             skipped.push(format!("{key}: not a note"));
             continue;
         };

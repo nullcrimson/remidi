@@ -8,7 +8,7 @@ use midiremap_core::{
 };
 use midly::{MidiMessage, Smf, TrackEventKind};
 
-static CATALOG: LazyLock<Catalog> = LazyLock::new(Catalog::builtin);
+static CATALOG: LazyLock<Catalog> = LazyLock::new(|| Catalog::builtin().unwrap());
 static ENGINES: LazyLock<Vec<&EngineMap>> = LazyLock::new(|| CATALOG.engines().collect());
 
 fn engine(pick: u8) -> &'static EngineMap {

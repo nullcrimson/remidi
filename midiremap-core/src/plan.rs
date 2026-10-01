@@ -127,7 +127,7 @@ mod tests {
     }
 
     fn ggd_to_ezd_with(ov: &str, missing: MissingDrums) -> Vec<VoicePlan> {
-        let b = Catalog::builtin();
+        let b = Catalog::builtin().unwrap();
         let ov: Overrides = serde_json::from_str(ov).unwrap();
         plan(
             b.get("ggd_invasion").unwrap(),
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn rows_follow_canon_declaration_order() {
-        let b = Catalog::builtin();
+        let b = Catalog::builtin().unwrap();
         let rows = plan(
             b.get("ggd_invasion").unwrap(),
             b.get("ggd_invasion").unwrap(),
@@ -327,7 +327,7 @@ mod tests {
     #[test]
     fn every_builtin_canon_is_listed_by_canon_all() {
         let all: HashSet<Canon> = Canon::all().iter().copied().collect();
-        let b = Catalog::builtin();
+        let b = Catalog::builtin().unwrap();
         for id in b.ids() {
             for drum in b.get(id).unwrap().source_notes() {
                 assert!(all.contains(&drum.canon), "{id}: {} missing", drum.canon);

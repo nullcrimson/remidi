@@ -56,7 +56,7 @@ fn richest_engine(maps: &Catalog) -> &str {
 
 #[test]
 fn ezdrummer2_is_the_richest_source_kit() {
-    let maps = Catalog::builtin();
+    let maps = Catalog::builtin().unwrap();
     let src_id = richest_engine(&maps);
     assert_eq!(
         src_id, "ezdrummer2",
@@ -71,7 +71,7 @@ fn ezdrummer2_is_the_richest_source_kit() {
 
 #[test]
 fn walkthrough_is_ninety_bpm_quarter_notes_one_per_drum() {
-    let maps = Catalog::builtin();
+    let maps = Catalog::builtin().unwrap();
     let src = maps.get(richest_engine(&maps)).unwrap();
     let notes: Vec<Note> = src.source_notes().iter().map(|d| d.note).collect();
     let midi = walkthrough_smf(&notes);
@@ -112,7 +112,7 @@ fn walkthrough_is_ninety_bpm_quarter_notes_one_per_drum() {
 
 #[test]
 fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
-    let maps = Catalog::builtin();
+    let maps = Catalog::builtin().unwrap();
     let src_id = richest_engine(&maps);
     let src = maps.get(src_id).unwrap();
     let notes: Vec<Note> = src.source_notes().iter().map(|d| d.note).collect();
@@ -185,7 +185,7 @@ fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
 
 #[test]
 fn same_engine_conversion_is_all_direct() {
-    let maps = Catalog::builtin();
+    let maps = Catalog::builtin().unwrap();
     let src_id = richest_engine(&maps);
     let src = maps.get(src_id).unwrap();
     let notes: Vec<Note> = src.source_notes().iter().map(|d| d.note).collect();
@@ -209,7 +209,7 @@ fn same_engine_conversion_is_all_direct() {
 
 #[test]
 fn walkthrough_hits_general_midi_anchor_notes() {
-    let maps = Catalog::builtin();
+    let maps = Catalog::builtin().unwrap();
     let gm = maps.get("general_midi").unwrap();
     for (key, note) in [
         ("kick.main", 36),
@@ -233,7 +233,7 @@ fn walkthrough_hits_general_midi_anchor_notes() {
 
 #[test]
 fn ride_bow_approximates_to_a_bow_tip_before_a_crash() {
-    let catalog = Catalog::builtin();
+    let catalog = Catalog::builtin().unwrap();
     let mapping = Mapping::new(
         catalog.get("addictive_drums2").unwrap(),
         catalog.get("ezdrummer").unwrap(),

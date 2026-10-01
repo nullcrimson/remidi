@@ -51,7 +51,7 @@ struct ConvertArgs {
 }
 
 fn build_catalog(user_map: Option<PathBuf>) -> Result<Catalog> {
-    let mut provider = Catalog::builtin();
+    let mut provider = Catalog::builtin().context("the builtin engine maps are broken")?;
     if let Some(path) = user_map {
         let json = std::fs::read_to_string(&path)
             .with_context(|| format!("cannot read user map {}", path.display()))?;

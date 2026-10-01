@@ -1,9 +1,11 @@
-use std::fmt;
+use std::{fmt, str::FromStr};
 
 use midly::num::u7;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-const NAMES: [&str; 12] = [
+const SEMITONES: u8 = 12;
+
+const NAMES: [&str; SEMITONES as usize] = [
     "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
 ];
 
@@ -33,11 +35,28 @@ impl OctaveBase {
 pub struct Note(u8);
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
-#[error("note {0} out of range 0..=127")]
+#[error("note {0} out of range 0..={max}", max = Note::MAX)]
 pub struct NoteOutOfRange(pub u8);
 
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
+#[error("'{0}' is not a MIDI note in 0..={max}", max = Note::MAX)]
+pub struct NoteParseError(String);
+
 impl Note {
-    pub const MAX: u8 = 127;
+    const MAX: u8 = 127;
+
+    pub(crate) const COUNT: usize = Self::MAX as usize + 1;
+
+    /// Every note, ascending.
+    pub const ALL: [Self; Self::COUNT] = {
+        let mut notes = [Self(0); Self::COUNT];
+        let mut n = 0;
+        while n <= Self::MAX {
+            notes[n as usize] = Self(n);
+            n += 1;
+        }
+        notes
+    };
 
     pub const fn new(n: u8) -> Option<Self> {
         if n <= Self::MAX {
@@ -51,9 +70,9 @@ impl Note {
         self.0
     }
 
-    /// Every note, ascending.
-    pub fn all() -> impl Iterator<Item = Self> {
-        (0..=Self::MAX).map(Self)
+    /// The note's position in [`Note::ALL`].
+    pub(crate) const fn index(self) -> usize {
+        self.0 as usize
     }
 
     pub(crate) fn from_key(key: u7) -> Self {
@@ -66,8 +85,19 @@ impl Note {
 
     /// The note's name, such as `F#2`, in the given octave convention.
     pub fn name(self, base: OctaveBase) -> String {
-        let octave = i16::from(self.0 / 12) - base.offset();
-        format!("{}{octave}", NAMES[usize::from(self.0 % 12)])
+        let octave = i16::from(self.0 / SEMITONES) - base.offset();
+        format!("{}{octave}", NAMES[usize::from(self.0 % SEMITONES)])
+    }
+}
+
+impl FromStr for Note {
+    type Err = NoteParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        s.parse::<u8>()
+            .ok()
+            .and_then(Self::new)
+            .ok_or_else(|| NoteParseError(s.to_owned()))
     }
 }
 
@@ -140,7 +170,7 @@ mod tests {
     #[test]
     fn all_is_every_note_ascending() {
         assert_eq!(
-            Note::all().map(Note::get).collect::<Vec<_>>(),
+            Note::ALL.map(Note::get).to_vec(),
             (0..=127).collect::<Vec<_>>()
         );
     }
@@ -158,6 +188,13 @@ mod tests {
             let err = serde_json::from_str::<Note>(bad).unwrap_err();
             assert!(err.to_string().contains("0..=127"), "{bad}: {err}");
         }
+    }
+
+    #[test]
+    fn a_note_parses_from_its_number_only_in_range() {
+        assert_eq!("36".parse::<Note>(), Ok(n(36)));
+        assert!("128".parse::<Note>().is_err());
+        assert!("kick".parse::<Note>().is_err());
     }
 
     #[test]

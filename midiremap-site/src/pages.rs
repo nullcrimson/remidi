@@ -412,12 +412,12 @@ mod tests {
     use super::*;
 
     fn site() -> Site {
-        Site::build(&Catalog::builtin()).unwrap()
+        Site::build(&Catalog::builtin().unwrap()).unwrap()
     }
 
     #[test]
     fn one_page_per_engine_except_excluded() {
-        let maps = Catalog::builtin();
+        let maps = Catalog::builtin().unwrap();
         let s = site();
         assert_eq!(s.engines.len(), maps.ids().len() - EXCLUDED_IDS.len());
         assert!(s
@@ -474,7 +474,7 @@ mod tests {
 
     #[test]
     fn engine_rows_are_grouped_by_family_in_app_order() {
-        let maps = Catalog::builtin();
+        let maps = Catalog::builtin().unwrap();
         for p in site().engines {
             let names: Vec<&str> = p.groups.iter().map(|g| g.name).collect();
             let order: Vec<&str> = Family::ALL
@@ -549,7 +549,7 @@ mod tests {
 
     #[test]
     fn pair_rows_agree_with_the_converter() {
-        let maps = Catalog::builtin();
+        let maps = Catalog::builtin().unwrap();
         let by_id: HashMap<&str, &EngineMap> = maps.engines().map(|m| (m.id(), m)).collect();
         for p in site().pairs {
             let (src, tgt) = (by_id[p.src.id.as_str()], by_id[p.tgt.id.as_str()]);
@@ -587,7 +587,7 @@ mod tests {
 
     #[test]
     fn missing_major_engine_is_an_error() {
-        let empty = Catalog::from_maps([]);
+        let empty = Catalog::from_maps([]).unwrap();
         assert!(
             matches!(Site::build(&empty), Err(SiteError::UnknownEngine(id)) if id == "general_midi")
         );

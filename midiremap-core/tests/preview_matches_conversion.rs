@@ -79,7 +79,7 @@ fn previewed_by_source_note(
 }
 
 fn assert_preview_matches_conversion(ov_json: &str, missing: MissingDrums) {
-    let maps = Catalog::builtin();
+    let maps = Catalog::builtin().unwrap();
     let ov: Overrides = serde_json::from_str(ov_json).unwrap();
     let midi = every_note_smf();
     let mut ids = maps.ids();
@@ -121,7 +121,7 @@ fn preview_matches_conversion_with_overrides_for_every_builtin_pair() {
 
 #[test]
 fn reassigned_note_converts_as_its_new_drum() {
-    let maps = Catalog::builtin();
+    let maps = Catalog::builtin().unwrap();
     let (src, tgt) = (
         maps.get("ggd_invasion").unwrap(),
         maps.get("ezdrummer").unwrap(),

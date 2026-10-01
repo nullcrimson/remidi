@@ -59,6 +59,10 @@ impl From<tsify::Error> for WasmError {
     }
 }
 
+fn catalog() -> Result<&'static Catalog, WasmError> {
+    Catalog::shared().map_err(|e| WasmError::Internal { detail: chain(e) })
+}
+
 fn engine<'a>(catalog: &'a Catalog, id: &str, role: Role) -> Result<&'a EngineMap, WasmError> {
     catalog.get(id).ok_or_else(|| WasmError::UnknownEngine {
         role,
@@ -130,7 +134,7 @@ pub fn remap(
     let ov = from_js(overrides, |detail| WasmError::BadOverrides { detail })?;
     let missing = from_js(missing, |detail| WasmError::BadMissing { detail })?;
     let out = convert_file(
-        Catalog::shared(),
+        catalog()?,
         mid,
         src_id,
         tgt_id,
@@ -183,13 +187,7 @@ pub fn plan(
 ) -> Result<Vec<Ts<VoiceRow>>, WasmError> {
     let ov = from_js(overrides, |detail| WasmError::BadOverrides { detail })?;
     let missing = from_js(missing, |detail| WasmError::BadMissing { detail })?;
-    to_js_all(&voice_rows(
-        Catalog::shared(),
-        src_id,
-        tgt_id,
-        &ov,
-        missing,
-    )?)
+    to_js_all(&voice_rows(catalog()?, src_id, tgt_id, &ov, missing)?)
 }
 
 /// A preset file read for import: engines resolved to current ids, unreadable edits
@@ -240,7 +238,7 @@ fn preset_view(json: &str, catalog: &Catalog) -> Result<PresetView, WasmError> {
 /// listed in `skipped`.
 #[wasm_bindgen]
 pub fn parse_preset_file(json: &str) -> Result<Ts<PresetView>, WasmError> {
-    Ok(preset_view(json, Catalog::shared())?.into_ts()?)
+    Ok(preset_view(json, catalog()?)?.into_ts()?)
 }
 
 fn drums_of(catalog: &Catalog, id: &str, role: Role) -> Result<Vec<Drum>, WasmError> {
@@ -253,12 +251,12 @@ fn drums_of(catalog: &Catalog, id: &str, role: Role) -> Result<Vec<Drum>, WasmEr
 
 #[wasm_bindgen]
 pub fn engine_drums(tgt_id: &str) -> Result<Vec<Ts<Drum>>, WasmError> {
-    to_js_all(&drums_of(Catalog::shared(), tgt_id, Role::Target)?)
+    to_js_all(&drums_of(catalog()?, tgt_id, Role::Target)?)
 }
 
 #[wasm_bindgen]
 pub fn engine_notes(src_id: &str) -> Result<Vec<Ts<Drum>>, WasmError> {
-    to_js_all(&drums_of(Catalog::shared(), src_id, Role::Source)?)
+    to_js_all(&drums_of(catalog()?, src_id, Role::Source)?)
 }
 
 /// One entry of the canonical drum vocabulary.
@@ -295,7 +293,7 @@ pub fn note_names(base: Ts<OctaveBase>) -> Result<Vec<String>, WasmError> {
     let base: OctaveBase = base.to_rust().map_err(|e| WasmError::Internal {
         detail: e.to_string(),
     })?;
-    Ok(Note::all().map(|n| n.name(base)).collect())
+    Ok(Note::ALL.map(|n| n.name(base)).to_vec())
 }
 
 /// An engine as the pickers list it.
@@ -321,7 +319,7 @@ fn engine_infos(catalog: &Catalog) -> Vec<EngineInfo> {
 
 #[wasm_bindgen]
 pub fn engine_catalog() -> Result<Vec<Ts<EngineInfo>>, WasmError> {
-    to_js_all(&engine_infos(Catalog::shared()))
+    to_js_all(&engine_infos(catalog()?))
 }
 
 #[cfg(test)]
@@ -332,7 +330,7 @@ mod tests {
 
     #[test]
     fn catalog_names_engines_by_display_name_and_keeps_the_full_name() {
-        let infos = engine_infos(&Catalog::builtin());
+        let infos = engine_infos(&Catalog::builtin().unwrap());
         let ezd = infos.iter().find(|i| i.id == "ezdrummer").unwrap();
         assert_eq!(ezd.name, "EZdrummer 3");
         assert_eq!(ezd.full_name, "Toontrack EZdrummer 3");
@@ -345,7 +343,10 @@ mod tests {
     #[test]
     fn preset_view_resolves_engines_and_lists_skipped_edits() {
         let with_alias = r#"{"id":"custom","name":"Custom","aliases":["old_kit"],"notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
-        let catalog = Catalog::builtin().with_user_json(with_alias).unwrap();
+        let catalog = Catalog::builtin()
+            .unwrap()
+            .with_user_json(with_alias)
+            .unwrap();
         let json = FIXTURE
             .replace("ggd_invasion", "old_kit")
             .replace("\"kick.main\": 35", "\"bogus.drum\": 35");
@@ -364,7 +365,7 @@ mod tests {
 
     #[test]
     fn preset_view_names_an_unknown_engine_and_rejects_bad_files() {
-        let catalog = Catalog::builtin();
+        let catalog = Catalog::builtin().unwrap();
         let unknown = FIXTURE.replace("ezdrummer", "gone_engine");
         assert_eq!(
             preset_view(&unknown, &catalog).unwrap_err(),
@@ -381,7 +382,7 @@ mod tests {
 
     #[test]
     fn an_unknown_engine_error_names_its_role_and_id() {
-        let catalog = Catalog::builtin();
+        let catalog = Catalog::builtin().unwrap();
         let err = voice_rows(
             &catalog,
             "nope",
@@ -428,7 +429,7 @@ mod tests {
 
     #[test]
     fn conversion_errors_are_typed() {
-        let catalog = Catalog::builtin();
+        let catalog = Catalog::builtin().unwrap();
         let err = |mid: &[u8], channel: Option<&str>| {
             convert_file(
                 &catalog,
@@ -453,7 +454,7 @@ mod tests {
 
     #[test]
     fn a_bad_files_detail_carries_its_cause() {
-        let catalog = Catalog::builtin();
+        let catalog = Catalog::builtin().unwrap();
         let midi = convert_file(
             &catalog,
             b"garbage",
@@ -482,7 +483,7 @@ mod tests {
 
     #[test]
     fn voice_rows_flatten_the_plan_and_add_the_label() {
-        let catalog = Catalog::builtin();
+        let catalog = Catalog::builtin().unwrap();
         let rows = voice_rows(
             &catalog,
             "ggd_invasion",

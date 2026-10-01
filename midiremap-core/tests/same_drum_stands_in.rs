@@ -1,4 +1,4 @@
-use midiremap_core::{Canon, CanonResolution, Catalog, EngineMap, Mapping, MissingDrums, Note};
+use midiremap_core::{Canon, Catalog, EngineMap, Mapping, MissingDrums, Note};
 
 fn k(s: &str) -> Canon {
     s.parse().unwrap()
@@ -174,7 +174,7 @@ fn first_agreed(tgt: &EngineMap, canon: Canon) -> Option<Note> {
 
 #[test]
 fn every_builtin_pair_plays_the_agreed_stand_in_or_drops() {
-    let catalog = Catalog::builtin();
+    let catalog = Catalog::builtin().unwrap();
     let engines: Vec<&EngineMap> = catalog.engines().collect();
     let mut checked = 0u32;
     let mut failures = Vec::new();
@@ -193,13 +193,8 @@ fn every_builtin_pair_plays_the_agreed_stand_in_or_drops() {
                 }
                 checked += 1;
                 let want = first_agreed(tgt, canon);
-                let note = |r: CanonResolution| match r {
-                    CanonResolution::Direct { note, .. }
-                    | CanonResolution::Fallback { note, .. } => Some(note),
-                    CanonResolution::Dropped { .. } => None,
-                };
-                let dropped = note(drop.resolve_canon(canon));
-                let nearest = note(near.resolve_canon(canon));
+                let dropped = drop.resolve_canon(canon).note();
+                let nearest = near.resolve_canon(canon).note();
                 let pair = format!("{} -> {}: {canon}", src.id(), tgt.id());
                 if dropped != want {
                     failures.push(format!("{pair} (drop) played {dropped:?}, agreed {want:?}"));
@@ -235,25 +230,16 @@ fn every_builtin_pair_plays_the_agreed_stand_in_or_drops() {
 
 #[test]
 fn guitar_pro_hats_play_on_benny_greb_hats_of_the_same_opening() {
-    let catalog = Catalog::builtin();
+    let catalog = Catalog::builtin().unwrap();
     let mapping = Mapping::new(
         catalog.get("guitar_pro").unwrap(),
         catalog.get("ggd_bennygreb").unwrap(),
         &Default::default(),
         MissingDrums::Drop,
     );
-    for (src, note) in [
-        ("hat.closed", 43),
-        ("hat.open1", 46),
-        ("hat.open2", 48),
-        ("hat.pedal", 53),
-    ] {
-        let played = match mapping.resolve_canon(k(src)) {
-            CanonResolution::Direct { note, .. } | CanonResolution::Fallback { note, .. } => {
-                Some(note)
-            }
-            CanonResolution::Dropped { .. } => None,
-        };
-        assert_eq!(played, Some(Note::new(note).unwrap()), "{src}");
-    }
+    let played = |src| mapping.resolve_canon(k(src)).note().map(Note::get);
+    assert_eq!(played("hat.closed"), Some(43));
+    assert_eq!(played("hat.open1"), Some(46));
+    assert_eq!(played("hat.open2"), Some(48));
+    assert_eq!(played("hat.pedal"), Some(53));
 }

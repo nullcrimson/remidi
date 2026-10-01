@@ -546,7 +546,7 @@ mod tests {
         let messages = Messages::load().unwrap();
         let docs = Docs::load().unwrap();
         render_site(
-            &Site::build(&Catalog::builtin()).unwrap(),
+            &Site::build(&Catalog::builtin().unwrap()).unwrap(),
             &SHELL,
             &messages,
             &docs,
@@ -828,7 +828,7 @@ mod tests {
 
     #[test]
     fn engine_titles_lead_with_the_keyword() {
-        let site = Site::build(&Catalog::builtin()).unwrap();
+        let site = Site::build(&Catalog::builtin().unwrap()).unwrap();
         for p in &site.engines {
             let title = in_locale(Locale::En, |t| engine_meta(p, t).title);
             let head: String = title.chars().take(60).collect();
@@ -838,7 +838,7 @@ mod tests {
 
     #[test]
     fn descriptions_end_on_a_whole_sentence() {
-        let site = Site::build(&Catalog::builtin()).unwrap();
+        let site = Site::build(&Catalog::builtin().unwrap()).unwrap();
         for &l in Locale::ALL {
             in_locale(l, |t| {
                 let descriptions = site
@@ -919,7 +919,7 @@ mod tests {
 
     #[test]
     fn converter_links_carry_known_distinct_engine_ids() {
-        let maps = Catalog::builtin();
+        let maps = Catalog::builtin().unwrap();
         let ids: HashSet<&str> = maps.ids().into_iter().collect();
         let mut checked = 0;
         for (path, html) in rendered() {
@@ -967,7 +967,7 @@ mod tests {
 
     #[test]
     fn descriptions_fit() {
-        let site = Site::build(&Catalog::builtin()).unwrap();
+        let site = Site::build(&Catalog::builtin().unwrap()).unwrap();
         let fits = |d: String| d.chars().count() <= DESCRIPTION_MAX;
         in_locale(Locale::En, |t| {
             assert!(site
