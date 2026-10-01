@@ -11,15 +11,17 @@ import { LOCALES } from './src/generated/i18n';
 
 const BEACON = 'https://static.cloudflareinsights.com';
 const BEACON_REPORTS = 'https://cloudflareinsights.com';
+const STATS = 'https://cloud.umami.is';
+const STATS_REPORTS = 'https://gateway.umami.is';
 
 /** The site's content security policy; the static pages copy it from the built index.html. */
 const CONTENT_SECURITY_POLICY = [
   `default-src 'self'`,
-  `script-src 'self' 'wasm-unsafe-eval' ${BEACON}`,
+  `script-src 'self' 'wasm-unsafe-eval' ${BEACON} ${STATS}`,
   `style-src 'self'`,
   `font-src 'self'`,
   `img-src 'self' data:`,
-  `connect-src 'self' ${BEACON_REPORTS}`,
+  `connect-src 'self' ${BEACON_REPORTS} ${STATS_REPORTS}`,
   `worker-src 'self'`,
   `object-src 'none'`,
   `base-uri 'self'`,

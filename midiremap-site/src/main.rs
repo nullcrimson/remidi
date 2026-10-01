@@ -87,15 +87,13 @@ fn content_security_policy(index_html: &str) -> Option<&str> {
         .find_map(|tag| tag.split(r#"content=""#).nth(1)?.split('"').next())
 }
 
-/// The built `index.html`'s Cloudflare Web Analytics `<script>` element.
-fn beacon(index_html: &str) -> Option<&str> {
+/// The built `index.html`'s first `<script>` element whose opening tag has `attribute`.
+fn script_with<'a>(index_html: &'a str, attribute: &str) -> Option<&'a str> {
     index_html.match_indices("<script").find_map(|(at, _)| {
         let rest = &index_html[at..];
         let open = rest.find('>')?;
         let end = rest.find("</script>")? + "</script>".len();
-        rest[..open]
-            .contains("data-cf-beacon")
-            .then(|| &rest[..end])
+        rest[..open].contains(attribute).then(|| &rest[..end])
     })
 }
 
@@ -108,7 +106,10 @@ fn app_shell<'a>(index_html: &'a str, path: &Path) -> Result<Shell<'a>, SiteErro
         css: stylesheet_href(index_html).ok_or_else(|| missing("stylesheet"))?,
         csp: content_security_policy(index_html)
             .ok_or_else(|| missing("content security policy"))?,
-        beacon: beacon(index_html).ok_or_else(|| missing("analytics beacon"))?,
+        beacon: script_with(index_html, "data-cf-beacon")
+            .ok_or_else(|| missing("analytics beacon"))?,
+        stats: script_with(index_html, "data-website-id")
+            .ok_or_else(|| missing("usage statistics script"))?,
     })
 }
 
@@ -181,6 +182,7 @@ mod tests {
       src="https://static.cloudflareinsights.com/beacon.min.js"
       data-cf-beacon='{"token": "t"}'
     ></script>
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="w"></script>
   </body>"#;
 
     #[test]
@@ -194,6 +196,10 @@ mod tests {
         assert!(shell.beacon.starts_with("<script\n      defer"));
         assert!(shell.beacon.contains(r#"data-cf-beacon='{"token": "t"}'"#));
         assert!(shell.beacon.ends_with("></script>"));
+        assert_eq!(
+            shell.stats,
+            r#"<script defer src="https://cloud.umami.is/script.js" data-website-id="w"></script>"#
+        );
     }
 
     #[test]
@@ -204,6 +210,7 @@ mod tests {
             ("/assets/index-b2.css", "stylesheet"),
             ("Content-Security-Policy", "content security policy"),
             ("data-cf-beacon", "analytics beacon"),
+            ("data-website-id", "usage statistics script"),
         ] {
             let err = app_shell(&without(part), path).err().unwrap();
             assert!(err.to_string().contains(what), "{err}");

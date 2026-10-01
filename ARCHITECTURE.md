@@ -489,10 +489,10 @@ the hidden load-failure notice and a visually hidden `<h1>` inside `#root` (for 
 that run no script; React replaces it on mount) from `app.ftl`; the markers stay, so a second run rewrites the
 same regions. On every page the skip link, header and footer links sit in
 `data-nosnippet` blocks, so search results quote the page, not its chrome. Besides the
-stylesheet, each page copies two things from the built `index.html`: the content security
-policy (defined once in `vite.config.ts`, injected into the build only) and the
-Cloudflare Web Analytics beacon, so every page states the same policy and counts visits
-the same way. The filter script is `/filter.js`, not inline, so the policy needs no
+stylesheet, each page copies three things from the built `index.html`: the content
+security policy (defined once in `vite.config.ts`, injected into the build only), the
+Cloudflare Web Analytics beacon and the Umami script, so every page states the same policy
+and counts visits the same way. The filter script is `/filter.js`, not inline, so the policy needs no
 `'unsafe-inline'`. Links and chrome
 that both surfaces draw are `@utility` classes in `index.css` (`prose-link`,
 `nav-link`, `skip-link`, `brand-mark`), used by the React components and the templates
@@ -607,8 +607,11 @@ Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props;
 - The verify gate before every change is `fmt` + `test` + `clippy`, all clean.
 - **Nothing third-party without a reason.** Fonts are self-hosted (`@fontsource`,
   variable Space Grotesk and IBM Plex Sans, IBM Plex Mono 400/600 — the faces the pages
-  load). The one outside origin is the analytics beacon; the CSP allows only it,
-  `'self'` and `'wasm-unsafe-eval'`, and the e2e suite fails on any other request.
+  load). The only outside origins are cookieless analytics: the Cloudflare beacon (visits)
+  and Umami (`lib/stats.ts` `track`: anonymous events such as `converted` or `downloaded`,
+  never file names or contents; `data-domains` keeps local and test runs out). The CSP
+  allows only them, `'self'` and `'wasm-unsafe-eval'`, and the e2e suite aborts their
+  requests and fails on any other.
 - **Budgets and audits.** `npm run size` fails the build when gzipped wasm, JS or CSS, or
   the latin font files, grow past `scripts/check-size.ts`'s budgets. `audit.yml` runs
   `cargo deny` (advisories, licences, sources; `deny.toml`) and `npm audit` on every

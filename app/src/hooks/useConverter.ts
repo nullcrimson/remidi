@@ -7,6 +7,7 @@ import type { Overrides } from '../lib/midiremap';
 import type { Missing } from '../lib/missing';
 import type { SelectionEvent } from '../lib/selection';
 import { MID_EXT, type FileResult, type LoadedFile } from '../lib/files';
+import { track } from '../lib/stats';
 
 export type Conv
   = | { kind: 'idle' }
@@ -134,6 +135,7 @@ export function useConverter(src: string, tgt: string, settingsKey: string) {
       try {
         batch = await convertBatch(files, src, tgt, ov, channel, missing);
       } catch (err) {
+        track('convert-failed', { from: src, to: tgt });
         if (activeRun.current === run) {
           dispatch({
             type: 'CONVERT_ERROR',
@@ -152,6 +154,14 @@ export function useConverter(src: string, tgt: string, settingsKey: string) {
         report,
       }));
       const bad = batch.failed;
+      track('converted', {
+        from: src,
+        to: tgt,
+        files: ok.length,
+        failed: bad.length,
+        missing,
+        edited: (ov.tgt?.length ?? 0) + (ov.src?.length ?? 0) > 0,
+      });
       if (ok.length > 0 || bad.length === 0) dispatch({ type: 'CONVERT_DONE', key, results: ok, failures: bad });
       else dispatch({ type: 'CONVERT_ERROR', key, failures: bad, error: bad[0].error });
       return ok;

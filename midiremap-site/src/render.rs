@@ -168,12 +168,13 @@ struct NavItem<'a> {
 }
 
 /// What the static pages take from the app's built `index.html`: its stylesheet, its
-/// content security policy (escaped attribute text) and its analytics beacon `<script>`
-/// element, both written as they are.
+/// content security policy (escaped attribute text), and its analytics beacon and usage
+/// statistics `<script>` elements, written as they are.
 pub struct Shell<'a> {
     pub css: &'a str,
     pub csp: &'a str,
     pub beacon: &'a str,
+    pub stats: &'a str,
 }
 
 /// The words pages are written in: one locale's messages and documents.
@@ -260,6 +261,7 @@ struct Frame<'a> {
     css: &'a str,
     csp: &'a str,
     beacon: &'a str,
+    stats: &'a str,
     skip: &'a str,
     nav_main: &'a str,
     nav_site: &'a str,
@@ -314,6 +316,7 @@ impl<'a> Frame<'a> {
             css: shell.css,
             csp: shell.csp,
             beacon: shell.beacon,
+            stats: shell.stats,
             skip: texts.get(Plain::SkipToContent),
             nav_main: texts.get(Plain::NavMain),
             nav_site: texts.get(Plain::NavSite),
@@ -540,6 +543,7 @@ mod tests {
         css: "/assets/index-test.css",
         csp: "default-src &#39;self&#39;",
         beacon: r#"<script defer src="https://static.cloudflareinsights.com/beacon.min.js"></script>"#,
+        stats: r#"<script defer src="https://cloud.umami.is/script.js" data-website-id="w"></script>"#,
     };
 
     fn rendered() -> Vec<(String, String)> {
@@ -555,7 +559,7 @@ mod tests {
     }
 
     #[test]
-    fn every_page_carries_the_policy_and_the_beacon() {
+    fn every_page_carries_the_shell_from_the_index() {
         for (path, html) in rendered() {
             let head = html.split("</head>").next().unwrap();
             assert!(
@@ -565,6 +569,7 @@ mod tests {
                 "{path}"
             );
             assert_eq!(html.matches(SHELL.beacon).count(), 1, "{path}");
+            assert_eq!(html.matches(SHELL.stats).count(), 1, "{path}");
         }
     }
 

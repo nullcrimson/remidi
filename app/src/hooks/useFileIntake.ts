@@ -5,6 +5,7 @@ import type { NoticeLine } from '../lib/notice';
 import { importPresets } from '../lib/presetImport';
 import type { FocusTarget } from './useFocusIntent';
 import type { SavedMappings } from './useSavedMappings';
+import { track } from '../lib/stats';
 
 /**
  * Takes files picked or dropped: MIDI files join the list and focus moves to the next
@@ -33,10 +34,12 @@ export function useFileIntake({
         ...(unreadable.length > 0 ? [{ message: unreadableNotice(unreadable) }] : []),
         ...(presets.length > 0 ? importPresets(presets, mappings, parsePresetFile, save) : []),
       ];
+      if (presets.length > 0) track('preset-imported', { files: presets.length });
       if (lines.length > 0) notify(lines);
       if (files.length === 0 && skipped.length === 0) return;
       storeFiles(files, skipped);
       if (files.length === 0) return;
+      track('midi-added', { files: files.length });
       focus(!src ? 'from' : !tgt ? 'to' : 'convert');
     },
     [storeFiles, src, tgt, mappings, save, notify, focus],

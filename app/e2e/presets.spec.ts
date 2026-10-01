@@ -1,4 +1,4 @@
-import { BEACON, expect, test } from './fixtures';
+import { ANALYTICS, expect, test } from './fixtures';
 import { openEditor, presetChip, saved, saveKickPreset, targetNote } from './steps';
 
 const NAME = 'Heavy Kick';
@@ -33,7 +33,7 @@ test('an exported preset imports into a browser that has never seen it', async (
   await file.saveAs(path);
 
   const fresh = await browser.newContext({ baseURL });
-  await fresh.route(BEACON, (route) => route.abort());
+  await fresh.route(ANALYTICS, (route) => route.abort());
   const other = await fresh.newPage();
   await other.goto('/');
   await expect(other.getByRole('button', { name: /Choose files/ })).toBeVisible();

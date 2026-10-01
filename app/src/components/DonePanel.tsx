@@ -13,6 +13,7 @@ import { askAfterDownload } from '../lib/tipAsk';
 import { tag, type TagTone } from './styles';
 import { TextButton } from './TextButton';
 import { TipToast } from './TipToast';
+import { track } from '../lib/stats';
 
 const FREE_ZIP_AFTER_MS = 10_000;
 
@@ -75,6 +76,7 @@ export function DonePanel({
   useEffect(() => headingRef.current?.focus(), []);
   const [asking, setAsking] = useState(false);
   const markSaved = () => {
+    track('downloaded', { files: results.length });
     if (askAfterDownload()) setAsking(true);
   };
   const single = results.length === 1;

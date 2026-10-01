@@ -27,6 +27,7 @@ import { ErrorText } from './components/ErrorText';
 import { Rich } from './components/Rich';
 import { useT } from './localeContext';
 import type { NoticeLine } from './lib/notice';
+import { track } from './lib/stats';
 
 function Intro() {
   const t = useT();
@@ -69,6 +70,7 @@ export default function App() {
   const sourceName = c.engines.find((e) => e.id === c.src)?.name ?? c.src;
   const blocker = convertBlocker({ files: c.files.length, src: c.src, tgt: c.tgt });
   const openEditor = (show: EditFilter = 'all', note: number | null = null) => {
+    track('editor-opened', { show });
     setEditShow(show);
     setAssignNote(note);
     c.setView('edit');

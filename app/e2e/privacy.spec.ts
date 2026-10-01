@@ -1,14 +1,14 @@
-import { BEACON, expect, test } from './fixtures';
+import { ANALYTICS, expect, test } from './fixtures';
 
 const SYSTEM_FONTS = /^\/(ja|zh|ko)\//;
 const PAGES = ['/', '/engines/', '/engines/ezdrummer/', '/convert/ggd-invasion-to-ezdrummer/', '/faq/', '/pl/', '/pl/faq/', '/pl/engines/', '/pl/convert/ggd-invasion-to-ezdrummer/', '/de/', '/ja/', '/ru/faq/', '/zh/engines/', '/ko/convert/ggd-invasion-to-ezdrummer/'];
 
 for (const path of PAGES) {
-  test(`${path} sets the policy, loads fonts from the site and asks only for the beacon`, async ({ page, baseURL }) => {
-    const beacon: string[] = [];
+  test(`${path} sets the policy, loads fonts from the site and asks only for the analytics scripts`, async ({ page, baseURL }) => {
+    const analytics: string[] = [];
     const fonts: string[] = [];
     page.on('request', (r) => {
-      if (BEACON.test(r.url())) beacon.push(r.url());
+      if (ANALYTICS.test(r.url())) analytics.push(r.url());
       if (r.resourceType() === 'font') fonts.push(r.url());
     });
     await page.goto(path);
@@ -16,7 +16,10 @@ for (const path of PAGES) {
 
     const policy = page.locator('meta[http-equiv="Content-Security-Policy"]');
     await expect(policy).toHaveAttribute('content', /default-src 'self'.*font-src 'self'/);
-    expect(beacon).toEqual(['https://static.cloudflareinsights.com/beacon.min.js']);
+    expect(analytics.sort()).toEqual([
+      'https://cloud.umami.is/script.js',
+      'https://static.cloudflareinsights.com/beacon.min.js',
+    ]);
     for (const font of fonts) expect(new URL(font).origin).toBe(new URL(baseURL!).origin);
     if (!SYSTEM_FONTS.test(path)) {
       expect(fonts.length).toBeGreaterThan(0);
