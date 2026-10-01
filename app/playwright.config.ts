@@ -17,7 +17,7 @@ export default defineConfig({
     {
       name: 'phone',
       use: { ...devices['Pixel 7'] },
-      testMatch: /\b(touch|convert|layout|files|editor|presets|presetChips|missing|channel|source|review|summary|donePanel|session|sitelinks|footer)\.spec/,
+      testMatch: /\b(touch|convert|layout|files|editor|presets|presetChips|missing|channel|source|review|summary|donePanel|session|sitelinks|footer|tip)\.spec/,
     },
   ],
   webServer: {

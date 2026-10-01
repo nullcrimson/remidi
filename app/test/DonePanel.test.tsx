@@ -1,7 +1,8 @@
-import { render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DonePanel } from '../src/components/DonePanel';
+import { TIP_KEY } from '../src/lib/tipAsk';
 
 vi.mock('../src/lib/download', () => ({ saveFile: vi.fn() }));
 import { saveFile } from '../src/lib/download';
@@ -142,6 +143,53 @@ describe('DonePanel', () => {
 
   describe('tip', () => {
     const tip = () => screen.queryByRole('group', { name: 'Leave a tip' });
+    const download = () => userEvent.click(screen.getByRole('link', { name: '↓ Download .mid' }));
+
+    beforeEach(() => localStorage.setItem(TIP_KEY, JSON.stringify({ downloads: 2 })));
+
+    it('asks nothing on a visitor\'s first two saved files', async () => {
+      localStorage.clear();
+      renderPanel();
+      await download();
+      await download();
+      expect(tip()).not.toBeInTheDocument();
+      await download();
+      expect(tip()).toBeVisible();
+    });
+
+    it('floats at the top of the screen with a close button', async () => {
+      renderPanel();
+      await download();
+      expect(tip()).toHaveClass('tip-toast');
+      await userEvent.click(within(tip()!).getByRole('button', { name: 'Close' }));
+      expect(tip()).not.toBeInTheDocument();
+    });
+
+    it('does not ask again the same day, closed or not', async () => {
+      renderPanel();
+      await download();
+      expect(tip()).toBeVisible();
+      cleanup();
+      renderPanel();
+      await download();
+      expect(tip()).not.toBeInTheDocument();
+    });
+
+    it('closes once a tip is chosen and remembers it', async () => {
+      renderPanel();
+      await download();
+      await userEvent.click(within(tip()!).getByRole('link', { name: '€5' }));
+      expect(tip()).not.toBeInTheDocument();
+      expect(JSON.parse(localStorage.getItem(TIP_KEY)!).tippedAt).toEqual(expect.any(Number));
+    });
+
+    it('closes on Escape while focus is inside', async () => {
+      renderPanel();
+      await download();
+      within(tip()!).getByRole('link', { name: '€3' }).focus();
+      await userEvent.keyboard('{Escape}');
+      expect(tip()).not.toBeInTheDocument();
+    });
 
     it('asks only once the file is downloaded', async () => {
       renderPanel();

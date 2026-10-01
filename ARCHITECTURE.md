@@ -480,8 +480,10 @@ changes first.
 
 Tips go through Stripe Payment Links, listed once in `app/src/content/tip.json` (the
 app imports it; `build.rs` turns its `other` link into `TIP_HREF`). Every footer ends
-with a `tip-link` to the any-amount page; the app's done card (`TipCard`) appears once a
-file is saved and offers the fixed amounts. All are plain links in a new tab, so no
+with a `tip-link` to the any-amount page; the app's tip toast (`TipToast`), pinned to the top of the
+screen, offers the fixed amounts. `src/lib/tipAsk.ts` decides when, from one
+`localStorage` record shared by every tab: never on a visitor's first two saved files, then
+at most once a day, and not for 90 days after a tip link is chosen. All are plain links in a new tab, so no
 Stripe code loads here. Stripe returns the visitor to `/thanks/`, rendered in every
 locale, marked `noindex` and left out of the sitemap.
 

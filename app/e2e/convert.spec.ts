@@ -15,7 +15,7 @@ test('converts a kick through the real engine and downloads the file', async ({ 
   const file = await download;
   expect(file.suggestedFilename()).toMatch(/\.mid$/);
   expect(hitKeys(await readFile(await file.path()))).toEqual([36]);
-  await expect(page.getByRole('group', { name: 'Leave a tip' })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Leave a tip' })).toHaveCount(0);
 });
 
 test('explains a disabled Convert beside the mouse', async ({ page, isMobile }) => {

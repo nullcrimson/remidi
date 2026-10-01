@@ -98,7 +98,8 @@ on a phone and click elsewhere.
   browser's Back closes it instead of leaving the converter.
 - `src/components/*` — FileChips/CardDropzone, LibraryList, OctaveToggle, ChannelSelect,
   MissingDrumsSetting, ConvertSettings, PlanControls, EngineColumns, SummaryRow,
-  ConvertButton (FollowTip: the reason beside the mouse), DonePanel, TipCard,
+  ConvertButton (FollowTip: the reason beside the mouse), DonePanel, TipToast (pinned to the top; `lib/tipAsk.ts`: from the third saved file, at
+  most once a day, paused 90 days after a tip),
   ReportModal (Convert); InfoPopover (the hover/click breakdowns); EditView with `edit/` (EditFilters, FamilyRows, EditFooter,
   SavePreset), VoiceRow, NotePicker, SourceEditor, PianoKeyboard (Edit). Page chrome:
   PageFrame (Page, Card). Overlays: Modal, PickerShell (+ `overlayAnchor`), on Floating UI. Shared primitives: `styles.ts`, Button,

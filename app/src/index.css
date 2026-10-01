@@ -94,8 +94,8 @@
   }
 }
 
-@utility tip-card {
-  @apply flex flex-col gap-3 rounded-panel border border-star/25 bg-star/4 p-4 motion-safe:animate-[tip-in_400ms_ease-out];
+@utility tip-toast {
+  @apply fixed inset-x-4 top-[max(0.75rem,env(safe-area-inset-top))] z-30 mx-auto flex max-w-140 flex-col gap-3 rounded-panel border border-star/30 bg-ink p-4 shadow-popover motion-safe:animate-[tip-in_240ms_ease-out];
 }
 
 @utility tip-amount {
@@ -109,7 +109,7 @@
 @keyframes tip-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(-8px);
   }
 }
 

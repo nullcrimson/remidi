@@ -9,9 +9,10 @@ import { ErrorText } from './ErrorText';
 import type { ReportFile, ReportView } from '../lib/report';
 import { zipFiles } from '../lib/zip';
 import { Button } from './Button';
+import { askAfterDownload } from '../lib/tipAsk';
 import { tag, type TagTone } from './styles';
 import { TextButton } from './TextButton';
-import { TipCard } from './TipCard';
+import { TipToast } from './TipToast';
 
 const FREE_ZIP_AFTER_MS = 10_000;
 
@@ -72,8 +73,10 @@ export function DonePanel({
   const { t, locale } = translator;
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => headingRef.current?.focus(), []);
-  const [saved, setSaved] = useState(false);
-  const markSaved = () => setSaved(true);
+  const [asking, setAsking] = useState(false);
+  const markSaved = () => {
+    if (askAfterDownload()) setAsking(true);
+  };
   const single = results.length === 1;
   const downloadZip = () => {
     markSaved();
@@ -152,7 +155,7 @@ export function DonePanel({
         </ul>
       )}
 
-      {saved && <TipCard />}
+      {asking && <TipToast onClose={() => setAsking(false)} />}
 
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         <TextButton onClick={onViewReport}>{t({ id: 'done-view-report' })}</TextButton>
