@@ -14,7 +14,7 @@
     href="{{ frame.home }}?from={{ page.src.id }}&amp;to={{ page.tgt.id }}"
     class="inline-flex items-center justify-center rounded-panel bg-accent px-5 py-3 font-display text-body font-semibold text-ink transition hover:brightness-110 pointer-coarse:min-h-11"
   >{{ texts.pair(MessageId::MapsPairConvert, page.src.name.as_str(), page.tgt.name.as_str()) }}</a>
-  <a href="{{ texts.path(page.reverse.href().as_str()) }}" class="tap inline-flex items-center gap-1.5 text-ui text-t2 transition-colors hover:text-accent">{{ texts.get(Plain::MapsReverse) }}</a>
+  <a href="{{ texts.path(page.reverse.href().as_str()) }}" class="prose-link text-ui">{{ texts.get(Plain::MapsReverse) }}</a>
 </div>
 
 <div class="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
