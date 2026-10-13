@@ -28,9 +28,14 @@ export function noteName(n: Note, base: OctaveBase): string {
   return NAMING[base].names[n];
 }
 
+const octaveOf = (n: number): number => Math.floor(n / SEMITONES) - 1;
+
 export function octaveIndexOf(n: Note): number {
-  return Math.floor(n / SEMITONES) - 1;
+  return octaveOf(n);
 }
+
+/** Every octave that holds a note, lowest first; the last one may be partly filled. */
+export const OCTAVE_INDICES: readonly number[] = Array.from({ length: octaveOf(NOTE_COUNT - 1) - octaveOf(0) + 1 }, (_, i) => octaveOf(0) + i);
 
 export function noteInOctave(octIndex: number, semitone: number): Note | null {
   return parseNote((octIndex + 1) * SEMITONES + semitone);

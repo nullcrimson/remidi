@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { note } from '../typed';
-import { noteInOctave, noteName, octaveIndexOf, octaveTabLabel } from '../../src/core/notes';
+import { noteInOctave, noteName, OCTAVE_INDICES, octaveIndexOf, octaveTabLabel } from '../../src/core/notes';
 
 describe('notes', () => {
   it('names notes in the c1 base', () => {
@@ -33,6 +33,10 @@ describe('notes', () => {
 
   it('gives no label to an octave above the last note', () => {
     expect(octaveTabLabel(10, 'c1')).toBeNull();
+  });
+
+  it('lists every octave from the lowest note\'s to the highest note\'s once', () => {
+    expect(OCTAVE_INDICES).toEqual([-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
 
   it('labels the lowest octave with its negative number', () => {
