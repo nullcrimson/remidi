@@ -1,4 +1,5 @@
 import { useT } from '../locale/localeContext';
+import { track } from '../core/stats';
 import type { FocusRef } from '../ui/useFocusIntent';
 import { useFavorites } from './useFavorites';
 import type { Engine } from '../core/midiremap';
@@ -28,6 +29,10 @@ export function EngineColumns({
   const t = useT();
   const favFrom = useFavorites('from');
   const favTo = useFavorites('to');
+  const swap = () => {
+    track('engines-swapped');
+    onSwap();
+  };
   return (
     <div className="
       grid grid-cols-1 gap-3
@@ -35,6 +40,7 @@ export function EngineColumns({
     "
     >
       <LibraryList
+        side="from"
         label={t({ id: 'engine-from' })}
         value={src}
         disabledId={tgt}
@@ -49,7 +55,7 @@ export function EngineColumns({
         sm:pt-8
       "
       >
-        <IconButton label={t({ id: 'engine-swap' })} disabled={src === null && tgt === null} onClick={onSwap}>
+        <IconButton label={t({ id: 'engine-swap' })} disabled={src === null && tgt === null} onClick={swap}>
           <span className="
             inline-block rotate-90
             sm:rotate-0
@@ -59,6 +65,7 @@ export function EngineColumns({
         </IconButton>
       </div>
       <LibraryList
+        side="to"
         label={t({ id: 'engine-to' })}
         value={tgt}
         disabledId={src}

@@ -3,7 +3,10 @@ import { vocabularyOf } from '../core/canon';
 import type { ChannelScope, Engine, Midiremap, MissingDrums, Note } from '../core/midiremap';
 import type { OctaveBase } from '../core/notes';
 import { pairOf, type EnginePair } from '../core/enginePair';
-import { editsToOverrides, knownEdits, type StoredEdits } from '../core/overrides';
+import { kindCounts } from '../core/errors';
+import { track } from '../core/stats';
+import { convertedProps } from '../report/report';
+import { editCount, editsToOverrides, knownEdits, type StoredEdits } from '../core/overrides';
 import { preselection } from './preselect';
 import type { Runtime } from './runtime';
 import type { SelectionEvent } from '../core/selection';
@@ -182,9 +185,20 @@ export function useRemapper({ load, converter: batches }: Runtime) {
 
   const run = useCallback(
     async (m: MissingDrums) => {
-      await runConvert(overrides, channel, m, keyFor(m));
+      const outcome = await runConvert(overrides, channel, m, keyFor(m));
+      if (outcome === null || pair === null) return;
+      if (outcome.kind === 'failed') {
+        track('convert-failed', { from: pair.src, to: pair.tgt, kind: outcome.error.kind });
+        return;
+      }
+      for (const [kind, files] of kindCounts(outcome.failed.map((file) => file.error))) track('file-failed', { kind, files });
+      track('converted', convertedProps(pair, outcome.ok.map((file) => file.report), outcome.failed.length, {
+        missing: m,
+        edited: editCount({ edits, srcEdits }) > 0,
+        preset: presetId !== null,
+      }));
     },
-    [runConvert, overrides, channel, keyFor],
+    [runConvert, overrides, channel, keyFor, pair, edits, srcEdits, presetId],
   );
   const convert = useCallback(() => run(missing), [run, missing]);
   const dropMissingAndConvert = useCallback(() => {

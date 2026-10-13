@@ -1,5 +1,6 @@
-import { LOCALE_CODES, LOCALES, parseLocale, ROUTE_PATHS, type Locale, type SitePath } from '../generated/i18n';
+import { LOCALES, parseLocale, ROUTE_PATHS, type Locale, type SitePath } from '../generated/i18n';
 import type { Translator } from './i18n';
+import { asLocale } from './localeCode';
 import { readChoice, writeChoice } from './languageChoice';
 
 /** The locale the address names; the only reader of `location.pathname`. */
@@ -9,8 +10,7 @@ export function pathLocale(): Locale {
 
 /** The language the visitor last picked, if storage has one this site speaks. */
 export function storedLocale(): Locale | null {
-  const value = readChoice();
-  return LOCALE_CODES.find((l) => l === value) ?? null;
+  return asLocale(readChoice()) ?? null;
 }
 
 export function storeLocale(locale: Locale): void {

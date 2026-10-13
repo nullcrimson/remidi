@@ -1,4 +1,6 @@
-import { useCallback, useMemo, useReducer } from 'react';
+import { useCallback, useEffect, useEffectEvent, useMemo, useReducer, useState } from 'react';
+import { closingProps, EMPTY_TALLY, tallyReducer, type CloseHow, type PickVia } from './editorTally';
+import { track } from '../core/stats';
 import { EDITOR_START, editorReducer, type Pick, type SrcPick, type TgtPick } from './editorState';
 import { toAppError, type AppError } from '../core/errors';
 import type { Canon, Midiremap, MissingDrums, Note, VoiceRow } from '../core/midiremap';
@@ -20,6 +22,7 @@ export function useEditor(
   missing: MissingDrums,
 ) {
   const [{ edits, srcEdits, overlay }, dispatch] = useReducer(editorReducer, EDITOR_START);
+  const [tally, count] = useReducer(tallyReducer, EMPTY_TALLY);
   const { targetDrums, sourceNotes, canonOptions, vocabulary, families, error: dataError }
     = useEngineData(core, pair);
 
@@ -33,6 +36,11 @@ export function useEditor(
       return { rows: [], planError: toAppError(err) };
     }
   }, [core, pair, edits, srcEdits, missing, dataError]);
+
+  const failedKind = planError === null ? null : planError.kind;
+  useEffect(() => {
+    if (failedKind !== null) track('plan-failed', { kind: failedKind });
+  }, [failedKind, pair?.src, pair?.tgt]);
 
   const setPickOct = useCallback(
     (pick: Pick, octIndex: number) => dispatch({ type: 'SET_PICK_OCT', pick, octIndex }),
@@ -118,13 +126,27 @@ export function useEditor(
     [changedSrc, edits],
   );
   const resetRow = useCallback(
-    (canon: Canon) =>
+    (canon: Canon) => {
+      count({ type: 'rowReset' });
       dispatch({
         type: 'RESET_ROW',
         canon,
         defaultNotes: sourceNotes.filter((n) => n.canon === canon).map((n) => n.note),
-      }),
+      });
+    },
     [sourceNotes],
+  );
+  const [sessions, setSessions] = useState(0);
+  const openSession = useEffectEvent(() => count({ type: 'open', edits: { edits, srcEdits } }));
+  useEffect(() => {
+    if (sessions > 0) openSession();
+  }, [sessions]);
+  const beginSession = useCallback(() => setSessions((n) => n + 1), []);
+  const countPick = useCallback((via: PickVia) => count({ type: 'pick', via }), []);
+  const countFilter = useCallback(() => count({ type: 'filter' }), []);
+  const endSession = useCallback(
+    (how: CloseHow) => track('editor-closed', closingProps(how, { edits, srcEdits }, tally)),
+    [edits, srcEdits, tally],
   );
   return {
     edits,
@@ -141,6 +163,10 @@ export function useEditor(
     changed,
     changedSrc,
     resetRow,
+    beginSession,
+    countPick,
+    countFilter,
+    endSession,
     openPick,
     openSrcPick,
     setPickOct,

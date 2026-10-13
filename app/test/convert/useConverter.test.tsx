@@ -39,7 +39,7 @@ describe('useConverter', () => {
     await act(async () => {
       out = await result.current.convert(OV, 'auto', 'nearest', 'k');
     });
-    expect(out).toBeNull();
+    expect(out).toEqual({ kind: 'failed', error: { kind: 'internal', detail: 'wasm fetch failed' } });
     expect(result.current.conv).toMatchObject({ kind: 'error', error: { kind: 'internal', detail: 'wasm fetch failed' } });
     expect(result.current.failures).toEqual([]);
   });

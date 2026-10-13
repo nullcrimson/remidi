@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { track } from '../core/stats';
 import { onStoredChange, readStored, writeStored, type StorageKey } from '../core/storage';
 
 type FavoritesScope = 'from' | 'to';
@@ -34,6 +35,7 @@ export function useFavorites(scope: FavoritesScope): Favorites {
   useEffect(() => onStoredChange(key, () => setFavorites(load(key))), [key]);
 
   const toggleFavorite = (id: string) => {
+    track('engine-starred', { id, on: !favorites.has(id) });
     dirty.current = true;
     setFavorites((prev) => {
       const next = new Set(prev);

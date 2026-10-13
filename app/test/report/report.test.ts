@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildReport } from '../../src/report/report';
+import { buildReport, lossCounts } from '../../src/report/report';
 import type { FileResult } from '../../src/core/files';
 import type { VocabularyDrum, Drum } from '../../src/core/midiremap';
 import { typed, type Loose } from '../typed';
@@ -192,5 +192,26 @@ describe('buildReport', () => {
       'c1',
     );
     expect(view.groups.approximated).toEqual([{ label: 'Ride Bell', sub: 'C4', count: 1, canon: 'ride.1.bell' }]);
+  });
+});
+
+describe('lossCounts', () => {
+  const lossy = result('a.mid', { dropped: { 'china.1.hit': 4 }, fallbackUsed: { 'ride.1.bell': { note: 60, count: 1 } }, unmappedSource: { 51: 2 }, untouched: 0, converted: 10 });
+
+  it('counts the entries of each group of one file', () => {
+    expect(lossCounts([lossy.report])).toEqual({ dropped: 1, approximated: 1, unrecognized: 1 });
+  });
+
+  it('counts a drum dropped in two files once', () => {
+    expect(lossCounts([lossy.report, lossy.report]).dropped).toBe(1);
+  });
+
+  it('counts a drum approximated on two different notes twice', () => {
+    const other = result('b.mid', { ...empty, fallbackUsed: { 'ride.1.bell': { note: 61, count: 1 } } });
+    expect(lossCounts([lossy.report, other.report]).approximated).toBe(2);
+  });
+
+  it('counts nothing for a clean conversion', () => {
+    expect(lossCounts([result('a.mid', empty).report])).toEqual({ dropped: 0, approximated: 0, unrecognized: 0 });
   });
 });

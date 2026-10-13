@@ -2,6 +2,7 @@ import { useT } from '../locale/localeContext';
 import type { Drum, Family, Note } from '../core/midiremap';
 import { noteName, type OctaveBase } from '../core/notes';
 import { DrumList } from './DrumList';
+import type { PickVia } from './editorTally';
 import { KeyboardPane } from './KeyboardPane';
 import { PickerHeader } from './PickerHeader';
 import { PickerShell } from './PickerShell';
@@ -15,6 +16,7 @@ export function NotePicker({
   families,
   onSetOct,
   onPickNote,
+  onPickVia,
   onClose,
 }: {
   voiceLabel: string;
@@ -25,6 +27,7 @@ export function NotePicker({
   families: readonly Family[];
   onSetOct: (octIndex: number) => void;
   onPickNote: (note: Note) => void;
+  onPickVia?: (via: PickVia) => void;
   onClose: () => void;
 }) {
   const t = useT();
@@ -48,7 +51,16 @@ export function NotePicker({
           "
         >
           <div className="min-w-0 flex-1">
-            <DrumList drums={drums} families={families} currentNote={currentNote} base={base} onPickNote={onPickNote} />
+            <DrumList
+              drums={drums}
+              families={families}
+              currentNote={currentNote}
+              base={base}
+              onPickNote={(note) => {
+                onPickVia?.('list');
+                onPickNote(note);
+              }}
+            />
           </div>
           <div className="
             flex w-full shrink-0 flex-col gap-3.25
@@ -60,7 +72,10 @@ export function NotePicker({
               currentNote={currentNote}
               base={base}
               onSetOct={onSetOct}
-              onPickNote={onPickNote}
+              onPickNote={(note) => {
+                onPickVia?.('keyboard');
+                onPickNote(note);
+              }}
             />
           </div>
         </div>

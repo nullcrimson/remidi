@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import indexHtml from '../../index.html?raw';
-import { href, localHref } from '../../src/site/site';
+import { href, localHref, targetName } from '../../src/site/site';
 import { FOOTER, LOCALE_CODES, NAV } from '../../src/generated/i18n';
 
 const NAV_LINKS: unknown = JSON.parse(readFileSync(
@@ -50,5 +50,15 @@ describe('links', () => {
 
   it('links sections by slug for English', () => {
     expect(href({ section: 'guide' })).toBe('/how-it-works/');
+  });
+});
+
+describe('targetName', () => {
+  it('names a route by its route', () => {
+    expect(targetName({ route: 'noteMaps' })).toBe('noteMaps');
+  });
+
+  it('names a section by its section', () => {
+    expect(targetName({ section: 'guide' })).toBe('guide');
   });
 });

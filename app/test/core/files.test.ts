@@ -57,6 +57,6 @@ describe('takeFiles', () => {
     expect(loaded.map((f: { name: string }) => f.name)).toEqual(['groove.mid']);
     expect(skipped).toEqual([]);
     expect(presets).toEqual([{ name: 'kit.drumverter.json', text: 'x' }]);
-    expect(failed).toEqual(['gone.mid', 'lost.drumverter.json']);
+    expect(failed).toEqual({ mid: ['gone.mid'], presets: ['lost.drumverter.json'] });
   });
 });

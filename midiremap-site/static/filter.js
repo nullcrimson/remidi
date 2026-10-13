@@ -1,3 +1,4 @@
+let reported = false;
 document.querySelectorAll('input[data-filter]').forEach((input) => {
   const scope = document.getElementById(input.dataset.filter);
   const empty = document.getElementById(input.dataset.filter + '-empty');
@@ -16,7 +17,13 @@ document.querySelectorAll('input[data-filter]').forEach((input) => {
     empty.hidden = any;
   };
   input.hidden = false;
-  input.addEventListener('input', apply);
+  input.addEventListener('input', () => {
+    if (!reported && input.value.trim() !== '') {
+      reported = true;
+      window.umami?.track('maps-filtered', { page: input.dataset.page });
+    }
+    apply();
+  });
   input.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || input.value === '') return;
     input.value = '';

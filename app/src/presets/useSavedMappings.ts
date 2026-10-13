@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type SetStateAction } from 'react';
 import type { PresetName } from '../core/midiremap';
 import type { StoredEdits } from '../core/overrides';
+import { track } from '../core/stats';
 import { onStoredChange, readStored, readStoredStrict, writeStored } from '../core/storage';
 import {
   MAPPINGS_CAP,
@@ -15,14 +16,19 @@ import {
 export interface SavedMappings {
   mappings: SavedMapping[];
   atCap: boolean;
-  /** Stores a new preset and returns its id, or null at the cap. */
-  save: (input: { name: PresetName; src: string; tgt: string } & StoredEdits) => string | null;
-  update: (id: string, patch: { name?: PresetName } & Partial<StoredEdits>) => void;
+  /**
+   * Stores a new preset and returns its id, or null at the cap. `stored` is told, once the
+   * browser has been written to, whether it kept the change.
+   */
+  save: (input: { name: PresetName; src: string; tgt: string } & StoredEdits, stored?: Stored) => string | null;
+  update: (id: string, patch: { name?: PresetName } & Partial<StoredEdits>, stored?: Stored) => void;
   rename: (id: string, name: PresetName) => void;
   remove: (id: string) => void;
   /** True after a change the browser could not store, until a later change is stored. */
   unsaved: boolean;
 }
+
+type Stored = (kept: boolean) => void;
 
 function load(): SavedMapping[] {
   return sortByRecent(parseMappings(readStored('mappings')));
@@ -43,21 +49,32 @@ export function useSavedMappings(): SavedMappings {
   const [mappings, setStored] = useState<SavedMapping[]>(() => load());
   const [unsaved, setUnsaved] = useState(false);
   const dirty = useRef(false);
+  const waiting = useRef<Stored[]>([]);
+  const reported = useRef(false);
+
+  useEffect(() => {
+    if (!unsaved || reported.current) return;
+    reported.current = true;
+    track('presets-unsaved');
+  }, [unsaved]);
 
   useEffect(() => {
     if (!dirty.current) return;
     dirty.current = false;
-    setUnsaved(!persist(mappings));
+    const kept = persist(mappings);
+    setUnsaved(!kept);
+    waiting.current.splice(0).forEach((told) => told(kept));
   }, [mappings]);
 
   useEffect(() => onStoredChange('mappings', () => setStored(load())), []);
 
-  const setMappings = (next: SetStateAction<SavedMapping[]>) => {
+  const setMappings = (next: SetStateAction<SavedMapping[]>, stored?: Stored) => {
     dirty.current = true;
+    if (stored) waiting.current.push(stored);
     setStored(next);
   };
 
-  const save: SavedMappings['save'] = (input) => {
+  const save: SavedMappings['save'] = (input, stored) => {
     if (mappings.length >= MAPPINGS_CAP) return null;
     const id = crypto.randomUUID();
     setMappings((prev) => {
@@ -72,11 +89,11 @@ export function useSavedMappings(): SavedMappings {
         updatedAt: Date.now(),
       };
       return sortByRecent([created, ...prev]);
-    });
+    }, stored);
     return id;
   };
 
-  const update: SavedMappings['update'] = (id, patch) =>
+  const update: SavedMappings['update'] = (id, patch, stored) =>
     setMappings((prev) =>
       sortByRecent(
         prev.map((m) =>
@@ -91,7 +108,7 @@ export function useSavedMappings(): SavedMappings {
             : m,
         ),
       ),
-    );
+    stored);
 
   const rename: SavedMappings['rename'] = (id, name) =>
     setMappings((prev) => prev.map((m) => (m.id === id ? { ...m, name } : m)));

@@ -13,6 +13,10 @@
 <div class="flex flex-wrap items-center gap-x-5 gap-y-3">
   <a
     href="{{ frame.home }}?from={{ page.src.id }}&amp;to={{ page.tgt.id }}"
+    data-umami-event="converter-opened"
+    data-umami-event-page="{{ frame.kind }}"
+    data-umami-event-from="{{ page.src.id }}"
+    data-umami-event-to="{{ page.tgt.id }}"
     class="inline-flex items-center justify-center rounded-panel bg-accent px-5 py-3 font-display text-body font-semibold text-ink transition hover:brightness-110 pointer-coarse:min-h-11"
   >{{ texts.pair(MessageId::MapsPairConvert, page.src.name.as_str(), page.tgt.name.as_str())? }}</a>
   <a href="{{ texts.path(page.reverse.href()) }}" class="prose-link text-ui">{{ texts.get(Plain::MapsReverse) }}</a>

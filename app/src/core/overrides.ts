@@ -80,6 +80,11 @@ function sameRecord(a: Record<string, unknown>, b: Record<string, unknown>): boo
   return keys.length === Object.keys(b).length && keys.every((k) => k in b && a[k] === b[k]);
 }
 
+/** How many note edits `edits` holds, target and source together. */
+export function editCount({ edits, srcEdits }: EditSet): number {
+  return Object.keys(edits).length + Object.keys(srcEdits).length;
+}
+
 /** Whether two sets of note edits change the same drums the same way. */
 export function sameEdits(a: EditSet, b: EditSet): boolean {
   return sameRecord(a.edits, b.edits) && sameRecord(a.srcEdits, b.srcEdits);

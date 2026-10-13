@@ -1,4 +1,5 @@
-import { href, targetLabel } from './site';
+import { href, targetLabel, targetName } from './site';
+import { track } from '../core/stats';
 import { LOCALES, NAV } from '../generated/i18n';
 import { useLocale } from '../locale/localeContext';
 import { LanguageMenu } from './LanguageMenu';
@@ -23,17 +24,21 @@ export function SiteHeader() {
       </h1>
       <nav aria-label={t({ id: 'nav-main' })}>
         <ul className="flex flex-wrap gap-x-5 gap-y-1 text-ui">
-          {NAV.map((target) => (
-            <li key={href(target, locale)}>
-              <a
-                href={href(target, locale)}
-                aria-current={'route' in target && target.route === 'converter' ? 'page' : undefined}
-                className="nav-link whitespace-nowrap"
-              >
-                {t(targetLabel(target))}
-              </a>
-            </li>
-          ))}
+          {NAV.map((target) => {
+            const current = 'route' in target && target.route === 'converter';
+            return (
+              <li key={href(target, locale)}>
+                <a
+                  href={href(target, locale)}
+                  aria-current={current ? 'page' : undefined}
+                  onClick={current ? undefined : () => track('nav-used', { target: targetName(target), where: 'header' })}
+                  className="nav-link whitespace-nowrap"
+                >
+                  {t(targetLabel(target))}
+                </a>
+              </li>
+            );
+          })}
           <li><LanguageMenu /></li>
         </ul>
       </nav>

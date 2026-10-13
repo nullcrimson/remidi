@@ -152,6 +152,19 @@ test('a blocked language file on /pl/ shows the Polish load-failure notice and n
   pageErrors.length = 0;
 });
 
+test('a blocked language file on /pl/ sends load-failed with the kind locale', async ({ page, pageErrors }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'umami', {
+      value: { track: (name: string, props?: unknown) => sessionStorage.setItem('sent', JSON.stringify([name, props])) },
+    });
+  });
+  await page.route(/locale-[\w-]+\.js$/, (r) => r.abort());
+  await page.goto('/pl/');
+  await expect(page.locator('#load-failed')).toBeVisible();
+  expect(await page.evaluate(() => sessionStorage.getItem('sent'))).toBe('["load-failed",{"kind":"locale"}]');
+  pageErrors.length = 0;
+});
+
 test.describe('after choosing Polski', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/faq/');

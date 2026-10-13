@@ -639,7 +639,8 @@ Generated, never committed: `midiremap-site/build.rs` (with `fluent-syntax`) wri
 `NavTarget`, `NAV`/`FOOTER` and the two route paths (`CONVERTER`, `NOTE_MAPS`) into `OUT_DIR/routes.rs`, which
 `src/routes.rs` includes beside `SitePath` / `LocalPath` (an address before and after a locale prefix),
 `href` and `label`; `npm run gen:i18n` (`app/scripts/gen-i18n.ts`, with
-`@fluent/syntax`) writes the same types to `app/src/generated/i18n.ts` (with `ROUTE_PATHS`), plus
+`@fluent/syntax`) writes the same types to `app/src/generated/i18n.ts` (with `ROUTE_PATHS`), the locale codes alone to
+`localeCodes.ts` (all the static pages' script loads of the table), plus
 `lang.css` (`:lang()` rules setting the sans, display and mono stacks) and `TRANSLATED_SECTIONS` (the keys of each
 locale's documents). A nav target naming an unknown section fails both
 generators; a section missing its label, heading or description message fails `tsc`,
@@ -735,10 +736,38 @@ Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props;
 - **Nothing third-party without a reason.** Fonts are self-hosted (`@fontsource`,
   variable Space Grotesk and IBM Plex Sans, IBM Plex Mono 400/600 — the faces the pages
   load). The only outside origins are cookieless analytics: the Cloudflare beacon (visits)
-  and Umami (`core/stats.ts` `track`: anonymous events such as `converted` or `downloaded`,
-  never file names or contents; `data-domains` keeps local and test runs out). The CSP
-  allows only them, `'self'` and `'wasm-unsafe-eval'`, and the e2e suite aborts their
-  requests and fails on any other.
+  and Umami (`data-domains` keeps local and test runs out). The CSP allows only them,
+  `'self'` and `'wasm-unsafe-eval'`, and the e2e suite aborts their requests and fails on
+  any other.
+- **Analytics are anonymous, closed and typed.** Umami counts the 37 events of
+  `StatEvents` (`core/umami.ts`: each event name with exactly its properties, so a wrong
+  name, a missing or extra property or a value outside its set does not compile) and page
+  views, nothing else. What is sent: event names, engine ids, locale codes, error kinds,
+  counts, booleans and values from closed sets. Never sent: file names or contents,
+  preset names, typed text (filters, names), the free-text detail of an error, note
+  numbers. Two modules: `core/umami.ts` is the typed sender `send(event, props)` (the
+  `window.umami` call, no table), and `core/stats.ts` is `track` for the app: it gives
+  every event the app sends a tier (1 funnel, 2 feature use, 3 detail; `TIER_OF`, typed
+  over `AppEvent`, so an app event without a tier does not compile and an event only the
+  static pages send does not pass `track`) and `ENABLED_TIERS` says which tiers are sent,
+  so one constant turns a tier off. The note editor reports once, on closing
+  (`editor-closed`: `targets` and `sources` count the notes whose edit differs from what
+  it was when the editor opened, `keyboard` and `list` the target picks by how they were
+  made; its tally is kept by `editor/editorTally.ts`); `presets-unsaved` is sent once per
+  page load. `converted`, `file-failed` and `convert-failed` are sent by `run` in
+  `convert/useRemapper.ts` from the outcome `useConverter` returns; `load-failed` is sent
+  by the engine catalog (the module failed to load) and by `main.tsx` (kind `locale`: the
+  page's language failed to load). The static pages load only `core/umami.ts`
+  (`StaticOnlyEvent` names the four events only they send; `language-picked` from a static
+  page also goes through `send`), so those sends are outside the tier switches and their
+  script carries no table: `converter-opened` is markup alone
+  (`data-umami-event` and `data-umami-event-page`, `-from`, `-to` on every link into the
+  converter, written by the templates; the page kind comes from `PageKind` in
+  `render.rs`), `maps-filtered` is sent by `filter.js` on the first input to a list filter
+  (the page kind from its `data-page`), and the language offer and a language picked from
+  a static page's menu are sent by `locale/staticPages.ts` (the offer on the window `load` event, once the Umami tag has run; the answers and the pick before the link navigates).
+  `test/siteEvents.test.ts` reads the templates and scripts and fails on an event or
+  property the map does not have.
 - **Budgets and audits.** `npm run size` fails the build when gzipped wasm, JS or CSS, or
   the latin font files, or the largest locale chunk, grow past `scripts/check-size.ts`'s
   budgets. `audit.yml` runs `cargo deny` (advisories, licences, sources; `deny.toml`) and

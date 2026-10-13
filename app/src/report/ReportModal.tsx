@@ -2,6 +2,7 @@ import type { EngineNames } from '../core/enginePair';
 import type { Canon, Note } from '../core/midiremap';
 import type { Translate } from '../locale/i18n';
 import { useT } from '../locale/localeContext';
+import { track } from '../core/stats';
 import { Modal } from '../ui/Modal';
 import { MonoLabel } from '../ui/MonoLabel';
 import type { LabelTone } from '../ui/styles';
@@ -177,14 +178,17 @@ export function ReportModal({
   const detailFiles = view.files.filter(hasDetail);
   const fixes: ReportFixes = {
     onPickTarget: (canon) => {
+      track('report-fix-used', { fix: 'pick-target' });
       onPickTarget(canon);
       onClose();
     },
     onAssignSource: (note) => {
+      track('report-fix-used', { fix: 'assign' });
       onAssignSource(note);
       onClose();
     },
     onChannel: () => {
+      track('report-fix-used', { fix: 'channel-hint' });
       onChannel();
       onClose();
     },
@@ -200,6 +204,7 @@ export function ReportModal({
           <div>
             <TextButton
               onClick={() => {
+                track('missing-dropped', { where: 'report' });
                 onDropMissing();
                 onClose();
               }}

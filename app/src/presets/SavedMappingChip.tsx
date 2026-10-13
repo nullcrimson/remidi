@@ -18,6 +18,7 @@ import {
 import type { PresetName } from '../core/midiremap';
 import { parsePresetName, type SavedMapping } from './mappings';
 import { engineCode } from '../core/engineCode';
+import { track } from '../core/stats';
 import { IconButton } from '../ui/IconButton';
 import { TextField } from '../ui/TextField';
 
@@ -84,6 +85,7 @@ export function SavedMappingChip({
   const overrideCount = Object.keys(mapping.edits).length + Object.keys(mapping.srcEdits).length;
 
   const startRename = () => {
+    track('preset-managed', { action: 'rename' });
     setMenuOpen(false);
     setDraft(mapping.name);
     setRenaming(true);
@@ -98,7 +100,8 @@ export function SavedMappingChip({
   };
   const commitRename = () => endRename(parsePresetName(draft.trim()));
 
-  const closeThen = (run: () => void) => () => {
+  const managed = (action: 'duplicate' | 'export' | 'delete', run: () => void) => () => {
+    track('preset-managed', { action });
     setMenuOpen(false);
     run();
   };
@@ -110,9 +113,9 @@ export function SavedMappingChip({
 
   const items = [
     { label: t({ id: 'chip-rename' }), title: undefined, run: startRename, disabled: false, danger: false },
-    { label: t({ id: 'chip-duplicate' }), title: atCap ? t({ id: 'chip-at-cap' }) : undefined, run: closeThen(duplicate), disabled: atCap, danger: false },
-    { label: t({ id: 'chip-export' }), title: undefined, run: closeThen(() => onExport(mapping)), disabled: false, danger: false },
-    { label: t({ id: 'chip-delete' }), title: undefined, run: closeThen(() => onDelete(mapping.id)), disabled: false, danger: true },
+    { label: t({ id: 'chip-duplicate' }), title: atCap ? t({ id: 'chip-at-cap' }) : undefined, run: managed('duplicate', duplicate), disabled: atCap, danger: false },
+    { label: t({ id: 'chip-export' }), title: undefined, run: managed('export', () => onExport(mapping)), disabled: false, danger: false },
+    { label: t({ id: 'chip-delete' }), title: undefined, run: managed('delete', () => onDelete(mapping.id)), disabled: false, danger: true },
   ];
 
   if (renaming) {

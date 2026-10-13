@@ -51,7 +51,7 @@ describe('usePresetActions', () => {
       tgt: 'ezdrummer',
       edits: { 'china.1.hit': 52 },
       srcEdits: { 60: null },
-    });
+    }, expect.any(Function));
   });
 
   it('marks a newly saved preset open', () => {
@@ -67,7 +67,7 @@ describe('usePresetActions', () => {
       name: 'Renamed',
       edits: { 'china.1.hit': 52 },
       srcEdits: { 60: null },
-    });
+    }, expect.any(Function));
   });
 
   it('duplicates a preset as a copy', () => {

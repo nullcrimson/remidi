@@ -1,19 +1,27 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { track } from '../../src/core/stats';
+import { describe, expect, it } from 'vitest';
+import { track, tracker } from '../../src/core/stats';
+import { fakeUmami } from '../umami';
 
 describe('track', () => {
-  afterEach(() => {
-    delete window.umami;
-  });
+  const umami = fakeUmami();
 
   it('hands the event and its properties to Umami', () => {
-    const umami = { track: vi.fn() };
-    window.umami = umami;
-    track('converted', { from: 'ggd_invasion', to: 'ezdrummer', files: 2 });
-    expect(umami.track).toHaveBeenCalledWith('converted', { from: 'ggd_invasion', to: 'ezdrummer', files: 2 });
+    track('convert-failed', { from: 'ggd_invasion', to: 'ezdrummer', kind: 'badMidi' });
+    expect(umami).toHaveBeenCalledWith('convert-failed', { from: 'ggd_invasion', to: 'ezdrummer', kind: 'badMidi' });
   });
 
   it('does nothing when the Umami script is not loaded', () => {
-    expect(() => track('downloaded')).not.toThrow();
+    delete window.umami;
+    expect(() => track('downloaded', { files: 1, how: 'single' })).not.toThrow();
+  });
+
+  it('sends the events of a tier that is on', () => {
+    tracker(new Set([1] as const))('downloaded', { files: 1, how: 'single' });
+    expect(umami).toHaveBeenCalledWith('downloaded', { files: 1, how: 'single' });
+  });
+
+  it('sends none of the events of a tier that is off', () => {
+    tracker(new Set([1] as const))('preset-loaded');
+    expect(umami).not.toHaveBeenCalled();
   });
 });

@@ -17,8 +17,8 @@ describe('gen-i18n', () => {
   const emitted = () => generate(parseSources({ locales, structure, ftl })).ts;
 
   it('emits the Locale type', () => {
-    const ts = emitted();
-    expect(ts).toContain(`export type Locale = 'en';`);
+    const { codes } = generate(parseSources({ locales, structure, ftl }));
+    expect(codes).toContain(`export type Locale = 'en';`);
   });
 
   it('emits the SectionKey type', () => {
@@ -64,7 +64,17 @@ describe('gen-i18n', () => {
 
   it('lists the locale codes', () => {
     const out = withDocs();
-    expect(out.ts).toContain('export const LOCALE_CODES: readonly Locale[] = ["en","pl"];');
+    expect(out.codes).toContain('export const LOCALE_CODES: readonly Locale[] = ["en","pl"];');
+  });
+
+  it('keeps the locale table out of the module that lists the codes', () => {
+    const out = withDocs();
+    expect(out.codes).not.toContain('import');
+  });
+
+  it('hands the codes on from the locale table\'s module', () => {
+    const out = withDocs();
+    expect(out.ts).toContain(`export { LOCALE_CODES, type Locale } from './localeCodes';`);
   });
 
   it('carries each locale\'s native name', () => {

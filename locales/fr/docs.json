@@ -138,7 +138,7 @@
     },
     {
       "p": [
-        "La conversion s’effectue entièrement dans votre navigateur : les fichiers ne sont ni envoyés ni stockés. Drumverter collecte uniquement des statistiques d’utilisation anonymes, sans cookies (comme les pages vues), pour savoir si l’outil est utile ; vos fichiers MIDI ne quittent jamais votre appareil. Drumverter peut être modifié ou arrêté à tout moment. En l’utilisant, vous acceptez ces conditions. Si vous offrez un café, le paiement se fait sur la page de Stripe ; Drumverter ne voit jamais vos données de carte ou de paiement."
+        "La conversion s’effectue entièrement dans votre navigateur : les fichiers ne sont ni envoyés ni stockés. Drumverter collecte uniquement des statistiques d’utilisation anonymes, sans cookies (comme les pages vues et les fonctionnalités utilisées), pour savoir si l’outil est utile ; vos fichiers MIDI ne quittent jamais votre appareil. Drumverter peut être modifié ou arrêté à tout moment. En l’utilisant, vous acceptez ces conditions. Si vous offrez un café, le paiement se fait sur la page de Stripe ; Drumverter ne voit jamais vos données de carte ou de paiement."
       ]
     }
   ]

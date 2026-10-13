@@ -1,5 +1,6 @@
 import type { FocusRef } from '../ui/useFocusIntent';
 import type { ChannelScope, MissingDrums } from '../core/midiremap';
+import { track } from '../core/stats';
 import type { PlayedOn } from '../core/outcome';
 import type { OctaveBase } from '../core/notes';
 import { ChannelSelect } from './ChannelSelect';
@@ -37,14 +38,30 @@ export function ConvertSettings({
       lg:grid-cols-3
     "
     >
-      <OctaveToggle value={oct} onChange={onOct} />
-      <ChannelSelect ref={channelRef} value={channel} onChange={onChannel} />
+      <OctaveToggle
+        value={oct}
+        onChange={(value) => {
+          track('setting-changed', { setting: 'octave', value });
+          onOct(value);
+        }}
+      />
+      <ChannelSelect
+        ref={channelRef}
+        value={channel}
+        onChange={(value) => {
+          track('setting-changed', { setting: 'channel', value: value === 'auto' || value === 'all' ? value : 'one' });
+          onChannel(value);
+        }}
+      />
       <MissingDrumsSetting
         value={missing}
         hint={missingHint}
         swaps={missingSwaps}
         onOpenEditor={onMissingDetail}
-        onChange={onMissing}
+        onChange={(value) => {
+          track('setting-changed', { setting: 'missing', value });
+          onMissing(value);
+        }}
       />
     </div>
   );

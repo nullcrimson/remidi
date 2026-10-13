@@ -35,15 +35,21 @@ export interface PresetText {
   text: string;
 }
 
+/** The names of the files the browser could not read, MIDI files and preset files apart. */
+export interface UnreadableFiles {
+  mid: string[];
+  presets: string[];
+}
+
 /**
  * Receives what was picked or dropped: MIDI files, names skipped for their type, preset
- * files, and names of files the browser could not read.
+ * files, and the files the browser could not read.
  */
 export type OnFiles = (
   files: LoadedFile[],
   skipped: string[],
   presets?: PresetText[],
-  unreadable?: string[],
+  unreadable?: UnreadableFiles,
 ) => void;
 
 async function readEach<T>(files: File[], read: (f: File) => Promise<T>): Promise<{ read: T[]; failed: string[] }> {
@@ -67,7 +73,7 @@ export async function takeFiles(list: File[], onFiles: OnFiles): Promise<void> {
     readEach(mid, async (f): Promise<LoadedFile> => ({ bytes: new Uint8Array(await f.arrayBuffer()), name: f.name })),
     readEach(presets, async (f): Promise<PresetText> => ({ name: f.name, text: await f.text() })),
   ]);
-  onFiles(loaded.read, skipped, texts.read, [...loaded.failed, ...texts.failed]);
+  onFiles(loaded.read, skipped, texts.read, { mid: loaded.failed, presets: texts.failed });
 }
 
 export interface LoadedFile {

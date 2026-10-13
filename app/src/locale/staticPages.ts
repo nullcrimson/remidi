@@ -1,6 +1,9 @@
 import { sameLanguage } from './language';
 import { readChoice, writeChoice } from './languageChoice';
+import { asLocale } from './localeCode';
 import { readStored, writeStored } from '../core/storage';
+import type { Locale } from '../generated/localeCodes';
+import { send } from '../core/umami';
 
 /**
  * What the static pages do about the visitor's language: remember a clicked language link,
@@ -10,7 +13,11 @@ import { readStored, writeStored } from '../core/storage';
 export function runLocaleScript(document: Document, languages: readonly string[], location: Pick<Location, 'replace'>): void {
   document.querySelectorAll<HTMLElement>('[data-locale]').forEach((link) => {
     link.addEventListener('click', () => {
-      if (link.dataset.locale !== undefined) writeChoice(link.dataset.locale);
+      const code = link.dataset.locale;
+      if (code === undefined) return;
+      writeChoice(code);
+      const to = asLocale(code);
+      if (to !== undefined && link.dataset.offer === undefined && link.getAttribute('aria-current') === null) send('language-picked', { to, where: 'page' });
     });
   });
 
@@ -18,6 +25,12 @@ export function runLocaleScript(document: Document, languages: readonly string[]
   if (offer === null) return;
   const links = [...offer.querySelectorAll<HTMLAnchorElement>('[data-offer]')];
   const stored = readChoice();
+  links.forEach((link) => {
+    link.addEventListener('click', () => {
+      const to = asLocale(link.dataset.offer);
+      if (to !== undefined) send('language-offer-answered', { to, answer: 'accepted' });
+    });
+  });
   const chosen = links.find((link) => link.dataset.offer === stored);
   if (chosen !== undefined) {
     location.replace(chosen.href);
@@ -26,17 +39,22 @@ export function runLocaleScript(document: Document, languages: readonly string[]
   if (stored !== null || readStored('locale-offer') !== null) return;
 
   const page = document.documentElement.lang;
+  let offered: Locale | undefined;
   for (const tag of languages) {
     if (sameLanguage(tag, page)) break;
     const match = links.find((link) => sameLanguage(link.lang, tag));
     if (match !== undefined) {
       match.hidden = false;
       offer.hidden = false;
+      offered = asLocale(match.dataset.offer);
       break;
     }
   }
+  const to = offered;
+  if (to !== undefined) window.addEventListener('load', () => send('language-offered', { to }), { once: true });
   offer.querySelector('[data-dismiss]')?.addEventListener('click', () => {
     writeStored('locale-offer', 'dismissed');
     offer.hidden = true;
+    if (to !== undefined) send('language-offer-answered', { to, answer: 'dismissed' });
   });
 }

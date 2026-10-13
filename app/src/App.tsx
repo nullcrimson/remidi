@@ -31,6 +31,10 @@ import { useT } from './locale/localeContext';
 import type { NoticeLine } from './core/notice';
 import type { Runtime } from './convert/runtime';
 import { track } from './core/stats';
+import type { StatEvents } from './core/umami';
+import type { CloseHow } from './editor/editorTally';
+
+type EditorSource = StatEvents['editor-opened']['from'];
 
 function Intro() {
   const t = useT();
@@ -55,7 +59,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
       ...remapper,
       edits: editor.edits,
       srcEdits: editor.srcEdits,
-      openEditor: () => remapper.openEditor('all', null),
+      openEditor: () => openEditor('preset'),
     },
     saved,
     setNotice,
@@ -63,7 +67,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
   const openPreset = presets.open(remapper.presetId);
   const edited = useEditedSummary(editor, remapper.oct, openPreset);
   const { request } = focus;
-  const addFiles = useFileIntake({
+  const intake = {
     load: runtime.load,
     storeFiles: remapper.addFiles,
     src: remapper.src,
@@ -71,19 +75,23 @@ export default function App({ runtime }: { runtime: Runtime }) {
     saved,
     notify: setNotice,
     focus: request,
-  });
+  };
+  const pickFiles = useFileIntake({ ...intake, via: 'picker' });
+  const dropFiles = useFileIntake({ ...intake, via: 'drop' });
   const { view: reportView, dropMissing } = useConversionReport({ ...editor, ...remapper });
   const names = pair && namesOf(remapper.engines, pair);
   const blocker = convertBlocker({ files: remapper.files.length, pair: remapper.pair });
-  const openEditor = (show: EditFilter = 'all', note: Note | null = null) => {
-    track('editor-opened', { show });
+  const openEditor = (from: EditorSource, show: EditFilter = 'all', note: Note | null = null) => {
+    track('editor-opened', { show, from });
+    editor.beginSession();
     remapper.openEditor(show, note);
   };
-  const closeEditor = () => {
+  const closeEditor = (how: CloseHow) => {
+    editor.endSession(how);
     remapper.closeEditor();
     request('editLink');
   };
-  useEditorHistory(view.kind === 'edit', { canOpen: pair !== null, open: openEditor, close: closeEditor });
+  useEditorHistory(view.kind === 'edit', { canOpen: pair !== null, open: () => openEditor('history'), close: () => closeEditor('history') });
 
   if (view.kind === 'edit') {
     const shown = namesOf(remapper.engines, view.pair);
@@ -113,7 +121,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
   return (
     <Page wide onSkip={() => request('main')}>
       <Card mainRef={focus.ref('main')}>
-        <CardDropzone onFiles={addFiles}>
+        <CardDropzone onFiles={dropFiles}>
           <div className="
             flex flex-col gap-7 p-5
             sm:p-[34px_34px_30px]
@@ -136,7 +144,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
                   files={remapper.files}
                   failures={remapper.failures}
                   skipped={remapper.skipped}
-                  onFiles={addFiles}
+                  onFiles={pickFiles}
                   onRemove={remapper.removeFile}
                   onClear={remapper.clearFiles}
                   pickerRef={focus.ref('filePicker')}
@@ -228,10 +236,10 @@ export default function App({ runtime }: { runtime: Runtime }) {
           view={reportView}
           names={names}
           onPickTarget={(canon) => {
-            openEditor();
+            openEditor('report');
             editor.openPick(canon);
           }}
-          onAssignSource={(note) => openEditor('all', note)}
+          onAssignSource={(note) => openEditor('report', 'all', note)}
           onChannel={() => request('channel')}
           onDropMissing={dropMissing}
         />

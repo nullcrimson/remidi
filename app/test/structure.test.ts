@@ -69,7 +69,49 @@ function edges(): { file: string; from: string; to: string }[] {
   }));
 }
 
+function loadsCode(node: TypeScript.ImportDeclaration): boolean {
+  const clause = node.importClause;
+  if (clause === undefined) return true;
+  if (clause.phaseModifier === ts.SyntaxKind.TypeKeyword) return false;
+  const named = clause.namedBindings;
+  if (clause.name !== undefined || named === undefined || !ts.isNamedImports(named)) return true;
+  return named.elements.some((element) => !element.isTypeOnly);
+}
+
+function codeImports(file: string, text: string): string[] {
+  const kind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  return ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, kind).statements
+    .filter((node) => ts.isImportDeclaration(node))
+    .filter((node) => loadsCode(node) && ts.isStringLiteral(node.moduleSpecifier))
+    .map((node) => posix.join(posix.dirname(file), ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : ''));
+}
+
+function loadedBy(entry: string): string[] {
+  const seen = new Set<string>();
+  const visit = (target: string) => {
+    const file = [`${target}.ts`, `${target}.tsx`].find((candidate) => candidate in SOURCES) ?? target;
+    if (seen.has(file)) return;
+    seen.add(file);
+    if (file in SOURCES) codeImports(file, SOURCES[file]).forEach(visit);
+  };
+  visit(entry);
+  return [...seen].map((file) => file.slice(SRC_PREFIX.length)).sort();
+}
+
 describe('app structure', () => {
+  it('loads on a static page only its language script, the stored choice and the event sender', () => {
+    expect(loadedBy(`${SRC_PREFIX}locale/staticPagesEntry`)).toEqual([
+      'core/storage.ts',
+      'core/umami.ts',
+      'generated/localeCodes',
+      'locale/language.ts',
+      'locale/languageChoice.ts',
+      'locale/localeCode.ts',
+      'locale/staticPages.ts',
+      'locale/staticPagesEntry.ts',
+    ]);
+  });
+
   it('scans the app sources', () => {
     expect(Object.keys(SOURCES).length).toBeGreaterThan(40);
   });

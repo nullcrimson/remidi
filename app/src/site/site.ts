@@ -15,6 +15,11 @@ export function localHref(path: SitePath, locale: Locale): SitePath {
   return localePath(locale, path);
 }
 
+/** The name a navigation target has in `content/structure.json`: its route or its section. */
+export function targetName(target: NavTarget) {
+  return 'route' in target ? target.route : target.section;
+}
+
 export function targetLabel(target: NavTarget): Message {
   if ('route' in target) return { id: target.route === 'converter' ? 'nav-converter' : 'nav-note-maps' };
   return { id: SECTION_MESSAGES[target.section].label };

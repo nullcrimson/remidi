@@ -50,6 +50,13 @@ export function errorMessage(e: AppError): Message {
   }
 }
 
+/** How many of `errors` there are of each kind an event names, in the order the kinds first appear. */
+export function kindCounts(errors: AppError[]): [AppError['kind'], number][] {
+  const counts = new Map<AppError['kind'], number>();
+  for (const error of errors) counts.set(error.kind, (counts.get(error.kind) ?? 0) + 1);
+  return [...counts];
+}
+
 /** The untranslated technical cause, when there is one. */
 export function errorDetail(e: AppError): string | null {
   return 'detail' in e ? e.detail : null;

@@ -2,6 +2,8 @@ import { useT } from '../locale/localeContext';
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import type { FocusRef } from '../ui/useFocusIntent';
 import type { Engine } from '../core/midiremap';
+import { track } from '../core/stats';
+import type { StatEvents } from '../core/umami';
 import { reveal } from '../ui/reveal';
 import { useFilter } from '../ui/useFilter';
 import { useTruncationTooltip } from '../ui/useTruncationTooltip';
@@ -12,6 +14,7 @@ import { rowState, type RowState } from '../ui/styles';
 const PAGE = 8;
 
 export function LibraryList({
+  side,
   label,
   value,
   engines,
@@ -22,6 +25,7 @@ export function LibraryList({
   filterRef,
 }: {
   filterRef?: FocusRef;
+  side: StatEvents['engine-picked']['side'];
   label: string;
   value: string | null;
   engines: Engine[];
@@ -66,6 +70,7 @@ export function LibraryList({
   }, [activeKey, baseId]);
 
   const pick = (id: string) => {
+    track('engine-picked', { side, id, via: q !== '' ? 'filter' : favorites.has(id) ? 'favorite' : 'list' });
     onChange(id);
     setQ('');
     setActiveId(id);

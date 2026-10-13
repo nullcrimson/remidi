@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 import { toAppError, wasmUnavailable, type AppError } from '../core/errors';
+import { track } from '../core/stats';
 import type { Engine, LoadMidiremap, Midiremap } from '../core/midiremap';
 
 /** The converter module while it loads, once loaded with its engine list, or why it could not load. */
@@ -19,7 +20,9 @@ export function useEngineCatalog(
   useEffect(() => {
     let cancelled = false;
     const fail = (error: AppError) => {
-      if (!cancelled) setCatalog({ status: 'error', error });
+      if (cancelled) return;
+      track('load-failed', { kind: error.kind });
+      setCatalog({ status: 'error', error });
     };
     load()
       .then((core) => {

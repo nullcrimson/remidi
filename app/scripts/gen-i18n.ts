@@ -43,13 +43,17 @@ export function parseSources(s: Sources): Sources & { args: Record<string, strin
 
 const union = (xs: string[]) => xs.map((x) => `'${x}'`).join(' | ');
 
-export function generate(s: ReturnType<typeof parseSources>): { ts: string; css: string } {
+export function generate(s: ReturnType<typeof parseSources>): { ts: string; codes: string; css: string } {
   const ids = Object.keys(s.args);
   const keys = s.structure.sections.map((x) => x.key);
   const header = ids.some((id) => s.args[id].length > 0) ? 'import type { FluentVariable } from \'@fluent/bundle\';\n\n' : '';
-  const ts = `${header}export type Locale = ${union(s.locales.map((l) => l.code))};
-export const LOCALES: Record<Locale, { prefix: string; langTag: string; nativeName: string }> = ${JSON.stringify(Object.fromEntries(s.locales.map(({ code, prefix, langTag, nativeName }) => [code, { prefix, langTag, nativeName }])))};
+  const codes = `export type Locale = ${union(s.locales.map((l) => l.code))};
 export const LOCALE_CODES: readonly Locale[] = ${JSON.stringify(s.locales.map((l) => l.code))};
+`;
+  const ts = `${header}import type { Locale } from './localeCodes';
+
+export { LOCALE_CODES, type Locale } from './localeCodes';
+export const LOCALES: Record<Locale, { prefix: string; langTag: string; nativeName: string }> = ${JSON.stringify(Object.fromEntries(s.locales.map(({ code, prefix, langTag, nativeName }) => [code, { prefix, langTag, nativeName }])))};
 export function parseLocale(segment: string): Locale | undefined {
   return (Object.keys(LOCALES) as Locale[]).find((l) => LOCALES[l].prefix !== '' && LOCALES[l].prefix === segment);
 }
@@ -76,7 +80,7 @@ ${keys.map((k) => `  ${k}: { label: 'section-${k}-label', heading: 'section-${k}
 } as const satisfies Record<SectionKey, { label: MessageId; heading: MessageId; description: MessageId }>;
 `;
   const css = s.locales.filter((l) => l.fonts).map((l) => `:lang(${l.langTag}) {\n  --font-sans: ${l.fonts};\n  --font-display: var(--font-sans);\n  --font-mono: 'IBM Plex Mono', ${l.fonts};\n}\n`).join('');
-  return { ts, css };
+  return { ts, codes, css };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
@@ -92,5 +96,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const dir = join(root, 'app/src/generated');
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'i18n.ts'), out.ts);
+  writeFileSync(join(dir, 'localeCodes.ts'), out.codes);
   writeFileSync(join(dir, 'lang.css'), out.css);
 }

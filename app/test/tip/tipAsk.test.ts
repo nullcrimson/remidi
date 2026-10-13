@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { askAfterDownload, rememberTip } from '../../src/tip/tipAsk';
+import { amountAnswer, askAfterDownload, rememberTip } from '../../src/tip/tipAsk';
 import { storedName } from '../../src/core/storage';
+import tip from '../../../content/tip.json';
 
 const TIP_KEY = storedName('tip');
 
@@ -72,5 +73,19 @@ describe('askAfterDownload', () => {
     expect(downloads(5)).toEqual([false, false, false, false, false]);
     get.mockRestore();
     set.mockRestore();
+  });
+});
+
+describe('amountAnswer', () => {
+  it('names a listed amount by its euros', () => {
+    expect(amountAnswer(5)).toBe('5');
+  });
+
+  it('names no listed amount other', () => {
+    expect(tip.amounts.map(({ euros }) => amountAnswer(euros))).not.toContain('other');
+  });
+
+  it('names an amount that is not listed as other', () => {
+    expect(amountAnswer(7)).toBe('other');
   });
 });

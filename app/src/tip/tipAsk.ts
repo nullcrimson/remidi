@@ -1,4 +1,18 @@
 import { readStored, writeStored } from '../core/storage';
+import type { StatEvents } from '../core/umami';
+
+/** What a tip amount is called in the events. */
+export type TipAmount = Exclude<StatEvents['tip-answered']['answer'], 'closed'>;
+
+/** What a tip amount is called in the events: the euros, or `other` for any amount not listed. */
+export function amountAnswer(euros: number): TipAmount {
+  switch (euros) {
+    case 3: return '3';
+    case 5: return '5';
+    case 10: return '10';
+    default: return 'other';
+  }
+}
 
 const FIRST_ASK = 3;
 const DAY = 24 * 60 * 60 * 1000;

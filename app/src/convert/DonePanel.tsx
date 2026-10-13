@@ -16,6 +16,7 @@ import { tag, type TagTone } from '../ui/styles';
 import { TextButton } from '../ui/TextButton';
 import { TipToast } from '../tip/TipToast';
 import { track } from '../core/stats';
+import type { StatEvents } from '../core/umami';
 
 function outcomeTags(view: ReportView, failed: number, t: Translate): { text: string; tone: TagTone }[] {
   const { converted, approximated, dropped, unrecognized, untouched } = view.totals;
@@ -71,13 +72,13 @@ export function DonePanel({
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => headingRef.current?.focus(), []);
   const [asking, setAsking] = useState(false);
-  const markSaved = () => {
-    track('downloaded', { files: results.length });
+  const markSaved = (how: StatEvents['downloaded']['how']) => {
+    track('downloaded', { files: how === 'zip' ? results.length : 1, how });
     if (askAfterDownload()) setAsking(true);
   };
   const single = results.length === 1;
   const downloadZip = () => {
-    markSaved();
+    markSaved('zip');
     saveBlob(zipFiles(results), `remapped-${engineCode(pair.tgt)}.zip`);
   };
 
@@ -109,7 +110,7 @@ export function DonePanel({
 
       {single
         ? (
-            <Button variant="primary" size="lg" href={results[0].url} download={results[0].name} onClick={markSaved}>
+            <Button variant="primary" size="lg" href={results[0].url} download={results[0].name} onClick={() => markSaved('single')}>
               {t({ id: 'done-download-one' })}
             </Button>
           )
@@ -132,7 +133,7 @@ export function DonePanel({
               <span className="min-w-0 truncate font-mono text-t2">{r.name}</span>
               <span className="flex shrink-0 items-center gap-3">
                 <span className="text-t4">{fileStatus(reportByName.get(r.name), t)}</span>
-                <TextButton href={r.url} download={r.name} onClick={markSaved}>{t({ id: 'done-file-download' })}</TextButton>
+                <TextButton href={r.url} download={r.name} onClick={() => markSaved('file')}>{t({ id: 'done-file-download' })}</TextButton>
               </span>
             </li>
           ))}
@@ -154,15 +155,36 @@ export function DonePanel({
       {asking && <TipToast onClose={() => setAsking(false)} />}
 
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-        <TextButton tone="link" onClick={onViewReport}>{t({ id: 'done-view-report' })}</TextButton>
-        <TextButton onClick={onConvertMore}>{t({ id: 'done-convert-more' })}</TextButton>
+        <TextButton
+          tone="link"
+          onClick={() => {
+            track('report-opened');
+            onViewReport();
+          }}
+        >{t({ id: 'done-view-report' })}
+        </TextButton>
+        <TextButton
+          onClick={() => {
+            track('convert-again');
+            onConvertMore();
+          }}
+        >{t({ id: 'done-convert-more' })}
+        </TextButton>
         {onDropMissing && (
-          <TextButton onClick={onDropMissing}>{t({ id: 'drop-missing' })}</TextButton>
+          <TextButton
+            onClick={() => {
+              track('missing-dropped', { where: 'done' });
+              onDropMissing();
+            }}
+          >
+            {t({ id: 'drop-missing' })}
+          </TextButton>
         )}
         <a
           href={reportLink({ from: pair.src, to: pair.tgt, lang: locale })}
           target="_blank"
           rel="noopener"
+          onClick={() => track('mapping-reported')}
           className="prose-link text-ui"
         >
           {t({ id: 'done-report-mapping' })}

@@ -1,6 +1,7 @@
 import { useRef, type MouseEvent } from 'react';
 import { LOCALE_CODES, LOCALES, type Locale } from '../generated/i18n';
 import { converterPath } from '../locale/locale';
+import { track } from '../core/stats';
 import { plainClick } from './plainClick';
 import { useLocale } from '../locale/localeContext';
 import { GlobeIcon } from './GlobeIcon';
@@ -13,7 +14,9 @@ export function LanguageMenu() {
     if (!plainClick(e)) return;
     e.preventDefault();
     list.current?.hidePopover();
-    if (locale !== translator.locale) switchTo(locale);
+    if (locale === translator.locale) return;
+    track('language-picked', { to: locale, where: 'app' });
+    switchTo(locale);
   };
   return (
     <>

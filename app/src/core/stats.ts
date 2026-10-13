@@ -1,22 +1,53 @@
-type StatEvent
-  = | 'midi-added'
-    | 'converted'
-    | 'convert-failed'
-    | 'downloaded'
-    | 'editor-opened'
-    | 'preset-saved'
-    | 'preset-loaded'
-    | 'preset-imported';
+import { send, type AppEvent, type StatArgs } from './umami';
 
-type StatProps = Record<string, string | number | boolean>;
+/** 1 is the funnel, 2 is feature use, 3 is fine detail. */
+export type Tier = 1 | 2 | 3;
 
-declare global {
-  interface Window {
-    umami?: { track: (event: string, props?: StatProps) => void };
-  }
+const TIER_OF = {
+  'engine-picked': 2,
+  'engines-swapped': 2,
+  'engine-starred': 2,
+  'midi-added': 1,
+  'file-removed': 2,
+  'setting-changed': 2,
+  converted: 1,
+  'convert-failed': 1,
+  'file-failed': 1,
+  downloaded: 1,
+  'convert-again': 1,
+  'report-opened': 2,
+  'report-fix-used': 2,
+  'missing-dropped': 2,
+  'mapping-reported': 2,
+  'editor-opened': 2,
+  'editor-closed': 2,
+  'editor-reset': 2,
+  'plan-failed': 2,
+  'preset-saved': 2,
+  'preset-loaded': 2,
+  'preset-managed': 2,
+  'preset-imported': 2,
+  'presets-unsaved': 2,
+  'language-picked': 3,
+  'section-opened': 3,
+  'nav-used': 3,
+  'contact-used': 3,
+  'tip-asked': 3,
+  'tip-answered': 3,
+  'load-failed': 3,
+  crashed: 3,
+  'storage-cleared': 3,
+} as const satisfies Record<AppEvent, Tier>;
+
+/** The tiers that are sent; an event of any other tier is not. */
+export const ENABLED_TIERS: ReadonlySet<Tier> = new Set<Tier>([1, 2, 3]);
+
+/** A `track` that sends the events of `enabled` tiers only. */
+export function tracker(enabled: ReadonlySet<Tier>) {
+  return <E extends AppEvent>(event: E, ...props: StatArgs<E>): void => {
+    if (enabled.has(TIER_OF[event])) send(event, ...props);
+  };
 }
 
-/** Counts `event` in Umami; does nothing when its script is absent, blocked or off-domain. */
-export function track(event: StatEvent, props?: StatProps): void {
-  window.umami?.track(event, props);
-}
+/** Counts `event` in Umami when its tier is on. */
+export const track = tracker(ENABLED_TIERS);

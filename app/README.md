@@ -94,6 +94,7 @@ on a phone and click elsewhere.
   a jsdom page and `test/setup.dom.ts`; every other `*.test.ts` runs in plain Node, which
   starts faster. A test of code that reads `document` or `window` and has no JSX is named
   `*.dom.test.ts`; in Node it fails on the missing global.
+- The `App.stats.*` tests check the analytics events, one test per event and trigger: `fakeUmami()` in `test/umami.ts` installs a fake `window.umami` and returns its `track`, and each test checks `toHaveBeenCalledWith(name, props)`; `test/eventSteps.tsx` holds the app steps they share. `test/siteEvents.test.ts` checks that the events the templates and static scripts name are in the event map, and `test/siteFilter.dom.test.ts` runs `midiremap-site/static/filter.js` over a fixture (a fresh module per test, through `vi.resetModules()`). `converted`, `file-failed` and `convert-failed` are sent by `run` in `convert/useRemapper.ts` (tested in `test/convert/useRemapper.stats.test.tsx` and `App.stats.convert`); `load-failed` with kind `locale` is sent by `main.tsx` and covered by `e2e/locale.spec.ts`.
 - `src/` is foldered by feature, and `test/` mirrors it (shared helpers stay at the top of
   `test/`). Imports point one way, from `convert` on top down through `editor`, the other
   features, `ui` and `locale` to `core`; no two folders import each other. The table
@@ -111,9 +112,9 @@ on a phone and click elsewhere.
   `parseEdits`, `parseSrcEdits` and `sameEdits` read and compare them), `missing.ts` (the
   missing-drums setting, Nearest / Drop, and its hint), `channel.ts`, `files.ts` (the accepted extensions, once: `ACCEPT_EXTENSIONS`, `splitFiles`, `withoutMidExtension`),
   `selection.ts` (`SelectionEvent`, handed to each reducer), `notice.ts`, `download.ts` (`saveBlob`: save a file made in memory, free its address after ten seconds),
-  `storage.ts` (the only module that touches `localStorage`: the closed `StorageKey` set, `storedName` which
+  `umami.ts` (the 37 analytics events, each with its exact properties, and `send`, the typed call into Umami: the only code that reads `window.umami`; the static pages' script uses it alone) and `stats.ts` (`track`, the app's call, accepting the events of `AppEvent` only: it sends one only when its tier is on, `ENABLED_TIERS`; the four events only static pages send, `StaticOnlyEvent`, have no tier), `storage.ts` (the only module that touches `localStorage`: the closed `StorageKey` set, `storedName` which
   puts `midiremap:` in front of it, and `readStored`, `readStoredStrict` (blocked or `{ value }`), `writeStored`, `removeStored`, `clearStored`, `onStoredChange` (the one `storage` event subscription); eslint
-  rejects `localStorage` anywhere else in `src`), `stats.ts`, `contact.ts` (the issue and contact addresses), `engineCode.ts`
+  rejects `localStorage` anywhere else in `src`), `contact.ts` (the issue and contact addresses), `engineCode.ts`
   (the three-letter badge of an engine id).
 - `src/convert/` — the converter screen: `useRemapper.ts` (screen state, Convert + Edit, the `View`: the editor's pair and arguments, only ever on show with both engines chosen; every
   selection change is one `SelectionEvent`), `runtime.ts` (`Runtime { load, converter }`, made
@@ -134,7 +135,7 @@ on a phone and click elsewhere.
   (`groupByFamily`: groups drums and plan rows, which carry their canon's `family`, in the core's family order, keeping any family it does not
   list), `editSummary.ts` and `useEditedSummary.ts` (the summary row's "edited" chip: which
   drums differ from the default mapping, their preview lines, and whether they match the open
-  preset), `useEditorHistory.ts` (opening the editor adds a history entry, so the browser's
+  preset), `editorTally.ts` (what one editing session did, for the `editor-closed` event: picks on the piano and in the drum list, filter use, row resets), `useEditorHistory.ts` (opening the editor adds a history entry, so the browser's
   Back closes it instead of leaving the converter; a Forward onto it without both engines steps back).
 - `src/engines/` — LibraryList, EngineColumns, `useEngineCatalog.ts`, `useFavorites.ts`.
 - `src/presets/` — stored presets: `mappings.ts` (`PresetName`, generated from Rust, and its one parser `parsePresetName`: not blank, spacing kept, the UI trims typed text first; `uniqueName`; versioned; unreadable entries, a blank name among them, and an unreadable quarantine are kept in `midiremap:quarantine`, written, never read), `presetFile.ts`

@@ -1,3 +1,5 @@
+import { contactLink } from '../core/contact';
+import { track } from '../core/stats';
 import type { Block, Inline } from '../locale/docs';
 import { localHref } from './site';
 import type { SitePath } from '../generated/i18n';
@@ -5,6 +7,11 @@ import { useLocale } from '../locale/localeContext';
 import { ProseLink } from '../ui/ProseLink';
 
 const isSitePath = (href: string): href is SitePath => href.startsWith('/');
+
+function contactClick(href: string) {
+  const link = contactLink(href);
+  return link === null ? undefined : () => track('contact-used', { link });
+}
 
 function Text({ inline }: { inline: Inline[] }) {
   const { translator } = useLocale();
@@ -19,7 +26,7 @@ function Text({ inline }: { inline: Inline[] }) {
           >{part.text}
           </a>
         )
-      : <ProseLink key={i} href={part.href}>{part.text}</ProseLink>;
+      : <ProseLink key={i} href={part.href} onClick={contactClick(part.href)}>{part.text}</ProseLink>;
   });
 }
 

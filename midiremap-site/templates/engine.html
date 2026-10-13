@@ -13,10 +13,16 @@
 <div class="flex flex-wrap items-center gap-3">
   <a
     href="{{ frame.home }}?to={{ page.engine.id }}"
+    data-umami-event="converter-opened"
+    data-umami-event-page="{{ frame.kind }}"
+    data-umami-event-to="{{ page.engine.id }}"
     class="inline-flex items-center justify-center rounded-panel bg-accent px-5 py-3 font-display text-body font-semibold text-ink transition hover:brightness-110 pointer-coarse:min-h-11"
   >{{ texts.engine(MessageId::MapsConvertTo, page.engine.name.as_str())? }}</a>
   <a
     href="{{ frame.home }}?from={{ page.engine.id }}"
+    data-umami-event="converter-opened"
+    data-umami-event-page="{{ frame.kind }}"
+    data-umami-event-from="{{ page.engine.id }}"
     class="inline-flex items-center justify-center rounded-panel border border-accent/40 px-5 py-3 font-display text-body font-semibold text-accent transition hover:border-accent hover:bg-accent/8 pointer-coarse:min-h-11"
   >{{ texts.engine(MessageId::MapsConvertFrom, page.engine.name.as_str())? }}</a>
 </div>
@@ -26,6 +32,7 @@
     type="search"
     hidden
     data-filter="drums"
+    data-page="{{ frame.kind }}"
     aria-label="{{ texts.get(Plain::MapsFilterDrumsLabel) }}"
     placeholder="{{ texts.get(Plain::MapsFilterDrumsPlaceholder) }}"
     class="min-w-0 grow rounded-chip border border-field-border bg-field px-2 py-1.25 font-mono text-body text-t2 transition-colors outline-none placeholder:text-t5 focus:border-accent/40 sm:text-label pointer-coarse:py-2.5"

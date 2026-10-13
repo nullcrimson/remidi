@@ -1,5 +1,7 @@
 import type { FileResult } from '../core/files';
-import type { Canon, Drum, Note, Report, VocabularyDrum } from '../core/midiremap';
+import type { Canon, Drum, MissingDrums, Note, Report, VocabularyDrum } from '../core/midiremap';
+import type { EnginePair } from '../core/enginePair';
+import type { StatEvents } from '../core/umami';
 import { labelByNote } from '../core/drums';
 import { byCanon } from '../core/canon';
 import { byNote, noteName, type OctaveBase } from '../core/notes';
@@ -130,4 +132,35 @@ export function buildReport(
       && totals.unrecognized === 0;
 
   return { clean, totals, groups, files };
+}
+
+/** What a batch that returned tells the `converted` event: its pair and settings, how many files failed, and the loss of the ones that converted. */
+export function convertedProps(
+  pair: EnginePair,
+  reports: Report[],
+  failed: number,
+  setup: { missing: MissingDrums; edited: boolean; preset: boolean },
+): StatEvents['converted'] {
+  return {
+    from: pair.src,
+    to: pair.tgt,
+    pair: `${pair.src}>${pair.tgt}`,
+    files: reports.length,
+    failed,
+    ...setup,
+    ...lossCounts(reports),
+  };
+}
+
+/** How many entries each loss group of the report has across `reports`, counted without building the report. */
+export function lossCounts(reports: Report[]): { dropped: number; approximated: number; unrecognized: number } {
+  const dropped = new Set<Canon>();
+  const approximated = new Set<string>();
+  const unrecognized = new Set<Note>();
+  for (const report of reports) {
+    for (const [canon] of byCanon(report.dropped)) dropped.add(canon);
+    for (const [canon, { note }] of byCanon(report.fallbackUsed)) approximated.add(`${canon}:${note}`);
+    for (const [note] of byNote(report.unmappedSource)) unrecognized.add(note);
+  }
+  return { dropped: dropped.size, approximated: approximated.size, unrecognized: unrecognized.size };
 }

@@ -51,7 +51,7 @@ describe('CardDropzone', () => {
       </CardDropzone>,
     );
     fireEvent.drop(window, { dataTransfer: { files: [txt()] } });
-    await waitFor(() => expect(onFiles).toHaveBeenCalledWith([], ['note.txt'], [], []));
+    await waitFor(() => expect(onFiles).toHaveBeenCalledWith([], ['note.txt'], [], { mid: [], presets: [] }));
   });
 
   it('hides the overlay after a drop', () => {

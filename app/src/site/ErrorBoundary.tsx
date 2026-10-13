@@ -5,6 +5,7 @@ import { ProseLink } from '../ui/ProseLink';
 import { TextButton } from '../ui/TextButton';
 import { ISSUES_URL } from '../core/contact';
 import { clearStored } from '../core/storage';
+import { track } from '../core/stats';
 
 function Fallback({ message, onReload }: { message: string; onReload: () => void }) {
   const t = useT();
@@ -26,7 +27,7 @@ function Fallback({ message, onReload }: { message: string; onReload: () => void
         <p className="font-mono text-caption wrap-break-word text-monodim">{message}</p>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
           <Button variant="primary" size="md" onClick={onReload}>{t({ id: 'crash-reload' })}</Button>
-          <ProseLink href={ISSUES_URL}>{t({ id: 'section-issue-label' })}</ProseLink>
+          <ProseLink href={ISSUES_URL} onClick={() => track('contact-used', { link: 'issues' })}>{t({ id: 'section-issue-label' })}</ProseLink>
           {!confirming && (
             <TextButton onClick={() => setConfirming(true)}>{t({ id: 'crash-reset' })}</TextButton>
           )}
@@ -39,6 +40,7 @@ function Fallback({ message, onReload }: { message: string; onReload: () => void
                 variant="secondary"
                 size="sm"
                 onClick={() => {
+                  track('storage-cleared');
                   clearStored();
                   onReload();
                 }}
@@ -68,6 +70,7 @@ export class ErrorBoundary extends Component<Props, { error: unknown }> {
   }
 
   componentDidCatch(error: unknown, info: ErrorInfo) {
+    track('crashed');
     console.error(error, info.componentStack);
   }
 

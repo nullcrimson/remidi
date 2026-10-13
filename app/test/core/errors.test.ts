@@ -1,4 +1,4 @@
-import { errorDetail, errorMessage, toAppError, WasmCallError } from '../../src/core/errors';
+import { errorDetail, errorMessage, kindCounts, toAppError, WasmCallError } from '../../src/core/errors';
 import { ENGLISH } from '../../src/locale/i18n';
 
 const { t } = ENGLISH;
@@ -51,5 +51,13 @@ describe('errors', () => {
 
   it('has no technical detail for an error without one', () => {
     expect(errorDetail({ kind: 'unknownEngine', role: 'target', id: 'gone' })).toBeNull();
+  });
+
+  it('counts errors of one kind together', () => {
+    expect(kindCounts([{ kind: 'badMidi', detail: 'a' }, { kind: 'badMidi', detail: 'b' }])).toEqual([['badMidi', 2]]);
+  });
+
+  it('counts a refused preset apart from the internal errors', () => {
+    expect(kindCounts([{ kind: 'internal', detail: 'a' }, { kind: 'badPreset', detail: 'b' }])).toEqual([['internal', 1], ['badPreset', 1]]);
   });
 });

@@ -21,6 +21,7 @@ type RowActions = Pick<
   | 'setPickOct'
   | 'chooseNote'
   | 'chooseSrcNote'
+  | 'countPick'
   | 'resetRow'
 >;
 
@@ -135,6 +136,7 @@ export function FamilyRows({
                       families={families}
                       onSetOct={(octIndex) => actions.setPickOct(here, octIndex)}
                       onPickNote={(note) => actions.chooseNote(here, note)}
+                      onPickVia={actions.countPick}
                       onClose={actions.closePick}
                     />
                   )}

@@ -21,6 +21,7 @@ function intake(load: LoadMidiremap) {
       saved: { mappings: [], save },
       notify,
       focus: vi.fn(),
+      via: 'picker',
     }),
   );
   return { onFiles: result.current, save, notify };
@@ -51,7 +52,7 @@ describe('useFileIntake', () => {
 
   it('reports unreadable files in the same notice as the imported presets', async () => {
     const { onFiles, notify } = intake(moduleLoader());
-    onFiles([], [], [PRESET], ['broken.mid']);
+    onFiles([], [], [PRESET], { mid: ['broken.mid'], presets: [] });
     await waitFor(() => expect(notify).toHaveBeenCalledOnce());
     expect(notify.mock.calls[0][0]).toHaveLength(2);
   });

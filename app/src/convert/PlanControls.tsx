@@ -2,6 +2,7 @@ import type { useEditedSummary } from '../editor/useEditedSummary';
 import type { Editor } from '../editor/useEditor';
 import type { FocusRef } from '../ui/useFocusIntent';
 import type { Remapper } from './useRemapper';
+import type { StatEvents } from '../core/umami';
 import type { EditFilter } from '../editor/editFilter';
 import { namesOf } from '../core/enginePair';
 import { missingHint, swapList } from '../core/missing';
@@ -25,7 +26,7 @@ export function PlanControls({
   edited: ReturnType<typeof useEditedSummary>;
   channelRef: FocusRef;
   editRef: FocusRef;
-  onOpenEditor: (show?: EditFilter) => void;
+  onOpenEditor: (from: Extract<StatEvents['editor-opened']['from'], 'summary' | 'missing'>, show?: EditFilter) => void;
 }) {
   const t = useT();
   const { pair } = remapper;
@@ -40,7 +41,7 @@ export function PlanControls({
         missing={remapper.missing}
         missingHint={t(missingHint(remapper.missing, editor.rows))}
         missingSwaps={swapList(editor.rows, editor.targetDrums, remapper.oct)}
-        onMissingDetail={() => onOpenEditor('issues')}
+        onMissingDetail={() => onOpenEditor('missing', 'issues')}
         onMissing={remapper.setMissing}
       />
 
@@ -52,11 +53,11 @@ export function PlanControls({
         <SummaryRow
           remapped={editor.remappedCount}
           total={editor.rows.length}
-          onEdit={onOpenEditor}
+          onEdit={(show) => onOpenEditor('summary', show)}
           breakdown={planBreakdown(editor.rows, editor.targetDrums, remapper.oct)}
           names={namesOf(remapper.engines, pair)}
           editRef={editRef}
-          edited={edited.count > 0 ? { ...edited, onReview: () => onOpenEditor('changed') } : undefined}
+          edited={edited.count > 0 ? { ...edited, onReview: () => onOpenEditor('summary', 'changed') } : undefined}
         />
       )}
     </>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { sectionBlocks } from '../locale/docs';
-import { href, targetLabel } from './site';
+import { href, targetLabel, targetName } from './site';
+import { track } from '../core/stats';
 import tip from '../../../content/tip.json';
 import { FOOTER, SECTION_KEYS, SECTION_MESSAGES, type SectionKey } from '../generated/i18n';
 import { useLocale } from '../locale/localeContext';
@@ -26,8 +27,12 @@ export function SiteFooter() {
                     href={href(target, locale)}
                     aria-haspopup={section ? 'dialog' : undefined}
                     onClick={(e) => {
-                      if (!section || !plainClick(e)) return;
+                      if (!section || !plainClick(e)) {
+                        track('nav-used', { target: targetName(target), where: 'footer' });
+                        return;
+                      }
                       e.preventDefault();
+                      track('section-opened', { section });
                       setOpen(section);
                     }}
                     className="prose-link"
@@ -42,6 +47,7 @@ export function SiteFooter() {
                 href={tip.other}
                 target="_blank"
                 rel="noopener"
+                onClick={() => track('tip-answered', { answer: 'other', where: 'footer' })}
                 className="prose-link tip-link"
               >
                 {t({ id: 'tip-link' })}

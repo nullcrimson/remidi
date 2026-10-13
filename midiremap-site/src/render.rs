@@ -178,6 +178,26 @@ struct NavItem<'a> {
     label: &'a str,
     href: LocalPath,
     current: bool,
+    converter: bool,
+}
+
+#[derive(Clone, Copy)]
+enum PageKind {
+    Index,
+    Engine,
+    Pair,
+    Doc,
+}
+
+impl std::fmt::Display for PageKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Index => "index",
+            Self::Engine => "engine",
+            Self::Pair => "pair",
+            Self::Doc => "doc",
+        })
+    }
 }
 
 struct Texts<'a> {
@@ -225,6 +245,7 @@ impl<'a> Texts<'a> {
                 label: self.get(label(t)),
                 href: href(t, self.locale, self.docs),
                 current: current == Some(t),
+                converter: t == NavTarget::Converter,
             })
             .collect()
     }
@@ -267,6 +288,7 @@ struct Frame<'a> {
     tip_href: &'static str,
     home: LocalPath,
     open_converter: &'a str,
+    kind: PageKind,
     json_ld: Option<String>,
 }
 
@@ -277,6 +299,7 @@ impl<'a> Frame<'a> {
         current: Option<NavTarget>,
         json_ld: Option<String>,
         page: &Page,
+        kind: PageKind,
     ) -> Self {
         let here = texts.locale;
         Self {
@@ -321,6 +344,7 @@ impl<'a> Frame<'a> {
             tip_href: TIP_HREF,
             home: home(texts.locale),
             open_converter: texts.get(Plain::OpenConverter),
+            kind,
             json_ld,
         }
     }
@@ -416,7 +440,14 @@ fn render_thanks(
             texts.get(Plain::ThanksDescription).to_owned(),
             &path,
         ),
-        frame: Frame::new(manifest, texts, None, None, &Page::Everywhere(THANKS)),
+        frame: Frame::new(
+            manifest,
+            texts,
+            None,
+            None,
+            &Page::Everywhere(THANKS),
+            PageKind::Doc,
+        ),
         texts,
     }
     .render()?;
@@ -428,13 +459,21 @@ fn render_note_maps(
     manifest: &SiteManifest,
     texts: &Texts,
 ) -> Result<Vec<(String, String)>, RenderError> {
-    let frame =
-        |path: SitePath| Frame::new(manifest, texts, IN_NOTE_MAPS, None, &Page::Everywhere(path));
+    let frame = |path: SitePath, kind: PageKind| {
+        Frame::new(
+            manifest,
+            texts,
+            IN_NOTE_MAPS,
+            None,
+            &Page::Everywhere(path),
+            kind,
+        )
+    };
     let mut out = vec![(
         NOTE_MAPS.in_locale(texts.locale).file(),
         IndexHtml {
             meta: index_meta(&site.index, texts)?,
-            frame: frame(NOTE_MAPS),
+            frame: frame(NOTE_MAPS, PageKind::Index),
             texts,
             page: &site.index,
         }
@@ -446,7 +485,7 @@ fn render_note_maps(
             path.in_locale(texts.locale).file(),
             EngineHtml {
                 meta: engine_meta(p, texts)?,
-                frame: frame(path),
+                frame: frame(path, PageKind::Engine),
                 texts,
                 intro: texts.format(
                     MessageId::MapsEngineIntro,
@@ -466,7 +505,7 @@ fn render_note_maps(
             path.in_locale(texts.locale).file(),
             PairHtml {
                 meta: pair_meta(p, texts)?,
-                frame: frame(path),
+                frame: frame(path, PageKind::Pair),
                 texts,
                 heading: pair_heading(p, texts)?,
                 summary: pair_summary(texts, &p.src.name, &p.tgt.name, p.tally)?,
@@ -507,6 +546,7 @@ fn render_sections(
                     Some(target),
                     section_schema(k, &page),
                     &Page::Section(k),
+                    PageKind::Doc,
                 ),
                 texts,
                 page: &page,
@@ -1474,5 +1514,160 @@ mod tests {
                 k.key()
             );
         }
+    }
+
+    fn anchors(html: &str) -> Vec<&str> {
+        html.split("<a")
+            .skip(1)
+            .map(|rest| rest.split('>').next().unwrap())
+            .collect()
+    }
+
+    fn anchor_to<'a>(html: &'a str, href: &str) -> &'a str {
+        let needle = format!(r#"href="{href}""#);
+        anchors(html)
+            .into_iter()
+            .find(|tag| tag.contains(&needle))
+            .unwrap_or_else(|| panic!("{href}"))
+    }
+
+    fn opened_converter(tag: &str) -> bool {
+        tag.contains(r#"data-umami-event="converter-opened""#)
+    }
+
+    #[test]
+    fn an_engine_page_tells_the_stats_which_page_kind_opened_the_converter() {
+        let html = page("engines/ezdrummer/index.html");
+        assert!(anchor_to(&html, "/?to=ezdrummer").contains(r#"data-umami-event-page="engine""#));
+    }
+
+    #[test]
+    fn an_engine_pages_convert_to_link_names_the_target_engine() {
+        let html = page("engines/ezdrummer/index.html");
+        let tag = anchor_to(&html, "/?to=ezdrummer");
+        assert!(opened_converter(tag));
+        assert!(tag.contains(r#"data-umami-event-to="ezdrummer""#));
+    }
+
+    #[test]
+    fn an_engine_pages_convert_to_link_names_no_source_engine() {
+        let html = page("engines/ezdrummer/index.html");
+        assert!(!anchor_to(&html, "/?to=ezdrummer").contains("data-umami-event-from"));
+    }
+
+    #[test]
+    fn an_engine_pages_convert_from_link_names_the_source_engine() {
+        let html = page("engines/ezdrummer/index.html");
+        let tag = anchor_to(&html, "/?from=ezdrummer");
+        assert!(opened_converter(tag));
+        assert!(tag.contains(r#"data-umami-event-from="ezdrummer""#));
+    }
+
+    #[test]
+    fn a_pair_pages_convert_link_names_both_engines() {
+        let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
+        let tag = anchor_to(&html, "/?from=addictive_drums2&amp;to=ezdrummer");
+        assert!(opened_converter(tag));
+        assert!(tag.contains(r#"data-umami-event-from="addictive_drums2""#));
+        assert!(tag.contains(r#"data-umami-event-to="ezdrummer""#));
+    }
+
+    #[test]
+    fn a_pair_pages_convert_link_says_it_is_on_a_pair_page() {
+        let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
+        let tag = anchor_to(&html, "/?from=addictive_drums2&amp;to=ezdrummer");
+        assert!(tag.contains(r#"data-umami-event-page="pair""#));
+    }
+
+    #[test]
+    fn the_headers_converter_link_says_which_kind_of_page_it_is_on() {
+        let html = page("engines/index.html");
+        let tag = anchors(&html)
+            .into_iter()
+            .find(|tag| tag.contains("nav-link") && tag.contains(r#"href="/""#))
+            .unwrap();
+        assert!(tag.contains(r#"data-umami-event-page="index""#));
+    }
+
+    #[test]
+    fn the_headers_converter_link_opens_the_converter() {
+        let html = page("faq/index.html");
+        let tag = anchors(&html)
+            .into_iter()
+            .find(|tag| tag.contains("nav-link") && tag.contains(r#"href="/""#))
+            .unwrap();
+        assert!(opened_converter(tag));
+    }
+
+    #[test]
+    fn the_headers_other_links_do_not_open_the_converter() {
+        let html = page("faq/index.html");
+        let tag = anchors(&html)
+            .into_iter()
+            .find(|tag| tag.contains("nav-link") && tag.contains(r#"href="/engines/""#))
+            .unwrap();
+        assert!(!opened_converter(tag));
+    }
+
+    #[test]
+    fn the_brand_link_opens_the_converter() {
+        let html = page("engines/ezdrummer/index.html");
+        let tag = anchors(&html)
+            .into_iter()
+            .find(|tag| tag.contains("brand-mark"))
+            .unwrap();
+        assert!(opened_converter(tag));
+    }
+
+    #[test]
+    fn a_document_pages_open_converter_link_says_it_is_on_a_doc_page() {
+        let html = page("faq/index.html");
+        let tag = anchors(&html)
+            .into_iter()
+            .find(|tag| tag.contains("prose-link text-ui") && tag.contains(r#"href="/""#))
+            .unwrap();
+        assert!(tag.contains(r#"data-umami-event-page="doc""#));
+    }
+
+    #[test]
+    fn the_thanks_pages_open_converter_link_says_it_is_on_a_doc_page() {
+        let pages = rendered();
+        let (_, html) = thanks_page(&pages, Locale::En);
+        let tag = anchor_to(html, "/");
+        assert!(tag.contains(r#"data-umami-event-page="doc""#));
+    }
+
+    #[test]
+    fn the_footer_links_do_not_open_the_converter() {
+        let html = page("faq/index.html");
+        let footer = html.split("<footer").nth(1).unwrap();
+        assert!(!anchors(footer).into_iter().any(opened_converter));
+    }
+
+    #[test]
+    fn a_polish_engine_page_keeps_the_event_on_its_converter_link() {
+        let html = page("pl/engines/ezdrummer/index.html");
+        assert!(opened_converter(anchor_to(&html, "/pl/?to=ezdrummer")));
+    }
+
+    fn filter_input<'a>(html: &'a str, scope: &str) -> &'a str {
+        html.split("<input")
+            .find(|tag| tag.contains(&format!(r#"data-filter="{scope}""#)))
+            .unwrap()
+            .split('>')
+            .next()
+            .unwrap()
+    }
+
+    #[test]
+    fn the_note_map_filter_says_it_is_on_the_index() {
+        let html = page("engines/index.html");
+        assert!(filter_input(&html, "engines").contains(r#"data-page="index""#));
+    }
+
+    #[test]
+    fn an_engine_page_filter_says_it_is_on_an_engine_page() {
+        let html = page("engines/ezdrummer/index.html");
+        assert!(filter_input(&html, "drums").contains(r#"data-page="engine""#));
     }
 }

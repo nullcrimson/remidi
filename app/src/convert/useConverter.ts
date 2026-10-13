@@ -6,13 +6,17 @@ import { toAppError, type AppError } from '../core/errors';
 import type { ChannelScope, MissingDrums, Overrides } from '../core/midiremap';
 import type { SelectionEvent } from '../core/selection';
 import { withoutMidExtension, type FileResult, type LoadedFile } from '../core/files';
-import { track } from '../core/stats';
 
 export type Conv
   = | { kind: 'idle' }
     | { kind: 'running' }
     | { kind: 'done'; pair: EnginePair; results: FileResult[]; failures: FailedFile[] }
     | { kind: 'error'; failures: FailedFile[]; error: AppError };
+
+/** What a run of the converter came to, when it was not stopped: a batch that returned, or the call failing as a whole. */
+export type ConvertOutcome
+  = | { kind: 'done'; ok: FileResult[]; failed: FailedFile[] }
+    | { kind: 'failed'; error: AppError };
 
 type Stored = Exclude<Conv, { kind: 'idle' }> & { key: string };
 
@@ -127,7 +131,7 @@ export function useConverter(converter: Converter, pair: EnginePair | null, sett
       channel: ChannelScope,
       missing: MissingDrums,
       key: string,
-    ): Promise<FileResult[] | null> => {
+    ): Promise<ConvertOutcome | null> => {
       if (files.length === 0 || pair === null) return null;
       stop();
       const run = new AbortController();
@@ -138,9 +142,9 @@ export function useConverter(converter: Converter, pair: EnginePair | null, sett
         batch = await converter.convert(files, pair, ov, channel, missing, run.signal);
       } catch (err) {
         if (run.signal.aborted) return null;
-        track('convert-failed', { from: pair.src, to: pair.tgt });
-        dispatch({ type: 'CONVERT_ERROR', key, failures: [], error: toAppError(err) });
-        return null;
+        const error = toAppError(err);
+        dispatch({ type: 'CONVERT_ERROR', key, failures: [], error });
+        return { kind: 'failed', error };
       }
       if (run.signal.aborted) return null;
       const ok: FileResult[] = batch.ok.map(({ name, bytes, report }) => ({
@@ -150,17 +154,9 @@ export function useConverter(converter: Converter, pair: EnginePair | null, sett
         report,
       }));
       const bad = batch.failed;
-      track('converted', {
-        from: pair.src,
-        to: pair.tgt,
-        files: ok.length,
-        failed: bad.length,
-        missing,
-        edited: (ov.tgt?.length ?? 0) + (ov.src?.length ?? 0) > 0,
-      });
       if (ok.length > 0 || bad.length === 0) dispatch({ type: 'CONVERT_DONE', key, pair, results: ok, failures: bad });
       else dispatch({ type: 'CONVERT_ERROR', key, failures: bad, error: bad[0].error });
-      return ok;
+      return { kind: 'done', ok, failed: bad };
     },
     [converter, files, pair, stop],
   );

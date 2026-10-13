@@ -15,6 +15,8 @@ import { pickOf } from './editorState';
 import { FamilyRows } from './FamilyRows';
 import { PlanErrorNotice } from './PlanErrorNotice';
 import { SourceEditor } from './SourceEditor';
+import { track } from '../core/stats';
+import type { CloseHow } from './editorTally';
 import { TextButton } from '../ui/TextButton';
 
 interface EditViewProps {
@@ -28,7 +30,7 @@ interface EditViewProps {
   presetsUnsaved: boolean;
   assignNote: Note | null;
   initialShow: EditFilter;
-  onClose: () => void;
+  onClose: (how: Exclude<CloseHow, 'history'>) => void;
   onSavePreset: (name: PresetName) => void;
   onUpdatePreset: (id: string, name: PresetName) => void;
 }
@@ -74,7 +76,7 @@ export function EditView({
       >
         <div className="flex flex-col gap-1">
           <div className="flex items-baseline gap-3">
-            <TextButton onClick={onClose}>{t({ id: 'edit-back' })}</TextButton>
+            <TextButton onClick={() => onClose('back')}>{t({ id: 'edit-back' })}</TextButton>
             <h2
               ref={headingRef}
               tabIndex={-1}
@@ -92,9 +94,15 @@ export function EditView({
 
         <EditFilters
           q={q}
-          onQ={setQ}
+          onQ={(text) => {
+            editor.countFilter();
+            setQ(text);
+          }}
           show={show}
-          onShow={setShow}
+          onShow={(next) => {
+            editor.countFilter();
+            setShow(next);
+          }}
           counts={{ all: rows.length, changed: changed.size, issues }}
         />
 
@@ -151,14 +159,17 @@ export function EditView({
 
       <EditFooter
         changes={changed.size}
-        onResetAll={reset}
+        onResetAll={() => {
+          track('editor-reset');
+          reset();
+        }}
         pair={pair}
         existingPreset={existingPreset}
         presetsAtCap={presetsAtCap}
         presetsUnsaved={presetsUnsaved}
         onSavePreset={onSavePreset}
         onUpdatePreset={onUpdatePreset}
-        onDone={onClose}
+        onDone={() => onClose('done')}
       />
     </div>
   );

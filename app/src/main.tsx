@@ -4,6 +4,7 @@ import App from './App';
 import { ErrorBoundary } from './site/ErrorBoundary';
 import { LocaleProvider } from './locale/LocaleProvider';
 import { startAddress, startLocale, startTranslator } from './locale/startLocale';
+import { track } from './core/stats';
 import { browserRuntime } from './convert/runtime';
 import { applyDocument, pathLocale, storedLocale } from './locale/locale';
 import './index.css';
@@ -28,6 +29,7 @@ startTranslator(path, start).then(
   },
   (err: unknown) => {
     console.error(err);
+    track('load-failed', { kind: 'locale' });
     document.getElementById('load-failed')?.removeAttribute('hidden');
   },
 );

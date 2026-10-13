@@ -1,6 +1,7 @@
 import { useT } from '../locale/localeContext';
 import type { FailedFile } from './batch';
 import type { LoadedFile, OnFiles } from '../core/files';
+import { track } from '../core/stats';
 import { errorTitle } from '../ui/errorTitle';
 import type { FocusRef } from '../ui/useFocusIntent';
 import { FilePicker } from './FilePicker';
@@ -95,7 +96,15 @@ export function FileChips({
             <MidBadge />
             <span className="h-3.5 w-px shrink-0 bg-white/12" />
             <span className="min-w-0 truncate text-ui text-t1">{f.name}</span>
-            <IconButton label={t({ id: 'files-remove', args: { name: f.name } })} size="sm" tone="danger" onClick={() => onRemove(f.name)}>
+            <IconButton
+              label={t({ id: 'files-remove', args: { name: f.name } })}
+              size="sm"
+              tone="danger"
+              onClick={() => {
+                track('file-removed', { all: false });
+                onRemove(f.name);
+              }}
+            >
               ×
             </IconButton>
           </div>
@@ -105,7 +114,14 @@ export function FileChips({
         <FilePicker onFiles={onFiles} fullWidth={false}>
           <span className={textAction()}>{t({ id: 'files-add-more' })}</span>
         </FilePicker>
-        <TextButton tone="danger" onClick={onClear}>{t({ id: 'files-clear' })}</TextButton>
+        <TextButton
+          tone="danger"
+          onClick={() => {
+            track('file-removed', { all: true });
+            onClear();
+          }}
+        >{t({ id: 'files-clear' })}
+        </TextButton>
       </div>
       {skippedLine}
     </div>
