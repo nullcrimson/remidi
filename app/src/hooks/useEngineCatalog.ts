@@ -1,38 +1,40 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 import { toAppError, wasmUnavailable, type AppError } from '../lib/errors';
-import { engines as listEngines, ready, type Engine } from '../lib/midiremap';
+import type { Engine, LoadMidiremap, Midiremap } from '../lib/midiremap';
 
-export type CatalogStatus = 'loading' | 'ready' | 'error';
+/** The converter module while it loads, once loaded with its engine list, or why it could not load. */
+export type Catalog
+  = | { status: 'loading' }
+    | { status: 'ready'; core: Midiremap; engines: Engine[] }
+    | { status: 'error'; error: AppError };
 
-export function useEngineCatalog(onReady?: (engines: Engine[]) => void) {
-  const [status, setStatus] = useState<CatalogStatus>('loading');
-  const [engines, setEngines] = useState<Engine[]>([]);
-  const [error, setError] = useState<AppError | null>(null);
-  const announceReady = useEffectEvent((list: Engine[]) => onReady?.(list));
+/** Loads the converter module through `load` and lists its engines by name. */
+export function useEngineCatalog(
+  load: LoadMidiremap,
+  onReady?: (engines: Engine[], core: Midiremap) => void,
+): Catalog {
+  const [catalog, setCatalog] = useState<Catalog>({ status: 'loading' });
+  const announceReady = useEffectEvent((list: Engine[], core: Midiremap) => onReady?.(list, core));
 
   useEffect(() => {
     let cancelled = false;
-    const fail = (e: AppError) => {
-      if (!cancelled) {
-        setError(e);
-        setStatus('error');
-      }
+    const fail = (error: AppError) => {
+      if (!cancelled) setCatalog({ status: 'error', error });
     };
-    ready()
-      .then(() => {
+    load()
+      .then((core) => {
         if (cancelled) return;
-        const list = [...listEngines()].sort((a, b) =>
+        const engines = [...core.engines()].sort((a, b) =>
           a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
         );
-        setEngines(list);
-        setStatus('ready');
-        announceReady(list);
+        setCatalog({ status: 'ready', core, engines });
+        announceReady(engines, core);
       }, (e: unknown) => fail(wasmUnavailable(e)))
       .catch((e: unknown) => fail(toAppError(e)));
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [load]);
 
-  return { status, engines, error };
+  return catalog;
 }

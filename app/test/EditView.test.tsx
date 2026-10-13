@@ -2,29 +2,34 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { EditView } from '../src/components/EditView';
-import type { AppError } from '../src/lib/errors';
+import type { Editor, Notice, Pick as EditorPick } from '../src/hooks/useEditor';
+import { vocabularyOf } from '../src/lib/canon';
+import type { SavedMapping } from '../src/lib/mappings';
+import type { Canon, Drum, VocabularyDrum, VoiceRow } from '../src/lib/midiremap';
+import type { Edits } from '../src/lib/overrides';
 import { family_order } from './stubs/wasm';
+import { typed } from './typed';
 
-const editor = {
+const editor = typed<Editor>({
   rows: [{ canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } }],
   edits: {},
   srcEdits: {},
   pick: null,
   notice: null,
-  planError: null as AppError | null,
+  planError: null,
   targetDrums: [],
   sourceNotes: [{ note: 24, canon: 'kick.main', label: 'Kick', family: 'Kick' as const }],
   canonOptions: [{ canon: 'kick.main', label: 'Kick', family: 'Kick' as const }],
+  vocabulary: vocabularyOf(typed<VocabularyDrum[]>([{ canon: 'kick.main', label: 'Kick', family: 'Kick' }])),
   families: family_order(),
   remappedCount: 0,
-  changed: new Set<string>(),
-  changedSrc: new Set<string>(),
+  changed: new Set<Canon>(),
+  changedSrc: new Set<Canon>(),
   resetRow: vi.fn(),
   openPick: vi.fn(),
   openSrcPick: vi.fn(),
   setPickOct: vi.fn(),
   chooseNote: vi.fn(),
-  chooseNoteAbsolute: vi.fn(),
   chooseSrcNote: vi.fn(),
   setSrcCanon: vi.fn(),
   clearSrcCanon: vi.fn(),
@@ -32,7 +37,7 @@ const editor = {
   reset: vi.fn(),
   load: vi.fn(),
   onSelection: vi.fn(),
-};
+});
 
 const props = {
   editor,
@@ -61,7 +66,7 @@ describe('EditView', () => {
     render(
       <EditView
         {...props}
-        editor={{ ...editor, notice: { canon: 'KickMain', note: 26, from: 'Snare' } }}
+        editor={{ ...editor, notice: typed<Notice>({ canon: 'KickMain', note: 26, from: 'Snare' }) }}
       />,
     );
     expect(screen.getByRole('status')).toHaveTextContent('D1 was Snare — now plays Kick');
@@ -94,7 +99,7 @@ describe('EditView', () => {
     render(
       <EditView
         {...props}
-        editor={{ ...editor, pick: { canon: 'KickMain', octIndex: 2, side: 'tgt', defaultNote: null, prevNote: null } }}
+        editor={{ ...editor, pick: typed<EditorPick>({ canon: 'KickMain', octIndex: 2, side: 'tgt', defaultNote: null, prevNote: null }) }}
       />,
     );
     expect(screen.getByRole('dialog', { name: /Target note for Kick/i })).toBeInTheDocument();
@@ -104,7 +109,7 @@ describe('EditView', () => {
     render(
       <EditView
         {...props}
-        editor={{ ...editor, pick: { canon: 'KickMain', octIndex: 2, side: 'src', defaultNote: null, prevNote: 24 } }}
+        editor={{ ...editor, pick: typed<EditorPick>({ canon: 'KickMain', octIndex: 2, side: 'src', defaultNote: null, prevNote: 24 }) }}
       />,
     );
     expect(screen.getByRole('dialog', { name: /Source note for Kick/i })).toBeInTheDocument();
@@ -130,7 +135,7 @@ describe('EditView', () => {
   it('saves a new preset with the prefilled pair name', async () => {
     const onSavePreset = vi.fn();
     render(
-      <EditView {...props} editor={{ ...editor, edits: { KickMain: 40 } }} onSavePreset={onSavePreset} />,
+      <EditView {...props} editor={{ ...editor, edits: typed<Edits>({ KickMain: 40 }) }} onSavePreset={onSavePreset} />,
     );
     await userEvent.click(screen.getByRole('button', { name: 'Save as preset' }));
     expect(screen.getByLabelText('Preset name')).toHaveValue('GGD→EZD');
@@ -140,7 +145,7 @@ describe('EditView', () => {
 
   it('updates an existing preset for the same pair', async () => {
     const onUpdatePreset = vi.fn();
-    const existingPreset = {
+    const existingPreset = typed<SavedMapping>({
       id: 'p1',
       name: 'mine',
       src: 'ggd_invasion',
@@ -148,11 +153,11 @@ describe('EditView', () => {
       edits: {},
       srcEdits: {},
       updatedAt: 1,
-    };
+    });
     render(
       <EditView
         {...props}
-        editor={{ ...editor, edits: { KickMain: 40 } }}
+        editor={{ ...editor, edits: typed<Edits>({ KickMain: 40 }) }}
         existingPreset={existingPreset}
         onUpdatePreset={onUpdatePreset}
       />,
@@ -169,8 +174,8 @@ describe('EditView', () => {
         {...props}
         editor={{
           ...editor,
-          changedSrc: new Set(['KickMain']),
-          rows: [{ canon: 'KickMain', label: 'Kick', srcNotes: [], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } }],
+          changedSrc: new Set(typed<Canon[]>(['KickMain'])),
+          rows: typed<VoiceRow[]>([{ canon: 'KickMain', label: 'Kick', srcNotes: [], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } }]),
         }}
       />,
     );
@@ -183,8 +188,8 @@ describe('EditView', () => {
         {...props}
         editor={{
           ...editor,
-          pick: { canon: 'China', octIndex: 3, side: 'tgt' as const, defaultNote: null, prevNote: null },
-          rows: [{ canon: 'China', label: 'China', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped' as const, otherDrum: false } }],
+          pick: typed<EditorPick>({ canon: 'China', octIndex: 3, side: 'tgt' as const, defaultNote: null, prevNote: null }),
+          rows: typed<VoiceRow[]>([{ canon: 'China', label: 'China', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped' as const, otherDrum: false } }]),
         }}
       />,
     );
@@ -192,26 +197,26 @@ describe('EditView', () => {
     expect(picker).toHaveTextContent('TARGET · China—');
   });
 
-  const CATALOG = [
+  const CATALOG = typed<VocabularyDrum[]>([
     { canon: 'kick.main', label: 'Kick', family: 'Kick' as const },
     { canon: 'snare.main', label: 'Snare', family: 'Snare' as const },
     { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals' as const },
     { canon: 'china.1', label: 'China 1', family: 'Cymbals' as const },
     { canon: 'hat.cc', label: 'Hi-Hat CC', family: 'Hi-Hat' as const },
-  ];
-  const ROWS = [
+  ]);
+  const ROWS = typed<VoiceRow[]>([
     { canon: 'ride.bell', label: 'Ride Bell', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback' as const, tgtNote: 51, otherDrum: false } },
     { canon: 'kick.main', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } },
     { canon: 'china.1', label: 'China 1', srcNotes: [52], defaultTgtNote: null, outcome: { status: 'dropped' as const, otherDrum: false } },
     { canon: 'snare.main', label: 'Snare', srcNotes: [26], defaultTgtNote: 38, outcome: { status: 'direct' as const, tgtNote: 40 } },
     { canon: 'hat.cc', label: 'Hi-Hat CC', srcNotes: [], defaultTgtNote: null, outcome: { status: 'dropped' as const, otherDrum: false } },
-  ];
+  ]);
   const full = {
     ...editor,
     rows: ROWS,
     canonOptions: CATALOG,
-    edits: { 'snare.main': 40 },
-    changed: new Set(['snare.main']),
+    edits: typed<Edits>({ 'snare.main': 40 }),
+    changed: new Set(typed<Canon[]>(['snare.main'])),
   };
   const drumNames = () =>
     screen.getAllByTestId('drum-label').map((e) => e.textContent);
@@ -224,11 +229,11 @@ describe('EditView', () => {
   });
 
   it('names the target drum each row plays', () => {
-    const targetDrums = [
+    const targetDrums = typed<Drum[]>([
       { note: 36, canon: 'kick.main', label: 'EZ Kick', family: 'Kick' as const },
       { note: 51, canon: 'ride.1', label: 'Ride', family: 'Cymbals' as const },
       { note: 40, canon: 'snare.rim', label: 'Snare Rimshot', family: 'Snare' as const },
-    ];
+    ]);
     render(<EditView {...props} editor={{ ...full, targetDrums }} />);
     const plays = (drum: string) =>
       screen.getAllByTestId('drum-label').find((e) => e.textContent === drum)!.closest('[data-row]')!

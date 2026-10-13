@@ -1,32 +1,30 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { MAPPINGS_KEY } from '../src/lib/mappings';
-import { SESSION_KEY } from '../src/lib/session';
-
-vi.mock('../src/lib/midiremap', () => ({
-  ready: () => Promise.resolve(),
-  engines: () => [
-    { id: 'ggd_invasion', name: 'GGD Invasion' },
-    { id: 'ezdrummer', name: 'EZdrummer' },
-  ],
-  plan: () => [
-    { canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
-    { canon: 'China', label: 'China', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
-  ],
-  remap: () => ({
-    bytes: new Uint8Array([1]),
-    report: { unmappedSource: {}, fallbackUsed: {}, dropped: {} },
-  }),
-}));
-
 import App from '../src/App';
+import { RUNTIME } from './runtime';
+import { MAPPINGS_KEY } from '../src/lib/mappings';
+import type { VocabularyDrum, VoiceRow } from '../src/lib/midiremap';
+import { SESSION_KEY } from '../src/lib/session';
+import * as stub from './stubs/wasm';
+import { typed } from './typed';
 
 describe('App edit view', () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => {
+    localStorage.clear();
+    vi.mocked(stub.engine_drums).mockReturnValue([]);
+    vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
+      { canon: 'KickMain', label: 'Kick', family: 'Aux' },
+      { canon: 'China', label: 'China', family: 'Aux' },
+    ]));
+    vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
+      { canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+      { canon: 'China', label: 'China', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
+    ]));
+  });
 
   it('keeps the edit view when a file is dropped on it', async () => {
-    render(<App />);
+    render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
     await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
     await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
@@ -53,7 +51,7 @@ describe('App edit view', () => {
         },
       ]),
     );
-    render(<App />);
+    render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
     await userEvent.click(screen.getByRole('button', { name: 'Edit notes for My kit' }));
     expect(screen.getByText('Edit notes')).toBeInTheDocument();
@@ -74,7 +72,7 @@ describe('App edit view', () => {
       MAPPINGS_KEY,
       JSON.stringify([preset('p1', 'Original', 1), preset('p2', 'Original copy', 2)]),
     );
-    render(<App />);
+    render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
     await userEvent.click(screen.getByRole('button', { name: 'Edit notes for Original' }));
     await userEvent.click(screen.getByRole('button', { name: 'Update preset' }));
@@ -92,7 +90,7 @@ describe('App edit view', () => {
         { id: 'p1', name: 'Mine', src: 'ggd_invasion', tgt: 'ezdrummer', edits: {}, srcEdits: {}, updatedAt: 1 },
       ]),
     );
-    render(<App />);
+    render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
     await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
     await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
@@ -102,7 +100,7 @@ describe('App edit view', () => {
   });
 
   it('shows no edited chip for the default mapping', async () => {
-    render(<App />);
+    render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
     await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
     await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
@@ -117,7 +115,7 @@ describe('App edit view', () => {
         { id: 'p1', name: 'My kit', src: 'ggd_invasion', tgt: 'ezdrummer', edits: { KickMain: 40 }, srcEdits: {}, updatedAt: 1 },
       ]),
     );
-    render(<App />);
+    render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
     await userEvent.click(screen.getByRole('button', { name: /^My kit/ }));
     const chip = screen.getByRole('button', { name: '1 drum edited — review changes, from preset My kit' });
@@ -152,13 +150,13 @@ describe('App edit view', () => {
         srcEdits: {},
       }),
     );
-    render(<App />);
+    render(<App runtime={RUNTIME} />);
     const chip = await screen.findByRole('button', { name: '1 drum edited — review changes, not saved to My kit' });
     expect(chip).toHaveTextContent('1 edited · unsaved');
   });
 
   it('navigates to edit and back', async () => {
-    render(<App />);
+    render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
     await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
     await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);

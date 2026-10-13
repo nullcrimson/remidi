@@ -32,7 +32,6 @@ pub enum WasmError {
     UnknownEngine { role: Role, id: String },
     BadOverrides { detail: String },
     BadMissing { detail: String },
-    BadChannel { detail: String },
     BadMidi { detail: String },
     BadPreset { detail: String },
     Internal { detail: String },
@@ -105,16 +104,11 @@ fn convert_file(
     src_id: &str,
     tgt_id: &str,
     ov: &Overrides,
-    channel: Option<&str>,
+    scope: ChannelScope,
     missing: MissingDrums,
 ) -> Result<RemapOutput, WasmError> {
     let src = engine(catalog, src_id, Role::Source)?;
     let tgt = engine(catalog, tgt_id, Role::Target)?;
-    let scope: ChannelScope = channel
-        .map_or(Ok(ChannelScope::Auto), str::parse)
-        .map_err(|e| WasmError::BadChannel {
-            detail: e.to_string(),
-        })?;
     let out = convert(mid, &Mapping::new(src, tgt, ov, missing), scope)
         .map_err(|e| WasmError::BadMidi { detail: chain(&e) })?;
     Ok(RemapOutput {
@@ -129,20 +123,13 @@ pub fn remap(
     src_id: &str,
     tgt_id: &str,
     overrides: Option<Ts<Overrides>>,
-    channel: Option<String>,
+    channel: Option<Ts<ChannelScope>>,
     missing: Option<Ts<MissingDrums>>,
 ) -> Result<Ts<RemapOutput>, WasmError> {
     let ov = from_js(overrides, |detail| WasmError::BadOverrides { detail })?;
+    let scope = from_js(channel, |detail| WasmError::Internal { detail })?;
     let missing = from_js(missing, |detail| WasmError::BadMissing { detail })?;
-    let out = convert_file(
-        catalog()?,
-        mid,
-        src_id,
-        tgt_id,
-        &ov,
-        channel.as_deref(),
-        missing,
-    )?;
+    let out = convert_file(catalog()?, mid, src_id, tgt_id, &ov, scope, missing)?;
     Ok(out.into_ts()?)
 }
 
@@ -200,8 +187,9 @@ pub struct PresetView {
     name: String,
     src: String,
     tgt: String,
-    edits: BTreeMap<String, u8>,
-    src_edits: BTreeMap<String, Option<String>>,
+    edits: BTreeMap<Canon, Note>,
+    #[serde(serialize_with = "Note::text_keys")]
+    src_edits: BTreeMap<Note, Option<Canon>>,
     skipped: Vec<SkippedEdit>,
 }
 
@@ -220,16 +208,8 @@ fn preset_view(json: &str, catalog: &Catalog) -> Result<PresetView, WasmError> {
     Ok(PresetView {
         src: engine(preset.src.as_str(), Role::Source)?,
         tgt: engine(preset.tgt.as_str(), Role::Target)?,
-        edits: preset
-            .edits
-            .iter()
-            .map(|(canon, note)| (canon.to_string(), note.get()))
-            .collect(),
-        src_edits: preset
-            .src_edits
-            .iter()
-            .map(|(note, canon)| (note.get().to_string(), canon.map(|c| c.to_string())))
-            .collect(),
+        edits: preset.edits,
+        src_edits: preset.src_edits,
         name: preset.name.into(),
         skipped,
     })
@@ -288,13 +268,41 @@ pub fn family_order() -> Result<Vec<Ts<Family>>, WasmError> {
     to_js_all(Family::ALL)
 }
 
-/// The names of all 128 notes in the given octave convention.
+/// How the 128 notes are written in one octave convention: each note's name and the
+/// number of the octave it is in, by note number.
+#[derive(Serialize, Tsify)]
+#[tsify(missing_as_null, hashmap_as_object)]
+pub struct NoteNaming {
+    names: Vec<String>,
+    octaves: Vec<i8>,
+}
+
+/// How the notes are written in every octave convention.
+#[derive(Serialize, Tsify)]
+#[serde(transparent)]
+#[tsify(missing_as_null, hashmap_as_object)]
+pub struct NoteNamings(BTreeMap<OctaveBase, NoteNaming>);
+
+fn note_namings() -> NoteNamings {
+    NoteNamings(
+        OctaveBase::ALL
+            .into_iter()
+            .map(|base| {
+                let naming = NoteNaming {
+                    names: Note::ALL.map(|n| n.name(base)).to_vec(),
+                    octaves: Note::ALL.map(|n| n.octave(base)).to_vec(),
+                };
+                (base, naming)
+            })
+            .collect(),
+    )
+}
+
+/// The names and octave numbers of all 128 notes in every octave convention. The app's
+/// build writes them to a file, so the app names notes without calling the module.
 #[wasm_bindgen]
-pub fn note_names(base: Ts<OctaveBase>) -> Result<Vec<String>, WasmError> {
-    let base: OctaveBase = base.to_rust().map_err(|e| WasmError::Internal {
-        detail: e.to_string(),
-    })?;
-    Ok(Note::ALL.map(|n| n.name(base)).to_vec())
+pub fn note_naming() -> Result<Ts<NoteNamings>, WasmError> {
+    Ok(note_namings().into_ts()?)
 }
 
 /// An engine as the pickers list it.
@@ -339,7 +347,7 @@ mod tests {
         assert_eq!(hertz.name, hertz.full_name);
     }
 
-    const FIXTURE: &str = include_str!("../../app/test/fixtures/my-kit.drumverter.json");
+    const FIXTURE: &str = include_str!("../../midiremap-core/tests/golden/my-kit.drumverter.json");
 
     #[test]
     fn preset_view_resolves_engines_and_lists_skipped_edits() {
@@ -355,12 +363,14 @@ mod tests {
         assert_eq!(view.src, "custom");
         assert_eq!(view.tgt, "ezdrummer");
         assert_eq!(view.name, "My kit");
-        assert_eq!(view.edits.get("china.1.hit"), Some(&52));
         assert_eq!(
-            view.src_edits.get("24"),
-            Some(&Some("snare1.hit".to_owned()))
+            serde_json::to_value(&view.edits).unwrap(),
+            serde_json::json!({ "china.1.hit": 52 })
         );
-        assert_eq!(view.src_edits.get("60"), Some(&None));
+        assert_eq!(
+            serde_json::to_value(&view.src_edits).unwrap(),
+            serde_json::json!({ "24": "snare1.hit", "60": null })
+        );
         assert_eq!(
             view.skipped,
             [SkippedEdit::UnknownDrum {
@@ -434,28 +444,18 @@ mod tests {
     }
 
     #[test]
-    fn conversion_errors_are_typed() {
-        let catalog = Catalog::builtin().unwrap();
-        let err = |mid: &[u8], channel: Option<&str>| {
-            convert_file(
-                &catalog,
-                mid,
-                "ggd_invasion",
-                "ezdrummer",
-                &Overrides::default(),
-                channel,
-                MissingDrums::Nearest,
-            )
-            .err()
-        };
-        assert!(matches!(
-            err(b"nope", None),
-            Some(WasmError::BadMidi { .. })
-        ));
-        assert!(matches!(
-            err(b"nope", Some("17")),
-            Some(WasmError::BadChannel { .. })
-        ));
+    fn the_typescript_channel_scope_lists_exactly_the_scopes() {
+        let scopes: Vec<String> = ChannelScope::all()
+            .map(|scope| format!("\"{scope}\""))
+            .collect();
+        let declared = <ChannelScope as Tsify>::DECL;
+        assert!(
+            declared.ends_with(&format!(
+                "export type ChannelScope = {};",
+                scopes.join(" | ")
+            )),
+            "{declared}"
+        );
     }
 
     #[test]
@@ -467,7 +467,7 @@ mod tests {
             "ggd_invasion",
             "ezdrummer",
             &Overrides::default(),
-            None,
+            ChannelScope::Auto,
             MissingDrums::Nearest,
         )
         .err()

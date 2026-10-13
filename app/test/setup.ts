@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, vi } from 'vitest';
+import * as stub from './stubs/wasm';
 
 globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
 globalThis.URL.revokeObjectURL = vi.fn();
@@ -47,4 +48,9 @@ Object.defineProperty(globalThis, 'localStorage', {
   configurable: true,
 });
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  Object.values(stub).forEach((value) => {
+    if (vi.isMockFunction(value)) value.mockReset();
+  });
+});

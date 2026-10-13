@@ -4,6 +4,7 @@ import type { Editor } from '../hooks/useEditor';
 import { useFilter } from '../hooks/useFilter';
 import { groupByFamily } from '../lib/families';
 import type { SavedMapping } from '../lib/mappings';
+import type { Note } from '../lib/midiremap';
 import type { OctaveBase } from '../lib/notes';
 import { isIssue, type EditFilter } from '../lib/editFilter';
 import { EditFilters } from './edit/EditFilters';
@@ -22,7 +23,7 @@ interface EditViewProps {
   oct: OctaveBase;
   existingPreset: SavedMapping | undefined;
   presetsAtCap: boolean;
-  assignNote?: number | null;
+  assignNote?: Note | null;
   initialShow?: EditFilter;
   setView: (v: 'convert' | 'edit') => void;
   onSavePreset: (name: string) => void;

@@ -2,26 +2,16 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const parsePresetMock = vi.fn();
-vi.mock('../src/lib/midiremap', () => ({
-  ready: () => Promise.resolve(),
-  engines: () => [
-    { id: 'ggd_invasion', name: 'GGD Invasion' },
-    { id: 'ezdrummer', name: 'EZdrummer' },
-  ],
-  engineDrums: () => [],
-  engineNotes: () => [],
-  canonCatalog: () => [{ canon: 'kick.main', label: 'Kick', family: 'Kick' }],
-  plan: () => [],
-  remap: vi.fn(),
-  parsePresetFile: (...a: unknown[]) => parsePresetMock(...a),
-}));
 vi.mock('../src/lib/download', () => ({ saveFile: vi.fn() }));
 
 import App from '../src/App';
+import { RUNTIME } from './runtime';
 import { saveFile } from '../src/lib/download';
-import { MAPPINGS_CAP, MAPPINGS_KEY } from '../src/lib/mappings';
 import { WasmCallError } from '../src/lib/errors';
+import { MAPPINGS_CAP, MAPPINGS_KEY } from '../src/lib/mappings';
+import type { PresetView, VocabularyDrum } from '../src/lib/midiremap';
+import * as stub from './stubs/wasm';
+import { typed } from './typed';
 
 const PRESET = {
   id: 'p1',
@@ -35,7 +25,7 @@ const PRESET = {
 
 async function start(presets: unknown[] = [PRESET]) {
   localStorage.setItem(MAPPINGS_KEY, JSON.stringify({ version: 1, items: presets }));
-  render(<App />);
+  render(<App runtime={RUNTIME} />);
   await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
 }
 
@@ -46,8 +36,13 @@ async function importFile(name: string) {
 
 describe('App presets', () => {
   beforeEach(() => {
-    parsePresetMock.mockReset();
     vi.mocked(saveFile).mockClear();
+    vi.mocked(stub.engine_drums).mockReturnValue([]);
+    vi.mocked(stub.engine_notes).mockReturnValue([]);
+    vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
+      { canon: 'kick.main', label: 'Kick', family: 'Kick' },
+    ]));
+    vi.mocked(stub.plan).mockReturnValue([]);
   });
 
   it('loads a preset without the edits this version cannot read, and says so', async () => {
@@ -90,14 +85,14 @@ describe('App presets', () => {
   });
 
   it('imports a preset file as a new preset with a free name', async () => {
-    parsePresetMock.mockReturnValue({
+    vi.mocked(stub.parse_preset_file).mockReturnValue(typed<PresetView>({
       name: 'My kit',
       src: 'ggd_invasion',
       tgt: 'ezdrummer',
       edits: { 'kick.main': 35 },
       srcEdits: {},
-      skipped: ['unknown drum x'],
-    });
+      skipped: [{ kind: 'unknownDrum', key: 'x' }],
+    }));
     await start();
     await importFile('my-kit.drumverter.json');
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent("Imported 'My kit copy' (1 edit skipped)."));
@@ -106,7 +101,7 @@ describe('App presets', () => {
   });
 
   it('explains a file it cannot import', async () => {
-    parsePresetMock.mockImplementation(() => {
+    vi.mocked(stub.parse_preset_file).mockImplementation(() => {
       throw new WasmCallError({ kind: 'badPreset', detail: "not a Drumverter preset (format is 'other')" });
     });
     await start([]);
@@ -119,7 +114,9 @@ describe('App presets', () => {
   });
 
   it('refuses an import at the preset limit', async () => {
-    parsePresetMock.mockReturnValue({ name: 'New', src: 'ggd_invasion', tgt: 'ezdrummer', edits: {}, srcEdits: {}, skipped: [] });
+    vi.mocked(stub.parse_preset_file).mockReturnValue(
+      typed<PresetView>({ name: 'New', src: 'ggd_invasion', tgt: 'ezdrummer', edits: {}, srcEdits: {}, skipped: [] }),
+    );
     const full = Array.from({ length: MAPPINGS_CAP }, (_, i) => ({ ...PRESET, id: `p${i}`, name: `P${i}`, edits: {}, srcEdits: {} }));
     await start(full);
     await importFile('new.drumverter.json');

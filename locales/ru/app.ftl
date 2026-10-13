@@ -36,7 +36,6 @@ error-bad-midi = Конвертер не может прочитать этот 
 error-bad-preset = Это не файл пресета
 error-bad-overrides = Не удалось прочитать изменения нот
 error-bad-missing = Неизвестная настройка для недостающих инструментов
-error-bad-channel = Неизвестная настройка канала
 error-internal = Что-то пошло не так
 error-wasm-unavailable = Не удалось загрузить конвертер
 error-detail = Подробности: { $detail }

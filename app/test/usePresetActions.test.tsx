@@ -5,10 +5,11 @@ import type { SavedMappings } from '../src/hooks/useSavedMappings';
 import type { SavedMapping } from '../src/lib/mappings';
 import { ENGLISH } from '../src/i18n';
 import type { NoticeLine } from '../src/lib/notice';
+import { typed } from './typed';
 
 const { t } = ENGLISH;
 
-const kit: SavedMapping = {
+const kit = typed<SavedMapping>({
   id: 'p1',
   name: 'My kit',
   src: 'ggd_invasion',
@@ -16,7 +17,7 @@ const kit: SavedMapping = {
   edits: { 'kick.main': 35 },
   srcEdits: { 24: 'snare1.hit' },
   updatedAt: 1,
-};
+});
 
 function arrange(skipped = 0, mappings = [kit]) {
   const saved: SavedMappings = {
@@ -27,7 +28,7 @@ function arrange(skipped = 0, mappings = [kit]) {
     rename: vi.fn(),
     remove: vi.fn(),
   };
-  const pair: PresetSetup = {
+  const pair = typed<PresetSetup>({
     src: 'ggd_invasion',
     tgt: 'ezdrummer',
     edits: { 'china.1.hit': 52 },
@@ -35,7 +36,7 @@ function arrange(skipped = 0, mappings = [kit]) {
     loadMapping: vi.fn(() => skipped),
     setPreset: vi.fn(),
     setView: vi.fn(),
-  };
+  });
   const notify = vi.fn();
   const { result } = renderHook(() => usePresetActions(pair, saved, notify));
   return { actions: result.current, saved, pair, notify };

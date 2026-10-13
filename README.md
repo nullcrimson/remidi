@@ -45,7 +45,7 @@ wasm target included), the nightly named in `nightly-toolchain` for `rustfmt`, N
 ```bash
 cargo +"$(cat nightly-toolchain)" fmt --all
 cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
+cargo test --workspace           # the gate runs both per configuration: see scripts/gate.sh
 
 cd app
 npm ci

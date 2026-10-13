@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ReportModal } from '../src/components/ReportModal';
 import type { ReportView } from '../src/lib/report';
+import { typed } from './typed';
 
 const clean: ReportView = {
   clean: true,
@@ -11,7 +12,7 @@ const clean: ReportView = {
   files: [{ name: 'a.mid', groups: { dropped: [], approximated: [], unrecognized: [] }, untouched: 0, converted: 12 }],
 };
 
-const lossy: ReportView = {
+const lossy = typed<ReportView>({
   clean: false,
   totals: { dropped: 4, approximated: 3, unrecognized: 51, untouched: 0, converted: 12 },
   groups: {
@@ -37,7 +38,7 @@ const lossy: ReportView = {
       converted: 6,
     },
   ],
-};
+});
 
 const cleanWithUnchanged: ReportView = {
   ...clean,

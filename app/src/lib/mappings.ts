@@ -1,40 +1,36 @@
-import type { Edits, SrcEdits } from './overrides';
+import { parseNote } from './notes';
+import type { StoredEdits } from './overrides';
 
-export interface SavedMapping {
+export interface SavedMapping extends StoredEdits {
   id: string;
   name: string;
   src: string;
   tgt: string;
-  edits: Edits;
-  srcEdits: SrcEdits;
   updatedAt: number;
 }
 
 export const MAPPINGS_KEY = 'midiremap:mappings';
 export const MAPPINGS_CAP = 50;
 
-function isNote(value: unknown): value is number {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 127;
-}
-
-export function parseEdits(value: unknown): Edits | null {
+export function parseEdits(value: unknown): StoredEdits['edits'] | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
-  const out: Edits = {};
-  for (const [canon, note] of Object.entries(value)) {
-    if (!isNote(note)) return null;
-    out[canon] = note;
+  const out: StoredEdits['edits'] = {};
+  for (const [drum, raw] of Object.entries(value)) {
+    const note = parseNote(raw);
+    if (note === null) return null;
+    out[drum] = note;
   }
   return out;
 }
 
-export function parseSrcEdits(value: unknown): SrcEdits | null {
+export function parseSrcEdits(value: unknown): StoredEdits['srcEdits'] | null {
   if (value === undefined) return {};
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
-  const out: SrcEdits = {};
-  for (const [note, canon] of Object.entries(value)) {
-    const n = Number(note);
-    if (!isNote(n) || (typeof canon !== 'string' && canon !== null)) return null;
-    out[n] = canon;
+  const out: StoredEdits['srcEdits'] = {};
+  for (const [key, drum] of Object.entries(value)) {
+    const note = parseNote(Number(key));
+    if (note === null || (typeof drum !== 'string' && drum !== null)) return null;
+    out[note] = drum;
   }
   return out;
 }

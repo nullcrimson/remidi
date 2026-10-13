@@ -36,7 +36,6 @@ error-bad-midi = El conversor no puede leer este archivo: no parece un MIDI
 error-bad-preset = No es un archivo de preset
 error-bad-overrides = No se pudieron leer los cambios de notas
 error-bad-missing = Opción desconocida para las piezas que faltan
-error-bad-channel = Opción de canal desconocida
 error-internal = Algo salió mal
 error-wasm-unavailable = No se pudo cargar el conversor
 error-detail = Detalles: { $detail }

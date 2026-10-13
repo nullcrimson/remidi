@@ -1,7 +1,8 @@
 import type { Message } from '../generated/i18n';
 import type { SavedMapping } from './mappings';
-import type { Drum, VoiceRow } from './midiremap';
+import type { Canon, Drum, Note, VoiceRow } from './midiremap';
 import { noteName, type OctaveBase } from './notes';
+import type { Vocabulary } from './canon';
 import { knownEdits, type Edits, type SrcEdits } from './overrides';
 import { playedNote } from './outcome';
 
@@ -13,13 +14,13 @@ export type PresetMatch
 
 const PREVIEW_LIMIT = 5;
 
-function notes(list: number[], oct: OctaveBase): string {
+function notes(list: Note[], oct: OctaveBase): string {
   if (list.length === 0) return '—';
   const first = noteName(list[0], oct);
   return list.length === 1 ? first : `${first} +${list.length - 1}`;
 }
 
-function target(note: number | null, oct: OctaveBase): string {
+function target(note: Note | null, oct: OctaveBase): string {
   return note === null ? '—' : noteName(note, oct);
 }
 
@@ -29,8 +30,8 @@ function target(note: number | null, oct: OctaveBase): string {
  */
 export function editLines(
   rows: VoiceRow[],
-  changed: Set<string>,
-  defaultSrc: Map<string, number[]>,
+  changed: Set<Canon>,
+  defaultSrc: Map<Canon, Note[]>,
   oct: OctaveBase,
 ): Message[] {
   return rows
@@ -73,16 +74,16 @@ export function sameEdits(a: EditSet, b: EditSet): boolean {
 export function presetMatch(
   preset: SavedMapping | undefined,
   current: EditSet,
-  canons: ReadonlySet<string>,
+  vocabulary: Vocabulary,
 ): PresetMatch {
   if (!preset) return { kind: 'none' };
-  const saved = canons.size > 0 ? knownEdits(preset.edits, preset.srcEdits, canons) : preset;
+  const saved = knownEdits(preset, vocabulary);
   return sameEdits(saved, current) ? { kind: 'saved', name: preset.name } : { kind: 'unsaved', name: preset.name };
 }
 
 /** The source notes each drum has by default. */
-export function sourceDefaults(sourceNotes: Drum[]): Map<string, number[]> {
-  const byCanon = new Map<string, number[]>();
+export function sourceDefaults(sourceNotes: Drum[]): Map<Canon, Note[]> {
+  const byCanon = new Map<Canon, Note[]>();
   for (const d of sourceNotes) byCanon.set(d.canon, [...(byCanon.get(d.canon) ?? []), d.note]);
   return byCanon;
 }

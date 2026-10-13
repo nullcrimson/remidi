@@ -2,34 +2,21 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const remapMock = vi.fn();
-
-vi.mock('../src/lib/midiremap', () => ({
-  ready: () => Promise.resolve(),
-  engines: () => [
-    { id: 'ggd_invasion', name: 'GGD Invasion' },
-    { id: 'ezdrummer', name: 'EZdrummer' },
-  ],
-  engineDrums: () => [],
-  engineNotes: () => [],
-  canonCatalog: () => [{ canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' }],
-  plan: () => [
-    { canon: 'china.1.hit', label: 'China 1', srcNotes: [60], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
-  ],
-  remap: (...a: unknown[]) => remapMock(...a),
-}));
-
 import App from '../src/App';
+import { RUNTIME } from './runtime';
+import type { RemapOutput, VocabularyDrum, VoiceRow } from '../src/lib/midiremap';
+import * as stub from './stubs/wasm';
+import { typed } from './typed';
 
 function reportWith(untouched: number, converted = 10) {
-  return {
+  return typed<RemapOutput>({
     bytes: new Uint8Array([1]),
     report: { unmappedSource: {}, fallbackUsed: {}, dropped: { 'china.1.hit': 2 }, untouched, converted },
-  };
+  });
 }
 
 async function pickEnginesAndFile() {
-  render(<App />);
+  render(<App runtime={RUNTIME} />);
   await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
   await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
   await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
@@ -50,7 +37,15 @@ async function convertOneFile() {
 
 describe('App loss report', () => {
   beforeEach(() => {
-    remapMock.mockReset().mockReturnValue(reportWith(0));
+    vi.mocked(stub.engine_drums).mockReturnValue([]);
+    vi.mocked(stub.engine_notes).mockReturnValue([]);
+    vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
+      { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
+    ]));
+    vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
+      { canon: 'china.1.hit', label: 'China 1', srcNotes: [60], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
+    ]));
+    vi.mocked(stub.remap).mockReturnValue(reportWith(0));
   });
 
   it('opens the report modal from the done card', async () => {
@@ -66,7 +61,7 @@ describe('App loss report', () => {
   });
 
   it('counts notes left on other channels on the done card and in the report', async () => {
-    remapMock.mockReturnValue(reportWith(168));
+    vi.mocked(stub.remap).mockReturnValue(reportWith(168));
     await convertOneFile();
     expect(screen.getByText('168 on other channels unchanged')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /View report/i }));
@@ -76,13 +71,13 @@ describe('App loss report', () => {
   });
 
   it('says nothing was converted on the done card', async () => {
-    remapMock.mockReturnValue(reportWith(1188, 0));
+    vi.mocked(stub.remap).mockReturnValue(reportWith(1188, 0));
     await convertOneFile();
     expect(screen.getByText('nothing converted')).toBeInTheDocument();
   });
 
   it('uses the singular for one converted note', async () => {
-    remapMock.mockReturnValue(reportWith(0, 1));
+    vi.mocked(stub.remap).mockReturnValue(reportWith(0, 1));
     await convertOneFile();
     expect(screen.getByText('1 note converted')).toBeInTheDocument();
   });
@@ -91,7 +86,7 @@ describe('App loss report', () => {
     await pickEnginesAndFile();
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Drum channel' }), '10');
     await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
-    await waitFor(() => expect(remapMock).toHaveBeenCalled());
-    expect(remapMock.mock.calls[0][4]).toBe('10');
+    await waitFor(() => expect(stub.remap).toHaveBeenCalled());
+    expect(vi.mocked(stub.remap).mock.calls[0][4]).toBe('10');
   });
 });

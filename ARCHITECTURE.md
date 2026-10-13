@@ -77,7 +77,6 @@ conversion   ── convert(bytes, &Mapping, ChannelScope) → bytes + report
 note        ── Note (0..=127), OctaveBase, note names
 non_blank   ── NonBlank: a string that is not blank
 catalog     ── Catalog: builtin presets (embedded) + user maps
-overrides   ── Overrides: per-note / per-drum edits, applied by EngineMap
 plan        ── per-drum rows from the Mapping the converter uses (for UI display), no MIDI
 preset      ── the preset file the app exports and the CLI reads
 ```
@@ -103,9 +102,12 @@ chain through anyhow and the WASM joins it into one message (`outer: inner`).
   (`Kick, Snare, Toms, Hi-Hat, Cymbals, Percussion, Aux`, `Family::ALL`) and serializes
   as its label; the app and the site both group drums by it, so the order lives here
   only.
-- `Note::name(OctaveBase)` names a note (`F#2`); `OctaveBase::{C1, C2}` is the octave
-  convention. The site uses it directly; the app keeps a synchronous copy that the
-  contract test checks against the WASM `note_names` for all 128 notes.
+- `Note::name(OctaveBase)` names a note (`F#2`) and `Note::octave(OctaveBase)` numbers
+  its octave; `OctaveBase::{C1, C2}` (`OctaveBase::ALL`) is the octave convention. The
+  site calls them directly. The app reads a table of them: its wasm build calls the
+  module's `note_naming` and writes the result to `app/src/wasm/note_naming.json`, which
+  `lib/notes.ts` imports, so the app names notes before the module has loaded and holds
+  no naming rule of its own.
 - `Idx<const MAX: u8>` (module `idx`, shared with `Channel`) holds a 1-based position
   that is always in `1..=MAX` (`SnareIdx = Idx<2>`, `RackIdx = Idx<8>`, `FloorIdx = Idx<4>`, `OpenLevel = Idx<6>`,
   …); `CymSlot { Crash(Idx<6>) | China(Idx<3>) | Splash(Idx<3>) | Stack(Idx<4>) |
@@ -158,13 +160,14 @@ the rules allow.
   source's decode table with the source edits applied (an edit without a canon removes
   the note), and, from the target's encode table with the target edits applied, the
   outcome of every drum in the vocabulary. Nothing is resolved after construction:
-  `resolve_canon(canon)` and `moves_to_other_drum(canon)` read the compiled outcome,
-  and `translate(note)` decodes the note and reads the same outcome.
+  `resolve_canon(canon)` reads the compiled outcome, and `translate(note)` decodes the
+  note and reads the same outcome.
 - A drum the target has plays on its own note. Otherwise the first drum of its fallback
   chain that the target has stands in; `Drop` walks the same chain filtered to
-  `Canon::same_drum`, so both modes share one order. `moves_to_other_drum(canon)` says
-  whether the setting decides a drum (the target lacks it and its nearest stand-in is
-  another drum).
+  `Canon::same_drum`, so both modes share one order. `moves_to_other_drum()` on the
+  outcome says whether the setting decides the drum (the target lacks it and its nearest
+  stand-in is another drum): a `Fallback` to another drum, or a `Dropped` that another
+  drum could have played (`other_drum`).
 - Two result types keep partial cases unrepresentable:
   - `CanonResolution { Direct | Fallback | Dropped }` — total result of resolving
     a *canon* against the target. Cannot be "unmapped". Every variant carries the canon
@@ -281,7 +284,8 @@ the rules allow.
   (unknown drum, note out of range) is skipped and listed in `skipped` as a
   `SkippedEdit` (kind + key/value; `Display` gives the CLI's line), never fatal.
   `SavedPreset::overrides()` turns it into `Overrides`. The app's export and this parser
-  share the fixture `app/test/fixtures/my-kit.drumverter.json`.
+  share the fixture `midiremap-core/tests/golden/my-kit.drumverter.json`, which the CLI's,
+  the wasm crate's and the app's tests read from there.
 
 ### `overrides` — per-voice retargeting
 
@@ -293,8 +297,9 @@ the rules allow.
   does map be unassigned — how the editor replaces a drum's source note. Notes are
   `Note`s, so an out-of-range value fails deserialization.
 - `target()` and `source()` hand the edits out with the last entry for a drum or a note
-  already chosen; `Overrides::new` builds them from a preset. `Mapping::new` is the only
-  reader; anything not overridden falls through to the engine.
+  already chosen; `Overrides::new` builds them from a preset. `Mapping::new` applies
+  them, and anything not overridden falls through to the engine; `plan` reads `source()`
+  only to list a drum's edited notes first.
 
 ### `plan` — the source→target table (UI, no MIDI)
 
@@ -384,8 +389,9 @@ error and 2 on a usage error.
   `label`; the app reads it through `lib/outcome.ts` (`playedNote`, `movesToOtherDrum`).
 - `engine_catalog() → [{ id, name, fullName }]` — `name` is the display name,
   `fullName` the catalog name.
-- `family_order() → Family[]` — drum families in display order; `note_names(base) →
-  string[]` — the 128 note names.
+- `family_order() → Family[]` — drum families in display order; `note_naming() →
+  Record<OctaveBase, { names, octaves }>` — the 128 note names and octave numbers per
+  convention, called by the app's build, not by the app.
 - `engine_drums(tgt_id) → [{ note, canon, label, family }]` — the target's playable
   voices, for the note editor's drum list.
 - `engine_notes(src_id) → [{ note, canon, label, family }]` — the source's notes,
@@ -404,7 +410,9 @@ larger — a quarter of the module is the embedded engine table.
 
 One contract, generated from Rust. Every value crossing the boundary is a serde type
 that also derives `tsify::Tsify` (in core behind the opt-in feature `ts`, which only
-this crate enables), and crosses as `Ts<T>`, so wasm-bindgen writes the real
+this crate enables: the CLI reads `Overrides` and prints `Report` through the same
+serde shapes, so the types stay in core and are not copied here), and crosses as
+`Ts<T>`, so wasm-bindgen writes the real
 TypeScript types into `midiremap_wasm.d.ts` instead of `any`. Each type declares
 `missing_as_null` and `hashmap_as_object`, so the declared type and the runtime value
 agree: missing notes are `null`, maps are plain objects, `Note` is `number`, `Canon`
@@ -413,9 +421,14 @@ is `string`, converted bytes are a `Uint8Array`. A field renamed in Rust changes
 
 Every export but `start` returns a `Result` and throws its error as a `WasmError`, a tagged enum: `{ kind: "unknownEngine", role, id }`
 (`role` is `source` or `target`), or `{ kind, detail }` for `badOverrides`,
-`badMissing`, `badChannel`, `badMidi`, `badPreset` and `internal`. It carries no English
+`badMissing`, `badMidi`, `badPreset` and `internal`. It carries no English
 sentence: the app translates `kind` (and `role`), and `detail` is the technical cause
 chain (`outer: inner: innermost`), shown untranslated under the message.
+
+The channel scope has no error of its own. It crosses as `ChannelScope`, a union of the
+eighteen values `ChannelScope::all()` yields (a wasm test holds the union to them), and
+the app's list of them in `lib/channel.ts` is typed by that union, so a scope added or
+renamed in Rust fails the app's `tsc`.
 
 ### Web app (`app/`)
 
@@ -424,18 +437,37 @@ Vite + React + TypeScript + Tailwind, tested with Vitest/Testing-Library. Readin
 one module, so the rest of the UI is pure data.
 
 - **`lib/`** — framework-free logic and the boundary. `midiremap.ts` is the sole
-  WASM adapter: a single init promise, the generated types re-exported under the
-  app's names, and a thrown `WasmError` turned into a `WasmCallError` (an `Error`
-  holding that `WasmError`). Sibling pure modules cover notes, mapping (de)serialization, the loss
-  report builder, override assembly, file naming, and zipping.
+  WASM adapter: `moduleLoader()` makes a loader that loads the module once and resolves
+  to a `Midiremap`, an object that carries every call, so nothing can call the module
+  before it has loaded and no module-level state holds it; the generated types are
+  re-exported, and a thrown `WasmError` becomes a `WasmCallError` (an `Error` holding
+  that `WasmError`). `Note` and `Canon` are branded types generated from Rust. A `Note`
+  is made only in `notes.ts` (`parseNote`, bounded by the core's note table); a `Canon`
+  is never made in the app: it comes from the module, and drum keys read from storage
+  stay text (`StoredEdits`) until `knownEdits` looks them up in the module's vocabulary
+  (`canon.ts`). Sibling pure modules cover mapping (de)serialization, the loss report
+  builder, override assembly, file naming, and zipping.
+- **One runtime, handed in.** `lib/runtime.ts` names what the app takes from outside
+  React: `Runtime { load, converter }`. `main.tsx` makes the browser's
+  (`browserRuntime()`) and gives it to `App`, which hands it to `useRemapper`; no hook
+  or component reaches a module-level instance. Tests hand in the same runtime over
+  the stubbed module, or one whose `load` is pending or fails.
 - **Conversion off the main thread.** `converter.ts` sends each batch to one module
-  Web Worker (`convertWorker.ts`), which loads the WASM itself and runs the shared
-  `runBatch` (`batch.ts`); converted bytes come back as transferred buffers, so the
+  Web Worker. The worker entry (`convertWorker.ts`) only wires `self.onmessage` to
+  `answerRequest` in `batch.ts`, which holds the request and reply types and the shared
+  `runBatch`, so the reply logic is tested without a worker; converted bytes come back
+  as transferred buffers, so the
   page and the spinner stay responsive. The worker loads its own copy of the WASM; the
-  main thread's copy serves the catalog, `plan` and preset import. If a worker cannot be
-  created or dies, that batch and every later one run on the main thread (the worker is
-  not restarted); a batch the worker could not convert (the WASM
-  failed to load) is rejected and shown as an error, never retried or left spinning.
+  main thread's copy serves the catalog, `plan` and preset import. The worker's state
+  is one value (`unstarted`, `running`, `unavailable`). A worker that dies after it has
+  answered a batch is replaced and the batches it left go to the new one; a worker that
+  cannot be created, or dies before answering anything, ends the use of workers, and
+  those batches and every later one run on the main thread. A batch the worker could
+  not convert (the WASM failed to load) is rejected and shown as an error, never
+  retried or left spinning. A batch is stopped through its `AbortSignal`: the converter
+  ends the worker converting it (a new one answers in about 20 ms) and moves any other
+  pending batch to the next worker; on the main thread a conversion cannot be
+  interrupted, so its result is discarded.
   The editor's `plan` preview stays on the main thread (it takes well under a
   millisecond); a `plan` failure (e.g. a damaged preset) becomes a notice with Reset
   edits, and anything else that throws while rendering reaches the root
@@ -452,10 +484,11 @@ one module, so the rest of the UI is pure data.
     preset, channel, missing drums) is one `SelectionEvent` (`lib/selection.ts`) that
     `useRemapper` hands to the selection, editor and converter reducers alike; each
     decides what it means (the editor drops edits when the pair changes, the converter
-    goes idle and ignores the result of a running batch; the worker is not interrupted).
+    goes idle and stops a running batch through its abort signal).
     Octave, view and the open preset change only the selection reducer. The session
-    restore is the one place that loads edits into the editor directly, when it left out
-    drums this version does not know.
+    restore is the one place that loads edits into the editor directly: the editor
+    starts empty, and when the module has loaded the session's stored edits go through
+    `knownEdits` into it.
   - `usePresetActions` assembles preset payloads (save, update, duplicate, load, edit);
     `useFileIntake` takes dropped files and presets; `useConversionReport` builds the
     report and decides whether "drop missing drums" applies.
@@ -473,7 +506,8 @@ one module, so the rest of the UI is pure data.
     missing drums, the open preset id and unsaved edits; `useRemapper` restores it on
     load and saves every change. When the catalog loads, a link's `?from/&to` pair
     wins (dropping edits made for another pair), unknown engines are cleared and
-    unknown drums in restored edits are left out.
+    unknown drums in restored edits are left out. Until it has loaded, the session's
+    stored edits are written back unchanged, so a reload or a failed load loses none.
   - Loading a preset leaves out edits for drums this version does not know and says
     so; presets export to `<name>-drumverter.json` and import from any `.json` file (import parses
     through the WASM `parse_preset_file`).
@@ -635,7 +669,9 @@ Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props;
 - **Standard crates over hand-rolled** parsing, error handling, and serialization.
 - **One gate.** `scripts/gate.sh` runs every check. It owns the Rust checks and their
   flags: fmt (on the nightly named in `nightly-toolchain`), clippy (`-D warnings`) and
-  tests, both `--locked`. The app's checks are `app/package.json`'s scripts, which own
+  tests, both `--locked`. Clippy and the tests run once over the crates as they ship
+  (the workspace without `midiremap-wasm`, so core is built without `ts`, as the CLI and
+  the site generator link it) and once for `midiremap-wasm` (core with `ts`). The app's checks are `app/package.json`'s scripts, which own
   their flags and generate the i18n types first: eslint, tsc and vitest, then the site
   build, size budgets and Playwright. The script takes groups (`rust`, `app`, `dist`) or
   single steps as arguments. Each CI job runs one

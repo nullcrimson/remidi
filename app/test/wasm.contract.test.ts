@@ -2,9 +2,11 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { noteName } from '../src/lib/notes';
-import FIXTURE from './fixtures/my-kit.drumverter.json?raw';
+import type { Overrides } from '../src/lib/midiremap';
+import naming from '../src/wasm/note_naming.json';
+import { PRESET_FIXTURE } from './presetFixture';
 import * as stub from './stubs/wasm';
+import { canon, typed } from './typed';
 
 type Wasm = typeof import('../src/wasm/midiremap_wasm.js');
 
@@ -57,10 +59,10 @@ describe('real WASM module', () => {
   });
 
   it('applies target and source overrides passed as an object', () => {
-    const rows = real.plan('ggd_invasion', 'ezdrummer', {
+    const rows = real.plan('ggd_invasion', 'ezdrummer', typed<Overrides>({
       tgt: [{ canon: 'kick.main', note: 35 }],
       src: [{ note: 127, canon: 'china.1.hit' }],
-    });
+    }));
     const kick = rows.find((r) => r.canon === 'kick.main')!;
     expect(kick.outcome).toEqual({ status: 'direct', tgtNote: 35 });
     expect(kick.defaultTgtNote).toBe(36);
@@ -76,7 +78,7 @@ describe('real WASM module', () => {
   });
 
   it('reads the shared preset fixture', () => {
-    expect(real.parse_preset_file(FIXTURE)).toEqual({
+    expect(real.parse_preset_file(PRESET_FIXTURE)).toEqual({
       name: 'My kit',
       src: 'ggd_invasion',
       tgt: 'ezdrummer',
@@ -92,11 +94,8 @@ describe('real WASM module', () => {
     expect(real.canon_catalog().every((c) => families.has(c.family))).toBe(true);
   });
 
-  it('names every note the way the app does, in both octave conventions', () => {
-    for (const base of ['c1', 'c2'] as const) {
-      const app = Array.from({ length: 128 }, (_, n) => noteName(n, base));
-      expect(app).toEqual(real.note_names(base));
-    }
+  it('built the note naming table the app reads from this module', () => {
+    expect(naming).toEqual(real.note_naming());
   });
 
   it('throws typed errors', () => {
@@ -107,8 +106,8 @@ describe('real WASM module', () => {
     });
     const kind = (f: () => unknown) => (thrown(f) as { kind: string }).kind;
     expect(kind(() => real.remap(new Uint8Array([1, 2]), 'ggd_invasion', 'ezdrummer'))).toBe('badMidi');
-    expect(kind(() => real.remap(MIDI, 'ggd_invasion', 'ezdrummer', undefined, '17'))).toBe('badChannel');
-    expect(kind(() => real.plan('ggd_invasion', 'ezdrummer', { tgt: [{ canon: 'bogus', note: 1 }] }))).toBe(
+    expect(kind(() => real.remap(MIDI, 'ggd_invasion', 'ezdrummer', undefined, '17' as never))).toBe('internal');
+    expect(kind(() => real.plan('ggd_invasion', 'ezdrummer', typed<Overrides>({ tgt: [{ canon: 'bogus', note: 1 }] })))).toBe(
       'badOverrides',
     );
     expect(kind(() => real.plan('ggd_invasion', 'ezdrummer', undefined, 'maybe' as never))).toBe('badMissing');
@@ -124,9 +123,8 @@ describe('test stub', () => {
     expect(first(stub.engine_notes('ggd_invasion'))).toEqual(first(real.engine_notes('ggd_invasion')));
     expect(first(stub.canon_catalog())).toEqual(first(real.canon_catalog()));
     expect(first(stub.plan('ggd_invasion', 'ezdrummer'))).toEqual(first(real.plan('ggd_invasion', 'ezdrummer')));
-    expect(keys(stub.parse_preset_file(FIXTURE))).toEqual(keys(real.parse_preset_file(FIXTURE)));
+    expect(keys(stub.parse_preset_file(PRESET_FIXTURE))).toEqual(keys(real.parse_preset_file(PRESET_FIXTURE)));
     expect(stub.family_order()).toEqual(real.family_order());
-    expect(stub.note_names('c2')).toEqual(real.note_names('c2'));
     const [s, r] = [stub.remap(MIDI, 'ggd_invasion', 'ezdrummer'), real.remap(MIDI, 'ggd_invasion', 'ezdrummer')];
     expect(keys(s)).toEqual(keys(r));
     expect(keys(s.report)).toEqual(keys(r.report));
@@ -143,7 +141,7 @@ describe('test stub', () => {
       ...Object.keys(report.fallbackUsed),
       ...Object.keys(report.dropped),
     ];
-    expect(used.filter((c) => !vocabulary.has(c))).toEqual([]);
+    expect(used.filter((c) => !vocabulary.has(canon(c)))).toEqual([]);
     for (const c of stub.canon_catalog()) expect(c).toEqual(vocabulary.get(c.canon));
   });
 });

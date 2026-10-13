@@ -36,7 +36,6 @@ error-bad-midi = このファイルは読み込めません。MIDIファイル�
 error-bad-preset = プリセットファイルではありません
 error-bad-overrides = ノートの編集内容を読み込めませんでした
 error-bad-missing = 「足りないパーツ」の設定が不明です
-error-bad-channel = チャンネルの設定が不明です
 error-internal = 問題が発生しました
 error-wasm-unavailable = コンバーターを読み込めませんでした
 error-detail = 詳細：{ $detail }

@@ -1,26 +1,22 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('../src/lib/midiremap', () => ({
-  ready: () => Promise.resolve(),
-  engines: () => [
-    { id: 'ggd_invasion', name: 'GGD Invasion' },
-    { id: 'ezdrummer', name: 'EZdrummer' },
-  ],
-  plan: () => [{ canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } }],
-  remap: () => ({
-    bytes: new Uint8Array([1]),
-    report: { unmappedSource: {}, fallbackUsed: {}, dropped: {} },
-  }),
-}));
-
 import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from '../src/App';
+import { RUNTIME } from './runtime';
+import * as stub from './stubs/wasm';
+import { typed } from './typed';
+import type { VoiceRow } from '../src/lib/midiremap';
 
 describe('App convert view', () => {
+  beforeEach(() => {
+    vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
+      { canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+    ]));
+  });
+
   it('disables convert and hides edit until both engines are chosen', async () => {
-    render(<App />);
+    render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
     expect(screen.getByRole('heading', { name: /^Drumverter/ })).toBeInTheDocument();
     expect(screen.getByText('TO')).toBeInTheDocument();

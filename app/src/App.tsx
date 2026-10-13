@@ -22,11 +22,13 @@ import { useSavedMappings } from './hooks/useSavedMappings';
 import { convertBlocker } from './lib/blocker';
 import type { EditFilter } from './lib/editFilter';
 import { shortCode } from './lib/format';
+import type { Note } from './lib/midiremap';
 import { downloadPreset } from './lib/presetFile';
 import { ErrorText } from './components/ErrorText';
 import { Rich } from './components/Rich';
 import { useT } from './localeContext';
 import type { NoticeLine } from './lib/notice';
+import type { Runtime } from './lib/runtime';
 import { track } from './lib/stats';
 
 function Intro() {
@@ -38,15 +40,15 @@ function Intro() {
   );
 }
 
-export default function App() {
+export default function App({ runtime }: { runtime: Runtime }) {
   const t = useT();
   useDropGuard();
-  const remapper = useRemapper();
+  const remapper = useRemapper(runtime);
   const { editor } = remapper;
   const focus = useFocusIntent();
   const saved = useSavedMappings();
   const [reportOpen, setReportOpen] = useState(false);
-  const [assignNote, setAssignNote] = useState<number | null>(null);
+  const [assignNote, setAssignNote] = useState<Note | null>(null);
   const [notice, setNotice] = useState<NoticeLine[] | null>(null);
   const [editShow, setEditShow] = useState<EditFilter>('all');
   const presets = usePresetActions(
@@ -58,6 +60,7 @@ export default function App() {
   const edited = useEditedSummary(editor, remapper.oct, openPreset);
   const { request } = focus;
   const addFiles = useFileIntake({
+    load: runtime.load,
     storeFiles: remapper.addFiles,
     src: remapper.src,
     tgt: remapper.tgt,
@@ -69,7 +72,7 @@ export default function App() {
   const targetName = remapper.engines.find((e) => e.id === remapper.tgt)?.name ?? remapper.tgt;
   const sourceName = remapper.engines.find((e) => e.id === remapper.src)?.name ?? remapper.src;
   const blocker = convertBlocker({ files: remapper.files.length, src: remapper.src, tgt: remapper.tgt });
-  const openEditor = (show: EditFilter = 'all', note: number | null = null) => {
+  const openEditor = (show: EditFilter = 'all', note: Note | null = null) => {
     track('editor-opened', { show });
     setEditShow(show);
     setAssignNote(note);

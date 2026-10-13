@@ -1,28 +1,44 @@
-import type { Overrides } from './midiremap';
+import { byCanon, type Vocabulary } from './canon';
+import type { Canon, Note, Overrides } from './midiremap';
+import { byNote } from './notes';
 
-export type Edits = Record<string, number>;
+export type Edits = Record<Canon, Note>;
 /** Source note → canon it plays, or null when the note is unassigned. */
-export type SrcEdits = Record<number, string | null>;
+export type SrcEdits = Record<Note, Canon | null>;
+
+/**
+ * Note edits as they are stored or read back from a file: the drum keys are text nobody
+ * has checked against this version's vocabulary. Only `knownEdits` turns them into edits.
+ */
+export interface StoredEdits {
+  edits: Record<string, Note>;
+  srcEdits: Record<Note, string | null>;
+}
 
 export function editsToOverrides(edits: Edits, srcEdits: SrcEdits = {}): Overrides {
   return {
-    tgt: Object.entries(edits).map(([canon, note]) => ({ canon, note })),
-    src: Object.entries(srcEdits).map(([note, canon]) => ({ note: Number(note), canon })),
+    tgt: byCanon(edits).map(([canon, note]) => ({ canon, note })),
+    src: byNote(srcEdits).map(([note, canon]) => ({ note, canon })),
   };
 }
 
-/** Edits whose drums this version knows, and how many were left out. */
+/** The stored edits whose drums this version knows, and how many were left out. */
 export function knownEdits(
-  edits: Edits,
-  srcEdits: SrcEdits,
-  canons: ReadonlySet<string>,
+  stored: StoredEdits,
+  vocabulary: Vocabulary,
 ): { edits: Edits; srcEdits: SrcEdits; skipped: number } {
-  const keptEdits = Object.fromEntries(Object.entries(edits).filter(([canon]) => canons.has(canon)));
-  const keptSrc: SrcEdits = Object.fromEntries(
-    Object.entries(srcEdits).filter(([, canon]) => canon === null || canons.has(canon)),
-  );
-  const skipped
-    = Object.keys(edits).length - Object.keys(keptEdits).length
-      + Object.keys(srcEdits).length - Object.keys(keptSrc).length;
-  return { edits: keptEdits, srcEdits: keptSrc, skipped };
+  const edits: Edits = {};
+  const srcEdits: SrcEdits = {};
+  let skipped = 0;
+  for (const [key, note] of Object.entries(stored.edits)) {
+    const canon = vocabulary.get(key);
+    if (canon === undefined) skipped += 1;
+    else edits[canon] = note;
+  }
+  for (const [note, key] of byNote(stored.srcEdits)) {
+    const canon = key === null ? null : vocabulary.get(key);
+    if (canon === undefined) skipped += 1;
+    else srcEdits[note] = canon;
+  }
+  return { edits, srcEdits, skipped };
 }

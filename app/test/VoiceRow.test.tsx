@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { PickerShell } from '../src/components/PickerShell';
 import { VoiceRow } from '../src/components/VoiceRow';
+import type { VoiceRow as VoiceRowData } from '../src/lib/midiremap';
+import { typed, type Loose } from './typed';
 
 const base = {
   base: 'c1' as const,
@@ -15,7 +17,9 @@ const base = {
   result: { text: 'direct', tone: 'text-t5' },
 };
 
-const kick = { canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } };
+const kickFixture = { canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } };
+const rowOf = (extra: Partial<Loose<VoiceRowData>> = {}) => typed<VoiceRowData>({ ...kickFixture, ...extra });
+const kick = rowOf();
 
 describe('VoiceRow', () => {
   it('shows the drum label plus source and target note buttons', () => {
@@ -42,7 +46,7 @@ describe('VoiceRow', () => {
   it('shows a dash for a dropped target but keeps the source chip', () => {
     render(
       <VoiceRow
-        row={{ canon: 'China', label: 'China', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } }}
+        row={typed<VoiceRowData>({ canon: 'China', label: 'China', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } })}
         {...base}
       />,
     );
@@ -81,7 +85,7 @@ describe('VoiceRow', () => {
   });
 
   it('marks extra source notes with a count', () => {
-    render(<VoiceRow row={{ ...kick, srcNotes: [24, 23, 22] }} {...base} />);
+    render(<VoiceRow row={rowOf({ srcNotes: [24, 23, 22] })} {...base} />);
     expect(screen.getByRole('button', { name: 'C1' })).toBeInTheDocument();
     expect(screen.getByText('+2')).toBeInTheDocument();
     expect(
@@ -90,7 +94,7 @@ describe('VoiceRow', () => {
   });
 
   it('explains the marker in its tooltip', async () => {
-    render(<VoiceRow row={{ ...kick, srcNotes: [24, 23, 22] }} {...base} />);
+    render(<VoiceRow row={rowOf({ srcNotes: [24, 23, 22] })} {...base} />);
     await userEvent.hover(screen.getByText('+2'));
     expect(await screen.findByRole('tooltip')).toHaveTextContent(
       '2 more source notes play Kick: B0, A#0. All go to C2.',
@@ -99,14 +103,14 @@ describe('VoiceRow', () => {
 
   it('explains a single extra note and a dropped row', () => {
     const { rerender } = render(
-      <VoiceRow row={{ ...kick, srcNotes: [24, 23] }} {...base} />,
+      <VoiceRow row={rowOf({ srcNotes: [24, 23] })} {...base} />,
     );
     expect(
       screen.getByLabelText('1 more source note plays Kick: B0. Both go to C2.'),
     ).toBeInTheDocument();
     rerender(
       <VoiceRow
-        row={{ ...kick, srcNotes: [24, 23], outcome: { status: 'dropped', otherDrum: false } }}
+        row={rowOf({ srcNotes: [24, 23], outcome: { status: 'dropped', otherDrum: false } })}
         {...base}
       />,
     );
@@ -123,7 +127,7 @@ describe('VoiceRow', () => {
   it('shows a dash on the source chip of a silent row and dims it', async () => {
     const onSrcToggle = vi.fn();
     const { container } = render(
-      <VoiceRow row={{ ...kick, srcNotes: [] }} {...base} onSrcToggle={onSrcToggle} />,
+      <VoiceRow row={rowOf({ srcNotes: [] })} {...base} onSrcToggle={onSrcToggle} />,
     );
     const chip = screen.getByRole('button', { name: '—' });
     await userEvent.click(chip);

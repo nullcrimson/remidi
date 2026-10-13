@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { MISSING_KEY } from '../src/lib/missing';
 import { EMPTY_SESSION, loadSession, saveSession, SESSION_KEY, type Session } from '../src/lib/session';
+import { typed } from './typed';
 
-const FULL: Session = {
+const FULL = typed<Session>({
   src: 'ggd_invasion',
   tgt: 'ezdrummer',
   oct: 'c2',
@@ -11,7 +12,7 @@ const FULL: Session = {
   presetId: 'p1',
   edits: { 'kick.main': 35 },
   srcEdits: { 24: 'snare1.hit', 60: null },
-};
+});
 
 describe('session', () => {
   beforeEach(() => localStorage.clear());

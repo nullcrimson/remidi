@@ -1,48 +1,41 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const remapMock = vi.fn();
-const planMock = vi.fn();
-const readyMock = vi.fn(() => Promise.resolve());
-vi.mock('../src/lib/midiremap', () => ({
-  ready: () => readyMock(),
-  engines: () => [
-    { id: 'ggd_invasion', name: 'GGD Invasion' },
-    { id: 'ezdrummer', name: 'EZdrummer' },
-  ],
-  plan: (...a: unknown[]) => planMock(...a),
-  remap: (...a: unknown[]) => remapMock(...a),
-}));
-
 import { useRemapper } from '../src/hooks/useRemapper';
+import { RUNTIME } from './runtime';
+import type { RemapOutput, VoiceRow } from '../src/lib/midiremap';
+import init, * as stub from './stubs/wasm';
+import { canon, note, typed } from './typed';
 
-const ROWS = [
+const ROWS = typed<VoiceRow[]>([
   { canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
   { canon: 'China', label: 'China', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
-];
+]);
+
+const converted = () =>
+  typed<RemapOutput>({
+    bytes: new Uint8Array([1, 2, 3]),
+    report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 },
+  });
 
 describe('useRemapper convert path', () => {
   beforeEach(() => {
-    planMock.mockReset().mockReturnValue(ROWS);
-    readyMock.mockReset().mockImplementation(() => Promise.resolve());
-    remapMock.mockReset().mockReturnValue({
-      bytes: new Uint8Array([1, 2, 3]),
-      report: { unmappedSource: {}, fallbackUsed: {}, dropped: {} },
-    });
+    vi.mocked(stub.plan).mockReturnValue(ROWS);
+    vi.mocked(stub.remap).mockReturnValue(converted());
   });
 
   it('initializes ready with no default selection', async () => {
-    const { result } = renderHook(() => useRemapper());
+    const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.status).toBe('ready'));
     expect(result.current.src).toBe('');
     expect(result.current.tgt).toBe('');
     expect(result.current.editor.rows).toHaveLength(0);
     expect(result.current.editor.rows.length).toBe(0);
-    expect(planMock).not.toHaveBeenCalled();
+    expect(stub.plan).not.toHaveBeenCalled();
   });
 
   it('converts queued files to results once both engines are chosen', async () => {
-    const { result } = renderHook(() => useRemapper());
+    const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
@@ -62,7 +55,7 @@ describe('useRemapper convert path', () => {
   });
 
   it('enters the running state before settling on done', async () => {
-    const { result } = renderHook(() => useRemapper());
+    const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
@@ -79,25 +72,22 @@ describe('useRemapper convert path', () => {
   });
 
   it('does not convert until both engines are chosen', async () => {
-    const { result } = renderHook(() => useRemapper());
+    const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
     await act(() => result.current.convert());
     expect(result.current.conv.kind).toBe('idle');
     expect(result.current.results).toHaveLength(0);
-    expect(remapMock).not.toHaveBeenCalled();
+    expect(stub.remap).not.toHaveBeenCalled();
   });
 
   it('marks a failing file while others still convert', async () => {
-    remapMock.mockImplementation((bytes: Uint8Array) => {
+    vi.mocked(stub.remap).mockImplementation((bytes) => {
       if (bytes[0] === 0) throw new Error('unknown source engine');
-      return {
-        bytes: new Uint8Array([1, 2, 3]),
-        report: { unmappedSource: {}, fallbackUsed: {}, dropped: {} },
-      };
+      return converted();
     });
-    const { result } = renderHook(() => useRemapper());
+    const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
@@ -116,10 +106,10 @@ describe('useRemapper convert path', () => {
   });
 
   it('reports error when every file fails', async () => {
-    remapMock.mockImplementation(() => {
+    vi.mocked(stub.remap).mockImplementation(() => {
       throw new Error('unknown source engine');
     });
-    const { result } = renderHook(() => useRemapper());
+    const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
@@ -131,7 +121,7 @@ describe('useRemapper convert path', () => {
   });
 
   it('remembers skipped files until the next add', async () => {
-    const { result } = renderHook(() => useRemapper());
+    const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.status).toBe('ready'));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([1]), name: 'a.mid' }], ['notes.txt']));
     expect(result.current.files).toHaveLength(1);
@@ -141,7 +131,7 @@ describe('useRemapper convert path', () => {
   });
 
   it('keeps finished results when only non-MIDI files were added', async () => {
-    const { result } = renderHook(() => useRemapper());
+    const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
@@ -153,7 +143,7 @@ describe('useRemapper convert path', () => {
   });
 
   it('dedupes by name and removes files', async () => {
-    const { result } = renderHook(() => useRemapper());
+    const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.status).toBe('ready'));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([1]), name: 'a.mid' }]));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([2]), name: 'a.mid' }]));
@@ -163,21 +153,21 @@ describe('useRemapper convert path', () => {
   });
 
   it('starts on auto and converts with the chosen channel', async () => {
-    const { result } = renderHook(() => useRemapper());
+    const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.status).toBe('ready'));
     expect(result.current.channel).toBe('auto');
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
     await act(() => result.current.convert());
-    expect(remapMock.mock.calls[0][4]).toBe('auto');
+    expect(vi.mocked(stub.remap).mock.calls[0][4]).toBe('auto');
     act(() => result.current.setChannel('10'));
     await act(() => result.current.convert());
-    expect(remapMock.mock.calls[1][4]).toBe('10');
+    expect(vi.mocked(stub.remap).mock.calls[1][4]).toBe('10');
   });
 
   it('clears finished results when the channel changes', async () => {
-    const { result } = renderHook(() => useRemapper());
+    const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
@@ -191,7 +181,7 @@ describe('useRemapper convert path', () => {
   });
 
   it('sets the octave base', async () => {
-    const { result } = renderHook(() => useRemapper());
+    const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.status).toBe('ready'));
     expect(result.current.oct).toBe('c1');
     act(() => result.current.setOct('c2'));
@@ -201,27 +191,44 @@ describe('useRemapper convert path', () => {
   });
 
   it('clears finished results when a note is edited', async () => {
-    const { result } = renderHook(() => useRemapper());
+    const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
     await act(() => result.current.convert());
     expect(result.current.conv.kind).toBe('done');
-    act(() => result.current.editor.openPick('KickMain'));
-    act(() => result.current.editor.chooseNoteAbsolute(40));
+    act(() => result.current.editor.openPick(canon('KickMain')));
+    act(() => result.current.editor.chooseNote(note(40)));
     expect(result.current.conv.kind).toBe('idle');
     expect(result.current.results).toHaveLength(0);
   });
 
-  it('discards a run that finishes after the settings changed', async () => {
-    const { result } = renderHook(() => useRemapper());
+  it('swaps and recomputes plan', async () => {
+    const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
-    act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
+    vi.mocked(stub.plan).mockClear();
+    act(() => result.current.swap());
+    expect(result.current.src).toBe('ezdrummer');
+    expect(result.current.tgt).toBe('ggd_invasion');
+    expect(stub.plan).toHaveBeenCalled();
+  });
+
+  it('lists engines by display name', async () => {
+    const { result } = renderHook(() => useRemapper(RUNTIME));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    expect(result.current.engines.map((e) => e.name)).toEqual(['EZdrummer', 'GGD Invasion']);
+  });
+
+  it('discards a run that finishes after the settings changed', async () => {
     let release = () => {};
-    readyMock.mockImplementation(() => new Promise<void>((r) => (release = r)));
+    vi.mocked(init).mockReturnValue(new Promise<unknown>((resolve) => (release = () => resolve({}))));
+    const { result } = renderHook(() => useRemapper(RUNTIME));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
+    act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
     const urls = vi.mocked(URL.createObjectURL);
     urls.mockClear();
     let pending: Promise<void> | undefined;
@@ -236,23 +243,5 @@ describe('useRemapper convert path', () => {
     });
     expect(result.current.conv.kind).toBe('idle');
     expect(urls).not.toHaveBeenCalled();
-  });
-
-  it('swaps and recomputes plan', async () => {
-    const { result } = renderHook(() => useRemapper());
-    await waitFor(() => expect(result.current.status).toBe('ready'));
-    act(() => result.current.chooseSrc('ggd_invasion'));
-    act(() => result.current.chooseTgt('ezdrummer'));
-    planMock.mockClear();
-    act(() => result.current.swap());
-    expect(result.current.src).toBe('ezdrummer');
-    expect(result.current.tgt).toBe('ggd_invasion');
-    expect(planMock).toHaveBeenCalled();
-  });
-
-  it('lists engines by display name', async () => {
-    const { result } = renderHook(() => useRemapper());
-    await waitFor(() => expect(result.current.status).toBe('ready'));
-    expect(result.current.engines.map((e) => e.name)).toEqual(['EZdrummer', 'GGD Invasion']);
   });
 });

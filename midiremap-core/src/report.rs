@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use serde::{Serialize, Serializer};
+use serde::Serialize;
 
 use crate::{
     canon::Canon,
@@ -28,17 +28,13 @@ pub struct FallbackTally {
     tsify(missing_as_null, hashmap_as_object)
 )]
 pub struct Report {
-    #[serde(serialize_with = "string_keys")]
-    #[cfg_attr(feature = "ts", tsify(type = "Record<string, number>"))]
+    #[serde(serialize_with = "Note::text_keys")]
+    #[cfg_attr(feature = "ts", tsify(type = "Record<Note, number>"))]
     unmapped_source: BTreeMap<Note, u32>,
     fallback_used: BTreeMap<Canon, FallbackTally>,
     dropped: BTreeMap<Canon, u32>,
     untouched: u32,
     converted: u32,
-}
-
-fn string_keys<S: Serializer>(map: &BTreeMap<Note, u32>, s: S) -> Result<S::Ok, S::Error> {
-    s.collect_map(map.iter().map(|(note, count)| (note.to_string(), count)))
 }
 
 impl Report {
@@ -97,7 +93,7 @@ impl Report {
                     })
                     .count += 1
             }
-            Resolution::Resolved(CanonResolution::Dropped { canon }) => {
+            Resolution::Resolved(CanonResolution::Dropped { canon, .. }) => {
                 *self.dropped.entry(*canon).or_default() += 1
             }
             Resolution::Resolved(CanonResolution::Direct { .. }) => self.converted += 1,
@@ -129,7 +125,10 @@ mod tests {
         );
         r.record(
             n(10),
-            &Resolution::Resolved(CanonResolution::Dropped { canon: snare }),
+            &Resolution::Resolved(CanonResolution::Dropped {
+                canon: snare,
+                other_drum: false,
+            }),
         );
         r.record(
             n(12),
@@ -168,6 +167,7 @@ mod tests {
                 n(1),
                 &Resolution::Resolved(CanonResolution::Dropped {
                     canon: key.parse().unwrap(),
+                    other_drum: false,
                 }),
             );
         }

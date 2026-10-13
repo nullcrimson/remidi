@@ -2,26 +2,13 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../src/lib/midiremap', () => ({
-  ready: () => Promise.resolve(),
-  engines: () => [
-    { id: 'ggd_invasion', name: 'GGD Invasion' },
-    { id: 'ezdrummer', name: 'EZdrummer' },
-  ],
-  engineDrums: () => [],
-  engineNotes: () => [],
-  canonCatalog: () => [{ canon: 'kick.main', label: 'Kick', family: 'Kick' }],
-  plan: () => [
-    { canon: 'kick.main', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
-  ],
-  remap: () => ({
-    bytes: new Uint8Array([1]),
-    report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 10 },
-  }),
-}));
 vi.mock('../src/lib/download', () => ({ saveFile: vi.fn() }));
 
 import App from '../src/App';
+import { RUNTIME } from './runtime';
+import type { RemapOutput, VocabularyDrum, VoiceRow } from '../src/lib/midiremap';
+import * as stub from './stubs/wasm';
+import { typed } from './typed';
 
 const fromBox = () => screen.getByRole('combobox', { name: 'Filter FROM engines' });
 const toBox = () => screen.getByRole('combobox', { name: 'Filter TO engines' });
@@ -35,13 +22,25 @@ async function addFile() {
 }
 
 async function start() {
-  render(<App />);
+  render(<App runtime={RUNTIME} />);
   await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
 }
 
 describe('keyboard use', () => {
   beforeEach(() => {
     document.body.focus();
+    vi.mocked(stub.engine_drums).mockReturnValue([]);
+    vi.mocked(stub.engine_notes).mockReturnValue([]);
+    vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
+      { canon: 'kick.main', label: 'Kick', family: 'Kick' },
+    ]));
+    vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
+      { canon: 'kick.main', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+    ]));
+    vi.mocked(stub.remap).mockReturnValue(typed<RemapOutput>({
+      bytes: new Uint8Array([1]),
+      report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 10 },
+    }));
   });
 
   it('reaches Convert from page load in fewer than 12 Tabs', async () => {

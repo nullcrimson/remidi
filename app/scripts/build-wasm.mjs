@@ -2,16 +2,18 @@ import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const script = fileURLToPath(import.meta.url);
 const app = resolve(dirname(script), '..');
 const root = resolve(app, '..');
 const run = (cmd, cwd = root) => execSync(cmd, { cwd, stdio: 'inherit' });
 const STAMP = resolve(app, 'src/wasm/.stamp');
-const OUTPUTS = ['midiremap_wasm.js', 'midiremap_wasm.d.ts', 'midiremap_wasm_bg.wasm'].map((f) =>
-  resolve(app, 'src/wasm', f),
-);
+const output = (file) => resolve(app, 'src/wasm', file);
+const GLUE = output('midiremap_wasm.js');
+const BINARY = output('midiremap_wasm_bg.wasm');
+const NOTE_NAMING = output('note_naming.json');
+const OUTPUTS = [GLUE, output('midiremap_wasm.d.ts'), BINARY, NOTE_NAMING];
 
 const WASM_FEATURES = [
   'bulk-memory',
@@ -44,5 +46,8 @@ run(
   'npx --no-install tsc --ignoreConfig --noEmit --strict --lib es2022,dom --types node src/wasm/midiremap_wasm.d.ts',
   app,
 );
+const built = await import(pathToFileURL(GLUE).href);
+built.initSync({ module: readFileSync(BINARY) });
+writeFileSync(NOTE_NAMING, JSON.stringify(built.note_naming()));
 writeFileSync(STAMP, stamp);
 console.log('Generated and type-checked app/src/wasm');

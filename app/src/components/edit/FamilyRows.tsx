@@ -2,7 +2,7 @@ import type { Translate } from '../../i18n';
 import { useT } from '../../localeContext';
 import { Fragment } from 'react';
 import type { Editor } from '../../hooks/useEditor';
-import type { Drum, VoiceRow as VoiceRowData } from '../../lib/midiremap';
+import type { Canon, Drum, Note, VoiceRow as VoiceRowData } from '../../lib/midiremap';
 import { labelByNote } from '../../lib/missing';
 import { noteName, type OctaveBase } from '../../lib/notes';
 import { MonoLabel } from '../MonoLabel';
@@ -19,12 +19,11 @@ type RowActions = Pick<
   | 'closePick'
   | 'setPickOct'
   | 'chooseNote'
-  | 'chooseNoteAbsolute'
   | 'chooseSrcNote'
   | 'resetRow'
 >;
 
-function playsOf(row: VoiceRowData, changed: boolean, drumAt: (note: number) => string, t: Translate): RowResult {
+function playsOf(row: VoiceRowData, changed: boolean, drumAt: (note: Note) => string, t: Translate): RowResult {
   if (row.srcNotes.length === 0) return { text: t({ id: 'row-no-source' }), tone: 'text-t5' };
   if (row.outcome.status === 'dropped') return { text: t({ id: 'row-dropped' }), tone: 'text-danger' };
   const name = drumAt(row.outcome.tgtNote);
@@ -74,8 +73,8 @@ export function FamilyRows({
   pick: Editor['pick'];
   notice: Editor['notice'];
   edits: Editor['edits'];
-  changed: ReadonlySet<string>;
-  changedSrc: ReadonlySet<string>;
+  changed: ReadonlySet<Canon>;
+  changedSrc: ReadonlySet<Canon>;
   targetDrums: Drum[];
   families: readonly string[];
   oct: OctaveBase;
@@ -83,7 +82,7 @@ export function FamilyRows({
 }) {
   const t = useT();
   const drumByNote = labelByNote(targetDrums);
-  const drumAt = (note: number) => drumByNote.get(note) ?? noteName(note, oct);
+  const drumAt = (note: Note) => drumByNote.get(note) ?? noteName(note, oct);
 
   return (
     <div>
@@ -125,7 +124,7 @@ export function FamilyRows({
                       octIndex={pick.octIndex}
                       base={oct}
                       onSetOct={actions.setPickOct}
-                      onPickSemitone={actions.chooseSrcNote}
+                      onPickNote={actions.chooseSrcNote}
                       onClose={actions.closePick}
                     />
                   )}
@@ -138,8 +137,7 @@ export function FamilyRows({
                       drums={targetDrums}
                       families={families}
                       onSetOct={actions.setPickOct}
-                      onPickSemitone={actions.chooseNote}
-                      onPickNote={actions.chooseNoteAbsolute}
+                      onPickNote={actions.chooseNote}
                       onClose={actions.closePick}
                     />
                   )}

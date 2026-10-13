@@ -1,4 +1,4 @@
-use std::{fmt, str::FromStr};
+use std::{collections::BTreeMap, fmt, str::FromStr};
 
 use midly::num::u7;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
@@ -11,7 +11,7 @@ const NAMES: [&str; SEMITONES as usize] = [
 
 /// Which octave number middle C (note 60) gets: `C1` calls it C4 (Reaper, Logic, Ableton,
 /// Guitar Pro), `C2` calls it C3 (Cubase, FL Studio, Studio One).
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[cfg_attr(feature = "ts", derive(tsify::Tsify))]
 pub enum OctaveBase {
@@ -21,7 +21,10 @@ pub enum OctaveBase {
 }
 
 impl OctaveBase {
-    const fn offset(self) -> i16 {
+    /// Every octave convention.
+    pub const ALL: [Self; 2] = [Self::C1, Self::C2];
+
+    const fn offset(self) -> i8 {
         match self {
             Self::C1 => 1,
             Self::C2 => 2,
@@ -31,7 +34,11 @@ impl OctaveBase {
 
 /// A MIDI note number, always within `0..=127`.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-#[cfg_attr(feature = "ts", derive(tsify::Tsify), tsify(type = "number"))]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(type = r#"number & { readonly __brand: "Note" }"#)
+)]
 pub struct Note(u8);
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
@@ -75,10 +82,27 @@ impl Note {
         u7::from_int_lossy(self.0)
     }
 
+    /// Serializes a map keyed by note with every key as text, which a JavaScript object
+    /// needs of its keys: `#[serde(serialize_with = "Note::text_keys")]`.
+    pub fn text_keys<V: Serialize, S: Serializer>(
+        map: &BTreeMap<Self, V>,
+        s: S,
+    ) -> Result<S::Ok, S::Error> {
+        s.collect_map(map.iter().map(|(note, value)| (note.to_string(), value)))
+    }
+
+    /// The number of the octave the note is in, in the given octave convention.
+    pub fn octave(self, base: OctaveBase) -> i8 {
+        (self.0 / SEMITONES).cast_signed() - base.offset()
+    }
+
     /// The note's name, such as `F#2`, in the given octave convention.
     pub fn name(self, base: OctaveBase) -> String {
-        let octave = i16::from(self.0 / SEMITONES) - base.offset();
-        format!("{}{octave}", NAMES[usize::from(self.0 % SEMITONES)])
+        format!(
+            "{}{}",
+            NAMES[usize::from(self.0 % SEMITONES)],
+            self.octave(base)
+        )
     }
 }
 
@@ -135,6 +159,21 @@ mod tests {
         assert_eq!(n(60).name(OctaveBase::C2), "C3");
         assert_eq!(n(127).name(OctaveBase::C1), "G9");
         assert_eq!(n(127).name(OctaveBase::C2), "G8");
+    }
+
+    #[test]
+    fn middle_c_is_in_octave_4_when_c1_names_it() {
+        assert_eq!(n(60).octave(OctaveBase::C1), 4);
+    }
+
+    #[test]
+    fn middle_c_is_in_octave_3_when_c2_names_it() {
+        assert_eq!(n(60).octave(OctaveBase::C2), 3);
+    }
+
+    #[test]
+    fn the_lowest_octave_is_negative() {
+        assert_eq!(n(11).octave(OctaveBase::C2), -2);
     }
 
     #[test]

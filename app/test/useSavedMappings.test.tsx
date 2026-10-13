@@ -2,12 +2,14 @@ import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useSavedMappings } from '../src/hooks/useSavedMappings';
 import { MAPPINGS_CAP, MAPPINGS_KEY, parseMappings, QUARANTINE_KEY } from '../src/lib/mappings';
+import type { StoredEdits } from '../src/lib/overrides';
+import { typed } from './typed';
 
 const base = {
   name: 'GGD→EZ',
   src: 'ggd_invasion',
   tgt: 'ezdrummer',
-  edits: { 'kick.main': 36 },
+  edits: typed<StoredEdits['edits']>({ 'kick.main': 36 }),
   srcEdits: { 60: 'china.1.hit' },
 };
 
@@ -76,7 +78,7 @@ describe('useSavedMappings', () => {
     const { result } = renderHook(() => useSavedMappings());
     act(() => result.current.save(base));
     const id = result.current.mappings[0].id;
-    act(() => result.current.update(id, { name: 'renamed', edits: { 'snare1.hit': 40 } }));
+    act(() => result.current.update(id, { name: 'renamed', edits: typed<StoredEdits['edits']>({ 'snare1.hit': 40 }) }));
     expect(result.current.mappings[0]).toMatchObject({ name: 'renamed', edits: { 'snare1.hit': 40 } });
   });
 

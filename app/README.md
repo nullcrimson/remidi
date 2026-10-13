@@ -74,24 +74,34 @@ on a phone and click elsewhere.
   into `src/wasm/` (gitignored), then type-checks the generated `.d.ts` on its own
   (the app's `tsconfig` skips library checks, which would hide a broken reference).
   Node (not bash) so `cargo`/`wasm-bindgen` resolve from PATH on Windows too.
-- `src/lib/midiremap.ts` — the only module that imports the WASM. Typed wrapper:
-  `ready()`, `engines()`, `engineDrums()`, `engineNotes()`, `canonCatalog()`,
-  `familyOrder()`, `parsePresetFile()`, `plan()`, `remap()`; its types are generated from
-  Rust, and module errors become `WasmCallError`.
+- `src/lib/midiremap.ts` — the only module that imports the WASM. `moduleLoader()` makes
+  a loader that resolves to a `Midiremap` carrying the calls (`engines()`, `engineDrums()`,
+  `engineNotes()`, `canonCatalog()`, `familyOrder()`, `parsePresetFile()`, `plan()`,
+  `remap()`); its types are generated from Rust, and module errors become
+  `WasmCallError`.
+- `src/lib/runtime.ts` — `Runtime { load, converter }`, made once in `main.tsx` and
+  handed to `App`; tests hand in `test/runtime.ts`.
 - `src/lib/converter.ts`, `convertWorker.ts`, `batch.ts` — conversion in a module Web
-  Worker with its own WASM instance, falling back to the main thread when the worker
-  cannot start or dies.
+  Worker with its own WASM instance. A worker that dies after answering is replaced; one
+  that cannot start, or dies before answering, leaves conversion to the main thread. A
+  batch is stopped through its `AbortSignal`.
 - `src/lib/errors.ts` — `AppError` and `toAppError`, the one conversion from anything
   caught to what the UI shows.
-- `test/stubs/wasm.ts` — the WASM stand-in for component tests; each export is typed
-  as the real one. `test/wasm.contract.test.ts` loads the real module and checks its
+- `test/stubs/wasm.ts` — the WASM stand-in every test runs on (Vitest aliases `@wasm` to
+  it); each export is a mock typed as the real one, reset before every test, so a test
+  changes the module's answer with `vi.mocked(stub.plan).mockReturnValue(...)` and cannot
+  return what the real module could not. No test replaces `lib/midiremap` or
+  `lib/converter`. `test/wasm.contract.test.ts` loads the real module and checks its
   shapes and errors, and that the stub returns the same fields and real drum keys.
-- `src/lib/notes.ts` — note-name / octave helpers (octave base is display-only); the
-  contract test checks the names against the core's.
+- `src/lib/notes.ts` — note-name / octave helpers (octave base is display-only) over
+  `src/wasm/note_naming.json`, the table the wasm build writes from the core.
 - `src/lib/families.ts` — `groupByFamily`: groups drums in the core's family order
   (`editor.families`), keeping any family it does not list.
 - `src/lib/overrides.ts` — target and source edits → the `Overrides` the WASM takes;
-  `knownEdits` leaves out edits for drums this version does not know.
+  `StoredEdits` is what presets and the session carry (drum keys as unchecked text), and
+  `knownEdits` is the one function that turns them into edits, leaving out drums this
+  version does not know.
+- `src/lib/canon.ts` — the module's drum `Vocabulary` by key, and `byCanon`.
 - `src/lib/missing.ts` — the missing-drums setting (Nearest / Drop) and its hint.
 - `src/lib/editSummary.ts` — the summary row's "edited" chip: which drums differ from the
   default mapping, their preview lines, and whether they match the open preset.

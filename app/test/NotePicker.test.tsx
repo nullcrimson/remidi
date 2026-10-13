@@ -2,22 +2,23 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { NotePicker } from '../src/components/NotePicker';
+import type { Drum } from '../src/lib/midiremap';
 import { family_order } from './stubs/wasm';
+import { note, typed } from './typed';
 
-const DRUMS = [{ note: 36, canon: 'kick.main', label: 'Kick', family: 'Kick' as const }];
+const DRUMS = typed<Drum[]>([{ note: 36, canon: 'kick.main', label: 'Kick', family: 'Kick' as const }]);
 
 describe('NotePicker', () => {
   it('labels tabs by base and shows the current note name', () => {
     render(
       <NotePicker
         voiceLabel="Kick"
-        currentNote={60}
+        currentNote={note(60)}
         octIndex={4}
         base="c2"
         drums={[]}
         families={family_order()}
         onSetOct={() => {}}
-        onPickSemitone={() => {}}
         onPickNote={() => {}}
         onClose={() => {}}
       />,
@@ -32,13 +33,12 @@ describe('NotePicker', () => {
     render(
       <NotePicker
         voiceLabel="Kick"
-        currentNote={60}
+        currentNote={note(60)}
         octIndex={4}
         base="c1"
         drums={[]}
         families={family_order()}
         onSetOct={onSetOct}
-        onPickSemitone={() => {}}
         onPickNote={() => {}}
         onClose={onClose}
       />,
@@ -54,13 +54,12 @@ describe('NotePicker', () => {
     render(
       <NotePicker
         voiceLabel="Kick"
-        currentNote={60}
+        currentNote={note(60)}
         octIndex={4}
         base="c1"
         drums={[]}
         families={family_order()}
         onSetOct={() => {}}
-        onPickSemitone={() => {}}
         onPickNote={() => {}}
         onClose={onClose}
       />,
@@ -74,13 +73,12 @@ describe('NotePicker', () => {
     render(
       <NotePicker
         voiceLabel="Kick"
-        currentNote={60}
+        currentNote={note(60)}
         octIndex={4}
         base="c1"
         drums={DRUMS}
         families={family_order()}
         onSetOct={() => {}}
-        onPickSemitone={() => {}}
         onPickNote={onPickDrum}
         onClose={() => {}}
       />,
@@ -99,7 +97,6 @@ describe('NotePicker', () => {
         drums={DRUMS}
         families={family_order()}
         onSetOct={() => {}}
-        onPickSemitone={() => {}}
         onPickNote={() => {}}
         onClose={() => {}}
       />,
@@ -111,13 +108,12 @@ describe('NotePicker', () => {
     render(
       <NotePicker
         voiceLabel="Kick"
-        currentNote={36}
+        currentNote={note(36)}
         octIndex={2}
         base="c1"
         drums={DRUMS}
         families={family_order()}
         onSetOct={() => {}}
-        onPickSemitone={() => {}}
         onPickNote={() => {}}
         onClose={() => {}}
       />,

@@ -1,3 +1,4 @@
+import type { Canon, Note } from '../lib/midiremap';
 import type { MessageId } from '../generated/i18n';
 import type { Translate } from '../i18n';
 import { useT } from '../localeContext';
@@ -8,8 +9,8 @@ import type { ReportEntry, ReportFile, ReportGroups, ReportView } from '../lib/r
 import { ContactFooter } from './ContactFooter';
 
 interface ReportFixes {
-  onPickTarget: (canon: string) => void;
-  onAssignSource: (note: number) => void;
+  onPickTarget: (canon: Canon) => void;
+  onAssignSource: (note: Note) => void;
   onChannel: () => void;
 }
 

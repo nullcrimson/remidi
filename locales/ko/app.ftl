@@ -36,7 +36,6 @@ error-bad-midi = 파일을 읽을 수 없습니다. MIDI 파일이 아닌 것 �
 error-bad-preset = 프리셋 파일이 아닙니다
 error-bad-overrides = 노트 편집 내용을 읽을 수 없습니다
 error-bad-missing = 알 수 없는 '없는 악기' 설정입니다
-error-bad-channel = 알 수 없는 채널 설정입니다
 error-internal = 문제가 발생했습니다
 error-wasm-unavailable = 변환기를 불러오지 못했습니다
 error-detail = 세부 정보: { $detail }

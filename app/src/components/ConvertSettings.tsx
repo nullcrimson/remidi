@@ -1,6 +1,5 @@
 import type { FocusRef } from '../hooks/useFocusIntent';
-import type { Channel } from '../lib/channel';
-import type { MissingDrums } from '../lib/midiremap';
+import type { ChannelScope, MissingDrums } from '../lib/midiremap';
 import type { Swap } from '../lib/missing';
 import type { OctaveBase } from '../lib/notes';
 import { ChannelSelect } from './ChannelSelect';
@@ -22,8 +21,8 @@ export function ConvertSettings({
 }: {
   oct: OctaveBase;
   onOct: (oct: OctaveBase) => void;
-  channel: Channel;
-  onChannel: (channel: Channel) => void;
+  channel: ChannelScope;
+  onChannel: (channel: ChannelScope) => void;
   channelRef: FocusRef;
   missing: MissingDrums;
   missingHint: string;

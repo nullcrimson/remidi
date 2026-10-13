@@ -1,4 +1,5 @@
 import type {
+  ChannelScope,
   Drum,
   Engine,
   Family,
@@ -9,16 +10,19 @@ import type {
   VocabularyDrum,
   VoiceRow,
 } from '@wasm';
-import type { Channel } from './channel';
 import { isWasmError, WasmCallError } from './errors';
 
 type WasmModule = typeof import('@wasm');
 
 export type {
+  Canon,
+  ChannelScope,
   Drum,
   Engine,
   Family,
   MissingDrums,
+  Note,
+  NoteNamings,
   OctaveBase,
   Overrides,
   PlanOutcome,
@@ -29,68 +33,60 @@ export type {
   VoiceRow,
 } from '@wasm';
 
-function call<T>(f: (m: WasmModule) => T): T {
+/** The loaded converter module. A call the module refuses throws a `WasmCallError`. */
+export interface Midiremap {
+  engines(): Engine[];
+  engineDrums(tgtId: string): Drum[];
+  engineNotes(srcId: string): Drum[];
+  canonCatalog(): VocabularyDrum[];
+  familyOrder(): Family[];
+  parsePresetFile(json: string): PresetView;
+  plan(src: string, tgt: string, ov?: Overrides, missing?: MissingDrums): VoiceRow[];
+  remap(
+    mid: Uint8Array,
+    src: string,
+    tgt: string,
+    ov?: Overrides,
+    channel?: ChannelScope,
+    missing?: MissingDrums,
+  ): RemapOutput;
+}
+
+/** Loads the converter module, or rejects with why it could not. */
+export type LoadMidiremap = () => Promise<Midiremap>;
+
+function call<T>(f: () => T): T {
   try {
-    return f(mod());
+    return f();
   } catch (err) {
     throw isWasmError(err) ? new WasmCallError(err) : err;
   }
 }
 
-let wasm: WasmModule | null = null;
-let initPromise: Promise<void> | null = null;
+function calls(m: WasmModule): Midiremap {
+  return {
+    engines: () => call(() => m.engine_catalog()),
+    engineDrums: (tgtId) => call(() => m.engine_drums(tgtId)),
+    engineNotes: (srcId) => call(() => m.engine_notes(srcId)),
+    canonCatalog: () => call(() => m.canon_catalog()),
+    familyOrder: () => call(() => m.family_order()),
+    parsePresetFile: (json) => call(() => m.parse_preset_file(json)),
+    plan: (src, tgt, ov, missing) => call(() => m.plan(src, tgt, ov, missing)),
+    remap: (mid, src, tgt, ov, channel, missing) => call(() => m.remap(mid, src, tgt, ov, channel, missing)),
+  };
+}
 
-/** Load and initialize the WASM module once; safe to call repeatedly. */
-export function ready(): Promise<void> {
-  if (!initPromise) {
-    initPromise = import('@wasm').then(async (m) => {
+/**
+ * A loader of the WASM module that loads and initializes it on its first call; every
+ * call yields that same load, so a loader handed to several readers loads once.
+ */
+export function moduleLoader(): LoadMidiremap {
+  let loading: Promise<Midiremap> | null = null;
+  return () => {
+    loading ??= import('@wasm').then(async (m) => {
       await m.default();
-      wasm = m;
+      return calls(m);
     });
-  }
-  return initPromise;
-}
-
-function mod(): WasmModule {
-  if (!wasm) throw new Error('WASM module not initialized; await ready() first');
-  return wasm;
-}
-
-export function engines(): Engine[] {
-  return call((m) => m.engine_catalog());
-}
-
-export function engineDrums(tgtId: string): Drum[] {
-  return call((m) => m.engine_drums(tgtId));
-}
-
-export function engineNotes(srcId: string): Drum[] {
-  return call((m) => m.engine_notes(srcId));
-}
-
-export function canonCatalog(): VocabularyDrum[] {
-  return call((m) => m.canon_catalog());
-}
-
-export function familyOrder(): Family[] {
-  return call((m) => m.family_order());
-}
-
-export function parsePresetFile(json: string): PresetView {
-  return call((m) => m.parse_preset_file(json));
-}
-
-export function plan(src: string, tgt: string, ov?: Overrides, missing?: MissingDrums): VoiceRow[] {
-  return call((m) => m.plan(src, tgt, ov, missing));
-}
-
-export function remap(
-  mid: Uint8Array,
-  src: string,
-  tgt: string,
-  ov?: Overrides,
-  channel?: Channel,
-  missing?: MissingDrums,
-): RemapOutput {
-  return call((m) => m.remap(mid, src, tgt, ov, channel, missing));
+    return loading;
+  };
 }

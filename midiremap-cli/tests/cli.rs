@@ -171,7 +171,7 @@ fn unknown_missing_value_is_rejected() {
     );
 }
 
-const PRESET: &str = include_str!("../../app/test/fixtures/my-kit.drumverter.json");
+const PRESET: &str = include_str!("../../midiremap-core/tests/golden/my-kit.drumverter.json");
 
 fn convert_with_preset(
     name: &str,

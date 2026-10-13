@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { Drum } from '../lib/midiremap';
+import type { Drum, Note } from '../lib/midiremap';
 import { noteName, type OctaveBase } from '../lib/notes';
 import { reveal } from '../lib/reveal';
 import { useTruncationTooltip } from '../hooks/useTruncationTooltip';
@@ -16,9 +16,9 @@ export function DrumList({
 }: {
   drums: Drum[];
   families: readonly string[];
-  currentNote: number | null;
+  currentNote: Note | null;
   base: OctaveBase;
-  onPickNote: (note: number) => void;
+  onPickNote: (note: Note) => void;
 }) {
   const { show, hide, tooltip } = useTruncationTooltip();
   const scrollRef = useRef<HTMLDivElement>(null);

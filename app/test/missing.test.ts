@@ -2,18 +2,19 @@ import { describe, expect, it } from 'vitest';
 import type { Drum, VoiceRow } from '../src/lib/midiremap';
 import { MISSING_OPTIONS, missingHint, swapList, swappedCanons } from '../src/lib/missing';
 import { ENGLISH } from '../src/i18n';
+import { typed, type Loose } from './typed';
 
 const { t } = ENGLISH;
 
-function row(canon: string, extra: Partial<VoiceRow>): VoiceRow {
-  return {
+function row(canon: string, extra: Partial<Loose<VoiceRow>>): VoiceRow {
+  return typed<VoiceRow>({
     canon,
     label: canon,
     srcNotes: [1],
     defaultTgtNote: 36,
     outcome: { status: 'direct', tgtNote: 36 },
     ...extra,
-  };
+  });
 }
 
 const SWAP = row('china.1.hit', { outcome: { status: 'fallback', tgtNote: 36, otherDrum: true } });
@@ -51,11 +52,11 @@ describe('missing drums setting', () => {
   });
 
   it('lists each drum the setting moves and the target drum that plays it now', () => {
-    const drums = [
+    const drums = typed<Drum[]>([
       { note: 49, canon: 'crash.1.hit', label: 'Crash 1', family: 'Cymbals' },
       { note: 49, canon: 'crash.1.choke', label: 'Crash 1 choke', family: 'Cymbals' },
       { note: 45, canon: 'tom.rack3.hit', label: 'Tom 3', family: 'Toms' },
-    ] as Drum[];
+    ]);
     const china = row('china.1.hit', { label: 'China', outcome: { status: 'fallback', tgtNote: 49, otherDrum: true } });
     const tom = row('tom.rack4.hit', { label: 'Tom 4', outcome: { status: 'fallback', tgtNote: 45, otherDrum: true } });
     expect(swapList([china, SAME, tom, SILENT_SWAP], drums, 'c1')).toEqual([

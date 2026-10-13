@@ -18,7 +18,11 @@ pub(crate) type OpenLevel = Idx<6>;
 
 /// A drum and how it is played, the hub every engine map translates through.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-#[cfg_attr(feature = "ts", derive(tsify::Tsify), tsify(type = "string"))]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(type = r#"string & { readonly __brand: "Canon" }"#)
+)]
 #[cfg_attr(
     test,
     derive(strum::EnumDiscriminants),

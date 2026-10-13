@@ -1,24 +1,22 @@
-import { CHANNELS, type Channel } from './channel';
+import { CHANNELS } from './channel';
 import { parseEdits, parseSrcEdits } from './mappings';
-import type { MissingDrums } from './midiremap';
+import type { ChannelScope, MissingDrums } from './midiremap';
 import { MISSING_KEY } from './missing';
 import type { OctaveBase } from './notes';
 import { readStored } from './storage';
-import type { Edits, SrcEdits } from './overrides';
+import type { StoredEdits } from './overrides';
 
 export const SESSION_KEY = 'midiremap:session';
 const SESSION_VERSION = 1;
 
 /** The setup a reload brings back: engines, settings and unsaved note edits. */
-export interface Session {
+export interface Session extends StoredEdits {
   src: string;
   tgt: string;
   oct: OctaveBase;
-  channel: Channel;
+  channel: ChannelScope;
   missing: MissingDrums;
   presetId: string | null;
-  edits: Edits;
-  srcEdits: SrcEdits;
 }
 
 export const EMPTY_SESSION: Session = {

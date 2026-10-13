@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
+import { wasmUnavailable } from '../lib/errors';
 import { unreadableNotice, type LoadedFile, type OnFiles } from '../lib/files';
-import { parsePresetFile } from '../lib/midiremap';
+import type { LoadMidiremap } from '../lib/midiremap';
 import type { NoticeLine } from '../lib/notice';
 import { importPresets } from '../lib/presetImport';
 import type { FocusTarget } from './useFocusIntent';
@@ -9,10 +10,12 @@ import { track } from '../lib/stats';
 
 /**
  * Takes files picked or dropped: MIDI files join the list and focus moves to the next
- * missing step (FROM, TO, then Convert); presets are imported; unreadable files and
- * import results are reported through `notify`.
+ * missing step (FROM, TO, then Convert); presets are imported once `load` has yielded the
+ * converter module, so one dropped while it loads is not lost; unreadable files and
+ * import results are reported through `notify`, in one notice.
  */
 export function useFileIntake({
+  load,
   storeFiles,
   src,
   tgt,
@@ -20,6 +23,7 @@ export function useFileIntake({
   notify,
   focus,
 }: {
+  load: LoadMidiremap;
   storeFiles: (files: LoadedFile[], skipped: string[]) => void;
   src: string;
   tgt: string;
@@ -30,18 +34,24 @@ export function useFileIntake({
   const { mappings, save } = saved;
   return useCallback<OnFiles>(
     (files, skipped, presets = [], unreadable = []) => {
-      const lines: NoticeLine[] = [
-        ...(unreadable.length > 0 ? [{ message: unreadableNotice(unreadable) }] : []),
-        ...(presets.length > 0 ? importPresets(presets, mappings, parsePresetFile, save) : []),
-      ];
-      if (presets.length > 0) track('preset-imported', { files: presets.length });
-      if (lines.length > 0) notify(lines);
+      const unread: NoticeLine[] = unreadable.length > 0 ? [{ message: unreadableNotice(unreadable) }] : [];
+      if (presets.length > 0) {
+        track('preset-imported', { files: presets.length });
+        void load()
+          .then(
+            (core) => importPresets(presets, mappings, core.parsePresetFile, save),
+            (err: unknown) => presets.map((p): NoticeLine => ({ failed: p.name, error: wasmUnavailable(err) })),
+          )
+          .then((imported) => notify([...unread, ...imported]));
+      } else if (unread.length > 0) {
+        notify(unread);
+      }
       if (files.length === 0 && skipped.length === 0) return;
       storeFiles(files, skipped);
       if (files.length === 0) return;
       track('midi-added', { files: files.length });
       focus(!src ? 'from' : !tgt ? 'to' : 'convert');
     },
-    [storeFiles, src, tgt, mappings, save, notify, focus],
+    [load, storeFiles, src, tgt, mappings, save, notify, focus],
   );
 }

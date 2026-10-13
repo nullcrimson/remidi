@@ -36,7 +36,6 @@ error-bad-midi = Konwerter nie może odczytać tego pliku — to chyba nie jest 
 error-bad-preset = To nie jest plik presetu
 error-bad-overrides = Nie udało się odczytać zmian nut
 error-bad-missing = Nieznane ustawienie brakujących instrumentów
-error-bad-channel = Nieznane ustawienie kanału
 error-internal = Coś poszło nie tak
 error-wasm-unavailable = Nie udało się wczytać konwertera
 error-detail = Szczegóły: { $detail }

@@ -1,14 +1,6 @@
 import { useMemo } from 'react';
-import {
-  canonCatalog,
-  engineDrums,
-  engineNotes,
-  familyOrder,
-  type VocabularyDrum,
-  type Drum,
-  type Family,
-} from '../lib/midiremap';
-import type { CatalogStatus } from './useEngineCatalog';
+import { vocabularyOf } from '../lib/canon';
+import type { Drum, Family, Midiremap, VocabularyDrum } from '../lib/midiremap';
 
 function orEmpty<T>(read: () => T[]): T[] {
   try {
@@ -20,20 +12,21 @@ function orEmpty<T>(read: () => T[]): T[] {
 
 /**
  * What the core knows about the chosen pair and its drums, read once the converter has
- * loaded: the target's playable drums, the source's notes, the drum vocabulary and the
+ * loaded (`core` is null until then): the target's playable drums, the source's notes,
+ * the drum vocabulary (as a list for the pickers and by key for stored edits) and the
  * family order. A lookup that fails reads as empty.
  */
-export function useEngineData(status: CatalogStatus, src: string, tgt: string) {
-  const ready = status === 'ready';
+export function useEngineData(core: Midiremap | null, src: string, tgt: string) {
   const targetDrums = useMemo<Drum[]>(
-    () => (ready && tgt ? orEmpty(() => engineDrums(tgt)) : []),
-    [ready, tgt],
+    () => (core && tgt ? orEmpty(() => core.engineDrums(tgt)) : []),
+    [core, tgt],
   );
   const sourceNotes = useMemo<Drum[]>(
-    () => (ready && src ? orEmpty(() => engineNotes(src)) : []),
-    [ready, src],
+    () => (core && src ? orEmpty(() => core.engineNotes(src)) : []),
+    [core, src],
   );
-  const canonOptions = useMemo<VocabularyDrum[]>(() => (ready ? orEmpty(() => canonCatalog()) : []), [ready]);
-  const families = useMemo<Family[]>(() => (ready ? orEmpty(() => familyOrder()) : []), [ready]);
-  return { targetDrums, sourceNotes, canonOptions, families };
+  const canonOptions = useMemo<VocabularyDrum[]>(() => (core ? orEmpty(() => core.canonCatalog()) : []), [core]);
+  const families = useMemo<Family[]>(() => (core ? orEmpty(() => core.familyOrder()) : []), [core]);
+  const vocabulary = useMemo(() => vocabularyOf(canonOptions), [canonOptions]);
+  return { targetDrums, sourceNotes, canonOptions, vocabulary, families };
 }

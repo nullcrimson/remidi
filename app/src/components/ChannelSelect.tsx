@@ -1,5 +1,6 @@
 import { useT } from '../localeContext';
-import { CHANNELS, channelHint, type Channel } from '../lib/channel';
+import { CHANNELS, channelHint } from '../lib/channel';
+import type { ChannelScope } from '../lib/midiremap';
 import type { FocusRef } from '../hooks/useFocusIntent';
 import { SettingSelect } from './SettingSelect';
 
@@ -9,8 +10,8 @@ export function ChannelSelect({
   onChange,
 }: {
   ref?: FocusRef;
-  value: Channel;
-  onChange: (channel: Channel) => void;
+  value: ChannelScope;
+  onChange: (channel: ChannelScope) => void;
 }) {
   const t = useT();
   return (

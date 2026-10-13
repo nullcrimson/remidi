@@ -1,4 +1,5 @@
 import { useT } from '../localeContext';
+import type { Note } from '../lib/midiremap';
 import { noteName, type OctaveBase } from '../lib/notes';
 import { IconButton } from './IconButton';
 import { MonoLabel } from './MonoLabel';
@@ -12,15 +13,15 @@ export function SourceNotePicker({
   octIndex,
   base,
   onSetOct,
-  onPickSemitone,
+  onPickNote,
   onClose,
 }: {
   voiceLabel: string;
-  currentNote: number | null;
+  currentNote: Note | null;
   octIndex: number;
   base: OctaveBase;
   onSetOct: (octIndex: number) => void;
-  onPickSemitone: (semitone: number) => void;
+  onPickNote: (note: Note) => void;
   onClose: () => void;
 }) {
   const t = useT();
@@ -49,7 +50,7 @@ export function SourceNotePicker({
           octIndex={octIndex}
           currentNote={currentNote}
           base={base}
-          onPickSemitone={onPickSemitone}
+          onPickNote={onPickNote}
         />
       </div>
     </PickerShell>

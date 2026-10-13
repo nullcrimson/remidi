@@ -51,7 +51,7 @@ impl Overrides {
     derive(tsify::Tsify),
     tsify(missing_as_null, hashmap_as_object)
 )]
-pub(crate) struct CanonNote {
+struct CanonNote {
     canon: Canon,
     note: Note,
 }
@@ -63,7 +63,7 @@ pub(crate) struct CanonNote {
     derive(tsify::Tsify),
     tsify(missing_as_null, hashmap_as_object)
 )]
-pub(crate) struct SrcNote {
+struct SrcNote {
     note: Note,
     canon: Option<Canon>,
 }
@@ -88,6 +88,18 @@ mod tests {
         let ov: Overrides =
             serde_json::from_str(r#"{"src":[{"note":127,"canon":"kick.main"}]}"#).unwrap();
         assert!(ov.source().contains_key(&n(127)));
+    }
+
+    #[test]
+    fn a_later_source_entry_reassigns_an_unassigned_note() {
+        let ov: Overrides = serde_json::from_str(
+            r#"{"src":[{"note":36,"canon":null},{"note":36,"canon":"kick.main"}]}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            ov.source(),
+            HashMap::from([(n(36), Some(Canon::Kick(KickKind::Main)))])
+        );
     }
 
     #[test]

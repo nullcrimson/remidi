@@ -137,7 +137,7 @@ mod tests {
     use super::*;
     use crate::note::n;
 
-    const FIXTURE: &str = include_str!("../../app/test/fixtures/my-kit.drumverter.json");
+    const FIXTURE: &str = include_str!("../tests/golden/my-kit.drumverter.json");
 
     fn k(s: &str) -> Canon {
         s.parse().unwrap()

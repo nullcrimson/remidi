@@ -25,11 +25,23 @@ step() {
   fi
 }
 
+SHIPPED=(--workspace --exclude midiremap-wasm)
+BROWSER=(-p midiremap-wasm)
+
+clippy_as_built() {
+  cargo clippy "${SHIPPED[@]}" --all-targets --locked -- -D warnings &&
+    cargo clippy "${BROWSER[@]}" --all-targets --locked -- -D warnings
+}
+
+test_as_built() {
+  cargo test "${SHIPPED[@]}" --locked && cargo test "${BROWSER[@]}" --locked
+}
+
 run() {
   case $1 in
     fmt) step fmt . cargo +"$nightly" fmt --all -- --check --config newline_style=Auto ;;
-    clippy) step clippy . cargo clippy --workspace --all-targets --locked -- -D warnings ;;
-    cargo-test) step cargo-test . cargo test --workspace --locked ;;
+    clippy) step clippy . clippy_as_built ;;
+    cargo-test) step cargo-test . test_as_built ;;
     gen-i18n) step gen-i18n app npm run gen:i18n ;;
     build-wasm) step build-wasm app npm run build:wasm ;;
     eslint) step eslint app npm run lint -- --cache --cache-location "$logs/eslintcache" ;;

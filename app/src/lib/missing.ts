@@ -1,5 +1,5 @@
 import type { Message } from '../generated/i18n';
-import type { Drum, MissingDrums, VoiceRow } from './midiremap';
+import type { Canon, Drum, MissingDrums, Note, VoiceRow } from './midiremap';
 import { noteName, type OctaveBase } from './notes';
 import { movesToOtherDrum } from './outcome';
 
@@ -14,13 +14,13 @@ export const MISSING_OPTIONS: { value: MissingDrums; label: Message }[] = [
 const swaps = (rows: VoiceRow[]) => rows.filter((r) => movesToOtherDrum(r.outcome) && r.srcNotes.length > 0);
 
 /** Drums played by the source that the setting moves to another drum or drops. */
-export function swappedCanons(rows: VoiceRow[]): Set<string> {
+export function swappedCanons(rows: VoiceRow[]): Set<Canon> {
   return new Set(swaps(rows).map((r) => r.canon));
 }
 
 /** A target drum's name for each note, the first drum listed on a note winning. */
-export function labelByNote(drums: Drum[]): Map<number, string> {
-  const labels = new Map<number, string>();
+export function labelByNote(drums: Drum[]): Map<Note, string> {
+  const labels = new Map<Note, string>();
   for (const d of drums) if (!labels.has(d.note)) labels.set(d.note, d.label);
   return labels;
 }

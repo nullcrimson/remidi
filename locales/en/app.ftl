@@ -36,7 +36,6 @@ error-bad-midi = Not a MIDI file this converter can read
 error-bad-preset = Not a preset file
 error-bad-overrides = The note edits couldn't be read
 error-bad-missing = Unknown missing-drums setting
-error-bad-channel = Unknown channel setting
 error-internal = Something went wrong
 error-wasm-unavailable = Failed to load converter
 error-detail = Details: { $detail }

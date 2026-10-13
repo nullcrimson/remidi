@@ -1,17 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { presetFileName, toPresetFile, uniqueName } from '../src/lib/presetFile';
-import fixture from './fixtures/my-kit.drumverter.json?raw';
+import { typed } from './typed';
+import { PRESET_FIXTURE } from './presetFixture';
 
 describe('preset file', () => {
   it('exports exactly the file the CLI and core read', () => {
-    const text = toPresetFile({
+    const text = toPresetFile(typed<Parameters<typeof toPresetFile>[0]>({
       name: 'My kit',
       src: 'ggd_invasion',
       tgt: 'ezdrummer',
       edits: { 'kick.main': 35, 'china.1.hit': 52 },
       srcEdits: { 24: 'snare1.hit', 60: null },
-    });
-    expect(text).toBe(fixture.replace(/\r\n/g, '\n'));
+    }));
+    expect(text).toBe(PRESET_FIXTURE.replace(/\r\n/g, '\n'));
   });
 
   it('names the file after the preset', () => {

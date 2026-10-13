@@ -2,16 +2,19 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { SourceEditor } from '../src/components/SourceEditor';
+import type { Drum, VocabularyDrum } from '../src/lib/midiremap';
+import type { SrcEdits } from '../src/lib/overrides';
 import { family_order } from './stubs/wasm';
+import { typed } from './typed';
 
-const notes = [{ note: 24, canon: 'kick.main', label: 'Kick', family: 'Kick' as const }];
+const notes = typed<Drum[]>([{ note: 24, canon: 'kick.main', label: 'Kick', family: 'Kick' as const }]);
 
-const options = [
+const options = typed<VocabularyDrum[]>([
   { canon: 'kick.main', label: 'Kick', family: 'Kick' as const },
   { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' as const },
-];
+]);
 
-function setup(srcEdits: Record<number, string | null> = {}) {
+function setup(srcEdits: SrcEdits = {}) {
   const onSet = vi.fn();
   const onClear = vi.fn();
   render(
@@ -38,13 +41,13 @@ describe('SourceEditor', () => {
   });
 
   it('clears an existing source override', async () => {
-    const { onClear } = setup({ 24: 'china.1.hit' });
+    const { onClear } = setup(typed<SrcEdits>({ 24: 'china.1.hit' }));
     await userEvent.click(screen.getByRole('button', { name: /Clear source note/i }));
     expect(onClear).toHaveBeenCalledWith(24);
   });
 
   it('shows an unassigned default note as unassigned, with a way back', async () => {
-    const { onClear } = setup({ 24: null });
+    const { onClear } = setup(typed<SrcEdits>({ 24: null }));
     const row = screen.getByRole('button', { name: /^C1/ });
     expect(row).toHaveTextContent('— unassigned');
     expect(row).not.toHaveTextContent('Kick');

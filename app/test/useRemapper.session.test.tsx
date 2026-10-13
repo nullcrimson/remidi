@@ -1,28 +1,13 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-const planMock = vi.fn();
-vi.mock('../src/lib/midiremap', () => ({
-  ready: () => Promise.resolve(),
-  engines: () => [
-    { id: 'ggd_invasion', name: 'GGD Invasion' },
-    { id: 'ezdrummer', name: 'EZdrummer' },
-    { id: 'general_midi', name: 'General MIDI' },
-  ],
-  engineDrums: () => [],
-  engineNotes: () => [],
-  canonCatalog: () => [
-    { canon: 'kick.main', label: 'Kick', family: 'Kick' },
-    { canon: 'snare1.hit', label: 'Snare', family: 'Snare' },
-  ],
-  plan: (...a: unknown[]) => planMock(...a),
-  remap: vi.fn(),
-}));
-
 import { useRemapper } from '../src/hooks/useRemapper';
+import { RUNTIME } from './runtime';
+import type { VocabularyDrum } from '../src/lib/midiremap';
 import { loadSession, saveSession, type Session } from '../src/lib/session';
+import * as stub from './stubs/wasm';
+import { typed } from './typed';
 
-const STORED: Session = {
+const STORED = typed<Session>({
   src: 'ggd_invasion',
   tgt: 'ezdrummer',
   oct: 'c2',
@@ -31,10 +16,10 @@ const STORED: Session = {
   presetId: 'p1',
   edits: { 'kick.main': 35 },
   srcEdits: { 24: 'snare1.hit' },
-};
+});
 
 async function mount() {
-  const hook = renderHook(() => useRemapper());
+  const hook = renderHook(() => useRemapper(RUNTIME));
   await waitFor(() => expect(hook.result.current.status).toBe('ready'));
   return hook.result;
 }
@@ -42,7 +27,18 @@ async function mount() {
 describe('useRemapper session memory', () => {
   beforeEach(() => {
     localStorage.clear();
-    planMock.mockReset().mockReturnValue([]);
+    vi.mocked(stub.engine_catalog).mockReturnValue([
+      { id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GetGood Drums Invasion' },
+      { id: 'ezdrummer', name: 'EZdrummer', fullName: 'Toontrack EZdrummer 3' },
+      { id: 'general_midi', name: 'General MIDI', fullName: 'General MIDI' },
+    ]);
+    vi.mocked(stub.engine_drums).mockReturnValue([]);
+    vi.mocked(stub.engine_notes).mockReturnValue([]);
+    vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
+      { canon: 'kick.main', label: 'Kick', family: 'Kick' },
+      { canon: 'snare1.hit', label: 'Snare', family: 'Snare' },
+    ]));
+    vi.mocked(stub.plan).mockReturnValue([]);
   });
   afterEach(() => window.history.replaceState({}, '', '/'));
 
@@ -91,9 +87,27 @@ describe('useRemapper session memory', () => {
   });
 
   it('quietly leaves out restored edits for drums this version does not know', async () => {
-    saveSession({ ...STORED, edits: { 'kick.main': 35, 'bogus.drum': 40 }, srcEdits: { 24: 'bogus.drum', 26: null } });
+    saveSession({
+      ...STORED,
+      ...typed<Pick<Session, 'edits' | 'srcEdits'>>({ edits: { 'kick.main': 35, 'bogus.drum': 40 }, srcEdits: { 24: 'bogus.drum', 26: null } }),
+    });
     const result = await mount();
     await waitFor(() => expect(result.current.editor.edits).toEqual({ 'kick.main': 35 }));
     expect(result.current.editor.srcEdits).toEqual({ 26: null });
+  });
+
+  it('keeps the stored edits when the module cannot load', async () => {
+    saveSession(STORED);
+    const failing = { ...RUNTIME, load: () => Promise.reject(new Error('wasm boom')) };
+    const { result } = renderHook(() => useRemapper(failing));
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(loadSession()).toMatchObject({ edits: { 'kick.main': 35 }, srcEdits: { 24: 'snare1.hit' } });
+  });
+
+  it('holds no edits before the module has loaded', () => {
+    saveSession(STORED);
+    const loading = { ...RUNTIME, load: () => new Promise<never>(() => {}) };
+    const { result } = renderHook(() => useRemapper(loading));
+    expect(result.current.editor.edits).toEqual({});
   });
 });

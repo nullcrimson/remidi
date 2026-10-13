@@ -8,6 +8,7 @@ use midly::{
 
 /// Ticks per quarter note in every file built here.
 pub const PPQ: u16 = 480;
+const _: () = assert!(PPQ < 1 << 15, "PPQ is a 15-bit value");
 
 /// Channel 10, where General MIDI puts drums.
 pub const DRUMS: u8 = 10;
@@ -91,7 +92,7 @@ pub fn smf(tracks: Vec<Track<'static>>) -> Vec<u8> {
     let smf = Smf {
         header: Header {
             format,
-            timing: Timing::Metrical(u15::try_from(PPQ).expect("PPQ fits in 15 bits")),
+            timing: Timing::Metrical(u15::new(PPQ)),
         },
         tracks,
     };

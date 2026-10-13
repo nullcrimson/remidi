@@ -2,28 +2,19 @@ import { act, render, renderHook, screen, waitFor } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const planMock = vi.fn();
-vi.mock('../src/lib/midiremap', () => ({
-  ready: () => Promise.resolve(),
-  engines: () => [
-    { id: 'ggd_invasion', name: 'GGD Invasion' },
-    { id: 'ezdrummer', name: 'EZdrummer' },
-  ],
-  engineDrums: () => [],
-  engineNotes: () => [],
-  canonCatalog: () => [],
-  plan: (...a: unknown[]) => planMock(...a),
-  remap: vi.fn(),
-}));
-
 import App from '../src/App';
 import { useRemapper } from '../src/hooks/useRemapper';
+import { RUNTIME } from './runtime';
 import { MAPPINGS_KEY } from '../src/lib/mappings';
+import type { StoredEdits } from '../src/lib/overrides';
+import type { Overrides, VocabularyDrum, VoiceRow } from '../src/lib/midiremap';
+import * as stub from './stubs/wasm';
+import { typed } from './typed';
 
-const ROW = { canon: 'kick.main', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } };
+const ROW = typed<VoiceRow>({ canon: 'kick.main', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } });
 
-function planThatRejectsBogus(_s: string, _t: string, ov: { tgt: { canon: string }[] }) {
-  if (ov.tgt.some((e) => e.canon === 'bogus.canon')) throw new Error('unknown canon bogus.canon');
+function planThatRejectsBogus(_s: string, _t: string, ov?: Overrides | null) {
+  if (ov?.tgt?.some((e) => e.canon === 'bogus.canon')) throw new Error('unknown canon bogus.canon');
   return [ROW];
 }
 
@@ -32,7 +23,7 @@ const PRESET = {
   name: 'Old preset',
   src: 'ggd_invasion',
   tgt: 'ezdrummer',
-  edits: { 'bogus.canon': 40 },
+  edits: typed<StoredEdits['edits']>({ 'bogus.canon': 40 }),
   srcEdits: {},
   updatedAt: 1,
 };
@@ -40,11 +31,16 @@ const PRESET = {
 describe('plan errors', () => {
   beforeEach(() => {
     localStorage.clear();
-    planMock.mockReset().mockImplementation(planThatRejectsBogus);
+    vi.mocked(stub.engine_drums).mockReturnValue([]);
+    vi.mocked(stub.engine_notes).mockReturnValue([]);
+    vi.mocked(stub.canon_catalog).mockReturnValue(
+      typed<VocabularyDrum[]>([{ canon: 'bogus.canon', label: 'Bogus', family: 'Kick' }]),
+    );
+    vi.mocked(stub.plan).mockImplementation(planThatRejectsBogus);
   });
 
   it('become an editor error instead of a render throw, and reset clears them', async () => {
-    const { result } = renderHook(() => useRemapper());
+    const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.status).toBe('ready'));
     act(() => result.current.loadMapping(PRESET));
     expect(result.current.editor.planError).toEqual({ kind: 'internal', detail: 'unknown canon bogus.canon' });
@@ -56,7 +52,7 @@ describe('plan errors', () => {
 
   it('shows a notice with Reset edits on the convert view', async () => {
     localStorage.setItem(MAPPINGS_KEY, JSON.stringify([PRESET]));
-    render(<App />);
+    render(<App runtime={RUNTIME} />);
     await userEvent.click((await screen.findAllByRole('button', { name: /Old preset/ }))[0]);
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('The note editor could not load: Something went wrong Details: unknown canon bogus.canon');

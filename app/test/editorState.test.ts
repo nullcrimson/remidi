@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { editorReducer, EDITOR_START, type EditorState } from '../src/lib/editorState';
+import type { Edits } from '../src/lib/overrides';
 import type { SelectionEvent } from '../src/lib/selection';
+import { typed } from './typed';
 
-const edited: EditorState = {
+const edited = typed<EditorState>({
   edits: { 'kick.main': 35 },
   srcEdits: { 24: 'snare1.hit' },
   pick: { canon: 'kick.main', octIndex: 3, side: 'tgt', defaultNote: 36, prevNote: null },
   notice: { canon: 'kick.main', note: 24, from: 'Snare' },
-};
+});
 
 describe('editorReducer and selection events', () => {
   it.each<SelectionEvent>([
@@ -25,7 +27,7 @@ describe('editorReducer and selection events', () => {
       src: 'a',
       tgt: 'b',
       presetId: 'p1',
-      edits: { 'snare1.hit': 40 },
+      edits: typed<Edits>({ 'snare1.hit': 40 }),
       srcEdits: {},
     });
     expect(next).toEqual({ edits: { 'snare1.hit': 40 }, srcEdits: {}, pick: null, notice: null });

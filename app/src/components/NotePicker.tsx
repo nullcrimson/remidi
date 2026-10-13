@@ -1,5 +1,5 @@
 import { useT } from '../localeContext';
-import type { Drum } from '../lib/midiremap';
+import type { Drum, Note } from '../lib/midiremap';
 import { noteName, type OctaveBase } from '../lib/notes';
 import { DrumList } from './DrumList';
 import { IconButton } from './IconButton';
@@ -16,19 +16,17 @@ export function NotePicker({
   drums,
   families,
   onSetOct,
-  onPickSemitone,
   onPickNote,
   onClose,
 }: {
   voiceLabel: string;
-  currentNote: number | null;
+  currentNote: Note | null;
   octIndex: number;
   base: OctaveBase;
   drums: Drum[];
   families: readonly string[];
   onSetOct: (octIndex: number) => void;
-  onPickSemitone: (semitone: number) => void;
-  onPickNote: (note: number) => void;
+  onPickNote: (note: Note) => void;
   onClose: () => void;
 }) {
   const t = useT();
@@ -64,7 +62,7 @@ export function NotePicker({
               octIndex={octIndex}
               currentNote={currentNote}
               base={base}
-              onPickSemitone={onPickSemitone}
+              onPickNote={onPickNote}
             />
           </div>
         </div>

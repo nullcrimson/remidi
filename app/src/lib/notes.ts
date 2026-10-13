@@ -1,29 +1,43 @@
-import type { OctaveBase } from './midiremap';
+import naming from '../wasm/note_naming.json';
+import type { Note, NoteNamings, OctaveBase } from './midiremap';
 
 export type { OctaveBase };
 
-const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const NAMING: NoteNamings = naming;
+const NOTE_COUNT = NAMING.c1.names.length;
+const SEMITONES = 12;
 
-function baseOffset(base: OctaveBase): number {
-  return base === 'c1' ? 1 : 2;
+/** The value as a `Note` when it is the number of a note the core names, else null. */
+export function parseNote(value: unknown): Note | null {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value < NOTE_COUNT
+    ? (value as Note)
+    : null;
 }
 
-function octaveOf(n: number, base: OctaveBase): number {
-  return Math.floor(n / 12) - baseOffset(base);
+/** The entries of a record keyed by note, each key as the note it was written under. */
+export function byNote<V>(record: Record<Note, V>): [Note, V][] {
+  return Object.entries(record).map(([note, value]) => [Number(note) as Note, value]);
 }
 
-export function noteName(n: number, base: OctaveBase): string {
-  return NAMES[((n % 12) + 12) % 12] + octaveOf(n, base);
+/** Orders notes from the lowest up. */
+export function ascending(a: Note, b: Note): number {
+  return a - b;
 }
 
-export function octaveIndexOf(n: number): number {
-  return Math.floor(n / 12) - 1;
+export function noteName(n: Note, base: OctaveBase): string {
+  return NAMING[base].names[n];
 }
 
-export function noteInOctave(octIndex: number, semitone: number): number {
-  return (octIndex + 1) * 12 + semitone;
+export function octaveIndexOf(n: Note): number {
+  return Math.floor(n / SEMITONES) - 1;
 }
 
-export function octaveTabLabel(octIndex: number, base: OctaveBase): number {
-  return octaveOf((octIndex + 1) * 12, base);
+export function noteInOctave(octIndex: number, semitone: number): Note | null {
+  return parseNote((octIndex + 1) * SEMITONES + semitone);
+}
+
+/** The number the convention gives the octave, or null when the octave holds no note. */
+export function octaveTabLabel(octIndex: number, base: OctaveBase): number | null {
+  const first = noteInOctave(octIndex, 0);
+  return first === null ? null : NAMING[base].octaves[first];
 }

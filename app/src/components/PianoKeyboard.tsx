@@ -1,3 +1,4 @@
+import type { Note } from '../lib/midiremap';
 import { noteInOctave, noteName, type OctaveBase } from '../lib/notes';
 
 const WHITE = [
@@ -17,33 +18,38 @@ const BLACK = [
   { s: 10, left: 81.4 },
 ];
 
+function keyAttributes(note: Note | null, base: OctaveBase, active: boolean, onPickNote: (note: Note) => void) {
+  return note === null
+    ? { disabled: true, 'aria-hidden': true }
+    : { 'aria-label': noteName(note, base), 'aria-pressed': active, onClick: () => onPickNote(note) };
+}
+
 export function PianoKeyboard({
   octIndex,
   currentNote,
   base,
-  onPickSemitone,
+  onPickNote,
 }: {
   octIndex: number;
-  currentNote: number | null;
+  currentNote: Note | null;
   base: OctaveBase;
-  onPickSemitone: (semitone: number) => void;
+  onPickNote: (note: Note) => void;
 }) {
   return (
     <div className="relative flex w-full">
       {WHITE.map((w) => {
         const note = noteInOctave(octIndex, w.s);
-        const active = note === currentNote;
+        const active = note !== null && note === currentNote;
         return (
           <button
             key={w.s}
             type="button"
-            aria-label={noteName(note, base)}
-            aria-pressed={active}
-            onClick={() => onPickSemitone(w.s)}
+            {...keyAttributes(note, base, active, onPickNote)}
             className={`
               flex h-21.5 flex-1 items-end justify-center rounded-b-chip border
               border-t-0 border-keyborder pb-1.75 font-mono text-label text-ink
               transition
+              ${note === null ? 'opacity-40' : ''}
               ${
           active
             ? `bg-accent shadow-key-pressed`
@@ -60,19 +66,18 @@ export function PianoKeyboard({
       })}
       {BLACK.map((b) => {
         const note = noteInOctave(octIndex, b.s);
-        const active = note === currentNote;
+        const active = note !== null && note === currentNote;
         return (
           <button
             key={b.s}
             type="button"
             data-testid={`black-${b.s}`}
-            aria-label={noteName(note, base)}
-            aria-pressed={active}
-            onClick={() => onPickSemitone(b.s)}
+            {...keyAttributes(note, base, active, onPickNote)}
             style={{ left: `${b.left}%` }}
             className={`
               absolute top-0 z-10 h-13.5 w-[8.6%] rounded-b-chip border
               border-black transition
+              ${note === null ? 'opacity-40' : ''}
               ${
           active
             ? 'bg-keyactive shadow-key-lit'

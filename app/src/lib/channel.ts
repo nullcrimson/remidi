@@ -1,19 +1,28 @@
 import type { Message } from '../generated/i18n';
+import type { ChannelScope } from './midiremap';
 
-const NUMBERED = [
-  '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16',
-] as const;
+const NAMED = {
+  auto: { id: 'channel-auto' },
+  all: { id: 'channel-all' },
+} satisfies Partial<Record<ChannelScope, Message>>;
 
-/** Which MIDI channels a conversion rewrites; the exact values the converter parses. */
-export type Channel = 'auto' | 'all' | (typeof NUMBERED)[number];
+type Numbered = Exclude<ChannelScope, keyof typeof NAMED>;
 
-export const CHANNELS: { value: Channel; label: Message }[] = [
-  { value: 'auto', label: { id: 'channel-auto' } },
-  { value: 'all', label: { id: 'channel-all' } },
-  ...NUMBERED.map((n) => ({ value: n, label: { id: 'channel-number', args: { channel: n } } }) as const),
+const NUMBERED: Record<Numbered, null> = {
+  1: null, 2: null, 3: null, 4: null, 5: null, 6: null, 7: null, 8: null,
+  9: null, 10: null, 11: null, 12: null, 13: null, 14: null, 15: null, 16: null,
+};
+
+/** Every channel scope the converter accepts, with its label, in the order the picker lists them. */
+export const CHANNELS: { value: ChannelScope; label: Message }[] = [
+  ...(Object.keys(NAMED) as (keyof typeof NAMED)[]).map((value) => ({ value, label: NAMED[value] })),
+  ...(Object.keys(NUMBERED) as Numbered[]).map((value) => ({
+    value,
+    label: { id: 'channel-number', args: { channel: value } } as const,
+  })),
 ];
 
-export function channelHint(channel: Channel): Message {
+export function channelHint(channel: ChannelScope): Message {
   switch (channel) {
     case 'auto':
       return { id: 'channel-hint-auto' };

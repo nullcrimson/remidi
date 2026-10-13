@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import type { Channel } from '../lib/channel';
-import { convertBatch } from '../lib/converter';
-import type { FailedFile } from '../lib/batch';
+import type { Converter } from '../lib/converter';
+import type { BatchResult, FailedFile } from '../lib/batch';
 import { toAppError, type AppError } from '../lib/errors';
-import type { MissingDrums, Overrides } from '../lib/midiremap';
+import type { ChannelScope, MissingDrums, Overrides } from '../lib/midiremap';
 import type { SelectionEvent } from '../lib/selection';
 import { MID_EXT, type FileResult, type LoadedFile } from '../lib/files';
 import { track } from '../lib/stats';
@@ -82,12 +81,18 @@ function baseName(name: string): string {
  * Files and their conversion. `settingsKey` identifies everything a result depends on
  * besides the files; a result made under another key reads as idle. Each run names the key
  * it converts under, so a run started together with a settings change is not stale.
+ * A run still converting is stopped through its abort signal when another starts, when
+ * the files or the selection change, and when the screen goes away.
  */
-export function useConverter(src: string, tgt: string, settingsKey: string) {
+export function useConverter(converter: Converter, src: string, tgt: string, settingsKey: string) {
   const [{ files, skipped, conv: stored }, dispatch] = useReducer(reducer, INITIAL);
   const conv: Conv = stored.kind !== 'idle' && stored.key !== settingsKey ? IDLE : stored;
-  const activeRun = useRef(0);
-  const nextRun = useRef(0);
+  const running = useRef<AbortController | null>(null);
+  const stop = useCallback(() => {
+    running.current?.abort();
+    running.current = null;
+  }, []);
+  useEffect(() => stop, [stop]);
 
   const liveUrls = useRef<string[]>([]);
   useEffect(() => {
@@ -103,49 +108,44 @@ export function useConverter(src: string, tgt: string, settingsKey: string) {
   );
 
   const addFiles = useCallback((incoming: LoadedFile[], skippedNames: string[] = []) => {
-    if (incoming.length > 0) activeRun.current = 0;
+    if (incoming.length > 0) stop();
     dispatch({ type: 'ADD_FILES', files: incoming, skipped: skippedNames });
-  }, []);
+  }, [stop]);
   const removeFile = useCallback((name: string) => {
-    activeRun.current = 0;
+    stop();
     dispatch({ type: 'REMOVE_FILE', name });
-  }, []);
+  }, [stop]);
   const clearFiles = useCallback(() => {
-    activeRun.current = 0;
+    stop();
     dispatch({ type: 'CLEAR_FILES' });
-  }, []);
+  }, [stop]);
   const onSelection = useCallback((event: SelectionEvent) => {
-    activeRun.current = 0;
+    stop();
     dispatch(event);
-  }, []);
+  }, [stop]);
 
   const convert = useCallback(
     async (
       ov: Overrides,
-      channel: Channel,
+      channel: ChannelScope,
       missing: MissingDrums,
       key: string,
     ): Promise<FileResult[] | null> => {
       if (files.length === 0 || !src || !tgt) return null;
-      const run = ++nextRun.current;
-      activeRun.current = run;
+      stop();
+      const run = new AbortController();
+      running.current = run;
       dispatch({ type: 'CONVERT_START', key });
-      let batch: Awaited<ReturnType<typeof convertBatch>>;
+      let batch: BatchResult;
       try {
-        batch = await convertBatch(files, src, tgt, ov, channel, missing);
+        batch = await converter.convert(files, src, tgt, ov, channel, missing, run.signal);
       } catch (err) {
+        if (run.signal.aborted) return null;
         track('convert-failed', { from: src, to: tgt });
-        if (activeRun.current === run) {
-          dispatch({
-            type: 'CONVERT_ERROR',
-            key,
-            failures: [],
-            error: toAppError(err),
-          });
-        }
+        dispatch({ type: 'CONVERT_ERROR', key, failures: [], error: toAppError(err) });
         return null;
       }
-      if (activeRun.current !== run) return null;
+      if (run.signal.aborted) return null;
       const ok: FileResult[] = batch.ok.map(({ name, bytes, report }) => ({
         name: `${baseName(name)}-${tgt}.mid`,
         url: URL.createObjectURL(new Blob([bytes], { type: 'audio/midi' })),
@@ -165,7 +165,7 @@ export function useConverter(src: string, tgt: string, settingsKey: string) {
       else dispatch({ type: 'CONVERT_ERROR', key, failures: bad, error: bad[0].error });
       return ok;
     },
-    [files, src, tgt],
+    [converter, files, src, tgt, stop],
   );
 
   const results = conv.kind === 'done' ? conv.results : [];

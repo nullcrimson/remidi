@@ -1,23 +1,27 @@
-import { runBatch, type BatchResult } from './batch';
-import type { Channel } from './channel';
-import type { AppError } from './errors';
+import { convertRequest, type BatchReply, type BatchRequest, type BatchResult } from './batch';
 import type { LoadedFile } from './files';
-import { ready, remap, type MissingDrums, type Overrides } from './midiremap';
+import type { ChannelScope, LoadMidiremap, MissingDrums, Overrides } from './midiremap';
 
-export interface BatchRequest {
-  id: number;
-  files: LoadedFile[];
-  src: string;
-  tgt: string;
-  ov?: Overrides;
-  channel: Channel;
-  missing: MissingDrums;
+/** Converts a batch of files, off the main thread where it can. */
+export interface Converter {
+  /** Rejects with `signal.reason` when `signal` aborts before the batch is delivered. */
+  convert(
+    files: LoadedFile[],
+    src: string,
+    tgt: string,
+    ov: Overrides | undefined,
+    channel: ChannelScope,
+    missing: MissingDrums,
+    signal?: AbortSignal,
+  ): Promise<BatchResult>;
 }
 
-/** A converted batch, or why the worker could not convert it. */
-export type BatchReply = { id: number; result: BatchResult } | { id: number; error: AppError };
-
 type MakeWorker = () => Worker;
+
+type WorkerState
+  = | { kind: 'unstarted' }
+    | { kind: 'running'; worker: Worker; answered: boolean }
+    | { kind: 'unavailable' };
 
 interface Pending {
   request: BatchRequest;
@@ -25,51 +29,52 @@ interface Pending {
   reject: (error: unknown) => void;
 }
 
-async function onMainThread({
-  files,
-  src,
-  tgt,
-  ov,
-  channel,
-  missing,
-}: BatchRequest): Promise<BatchResult> {
-  await ready();
-  return runBatch(files, src, tgt, ov, channel, missing, remap);
-}
-
 function moduleWorker(): Worker {
   return new Worker(new URL('./convertWorker.ts', import.meta.url), { type: 'module' });
 }
 
 /**
- * Converts batches in a Web Worker so the page stays responsive. Falls back to the main
- * thread when no worker can be created or the worker dies; a batch the worker could not
- * convert is rejected, since the main thread would fail the same way.
+ * Converts batches in a Web Worker so the page stays responsive, on the module `load`
+ * yields when it has to use the main thread.
+ *
+ * A worker that dies after it has answered a batch is replaced, and the batches it left
+ * go to the new worker. One that dies before answering anything, or cannot be created,
+ * ends the use of workers: those batches and all later ones run on the main thread. A
+ * batch the worker could not convert is rejected, since the main thread would fail the
+ * same way.
+ *
+ * Aborting a batch ends the worker converting it, the only way to stop a conversion
+ * that is running; the other pending batches move to a new worker.
  */
-export function createConverter(makeWorker: MakeWorker = moduleWorker) {
-  let worker: Worker | null = null;
-  let broken = false;
+export function createConverter(load: LoadMidiremap, makeWorker: MakeWorker = moduleWorker): Converter {
+  let state: WorkerState = { kind: 'unstarted' };
   let nextId = 0;
   const pending = new Map<number, Pending>();
 
-  const fail = () => {
-    broken = true;
-    worker?.terminate();
-    worker = null;
-    const stranded = [...pending.values()];
+  const retire = (next: WorkerState) => {
+    if (state.kind === 'running') state.worker.terminate();
+    state = next;
+    const left = [...pending.values()];
     pending.clear();
-    for (const p of stranded) void onMainThread(p.request).then(p.resolve, p.reject);
+    left.forEach(submit);
   };
 
   const connect = (): Worker | null => {
-    if (worker || broken) return worker;
+    if (state.kind === 'running') return state.worker;
+    if (state.kind === 'unavailable') return null;
+    let worker: Worker;
     try {
       worker = makeWorker();
     } catch {
-      broken = true;
+      state = { kind: 'unavailable' };
       return null;
     }
+    const running: WorkerState = { kind: 'running', worker, answered: false };
+    const died = () => {
+      if (state === running) retire(running.answered ? { kind: 'unstarted' } : { kind: 'unavailable' });
+    };
     worker.onmessage = (e: MessageEvent<BatchReply>) => {
+      running.answered = true;
       const reply = e.data;
       const p = pending.get(reply.id);
       pending.delete(reply.id);
@@ -77,29 +82,40 @@ export function createConverter(makeWorker: MakeWorker = moduleWorker) {
       if ('error' in reply) p.reject(reply.error);
       else p.resolve(reply.result);
     };
-    worker.onerror = fail;
-    worker.onmessageerror = fail;
+    worker.onerror = died;
+    worker.onmessageerror = died;
+    state = running;
     return worker;
   };
 
-  const convert = (
-    files: LoadedFile[],
-    src: string,
-    tgt: string,
-    ov: Overrides | undefined,
-    channel: Channel,
-    missing: MissingDrums,
-  ): Promise<BatchResult> => {
-    const request: BatchRequest = { id: nextId++, files, src, tgt, ov, channel, missing };
-    const w = connect();
-    if (!w) return onMainThread(request);
-    return new Promise((resolve, reject) => {
-      pending.set(request.id, { request, resolve, reject });
-      w.postMessage(request);
-    });
+  function submit(p: Pending) {
+    const worker = connect();
+    if (!worker) {
+      void convertRequest(load, p.request).then(p.resolve, p.reject);
+      return;
+    }
+    pending.set(p.request.id, p);
+    worker.postMessage(p.request);
+  }
+
+  return {
+    convert(files, src, tgt, ov, channel, missing, signal) {
+      const request: BatchRequest = { id: nextId++, files, src, tgt, ov, channel, missing };
+      return new Promise((resolve, reject) => {
+        if (signal?.aborted) {
+          reject(signal.reason);
+          return;
+        }
+        signal?.addEventListener(
+          'abort',
+          () => {
+            reject(signal.reason);
+            if (pending.delete(request.id)) retire({ kind: 'unstarted' });
+          },
+          { once: true },
+        );
+        submit({ request, resolve, reject });
+      });
+    },
   };
-
-  return { convert };
 }
-
-export const convertBatch = createConverter().convert;

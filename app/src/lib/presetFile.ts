@@ -1,15 +1,13 @@
 import { saveFile } from './download';
-import type { Edits, SrcEdits } from './overrides';
+import type { StoredEdits } from './overrides';
 
 const PRESET_FORMAT = 'drumverter-preset';
 const PRESET_VERSION = 1;
 
-export interface PresetContent {
+export interface PresetContent extends StoredEdits {
   name: string;
   src: string;
   tgt: string;
-  edits: Edits;
-  srcEdits: SrcEdits;
 }
 
 export function toPresetFile(p: PresetContent): string {

@@ -16,7 +16,6 @@ const KINDS = {
   unknownEngine: true,
   badOverrides: true,
   badMissing: true,
-  badChannel: true,
   badMidi: true,
   badPreset: true,
   internal: true,
@@ -46,7 +45,6 @@ export function errorMessage(e: AppError): Message {
     case 'badPreset': return { id: 'error-bad-preset' };
     case 'badOverrides': return { id: 'error-bad-overrides' };
     case 'badMissing': return { id: 'error-bad-missing' };
-    case 'badChannel': return { id: 'error-bad-channel' };
     case 'internal': return { id: 'error-internal' };
     case 'wasmUnavailable': return { id: 'error-wasm-unavailable' };
   }

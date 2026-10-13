@@ -1,16 +1,17 @@
 import type { FileResult } from './files';
-import type { Drum, Report, VocabularyDrum } from './midiremap';
+import type { Canon, Drum, Note, Report, VocabularyDrum } from './midiremap';
 import { labelByNote } from './missing';
-import { noteName, type OctaveBase } from './notes';
+import { byCanon } from './canon';
+import { byNote, noteName, type OctaveBase } from './notes';
 
 export interface ReportEntry {
   label: string;
   sub?: string;
   count: number;
   /** The drum an entry is about, for dropped and approximated notes. */
-  canon?: string;
+  canon?: Canon;
   /** The source note an entry is about, for unrecognized notes. */
-  note?: number;
+  note?: Note;
 }
 export interface ReportGroups {
   dropped: ReportEntry[];
@@ -49,14 +50,14 @@ export function buildReport(
   const labelByCanon = new Map(canons.map((c) => [c.canon, c.label]));
   const drumByNote = labelByNote(targetDrums);
 
-  const canonLabel = (canon: string) => labelByCanon.get(canon) ?? canon;
+  const canonLabel = (canon: Canon) => labelByCanon.get(canon) ?? canon;
 
   const groupsOf = (report: Report): ReportGroups => ({
     dropped: sortEntries(
-      Object.entries(report.dropped).map(([canon, count]) => ({ label: canonLabel(canon), count, canon })),
+      byCanon(report.dropped).map(([canon, count]) => ({ label: canonLabel(canon), count, canon })),
     ),
     approximated: sortEntries(
-      Object.entries(report.fallbackUsed).map(([canon, { note, count }]) => ({
+      byCanon(report.fallbackUsed).map(([canon, { note, count }]) => ({
         label: canonLabel(canon),
         sub: drumByNote.get(note) ?? noteName(note, oct),
         count,
@@ -64,11 +65,7 @@ export function buildReport(
       })),
     ),
     unrecognized: sortEntries(
-      Object.entries(report.unmappedSource).map(([note, count]) => ({
-        label: noteName(Number(note), oct),
-        count,
-        note: Number(note),
-      })),
+      byNote(report.unmappedSource).map(([note, count]) => ({ label: noteName(note, oct), count, note })),
     ),
   });
 

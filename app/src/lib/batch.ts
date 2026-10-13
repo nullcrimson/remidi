@@ -1,7 +1,6 @@
-import type { Channel } from './channel';
 import { toAppError, type AppError } from './errors';
 import type { LoadedFile } from './files';
-import type { MissingDrums, Overrides, RemapOutput, Report } from './midiremap';
+import type { ChannelScope, LoadMidiremap, Midiremap, MissingDrums, Overrides, Report } from './midiremap';
 
 interface ConvertedFile {
   name: string;
@@ -19,14 +18,19 @@ export interface BatchResult {
   failed: FailedFile[];
 }
 
-type Remap = (
-  mid: Uint8Array,
-  src: string,
-  tgt: string,
-  ov?: Overrides,
-  channel?: Channel,
-  missing?: MissingDrums,
-) => RemapOutput;
+/** A batch as the converter hands it to its worker. */
+export interface BatchRequest {
+  id: number;
+  files: LoadedFile[];
+  src: string;
+  tgt: string;
+  ov?: Overrides;
+  channel: ChannelScope;
+  missing: MissingDrums;
+}
+
+/** A converted batch, or why the worker could not convert it. */
+export type BatchReply = { id: number; result: BatchResult } | { id: number; error: AppError };
 
 /** Converts every file independently; one bad file never stops the batch. */
 export function runBatch(
@@ -34,9 +38,9 @@ export function runBatch(
   src: string,
   tgt: string,
   ov: Overrides | undefined,
-  channel: Channel,
+  channel: ChannelScope,
   missing: MissingDrums,
-  remap: Remap,
+  remap: Midiremap['remap'],
 ): BatchResult {
   const ok: ConvertedFile[] = [];
   const failed: FailedFile[] = [];
@@ -49,4 +53,22 @@ export function runBatch(
     }
   }
   return { ok, failed };
+}
+
+/** Converts a request's files on the module `load` yields; rejects when it cannot load. */
+export async function convertRequest(
+  load: LoadMidiremap,
+  { files, src, tgt, ov, channel, missing }: BatchRequest,
+): Promise<BatchResult> {
+  const core = await load();
+  return runBatch(files, src, tgt, ov, channel, missing, core.remap);
+}
+
+/** What a worker answers a request with. */
+export async function answerRequest(load: LoadMidiremap, request: BatchRequest): Promise<BatchReply> {
+  try {
+    return { id: request.id, result: await convertRequest(load, request) };
+  } catch (err) {
+    return { id: request.id, error: toAppError(err) };
+  }
 }

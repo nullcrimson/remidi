@@ -1,22 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import type { Drum, VoiceRow } from '../src/lib/midiremap';
 import { planBreakdown } from '../src/lib/planBreakdown';
+import { typed, type Loose } from './typed';
 
-function row(label: string, extra: Partial<VoiceRow>): VoiceRow {
-  return {
+function row(label: string, extra: Partial<Loose<VoiceRow>>): VoiceRow {
+  return typed<VoiceRow>({
     canon: label.toLowerCase(),
     label,
     srcNotes: [36],
     defaultTgtNote: 36,
     outcome: { status: 'direct', tgtNote: 36 },
     ...extra,
-  };
+  });
 }
 
-const DRUMS = [
+const DRUMS = typed<Drum[]>([
   { note: 49, canon: 'crash.1.hit', label: 'Crash 1', family: 'Cymbals' },
   { note: 36, canon: 'kick', label: 'Kick', family: 'Kick' },
-] as Drum[];
+]);
 
 describe('planBreakdown', () => {
   it('sorts every drum into exactly one group', () => {

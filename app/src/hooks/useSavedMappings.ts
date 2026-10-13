@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type SetStateAction } from 'react';
-import type { Edits, SrcEdits } from '../lib/overrides';
+import type { StoredEdits } from '../lib/overrides';
 import {
   MAPPINGS_CAP,
   MAPPINGS_KEY,
@@ -15,8 +15,8 @@ export interface SavedMappings {
   mappings: SavedMapping[];
   atCap: boolean;
   /** Stores a new preset and returns its id, or null at the cap. */
-  save: (input: { name: string; src: string; tgt: string; edits: Edits; srcEdits: SrcEdits }) => string | null;
-  update: (id: string, patch: { name?: string; edits?: Edits; srcEdits?: SrcEdits }) => void;
+  save: (input: { name: string; src: string; tgt: string } & StoredEdits) => string | null;
+  update: (id: string, patch: { name?: string } & Partial<StoredEdits>) => void;
   rename: (id: string, name: string) => void;
   remove: (id: string) => void;
 }

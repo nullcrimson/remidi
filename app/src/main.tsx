@@ -6,9 +6,11 @@ import { LocaleProvider } from './components/LocaleProvider';
 import { applyDocument } from './lib/documentLocale';
 import { storedLocale } from './lib/localeChoice';
 import { startAddress, startLocale, startTranslator } from './lib/startLocale';
+import { browserRuntime } from './lib/runtime';
 import { pathLocale } from './locale';
 import './index.css';
 
+const runtime = browserRuntime();
 const path = pathLocale();
 const start = startLocale(path, storedLocale(), navigator.languages);
 
@@ -20,7 +22,7 @@ startTranslator(path, start).then(
       <React.StrictMode>
         <LocaleProvider initial={translator}>
           <ErrorBoundary>
-            <App />
+            <App runtime={runtime} />
           </ErrorBoundary>
         </LocaleProvider>
       </React.StrictMode>,

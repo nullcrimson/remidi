@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { typed } from './typed';
 import { parseMappings, readStore, serializeMappings, sortByRecent, type SavedMapping } from '../src/lib/mappings';
 
-const sample: SavedMapping = {
+const sample = typed<SavedMapping>({
   id: 'a1',
   name: 'GGD→EZ',
   src: 'ggd_invasion',
@@ -9,7 +10,7 @@ const sample: SavedMapping = {
   edits: { 'kick.main': 36, 'snare1.hit': 38 },
   srcEdits: { 60: 'china.1.hit' },
   updatedAt: 1000,
-};
+});
 
 describe('parseMappings', () => {
   it('keeps a preset that only remembers the engine pair', () => {

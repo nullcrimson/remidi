@@ -1,21 +1,22 @@
-import { noteInOctave } from './notes';
+import type { Canon, Note } from './midiremap';
+import { byNote } from './notes';
 import type { Edits, SrcEdits } from './overrides';
 import { changesPair, type SelectionEvent } from './selection';
 
 type PickSide = 'tgt' | 'src';
 
 export interface Pick {
-  canon: string;
+  canon: Canon;
   octIndex: number;
   side: PickSide;
-  defaultNote: number | null;
-  prevNote: number | null;
+  defaultNote: Note | null;
+  prevNote: Note | null;
 }
 
 /** A source note the last pick took over from another drum. */
 export interface Notice {
-  canon: string;
-  note: number;
+  canon: Canon;
+  note: Note;
   from: string;
 }
 
@@ -30,26 +31,25 @@ type EditorAction
   = | SelectionEvent
     | {
       type: 'OPEN_PICK';
-      canon: string;
+      canon: Canon;
       octIndex: number;
       side: PickSide;
-      defaultNote: number | null;
-      prevNote: number | null;
+      defaultNote: Note | null;
+      prevNote: Note | null;
     }
     | { type: 'SET_PICK_OCT'; octIndex: number }
-    | { type: 'CHOOSE_NOTE'; semitone: number }
-    | { type: 'CHOOSE_NOTE_ABS'; note: number }
-    | { type: 'CHOOSE_SRC_NOTE'; note: number; takenFrom: string | null }
-    | { type: 'SET_SRC_CANON'; note: number; canon: string }
-    | { type: 'CLEAR_SRC_CANON'; note: number }
+    | { type: 'CHOOSE_NOTE'; note: Note }
+    | { type: 'CHOOSE_SRC_NOTE'; note: Note; takenFrom: string | null }
+    | { type: 'SET_SRC_CANON'; note: Note; canon: Canon }
+    | { type: 'CLEAR_SRC_CANON'; note: Note }
     | { type: 'CLOSE_PICK' }
-    | { type: 'RESET_ROW'; canon: string; defaultNotes: number[] }
+    | { type: 'RESET_ROW'; canon: Canon; defaultNotes: Note[] }
     | { type: 'RESET' }
     | { type: 'LOAD'; edits: Edits; srcEdits: SrcEdits };
 
 export const EDITOR_START: EditorState = { edits: {}, srcEdits: {}, pick: null, notice: null };
 
-function withEdit(edits: Edits, canon: string, note: number, defaultNote: number | null): Edits {
+function withEdit(edits: Edits, canon: Canon, note: Note, defaultNote: Note | null): Edits {
   if (note === defaultNote) {
     const next = { ...edits };
     delete next[canon];
@@ -58,11 +58,11 @@ function withEdit(edits: Edits, canon: string, note: number, defaultNote: number
   return { ...edits, [canon]: note };
 }
 
-function withoutCanon(srcEdits: SrcEdits, canon: string): SrcEdits {
-  return Object.fromEntries(Object.entries(srcEdits).filter(([, c]) => c !== canon));
+function withoutCanon(srcEdits: SrcEdits, canon: Canon): SrcEdits {
+  return Object.fromEntries(byNote(srcEdits).filter(([, c]) => c !== canon));
 }
 
-function withSourceNote(state: EditorState, pick: Pick, note: number): SrcEdits {
+function withSourceNote(state: EditorState, pick: Pick, note: Note): SrcEdits {
   const next = withoutCanon(state.srcEdits, pick.canon);
   const prev = pick.prevNote;
   if (prev !== null && prev !== note && state.srcEdits[prev] !== pick.canon) next[prev] = null;
@@ -103,19 +103,6 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return state.pick
         ? {
             ...state,
-            edits: withEdit(
-              state.edits,
-              state.pick.canon,
-              noteInOctave(state.pick.octIndex, action.semitone),
-              state.pick.defaultNote,
-            ),
-            pick: null,
-          }
-        : state;
-    case 'CHOOSE_NOTE_ABS':
-      return state.pick
-        ? {
-            ...state,
             edits: withEdit(state.edits, state.pick.canon, action.note, state.pick.defaultNote),
             pick: null,
           }
@@ -148,8 +135,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const edits = { ...state.edits };
       delete edits[action.canon];
       const srcEdits = Object.fromEntries(
-        Object.entries(withoutCanon(state.srcEdits, action.canon)).filter(
-          ([note]) => !action.defaultNotes.includes(Number(note)),
+        byNote(withoutCanon(state.srcEdits, action.canon)).filter(
+          ([note]) => !action.defaultNotes.includes(note),
         ),
       );
       return loaded(edits, srcEdits);

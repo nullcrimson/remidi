@@ -9,6 +9,7 @@ import { saveFile } from '../src/lib/download';
 import type { FailedFile } from '../src/lib/batch';
 import type { FileResult } from '../src/lib/files';
 import type { ReportGroups, ReportView } from '../src/lib/report';
+import { typed } from './typed';
 
 const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 };
 const NONE: ReportGroups = { dropped: [], approximated: [], unrecognized: [] };
@@ -113,7 +114,7 @@ describe('DonePanel', () => {
     renderPanel({
       results: [result('a-ezd.mid', 'blob:a'), result('b-ezd.mid', 'blob:b')],
       failures: [{ name: 'c.mid', error: { kind: 'badMidi', detail: 'invalid midi' } }],
-      report: view({ approximated: 2 }, [
+      report: view({ approximated: 2 }, typed<ReportView['files']>([
         { name: 'a-ezd.mid', groups: NONE, untouched: 0, converted: 10 },
         {
           name: 'b-ezd.mid',
@@ -121,7 +122,7 @@ describe('DonePanel', () => {
           untouched: 0,
           converted: 10,
         },
-      ]),
+      ])),
     });
     expect(screen.getByText('2 files converted → Toontrack EZdrummer 3')).toBeInTheDocument();
     expect(screen.getByText('1 failed')).toHaveClass('text-danger');

@@ -2,19 +2,20 @@ import { describe, expect, it } from 'vitest';
 import { buildReport } from '../src/lib/report';
 import type { FileResult } from '../src/lib/files';
 import type { VocabularyDrum, Drum } from '../src/lib/midiremap';
+import { typed, type Loose } from './typed';
 
-const canons: VocabularyDrum[] = [
+const canons = typed<VocabularyDrum[]>([
   { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
   { canon: 'ride.1.bell', label: 'Ride Bell', family: 'Cymbals' },
   { canon: 'splash.2.hit', label: 'Splash 2', family: 'Cymbals' },
-];
-const drums: Drum[] = [
+]);
+const drums = typed<Drum[]>([
   { note: 51, canon: 'ride.1', label: 'Ride', family: 'Cymbals' },
   { note: 57, canon: 'crash.2.hit', label: 'Crash 2', family: 'Cymbals' },
-];
+]);
 
-function result(name: string, report: FileResult['report']): FileResult {
-  return { name, url: 'blob:x', bytes: new Uint8Array(), report };
+function result(name: string, report: Loose<FileResult['report']>): FileResult {
+  return { name, url: 'blob:x', bytes: new Uint8Array(), report: typed<FileResult['report']>(report) };
 }
 const empty = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 10 };
 
@@ -75,10 +76,10 @@ describe('buildReport', () => {
   });
 
   it('names a substitute note two drums share after the first of them, as the editor does', () => {
-    const shared: Drum[] = [
+    const shared = typed<Drum[]>([
       { note: 49, canon: 'crash.1.hit', label: 'Crash 1', family: 'Cymbals' },
       { note: 49, canon: 'crash.1.choke', label: 'Crash 1 choke', family: 'Cymbals' },
-    ];
+    ]);
     const view = buildReport(
       [result('a.mid', { ...empty, fallbackUsed: { 'splash.2.hit': { note: 49, count: 2 } } })],
       canons,

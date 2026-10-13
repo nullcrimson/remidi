@@ -1,8 +1,8 @@
 import { useT } from '../localeContext';
 import { useId, useMemo, useState } from 'react';
-import type { VocabularyDrum, Drum } from '../lib/midiremap';
+import type { Canon, Drum, Note, VocabularyDrum } from '../lib/midiremap';
 import type { SrcEdits } from '../lib/overrides';
-import { noteName, type OctaveBase } from '../lib/notes';
+import { ascending, byNote, noteName, parseNote, type OctaveBase } from '../lib/notes';
 import { Button } from './Button';
 import { CanonPicker } from './CanonPicker';
 import { IconButton } from './IconButton';
@@ -23,8 +23,8 @@ function SourceEditorRow({
   onSet,
   onClear,
 }: {
-  note: number;
-  current: string | null;
+  note: Note;
+  current: Canon | null;
   changed: boolean;
   label: string;
   options: VocabularyDrum[];
@@ -33,8 +33,8 @@ function SourceEditorRow({
   open: boolean;
   onToggle: () => void;
   onClose: () => void;
-  onSet: (note: number, canon: string) => void;
-  onClear: (note: number) => void;
+  onSet: (note: Note, canon: Canon) => void;
+  onClear: (note: Note) => void;
 }) {
   const t = useT();
   const [rowEl, setRowEl] = useState<HTMLDivElement | null>(null);
@@ -114,20 +114,20 @@ export function SourceEditor({
   options: VocabularyDrum[];
   families: readonly string[];
   base: OctaveBase;
-  initialNote?: number | null;
-  onSet: (note: number, canon: string) => void;
-  onClear: (note: number) => void;
+  initialNote?: Note | null;
+  onSet: (note: Note, canon: Canon) => void;
+  onClear: (note: Note) => void;
 }) {
   const t = useT();
-  const [openNote, setOpenNote] = useState<number | null>(initialNote);
-  const [extra, setExtra] = useState<number[]>(initialNote === null ? [] : [initialNote]);
+  const [openNote, setOpenNote] = useState<Note | null>(initialNote);
+  const [extra, setExtra] = useState<Note[]>(initialNote === null ? [] : [initialNote]);
   const [addValue, setAddValue] = useState('');
   const [invalid, setInvalid] = useState(false);
   const errorId = useId();
 
   const labelOf = useMemo(() => {
     const m = new Map(options.map((o) => [o.canon, o.label]));
-    return (canon: string) => m.get(canon) ?? canon;
+    return (canon: Canon) => m.get(canon) ?? canon;
   }, [options]);
 
   const baseCanon = useMemo(
@@ -136,16 +136,16 @@ export function SourceEditor({
   );
 
   const rowNotes = useMemo(() => {
-    const set = new Set<number>();
+    const set = new Set<Note>();
     for (const n of notes) set.add(n.note);
     for (const e of extra) set.add(e);
-    for (const k of Object.keys(srcEdits)) set.add(Number(k));
-    return [...set].sort((a, b) => a - b);
+    for (const [note] of byNote(srcEdits)) set.add(note);
+    return [...set].sort(ascending);
   }, [notes, extra, srcEdits]);
 
   const addNote = () => {
-    const n = Number(addValue);
-    if (addValue.trim() === '' || !Number.isInteger(n) || n < 0 || n > 127) {
+    const n = addValue.trim() === '' ? null : parseNote(Number(addValue));
+    if (n === null) {
       setInvalid(true);
       return;
     }

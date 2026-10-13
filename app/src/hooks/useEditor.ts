@@ -1,65 +1,57 @@
 import { useCallback, useMemo, useReducer } from 'react';
 import { EDITOR_START, editorReducer } from '../lib/editorState';
 import { toAppError, type AppError } from '../lib/errors';
-import { plan as computePlan, type MissingDrums, type VoiceRow } from '../lib/midiremap';
-import { noteInOctave, octaveIndexOf } from '../lib/notes';
+import type { Canon, Midiremap, MissingDrums, Note, VoiceRow } from '../lib/midiremap';
+import { byCanon } from '../lib/canon';
+import { byNote, octaveIndexOf } from '../lib/notes';
 import { editsToOverrides, type Edits, type SrcEdits } from '../lib/overrides';
 import type { SelectionEvent } from '../lib/selection';
-import type { CatalogStatus } from './useEngineCatalog';
 import { useEngineData } from './useEngineData';
 import { playedNote } from '../lib/outcome';
 
 export type { Notice, Pick } from '../lib/editorState';
 
-const DEFAULT_PICK_NOTE = 36;
+const DEFAULT_PICK_OCTAVE = 2;
 
 export function useEditor(
-  status: CatalogStatus,
+  core: Midiremap | null,
   src: string,
   tgt: string,
   missing: MissingDrums,
-  initial?: { edits: Edits; srcEdits: SrcEdits },
 ) {
-  const [{ edits, srcEdits, pick, notice }, dispatch] = useReducer(editorReducer, initial, (start) =>
-    start ? { ...EDITOR_START, edits: start.edits, srcEdits: start.srcEdits } : EDITOR_START,
-  );
-  const { targetDrums, sourceNotes, canonOptions, families } = useEngineData(status, src, tgt);
+  const [{ edits, srcEdits, pick, notice }, dispatch] = useReducer(editorReducer, EDITOR_START);
+  const { targetDrums, sourceNotes, canonOptions, vocabulary, families } = useEngineData(core, src, tgt);
 
   const { rows, planError } = useMemo<{ rows: VoiceRow[]; planError: AppError | null }>(() => {
-    if (status !== 'ready' || !src || !tgt) return { rows: [], planError: null };
+    if (!core || !src || !tgt) return { rows: [], planError: null };
     try {
-      return { rows: computePlan(src, tgt, editsToOverrides(edits, srcEdits), missing), planError: null };
+      return { rows: core.plan(src, tgt, editsToOverrides(edits, srcEdits), missing), planError: null };
     } catch (err) {
       return { rows: [], planError: toAppError(err) };
     }
-  }, [status, src, tgt, edits, srcEdits, missing]);
+  }, [core, src, tgt, edits, srcEdits, missing]);
 
   const setPickOct = useCallback(
     (octIndex: number) => dispatch({ type: 'SET_PICK_OCT', octIndex }),
     [],
   );
   const chooseNote = useCallback(
-    (semitone: number) => dispatch({ type: 'CHOOSE_NOTE', semitone }),
-    [],
-  );
-  const chooseNoteAbsolute = useCallback(
-    (note: number) => dispatch({ type: 'CHOOSE_NOTE_ABS', note }),
+    (note: Note) => dispatch({ type: 'CHOOSE_NOTE', note }),
     [],
   );
   const chooseSrcNote = useCallback(
-    (semitone: number) => {
+    (note: Note) => {
       if (!pick) return;
-      const note = noteInOctave(pick.octIndex, semitone);
       const owner = rows.find((r) => r.canon !== pick.canon && r.srcNotes.includes(note));
       dispatch({ type: 'CHOOSE_SRC_NOTE', note, takenFrom: owner?.label ?? null });
     },
     [pick, rows],
   );
   const setSrcCanon = useCallback(
-    (note: number, canon: string) => dispatch({ type: 'SET_SRC_CANON', note, canon }),
+    (note: Note, canon: Canon) => dispatch({ type: 'SET_SRC_CANON', note, canon }),
     [],
   );
-  const clearSrcCanon = useCallback((note: number) => dispatch({ type: 'CLEAR_SRC_CANON', note }), []);
+  const clearSrcCanon = useCallback((note: Note) => dispatch({ type: 'CLEAR_SRC_CANON', note }), []);
   const closePick = useCallback(() => dispatch({ type: 'CLOSE_PICK' }), []);
   const reset = useCallback(() => dispatch({ type: 'RESET' }), []);
   const onSelection = useCallback((event: SelectionEvent) => dispatch(event), []);
@@ -70,14 +62,14 @@ export function useEditor(
   );
 
   const openPick = useCallback(
-    (canon: string) => {
+    (canon: Canon) => {
       const row = rows.find((r) => r.canon === canon);
       if (!row) return;
-      const note = edits[canon] ?? playedNote(row.outcome) ?? row.srcNotes[0] ?? DEFAULT_PICK_NOTE;
+      const note = edits[canon] ?? playedNote(row.outcome) ?? row.srcNotes[0];
       dispatch({
         type: 'OPEN_PICK',
         canon,
-        octIndex: octaveIndexOf(note),
+        octIndex: note === undefined ? DEFAULT_PICK_OCTAVE : octaveIndexOf(note),
         side: 'tgt',
         defaultNote: row.defaultTgtNote,
         prevNote: null,
@@ -86,13 +78,14 @@ export function useEditor(
     [edits, rows],
   );
   const openSrcPick = useCallback(
-    (canon: string) => {
+    (canon: Canon) => {
       const row = rows.find((r) => r.canon === canon);
       if (!row) return;
+      const note = row.srcNotes[0] ?? playedNote(row.outcome);
       dispatch({
         type: 'OPEN_PICK',
         canon,
-        octIndex: octaveIndexOf(row.srcNotes[0] ?? playedNote(row.outcome) ?? DEFAULT_PICK_NOTE),
+        octIndex: note === null ? DEFAULT_PICK_OCTAVE : octaveIndexOf(note),
         side: 'src',
         defaultNote: null,
         prevNote: row.srcNotes[0] ?? null,
@@ -112,20 +105,20 @@ export function useEditor(
     [sourceNotes],
   );
   const changedSrc = useMemo(() => {
-    const set = new Set<string>();
-    for (const [note, canon] of Object.entries(srcEdits)) {
+    const set = new Set<Canon>();
+    for (const [note, canon] of byNote(srcEdits)) {
       if (canon !== null) set.add(canon);
-      const owner = defaultCanon.get(Number(note));
+      const owner = defaultCanon.get(note);
       if (owner !== undefined && owner !== canon) set.add(owner);
     }
     return set;
   }, [srcEdits, defaultCanon]);
   const changed = useMemo(
-    () => new Set([...changedSrc, ...Object.keys(edits)]),
+    () => new Set([...changedSrc, ...byCanon(edits).map(([canon]) => canon)]),
     [changedSrc, edits],
   );
   const resetRow = useCallback(
-    (canon: string) =>
+    (canon: Canon) =>
       dispatch({
         type: 'RESET_ROW',
         canon,
@@ -144,6 +137,7 @@ export function useEditor(
     targetDrums,
     sourceNotes,
     canonOptions,
+    vocabulary,
     families,
     changed,
     changedSrc,
@@ -152,7 +146,6 @@ export function useEditor(
     openSrcPick,
     setPickOct,
     chooseNote,
-    chooseNoteAbsolute,
     chooseSrcNote,
     setSrcCanon,
     clearSrcCanon,

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use serde::Serialize;
 
@@ -52,8 +52,9 @@ pub enum PlanOutcome {
 }
 
 impl PlanOutcome {
-    fn of(resolved: &CanonResolution, other_drum: bool) -> Self {
-        match *resolved {
+    fn of(resolved: CanonResolution) -> Self {
+        let other_drum = resolved.moves_to_other_drum();
+        match resolved {
             CanonResolution::Direct { note, .. } => Self::Direct { tgt_note: note },
             CanonResolution::Fallback { note, .. } => Self::Fallback {
                 tgt_note: note,
@@ -98,8 +99,8 @@ enum SrcNoteRank {
 }
 
 impl SrcNoteRank {
-    fn of(note: Note, overridden: &HashSet<Note>, primary: Option<Note>) -> Self {
-        if overridden.contains(&note) {
+    fn of(note: Note, edited: &HashMap<Note, Option<Canon>>, primary: Option<Note>) -> Self {
+        if edited.contains_key(&note) {
             Self::Overridden
         } else if Some(note) == primary {
             Self::Primary
@@ -119,7 +120,7 @@ pub fn plan(
     let mapping = Mapping::new(src, tgt, ov, missing);
     let unedited = Mapping::new(src, tgt, &Overrides::default(), missing);
     let table = NoteTable::compile(&mapping);
-    let overridden: HashSet<Note> = ov.source().into_keys().collect();
+    let edited = ov.source();
 
     let mut notes_by_canon: HashMap<Canon, Vec<Note>> = HashMap::new();
     for (note, res) in table.iter() {
@@ -136,15 +137,12 @@ pub fn plan(
             if primary.is_none() && src_notes.is_empty() {
                 return None;
             }
-            src_notes.sort_by_key(|&n| (SrcNoteRank::of(n, &overridden, primary), n));
+            src_notes.sort_by_key(|&n| (SrcNoteRank::of(n, &edited, primary), n));
             Some(VoicePlan {
                 canon,
                 src_notes,
                 default_tgt_note: unedited.resolve_canon(canon).note(),
-                outcome: PlanOutcome::of(
-                    &mapping.resolve_canon(canon),
-                    mapping.moves_to_other_drum(canon),
-                ),
+                outcome: PlanOutcome::of(mapping.resolve_canon(canon)),
             })
         })
         .collect()

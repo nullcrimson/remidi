@@ -2,33 +2,17 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const remapMock = vi.fn();
-
-vi.mock('../src/lib/midiremap', () => ({
-  ready: () => Promise.resolve(),
-  engines: () => [
-    { id: 'ggd_invasion', name: 'GGD Invasion' },
-    { id: 'ezdrummer', name: 'EZdrummer' },
-  ],
-  engineDrums: () => [],
-  engineNotes: () => [],
-  canonCatalog: () => [
-    { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
-    { canon: 'kick.main', label: 'Kick', family: 'Kick' },
-  ],
-  plan: () => [
-    { canon: 'kick.main', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
-    { canon: 'china.1.hit', label: 'China 1', srcNotes: [60], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
-  ],
-  remap: (...a: unknown[]) => remapMock(...a),
-}));
 vi.mock('../src/lib/download', () => ({ saveFile: vi.fn() }));
 
 import App from '../src/App';
+import { RUNTIME } from './runtime';
 import { saveFile } from '../src/lib/download';
+import type { RemapOutput, VocabularyDrum, VoiceRow } from '../src/lib/midiremap';
+import * as stub from './stubs/wasm';
+import { typed } from './typed';
 
 async function start() {
-  render(<App />);
+  render(<App runtime={RUNTIME} />);
   await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
 }
 
@@ -54,7 +38,17 @@ async function convertAndOpenReport() {
 describe('App convert flow', () => {
   beforeEach(() => {
     vi.mocked(saveFile).mockClear();
-    remapMock.mockReset().mockReturnValue({
+    vi.mocked(stub.engine_drums).mockReturnValue([]);
+    vi.mocked(stub.engine_notes).mockReturnValue([]);
+    vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
+      { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
+      { canon: 'kick.main', label: 'Kick', family: 'Kick' },
+    ]));
+    vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
+      { canon: 'kick.main', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+      { canon: 'china.1.hit', label: 'China 1', srcNotes: [60], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
+    ]));
+    vi.mocked(stub.remap).mockReturnValue(typed<RemapOutput>({
       bytes: new Uint8Array([1]),
       report: {
         unmappedSource: { 51: 3 },
@@ -63,7 +57,7 @@ describe('App convert flow', () => {
         untouched: 5,
         converted: 10,
       },
-    });
+    }));
   });
 
   it('shows the edit summary only once both engines are chosen', async () => {

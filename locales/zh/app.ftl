@@ -36,7 +36,6 @@ error-bad-midi = 无法读取此文件，它似乎不是 MIDI 文件
 error-bad-preset = 不是预设文件
 error-bad-overrides = 无法读取音符修改
 error-bad-missing = 无法识别“缺少的鼓件”设置
-error-bad-channel = 无法识别通道设置
 error-internal = 出错了
 error-wasm-unavailable = 转换器加载失败
 error-detail = 详细信息：{ $detail }
