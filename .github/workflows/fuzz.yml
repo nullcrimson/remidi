@@ -50,7 +50,7 @@ jobs:
       - name: Fuzz convert
         run: |
           mkdir -p fuzz/corpus/convert
-          cargo +"$NIGHTLY" fuzz run convert fuzz/corpus/convert fuzz/seeds -- \
+          cargo +"$NIGHTLY" fuzz run --target x86_64-unknown-linux-gnu convert fuzz/corpus/convert fuzz/seeds -- \
             -dict=fuzz/midi.dict -max_total_time="${SECONDS_TO_FUZZ}"
         env:
           SECONDS_TO_FUZZ: ${{ inputs.seconds || '600' }}
