@@ -15,52 +15,59 @@ pub const DRUMS: u8 = 10;
 /// One MIDI event: delta ticks, channel `1..=16`, message.
 pub type Ev = (u32, u8, MidiMessage);
 
+fn data_byte(value: u8) -> u7 {
+    u7::try_from(value).expect("a key, velocity or controller value is 0..=127")
+}
+
 /// A note-on at velocity 100.
 pub fn on(key: u8) -> MidiMessage {
     MidiMessage::NoteOn {
-        key: u7::from_int_lossy(key),
-        vel: u7::from_int_lossy(100),
+        key: data_byte(key),
+        vel: data_byte(100),
     }
 }
 
 /// A note-on at velocity 0, which ends a note like a note-off.
 pub fn silent_on(key: u8) -> MidiMessage {
     MidiMessage::NoteOn {
-        key: u7::from_int_lossy(key),
-        vel: u7::from_int_lossy(0),
+        key: data_byte(key),
+        vel: data_byte(0),
     }
 }
 
 /// A note-off at velocity 0.
 pub fn off(key: u8) -> MidiMessage {
     MidiMessage::NoteOff {
-        key: u7::from_int_lossy(key),
-        vel: u7::from_int_lossy(0),
+        key: data_byte(key),
+        vel: data_byte(0),
     }
 }
 
 /// Full polyphonic aftertouch, which chokes a cymbal in most drum engines.
 pub fn choke(key: u8) -> MidiMessage {
     MidiMessage::Aftertouch {
-        key: u7::from_int_lossy(key),
-        vel: u7::from_int_lossy(127),
+        key: data_byte(key),
+        vel: data_byte(127),
     }
 }
 
 /// A channel-volume controller change.
 pub fn cc() -> MidiMessage {
     MidiMessage::Controller {
-        controller: u7::from_int_lossy(7),
-        value: u7::from_int_lossy(90),
+        controller: data_byte(7),
+        value: data_byte(90),
     }
 }
 
 /// One MIDI event on `channel` (`1..=16`).
 pub fn event(delta: u32, channel: u8, message: MidiMessage) -> TrackEvent<'static> {
     TrackEvent {
-        delta: u28::from_int_lossy(delta),
+        delta: u28::try_from(delta).expect("a delta time fits in 28 bits"),
         kind: TrackEventKind::Midi {
-            channel: u4::from_int_lossy(channel.saturating_sub(1)),
+            channel: channel
+                .checked_sub(1)
+                .and_then(u4::try_from)
+                .expect("a channel is 1..=16"),
             message,
         },
     }
@@ -84,7 +91,7 @@ pub fn smf(tracks: Vec<Track<'static>>) -> Vec<u8> {
     let smf = Smf {
         header: Header {
             format,
-            timing: Timing::Metrical(u15::from_int_lossy(PPQ)),
+            timing: Timing::Metrical(u15::try_from(PPQ).expect("PPQ fits in 15 bits")),
         },
         tracks,
     };
@@ -178,5 +185,23 @@ mod tests {
             (0, on(38)),
         ]);
         assert_eq!(hit_keys(&bytes), vec![36, 38]);
+    }
+
+    #[test]
+    #[should_panic(expected = "a key, velocity or controller value is 0..=127")]
+    fn a_key_above_127_is_refused() {
+        on(200);
+    }
+
+    #[test]
+    #[should_panic(expected = "a channel is 1..=16")]
+    fn channel_17_is_refused() {
+        event(0, 17, on(36));
+    }
+
+    #[test]
+    #[should_panic(expected = "a channel is 1..=16")]
+    fn channel_0_is_refused() {
+        event(0, 0, on(36));
     }
 }

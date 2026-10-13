@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::Deserialize;
 
 use crate::{canon::Canon, note::Note};
@@ -12,9 +14,35 @@ use crate::{canon::Canon, note::Note};
 )]
 pub struct Overrides {
     #[serde(default)]
-    pub(crate) tgt: Vec<CanonNote>,
+    tgt: Vec<CanonNote>,
     #[serde(default)]
-    pub(crate) src: Vec<SrcNote>,
+    src: Vec<SrcNote>,
+}
+
+impl Overrides {
+    pub(crate) fn new(
+        target: impl IntoIterator<Item = (Canon, Note)>,
+        source: impl IntoIterator<Item = (Note, Option<Canon>)>,
+    ) -> Self {
+        Self {
+            tgt: target
+                .into_iter()
+                .map(|(canon, note)| CanonNote { canon, note })
+                .collect(),
+            src: source
+                .into_iter()
+                .map(|(note, canon)| SrcNote { note, canon })
+                .collect(),
+        }
+    }
+
+    pub(crate) fn target(&self) -> HashMap<Canon, Note> {
+        self.tgt.iter().map(|cn| (cn.canon, cn.note)).collect()
+    }
+
+    pub(crate) fn source(&self) -> HashMap<Note, Option<Canon>> {
+        self.src.iter().map(|sn| (sn.note, sn.canon)).collect()
+    }
 }
 
 #[derive(Deserialize)]
@@ -24,8 +52,8 @@ pub struct Overrides {
     tsify(missing_as_null, hashmap_as_object)
 )]
 pub(crate) struct CanonNote {
-    pub(crate) canon: Canon,
-    pub(crate) note: Note,
+    canon: Canon,
+    note: Note,
 }
 
 /// A source note played as `canon`, or no drum at all when `canon` is `None`.
@@ -36,8 +64,8 @@ pub(crate) struct CanonNote {
     tsify(missing_as_null, hashmap_as_object)
 )]
 pub(crate) struct SrcNote {
-    pub(crate) note: Note,
-    pub(crate) canon: Option<Canon>,
+    note: Note,
+    canon: Option<Canon>,
 }
 
 #[cfg(test)]
@@ -45,36 +73,25 @@ mod tests {
     use super::*;
     use crate::{
         canon::{idx, Canon, KickKind, SnareArtic},
-        engine_map::from_toml,
         note::n,
     };
-
-    const TGT: &str = r#"
-        id = "t"
-        name = "T"
-        notes = [
-          { note = 36, canon = "kick.main", primary = true },
-          { note = 38, canon = "snare1.hit", primary = true },
-        ]
-    "#;
 
     #[test]
     fn empty_overrides_deserialize() {
         let ov: Overrides = serde_json::from_str("{}").unwrap();
-        assert!(ov.tgt.is_empty());
-        assert!(ov.src.is_empty());
+        assert!(ov.target().is_empty());
+        assert!(ov.source().is_empty());
     }
 
     #[test]
     fn note_127_is_accepted() {
         let ov: Overrides =
             serde_json::from_str(r#"{"src":[{"note":127,"canon":"kick.main"}]}"#).unwrap();
-        assert_eq!(ov.src[0].note, n(127));
+        assert!(ov.source().contains_key(&n(127)));
     }
 
     #[test]
     fn duplicate_overrides_last_wins() {
-        let base = from_toml(TGT).unwrap();
         let ov: Overrides = serde_json::from_str(
             r#"{
                 "tgt":[{"canon":"kick.main","note":35},{"canon":"kick.main","note":40}],
@@ -83,62 +100,12 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            base.with_target_overrides(&ov.tgt)
-                .encode(Canon::Kick(KickKind::Main)),
-            Some(n(40))
+            ov.target(),
+            HashMap::from([(Canon::Kick(KickKind::Main), n(40))])
         );
         assert_eq!(
-            base.with_source_overrides(&ov.src).decode(n(99)),
-            Some(Canon::Snare(idx(1), SnareArtic::Hit))
+            ov.source(),
+            HashMap::from([(n(99), Some(Canon::Snare(idx(1), SnareArtic::Hit)))])
         );
-    }
-
-    #[test]
-    fn target_override_beats_base_and_falls_through() {
-        let base = from_toml(TGT).unwrap();
-        let ov: Overrides =
-            serde_json::from_str(r#"{"tgt":[{"canon":"kick.main","note":35}]}"#).unwrap();
-        let enc = base.with_target_overrides(&ov.tgt);
-        assert_eq!(enc.encode(Canon::Kick(KickKind::Main)), Some(n(35)));
-        assert_eq!(
-            enc.encode(Canon::Snare(idx(1), SnareArtic::Hit)),
-            Some(n(38))
-        );
-    }
-
-    #[test]
-    fn source_override_with_null_canon_unassigns_the_note() {
-        let base = from_toml(TGT).unwrap();
-        let ov: Overrides = serde_json::from_str(
-            r#"{"src":[{"note":36,"canon":null},{"note":40,"canon":"kick.main"}]}"#,
-        )
-        .unwrap();
-        let dec = base.with_source_overrides(&ov.src);
-        assert_eq!(dec.decode(n(36)), None);
-        assert_eq!(dec.decode(n(40)), Some(Canon::Kick(KickKind::Main)));
-    }
-
-    #[test]
-    fn a_later_source_override_reassigns_an_unassigned_note() {
-        let base = from_toml(TGT).unwrap();
-        let ov: Overrides = serde_json::from_str(
-            r#"{"src":[{"note":36,"canon":null},{"note":36,"canon":"kick.main"}]}"#,
-        )
-        .unwrap();
-        assert_eq!(
-            base.with_source_overrides(&ov.src).decode(n(36)),
-            Some(Canon::Kick(KickKind::Main))
-        );
-    }
-
-    #[test]
-    fn source_override_rescues_and_falls_through() {
-        let base = from_toml(TGT).unwrap();
-        let ov: Overrides =
-            serde_json::from_str(r#"{"src":[{"note":99,"canon":"kick.main"}]}"#).unwrap();
-        let dec = base.with_source_overrides(&ov.src);
-        assert_eq!(dec.decode(n(99)), Some(Canon::Kick(KickKind::Main)));
-        assert_eq!(dec.decode(n(36)), Some(Canon::Kick(KickKind::Main)));
-        assert_eq!(dec.decode(n(50)), None);
     }
 }

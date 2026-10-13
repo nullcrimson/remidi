@@ -219,12 +219,12 @@ fn lookup<'a>(catalog: &'a Catalog, id: &str) -> Result<&'a EngineMap, SiteError
         .ok_or_else(|| SiteError::UnknownEngine(id.to_string()))
 }
 
-fn target(tgt: &EngineMap, note: Note, fallback: Canon) -> Target {
+fn target(drum: Canon, note: Note) -> Target {
     Target {
         note: note.get(),
         name_c1: note.name(OctaveBase::C1),
         name_c2: note.name(OctaveBase::C2),
-        drum: tgt.decode(note).unwrap_or(fallback).label(),
+        drum: drum.label(),
     }
 }
 
@@ -241,7 +241,7 @@ fn pair_rows(src: &EngineMap, tgt: &EngineMap) -> Vec<PairRow> {
                 name_c2: d.note.name(OctaveBase::C2),
                 drum: d.label,
                 status: PlanStatus::from(&resolution),
-                target: resolution.note().map(|note| target(tgt, note, d.canon)),
+                target: resolution.played().map(|(drum, note)| target(drum, note)),
             }
         })
         .collect();

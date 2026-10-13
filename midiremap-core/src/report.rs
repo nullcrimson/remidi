@@ -87,7 +87,7 @@ impl Report {
     pub(crate) fn record(&mut self, source_note: Note, resolution: &Resolution) {
         match resolution {
             Resolution::Unmapped => *self.unmapped_source.entry(source_note).or_default() += 1,
-            Resolution::Resolved(CanonResolution::Fallback { canon, note }) => {
+            Resolution::Resolved(CanonResolution::Fallback { canon, note, .. }) => {
                 self.converted += 1;
                 self.fallback_used
                     .entry(*canon)
@@ -123,6 +123,7 @@ mod tests {
             n(11),
             &Resolution::Resolved(CanonResolution::Fallback {
                 canon: open3,
+                stand_in: Canon::Hat(HatOpen::Closed, HatZone::Plain),
                 note: n(60),
             }),
         );

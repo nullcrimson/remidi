@@ -1,12 +1,25 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{canon::Canon, engine_map::EngineMap, note::Note, overrides::Overrides};
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+/// Where a drum lands on the target: on its own note, on the note of the drum that stands
+/// in for it, or nowhere.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum CanonResolution {
-    Direct { canon: Canon, note: Note },
-    Fallback { canon: Canon, note: Note },
-    Dropped { canon: Canon },
+    Direct {
+        canon: Canon,
+        note: Note,
+    },
+    Fallback {
+        canon: Canon,
+        stand_in: Canon,
+        note: Note,
+    },
+    Dropped {
+        canon: Canon,
+    },
 }
 
 impl CanonResolution {
@@ -18,11 +31,17 @@ impl CanonResolution {
         }
     }
 
-    pub fn note(&self) -> Option<Note> {
-        match self {
-            Self::Direct { note, .. } | Self::Fallback { note, .. } => Some(*note),
+    /// The target drum that plays it and that drum's note, when anything plays it.
+    pub fn played(&self) -> Option<(Canon, Note)> {
+        match *self {
+            Self::Direct { canon, note } => Some((canon, note)),
+            Self::Fallback { stand_in, note, .. } => Some((stand_in, note)),
             Self::Dropped { .. } => None,
         }
+    }
+
+    pub fn note(&self) -> Option<Note> {
+        self.played().map(|(_, note)| note)
     }
 }
 
@@ -86,9 +105,27 @@ impl MissingDrumsParseError {
 /// A source and a target engine with overrides applied: the hub-and-spoke pipeline for
 /// one conversion.
 pub struct Mapping {
-    src: EngineMap,
-    tgt: EngineMap,
-    missing: MissingDrums,
+    decode: Decoding,
+    drums: HashMap<Canon, DrumOutcome>,
+}
+
+type Decoding = HashMap<Note, Canon>;
+type Encoding = HashMap<Canon, Note>;
+
+struct DrumOutcome {
+    resolution: CanonResolution,
+    moves_to_other_drum: bool,
+}
+
+impl DrumOutcome {
+    fn of(canon: Canon, encode: &Encoding, missing: MissingDrums) -> Self {
+        Self {
+            resolution: resolve(canon, encode, missing),
+            moves_to_other_drum: !encode.contains_key(&canon)
+                && substitute(canon, encode, MissingDrums::Nearest)
+                    .is_some_and(|(alt, _)| !canon.same_drum(alt)),
+        }
+    }
 }
 
 impl Mapping {
@@ -98,53 +135,71 @@ impl Mapping {
         overrides: &Overrides,
         missing: MissingDrums,
     ) -> Self {
+        let encode = encoding(tgt, overrides);
         Self {
-            src: src.with_source_overrides(&overrides.src),
-            tgt: tgt.with_target_overrides(&overrides.tgt),
-            missing,
+            decode: decoding(src, overrides),
+            drums: Canon::all()
+                .iter()
+                .map(|&canon| (canon, DrumOutcome::of(canon, &encode, missing)))
+                .collect(),
         }
     }
 
     pub(crate) fn translate(&self, note: Note) -> Resolution {
-        self.src.decode(note).map_or(Resolution::Unmapped, |canon| {
-            Resolution::Resolved(self.resolve_canon(canon))
-        })
+        self.decode
+            .get(&note)
+            .map_or(Resolution::Unmapped, |&canon| {
+                Resolution::Resolved(self.resolve_canon(canon))
+            })
     }
 
     pub fn resolve_canon(&self, canon: Canon) -> CanonResolution {
-        resolve(canon, &self.tgt, self.missing)
+        self.drums[&canon].resolution
     }
 
     /// Whether the target lacks `canon` and its nearest stand-in is another drum, so the
     /// [`MissingDrums`] setting decides what plays it.
     pub(crate) fn moves_to_other_drum(&self, canon: Canon) -> bool {
-        self.tgt.encode(canon).is_none()
-            && substitute(canon, &self.tgt, MissingDrums::Nearest)
-                .is_some_and(|(alt, _)| !canon.same_drum(alt))
+        self.drums[&canon].moves_to_other_drum
     }
 }
 
-pub(crate) fn substitute(
-    canon: Canon,
-    tgt: &EngineMap,
-    missing: MissingDrums,
-) -> Option<(Canon, Note)> {
+fn decoding(src: &EngineMap, overrides: &Overrides) -> Decoding {
+    let mut decode: Decoding = src.decodings().collect();
+    for (note, canon) in overrides.source() {
+        match canon {
+            Some(canon) => decode.insert(note, canon),
+            None => decode.remove(&note),
+        };
+    }
+    decode
+}
+
+fn encoding(tgt: &EngineMap, overrides: &Overrides) -> Encoding {
+    tgt.encodings().chain(overrides.target()).collect()
+}
+
+fn substitute(canon: Canon, encode: &Encoding, missing: MissingDrums) -> Option<(Canon, Note)> {
     canon
         .fallback_chain()
         .iter()
         .copied()
         .filter(|&alt| missing.allows(canon, alt))
-        .find_map(|alt| tgt.encode(alt).map(|note| (alt, note)))
+        .find_map(|alt| encode.get(&alt).map(|&note| (alt, note)))
 }
 
-/// Resolves a canon against a target: directly, else the nearest fallback `missing` allows.
-pub(crate) fn resolve(canon: Canon, tgt: &EngineMap, missing: MissingDrums) -> CanonResolution {
-    if let Some(note) = tgt.encode(canon) {
+fn resolve(canon: Canon, encode: &Encoding, missing: MissingDrums) -> CanonResolution {
+    if let Some(&note) = encode.get(&canon) {
         return CanonResolution::Direct { canon, note };
     }
-    substitute(canon, tgt, missing).map_or(CanonResolution::Dropped { canon }, |(_, note)| {
-        CanonResolution::Fallback { canon, note }
-    })
+    substitute(canon, encode, missing).map_or(
+        CanonResolution::Dropped { canon },
+        |(stand_in, note)| CanonResolution::Fallback {
+            canon,
+            stand_in,
+            note,
+        },
+    )
 }
 
 #[cfg(test)]
@@ -205,13 +260,69 @@ notes = [ {} ]",
         .unwrap()
     }
 
+    fn notes_of(tgt: &EngineMap) -> Encoding {
+        encoding(tgt, &Overrides::default())
+    }
+
+    fn kick_and_snare() -> EngineMap {
+        target(&[(36, "kick.main"), (38, "snare1.hit")])
+    }
+
+    fn edits(json: &str) -> Overrides {
+        serde_json::from_str(json).unwrap()
+    }
+
+    #[test]
+    fn target_override_beats_base_and_falls_through() {
+        let ov = edits(r#"{"tgt":[{"canon":"kick.main","note":35}]}"#);
+        let enc = encoding(&kick_and_snare(), &ov);
+        assert_eq!(enc.get(&k("kick.main")), Some(&n(35)));
+        assert_eq!(enc.get(&k("snare1.hit")), Some(&n(38)));
+    }
+
+    #[test]
+    fn source_override_with_null_canon_unassigns_the_note() {
+        let ov = edits(r#"{"src":[{"note":36,"canon":null},{"note":40,"canon":"kick.main"}]}"#);
+        let dec = decoding(&kick_and_snare(), &ov);
+        assert_eq!(dec.get(&n(36)), None);
+        assert_eq!(dec.get(&n(40)), Some(&k("kick.main")));
+    }
+
+    #[test]
+    fn a_later_source_override_reassigns_an_unassigned_note() {
+        let ov = edits(r#"{"src":[{"note":36,"canon":null},{"note":36,"canon":"kick.main"}]}"#);
+        assert_eq!(
+            decoding(&kick_and_snare(), &ov).get(&n(36)),
+            Some(&k("kick.main"))
+        );
+    }
+
+    #[test]
+    fn source_override_rescues_and_falls_through() {
+        let ov = edits(r#"{"src":[{"note":99,"canon":"kick.main"}]}"#);
+        let dec = decoding(&kick_and_snare(), &ov);
+        assert_eq!(dec.get(&n(99)), Some(&k("kick.main")));
+        assert_eq!(dec.get(&n(36)), Some(&k("kick.main")));
+        assert_eq!(dec.get(&n(50)), None);
+    }
+
     #[test]
     fn drop_keeps_a_same_drum_articulation_fallback() {
         let tgt = target(&[(38, "snare1.hit")]);
         let canon = k("snare1.rimshot");
-        let expected = CanonResolution::Fallback { canon, note: n(38) };
-        assert_eq!(resolve(canon, &tgt, MissingDrums::Drop), expected);
-        assert_eq!(resolve(canon, &tgt, MissingDrums::Nearest), expected);
+        let expected = CanonResolution::Fallback {
+            canon,
+            stand_in: k("snare1.hit"),
+            note: n(38),
+        };
+        assert_eq!(
+            resolve(canon, &notes_of(&tgt), MissingDrums::Drop),
+            expected
+        );
+        assert_eq!(
+            resolve(canon, &notes_of(&tgt), MissingDrums::Nearest),
+            expected
+        );
     }
 
     #[test]
@@ -219,11 +330,15 @@ notes = [ {} ]",
         let tgt = target(&[(49, "crash.1.hit")]);
         let canon = k("china.1.hit");
         assert_eq!(
-            resolve(canon, &tgt, MissingDrums::Nearest),
-            CanonResolution::Fallback { canon, note: n(49) }
+            resolve(canon, &notes_of(&tgt), MissingDrums::Nearest),
+            CanonResolution::Fallback {
+                canon,
+                stand_in: k("crash.1.hit"),
+                note: n(49)
+            }
         );
         assert_eq!(
-            resolve(canon, &tgt, MissingDrums::Drop),
+            resolve(canon, &notes_of(&tgt), MissingDrums::Drop),
             CanonResolution::Dropped { canon }
         );
     }
@@ -233,10 +348,13 @@ notes = [ {} ]",
         let tgt = target(&[(40, "snare1.rimshot"), (41, "snare2.hit")]);
         let canon = k("snare2.rimshot");
         assert_eq!(
-            resolve(canon, &tgt, MissingDrums::Nearest).note(),
+            resolve(canon, &notes_of(&tgt), MissingDrums::Nearest).note(),
             Some(n(41))
         );
-        assert_eq!(resolve(canon, &tgt, MissingDrums::Drop).note(), Some(n(41)));
+        assert_eq!(
+            resolve(canon, &notes_of(&tgt), MissingDrums::Drop).note(),
+            Some(n(41))
+        );
     }
 
     #[test]
@@ -245,9 +363,9 @@ notes = [ {} ]",
         for id in catalog.ids() {
             let tgt = catalog.get(id).unwrap();
             for &canon in Canon::all() {
-                let near = resolve(canon, tgt, MissingDrums::Nearest);
-                let drop = resolve(canon, tgt, MissingDrums::Drop);
-                if let Some((alt, _)) = substitute(canon, tgt, MissingDrums::Drop) {
+                let near = resolve(canon, &notes_of(tgt), MissingDrums::Nearest);
+                let drop = resolve(canon, &notes_of(tgt), MissingDrums::Drop);
+                if let Some((alt, _)) = substitute(canon, &notes_of(tgt), MissingDrums::Drop) {
                     assert!(canon.same_drum(alt), "{id}: {canon} -> {alt}");
                 }
                 match &near {
@@ -255,7 +373,9 @@ notes = [ {} ]",
                         assert_eq!(drop, near, "{id}: {canon}")
                     }
                     CanonResolution::Fallback { .. } => {
-                        if let Some((alt, _)) = substitute(canon, tgt, MissingDrums::Nearest) {
+                        if let Some((alt, _)) =
+                            substitute(canon, &notes_of(tgt), MissingDrums::Nearest)
+                        {
                             if canon.same_drum(alt) {
                                 assert_eq!(drop, near, "{id}: {canon}");
                             }
@@ -343,6 +463,7 @@ notes = [ {} ]",
             mapping().translate(n(11)),
             Resolution::Resolved(CanonResolution::Fallback {
                 canon: Canon::Hat(HatOpen::Open(idx(3)), HatZone::Plain),
+                stand_in: Canon::Hat(HatOpen::Open(idx(1)), HatZone::Plain),
                 note: n(61)
             })
         );
@@ -354,7 +475,7 @@ notes = [ {} ]",
         let canon = k("hat.open3");
         for missing in [MissingDrums::Nearest, MissingDrums::Drop] {
             assert_eq!(
-                resolve(canon, &tgt, missing),
+                resolve(canon, &notes_of(&tgt), missing),
                 CanonResolution::Dropped { canon }
             );
         }

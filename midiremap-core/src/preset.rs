@@ -3,12 +3,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{
-    canon::Canon,
-    non_blank::NonBlank,
-    note::Note,
-    overrides::{CanonNote, Overrides, SrcNote},
-};
+use crate::{canon::Canon, non_blank::NonBlank, note::Note, overrides::Overrides};
 
 const PRESET_FORMAT: &str = "drumverter-preset";
 const PRESET_VERSION: u64 = 1;
@@ -128,23 +123,17 @@ pub fn parse_preset(json: &str) -> Result<LoadedPreset, PresetError> {
 impl SavedPreset {
     /// The preset's edits in the shape a [`crate::Mapping`] applies.
     pub fn overrides(&self) -> Overrides {
-        Overrides {
-            tgt: self
-                .edits
-                .iter()
-                .map(|(&canon, &note)| CanonNote { canon, note })
-                .collect(),
-            src: self
-                .src_edits
-                .iter()
-                .map(|(&note, &canon)| SrcNote { note, canon })
-                .collect(),
-        }
+        Overrides::new(
+            self.edits.iter().map(|(&canon, &note)| (canon, note)),
+            self.src_edits.iter().map(|(&note, &canon)| (note, canon)),
+        )
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
     use crate::note::n;
 
@@ -182,10 +171,14 @@ mod tests {
     #[test]
     fn turns_into_overrides() {
         let ov = parse_preset(FIXTURE).unwrap().preset.overrides();
-        let tgt: Vec<(Canon, Note)> = ov.tgt.iter().map(|e| (e.canon, e.note)).collect();
-        let src: Vec<(Note, Option<Canon>)> = ov.src.iter().map(|e| (e.note, e.canon)).collect();
-        assert_eq!(tgt, [(k("kick.main"), n(35)), (k("china.1.hit"), n(52))]);
-        assert_eq!(src, [(n(24), Some(k("snare1.hit"))), (n(60), None)]);
+        assert_eq!(
+            ov.target(),
+            HashMap::from([(k("kick.main"), n(35)), (k("china.1.hit"), n(52))])
+        );
+        assert_eq!(
+            ov.source(),
+            HashMap::from([(n(24), Some(k("snare1.hit"))), (n(60), None)])
+        );
     }
 
     #[test]

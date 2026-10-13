@@ -8,7 +8,7 @@ use crate::{
     note::Note,
     overrides::Overrides,
     table::NoteTable,
-    translate::{resolve, CanonResolution, Mapping, MissingDrums, Resolution},
+    translate::{CanonResolution, Mapping, MissingDrums, Resolution},
 };
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
@@ -117,8 +117,9 @@ pub fn plan(
     missing: MissingDrums,
 ) -> Vec<VoicePlan> {
     let mapping = Mapping::new(src, tgt, ov, missing);
+    let unedited = Mapping::new(src, tgt, &Overrides::default(), missing);
     let table = NoteTable::compile(&mapping);
-    let overridden: HashSet<Note> = ov.src.iter().map(|cn| cn.note).collect();
+    let overridden: HashSet<Note> = ov.source().into_keys().collect();
 
     let mut notes_by_canon: HashMap<Canon, Vec<Note>> = HashMap::new();
     for (note, res) in table.iter() {
@@ -139,7 +140,7 @@ pub fn plan(
             Some(VoicePlan {
                 canon,
                 src_notes,
-                default_tgt_note: resolve(canon, tgt, missing).note(),
+                default_tgt_note: unedited.resolve_canon(canon).note(),
                 outcome: PlanOutcome::of(
                     &mapping.resolve_canon(canon),
                     mapping.moves_to_other_drum(canon),

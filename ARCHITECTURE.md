@@ -40,7 +40,7 @@ Five crates, a web app, and embedded engine presets:
 | `midiremap-wasm` | Browser bindings for the web app. | core (feature `ts`), `wasm-bindgen`, `tsify`, `serde`, `serde_bytes`, `console_error_panic_hook` |
 | `app/` | Vite + React + TypeScript converter UI over the WASM bindings. | Vite, React, Tailwind, Vitest |
 | `midiremap-site` | Static SEO pages (engine note maps, pair tables, FAQ / guide / legal pages) in the app's style. | core, `askama`, `fluent-bundle`, `clap`, `serde_json`, `thiserror` (`fluent-syntax`, `heck` in `build.rs`) |
-| `midiremap-testkit` | Test-only: builds and reads small SMFs (channels `1..=16`) for the other crates' tests. | `midly` |
+| `midiremap-testkit` | Test-only: builds and reads small SMFs (channels `1..=16`) for the other crates' tests; a key, channel or delta out of range panics. | `midly` |
 | `engines/*.toml` | Preset note↔canon maps; core's `build.rs` converts them to one embedded JSON table. | — |
 
 Inside `midiremap-core` only the `midi`, `channel` and `rewrite` modules, and `note`'s
@@ -67,8 +67,9 @@ conversion   ── convert(bytes, &Mapping, ChannelScope) → bytes + report
    │
    └── translate   ── Mapping: note → Resolution
           │              (used by table, rewrite, report, conversion and plan)
-          ├── engine_map  ── EngineMap (+ override patching)
-          │      └── canon, family, note, non_blank, overrides
+          ├── engine_map  ── EngineMap
+          │      └── canon, family, note, non_blank
+          ├── overrides   ── Overrides: edits to either side, last entry wins
           └── canon       ── Canon enum + fallback chains
                  ├── family ── Family, declared in display order
                  └── idx    ── Idx<MAX>: a 1-based position in 1..=MAX
@@ -149,26 +150,28 @@ the rules allow.
   - `from_canon: HashMap<Canon, Note>` — encode direction. A note flagged
     `primary` wins the reverse mapping; a duplicate primary for one canon is a
     build error. Non-primary notes fill a canon only if no primary claimed it.
-- `with_source_overrides(&[SrcNote])` / `with_target_overrides(&[CanonNote])`
-  return a patched copy (decode or encode side); the last entry for a note or canon
-  wins. A source entry without a canon removes the note from the decode side.
+- An `EngineMap` is never copied or patched: edits are applied by `Mapping`.
 
 ### `translate` — the pipeline, no MIDI
 
-- `Mapping::new(src, tgt, &Overrides, MissingDrums)` owns the source and target maps
-  with the overrides applied: the hub-and-spoke pipeline as a pure function of one note.
-  `resolve(canon, &EngineMap, MissingDrums)` resolves a canon against any target;
-  `Drop` walks the same chain filtered to `Canon::same_drum`, so both modes share one
-  order. `moves_to_other_drum(canon)` says whether the setting decides a canon (the
-  target lacks it and its nearest stand-in is another drum).
+- `Mapping::new(src, tgt, &Overrides, MissingDrums)` compiles one conversion: the
+  source's decode table with the source edits applied (an edit without a canon removes
+  the note), and, from the target's encode table with the target edits applied, the
+  outcome of every drum in the vocabulary. Nothing is resolved after construction:
+  `resolve_canon(canon)` and `moves_to_other_drum(canon)` read the compiled outcome,
+  and `translate(note)` decodes the note and reads the same outcome.
+- A drum the target has plays on its own note. Otherwise the first drum of its fallback
+  chain that the target has stands in; `Drop` walks the same chain filtered to
+  `Canon::same_drum`, so both modes share one order. `moves_to_other_drum(canon)` says
+  whether the setting decides a drum (the target lacks it and its nearest stand-in is
+  another drum).
 - Two result types keep partial cases unrepresentable:
   - `CanonResolution { Direct | Fallback | Dropped }` — total result of resolving
-    a *canon* against the target. Cannot be "unmapped".
+    a *canon* against the target. Cannot be "unmapped". Every variant carries the canon
+    it resolved; `Fallback` also carries the drum that stands in, and `played()` gives
+    the target drum and note that play it.
   - `Resolution { Resolved(CanonResolution) | Unmapped }` — result of resolving a
-    *source note*, which may not decode at all.
-  - `translate(note)` decodes then wraps `resolve_canon` in `Resolved`;
-    `resolve_canon(canon)` is used directly by `plan`.
-  - Every `CanonResolution` carries the canon it resolved.
+    *source note*, which may not decode at all; internal to the core.
 - `Report` (module `report`) keeps its counters private and hands them out as
   iterators and totals (`hits()` is every note-on seen); only the converter tallies
   them (`record`, `record_untouched`).
@@ -187,9 +190,10 @@ the rules allow.
 - The converter reads the table for every event, so the fallback search never runs
   per MIDI event, and the report records what the table said.
 - The edit preview (`plan`) compiles the same table to group source notes by drum, and
-  resolves each drum through the same `Mapping` (`resolve_canon`), not through the
-  table. `tests/preview_matches_conversion.rs` holds the two together: for every builtin
-  pair it checks the preview against the converted file.
+  reads each drum's outcome from the same `Mapping`, which is where the table's entries
+  come from: the preview and the file share one compiled outcome per drum.
+  `tests/preview_matches_conversion.rs` checks the preview against the converted file
+  for every builtin pair.
 
 ### `midi`, `channel`, `rewrite` — the modules that know `midly`
 
@@ -263,6 +267,10 @@ the rules allow.
 - `tests/stable_ids.rs` guards saved data: every drum key and engine id ever released is
   recorded in `tests/golden/`, must still parse or resolve (through an alias after a
   rename), and every new one must be appended.
+- `tests/walkthrough.rs` converts every note of the richest kit to every builtin target
+  and compares the output keys and the report with `tests/golden/walkthrough.txt`, one
+  recorded line per target. A line changes only when a preset or the fallback order
+  does; the change is then reviewed in the diff of that file.
 
 ### `preset` — the preset file
 
@@ -277,15 +285,16 @@ the rules allow.
 
 ### `overrides` — per-voice retargeting
 
-- `Overrides { tgt: Vec<CanonNote>, src: Vec<SrcNote> }`, deserialized from
+- `Overrides` keeps its entries private, deserialized from
   `{ "tgt": [{ "canon", "note" }], "src": [{ "note", "canon" | null }] }`. `tgt` retargets
   the *encode* side ("encode this canon as this note"); `src` retargets the
   *decode* side ("read this source note as this canon"), which lets a note the
   source engine doesn't map be rescued to a canon, or (with `canon: null`) a note it
   does map be unassigned — how the editor replaces a drum's source note. Notes are
   `Note`s, so an out-of-range value fails deserialization.
-- `Mapping::new` applies them through `EngineMap::with_source_overrides` and
-  `with_target_overrides`; anything not overridden falls through to the engine.
+- `target()` and `source()` hand the edits out with the last entry for a drum or a note
+  already chosen; `Overrides::new` builds them from a preset. `Mapping::new` is the only
+  reader; anything not overridden falls through to the engine.
 
 ### `plan` — the source→target table (UI, no MIDI)
 

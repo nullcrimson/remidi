@@ -1,8 +1,5 @@
-use std::collections::BTreeMap;
-
 use midiremap_core::{
-    convert, Canon, Catalog, ChannelScope, EngineMap, FallbackTally, Mapping, MissingDrums, Note,
-    Overrides,
+    convert, Catalog, ChannelScope, Converted, Mapping, MissingDrums, Note, Overrides,
 };
 use midiremap_testkit::{event, hit_keys, off, on, smf, DRUMS, PPQ};
 use midly::{
@@ -29,24 +26,6 @@ fn walkthrough_smf(notes: &[Note]) -> Vec<u8> {
     smf(vec![std::iter::once(tempo).chain(hits).collect()])
 }
 
-enum Expected {
-    Direct(Note),
-    Fallback(Note),
-    Dropped,
-}
-
-fn expected_resolution(canon: Canon, tgt: &EngineMap) -> Expected {
-    if let Some(note) = tgt.encode(canon) {
-        return Expected::Direct(note);
-    }
-    for &alt in canon.fallback_chain() {
-        if let Some(note) = tgt.encode(alt) {
-            return Expected::Fallback(note);
-        }
-    }
-    Expected::Dropped
-}
-
 fn richest_engine(maps: &Catalog) -> &str {
     maps.ids()
         .max_by_key(|id| maps.get(id).unwrap().source_notes().len())
@@ -68,69 +47,69 @@ fn ezdrummer2_is_the_richest_source_kit() {
     );
 }
 
+const RECORDED: &str = include_str!("golden/walkthrough.txt");
+
+fn listed<T>(items: impl Iterator<Item = T>, show: impl Fn(T) -> String) -> String {
+    items.map(show).collect::<Vec<_>>().join(" ")
+}
+
+fn outcome_line(tgt_id: &str, out: &Converted) -> String {
+    format!(
+        "{tgt_id} | keys {} | approximated {} | dropped {} | unrecognized {}",
+        listed(hit_keys(&out.bytes).into_iter(), |key| key.to_string()),
+        listed(out.report.fallback_used(), |(canon, tally)| format!(
+            "{canon}>{}x{}",
+            tally.note, tally.count
+        )),
+        listed(out.report.dropped(), |(canon, count)| format!(
+            "{canon}x{count}"
+        )),
+        listed(out.report.unmapped_source(), |(note, count)| format!(
+            "{note}x{count}"
+        )),
+    )
+}
+
+type LinePair<'a> = (Option<&'a str>, Option<&'a str>);
+
+fn first_difference<'a>(actual: &'a [String], recorded: &'a str) -> Option<LinePair<'a>> {
+    let mut actual = actual.iter().map(String::as_str);
+    let mut recorded = recorded.lines();
+    loop {
+        match (actual.next(), recorded.next()) {
+            (None, None) => return None,
+            (got, want) if got != want => return Some((got, want)),
+            _ => {}
+        }
+    }
+}
+
 #[test]
-fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
+fn every_note_of_the_richest_kit_lands_on_every_target_as_recorded() {
     let maps = Catalog::builtin().unwrap();
-    let src_id = richest_engine(&maps);
-    let src = maps.get(src_id).unwrap();
+    let src = maps.get(richest_engine(&maps)).unwrap();
     let notes: Vec<Note> = src.source_notes().iter().map(|d| d.note).collect();
     let midi = walkthrough_smf(&notes);
-
-    for tgt_id in maps.ids() {
-        let tgt = maps.get(tgt_id).unwrap();
-
-        let mut expected_keys: Vec<u8> = Vec::new();
-        let mut expected_fallback: BTreeMap<Canon, FallbackTally> = BTreeMap::new();
-        let mut expected_dropped: BTreeMap<Canon, u32> = BTreeMap::new();
-        for &note in &notes {
-            let canon = src
-                .decode(note)
-                .unwrap_or_else(|| panic!("{src_id} note {note} must decode"));
-            match expected_resolution(canon, tgt) {
-                Expected::Direct(n) => expected_keys.push(n.get()),
-                Expected::Fallback(n) => {
-                    expected_keys.push(n.get());
-                    expected_fallback
-                        .entry(canon)
-                        .or_insert(FallbackTally { note: n, count: 0 })
-                        .count += 1;
-                }
-                Expected::Dropped => {
-                    *expected_dropped.entry(canon).or_default() += 1;
-                }
-            }
-        }
-
-        let out = convert(
-            &midi,
-            &Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest),
-            ChannelScope::Auto,
-        )
-        .unwrap();
-
-        assert_eq!(
-            hit_keys(&out.bytes),
-            expected_keys,
-            "{src_id} -> {tgt_id}: output notes must match direct/fallback resolution"
-        );
-        assert!(
-            out.report.unmapped_source().next().is_none(),
-            "{src_id} -> {tgt_id}: a kit's own notes are always decodable"
-        );
-        assert_eq!(
-            out.report.fallback_used().collect::<Vec<_>>(),
-            expected_fallback
-                .iter()
-                .map(|(&c, t)| (c, t))
-                .collect::<Vec<_>>(),
-            "{src_id} -> {tgt_id}: fallback report must match the resolver"
-        );
-        assert_eq!(
-            out.report.dropped().collect::<BTreeMap<_, _>>(),
-            expected_dropped,
-            "{src_id} -> {tgt_id}: dropped report must match the resolver"
-        );
-    }
+    let actual: Vec<String> = maps
+        .ids()
+        .map(|tgt_id| {
+            let mapping = Mapping::new(
+                src,
+                maps.get(tgt_id).unwrap(),
+                &Overrides::default(),
+                MissingDrums::Nearest,
+            );
+            outcome_line(
+                tgt_id,
+                &convert(&midi, &mapping, ChannelScope::Auto).unwrap(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        first_difference(&actual, RECORDED),
+        None,
+        "left is the conversion, right is tests/golden/walkthrough.txt"
+    );
 }
 
 #[test]

@@ -2,13 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    canon::Canon,
-    family::Family,
-    non_blank::NonBlank,
-    note::Note,
-    overrides::{CanonNote, SrcNote},
-};
+use crate::{canon::Canon, family::Family, non_blank::NonBlank, note::Note};
 
 #[derive(Deserialize)]
 struct RawEntry {
@@ -32,7 +26,7 @@ struct RawMap {
 }
 
 /// One engine's note layout: which drum each note plays, and which note plays each drum.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct EngineMap {
     id: String,
     name: String,
@@ -82,26 +76,12 @@ impl EngineMap {
         self.from_canon.get(&canon).copied()
     }
 
-    /// A copy that reads each overridden source note as its canon, or as no drum when the
-    /// canon is `None`; the last entry for a note wins.
-    pub(crate) fn with_source_overrides(&self, overrides: &[SrcNote]) -> Self {
-        let mut map = self.clone();
-        for sn in overrides {
-            match sn.canon {
-                Some(canon) => map.to_canon.insert(sn.note, canon),
-                None => map.to_canon.remove(&sn.note),
-            };
-        }
-        map
+    pub(crate) fn decodings(&self) -> impl Iterator<Item = (Note, Canon)> + '_ {
+        self.to_canon.iter().map(|(&note, &canon)| (note, canon))
     }
 
-    /// A copy that plays each overridden canon on its note; the last entry for a canon
-    /// wins.
-    pub(crate) fn with_target_overrides(&self, overrides: &[CanonNote]) -> Self {
-        let mut map = self.clone();
-        map.from_canon
-            .extend(overrides.iter().map(|cn| (cn.canon, cn.note)));
-        map
+    pub(crate) fn encodings(&self) -> impl Iterator<Item = (Canon, Note)> + '_ {
+        self.from_canon.iter().map(|(&canon, &note)| (canon, note))
     }
 
     pub fn display_name(&self) -> &str {
@@ -121,11 +101,11 @@ impl EngineMap {
     }
 
     pub fn drums(&self) -> Vec<Drum> {
-        listing(self.from_canon.iter().map(|(&canon, &note)| (note, canon)))
+        listing(self.encodings().map(|(canon, note)| (note, canon)))
     }
 
     pub fn source_notes(&self) -> Vec<Drum> {
-        listing(self.to_canon.iter().map(|(&note, &canon)| (note, canon)))
+        listing(self.decodings())
     }
 }
 
