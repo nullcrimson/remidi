@@ -8,6 +8,11 @@ function renderPopover() {
     <div>
       <InfoPopover label="2 drums played on another drum">
         <button type="button">Change in note editor →</button>
+        <p>plain text</p>
+        <details>
+          <summary>two drums</summary>
+          China
+        </details>
       </InfoPopover>
       <button type="button">elsewhere</button>
     </div>,
@@ -72,6 +77,45 @@ describe('InfoPopover', () => {
     const trigger = renderPopover();
     await userEvent.click(trigger);
     fireEvent.pointerDown(screen.getByRole('button', { name: 'elsewhere' }));
+    await waitFor(() => expect(panel()).not.toBeInTheDocument());
+  });
+
+  it('stays open when the mouse leaves after a group in a panel opened by hover was unfolded', async () => {
+    const trigger = renderPopover();
+    await userEvent.hover(trigger);
+    const opened = await screen.findByRole('dialog');
+    await userEvent.click(screen.getByText('two drums'));
+    await userEvent.unhover(opened);
+    await wait(500);
+    expect(panel()).toBeInTheDocument();
+  });
+
+  it('stays open when the mouse leaves after a group was folded again', async () => {
+    const trigger = renderPopover();
+    await userEvent.hover(trigger);
+    const opened = await screen.findByRole('dialog');
+    await userEvent.click(screen.getByText('two drums'));
+    await userEvent.click(screen.getByText('two drums'));
+    await userEvent.unhover(opened);
+    await wait(500);
+    expect(panel()).toBeInTheDocument();
+  });
+
+  it('closes on a click outside after a group was unfolded', async () => {
+    const trigger = renderPopover();
+    await userEvent.hover(trigger);
+    await screen.findByRole('dialog');
+    await userEvent.click(screen.getByText('two drums'));
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'elsewhere' }));
+    await waitFor(() => expect(panel()).not.toBeInTheDocument());
+  });
+
+  it('still closes a moment after the mouse leaves when a click inside unfolded nothing', async () => {
+    const trigger = renderPopover();
+    await userEvent.hover(trigger);
+    const opened = await screen.findByRole('dialog');
+    await userEvent.click(screen.getByText('plain text'));
+    await userEvent.unhover(opened);
     await waitFor(() => expect(panel()).not.toBeInTheDocument());
   });
 

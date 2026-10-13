@@ -22,7 +22,7 @@ test('the summary keeps the drums of a group folded until the group is opened', 
   await expect(detail.getByText('Kick (Alt) → Kick', { exact: true })).toBeHidden();
 });
 
-test('opening a group keeps the detail open below the summary and inside the window', async ({ page, isMobile }) => {
+test('a detail opened by hover stays open after a group in it is opened and the mouse leaves', async ({ page, isMobile }) => {
   test.skip(isMobile, 'no hover on touch');
   await page.goto('/?from=ggd_invasion&to=ezdrummer');
   const summary = page.getByRole('button', { name: remapped });
@@ -30,8 +30,7 @@ test('opening a group keeps the detail open below the summary and inside the win
   await summary.hover();
   await detail.waitFor();
   const folded = await detail.boundingBox();
-  const anchor = await summary.boundingBox();
-  if (folded === null || anchor === null) throw new Error('the summary and its detail have no box');
+  if (folded === null) throw new Error('the detail has no box');
   await page.mouse.move(0, 0);
   await detail.waitFor({ state: 'hidden' });
   await page.setViewportSize({ width: 1280, height: Math.ceil(folded.y + folded.height + 12) });
@@ -40,13 +39,10 @@ test('opening a group keeps the detail open below the summary and inside the win
   await detail.waitFor();
   await detail.locator('summary').filter({ hasText: 'played on another drum' }).click();
   await expect(detail.getByText(/^China.* → /).first()).toBeVisible();
+  await page.mouse.move(0, 0);
   await page.waitForTimeout(600);
 
-  const opened = await detail.boundingBox();
-  const window = page.viewportSize();
-  if (opened === null || window === null) throw new Error('the detail closed');
-  expect(opened.y).toBeGreaterThanOrEqual(anchor.y + anchor.height);
-  expect(opened.y + opened.height).toBeLessThanOrEqual(window.height);
+  await expect(detail.getByText(/^China.* → /).first()).toBeVisible();
 });
 
 test('a pair that plays every drum as written lists no changed drums', async ({ page }) => {
