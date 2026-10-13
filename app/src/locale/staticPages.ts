@@ -2,8 +2,6 @@ import { sameLanguage } from './language';
 import { readChoice, writeChoice } from './languageChoice';
 import { readStored, writeStored } from '../core/storage';
 
-const OFFER_DISMISSED_KEY = 'midiremap:locale-offer';
-
 /**
  * What the static pages do about the visitor's language: remember a clicked language link,
  * send a visitor with a stored choice to that language's page, and otherwise offer, once,
@@ -25,7 +23,7 @@ export function runLocaleScript(document: Document, languages: readonly string[]
     location.replace(chosen.href);
     return;
   }
-  if (stored !== null || readStored(OFFER_DISMISSED_KEY) !== null) return;
+  if (stored !== null || readStored('locale-offer') !== null) return;
 
   const page = document.documentElement.lang;
   for (const tag of languages) {
@@ -38,7 +36,7 @@ export function runLocaleScript(document: Document, languages: readonly string[]
     }
   }
   offer.querySelector('[data-dismiss]')?.addEventListener('click', () => {
-    writeStored(OFFER_DISMISSED_KEY, 'dismissed');
+    writeStored('locale-offer', 'dismissed');
     offer.hidden = true;
   });
 }

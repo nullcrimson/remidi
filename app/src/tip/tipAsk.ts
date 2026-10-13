@@ -1,8 +1,5 @@
 import { readStored, writeStored } from '../core/storage';
 
-/** Where the tip ask keeps its counts and times, shared by every tab. */
-export const TIP_KEY = 'midiremap:tip';
-
 const FIRST_ASK = 3;
 const DAY = 24 * 60 * 60 * 1000;
 const GAP = DAY;
@@ -18,7 +15,7 @@ const time = (value: unknown) => (typeof value === 'number' && Number.isFinite(v
 
 function load(): TipRecord {
   try {
-    const v = JSON.parse(readStored(TIP_KEY) ?? '{}') as Record<string, unknown>;
+    const v = JSON.parse(readStored('tip') ?? '{}') as Record<string, unknown>;
     const downloads = typeof v.downloads === 'number' && v.downloads >= 0 ? Math.floor(v.downloads) : 0;
     return { downloads, shownAt: time(v.shownAt), tippedAt: time(v.tippedAt) };
   } catch {
@@ -36,11 +33,11 @@ export function askAfterDownload(now = Date.now()): boolean {
   const r = load();
   const downloads = r.downloads + 1;
   const ask = downloads >= FIRST_ASK && since(r.shownAt, now, GAP) && since(r.tippedAt, now, AFTER_TIP);
-  writeStored(TIP_KEY, JSON.stringify({ ...r, downloads, shownAt: ask ? now : r.shownAt }));
+  writeStored('tip', JSON.stringify({ ...r, downloads, shownAt: ask ? now : r.shownAt }));
   return ask;
 }
 
 /** Remembers a tip, pausing the ask for 90 days. */
 export function rememberTip(now = Date.now()): void {
-  writeStored(TIP_KEY, JSON.stringify({ ...load(), tippedAt: now }));
+  writeStored('tip', JSON.stringify({ ...load(), tippedAt: now }));
 }

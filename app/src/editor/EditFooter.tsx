@@ -1,5 +1,6 @@
 import { useT } from '../locale/localeContext';
 import type { SavedMapping } from '../presets/mappings';
+import { UnsavedNotice } from '../presets/UnsavedNotice';
 import { Button } from '../ui/Button';
 import { TextButton } from '../ui/TextButton';
 import { SavePreset } from './SavePreset';
@@ -12,6 +13,7 @@ export function EditFooter({
   tgt,
   existingPreset,
   presetsAtCap,
+  presetsUnsaved,
   onSavePreset,
   onUpdatePreset,
   onDone,
@@ -22,6 +24,7 @@ export function EditFooter({
   tgt: string;
   existingPreset: SavedMapping | undefined;
   presetsAtCap: boolean;
+  presetsUnsaved: boolean;
   onSavePreset: (name: string) => void;
   onUpdatePreset: (id: string, name: string) => void;
   onDone: () => void;
@@ -36,6 +39,11 @@ export function EditFooter({
         sm:px-[30px]
       "
     >
+      {presetsUnsaved && (
+        <div className="w-full">
+          <UnsavedNotice />
+        </div>
+      )}
       <span className="font-mono text-label text-t4">
         {t({ id: 'edit-changes', args: { count: changes } })}
       </span>

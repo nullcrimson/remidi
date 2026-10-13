@@ -9,6 +9,7 @@ import { Card, Page } from './site/PageFrame';
 import { PlanControls } from './convert/PlanControls';
 import { ReportModal } from './report/ReportModal';
 import { SavedMappingChips } from './presets/SavedMappingChips';
+import { UnsavedNotice } from './presets/UnsavedNotice';
 import { StatusNotice } from './ui/StatusNotice';
 import { useDropGuard } from './convert/useDropGuard';
 import { useConversionReport } from './report/useConversionReport';
@@ -46,10 +47,10 @@ export default function App({ runtime }: { runtime: Runtime }) {
   const remapper = useRemapper(runtime);
   const { editor } = remapper;
   const focus = useFocusIntent();
+  const [notice, setNotice] = useState<NoticeLine[] | null>(null);
   const saved = useSavedMappings();
   const [reportOpen, setReportOpen] = useState(false);
   const [assignNote, setAssignNote] = useState<Note | null>(null);
-  const [notice, setNotice] = useState<NoticeLine[] | null>(null);
   const [editShow, setEditShow] = useState<EditFilter>('all');
   const presets = usePresetActions(
     { ...remapper, edits: editor.edits, srcEdits: editor.srcEdits },
@@ -99,6 +100,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
             oct={remapper.oct}
             existingPreset={openPreset}
             presetsAtCap={saved.atCap}
+            presetsUnsaved={saved.unsaved}
             assignNote={assignNote}
             initialShow={editShow}
             setView={(v) => (v === 'convert' ? closeEditor() : remapper.setView(v))}
@@ -151,6 +153,8 @@ export default function App({ runtime }: { runtime: Runtime }) {
                 />
 
                 {notice && <StatusNotice lines={notice} onDismiss={() => setNotice(null)} />}
+
+                {saved.unsaved && <UnsavedNotice />}
 
                 <SavedMappingChips
                   onFocusFallback={() => request('from')}

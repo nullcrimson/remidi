@@ -68,6 +68,7 @@ preset-skipped = { $count ->
 }
 import-failed = { $file } 파일을 가져오지 못했습니다: { $error }
 import-at-cap = { $file } 파일을 가져오지 못했습니다: 프리셋은 최대 { $cap }개까지입니다
+presets-unsaved = 프리셋을 저장하지 못했습니다: 브라우저 저장 공간이 가득 찼거나 차단되어 있습니다. 새로고침하면 사라집니다.
 import-done = '{ $name }' 프리셋을 가져왔습니다.
 import-done-skipped = '{ $name }' 프리셋을 가져왔습니다(편집 { $count ->
    *[other] { $count }개

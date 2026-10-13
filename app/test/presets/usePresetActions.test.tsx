@@ -27,6 +27,7 @@ function arrange(skipped = 0, mappings = [kit]) {
     update: vi.fn(),
     rename: vi.fn(),
     remove: vi.fn(),
+    unsaved: false,
   };
   const pair = typed<PresetSetup>({
     src: 'ggd_invasion',

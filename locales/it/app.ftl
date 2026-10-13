@@ -72,6 +72,7 @@ preset-skipped = { $count ->
 }
 import-failed = Impossibile importare { $file }: { $error }
 import-at-cap = Impossibile importare { $file }: non c'è spazio per altri preset (massimo { $cap })
+presets-unsaved = Impossibile salvare i preset: la memoria del browser è piena o bloccata. Andranno persi al ricaricamento.
 import-done = Preset “{ $name }” importato.
 import-done-skipped = Preset “{ $name }” importato ({ $count ->
     [one] { $count } modifica ignorata

@@ -8,10 +8,13 @@ import App from '../src/App';
 import { RUNTIME } from './runtime';
 import { saveFile } from '../src/core/download';
 import { WasmCallError } from '../src/core/errors';
-import { MAPPINGS_CAP, MAPPINGS_KEY } from '../src/presets/mappings';
+import { MAPPINGS_CAP } from '../src/presets/mappings';
 import type { PresetView, VocabularyDrum } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
+import { storedName } from '../src/core/storage';
+
+const MAPPINGS_KEY = storedName('mappings');
 
 const PRESET = {
   id: 'p1',
@@ -98,6 +101,91 @@ describe('App presets', () => {
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent("Imported 'My kit copy' (1 edit skipped)."));
     expect(screen.getByRole('button', { name: /^My kit copy/ })).toBeInTheDocument();
     expect(screen.queryByText(/my-kit\.drumverter\.json/)).not.toBeInTheDocument();
+  });
+
+  it('says a duplicated preset will be gone on reload when the browser cannot store it', async () => {
+    await start();
+    const realSetItem = localStorage.setItem.bind(localStorage);
+    const set = vi.spyOn(localStorage, 'setItem').mockImplementation((name, value) => {
+      if (name === MAPPINGS_KEY) throw new DOMException('full', 'QuotaExceededError');
+      realSetItem(name, value);
+    });
+    try {
+      await userEvent.click(screen.getByRole('button', { name: 'More actions for My kit' }));
+      await userEvent.click(screen.getByRole('menuitem', { name: 'Duplicate' }));
+      expect(screen.getByRole('status')).toHaveTextContent(
+        "Couldn't save presets: the browser's storage is full or blocked. They will be gone when you reload.",
+      );
+    } finally {
+      set.mockRestore();
+    }
+  });
+
+  describe('when the browser cannot store presets', () => {
+    const UNSAVED = /They will be gone when you reload\./;
+
+    const failWrites = () => {
+      const realSetItem = localStorage.setItem.bind(localStorage);
+      return vi.spyOn(localStorage, 'setItem').mockImplementation((name, value) => {
+        if (name === MAPPINGS_KEY) throw new DOMException('full', 'QuotaExceededError');
+        realSetItem(name, value);
+      });
+    };
+
+    const duplicate = async () => {
+      await userEvent.click(screen.getByRole('button', { name: 'More actions for My kit' }));
+      await userEvent.click(screen.getByRole('menuitem', { name: 'Duplicate' }));
+    };
+
+    it('keeps the line when another notice replaces the notice', async () => {
+      await start();
+      const set = failWrites();
+      try {
+        await duplicate();
+        await userEvent.click(screen.getByRole('button', { name: /^My kit(?! copy)/ }));
+        expect(screen.getByText(/use drums this version doesn't know/)).toBeInTheDocument();
+        expect(screen.getByText(UNSAVED)).toBeInTheDocument();
+      } finally {
+        set.mockRestore();
+      }
+    });
+
+    it('keeps the line when a notice is dismissed', async () => {
+      await start();
+      const set = failWrites();
+      try {
+        await duplicate();
+        await userEvent.click(screen.getByRole('button', { name: /^My kit(?! copy)/ }));
+        await userEvent.click(within(screen.getAllByRole('status')[0]).getByRole('button', { name: 'Dismiss' }));
+        expect(screen.getByText(UNSAVED)).toBeInTheDocument();
+      } finally {
+        set.mockRestore();
+      }
+    });
+
+    it('drops the line after a later save reaches storage', async () => {
+      await start();
+      const set = failWrites();
+      try {
+        await duplicate();
+      } finally {
+        set.mockRestore();
+      }
+      await duplicate();
+      expect(screen.queryByText(UNSAVED)).not.toBeInTheDocument();
+    });
+
+    it('shows the line once after two failed saves', async () => {
+      await start();
+      const set = failWrites();
+      try {
+        await duplicate();
+        await duplicate();
+        expect(screen.getAllByText(UNSAVED)).toHaveLength(1);
+      } finally {
+        set.mockRestore();
+      }
+    });
   });
 
   it('explains a file it cannot import', async () => {

@@ -3,11 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App';
 import { RUNTIME } from './runtime';
-import { MAPPINGS_KEY } from '../src/presets/mappings';
 import type { VocabularyDrum, VoiceRow } from '../src/core/midiremap';
-import { SESSION_KEY } from '../src/convert/session';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
+import { storedName } from '../src/core/storage';
+
+const MAPPINGS_KEY = storedName('mappings');
+const SESSION_KEY = storedName('session');
 
 describe('App edit view', () => {
   beforeEach(() => {
@@ -97,6 +99,26 @@ describe('App edit view', () => {
     await userEvent.click(screen.getByText(/Edit individual notes/));
     expect(screen.getByRole('button', { name: 'Save as preset' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Update preset' })).not.toBeInTheDocument();
+  });
+
+  it('says in the edit view that a preset saved from the editor will be gone on reload', async () => {
+    render(<App runtime={RUNTIME} />);
+    await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
+    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
+    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await userEvent.click(screen.getByText(/Edit individual notes/));
+    const set = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+    try {
+      await userEvent.click(screen.getByRole('button', { name: 'Save as preset' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+      expect(screen.getByRole('status')).toHaveTextContent(
+        "Couldn't save presets: the browser's storage is full or blocked. They will be gone when you reload.",
+      );
+    } finally {
+      set.mockRestore();
+    }
   });
 
   it('shows no edited chip for the default mapping', async () => {

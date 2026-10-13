@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { typed } from '../typed';
-import { parseMappings, readStore, serializeMappings, sortByRecent, type SavedMapping } from '../../src/presets/mappings';
+import { parseMappings, quarantine, readStore, serializeMappings, sortByRecent, type SavedMapping } from '../../src/presets/mappings';
+import { readStored, storedName } from '../../src/core/storage';
 
 const sample = typed<SavedMapping>({
   id: 'a1',
@@ -117,5 +118,35 @@ describe('readStore', () => {
 
   it('has nothing to read when empty', () => {
     expect(readStore(null)).toEqual({ items: [], invalid: [] });
+  });
+});
+
+describe('quarantine', () => {
+  beforeEach(() => localStorage.clear());
+
+  const stored = () => JSON.parse(readStored('quarantine')!);
+
+  it('keeps text it cannot parse as one entry before the new one', () => {
+    localStorage.setItem(storedName('quarantine'), 'not json{');
+    quarantine(['new']);
+    expect(stored()).toEqual([
+      { at: expect.any(Number), raw: 'not json{' },
+      { at: expect.any(Number), raw: 'new' },
+    ]);
+  });
+
+  it('keeps valid JSON that is not a list as one entry before the new one', () => {
+    localStorage.setItem(storedName('quarantine'), '{"old":1}');
+    quarantine(['new']);
+    expect(stored()).toEqual([
+      { at: expect.any(Number), raw: '{"old":1}' },
+      { at: expect.any(Number), raw: 'new' },
+    ]);
+  });
+
+  it('adds to a stored list', () => {
+    localStorage.setItem(storedName('quarantine'), JSON.stringify([{ at: 1, raw: 'old' }]));
+    quarantine(['new']);
+    expect(stored()).toEqual([{ at: 1, raw: 'old' }, { at: expect.any(Number), raw: 'new' }]);
   });
 });

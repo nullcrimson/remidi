@@ -507,8 +507,23 @@ test in that file fails on any import outside it.
   (`useSavedMappings`, `useFavorites`) and `convert/session.ts`:
   - Presets are stored as `{ version: 1, items }` (a legacy bare array reads as version
     0). Storage is written only after a user action; entries this version cannot read
-    are moved to `midiremap:quarantine` on the next write, never dropped. A `storage`
-    event reloads presets and favourites, so tabs stay in sync.
+    are moved to `midiremap:quarantine` on the next write, never dropped; a quarantine
+    that does not parse is kept whole as one entry of the new list. The quarantine is
+    write-only: nothing reads it back. A preset the browser cannot store (full or
+    blocked storage) stays in the list for the session and `useSavedMappings` reports
+    `unsaved` until a later change is stored; `UnsavedNotice` (`presets-unsaved`, says it will
+    be gone on reload) is drawn from that state beside the status notice in the convert view
+    and in the editor's footer above the save controls, so no other notice replaces or dismisses
+    it. A write is skipped, and counts as unsaved, when the presets cannot be read, so entries
+    never quarantined are not written over. `onStoredChange` reloads presets and favourites
+    when another tab changes them, so tabs stay in sync.
+  - `core/storage.ts` is the only module that reaches `localStorage` (eslint rejects it
+    elsewhere in `src`). It owns the `midiremap:` prefix and the closed `StorageKey` set
+    (`session`, `missing`, `mappings`, `quarantine`, `locale`, `locale-offer`, `tip`,
+    `favorites:from`, `favorites:to`); `storedName` gives the stored name, and a test pins
+    each one. `writeStored` says whether the value was saved; `readStoredStrict` tells a blocked
+    read from an empty one (`'blocked'` or `{ value }`), `readStored` treats both as null, and
+    `onStoredChange(key, changed)` is the one `storage` event subscription.
   - The session (`midiremap:session`, versioned) keeps engines, octave, channel,
     missing drums, the open preset id and unsaved edits; `useRemapper` restores it on
     load and saves every change. When the catalog loads, a link's `?from/&to` pair

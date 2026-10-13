@@ -4,17 +4,7 @@ import { Button } from '../ui/Button';
 import { ProseLink } from '../ui/ProseLink';
 import { TextButton } from '../ui/TextButton';
 import { ISSUES_URL } from '../core/contact';
-
-const STORAGE_PREFIX = 'midiremap:';
-
-function clearSavedData() {
-  try {
-    const keys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i));
-    for (const key of keys) if (key?.startsWith(STORAGE_PREFIX)) localStorage.removeItem(key);
-  } catch {
-    void 0;
-  }
-}
+import { clearStored } from '../core/storage';
 
 function Fallback({ message, onReload }: { message: string; onReload: () => void }) {
   const t = useT();
@@ -49,7 +39,7 @@ function Fallback({ message, onReload }: { message: string; onReload: () => void
                 variant="secondary"
                 size="sm"
                 onClick={() => {
-                  clearSavedData();
+                  clearStored();
                   onReload();
                 }}
               >

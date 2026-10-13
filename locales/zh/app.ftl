@@ -69,6 +69,7 @@ preset-skipped = { $count ->
 }
 import-failed = 无法导入 { $file }：{ $error }
 import-at-cap = 无法导入 { $file }：最多只能保存 { $cap } 个预设
+presets-unsaved = 无法保存预设：浏览器存储空间已满或被阻止。刷新页面后将丢失。
 import-done = 已导入“{ $name }”。
 import-done-skipped = 已导入“{ $name }”（跳过了 { $count ->
    *[other] { $count } 处修改

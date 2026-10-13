@@ -1,4 +1,5 @@
 import { parseEdits, parseSrcEdits, type StoredEdits } from '../core/overrides';
+import { readStored, writeStored } from '../core/storage';
 
 export interface SavedMapping extends StoredEdits {
   id: string;
@@ -8,7 +9,6 @@ export interface SavedMapping extends StoredEdits {
   updatedAt: number;
 }
 
-export const MAPPINGS_KEY = 'midiremap:mappings';
 export const MAPPINGS_CAP = 50;
 
 function parseOne(value: unknown): SavedMapping | null {
@@ -31,7 +31,6 @@ function parseOne(value: unknown): SavedMapping | null {
   return { id: v.id, name: v.name, src: v.src, tgt: v.tgt, edits, srcEdits, updatedAt: v.updatedAt };
 }
 
-export const QUARANTINE_KEY = 'midiremap:quarantine';
 const STORE_VERSION = 1;
 
 interface Store {
@@ -75,20 +74,22 @@ export function serializeMappings(mappings: SavedMapping[]): string {
 }
 
 /** Keeps entries that could not be read, so no release ever deletes them. */
-export function quarantine(entries: unknown[]): void {
-  if (entries.length === 0) return;
+export function quarantine(entries: unknown[]): boolean {
+  if (entries.length === 0) return true;
   const at = Date.now();
-  let kept: unknown[] = [];
+  return writeStored('quarantine', JSON.stringify([...kept(at), ...entries.map((raw) => ({ at, raw }))]));
+}
+
+function kept(at: number): unknown[] {
+  const raw = readStored('quarantine');
+  if (!raw) return [];
   try {
-    const prev: unknown = JSON.parse(localStorage.getItem(QUARANTINE_KEY) ?? '[]');
-    if (Array.isArray(prev)) kept = prev;
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
   } catch {
     void 0;
   }
-  localStorage.setItem(
-    QUARANTINE_KEY,
-    JSON.stringify([...kept, ...entries.map((raw) => ({ at, raw }))]),
-  );
+  return [{ at, raw }];
 }
 
 export function sortByRecent(mappings: SavedMapping[]): SavedMapping[] {

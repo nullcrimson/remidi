@@ -3,9 +3,6 @@ import type { Canon, Drum, MissingDrums, VoiceRow } from './midiremap';
 import type { OctaveBase } from './notes';
 import { movesToOtherDrum, playedOn, type PlayedOn } from './outcome';
 
-/** Where the choice was kept before it moved into the session; read once, then removed. */
-export const MISSING_KEY = 'midiremap:missing';
-
 export const MISSING_OPTIONS: { value: MissingDrums; label: Message }[] = [
   { value: 'nearest', label: { id: 'missing-nearest' } },
   { value: 'drop', label: { id: 'missing-drop' } },

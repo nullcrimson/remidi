@@ -111,7 +111,9 @@ on a phone and click elsewhere.
   `parseEdits`, `parseSrcEdits` and `sameEdits` read and compare them), `missing.ts` (the
   missing-drums setting, Nearest / Drop, and its hint), `channel.ts`, `files.ts`,
   `selection.ts` (`SelectionEvent`, handed to each reducer), `notice.ts`, `download.ts`,
-  `storage.ts`, `stats.ts`, `contact.ts` (the issue and contact addresses), `engineCode.ts`
+  `storage.ts` (the only module that touches `localStorage`: the closed `StorageKey` set, `storedName` which
+  puts `midiremap:` in front of it, and `readStored`, `readStoredStrict` (blocked or `{ value }`), `writeStored`, `removeStored`, `clearStored`, `onStoredChange` (the one `storage` event subscription); eslint
+  rejects `localStorage` anywhere else in `src`), `stats.ts`, `contact.ts` (the issue and contact addresses), `engineCode.ts`
   (the three-letter badge of an engine id).
 - `src/convert/` — the converter screen: `useRemapper.ts` (screen state, Convert + Edit; every
   selection change is one `SelectionEvent`), `runtime.ts` (`Runtime { load, converter }`, made
@@ -135,9 +137,9 @@ on a phone and click elsewhere.
   preset), `useEditorHistory.ts` (opening the editor adds a history entry, so the browser's
   Back closes it instead of leaving the converter).
 - `src/engines/` — LibraryList, EngineColumns, `useEngineCatalog.ts`, `useFavorites.ts`.
-- `src/presets/` — stored presets: `mappings.ts` (versioned, quarantine), `presetFile.ts`
+- `src/presets/` — stored presets: `mappings.ts` (versioned; unreadable entries and an unreadable quarantine are kept in `midiremap:quarantine`, written, never read), `presetFile.ts`
   (`<name>-drumverter.json` export), `presetImport.ts` (any `.json` file imports),
-  `useSavedMappings.ts`, `usePresetActions.ts`, SavedMappingChip(s).
+  `useSavedMappings.ts` (its `unsaved` flag is drawn by `UnsavedNotice` in the convert view and the editor footer), `usePresetActions.ts`, SavedMappingChip(s).
 - `src/report/` — ReportModal, ContactFooter, `report.ts`, `useConversionReport.ts`,
   `reportLink.ts` (the "Wrong mapping? Report it" form link, told the engines and language).
 - `src/tip/` — TipToast (pinned to the top) and `tipAsk.ts` (from the third saved file, at

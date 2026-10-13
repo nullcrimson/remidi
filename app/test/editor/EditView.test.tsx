@@ -48,6 +48,7 @@ const props = {
   oct: 'c1' as const,
   existingPreset: undefined,
   presetsAtCap: false,
+  presetsUnsaved: false,
   setView: vi.fn(),
   onSavePreset: vi.fn(),
   onUpdatePreset: vi.fn(),

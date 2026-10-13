@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type SetStateAction } from 'react';
 import type { StoredEdits } from '../core/overrides';
+import { onStoredChange, readStored, readStoredStrict, writeStored } from '../core/storage';
 import {
   MAPPINGS_CAP,
-  MAPPINGS_KEY,
   parseMappings,
   quarantine,
   readStore,
@@ -19,46 +19,37 @@ export interface SavedMappings {
   update: (id: string, patch: { name?: string } & Partial<StoredEdits>) => void;
   rename: (id: string, name: string) => void;
   remove: (id: string) => void;
+  /** True after a change the browser could not store, until a later change is stored. */
+  unsaved: boolean;
 }
 
 function load(): SavedMapping[] {
-  try {
-    return sortByRecent(parseMappings(localStorage.getItem(MAPPINGS_KEY)));
-  } catch {
-    return [];
-  }
+  return sortByRecent(parseMappings(readStored('mappings')));
 }
 
-function persist(mappings: SavedMapping[]) {
-  try {
-    quarantine(readStore(localStorage.getItem(MAPPINGS_KEY)).invalid);
-    localStorage.setItem(MAPPINGS_KEY, serializeMappings(mappings));
-  } catch {
-    void 0;
-  }
+function persist(mappings: SavedMapping[]): boolean {
+  const current = readStoredStrict('mappings');
+  if (current === 'blocked') return false;
+  return quarantine(readStore(current.value).invalid) && writeStored('mappings', serializeMappings(mappings));
 }
 
 /**
  * Saved presets, shared with other tabs. Storage is written only after a user action, so
  * entries this version cannot read stay put until then and are quarantined, not dropped.
+ * A change the browser cannot store stays in the list for this session and sets `unsaved`.
  */
 export function useSavedMappings(): SavedMappings {
   const [mappings, setStored] = useState<SavedMapping[]>(() => load());
+  const [unsaved, setUnsaved] = useState(false);
   const dirty = useRef(false);
 
   useEffect(() => {
     if (!dirty.current) return;
     dirty.current = false;
-    persist(mappings);
+    setUnsaved(!persist(mappings));
   }, [mappings]);
 
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === MAPPINGS_KEY || e.key === null) setStored(load());
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  useEffect(() => onStoredChange('mappings', () => setStored(load())), []);
 
   const setMappings = (next: SetStateAction<SavedMapping[]>) => {
     dirty.current = true;
@@ -107,5 +98,5 @@ export function useSavedMappings(): SavedMappings {
   const remove: SavedMappings['remove'] = (id) =>
     setMappings((prev) => prev.filter((m) => m.id !== id));
 
-  return { mappings, atCap: mappings.length >= MAPPINGS_CAP, save, update, rename, remove };
+  return { mappings, atCap: mappings.length >= MAPPINGS_CAP, save, update, rename, remove, unsaved };
 }

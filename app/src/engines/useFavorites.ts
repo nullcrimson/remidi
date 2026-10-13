@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { onStoredChange, readStored, writeStored, type StorageKey } from '../core/storage';
 
 type FavoritesScope = 'from' | 'to';
 
@@ -7,9 +8,9 @@ interface Favorites {
   toggleFavorite: (id: string) => void;
 }
 
-function load(key: string): Set<string> {
+function load(key: StorageKey): Set<string> {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = readStored(key);
     if (!raw) return new Set();
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return new Set();
@@ -20,27 +21,17 @@ function load(key: string): Set<string> {
 }
 
 export function useFavorites(scope: FavoritesScope): Favorites {
-  const key = `midiremap:favorites:${scope}`;
+  const key = `favorites:${scope}` as const;
   const [favorites, setFavorites] = useState<Set<string>>(() => load(key));
   const dirty = useRef(false);
 
   useEffect(() => {
     if (!dirty.current) return;
     dirty.current = false;
-    try {
-      localStorage.setItem(key, JSON.stringify([...favorites]));
-    } catch {
-      void 0;
-    }
+    writeStored(key, JSON.stringify([...favorites]));
   }, [key, favorites]);
 
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === key || e.key === null) setFavorites(load(key));
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, [key]);
+  useEffect(() => onStoredChange(key, () => setFavorites(load(key))), [key]);
 
   const toggleFavorite = (id: string) => {
     dirty.current = true;

@@ -2,11 +2,13 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useRemapper } from '../../src/convert/useRemapper';
 import { RUNTIME } from '../runtime';
-import { MISSING_KEY } from '../../src/core/missing';
 import type { Report } from '../../src/core/midiremap';
 import { loadSession } from '../../src/convert/session';
 import * as stub from '../stubs/wasm';
 import { typed } from '../typed';
+import { storedName } from '../../src/core/storage';
+
+const MISSING_KEY = storedName('missing');
 
 const REPORT = typed<Report>({ unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 });
 

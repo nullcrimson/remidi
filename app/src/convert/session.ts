@@ -1,11 +1,9 @@
 import { CHANNELS } from '../core/channel';
 import type { ChannelScope, MissingDrums } from '../core/midiremap';
-import { MISSING_KEY } from '../core/missing';
 import type { OctaveBase } from '../core/notes';
-import { readStored } from '../core/storage';
+import { readStored, removeStored, writeStored } from '../core/storage';
 import { parseEdits, parseSrcEdits, type StoredEdits } from '../core/overrides';
 
-export const SESSION_KEY = 'midiremap:session';
 const SESSION_VERSION = 1;
 
 /** The setup a reload brings back: engines, settings and unsaved note edits. */
@@ -30,7 +28,7 @@ export const EMPTY_SESSION: Session = {
 };
 
 function stored(): Record<string, unknown> | null {
-  const raw = readStored(SESSION_KEY);
+  const raw = readStored('session');
   if (!raw) return null;
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -46,7 +44,7 @@ const text = (value: unknown) => (typeof value === 'string' ? value : '');
 
 export function loadSession(): Session {
   const v = stored();
-  const legacyMissing = readStored(MISSING_KEY) === 'drop' ? 'drop' : 'nearest';
+  const legacyMissing = readStored('missing') === 'drop' ? 'drop' : 'nearest';
   if (!v) return { ...EMPTY_SESSION, missing: legacyMissing };
   return {
     src: text(v.src),
@@ -61,10 +59,5 @@ export function loadSession(): Session {
 }
 
 export function saveSession(session: Session): void {
-  try {
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ version: SESSION_VERSION, ...session }));
-    localStorage.removeItem(MISSING_KEY);
-  } catch {
-    void 0;
-  }
+  if (writeStored('session', JSON.stringify({ version: SESSION_VERSION, ...session }))) removeStored('missing');
 }

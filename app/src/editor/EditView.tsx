@@ -23,6 +23,7 @@ interface EditViewProps {
   oct: OctaveBase;
   existingPreset: SavedMapping | undefined;
   presetsAtCap: boolean;
+  presetsUnsaved: boolean;
   assignNote?: Note | null;
   initialShow?: EditFilter;
   setView: (v: 'convert' | 'edit') => void;
@@ -40,6 +41,7 @@ export function EditView({
   oct,
   existingPreset,
   presetsAtCap,
+  presetsUnsaved,
   assignNote = null,
   initialShow = 'all',
   setView,
@@ -155,6 +157,7 @@ export function EditView({
         tgt={tgt}
         existingPreset={existingPreset}
         presetsAtCap={presetsAtCap}
+        presetsUnsaved={presetsUnsaved}
         onSavePreset={onSavePreset}
         onUpdatePreset={onUpdatePreset}
         onDone={() => setView('convert')}

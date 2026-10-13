@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { askAfterDownload, rememberTip, TIP_KEY } from '../../src/tip/tipAsk';
+import { askAfterDownload, rememberTip } from '../../src/tip/tipAsk';
+import { storedName } from '../../src/core/storage';
+
+const TIP_KEY = storedName('tip');
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;

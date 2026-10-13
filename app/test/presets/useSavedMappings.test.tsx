@@ -1,9 +1,13 @@
 import { act, renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSavedMappings } from '../../src/presets/useSavedMappings';
-import { MAPPINGS_CAP, MAPPINGS_KEY, parseMappings, QUARANTINE_KEY } from '../../src/presets/mappings';
+import { MAPPINGS_CAP, parseMappings } from '../../src/presets/mappings';
 import type { StoredEdits } from '../../src/core/overrides';
 import { typed } from '../typed';
+import { storedName } from '../../src/core/storage';
+
+const MAPPINGS_KEY = storedName('mappings');
+const QUARANTINE_KEY = storedName('quarantine');
 
 const base = {
   name: 'GGD→EZ',
@@ -38,6 +42,101 @@ describe('useSavedMappings', () => {
     expect(quarantine).toHaveLength(1);
     expect(quarantine[0].raw).toEqual({ id: 'x', name: 'broken' });
     expect(typeof quarantine[0].at).toBe('number');
+  });
+
+  it('keeps a preset the browser could not store in the list', () => {
+    const set = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+    try {
+      const { result } = renderHook(() => useSavedMappings());
+      act(() => result.current.save(base));
+      expect(result.current.mappings.map((m) => m.name)).toEqual([base.name]);
+    } finally {
+      set.mockRestore();
+    }
+  });
+
+  it('reports a preset the browser could not store as unsaved', () => {
+    const set = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+    try {
+      const { result } = renderHook(() => useSavedMappings());
+      act(() => result.current.save(base));
+      expect(result.current.unsaved).toBe(true);
+    } finally {
+      set.mockRestore();
+    }
+  });
+
+  it('stays unsaved, not doubled, after a second failed save', () => {
+    const set = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+    try {
+      const { result } = renderHook(() => useSavedMappings());
+      act(() => result.current.save(base));
+      act(() => result.current.save({ ...base, name: 'second' }));
+      expect(result.current.unsaved).toBe(true);
+    } finally {
+      set.mockRestore();
+    }
+  });
+
+  it('is saved again after a save that reached storage', () => {
+    const set = vi.spyOn(localStorage, 'setItem').mockImplementationOnce(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+    try {
+      const { result } = renderHook(() => useSavedMappings());
+      act(() => result.current.save(base));
+      act(() => result.current.save({ ...base, name: 'second' }));
+      expect(result.current.unsaved).toBe(false);
+    } finally {
+      set.mockRestore();
+    }
+  });
+
+  it('is not unsaved when the preset is stored', () => {
+    const { result } = renderHook(() => useSavedMappings());
+    act(() => result.current.save(base));
+    expect(result.current.unsaved).toBe(false);
+  });
+
+  describe('when the browser blocks reading the presets', () => {
+    const stored = JSON.stringify({ version: 1, items: [{ id: 'x', name: 'old', src: 'a', tgt: 'b', edits: {}, srcEdits: {}, updatedAt: 1 }] });
+    const blockReads = () => {
+      const realGet = localStorage.getItem.bind(localStorage);
+      return vi.spyOn(localStorage, 'getItem').mockImplementation((name) => {
+        if (name === MAPPINGS_KEY) throw new DOMException('blocked', 'SecurityError');
+        return realGet(name);
+      });
+    };
+
+    it('leaves the stored presets untouched on a save', () => {
+      localStorage.setItem(MAPPINGS_KEY, stored);
+      const get = blockReads();
+      try {
+        const { result } = renderHook(() => useSavedMappings());
+        act(() => result.current.save(base));
+      } finally {
+        get.mockRestore();
+      }
+      expect(localStorage.getItem(MAPPINGS_KEY)).toBe(stored);
+    });
+
+    it('reports the save as unsaved', () => {
+      localStorage.setItem(MAPPINGS_KEY, stored);
+      const get = blockReads();
+      try {
+        const { result } = renderHook(() => useSavedMappings());
+        act(() => result.current.save(base));
+        expect(result.current.unsaved).toBe(true);
+      } finally {
+        get.mockRestore();
+      }
+    });
   });
 
   it('picks up presets another tab saved', () => {

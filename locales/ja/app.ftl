@@ -68,6 +68,7 @@ preset-skipped = { $count ->
 }
 import-failed = { $file }をインポートできませんでした：{ $error }
 import-at-cap = { $file }をインポートできませんでした：プリセットは{ $cap }個までです
+presets-unsaved = プリセットを保存できませんでした：ブラウザーの保存領域がいっぱいか、ブロックされています。再読み込みすると消えます。
 import-done = 「{ $name }」をインポートしました。
 import-done-skipped = 「{ $name }」をインポートしました（{ $count ->
    *[other] { $count }件の編集

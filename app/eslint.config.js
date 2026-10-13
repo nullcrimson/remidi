@@ -49,6 +49,17 @@ export default tseslint.config(
     },
   },
   {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/core/storage.ts'],
+    rules: {
+      'no-restricted-globals': ['error', { name: 'localStorage', message: 'Browser storage is reached only through src/core/storage.ts.' }],
+      'no-restricted-syntax': ['error', {
+        selector: 'MemberExpression[property.name="localStorage"]',
+        message: 'Browser storage is reached only through src/core/storage.ts.',
+      }],
+    },
+  },
+  {
     files: ['src/locale/locale.ts'],
     rules: { 'no-restricted-properties': 'off' },
   },

@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { MISSING_KEY } from '../../src/core/missing';
-import { EMPTY_SESSION, loadSession, saveSession, SESSION_KEY, type Session } from '../../src/convert/session';
+import { EMPTY_SESSION, loadSession, saveSession, type Session } from '../../src/convert/session';
 import { typed } from '../typed';
+import { storedName } from '../../src/core/storage';
+
+const SESSION_KEY = storedName('session');
+const MISSING_KEY = storedName('missing');
 
 const FULL = typed<Session>({
   src: 'ggd_invasion',

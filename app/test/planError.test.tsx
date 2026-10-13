@@ -5,11 +5,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App';
 import { useRemapper } from '../src/convert/useRemapper';
 import { RUNTIME } from './runtime';
-import { MAPPINGS_KEY } from '../src/presets/mappings';
 import type { StoredEdits } from '../src/core/overrides';
 import type { Overrides, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
+import { storedName } from '../src/core/storage';
+
+const MAPPINGS_KEY = storedName('mappings');
 
 const ROW = typed<VoiceRow>({ canon: 'kick.main', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } });
 

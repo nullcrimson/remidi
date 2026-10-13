@@ -2,7 +2,6 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DonePanel } from '../../src/convert/DonePanel';
-import { TIP_KEY } from '../../src/tip/tipAsk';
 
 vi.mock('../../src/core/download', () => ({ saveFile: vi.fn() }));
 import { saveFile } from '../../src/core/download';
@@ -10,6 +9,9 @@ import type { FailedFile } from '../../src/convert/batch';
 import type { FileResult } from '../../src/core/files';
 import type { ReportGroups, ReportView } from '../../src/report/report';
 import { typed } from '../typed';
+import { storedName } from '../../src/core/storage';
+
+const TIP_KEY = storedName('tip');
 
 const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 };
 const NONE: ReportGroups = { dropped: [], approximated: [], unrecognized: [] };
