@@ -179,6 +179,7 @@ edit-reset-all = 모두 초기화
 edit-done = 완료
 row-no-source = 원본 없음
 row-dropped = 제외됨
+row-chain-hint = { $target }에 { $drum } 악기가 없어 { $standIn } 악기로 연주합니다. 수정한 내용에 따라 { $standIn } 악기는 { $landed } 자리로 보내집니다. 클릭하면 { $standIn } 행으로 이동합니다.
 rows-drum = 악기
 rows-source = 원본
 rows-target = 대상

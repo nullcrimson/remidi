@@ -25,14 +25,27 @@ type RowActions = Pick<
   | 'resetRow'
 >;
 
-function playsOf(row: VoiceRowData, changed: boolean, labels: DrumLabels, oct: OctaveBase, t: Translate): RowResult {
+interface Naming {
+  labels: DrumLabels;
+  oct: OctaveBase;
+  target: string;
+  onReveal: (canon: Canon) => void;
+  t: Translate;
+}
+
+function playsOf(row: VoiceRowData, changed: boolean, { labels, oct, target, onReveal, t }: Naming): RowResult {
   if (!isPlayed(row)) return { text: t({ id: 'row-no-source' }), tone: 'faint' };
   const { outcome } = row;
   if (outcome.status === 'dropped') return { text: t({ id: 'row-dropped' }), tone: 'danger' };
-  const name = playingDrum(outcome, labels, oct);
-  if (changed) return { text: name, tone: 'strong' };
-  if (outcome.status === 'fallback') return { text: `≈ ${name}`, tone: 'gold' };
-  return { text: name, tone: 'faint' };
+  const { text, standIn } = playingDrum(outcome, labels, oct);
+  if (outcome.status === 'direct') return { text, tone: changed ? 'strong' : 'faint' };
+  const why = standIn !== null && standIn.landed !== null
+    ? {
+        hint: t({ id: 'row-chain-hint', args: { target, drum: row.label, standIn: standIn.standIn, landed: standIn.landed } }),
+        onGo: () => onReveal(outcome.standIn),
+      }
+    : {};
+  return changed ? { text, tone: 'strong', ...why } : { text: `≈ ${text}`, tone: 'gold', ...why };
 }
 
 function Header() {
@@ -67,9 +80,11 @@ export function FamilyRows({
   changed,
   changedSrc,
   targetDrums,
+  tgtName,
   families,
   oct,
   actions,
+  onReveal,
 }: {
   groups: { family: Family; items: VoiceRowData[] }[];
   overlay: Editor['overlay'];
@@ -77,9 +92,11 @@ export function FamilyRows({
   changed: ReadonlySet<Canon>;
   changedSrc: ReadonlySet<Canon>;
   targetDrums: Drum[];
+  tgtName: string;
   families: readonly Family[];
   oct: OctaveBase;
   actions: RowActions;
+  onReveal: (canon: Canon) => void;
 }) {
   const t = useT();
   const labels = drumLabels(targetDrums);
@@ -112,7 +129,7 @@ export function FamilyRows({
                   expanded={pickOf(here)?.kind ?? null}
                   onSrcToggle={() => (here?.kind === 'src' ? actions.closePick() : actions.openSrcPick(row.canon))}
                   onToggle={() => (here?.kind === 'tgt' ? actions.closePick() : actions.openPick(row.canon))}
-                  result={playsOf(row, rowChanged, labels, oct, t)}
+                  result={playsOf(row, rowChanged, { labels, oct, target: tgtName, onReveal, t })}
                   onReset={rowChanged ? () => actions.resetRow(row.canon) : undefined}
                 >
                   {here?.kind === 'src' && (

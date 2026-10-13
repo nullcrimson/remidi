@@ -10,10 +10,17 @@ import { OverlayAnchor } from './overlayAnchor';
 import { chip, labelText, type LabelTone } from '../ui/styles';
 import { ROW_GRID } from './rowGrid';
 import { Tooltip } from '../ui/Tooltip';
+import { useTruncationTooltip } from '../ui/useTruncationTooltip';
 
+/**
+ * What a row's Plays cell shows. Text that needs explaining carries a `hint`, shown on hover
+ * or focus, and `onGo`, which a click on the text runs to show where it comes from.
+ */
 export interface RowResult {
   text: string;
   tone: LabelTone;
+  hint?: string;
+  onGo?: () => void;
 }
 
 function noteChip(active: boolean, changed: boolean): string {
@@ -52,6 +59,7 @@ export function VoiceRow({
 }) {
   const t = useT();
   const [rowEl, setRowEl] = useState<HTMLDivElement | null>(null);
+  const { show, hide, tooltip } = useTruncationTooltip();
   const playsId = useId();
   const tgt = playedNote(row.outcome);
   const srcNote = leadNote(row);
@@ -66,9 +74,11 @@ export function VoiceRow({
   return (
     <div
       ref={setRowEl}
-      data-row
+      data-row={row.canon}
       className={`
         border-b border-white/4.5
+        data-flash:animate-[row-flash_2.4s_ease-out]
+        motion-reduce:data-flash:animate-[row-flash_2.4s_step-end]
         ${tgt === null || silent ? 'opacity-60' : ''}
       `}
     >
@@ -128,14 +138,28 @@ export function VoiceRow({
         <span
           id={playsId}
           data-testid="result"
-          title={result.text}
+          onMouseEnter={result.hint === undefined ? (e) => show(e.currentTarget, result.text) : undefined}
+          onMouseLeave={hide}
           className={`
             col-span-3 col-start-2 row-start-2 truncate text-right text-label
             sm:col-span-1 sm:col-start-auto sm:row-start-auto sm:text-left
             ${labelText(result.tone)}
           `}
         >
-          {result.text}
+          {result.hint === undefined
+            ? result.text
+            : (
+                <Tooltip content={result.hint}>
+                  <button
+                    type="button"
+                    onClick={result.onGo}
+                    className="
+                      tap cursor-pointer border-b border-dotted border-current
+                    "
+                  >{result.text}
+                  </button>
+                </Tooltip>
+              )}
         </span>
         {onReset
           ? (
@@ -143,6 +167,7 @@ export function VoiceRow({
             )
           : <span />}
       </div>
+      {tooltip}
       <OverlayAnchor value={rowEl}>{expanded !== null && children}</OverlayAnchor>
     </div>
   );

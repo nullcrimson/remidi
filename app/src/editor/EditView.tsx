@@ -1,10 +1,11 @@
 import { useT } from '../locale/localeContext';
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import type { Editor } from './useEditor';
 import { useFilter } from '../ui/useFilter';
 import { groupByFamily } from './families';
 import type { EnginePair } from '../core/enginePair';
-import type { PresetName } from '../core/midiremap';
+import type { Canon, PresetName } from '../core/midiremap';
 import type { SavedMapping } from '../presets/mappings';
 import type { Note } from '../core/midiremap';
 import type { OctaveBase } from '../core/notes';
@@ -14,6 +15,7 @@ import { EditFooter } from './EditFooter';
 import { pickOf } from './editorState';
 import { FamilyRows } from './FamilyRows';
 import { PlanErrorNotice } from './PlanErrorNotice';
+import { jumpToRow } from './rowJump';
 import { SourceEditor } from './SourceEditor';
 import { track } from '../core/stats';
 import type { CloseHow } from './editorTally';
@@ -66,6 +68,14 @@ export function EditView({
     show === 'changed' ? changed.has(r.canon) : show === 'issues' ? isIssue(r) : true,
   );
   const groups = groupByFamily(shown, (r) => r.family, families);
+  const reveal = (canon: Canon) => {
+    if (jumpToRow(canon)) return;
+    flushSync(() => {
+      setShow('all');
+      setQ('');
+    });
+    jumpToRow(canon);
+  };
 
   return (
     <div className="flex flex-col">
@@ -113,9 +123,11 @@ export function EditView({
           changed={changed}
           changedSrc={editor.changedSrc}
           targetDrums={editor.targetDrums}
+          tgtName={tgtName}
           families={families}
           oct={oct}
           actions={editor}
+          onReveal={reveal}
         />
 
         <div className="flex flex-col gap-3">

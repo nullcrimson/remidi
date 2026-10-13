@@ -180,6 +180,7 @@ edit-reset-all = すべてリセット
 edit-done = 完了
 row-no-source = 変換元なし
 row-dropped = 削除
+row-chain-hint = { $target }には{ $drum }がないため、{ $standIn }で鳴らします。編集により、{ $standIn }は{ $landed }に送られます。クリックすると{ $standIn }の行に移動します。
 rows-drum = パーツ
 rows-source = 変換元
 rows-target = 変換先

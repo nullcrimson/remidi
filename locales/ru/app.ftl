@@ -220,6 +220,7 @@ edit-reset-all = Сбросить всё
 edit-done = Готово
 row-no-source = нет исходной ноты
 row-dropped = убрано
+row-chain-hint = В { $target } нет { $drum }, поэтому звучит { $standIn }. Правка отправляет { $standIn } на { $landed }. Нажмите, чтобы перейти к { $standIn }.
 rows-drum = ИНСТРУМЕНТ
 rows-source = ИСТОЧНИК
 rows-target = ЦЕЛЬ

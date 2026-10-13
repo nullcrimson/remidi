@@ -7,5 +7,6 @@ class ResizeObserverStub {
 }
 HTMLElement.prototype.showPopover ??= function showPopover() {};
 HTMLElement.prototype.hidePopover ??= function hidePopover() {};
+Element.prototype.scrollIntoView ??= function scrollIntoView() {};
 
 globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;

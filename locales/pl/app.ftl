@@ -206,6 +206,7 @@ edit-reset-all = Przywróć wszystko
 edit-done = Gotowe
 row-no-source = brak źródła
 row-dropped = usunięty
+row-chain-hint = W { $target } nie ma { $drum }, więc gra { $standIn }. Zmiana kieruje { $standIn } na { $landed }. Kliknij, aby przejść do { $standIn }.
 rows-drum = INSTRUMENT
 rows-source = ŹRÓDŁO
 rows-target = CEL

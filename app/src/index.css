@@ -121,6 +121,17 @@
   @apply pointer-events-none absolute inset-0 size-full overflow-visible fill-none stroke-accent stroke-2 [stroke-dasharray:10_8] motion-safe:[animation:drop-march_1.2s_linear_infinite,drop-glow_1.6s_ease-in-out_infinite_alternate];
 }
 
+@keyframes row-flash {
+  0%,
+  30% {
+    background-color: color-mix(in oklab, var(--color-accent) 18%, transparent);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
 @keyframes drop-breathe {
   from {
     transform: scale(0.985);

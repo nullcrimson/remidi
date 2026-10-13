@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { EditView } from '../../src/editor/EditView';
@@ -284,6 +284,77 @@ describe('EditView', () => {
       ]);
       render(<EditView {...props} editor={{ ...full, targetDrums, rows: standInMoved }} />);
       expect(plays('Ride Bell').textContent).toBe('≈ Snare Rimshot → Ride');
+    });
+
+    it('explains a moved stand-in when the mouse is over its line', async () => {
+      const standInMoved = typed<VoiceRow[]>([
+        { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback', standIn: 'snare.rim', tgtNote: 51, otherDrum: true } },
+      ]);
+      render(<EditView {...props} editor={{ ...full, targetDrums, rows: standInMoved }} />);
+      await userEvent.hover(screen.getByText('≈ Snare Rimshot → Ride'));
+      expect(await screen.findByRole('tooltip')).toHaveTextContent(
+        'EZdrummer 3 has no Ride Bell, so Snare Rimshot plays it. Your edit sends Snare Rimshot to Ride. Click to go to Snare Rimshot.',
+      );
+    });
+
+    const causeAndEffect = typed<VoiceRow[]>([
+      { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback', standIn: 'snare.rim', tgtNote: 51, otherDrum: true } },
+      { canon: 'snare.rim', label: 'Snare Rimshot', family: 'Snare', srcNotes: [40], defaultTgtNote: 40, outcome: { status: 'direct', tgtNote: 51 } },
+    ]);
+    const targetChip = (drum: string) =>
+      within(screen.getAllByTestId('drum-label').find((e) => e.textContent === drum)!.closest<HTMLElement>('[data-row]')!)
+        .getAllByRole('button', { expanded: false })[1];
+
+    it('puts focus on the target note of the stand-in when its moved line is clicked', async () => {
+      render(<EditView {...props} editor={{ ...full, targetDrums, rows: causeAndEffect }} />);
+      await userEvent.click(screen.getByRole('button', { name: '≈ Snare Rimshot → Ride' }));
+      expect(targetChip('Snare Rimshot')).toHaveFocus();
+    });
+
+    const rowOfDrum = (drum: string) =>
+      screen.getAllByTestId('drum-label').find((e) => e.textContent === drum)!.closest<HTMLElement>('[data-row]')!;
+
+    it('marks the stand-in\'s row for a highlight when its moved line is clicked', async () => {
+      render(<EditView {...props} editor={{ ...full, targetDrums, rows: causeAndEffect }} />);
+      await userEvent.click(screen.getByRole('button', { name: '≈ Snare Rimshot → Ride' }));
+      expect(rowOfDrum('Snare Rimshot')).toHaveAttribute('data-flash');
+    });
+
+    it('takes the mark off the row once its highlight has faded', async () => {
+      render(<EditView {...props} editor={{ ...full, targetDrums, rows: causeAndEffect }} />);
+      await userEvent.click(screen.getByRole('button', { name: '≈ Snare Rimshot → Ride' }));
+      fireEvent.animationEnd(rowOfDrum('Snare Rimshot'));
+      expect(rowOfDrum('Snare Rimshot')).not.toHaveAttribute('data-flash');
+    });
+
+    it('leaves the row that was clicked without a highlight', async () => {
+      render(<EditView {...props} editor={{ ...full, targetDrums, rows: causeAndEffect }} />);
+      await userEvent.click(screen.getByRole('button', { name: '≈ Snare Rimshot → Ride' }));
+      expect(rowOfDrum('Ride Bell')).not.toHaveAttribute('data-flash');
+    });
+
+    it('shows the stand-in\'s row again when a filter hid it and its moved line is clicked', async () => {
+      render(<EditView {...props} initialShow="issues" editor={{ ...full, targetDrums, rows: causeAndEffect }} />);
+      await userEvent.click(screen.getByRole('button', { name: '≈ Snare Rimshot → Ride' }));
+      expect(targetChip('Snare Rimshot')).toHaveFocus();
+    });
+
+    it('shows all drums once a moved line brought back a row the filter hid', async () => {
+      render(<EditView {...props} initialShow="issues" editor={{ ...full, targetDrums, rows: causeAndEffect }} />);
+      await userEvent.click(screen.getByRole('button', { name: '≈ Snare Rimshot → Ride' }));
+      expect(screen.getByRole('radio', { name: /^All/ })).toBeChecked();
+    });
+
+    it('keeps the filter when the stand-in\'s row is already shown', async () => {
+      render(<EditView {...props} initialShow="changed" editor={{ ...full, targetDrums, rows: causeAndEffect, changed: new Set(typed<Canon[]>(['ride.bell', 'snare.rim'])) }} />);
+      await userEvent.click(screen.getByRole('button', { name: 'Snare Rimshot → Ride' }));
+      expect(screen.getByRole('radio', { name: /^Changed/ })).toBeChecked();
+    });
+
+    it('gives a stand-in on its own note no explanation to hover', async () => {
+      renderWithTargetDrums();
+      await userEvent.hover(plays('Ride Bell'));
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     });
 
     it('says a dropped row is dropped', () => {

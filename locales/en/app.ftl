@@ -193,6 +193,7 @@ edit-reset-all = Reset all
 edit-done = Done
 row-no-source = no source
 row-dropped = dropped
+row-chain-hint = { $target } has no { $drum }, so { $standIn } plays it. Your edit sends { $standIn } to { $landed }. Click to go to { $standIn }.
 rows-drum = DRUM
 rows-source = SOURCE
 rows-target = TARGET

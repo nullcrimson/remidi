@@ -181,6 +181,7 @@ edit-reset-all = 全部重置
 edit-done = 完成
 row-no-source = 无来源
 row-dropped = 已删除
+row-chain-hint = { $target } 中没有 { $drum }，改用 { $standIn }。你的修改把 { $standIn } 送到了 { $landed }。点击可跳转到 { $standIn }。
 rows-drum = 鼓件
 rows-source = 来源
 rows-target = 目标

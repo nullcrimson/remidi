@@ -2,7 +2,7 @@ import type { FileResult } from '../core/files';
 import type { Canon, Drum, MissingDrums, Note, Report, VocabularyDrum } from '../core/midiremap';
 import type { EnginePair } from '../core/enginePair';
 import type { StatEvents } from '../core/umami';
-import { drumLabels } from '../core/drums';
+import { drumLabels, standInText } from '../core/drums';
 import { byCanon } from '../core/canon';
 import { byNote, noteName, type OctaveBase } from '../core/notes';
 
@@ -77,7 +77,7 @@ export function buildReport(
     approximated: sortEntries(
       byCanon(report.fallbackUsed).map(([canon, { standIn, note, count }]) => ({
         label: canonLabel(canon),
-        sub: labels.ofStandIn(standIn, note, oct),
+        sub: standInText(labels.ofStandIn(standIn, note, oct)),
         count,
         canon,
       })),

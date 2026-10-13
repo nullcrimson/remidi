@@ -153,4 +153,66 @@ describe('VoiceRow', () => {
     );
     expect(container.firstElementChild).toHaveClass('opacity-60');
   });
+
+  const CHAIN = { text: '≈ Crash 2 → Ride', tone: 'gold' as const };
+
+  function plays(scrollWidth: number): HTMLElement {
+    render(<VoiceRow row={kick} {...base} result={CHAIN} />);
+    const cell = screen.getByTestId('result');
+    Object.defineProperty(cell, 'scrollWidth', { configurable: true, value: scrollWidth });
+    Object.defineProperty(cell, 'clientWidth', { configurable: true, value: 100 });
+    return cell;
+  }
+
+  it('shows the whole Plays text in a tooltip when the mouse is over text that is cut off', async () => {
+    await userEvent.hover(plays(240));
+    expect(screen.getByRole('tooltip')).toHaveTextContent('≈ Crash 2 → Ride');
+  });
+
+  it('shows no tooltip over Plays text that fits', async () => {
+    await userEvent.hover(plays(80));
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('takes the Plays tooltip away when the mouse leaves', async () => {
+    const cell = plays(240);
+    await userEvent.hover(cell);
+    await userEvent.unhover(cell);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('leaves the Plays text without a second, native tooltip', () => {
+    expect(plays(240)).not.toHaveAttribute('title');
+  });
+
+  const EXPLAINED = { ...CHAIN, hint: 'EZdrummer has no China, so Crash 2 plays it.' };
+
+  it('explains Plays text that has a hint when the mouse is over it', async () => {
+    render(<VoiceRow row={kick} {...base} result={EXPLAINED} />);
+    await userEvent.hover(screen.getByText('≈ Crash 2 → Ride'));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('EZdrummer has no China, so Crash 2 plays it.');
+  });
+
+  it('explains Plays text that has a hint when it takes focus from the keyboard', async () => {
+    render(<VoiceRow row={kick} {...base} result={EXPLAINED} />);
+    screen.getByText('≈ Crash 2 → Ride').focus();
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('EZdrummer has no China, so Crash 2 plays it.');
+  });
+
+  it('marks Plays text that has a hint as having more to show', () => {
+    render(<VoiceRow row={kick} {...base} result={EXPLAINED} />);
+    expect(screen.getByText('≈ Crash 2 → Ride')).toHaveClass('border-dotted');
+  });
+
+  it('runs the jump of explained Plays text when it is clicked', async () => {
+    const onGo = vi.fn();
+    render(<VoiceRow row={kick} {...base} result={{ ...EXPLAINED, onGo }} />);
+    await userEvent.click(screen.getByRole('button', { name: '≈ Crash 2 → Ride' }));
+    expect(onGo).toHaveBeenCalledOnce();
+  });
+
+  it('leaves Plays text without a hint unmarked', () => {
+    render(<VoiceRow row={kick} {...base} result={CHAIN} />);
+    expect(screen.getByText('≈ Crash 2 → Ride')).not.toHaveClass('border-dotted');
+  });
 });
