@@ -118,6 +118,7 @@ export default defineConfig({
   test: {
     globals: true,
     pool: 'threads',
+    maxWorkers: process.env.CI ? undefined : '50%',
     css: { include: [/src\/index\.css/] },
     alias: {
       '@wasm': fileURLToPath(new URL('./test/stubs/wasm.ts', import.meta.url)),
