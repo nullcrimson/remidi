@@ -58,6 +58,9 @@ const props = {
   onUpdatePreset: vi.fn(),
 };
 
+const rowOfDrum = (drum: string) =>
+  screen.getAllByTestId('drum-label').find((e) => e.textContent === drum)!.closest<HTMLElement>('[data-row]')!;
+
 describe('EditView', () => {
   it('shows a plan error with a way to reset the edits', async () => {
     const reset = vi.fn();
@@ -249,9 +252,7 @@ describe('EditView', () => {
       { note: 51, canon: 'ride.1', label: 'Ride', family: 'Cymbals' as const },
       { note: 40, canon: 'snare.rim', label: 'Snare Rimshot', family: 'Snare' as const },
     ]);
-    const plays = (drum: string) =>
-      screen.getAllByTestId('drum-label').find((e) => e.textContent === drum)!.closest('[data-row]')!
-        .querySelector('[data-testid=result]')!;
+    const plays = (drum: string) => within(rowOfDrum(drum)).getByTestId('result');
 
     const renderWithTargetDrums = () => render(<EditView {...props} editor={{ ...full, targetDrums }} />);
 
@@ -301,18 +302,13 @@ describe('EditView', () => {
       { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback', standIn: 'snare.rim', tgtNote: 51, otherDrum: true } },
       { canon: 'snare.rim', label: 'Snare Rimshot', family: 'Snare', srcNotes: [40], defaultTgtNote: 40, outcome: { status: 'direct', tgtNote: 51 } },
     ]);
-    const targetChip = (drum: string) =>
-      within(screen.getAllByTestId('drum-label').find((e) => e.textContent === drum)!.closest<HTMLElement>('[data-row]')!)
-        .getAllByRole('button', { expanded: false })[1];
+    const targetChip = (drum: string) => within(rowOfDrum(drum)).getAllByRole('button', { expanded: false })[1];
 
     it('puts focus on the target note of the stand-in when its moved line is clicked', async () => {
       render(<EditView {...props} editor={{ ...full, targetDrums, rows: causeAndEffect }} />);
       await userEvent.click(screen.getByRole('button', { name: '≈ Snare Rimshot → Ride' }));
       expect(targetChip('Snare Rimshot')).toHaveFocus();
     });
-
-    const rowOfDrum = (drum: string) =>
-      screen.getAllByTestId('drum-label').find((e) => e.textContent === drum)!.closest<HTMLElement>('[data-row]')!;
 
     it('marks the stand-in\'s row for a highlight when its moved line is clicked', async () => {
       render(<EditView {...props} editor={{ ...full, targetDrums, rows: causeAndEffect }} />);
@@ -376,8 +372,7 @@ describe('EditView', () => {
 
   it('falls back to the note name when no target drum sits on the note', () => {
     render(<EditView {...props} editor={{ ...full, targetDrums: [] }} />);
-    const row = screen.getAllByTestId('drum-label').find((e) => e.textContent === 'Snare')!.closest('[data-row]')!;
-    expect(row.querySelector('[data-testid=result]')).toHaveTextContent('E2');
+    expect(within(rowOfDrum('Snare')).getByTestId('result')).toHaveTextContent('E2');
   });
 
   it('filters to changed drums', async () => {

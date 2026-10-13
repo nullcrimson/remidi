@@ -185,7 +185,8 @@ describe('VoiceRow', () => {
     expect(plays(240)).not.toHaveAttribute('title');
   });
 
-  const EXPLAINED = { ...CHAIN, hint: 'EZdrummer has no China, so Crash 2 plays it.' };
+  const explained = (onGo = vi.fn()) => ({ ...CHAIN, why: { hint: 'EZdrummer has no China, so Crash 2 plays it.', onGo } });
+  const EXPLAINED = explained();
 
   it('explains Plays text that has a hint when the mouse is over it', async () => {
     render(<VoiceRow row={kick} {...base} result={EXPLAINED} />);
@@ -206,7 +207,7 @@ describe('VoiceRow', () => {
 
   it('runs the jump of explained Plays text when it is clicked', async () => {
     const onGo = vi.fn();
-    render(<VoiceRow row={kick} {...base} result={{ ...EXPLAINED, onGo }} />);
+    render(<VoiceRow row={kick} {...base} result={explained(onGo)} />);
     await userEvent.click(screen.getByRole('button', { name: '≈ Crash 2 → Ride' }));
     expect(onGo).toHaveBeenCalledOnce();
   });

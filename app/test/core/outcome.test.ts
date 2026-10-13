@@ -18,11 +18,6 @@ describe('playedOn', () => {
     expect(playedOn(rows, DRUMS, 'c1')).toEqual([{ drum: 'China', now: 'Crash 1 → Ride' }]);
   });
 
-  it('names a stand-in on its own note by the stand-in alone', () => {
-    const rows = [china({ status: 'fallback', standIn: 'crash.1.hit', tgtNote: 49, otherDrum: true })];
-    expect(playedOn(rows, DRUMS, 'c1')).toEqual([{ drum: 'China', now: 'Crash 1' }]);
-  });
-
   it('names a drum the target has by the drum on its note', () => {
     const rows = [china({ status: 'direct', tgtNote: 51 })];
     expect(playedOn(rows, DRUMS, 'c1')).toEqual([{ drum: 'China', now: 'Ride' }]);

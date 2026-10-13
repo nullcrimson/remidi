@@ -53,13 +53,19 @@ test('the line of a moved stand-in jumps to the row that moved it', async ({ pag
   await expect(targetNote(page, standIn)).toBeInViewport();
 });
 
-test('the row a moved stand-in\'s line jumps to is highlighted and the highlight fades away', async ({ page }) => {
+test('the row a moved stand-in\'s line jumps to is highlighted', async ({ page }) => {
   const standIn = await moveChinaStandIn(page);
 
   await press(chinaLine(page).getByRole('button'));
+  await expect(drumRow(page, standIn)).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+});
+
+test('the highlight of the row a moved stand-in\'s line jumps to fades away', async ({ page }) => {
+  const standIn = await moveChinaStandIn(page);
+  await press(chinaLine(page).getByRole('button'));
   const row = drumRow(page, standIn);
   await expect(row).toHaveAttribute('data-flash', '');
-  await expect(row).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+
   await expect(row).not.toHaveAttribute('data-flash', '', { timeout: 5000 });
   await expect(row).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 });

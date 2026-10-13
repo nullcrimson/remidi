@@ -121,6 +121,10 @@
   @apply pointer-events-none absolute inset-0 size-full overflow-visible fill-none stroke-accent stroke-2 [stroke-dasharray:10_8] motion-safe:[animation:drop-march_1.2s_linear_infinite,drop-glow_1.6s_ease-in-out_infinite_alternate];
 }
 
+@utility row-flash {
+  @apply animate-[row-flash_2.4s_ease-out] motion-reduce:[animation-timing-function:step-end];
+}
+
 @keyframes row-flash {
   0%,
   30% {

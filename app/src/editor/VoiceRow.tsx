@@ -13,14 +13,13 @@ import { Tooltip } from '../ui/Tooltip';
 import { useTruncationTooltip } from '../ui/useTruncationTooltip';
 
 /**
- * What a row's Plays cell shows. Text that needs explaining carries a `hint`, shown on hover
- * or focus, and `onGo`, which a click on the text runs to show where it comes from.
+ * What a row's Plays cell shows. Text that needs explaining carries `why`: a `hint`, shown on
+ * hover or focus, and `onGo`, which a click on the text runs to show where it comes from.
  */
 export interface RowResult {
   text: string;
   tone: LabelTone;
-  hint?: string;
-  onGo?: () => void;
+  why?: { hint: string; onGo: () => void };
 }
 
 function noteChip(active: boolean, changed: boolean): string {
@@ -77,8 +76,7 @@ export function VoiceRow({
       data-row={row.canon}
       className={`
         border-b border-white/4.5
-        data-flash:animate-[row-flash_2.4s_ease-out]
-        motion-reduce:data-flash:animate-[row-flash_2.4s_step-end]
+        data-flash:row-flash
         ${tgt === null || silent ? 'opacity-60' : ''}
       `}
     >
@@ -138,7 +136,7 @@ export function VoiceRow({
         <span
           id={playsId}
           data-testid="result"
-          onMouseEnter={result.hint === undefined ? (e) => show(e.currentTarget, result.text) : undefined}
+          onMouseEnter={result.why === undefined ? (e) => show(e.currentTarget, result.text) : undefined}
           onMouseLeave={hide}
           className={`
             col-span-3 col-start-2 row-start-2 truncate text-right text-label
@@ -146,13 +144,13 @@ export function VoiceRow({
             ${labelText(result.tone)}
           `}
         >
-          {result.hint === undefined
+          {result.why === undefined
             ? result.text
             : (
-                <Tooltip content={result.hint}>
+                <Tooltip content={result.why.hint}>
                   <button
                     type="button"
-                    onClick={result.onGo}
+                    onClick={result.why.onGo}
                     className="
                       tap cursor-pointer border-b border-dotted border-current
                     "

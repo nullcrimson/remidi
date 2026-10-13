@@ -1,5 +1,5 @@
 import { drumLabels, standInText, type DrumLabels, type StandInName } from './drums';
-import type { Drum, Note, PlanOutcome, VoiceRow } from './midiremap';
+import type { Canon, Drum, Note, PlanOutcome, VoiceRow } from './midiremap';
 import type { OctaveBase } from './notes';
 
 /** The note a drum plays on, or `null` when it is dropped. */
@@ -25,18 +25,20 @@ export interface PlayedOn {
 /** Each row's drum and the target drum that plays it now, in row order. */
 export function playedOn(rows: VoiceRow[], targetDrums: Drum[], oct: OctaveBase): PlayedOn[] {
   const labels = drumLabels(targetDrums);
-  return rows.map((r) => ({ drum: r.label, now: r.outcome.status === 'dropped' ? null : playingDrum(r.outcome, labels, oct).text }));
+  return rows.map((r) => ({ drum: r.label, now: r.outcome.status === 'dropped' ? null : playingText(playingDrum(r.outcome, labels, oct)) }));
 }
 
-/** What plays a drum that is not dropped: as text, and as a stand-in's parts when a stand-in plays it. */
-export interface Playing {
-  text: string;
-  standIn: StandInName | null;
-}
+/** What plays a drum that is not dropped: the drum on its note, or the stand-in `canon` by the parts of its name. */
+export type Playing
+  = | { kind: 'direct'; text: string }
+    | { kind: 'standIn'; canon: Canon; name: StandInName };
 
 /** The target drum that plays a drum that is not dropped: the stand-in the converter chose, or the drum on its note. */
 export function playingDrum(outcome: Exclude<PlanOutcome, { status: 'dropped' }>, labels: DrumLabels, oct: OctaveBase): Playing {
-  if (outcome.status === 'direct') return { text: labels.atNote(outcome.tgtNote, oct), standIn: null };
-  const standIn = labels.ofStandIn(outcome.standIn, outcome.tgtNote, oct);
-  return { text: standInText(standIn), standIn };
+  if (outcome.status === 'direct') return { kind: 'direct', text: labels.atNote(outcome.tgtNote, oct) };
+  return { kind: 'standIn', canon: outcome.standIn, name: labels.ofStandIn(outcome.standIn, outcome.tgtNote, oct) };
 }
+
+/** What plays a drum as one text. */
+export const playingText = (playing: Playing): string =>
+  playing.kind === 'direct' ? playing.text : standInText(playing.name);

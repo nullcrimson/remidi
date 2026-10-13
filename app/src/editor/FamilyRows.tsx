@@ -11,7 +11,7 @@ import { SourceNotePicker } from './SourceNotePicker';
 import { ROW_GRID } from './rowGrid';
 import { pickOf } from './editorState';
 import { VoiceRow, type RowResult } from './VoiceRow';
-import { isPlayed, leadNote, playedNote, playingDrum } from '../core/outcome';
+import { isPlayed, leadNote, playedNote, playingDrum, playingText } from '../core/outcome';
 
 type RowActions = Pick<
   Editor,
@@ -25,7 +25,7 @@ type RowActions = Pick<
   | 'resetRow'
 >;
 
-interface Naming {
+interface PlaysContext {
   labels: DrumLabels;
   oct: OctaveBase;
   target: string;
@@ -33,18 +33,22 @@ interface Naming {
   t: Translate;
 }
 
-function playsOf(row: VoiceRowData, changed: boolean, { labels, oct, target, onReveal, t }: Naming): RowResult {
+function playsOf(row: VoiceRowData, changed: boolean, { labels, oct, target, onReveal, t }: PlaysContext): RowResult {
   if (!isPlayed(row)) return { text: t({ id: 'row-no-source' }), tone: 'faint' };
   const { outcome } = row;
   if (outcome.status === 'dropped') return { text: t({ id: 'row-dropped' }), tone: 'danger' };
-  const { text, standIn } = playingDrum(outcome, labels, oct);
-  if (outcome.status === 'direct') return { text, tone: changed ? 'strong' : 'faint' };
-  const why = standIn !== null && standIn.landed !== null
-    ? {
-        hint: t({ id: 'row-chain-hint', args: { target, drum: row.label, standIn: standIn.standIn, landed: standIn.landed } }),
-        onGo: () => onReveal(outcome.standIn),
-      }
-    : {};
+  const playing = playingDrum(outcome, labels, oct);
+  const text = playingText(playing);
+  if (playing.kind === 'direct') return { text, tone: changed ? 'strong' : 'faint' };
+  const { canon, name } = playing;
+  const why = name.landed === null
+    ? {}
+    : {
+        why: {
+          hint: t({ id: 'row-chain-hint', args: { target, drum: row.label, standIn: name.standIn, landed: name.landed } }),
+          onGo: () => onReveal(canon),
+        },
+      };
   return changed ? { text, tone: 'strong', ...why } : { text: `≈ ${text}`, tone: 'gold', ...why };
 }
 
