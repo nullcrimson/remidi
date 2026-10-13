@@ -1,13 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { ErrorBoundary } from './components/ErrorBoundary';
-import { LocaleProvider } from './components/LocaleProvider';
-import { applyDocument } from './lib/documentLocale';
-import { storedLocale } from './lib/localeChoice';
-import { startAddress, startLocale, startTranslator } from './lib/startLocale';
-import { browserRuntime } from './lib/runtime';
-import { pathLocale } from './locale';
+import { ErrorBoundary } from './site/ErrorBoundary';
+import { LocaleProvider } from './locale/LocaleProvider';
+import { startAddress, startLocale, startTranslator } from './locale/startLocale';
+import { browserRuntime } from './convert/runtime';
+import { applyDocument, pathLocale, storedLocale } from './locale/locale';
 import './index.css';
 
 const runtime = browserRuntime();

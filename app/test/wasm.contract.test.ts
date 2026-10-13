@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
-import type { Overrides } from '../src/lib/midiremap';
+import type { Overrides } from '../src/core/midiremap';
 import naming from '../src/wasm/note_naming.json';
 import { PRESET_FIXTURE } from './presetFixture';
 import * as stub from './stubs/wasm';

@@ -3,9 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App';
 import { RUNTIME } from './runtime';
-import { MAPPINGS_KEY } from '../src/lib/mappings';
-import type { VocabularyDrum, VoiceRow } from '../src/lib/midiremap';
-import { SESSION_KEY } from '../src/lib/session';
+import { MAPPINGS_KEY } from '../src/presets/mappings';
+import type { VocabularyDrum, VoiceRow } from '../src/core/midiremap';
+import { SESSION_KEY } from '../src/convert/session';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
 

@@ -1,0 +1,83 @@
+import { byCanon, type Vocabulary } from './canon';
+import type { Canon, Note, Overrides } from './midiremap';
+import { byNote, parseNote } from './notes';
+
+export type Edits = Record<Canon, Note>;
+/** Source note → canon it plays, or null when the note is unassigned. */
+export type SrcEdits = Record<Note, Canon | null>;
+
+/**
+ * Note edits as they are stored or read back from a file: the drum keys are text nobody
+ * has checked against this version's vocabulary. Only `knownEdits` turns them into edits.
+ */
+export interface StoredEdits {
+  edits: Record<string, Note>;
+  srcEdits: Record<Note, string | null>;
+}
+
+export function editsToOverrides(edits: Edits, srcEdits: SrcEdits = {}): Overrides {
+  return {
+    tgt: byCanon(edits).map(([canon, note]) => ({ canon, note })),
+    src: byNote(srcEdits).map(([note, canon]) => ({ note, canon })),
+  };
+}
+
+/** The stored edits whose drums this version knows, and how many were left out. */
+export function knownEdits(
+  stored: StoredEdits,
+  vocabulary: Vocabulary,
+): { edits: Edits; srcEdits: SrcEdits; skipped: number } {
+  const edits: Edits = {};
+  const srcEdits: SrcEdits = {};
+  let skipped = 0;
+  for (const [key, note] of Object.entries(stored.edits)) {
+    const canon = vocabulary.get(key);
+    if (canon === undefined) skipped += 1;
+    else edits[canon] = note;
+  }
+  for (const [note, key] of byNote(stored.srcEdits)) {
+    const canon = key === null ? null : vocabulary.get(key);
+    if (canon === undefined) skipped += 1;
+    else srcEdits[note] = canon;
+  }
+  return { edits, srcEdits, skipped };
+}
+
+export function parseEdits(value: unknown): StoredEdits['edits'] | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+  const out: StoredEdits['edits'] = {};
+  for (const [drum, raw] of Object.entries(value)) {
+    const note = parseNote(raw);
+    if (note === null) return null;
+    out[drum] = note;
+  }
+  return out;
+}
+
+export function parseSrcEdits(value: unknown): StoredEdits['srcEdits'] | null {
+  if (value === undefined) return {};
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+  const out: StoredEdits['srcEdits'] = {};
+  for (const [key, drum] of Object.entries(value)) {
+    const note = parseNote(Number(key));
+    if (note === null || (typeof drum !== 'string' && drum !== null)) return null;
+    out[note] = drum;
+  }
+  return out;
+}
+
+/** The two kinds of note edit, taken together. */
+export interface EditSet {
+  edits: Edits;
+  srcEdits: SrcEdits;
+}
+
+function sameRecord(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((k) => k in b && a[k] === b[k]);
+}
+
+/** Whether two sets of note edits change the same drums the same way. */
+export function sameEdits(a: EditSet, b: EditSet): boolean {
+  return sameRecord(a.edits, b.edits) && sameRecord(a.srcEdits, b.srcEdits);
+}

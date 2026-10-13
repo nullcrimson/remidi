@@ -6,7 +6,7 @@ import App from '../src/App';
 import { RUNTIME } from './runtime';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
-import type { VoiceRow } from '../src/lib/midiremap';
+import type { VoiceRow } from '../src/core/midiremap';
 
 describe('App convert view', () => {
   beforeEach(() => {

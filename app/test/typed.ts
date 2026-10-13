@@ -1,4 +1,4 @@
-import type { Canon, Note } from '../src/lib/midiremap';
+import type { Canon, Note } from '../src/core/midiremap';
 
 /** `T` with every `Note` written as a plain number and every `Canon` as a plain string. */
 export type Loose<T> = T extends Note ? number

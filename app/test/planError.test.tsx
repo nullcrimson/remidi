@@ -3,11 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from '../src/App';
-import { useRemapper } from '../src/hooks/useRemapper';
+import { useRemapper } from '../src/convert/useRemapper';
 import { RUNTIME } from './runtime';
-import { MAPPINGS_KEY } from '../src/lib/mappings';
-import type { StoredEdits } from '../src/lib/overrides';
-import type { Overrides, VocabularyDrum, VoiceRow } from '../src/lib/midiremap';
+import { MAPPINGS_KEY } from '../src/presets/mappings';
+import type { StoredEdits } from '../src/core/overrides';
+import type { Overrides, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
 

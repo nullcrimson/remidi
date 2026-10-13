@@ -1,5 +1,5 @@
 import { beforeEach } from 'vitest';
-import { browserRuntime } from '../src/lib/runtime';
+import { browserRuntime } from '../src/convert/runtime';
 
 /**
  * The runtime a page gets, over the stubbed module and new for every test, so each test

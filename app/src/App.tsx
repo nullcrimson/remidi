@@ -1,35 +1,35 @@
 import { useState } from 'react';
-import { CardDropzone } from './components/CardDropzone';
-import { ConvertButton } from './components/ConvertButton';
-import { DonePanel } from './components/DonePanel';
-import { EditView } from './components/EditView';
-import { EngineColumns } from './components/EngineColumns';
-import { FileChips } from './components/FileChips';
-import { Card, Page } from './components/PageFrame';
-import { PlanControls } from './components/PlanControls';
-import { ReportModal } from './components/ReportModal';
-import { SavedMappingChips } from './components/SavedMappingChips';
-import { StatusNotice } from './components/StatusNotice';
-import { useDropGuard } from './hooks/useDropGuard';
-import { useConversionReport } from './hooks/useConversionReport';
-import { useEditedSummary } from './hooks/useEditedSummary';
-import { useEditorHistory } from './hooks/useEditorHistory';
-import { useFileIntake } from './hooks/useFileIntake';
-import { useFocusIntent } from './hooks/useFocusIntent';
-import { usePresetActions } from './hooks/usePresetActions';
-import { useRemapper } from './hooks/useRemapper';
-import { useSavedMappings } from './hooks/useSavedMappings';
-import { convertBlocker } from './lib/blocker';
-import type { EditFilter } from './lib/editFilter';
-import { shortCode } from './lib/format';
-import type { Note } from './lib/midiremap';
-import { downloadPreset } from './lib/presetFile';
-import { ErrorText } from './components/ErrorText';
-import { Rich } from './components/Rich';
-import { useT } from './localeContext';
-import type { NoticeLine } from './lib/notice';
-import type { Runtime } from './lib/runtime';
-import { track } from './lib/stats';
+import { CardDropzone } from './convert/CardDropzone';
+import { ConvertButton } from './convert/ConvertButton';
+import { DonePanel } from './convert/DonePanel';
+import { EditView } from './editor/EditView';
+import { EngineColumns } from './engines/EngineColumns';
+import { FileChips } from './convert/FileChips';
+import { Card, Page } from './site/PageFrame';
+import { PlanControls } from './convert/PlanControls';
+import { ReportModal } from './report/ReportModal';
+import { SavedMappingChips } from './presets/SavedMappingChips';
+import { StatusNotice } from './ui/StatusNotice';
+import { useDropGuard } from './convert/useDropGuard';
+import { useConversionReport } from './report/useConversionReport';
+import { useEditedSummary } from './editor/useEditedSummary';
+import { useEditorHistory } from './editor/useEditorHistory';
+import { useFileIntake } from './convert/useFileIntake';
+import { useFocusIntent } from './ui/useFocusIntent';
+import { usePresetActions } from './presets/usePresetActions';
+import { useRemapper } from './convert/useRemapper';
+import { useSavedMappings } from './presets/useSavedMappings';
+import { convertBlocker } from './convert/blocker';
+import type { EditFilter } from './editor/editFilter';
+import { engineCode } from './core/engineCode';
+import type { Note } from './core/midiremap';
+import { downloadPreset } from './presets/presetFile';
+import { ErrorText } from './ui/ErrorText';
+import { Rich } from './ui/Rich';
+import { useT } from './locale/localeContext';
+import type { NoticeLine } from './core/notice';
+import type { Runtime } from './convert/runtime';
+import { track } from './core/stats';
 
 function Intro() {
   const t = useT();
@@ -182,7 +182,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
                         failures={remapper.failures}
                         view={reportView}
                         targetName={targetName}
-                        targetShort={shortCode(remapper.tgt)}
+                        targetShort={engineCode(remapper.tgt)}
                         from={remapper.src}
                         to={remapper.tgt}
                         onViewReport={() => setReportOpen(true)}

@@ -103,7 +103,7 @@ export default defineConfig({
   worker: { format: 'es' },
   build: {
     rollupOptions: {
-      input: { index: 'index.html', [LOCALE_ENTRY]: 'src/site/locale.ts' },
+      input: { index: 'index.html', [LOCALE_ENTRY]: 'src/locale/staticPagesEntry.ts' },
       output: {
         chunkFileNames: (chunk) => localeChunkName(chunk.facadeModuleId) ?? 'assets/[name]-[hash].js',
       },

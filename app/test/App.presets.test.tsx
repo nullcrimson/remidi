@@ -2,14 +2,14 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../src/lib/download', () => ({ saveFile: vi.fn() }));
+vi.mock('../src/core/download', () => ({ saveFile: vi.fn() }));
 
 import App from '../src/App';
 import { RUNTIME } from './runtime';
-import { saveFile } from '../src/lib/download';
-import { WasmCallError } from '../src/lib/errors';
-import { MAPPINGS_CAP, MAPPINGS_KEY } from '../src/lib/mappings';
-import type { PresetView, VocabularyDrum } from '../src/lib/midiremap';
+import { saveFile } from '../src/core/download';
+import { WasmCallError } from '../src/core/errors';
+import { MAPPINGS_CAP, MAPPINGS_KEY } from '../src/presets/mappings';
+import type { PresetView, VocabularyDrum } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
 

@@ -39,7 +39,7 @@ export default tseslint.config(
     },
     rules: {
       'better-tailwindcss/no-unknown-classes': ['error', { ignore: ['mr-scroll'] }],
-      'no-restricted-properties': ['error', { object: 'location', property: 'pathname', message: 'Read the locale from src/locale.ts.' }],
+      'no-restricted-properties': ['error', { object: 'location', property: 'pathname', message: 'Read the locale from src/locale/locale.ts.' }],
       'i18next/no-literal-string': ['error', {
         mode: 'jsx-only',
         'should-validate-template': true,
@@ -49,7 +49,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['src/locale.ts'],
+    files: ['src/locale/locale.ts'],
     rules: { 'no-restricted-properties': 'off' },
   },
   {

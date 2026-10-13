@@ -2,11 +2,11 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../src/lib/download', () => ({ saveFile: vi.fn() }));
+vi.mock('../src/core/download', () => ({ saveFile: vi.fn() }));
 
 import App from '../src/App';
 import { RUNTIME } from './runtime';
-import type { Drum, MissingDrums, RemapOutput, VocabularyDrum, VoiceRow } from '../src/lib/midiremap';
+import type { Drum, MissingDrums, RemapOutput, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
 

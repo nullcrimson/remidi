@@ -50,7 +50,7 @@ debug build; CI builds it in release.
 the dev server is up. The folder is not committed.
 
 `npm run build` also writes `dist/site.json` (the stylesheet, the content security policy, the
-analytics scripts and the static pages' locale script, `src/site/locale.ts`, built as a second
+analytics scripts and the static pages' locale script, `src/locale/staticPagesEntry.ts`, built as a second
 entry beside `index.html`); the site generator reads it, so run the app build before the
 generator.
 
@@ -79,65 +79,79 @@ on a phone and click elsewhere.
   into `src/wasm/` (gitignored), then type-checks the generated `.d.ts` on its own
   (the app's `tsconfig` skips library checks, which would hide a broken reference).
   Node (not bash) so `cargo`/`wasm-bindgen` resolve from PATH on Windows too.
-- `src/lib/midiremap.ts` — the only module that imports the WASM. `moduleLoader()` makes
+- `src/core/midiremap.ts` — the only module that imports the WASM. `moduleLoader()` makes
   a loader that resolves to a `Midiremap` carrying the calls (`engines()`, `engineDrums()`,
   `engineNotes()`, `canonCatalog()`, `familyOrder()`, `parsePresetFile()`, `plan()`,
   `remap()`); its types are generated from Rust, and module errors become
   `WasmCallError`.
-- `src/lib/runtime.ts` — `Runtime { load, converter }`, made once in `main.tsx` and
-  handed to `App`; tests hand in `test/runtime.ts`.
-- `src/lib/converter.ts`, `convertWorker.ts`, `batch.ts` — conversion in a module Web
-  Worker with its own WASM instance. A worker that dies after answering is replaced; one
-  that cannot start, or dies before answering, leaves conversion to the main thread. A
-  batch is stopped through its `AbortSignal`.
-- `src/lib/errors.ts` — `AppError` and `toAppError`, the one conversion from anything
-  caught to what the UI shows.
 - `test/stubs/wasm.ts` — the WASM stand-in every test runs on (Vitest aliases `@wasm` to
   it); each export is a mock typed as the real one, reset before every test, so a test
   changes the module's answer with `vi.mocked(stub.plan).mockReturnValue(...)` and cannot
-  return what the real module could not. No test replaces `lib/midiremap` or
-  `lib/converter`. `test/wasm.contract.test.ts` loads the real module and checks its
+  return what the real module could not. No test replaces `core/midiremap` or
+  `convert/converter`. `test/wasm.contract.test.ts` loads the real module and checks its
   shapes and errors, and that the stub returns the same fields and real drum keys.
-- `src/lib/notes.ts` — note-name / octave helpers (octave base is display-only) over
-  `src/wasm/note_naming.json`, the table the wasm build writes from the core.
-- `src/lib/families.ts` — `groupByFamily`: groups drums in the core's family order
-  (`editor.families`), keeping any family it does not list.
-- `src/lib/overrides.ts` — target and source edits → the `Overrides` the WASM takes;
-  `StoredEdits` is what presets and the session carry (drum keys as unchecked text), and
-  `knownEdits` is the one function that turns them into edits, leaving out drums this
-  version does not know.
-- `src/lib/canon.ts` — the module's drum `Vocabulary` by key, and `byCanon`.
-- `src/lib/missing.ts` — the missing-drums setting (Nearest / Drop) and its hint.
-- `src/lib/editSummary.ts` — the summary row's "edited" chip: which drums differ from the
-  default mapping, their preview lines, and whether they match the open preset.
-- `src/lib/session.ts` — the setup a reload brings back (engines, settings, unsaved edits).
-- `src/lib/mappings.ts`, `presetFile.ts`, `presetImport.ts` — stored presets (versioned,
-  quarantine), `<name>-drumverter.json` export and import (any `.json` file imports).
-- `src/lib/planBreakdown.ts` — the groups behind the "N of M drums remapped" pop-up
-  (new note, same note, close variant, another drum, left out, not in the source).
-- `src/lib/reportLink.ts` — the "Wrong mapping? Report it" form link, told the engines
-  and language.
-- `src/hooks/useRemapper.ts` — screen state (Convert + Edit); every selection change is
-  one `SelectionEvent` (`src/lib/selection.ts`) handed to each reducer.
-- `src/lib/editorState.ts` — the note editor's reducer; `src/hooks/useEngineData.ts` — the
-  pair's drums, notes, vocabulary and family order.
-- `src/hooks/usePresetActions.ts`, `useFileIntake.ts`, `useConversionReport.ts` — preset
-  payloads, dropped files and presets, the report.
-- `src/hooks/useFocusIntent.ts` — moves focus after an action (`ref` / `request`).
-- `src/hooks/useEditorHistory.ts` — opening the note editor adds a history entry, so the
-  browser's Back closes it instead of leaving the converter.
-- `src/components/*` — FileChips/CardDropzone, LibraryList, OctaveToggle, ChannelSelect,
-  MissingDrumsSetting, ConvertSettings, PlanControls, EngineColumns, SummaryRow,
-  ConvertButton (FollowTip: the reason beside the mouse), DonePanel, TipToast (pinned to the top; `lib/tipAsk.ts`: from the third saved file, at
-  most once a day, paused 90 days after a tip),
-  ReportModal (Convert); InfoPopover (the hover/click breakdowns); EditView with `edit/` (EditFilters, FamilyRows, EditFooter,
-  SavePreset), VoiceRow, NotePicker, SourceEditor, PianoKeyboard (Edit). Page chrome:
-  PageFrame (Page, Card). Overlays: Modal, PickerShell (+ `overlayAnchor`), on Floating UI. Shared primitives: `styles.ts`, Button,
-  TextButton, IconButton, ChipRadioGroup, ChipSelect, TextField, MonoLabel, ProseLink.
-  Frame: SiteHeader (brand + Converter · How to use · Note maps · FAQ), SiteFooter (section links that
-  open modals, rendered by ContentBlocks from `../locales/<code>/docs.json`, the same
-  source the static site pages use) and LanguageMenu. Every text comes from
-  `../locales/<code>/app.ftl` through `useT()`, provided by LocaleProvider.
+- `src/` is foldered by feature, and `test/` mirrors it (shared helpers stay at the top of
+  `test/`). Imports point one way, from `convert` on top down through `editor`, the other
+  features, `ui` and `locale` to `core`; no two folders import each other. The table
+  `ALLOWED_IMPORTS` in `test/structure.test.ts` holds which folder may import which, and a
+  test there fails on any import outside it.
+- `src/core/` — what every feature shares and that is not UI: `midiremap.ts` (the WASM
+  boundary), `errors.ts` (`AppError`, `toAppError`, `errorMessage`, `errorDetail`: the one
+  conversion from anything caught to what the UI is told), `notes.ts` (note-name / octave
+  helpers, octave base is display-only, over `src/wasm/note_naming.json`, the table the wasm
+  build writes from the core), `canon.ts` (the module's drum `Vocabulary` by key, and
+  `byCanon`), `drums.ts` (`labelByNote`), `outcome.ts` (what a plan row does, `playedOn`),
+  `overrides.ts` (target and source edits → the `Overrides` the WASM takes; `StoredEdits` is
+  what presets and the session carry, drum keys as unchecked text; `knownEdits` is the one
+  function that turns them into edits, leaving out drums this version does not know;
+  `parseEdits`, `parseSrcEdits` and `sameEdits` read and compare them), `missing.ts` (the
+  missing-drums setting, Nearest / Drop, and its hint), `channel.ts`, `files.ts`,
+  `selection.ts` (`SelectionEvent`, handed to each reducer), `notice.ts`, `download.ts`,
+  `storage.ts`, `stats.ts`, `contact.ts` (the issue and contact addresses), `engineCode.ts`
+  (the three-letter badge of an engine id).
+- `src/convert/` — the converter screen: `useRemapper.ts` (screen state, Convert + Edit; every
+  selection change is one `SelectionEvent`), `runtime.ts` (`Runtime { load, converter }`, made
+  once in `main.tsx` and handed to `App`; tests hand in `test/runtime.ts`), `converter.ts`,
+  `convertWorker.ts`, `batch.ts` (conversion in a module Web Worker with its own WASM instance;
+  a worker that dies after answering is replaced, one that cannot start or dies before
+  answering leaves conversion to the main thread, a batch is stopped through its
+  `AbortSignal`), `useConverter.ts`, `useFileIntake.ts`, `useDropGuard.ts`, `session.ts` (the setup a reload brings back: engines, settings, unsaved
+  edits), `preselect.ts` (the engines a link names), `planBreakdown.ts`
+  (the groups behind the "N of M drums remapped" pop-up), and FileChips/CardDropzone,
+  OctaveToggle, ChannelSelect, MissingDrumsSetting, ConvertSettings, PlanControls, SummaryRow,
+  ConvertButton (FollowTip: the reason beside the mouse), DonePanel, InfoPopover (the
+  hover/click breakdowns).
+- `src/editor/` — the note editor: EditView (with EditFilters, FamilyRows, EditFooter,
+  SavePreset, PlanErrorNotice, `rowGrid.ts`), VoiceRow, NotePicker, SourceEditor, PianoKeyboard, PickerShell
+  (+ `overlayAnchor`, on Floating UI), `useEditor.ts`, `editorState.ts` (the reducer),
+  `useEngineData.ts` (the pair's drums, notes, vocabulary and family order), `families.ts`
+  (`groupByFamily`: groups drums in the core's family order, keeping any family it does not
+  list), `editSummary.ts` and `useEditedSummary.ts` (the summary row's "edited" chip: which
+  drums differ from the default mapping, their preview lines, and whether they match the open
+  preset), `useEditorHistory.ts` (opening the editor adds a history entry, so the browser's
+  Back closes it instead of leaving the converter).
+- `src/engines/` — LibraryList, EngineColumns, `useEngineCatalog.ts`, `useFavorites.ts`.
+- `src/presets/` — stored presets: `mappings.ts` (versioned, quarantine), `presetFile.ts`
+  (`<name>-drumverter.json` export), `presetImport.ts` (any `.json` file imports),
+  `useSavedMappings.ts`, `usePresetActions.ts`, SavedMappingChip(s).
+- `src/report/` — ReportModal, ContactFooter, `report.ts`, `useConversionReport.ts`,
+  `reportLink.ts` (the "Wrong mapping? Report it" form link, told the engines and language).
+- `src/tip/` — TipToast (pinned to the top) and `tipAsk.ts` (from the third saved file, at
+  most once a day, paused 90 days after a tip).
+- `src/locale/` — `i18n.ts` (`Translator`), `docs.ts` (the documents of a locale, `EN_DOCS`,
+  `sectionBlocks`), `locale.ts` (the page's locale: read from the address, stored, put on
+  `<html lang>`; `localePath`, `converterPath`), `localeContext.ts` (`useT()`),
+  LocaleProvider, `languageChoice.ts`, `language.ts`, `detect.ts`, `startLocale.ts`, and the static pages' script, `staticPages.ts` with its entry
+  `staticPagesEntry.ts`. Every text
+  comes from `../locales/<code>/app.ftl` through `useT()`.
+- `src/site/` — page chrome and addresses: `site.ts` (`href`, `localHref`, `targetLabel`), PageFrame (Page, Card), SiteHeader (brand + Converter · How
+  to use · Note maps · FAQ), SiteFooter (section links that open modals, rendered by
+  ContentBlocks from `../locales/<code>/docs.json`, the same source the static site pages
+  use), LanguageMenu, GlobeIcon, ErrorBoundary, and `plainClick.ts`.
+- `src/ui/` — shared presentational pieces: `styles.ts`, Button, TextButton, IconButton,
+  ChipRadioGroup, ChipSelect, TextField, MonoLabel, ProseLink, Modal, Tooltip, Rich, ErrorText,
+  `errorTitle.ts` (`errorParts`, `errorTitle`: an `AppError` as shown text), StatusNotice, FilterInput, and `useFocusIntent.ts` (moves focus after an
+  action, `ref` / `request`), `useFilter.ts`, `useTruncationTooltip.tsx`, `reveal.ts`.
 
 ## Views
 

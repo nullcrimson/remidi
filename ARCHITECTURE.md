@@ -106,7 +106,7 @@ chain through anyhow and the WASM joins it into one message (`outer: inner`).
   its octave; `OctaveBase::{C1, C2}` (`OctaveBase::ALL`) is the octave convention. The
   site calls them directly. The app reads a table of them: its wasm build calls the
   module's `note_naming` and writes the result to `app/src/wasm/note_naming.json`, which
-  `lib/notes.ts` imports, so the app names notes before the module has loaded and holds
+  `core/notes.ts` imports, so the app names notes before the module has loaded and holds
   no naming rule of its own.
 - `Idx<const MAX: u8>` (module `idx`, shared with `Channel`) holds a 1-based position
   that is always in `1..=MAX` (`SnareIdx = Idx<2>`, `RackIdx = Idx<8>`, `FloorIdx = Idx<4>`, `OpenLevel = Idx<6>`,
@@ -386,7 +386,7 @@ error and 2 on a usage error.
   `1`-`16`; `missing` is `nearest` (the default) or `drop`.
 - `plan(src_id, tgt_id, overrides?, missing?) → VoiceRow[]` — a core `VoicePlan`
   (`canon, srcNotes, defaultTgtNote, outcome`, the outcome tagged by `status`) plus its
-  `label`; the app reads it through `lib/outcome.ts` (`playedNote`, `movesToOtherDrum`).
+  `label`; the app reads it through `core/outcome.ts` (`playedNote`, `movesToOtherDrum`).
 - `engine_catalog() → [{ id, name, fullName }]` — `name` is the display name,
   `fullName` the catalog name.
 - `family_order() → Family[]` — drum families in display order; `note_naming() →
@@ -427,16 +427,23 @@ chain (`outer: inner: innermost`), shown untranslated under the message.
 
 The channel scope has no error of its own. It crosses as `ChannelScope`, a union of the
 eighteen values `ChannelScope::all()` yields (a wasm test holds the union to them), and
-the app's list of them in `lib/channel.ts` is typed by that union, so a scope added or
+the app's list of them in `core/channel.ts` is typed by that union, so a scope added or
 renamed in Rust fails the app's `tsc`.
 
 ### Web app (`app/`)
 
 Vite + React + TypeScript + Tailwind, tested with Vitest/Testing-Library. Reading
-`.mid` bytes (`lib/files.ts`) and calling the WASM (`lib/midiremap.ts`) each happen in
+`.mid` bytes (`core/files.ts`) and calling the WASM (`core/midiremap.ts`) each happen in
 one module, so the rest of the UI is pure data.
 
-- **`lib/`** — framework-free logic and the boundary. `midiremap.ts` is the sole
+`app/src` is foldered by feature (`core`, `locale`, `ui`, `site`, `tip`, `engines`, `presets`,
+`report`, `editor`, `convert`) and `app/test` mirrors it. Imports point one way, from the
+screen down to what it is built on: `convert` on top, then `editor`, then the other features,
+then `ui`, `locale` and `core` at the bottom, and no two folders import each other. The table
+`ALLOWED_IMPORTS` in `app/test/structure.test.ts` states which folder may import which, and a
+test in that file fails on any import outside it.
+
+- **`core/`** — framework-free logic and the boundary. `midiremap.ts` is the sole
   WASM adapter: `moduleLoader()` makes a loader that loads the module once and resolves
   to a `Midiremap`, an object that carries every call, so nothing can call the module
   before it has loaded and no module-level state holds it; the generated types are
@@ -445,9 +452,9 @@ one module, so the rest of the UI is pure data.
   is made only in `notes.ts` (`parseNote`, bounded by the core's note table); a `Canon`
   is never made in the app: it comes from the module, and drum keys read from storage
   stay text (`StoredEdits`) until `knownEdits` looks them up in the module's vocabulary
-  (`canon.ts`). Sibling pure modules cover mapping (de)serialization, the loss report
-  builder, override assembly, file naming, and zipping.
-- **One runtime, handed in.** `lib/runtime.ts` names what the app takes from outside
+  (`canon.ts`). Sibling pure modules cover override assembly (`overrides.ts`) and file
+  naming (`files.ts`); the other features keep their own.
+- **One runtime, handed in.** `convert/runtime.ts` names what the app takes from outside
   React: `Runtime { load, converter }`. `main.tsx` makes the browser's
   (`browserRuntime()`) and gives it to `App`, which hands it to `useRemapper`; no hook
   or component reaches a module-level instance. Tests hand in the same runtime over
@@ -472,16 +479,16 @@ one module, so the rest of the UI is pure data.
   millisecond); a `plan` failure (e.g. a damaged preset) becomes a notice with Reset
   edits, and anything else that throws while rendering reaches the root
   `ErrorBoundary` (Reload, Report an issue, two-step Reset saved data).
-- **`hooks/`** — `useRemapper` is the facade the UI consumes. It composes
+- **Screen state** (`convert/useRemapper.ts` and the hooks of each feature) — `useRemapper` is the facade the UI consumes. It composes
   `useEngineCatalog` (load status + engine list), `useConverter` (files → results),
   and `useEditor` (per-note edits, the live `plan` preview, and derived
   counts) behind a stable return contract, plus a small selection reducer for
   source/target/octave/channel/missing drums/view/open preset. `useEditor`'s result is exposed as one nested
   `editor` bundle; the editor screen owns it and hands its parts only what they read.
-  Its reducer lives in `lib/editorState.ts`; the pair's drums, notes, vocabulary and
+  Its reducer lives in `editor/editorState.ts`; the pair's drums, notes, vocabulary and
   family order come from `useEngineData`.
   - Every change to what is converted (pick FROM/TO, swap, a link's pair, load a
-    preset, channel, missing drums) is one `SelectionEvent` (`lib/selection.ts`) that
+    preset, channel, missing drums) is one `SelectionEvent` (`core/selection.ts`) that
     `useRemapper` hands to the selection, editor and converter reducers alike; each
     decides what it means (the editor drops edits when the pair changes, the converter
     goes idle and stops a running batch through its abort signal).
@@ -497,7 +504,7 @@ one module, so the rest of the UI is pure data.
     the render is on screen and any closing dialog has handed focus back. There are no
     global element ids for focus.
   Persistence lives in focused hooks
-  (`useSavedMappings`, `useFavorites`) and `lib/session.ts`:
+  (`useSavedMappings`, `useFavorites`) and `convert/session.ts`:
   - Presets are stored as `{ version: 1, items }` (a legacy bare array reads as version
     0). Storage is written only after a user action; entries this version cannot read
     are moved to `midiremap:quarantine` on the next write, never dropped. A `storage`
@@ -511,7 +518,7 @@ one module, so the rest of the UI is pure data.
   - Loading a preset leaves out edits for drums this version does not know and says
     so; presets export to `<name>-drumverter.json` and import from any `.json` file (import parses
     through the WASM `parse_preset_file`).
-- **`components/`** — the converter card (engine pickers, file chips, convert
+- **Components** — the converter card (engine pickers, file chips, convert
   button, summary), the note editor (`EditView` + note/source pickers), and shared
   controlled-overlay modals (guide/FAQ/issue/contact/terms, loss report). The header
   and footer (`SiteHeader`, `SiteFooter`) frame every view; the footer's links go to
@@ -520,8 +527,8 @@ one module, so the rest of the UI is pure data.
   focus back to the opener; closed, its content stays in the page, hidden, for
   crawlers), `PickerShell` (the note pickers: focus in, Escape or a press outside its
   row closes, focus back; the row is its `OverlayAnchor`), menus and tooltips. The
-  editor's parts live in `components/edit/`. A structure test keeps every component
-  and hook within 250 lines; the style test keeps arbitrary text sizes and radii, raw
+  editor's parts live in `editor/`. A structure test keeps every source file under `src`
+  within 250 lines; the style test keeps arbitrary text sizes and radii, raw
   `rgba(` and `shadow-[` out of `src` (shadows are `@theme` tokens in `index.css`).
 
 Edit preview and downloaded output share one source of truth: the editor's rows
@@ -541,7 +548,7 @@ The pages link the app's own built stylesheet (named in `dist/site.json`); Tailw
 scans the askama templates through `@source`, so both surfaces share one set of tokens
 and utilities. Octave naming and "Changes only" on pair pages are CSS-only radios; the
 scripts are the filters on the engine and index pages (`/filter.js`) and the language
-choice on every page (the app's `src/site/locale.ts`, built as its own small entry). FAQ, How to use, Report an
+choice on every page (the app's `src/locale/staticPagesEntry.ts`, built as its own small entry). FAQ, How to use, Report an
 issue, Contact and Terms are the documents in `locales/<code>/docs.json`, which
 also feed the app's modals; their FAQPage / HowTo schema is written on `/faq/` and
 `/how-it-works/`. The generator also writes the converter shell: the marked regions of
@@ -570,7 +577,7 @@ changes first.
 Tips go through Stripe Payment Links, listed once in `content/tip.json` (the
 app imports it; `build.rs` turns its `other` link into `TIP_HREF`). Every footer ends
 with a `tip-link` to the any-amount page; the app's tip toast (`TipToast`), pinned to the top of the
-screen, offers the fixed amounts. `src/lib/tipAsk.ts` decides when, from one
+screen, offers the fixed amounts. `src/tip/tipAsk.ts` decides when, from one
 `localStorage` record shared by every tab: never on a visitor's first two saved files, then
 at most once a day, and not for 90 days after a tip link is chosen. All are plain links in a new tab, so no
 Stripe code loads here. Stripe returns the visitor to `/thanks/`, rendered in every
@@ -591,7 +598,7 @@ Sources, one owner per text:
   maps' `/engines/`), section keys and slugs, and the nav and footer as targets
   (`{ route: "converter" | "noteMaps" }` or `{ section }`). `midiremap-site/tests/golden/nav-links.json`
   records the address every nav and footer link has in every locale; a test in
-  `routes.rs` and one in `app/test/content.test.ts` each build that table from their own
+  `routes.rs` and one in `app/test/site/site.test.ts` each build that table from their own
   `href` and compare it with the file.
 - `locales/<code>/docs.json` — the guide, FAQ and legal documents, by section.
   Every locale has every section; a locale without one would link to the English page.
@@ -607,7 +614,7 @@ locale's documents). A nav target naming an unknown section fails both
 generators; a section missing its label, heading or description message fails `tsc`,
 and one missing any of its four (those and the title) fails the site crate's build.
 
-Runtime: a `Translator` (`src/i18n.ts`) holds a locale, its `t(message)` and its
+Runtime: a `Translator` (`src/locale/i18n.ts`) holds a locale, its `t(message)` and its
 documents. `t` formats a `Message` — `{ id }`, or `{ id, args }` with exactly the variables
 `en` declares, checked by `tsc`. English is bundled (`ENGLISH`); `loadTranslator(locale)`
 loads another locale's `.ftl` and `docs.json` together as lazy chunks
@@ -616,15 +623,15 @@ loads another locale's `.ftl` and `docs.json` together as lazy chunks
 the current translator in a React context; components read `useT()` / `useLocale()`, so a
 language change re-renders text in place and keeps every other state.
 
-- Start (`main.tsx`): the address names the locale (`src/locale.ts`, the only reader of
+- Start (`main.tsx`): the address names the locale (`src/locale/locale.ts`, the only reader of
   `location.pathname`). On `/`, the stored choice, or with none the first browser language
-  the site speaks (`lib/detect.ts`: same language and script by `Intl.Locale.maximize`, so
+  the site speaks (`locale/detect.ts`: same language and script by `Intl.Locale.maximize`, so
   `pt-PT` finds Português but `zh-TW` does not find Simplified Chinese), is loaded and the address replaced
   (`history.replaceState`, query and hash kept) — no redirect, no reload. If that chunk fails, `/` stays
   English. If the address's own locale fails, the shell's `#load-failed` notice shows.
 - Switch: the header's globe menu (`LanguageMenu`, an HTML `popover`) holds plain links to
   each converter; a plain click switches in place,
-  stores the choice (`midiremap:locale`, `lib/localeChoice.ts`) and `pushState`s the
+  stores the choice (`midiremap:locale`, `locale/locale.ts`) and `pushState`s the
   locale's converter URL. The latest request wins; Back/forward switch in place. A failed
   load keeps the current language and shows a "couldn't load" line in the header.
 
@@ -646,13 +653,13 @@ engine and pair pages (`/pl/engines/…`, `/pl/convert/…`) and the translated 
 (`/pl/faq/`), each with `<html lang>` and `hreflang` alternates for exactly its versions
 plus `x-default`. Engine and drum names stay as the engines name them. Every static page carries the same language menu as the app
 (plain links: `page_in` gives the same page in a locale, or that locale's converter). The
-sitemap lists every URL with `xhtml:link` alternates. `src/site/locale.ts` (a two-line entry over
-`localeScript.ts`) stores the
+sitemap lists every URL with `xhtml:link` alternates. `src/locale/staticPagesEntry.ts` (a two-line entry over
+`staticPages.ts`) stores the
 choice when a language link is clicked. With a stored choice, a page that exists in that
 language replaces itself with that version (`location.replace`); with none, it shows a
 dismissible offer of the same page in the browser's language, matched by the same
-language-and-script rule as `lib/detect.ts`: the script imports `lib/language.ts`
-(`sameLanguage`), `lib/storage.ts` and `lib/languageChoice.ts` (the stored language choice) rather than copying them, and none of
+language-and-script rule as `locale/detect.ts`: the script imports `locale/language.ts`
+(`sameLanguage`), `core/storage.ts` and `locale/languageChoice.ts` (the stored language choice) rather than copying them, and none of
 them imports the locale table, so a static page loads about 650 B gzipped in two files (the
 entry and the chunk it shares with the app, which the templates `modulepreload`).
 
@@ -697,7 +704,7 @@ Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props;
 - **Nothing third-party without a reason.** Fonts are self-hosted (`@fontsource`,
   variable Space Grotesk and IBM Plex Sans, IBM Plex Mono 400/600 — the faces the pages
   load). The only outside origins are cookieless analytics: the Cloudflare beacon (visits)
-  and Umami (`lib/stats.ts` `track`: anonymous events such as `converted` or `downloaded`,
+  and Umami (`core/stats.ts` `track`: anonymous events such as `converted` or `downloaded`,
   never file names or contents; `data-domains` keeps local and test runs out). The CSP
   allows only them, `'self'` and `'wasm-unsafe-eval'`, and the e2e suite aborts their
   requests and fails on any other.
