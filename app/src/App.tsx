@@ -14,27 +14,20 @@ import { StatusNotice } from './ui/StatusNotice';
 import { useDropGuard } from './convert/useDropGuard';
 import { useConversionReport } from './report/useConversionReport';
 import { useEditedSummary } from './editor/useEditedSummary';
-import { useEditorHistory } from './editor/useEditorHistory';
+import { useEditorSession } from './convert/useEditorSession';
 import { useFileIntake } from './convert/useFileIntake';
 import { useFocusIntent } from './ui/useFocusIntent';
 import { usePresetActions } from './presets/usePresetActions';
 import { useRemapper } from './convert/useRemapper';
 import { useSavedMappings } from './presets/useSavedMappings';
 import { convertBlocker } from './convert/blocker';
-import type { EditFilter } from './editor/editFilter';
 import { namesOf } from './core/enginePair';
-import type { Note } from './core/midiremap';
 import { downloadPreset } from './presets/presetFile';
 import { ErrorText } from './ui/ErrorText';
 import { Rich } from './ui/Rich';
 import { useT } from './locale/localeContext';
 import type { NoticeLine } from './core/notice';
 import type { Runtime } from './convert/runtime';
-import { track } from './core/stats';
-import type { StatEvents } from './core/umami';
-import type { CloseHow } from './editor/editorTally';
-
-type EditorSource = StatEvents['editor-opened']['from'];
 
 function Intro() {
   const t = useT();
@@ -81,17 +74,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
   const { view: reportView, dropMissing } = useConversionReport({ ...editor, ...remapper });
   const names = pair && namesOf(remapper.engines, pair);
   const blocker = convertBlocker({ files: remapper.files.length, pair: remapper.pair });
-  const openEditor = (from: EditorSource, show: EditFilter = 'all', note: Note | null = null) => {
-    track('editor-opened', { show, from });
-    editor.beginSession();
-    remapper.openEditor(show, note);
-  };
-  const closeEditor = (how: CloseHow) => {
-    editor.endSession(how);
-    remapper.closeEditor();
-    request('editLink');
-  };
-  useEditorHistory(view.kind === 'edit', { canOpen: pair !== null, open: () => openEditor('history'), close: () => closeEditor('history') });
+  const { open: openEditor, close: closeEditor } = useEditorSession(remapper, request);
 
   if (view.kind === 'edit') {
     const shown = namesOf(remapper.engines, view.pair);

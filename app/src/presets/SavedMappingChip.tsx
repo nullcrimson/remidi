@@ -1,26 +1,13 @@
 import { useT } from '../locale/localeContext';
-import { useId, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import {
-  autoUpdate,
-  flip,
-  FloatingFocusManager,
-  FloatingPortal,
-  offset,
-  shift,
-  useClick,
-  useDismiss,
-  useFloating,
-  useInteractions,
-  useListNavigation,
-  useRole,
-} from '@floating-ui/react';
 import type { PresetName } from '../core/midiremap';
-import { parsePresetName, type SavedMapping } from './mappings';
+import type { SavedMapping } from './mappings';
+import { ChipMenu, type ChipMenuItem } from './ChipMenu';
+import { ChipRename } from './ChipRename';
 import { engineCode } from '../core/engineCode';
 import { track } from '../core/stats';
-import { IconButton } from '../ui/IconButton';
-import { TextField } from '../ui/TextField';
+import type { StatEvents } from '../core/umami';
 
 const CHIP_BOX = 'flex items-stretch overflow-hidden rounded-panel border border-hairline bg-field';
 
@@ -53,44 +40,10 @@ export function SavedMappingChip({
 }) {
   const t = useT();
   const [renaming, setRenaming] = useState(false);
-  const [draft, setDraft] = useState('');
-  const [menuOpen, setMenuOpen] = useState(false);
-  const moreId = useId();
-  const focusMore = () => document.querySelector<HTMLElement>(`[data-more="${moreId}"]`)?.focus();
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
-  const { refs: { setReference, setFloating }, floatingStyles, context } = useFloating({
-    open: menuOpen,
-    onOpenChange: (open, _event, reason) => {
-      setMenuOpen(open);
-      if (!open && reason === 'escape-key') focusMore();
-    },
-    placement: 'bottom-end',
-    middleware: [offset(6), flip(), shift({ padding: 8 })],
-    whileElementsMounted: autoUpdate,
-  });
-  const listRef = useRef<Array<HTMLElement | null>>([]);
-  const { getReferenceProps, getFloatingProps, getItemProps } = useInteractions([
-    useClick(context),
-    useDismiss(context),
-    useRole(context, { role: 'menu' }),
-    useListNavigation(context, {
-      listRef,
-      activeIndex,
-      onNavigate: setActiveIndex,
-      loop: true,
-    }),
-  ]);
+  const mainRef = useRef<HTMLButtonElement>(null);
 
   const overrideCount = Object.keys(mapping.edits).length + Object.keys(mapping.srcEdits).length;
 
-  const startRename = () => {
-    track('preset-managed', { action: 'rename' });
-    setMenuOpen(false);
-    setDraft(mapping.name);
-    setRenaming(true);
-  };
-  const mainRef = useRef<HTMLButtonElement>(null);
   const endRename = (name: PresetName | null) => {
     flushSync(() => {
       if (name) onRename(mapping.id, name);
@@ -98,22 +51,24 @@ export function SavedMappingChip({
     });
     mainRef.current?.focus();
   };
-  const commitRename = () => endRename(parsePresetName(draft.trim()));
 
-  const managed = (action: 'duplicate' | 'export' | 'delete', run: () => void) => () => {
+  const managed = (action: StatEvents['preset-managed']['action'], run: ChipMenuItem['run']): ChipMenuItem['run'] => (focusButton) => {
     track('preset-managed', { action });
-    setMenuOpen(false);
-    run();
+    run(focusButton);
   };
 
-  const duplicate = () => {
-    onDuplicate(mapping);
-    focusMore();
-  };
-
-  const items = [
-    { label: t({ id: 'chip-rename' }), title: undefined, run: startRename, disabled: false, danger: false },
-    { label: t({ id: 'chip-duplicate' }), title: atCap ? t({ id: 'chip-at-cap' }) : undefined, run: managed('duplicate', duplicate), disabled: atCap, danger: false },
+  const items: ChipMenuItem[] = [
+    { label: t({ id: 'chip-rename' }), title: undefined, run: managed('rename', () => setRenaming(true)), disabled: false, danger: false },
+    {
+      label: t({ id: 'chip-duplicate' }),
+      title: atCap ? t({ id: 'chip-at-cap' }) : undefined,
+      run: managed('duplicate', (focusButton) => {
+        onDuplicate(mapping);
+        focusButton();
+      }),
+      disabled: atCap,
+      danger: false,
+    },
     { label: t({ id: 'chip-export' }), title: undefined, run: managed('export', () => onExport(mapping)), disabled: false, danger: false },
     { label: t({ id: 'chip-delete' }), title: undefined, run: managed('delete', () => onDelete(mapping.id)), disabled: false, danger: true },
   ];
@@ -121,22 +76,7 @@ export function SavedMappingChip({
   if (renaming) {
     return (
       <li className={CHIP_BOX}>
-        <div className="flex items-center gap-1 p-1">
-          <TextField
-            mono
-            value={draft}
-            autoFocus
-            aria-label={t({ id: 'chip-rename-label', args: { name: mapping.name } })}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') commitRename();
-              if (e.key === 'Escape') endRename(null);
-            }}
-            className="w-32 min-w-0"
-          />
-          <IconButton label={t({ id: 'chip-rename-save' })} size="sm" onClick={commitRename}>✓</IconButton>
-          <IconButton label={t({ id: 'chip-rename-cancel' })} size="sm" onClick={() => endRename(null)}>×</IconButton>
-        </div>
+        <ChipRename name={mapping.name} onDone={endRename} />
       </li>
     );
   }
@@ -175,76 +115,14 @@ export function SavedMappingChip({
       >
         ✎
       </button>
-      <button
-        ref={setReference}
-        data-more={moreId}
-        type="button"
-        aria-label={t({ id: 'chip-more', args: { name: mapping.name } })}
-        aria-haspopup="menu"
-        aria-expanded={menuOpen}
-        {...getReferenceProps()}
-        className={`
+      <ChipMenu
+        label={t({ id: 'chip-more', args: { name: mapping.name } })}
+        items={items}
+        buttonClass={`
           ${ICON_BTN}
           hover:bg-white/5 hover:text-t2
         `}
-      >
-        ⋯
-      </button>
-      {menuOpen && (
-        <FloatingPortal>
-          <FloatingFocusManager context={context} modal={false} returnFocus={false}>
-            <div
-              ref={setFloating}
-              style={floatingStyles}
-              {...getFloatingProps()}
-              className="
-                z-50 min-w-36 overflow-hidden rounded-panel border
-                border-hairline bg-ink p-1 shadow-popover
-              "
-            >
-              {items.map((it, i) => (
-                <div key={it.label}>
-                  {it.danger && (
-                    <div role="separator" className="my-1 h-px bg-hairline" />
-                  )}
-                  <button
-                    ref={(node) => {
-                      listRef.current[i] = node;
-                    }}
-                    type="button"
-                    role="menuitem"
-                    disabled={it.disabled}
-                    title={it.title}
-                    {...getItemProps({
-                      onClick: () => {
-                        if (!it.disabled) it.run();
-                      },
-                    })}
-                    className={`
-                      flex w-full items-center rounded-chip px-2.5 py-1.5
-                      text-left text-ui transition-colors
-                      disabled:opacity-40
-                      pointer-coarse:py-3
-                      ${it.danger
-                  ? `
-                    text-t3
-                    hover:bg-danger/10 hover:text-danger
-                  `
-                  : `
-                    text-t3
-                    hover:bg-white/5 hover:text-t1
-                  `}
-                      ${i === activeIndex ? 'bg-white/5 text-t1' : ''}
-                    `}
-                  >
-                    {it.label}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </FloatingFocusManager>
-        </FloatingPortal>
-      )}
+      />
     </li>
   );
 }
