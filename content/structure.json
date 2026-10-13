@@ -1,4 +1,5 @@
 {
+  "routes": { "converter": "/", "noteMaps": "/engines/" },
   "sections": [
     { "key": "guide", "slug": "how-it-works" },
     { "key": "faq", "slug": "faq" },

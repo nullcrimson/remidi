@@ -31,7 +31,8 @@ are never uploaded.
 | `midiremap-testkit` | Test helpers that build and read small MIDI files |
 | `app/` | Vite + React + TypeScript converter UI |
 | `engines/*.toml` | One note map per engine, embedded at build time |
-| `locales/` | The locale list and one Fluent message file per language, shared by the app and the site |
+| `locales/` | The locale list, and per language a Fluent message file and a documents file, shared by the app and the site |
+| `content/` | The site structure and the tip links, shared by the app and the site |
 
 [ARCHITECTURE.md](ARCHITECTURE.md) explains the design; [app/README.md](app/README.md)
 covers the UI.

@@ -1,8 +1,16 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import indexHtml from '../index.html?raw';
 import { CONTACT_EMAIL, href, ISSUES_URL, localHref, sectionBlocks } from '../src/content/site';
-import { FOOTER, NAV, SECTION_KEYS } from '../src/generated/i18n';
+import { FOOTER, LOCALE_CODES, NAV, SECTION_KEYS } from '../src/generated/i18n';
 import { ENGLISH } from '../src/i18n';
+
+const NAV_LINKS: unknown = JSON.parse(readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'midiremap-site', 'tests', 'golden', 'nav-links.json'),
+  'utf8',
+));
 
 describe('site content', () => {
   it('links the contact and issue documents to the addresses the app uses', () => {
@@ -25,16 +33,17 @@ describe('site content', () => {
     expect(indexHtml).not.toContain('application/ld+json');
   });
 
+  it('links nav and footer to the addresses the site generator records for every locale', () => {
+    const table = Object.fromEntries(LOCALE_CODES.map((locale) => [locale, {
+      nav: NAV.map((target) => href(target, locale)),
+      footer: FOOTER.map((target) => href(target, locale)),
+    }]));
+    expect(table).toEqual(NAV_LINKS);
+  });
+
   it('points a document link at the same page in the page language', () => {
     expect(localHref('/engines/', 'pl')).toBe('/pl/engines/');
     expect(localHref('/faq/', 'pl')).toBe('/pl/faq/');
     expect(localHref('/engines/', 'en')).toBe('/engines/');
-  });
-
-  it('links a Polish page to its translated sections', () => {
-    expect(href({ section: 'faq' }, 'pl')).toBe('/pl/faq/');
-    expect(href({ section: 'terms' }, 'pl')).toBe('/pl/terms/');
-    expect(href({ route: 'converter' }, 'pl')).toBe('/pl/');
-    expect(href({ route: 'noteMaps' }, 'pl')).toBe('/pl/engines/');
   });
 });

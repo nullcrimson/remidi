@@ -38,7 +38,15 @@ struct Tip {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Routes {
+    converter: String,
+    note_maps: String,
+}
+
+#[derive(Deserialize)]
 struct Structure {
+    routes: Routes,
     sections: Vec<Section>,
     nav: Vec<Target>,
     footer: Vec<Target>,
@@ -131,8 +139,8 @@ fn main() {
     let locales: Vec<LocaleEntry> =
         serde_json::from_str(&read(&root.join("locales/locales.json"))).unwrap();
     let structure: Structure =
-        serde_json::from_str(&read(&root.join("app/src/content/structure.json"))).unwrap();
-    let tip: Tip = serde_json::from_str(&read(&root.join("app/src/content/tip.json"))).unwrap();
+        serde_json::from_str(&read(&root.join("content/structure.json"))).unwrap();
+    let tip: Tip = serde_json::from_str(&read(&root.join("content/tip.json"))).unwrap();
     let en = read(&root.join("locales/en/app.ftl"));
     let messages: Vec<(&str, Vec<&str>)> = ftl_vars::message_vars(&en)
         .unwrap_or_else(|e| panic!("en/app.ftl: {e:?}"))
@@ -146,7 +154,7 @@ fn main() {
         .collect();
     for l in &locales {
         read(&root.join(format!("locales/{}/app.ftl", l.code)));
-        read(&root.join(format!("app/src/content/docs/{}.json", l.code)));
+        read(&root.join(format!("locales/{}/docs.json", l.code)));
     }
     let keys: BTreeSet<&str> = structure.sections.iter().map(|s| s.key.as_str()).collect();
 
@@ -178,7 +186,7 @@ fn main() {
     out += &matcher("docs", "&'static str", &locales, |l| {
         (
             l.code.to_upper_camel_case(),
-            source(&format!("app/src/content/docs/{}.json", l.code)),
+            source(&format!("locales/{}/docs.json", l.code)),
         )
     });
     out += "}\n";
@@ -213,12 +221,16 @@ fn main() {
     }
     out += "}\n";
 
-    out += "#[derive(Copy, Clone, Debug, PartialEq, Eq)]\npub enum NavTarget { Converter, NoteMaps, Section(SectionKey) }\n";
-    out += &format!(
+    let mut routes = format!(
+        "pub const CONVERTER: SitePath = SitePath::fixed({:?});\npub const NOTE_MAPS: SitePath = SitePath::fixed({:?});\n",
+        structure.routes.converter, structure.routes.note_maps
+    );
+    routes += "#[derive(Copy, Clone, Debug, PartialEq, Eq)]\npub enum NavTarget { Converter, NoteMaps, Section(SectionKey) }\n";
+    routes += &format!(
         "pub const NAV: &[NavTarget] = &[{}];\n",
         list(structure.nav.iter().map(|t| target(t, &keys)))
     );
-    out += &format!(
+    routes += &format!(
         "pub const FOOTER: &[NavTarget] = &[{}];\n",
         list(structure.footer.iter().map(|t| target(t, &keys)))
     );
@@ -245,9 +257,7 @@ fn main() {
     out += "}\n";
     out += &plain_texts(&plain);
 
-    fs::write(
-        PathBuf::from(env::var("OUT_DIR").unwrap()).join("i18n.rs"),
-        out,
-    )
-    .unwrap();
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    fs::write(out_dir.join("i18n.rs"), out).unwrap();
+    fs::write(out_dir.join("routes.rs"), routes).unwrap();
 }

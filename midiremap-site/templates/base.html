@@ -2,30 +2,24 @@
 <html lang="{{ frame.lang }}">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" content="{{ frame.csp|safe }}" />
+    <meta http-equiv="Content-Security-Policy" content="{{ frame.csp }}" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ meta.title }}</title>
     <meta name="description" content="{{ meta.description }}" />
     <link rel="canonical" href="{{ meta.canonical }}" />
     {% block robots %}{% endblock %}
-    {% for (tag, url) in frame.alternates %}<link rel="alternate" hreflang="{{ tag }}" href="{{ url }}" />
-    {% endfor %}    <link rel="icon" href="/favicon.ico" sizes="48x48" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/site.webmanifest" />
-    <meta name="theme-color" content="#100f0d" />
+    {% for a in frame.alternates %}<link rel="alternate" hreflang="{{ a.tag }}" href="{{ a.url() }}" />
+    {% endfor %}    {% include "icons.html" %}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Drumverter" />
     <meta property="og:title" content="{{ meta.title }}" />
     <meta property="og:description" content="{{ meta.description }}" />
     <meta property="og:url" content="{{ meta.canonical }}" />
-    <meta property="og:image" content="https://drumverter.com/og-image.png" />
+    <meta property="og:image" content="{{ frame.og_image }}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://drumverter.com/og-image.png" />
+    <meta name="twitter:image" content="{{ frame.og_image }}" />
     <link rel="stylesheet" href="{{ frame.css }}" />
     {% if let Some(ld) = frame.json_ld %}<script type="application/ld+json">{{ ld|safe }}</script>{% endif %}
   </head>
@@ -77,8 +71,8 @@
       </div>
     </div>
     {% block script %}{% endblock %}
-    <script src="/locale.js" defer></script>
-    {{ frame.beacon|safe }}
-    {{ frame.stats|safe }}
-  </body>
+{% for href in frame.locale_script.preload %}    <link rel="modulepreload" href="{{ href }}" />
+{% endfor %}    <script type="module" src="{{ frame.locale_script.src }}"></script>
+{% for script in frame.analytics %}    <script defer src="{{ script.src }}"{% for (name, value) in script.attrs %} {{ name }}="{{ value }}"{% endfor %}></script>
+{% endfor %}  </body>
 </html>

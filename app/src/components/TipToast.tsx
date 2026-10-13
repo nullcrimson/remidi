@@ -1,4 +1,4 @@
-import tip from '../content/tip.json';
+import tip from '../../../content/tip.json';
 import { LOCALES } from '../generated/i18n';
 import { useLocale } from '../localeContext';
 import { rememberTip } from '../lib/tipAsk';

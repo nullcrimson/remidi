@@ -7,6 +7,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { builtFile } from './scripts/devStatic';
 import { localeChunkName } from './scripts/localeChunk';
+import { siteManifest, type AnalyticsScript } from './scripts/siteManifest';
 import { LOCALES } from './src/generated/i18n';
 
 const BEACON = 'https://static.cloudflareinsights.com';
@@ -26,6 +27,36 @@ const CONTENT_SECURITY_POLICY = [
   `base-uri 'self'`,
   `form-action 'none'`,
 ].join('; ');
+
+const LOCALE_ENTRY = 'site-locale';
+
+const ANALYTICS: readonly AnalyticsScript[] = [
+  { src: `${BEACON}/beacon.min.js`, attrs: { 'data-cf-beacon': '{"token": "070603e1f4af4cf3a16a08fd5255e6bc"}' } },
+  { src: `${STATS}/script.js`, attrs: { 'data-website-id': '5f4e658b-ad31-4636-933b-3fb96cafa735', 'data-domains': 'drumverter.com' } },
+];
+
+function analyticsScripts(): Plugin {
+  return {
+    name: 'analytics-scripts',
+    transformIndexHtml: () => ANALYTICS.map(({ src, attrs }) => ({
+      tag: 'script',
+      attrs: { defer: true, src, ...attrs },
+      injectTo: 'body',
+    })),
+  };
+}
+
+function siteData(): Plugin {
+  return {
+    name: 'site-data',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      const chunks = Object.values(bundle).filter((file) => file.type === 'chunk');
+      const manifest = siteManifest(Object.keys(bundle), chunks, LOCALE_ENTRY, CONTENT_SECURITY_POLICY, ANALYTICS);
+      this.emitFile({ type: 'asset', fileName: 'site.json', source: JSON.stringify(manifest, null, 2) });
+    },
+  };
+}
 
 function contentSecurityPolicy(): Plugin {
   return {
@@ -68,16 +99,17 @@ function builtStaticPages(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), contentSecurityPolicy(), builtStaticPages()],
+  plugins: [react(), tailwindcss(), contentSecurityPolicy(), analyticsScripts(), siteData(), builtStaticPages()],
   worker: { format: 'es' },
   build: {
     rollupOptions: {
+      input: { index: 'index.html', [LOCALE_ENTRY]: 'src/site/locale.ts' },
       output: {
         chunkFileNames: (chunk) => localeChunkName(chunk.facadeModuleId) ?? 'assets/[name]-[hash].js',
       },
     },
   },
-  server: { fs: { allow: ['.', '../locales'] } },
+  server: { fs: { allow: ['.', '../locales', '../content'] } },
   resolve: {
     alias: {
       '@wasm': fileURLToPath(new URL('./src/wasm/midiremap_wasm.js', import.meta.url)),

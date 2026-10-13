@@ -45,9 +45,14 @@ the script are unchanged (`src/wasm/.stamp`). `build:site` runs the site generat
 debug build; CI builds it in release.
 
 `npm run gen:i18n` writes `src/generated/` (message, locale and section types, and
-`lang.css`) from `../locales/` and `src/content/structure.json`. It runs before `dev`,
+`lang.css`) from `../locales/` and `../content/structure.json`. It runs before `dev`,
 `build`, `test`, `lint` and `typecheck`; run it by hand after editing a `.ftl` file while
 the dev server is up. The folder is not committed.
+
+`npm run build` also writes `dist/site.json` (the stylesheet, the content security policy, the
+analytics scripts and the static pages' locale script, `src/site/locale.ts`, built as a second
+entry beside `index.html`); the site generator reads it, so run the app build before the
+generator.
 
 Each non-English locale's messages and documents build into lazy `assets/locale-*.js`
 chunks (`locale-<code>-messages-*.js`, `locale-<code>-docs-*.js`) that English visitors never load. After `npm run build:site`, `/pl/` serves the
@@ -130,7 +135,7 @@ on a phone and click elsewhere.
   PageFrame (Page, Card). Overlays: Modal, PickerShell (+ `overlayAnchor`), on Floating UI. Shared primitives: `styles.ts`, Button,
   TextButton, IconButton, ChipRadioGroup, ChipSelect, TextField, MonoLabel, ProseLink.
   Frame: SiteHeader (brand + Converter · How to use · Note maps · FAQ), SiteFooter (section links that
-  open modals, rendered by ContentBlocks from `src/content/docs/<code>.json`, the same
+  open modals, rendered by ContentBlocks from `../locales/<code>/docs.json`, the same
   source the static site pages use) and LanguageMenu. Every text comes from
   `../locales/<code>/app.ftl` through `useT()`, provided by LocaleProvider.
 

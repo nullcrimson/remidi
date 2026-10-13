@@ -537,12 +537,12 @@ not as loss.
 
 `npm run build:site` builds the app, then generates `/engines/`, one page per engine,
 one per pair of the eight popular engines, and one per content section into `dist/`.
-The pages link the app's own built stylesheet (read from `dist/index.html`); Tailwind
+The pages link the app's own built stylesheet (named in `dist/site.json`); Tailwind
 scans the askama templates through `@source`, so both surfaces share one set of tokens
 and utilities. Octave naming and "Changes only" on pair pages are CSS-only radios; the
 scripts are the filters on the engine and index pages (`/filter.js`) and the language
-choice on every page (`/locale.js`). FAQ, How to use, Report an
-issue, Contact and Terms are the documents in `app/src/content/docs/<code>.json`, which
+choice on every page (the app's `src/site/locale.ts`, built as its own small entry). FAQ, How to use, Report an
+issue, Contact and Terms are the documents in `locales/<code>/docs.json`, which
 also feed the app's modals; their FAQPage / HowTo schema is written on `/faq/` and
 `/how-it-works/`. The generator also writes the converter shell: the marked regions of
 the built `index.html` (`<!--app-head-->`, `<!--app-noscript-->`, `<!--app-title-->`) get
@@ -551,10 +551,15 @@ the hidden load-failure notice and a visually hidden `<h1>` inside `#root` (for 
 that run no script; React replaces it on mount) from `app.ftl`; the markers stay, so a second run rewrites the
 same regions. On every page the skip link, header and footer links sit in
 `data-nosnippet` blocks, so search results quote the page, not its chrome. Besides the
-stylesheet, each page copies three things from the built `index.html`: the content
+stylesheet, each page takes what the app's build writes to `dist/site.json` (emitted by a
+plugin in `vite.config.ts`, typed by `scripts/siteManifest.ts`, read by the generator's
+`manifest.rs` (`SiteManifest`, together with the converter's `index.html`) with `serde`; a
+missing `index.html` or `site.json`, or a malformed one, stops it with "run the app build first"): the content
 security policy (defined once in `vite.config.ts`, injected into the build only), the
-Cloudflare Web Analytics beacon and the Umami script, so every page states the same policy
-and counts visits the same way. The filter script is `/filter.js`, not inline, so the policy needs no
+Cloudflare Web Analytics beacon and the Umami script (data in `vite.config.ts`, injected
+into the converter's `index.html` by a plugin and written by the templates on the static
+pages), and the locale script with the chunks it imports, so every page states the same policy
+and counts visits the same way. `site.json` is build data, not a page: no sitemap lists it. The filter script is `/filter.js`, not inline, so the policy needs no
 `'unsafe-inline'`. Links and chrome
 that both surfaces draw are `@utility` classes in `index.css` (`prose-link`,
 `nav-link`, `skip-link`, `brand-mark`), used by the React components and the templates
@@ -562,7 +567,7 @@ alike. Pair-page rows take their status from the core (`PlanStatus` of each sour
 note's resolution); the site only names it (exact / approximated / dropped) and sorts
 changes first.
 
-Tips go through Stripe Payment Links, listed once in `app/src/content/tip.json` (the
+Tips go through Stripe Payment Links, listed once in `content/tip.json` (the
 app imports it; `build.rs` turns its `other` link into `TIP_HREF`). Every footer ends
 with a `tip-link` to the any-amount page; the app's tip toast (`TipToast`), pinned to the top of the
 screen, offers the fixed amounts. `src/lib/tipAsk.ts` decides when, from one
@@ -582,15 +587,21 @@ Sources, one owner per text:
   syntax; `en` is the reference. `locales/GLOSSARY.md` holds the shared rules (what is
   never translated, tone); `locales/<code>/GLOSSARY.md` each language's terms;
   `locales/<code>/same-as-english.txt` the messages meant to read exactly as in English.
-- `app/src/content/structure.json` — section keys and slugs, and the nav and footer as
-  targets (`{ route: "converter" | "noteMaps" }` or `{ section }`).
-- `app/src/content/docs/<code>.json` — the guide, FAQ and legal documents, by section.
+- `content/structure.json` — the route paths (`routes`: the converter's `/` and the note
+  maps' `/engines/`), section keys and slugs, and the nav and footer as targets
+  (`{ route: "converter" | "noteMaps" }` or `{ section }`). `midiremap-site/tests/golden/nav-links.json`
+  records the address every nav and footer link has in every locale; a test in
+  `routes.rs` and one in `app/test/content.test.ts` each build that table from their own
+  `href` and compare it with the file.
+- `locales/<code>/docs.json` — the guide, FAQ and legal documents, by section.
   Every locale has every section; a locale without one would link to the English page.
 
 Generated, never committed: `midiremap-site/build.rs` (with `fluent-syntax`) writes
-`Locale`, `SectionKey`, `NavTarget`, `NAV`/`FOOTER` and `MessageId` (with each message's
-variables) into `OUT_DIR`; `npm run gen:i18n` (`app/scripts/gen-i18n.ts`, with
-`@fluent/syntax`) writes the same types to `app/src/generated/i18n.ts`, plus
+`Locale`, `SectionKey` and `MessageId` (with each message's variables) into `OUT_DIR/i18n.rs`, and
+`NavTarget`, `NAV`/`FOOTER` and the two route paths (`CONVERTER`, `NOTE_MAPS`) into `OUT_DIR/routes.rs`, which
+`src/routes.rs` includes beside `SitePath` / `LocalPath` (an address before and after a locale prefix),
+`href` and `label`; `npm run gen:i18n` (`app/scripts/gen-i18n.ts`, with
+`@fluent/syntax`) writes the same types to `app/src/generated/i18n.ts` (with `ROUTE_PATHS`), plus
 `lang.css` (`:lang()` rules setting the sans, display and mono stacks) and `TRANSLATED_SECTIONS` (the keys of each
 locale's documents). A nav target naming an unknown section fails both
 generators; a section missing its label, heading or description message fails `tsc`,
@@ -599,7 +610,7 @@ and one missing any of its four (those and the title) fails the site crate's bui
 Runtime: a `Translator` (`src/i18n.ts`) holds a locale, its `t(message)` and its
 documents. `t` formats a `Message` — `{ id }`, or `{ id, args }` with exactly the variables
 `en` declares, checked by `tsc`. English is bundled (`ENGLISH`); `loadTranslator(locale)`
-loads another locale's `.ftl` and `docs/<code>.json` together as lazy chunks
+loads another locale's `.ftl` and `docs.json` together as lazy chunks
 (`assets/locale-<code>-messages-*.js` and `-docs-*.js`, named by
 `scripts/localeChunk.ts`, budgeted per file apart from the app's JS). `LocaleProvider` holds
 the current translator in a React context; components read `useT()` / `useLocale()`, so a
@@ -635,11 +646,15 @@ engine and pair pages (`/pl/engines/…`, `/pl/convert/…`) and the translated 
 (`/pl/faq/`), each with `<html lang>` and `hreflang` alternates for exactly its versions
 plus `x-default`. Engine and drum names stay as the engines name them. Every static page carries the same language menu as the app
 (plain links: `page_in` gives the same page in a locale, or that locale's converter). The
-sitemap lists every URL with `xhtml:link` alternates. `static/locale.js` stores the
+sitemap lists every URL with `xhtml:link` alternates. `src/site/locale.ts` (a two-line entry over
+`localeScript.ts`) stores the
 choice when a language link is clicked. With a stored choice, a page that exists in that
 language replaces itself with that version (`location.replace`); with none, it shows a
 dismissible offer of the same page in the browser's language, matched by the same
-language-and-script rule as `lib/detect.ts`.
+language-and-script rule as `lib/detect.ts`: the script imports `lib/language.ts`
+(`sameLanguage`), `lib/storage.ts` and `lib/languageChoice.ts` (the stored language choice) rather than copying them, and none of
+them imports the locale table, so a static page loads about 650 B gzipped in two files (the
+entry and the chunk it shares with the app, which the templates `modulepreload`).
 
 Fonts: the display stack falls back to IBM Plex Sans, whose Cyrillic subset draws Russian
 headings (Space Grotesk has no Cyrillic); ja, zh and ko replace all three stacks with the

@@ -1,0 +1,178 @@
+{
+  "de": {
+    "footer": [
+      "/de/how-it-works/",
+      "/de/faq/",
+      "/de/engines/",
+      "/de/report-an-issue/",
+      "/de/contact/",
+      "/de/terms/"
+    ],
+    "nav": [
+      "/de/",
+      "/de/how-it-works/",
+      "/de/engines/",
+      "/de/faq/"
+    ]
+  },
+  "en": {
+    "footer": [
+      "/how-it-works/",
+      "/faq/",
+      "/engines/",
+      "/report-an-issue/",
+      "/contact/",
+      "/terms/"
+    ],
+    "nav": [
+      "/",
+      "/how-it-works/",
+      "/engines/",
+      "/faq/"
+    ]
+  },
+  "es": {
+    "footer": [
+      "/es/how-it-works/",
+      "/es/faq/",
+      "/es/engines/",
+      "/es/report-an-issue/",
+      "/es/contact/",
+      "/es/terms/"
+    ],
+    "nav": [
+      "/es/",
+      "/es/how-it-works/",
+      "/es/engines/",
+      "/es/faq/"
+    ]
+  },
+  "fr": {
+    "footer": [
+      "/fr/how-it-works/",
+      "/fr/faq/",
+      "/fr/engines/",
+      "/fr/report-an-issue/",
+      "/fr/contact/",
+      "/fr/terms/"
+    ],
+    "nav": [
+      "/fr/",
+      "/fr/how-it-works/",
+      "/fr/engines/",
+      "/fr/faq/"
+    ]
+  },
+  "it": {
+    "footer": [
+      "/it/how-it-works/",
+      "/it/faq/",
+      "/it/engines/",
+      "/it/report-an-issue/",
+      "/it/contact/",
+      "/it/terms/"
+    ],
+    "nav": [
+      "/it/",
+      "/it/how-it-works/",
+      "/it/engines/",
+      "/it/faq/"
+    ]
+  },
+  "ja": {
+    "footer": [
+      "/ja/how-it-works/",
+      "/ja/faq/",
+      "/ja/engines/",
+      "/ja/report-an-issue/",
+      "/ja/contact/",
+      "/ja/terms/"
+    ],
+    "nav": [
+      "/ja/",
+      "/ja/how-it-works/",
+      "/ja/engines/",
+      "/ja/faq/"
+    ]
+  },
+  "ko": {
+    "footer": [
+      "/ko/how-it-works/",
+      "/ko/faq/",
+      "/ko/engines/",
+      "/ko/report-an-issue/",
+      "/ko/contact/",
+      "/ko/terms/"
+    ],
+    "nav": [
+      "/ko/",
+      "/ko/how-it-works/",
+      "/ko/engines/",
+      "/ko/faq/"
+    ]
+  },
+  "pl": {
+    "footer": [
+      "/pl/how-it-works/",
+      "/pl/faq/",
+      "/pl/engines/",
+      "/pl/report-an-issue/",
+      "/pl/contact/",
+      "/pl/terms/"
+    ],
+    "nav": [
+      "/pl/",
+      "/pl/how-it-works/",
+      "/pl/engines/",
+      "/pl/faq/"
+    ]
+  },
+  "pt": {
+    "footer": [
+      "/pt/how-it-works/",
+      "/pt/faq/",
+      "/pt/engines/",
+      "/pt/report-an-issue/",
+      "/pt/contact/",
+      "/pt/terms/"
+    ],
+    "nav": [
+      "/pt/",
+      "/pt/how-it-works/",
+      "/pt/engines/",
+      "/pt/faq/"
+    ]
+  },
+  "ru": {
+    "footer": [
+      "/ru/how-it-works/",
+      "/ru/faq/",
+      "/ru/engines/",
+      "/ru/report-an-issue/",
+      "/ru/contact/",
+      "/ru/terms/"
+    ],
+    "nav": [
+      "/ru/",
+      "/ru/how-it-works/",
+      "/ru/engines/",
+      "/ru/faq/"
+    ]
+  },
+  "zh": {
+    "footer": [
+      "/zh/how-it-works/",
+      "/zh/faq/",
+      "/zh/engines/",
+      "/zh/report-an-issue/",
+      "/zh/contact/",
+      "/zh/terms/"
+    ],
+    "nav": [
+      "/zh/",
+      "/zh/how-it-works/",
+      "/zh/engines/",
+      "/zh/faq/"
+    ]
+  }
+}

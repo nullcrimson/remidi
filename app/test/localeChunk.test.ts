@@ -7,7 +7,7 @@ describe('locale chunk names', () => {
   });
 
   it('names a locale\'s documents after its code', () => {
-    expect(localeChunkName('E:\\dev\\midiremap\\app\\src\\content\\docs\\ja.json')).toBe('assets/locale-ja-docs-[hash].js');
+    expect(localeChunkName('E:\\dev\\midiremap\\locales\\ja\\docs.json')).toBe('assets/locale-ja-docs-[hash].js');
   });
 
   it('leaves every other chunk to the default name', () => {

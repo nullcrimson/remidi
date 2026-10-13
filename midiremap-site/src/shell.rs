@@ -3,10 +3,18 @@ use serde_json::json;
 
 use crate::{
     content::script_json,
-    i18n::{converter_alternates, home, Locale, Messages, Plain},
-    pages::ORIGIN,
-    SiteError,
+    i18n::{Docs, Locale, Messages, Plain},
+    routes::{alternates, home, og_image_url, Alternate, CONVERTER_PAGE},
 };
+
+/// What stops the built `index.html` from being localized.
+#[derive(thiserror::Error, Debug)]
+pub enum ShellError {
+    #[error("no {0} marker in the app's index.html")]
+    MissingMarker(&'static str),
+    #[error(transparent)]
+    Render(#[from] askama::Error),
+}
 
 const HEAD: (&str, &str) = ("<!--app-head-->", "<!--/app-head-->");
 const NOSCRIPT: (&str, &str) = ("<!--app-noscript-->", "<!--/app-noscript-->");
@@ -26,9 +34,9 @@ struct AppHead<'a> {
     og_description: &'a str,
     twitter_description: &'a str,
     image_alt: &'a str,
-    origin: &'static str,
+    og_image: String,
     canonical: String,
-    alternates: Vec<(&'static str, String)>,
+    alternates: Vec<Alternate>,
     json_ld: String,
 }
 
@@ -54,20 +62,22 @@ fn replace_region(html: &str, (open, close): (&str, &str), with: &str) -> Option
 
 /// The converter's built `index.html` in `locale`: its title, descriptions, social cards,
 /// schema, no-script text and load-failure notice written from that locale's messages.
-pub fn localize_shell(index_html: &str, locale: Locale, m: &Messages) -> Result<String, SiteError> {
+pub fn localize_shell(
+    index_html: &str,
+    locale: Locale,
+    m: &Messages,
+    docs: &Docs,
+) -> Result<String, ShellError> {
     let get = |id| m.get(locale, id);
-    let canonical = format!("{ORIGIN}{}", home(locale));
+    let canonical = home(locale).url();
     let head = AppHead {
         title: get(Plain::ConverterTitle),
         description: get(Plain::ConverterDescription),
         og_description: get(Plain::ConverterOgDescription),
         twitter_description: get(Plain::ConverterTwitterDescription),
         image_alt: get(Plain::ConverterImageAlt),
-        origin: ORIGIN,
-        alternates: converter_alternates()
-            .into_iter()
-            .map(|(tag, path)| (tag, format!("{ORIGIN}{path}")))
-            .collect(),
+        og_image: og_image_url(),
+        alternates: alternates(&CONVERTER_PAGE, docs),
         json_ld: script_json(&json!({
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
@@ -88,14 +98,14 @@ pub fn localize_shell(index_html: &str, locale: Locale, m: &Messages) -> Result<
         load_failed_reload: get(Plain::LoadFailedReload),
     }
     .render()?;
-    let html = replace_region(index_html, HEAD, &head).ok_or(SiteError::MissingMarker(HEAD.0))?;
+    let html = replace_region(index_html, HEAD, &head).ok_or(ShellError::MissingMarker(HEAD.0))?;
     let html =
-        replace_region(&html, NOSCRIPT, &noscript).ok_or(SiteError::MissingMarker(NOSCRIPT.0))?;
+        replace_region(&html, NOSCRIPT, &noscript).ok_or(ShellError::MissingMarker(NOSCRIPT.0))?;
     let title = AppTitle {
         title: get(Plain::ConverterTitle),
     }
     .render()?;
-    let html = replace_region(&html, TITLE, &title).ok_or(SiteError::MissingMarker(TITLE.0))?;
+    let html = replace_region(&html, TITLE, &title).ok_or(ShellError::MissingMarker(TITLE.0))?;
     Ok(html.replacen(
         r#"<html lang="en">"#,
         &format!(r#"<html lang="{}">"#, locale.lang_tag()),
@@ -112,7 +122,13 @@ mod tests {
 
     #[test]
     fn the_english_shell_carries_todays_head_and_noscript_text() {
-        let out = localize_shell(MARKED, Locale::En, &Messages::load().unwrap()).unwrap();
+        let out = localize_shell(
+            MARKED,
+            Locale::En,
+            &Messages::load().unwrap(),
+            &Docs::load().unwrap(),
+        )
+        .unwrap();
         assert!(out.contains("<title>Drumverter — free drum MIDI remapper &#38; converter</title>"));
         assert!(out.contains(
             r#"<meta property="og:image:alt" content="Drumverter — drum MIDI converter and remapper" />"#
@@ -126,9 +142,9 @@ mod tests {
     #[test]
     fn the_shell_carries_a_heading_the_app_replaces_on_mount() {
         let m = Messages::load().unwrap();
-        let en = localize_shell(MARKED, Locale::En, &m).unwrap();
+        let en = localize_shell(MARKED, Locale::En, &m, &Docs::load().unwrap()).unwrap();
         assert!(en.contains(r#"<div id="root"><!--app-title--><h1 class="sr-only">Drumverter — free drum MIDI remapper &#38; converter</h1><!--/app-title--></div>"#));
-        let pl = localize_shell(MARKED, Locale::Pl, &m).unwrap();
+        let pl = localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap()).unwrap();
         assert!(pl.contains(&format!(
             r#"<h1 class="sr-only">{}</h1>"#,
             m.get(Locale::Pl, Plain::ConverterTitle)
@@ -138,14 +154,17 @@ mod tests {
     #[test]
     fn localizing_twice_gives_the_same_page() {
         let m = Messages::load().unwrap();
-        let once = localize_shell(MARKED, Locale::En, &m).unwrap();
-        assert_eq!(localize_shell(&once, Locale::En, &m).unwrap(), once);
+        let once = localize_shell(MARKED, Locale::En, &m, &Docs::load().unwrap()).unwrap();
+        assert_eq!(
+            localize_shell(&once, Locale::En, &m, &Docs::load().unwrap()).unwrap(),
+            once
+        );
     }
 
     #[test]
     fn each_shell_has_its_language_title_and_canonical() {
         let m = Messages::load().unwrap();
-        let pl = localize_shell(MARKED, Locale::Pl, &m).unwrap();
+        let pl = localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap()).unwrap();
         assert!(pl.contains(r#"<html lang="pl">"#));
         assert!(pl.contains(r#"<link rel="canonical" href="https://drumverter.com/pl/" />"#));
         assert!(pl.contains(&format!(
@@ -156,7 +175,13 @@ mod tests {
 
     #[test]
     fn every_shell_lists_every_version_and_the_default() {
-        let out = localize_shell(MARKED, Locale::En, &Messages::load().unwrap()).unwrap();
+        let out = localize_shell(
+            MARKED,
+            Locale::En,
+            &Messages::load().unwrap(),
+            &Docs::load().unwrap(),
+        )
+        .unwrap();
         assert_eq!(
             out.matches(r#"rel="alternate" hreflang="#).count(),
             Locale::ALL.len() + 1
@@ -167,12 +192,18 @@ mod tests {
     #[test]
     fn the_polish_shell_carries_the_polish_load_failure_notice() {
         let m = Messages::load().unwrap();
-        let pl = localize_shell(MARKED, Locale::Pl, &m).unwrap();
+        let pl = localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap()).unwrap();
         assert!(pl.contains(m.get(Locale::Pl, Plain::LoadFailed)));
     }
 
     #[test]
     fn a_shell_without_markers_is_an_error() {
-        assert!(localize_shell("<html></html>", Locale::En, &Messages::load().unwrap()).is_err());
+        assert!(localize_shell(
+            "<html></html>",
+            Locale::En,
+            &Messages::load().unwrap(),
+            &Docs::load().unwrap()
+        )
+        .is_err());
     }
 }

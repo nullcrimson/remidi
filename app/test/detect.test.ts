@@ -1,4 +1,5 @@
-import { detectLocale, sameLanguage } from '../src/lib/detect';
+import { detectLocale } from '../src/lib/detect';
+import { sameLanguage } from '../src/lib/language';
 
 describe('detectLocale', () => {
   it('matches a region tag by its language', () => expect(detectLocale(['pl-PL'])).toBe('pl'));

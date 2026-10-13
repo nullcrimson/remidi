@@ -13,7 +13,7 @@ export interface Translator {
 }
 
 const FTL = import.meta.glob<string>(['../../locales/*/app.ftl', '!../../locales/en/app.ftl'], { query: '?raw', import: 'default' });
-const DOCS = import.meta.glob<Docs>(['./content/docs/*.json', '!./content/docs/en.json'], { import: 'default' });
+const DOCS = import.meta.glob<Docs>(['../../locales/*/docs.json', '!../../locales/en/docs.json'], { import: 'default' });
 
 /** A translator for `ftl`; throws when it fails to parse or lacks one of `ids`. */
 export function makeTranslator(locale: Locale, ftl: string, docs: Docs, ids: readonly string[] = MESSAGE_IDS): Translator {
@@ -44,7 +44,7 @@ export async function loadTranslator(locale: Locale): Promise<Translator> {
   if (locale === 'en') return ENGLISH;
   const [ftl, docs] = await Promise.all([
     FTL[`../../locales/${locale}/app.ftl`](),
-    DOCS[`./content/docs/${locale}.json`](),
+    DOCS[`../../locales/${locale}/docs.json`](),
   ]);
   return makeTranslator(locale, ftl, docs);
 }

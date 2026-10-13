@@ -4,8 +4,9 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 interface LocaleEntry { code: string; prefix: string; langTag: string; nativeName: string; fonts: string | null }
-type Target = { route: 'converter' | 'noteMaps' } | { section: string };
-interface Structure { sections: { key: string; slug: string }[]; nav: Target[]; footer: Target[] }
+type RouteName = 'converter' | 'noteMaps';
+type Target = { route: RouteName } | { section: string };
+interface Structure { routes: Record<RouteName, string>; sections: { key: string; slug: string }[]; nav: Target[]; footer: Target[] }
 interface Sources { locales: LocaleEntry[]; structure: Structure; ftl: string; docs?: Record<string, string[]> }
 
 function variables(pattern: Pattern | null, out: Set<string>): void {
@@ -57,7 +58,9 @@ export type SectionKey = ${union(keys)};
 export const SECTION_KEYS: readonly SectionKey[] = ${JSON.stringify(keys)};
 export const TRANSLATED_SECTIONS: Record<Locale, readonly SectionKey[]> = ${JSON.stringify(Object.fromEntries(s.locales.map((l) => [l.code, s.docs?.[l.code] ?? []])))};
 export const SECTION_SLUGS: Record<SectionKey, string> = ${JSON.stringify(Object.fromEntries(s.structure.sections.map((x) => [x.key, x.slug])))};
-export type NavTarget = { route: 'converter' } | { route: 'noteMaps' } | { section: SectionKey };
+export type RouteName = ${union(Object.keys(s.structure.routes))};
+export const ROUTE_PATHS: Record<RouteName, string> = ${JSON.stringify(s.structure.routes)};
+export type NavTarget = { route: RouteName } | { section: SectionKey };
 export const NAV: NavTarget[] = ${JSON.stringify(s.structure.nav)};
 export const FOOTER: NavTarget[] = ${JSON.stringify(s.structure.footer)};
 
@@ -81,9 +84,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const locales: LocaleEntry[] = JSON.parse(read('locales/locales.json'));
   const out = generate(parseSources({
     locales,
-    structure: JSON.parse(read('app/src/content/structure.json')),
+    structure: JSON.parse(read('content/structure.json')),
     ftl: read('locales/en/app.ftl'),
-    docs: Object.fromEntries(locales.map((l) => [l.code, Object.keys(JSON.parse(read(`app/src/content/docs/${l.code}.json`)))])),
+    docs: Object.fromEntries(locales.map((l) => [l.code, Object.keys(JSON.parse(read(`locales/${l.code}/docs.json`)))])),
   }));
   const dir = join(root, 'app/src/generated');
   mkdirSync(dir, { recursive: true });

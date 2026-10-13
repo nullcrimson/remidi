@@ -2,15 +2,16 @@ use std::borrow::Borrow;
 
 use askama::Template;
 use fluent_bundle::{FluentArgs, FluentValue};
-use midiremap_core::PlanStatus;
 
 use crate::{
     content::{faq_schema, how_to_schema, Block, ContentPage},
-    i18n::{
-        alternates, base, home, href, label, local_href, page_in, Docs, Locale, MessageId,
-        Messages, NavTarget, Page, Plain, SectionKey, FOOTER, NAV, TIP_HREF,
+    i18n::{Docs, I18nError, Locale, MessageId, Messages, Plain, SectionKey, TIP_HREF},
+    manifest::{AnalyticsScript, LocaleScript, SiteManifest},
+    pages::{EnginePage, IndexPage, Landing, PairPage, Site, Tally},
+    routes::{
+        alternates, home, href, label, local_href, og_image_url, page_in, Alternate, LocalPath,
+        NavTarget, Page, SitePath, FOOTER, NAV, NOTE_MAPS, THANKS,
     },
-    pages::{page_file, EnginePage, IndexPage, PairPage, Site, NOTE_MAPS, ORIGIN, THANKS},
 };
 
 const DESCRIPTION_MAX: usize = 155;
@@ -23,13 +24,32 @@ struct Meta {
 
 const TITLE_NAME_MAX: usize = 40;
 
-fn fit(first: &[String], rest: &[String], max: usize) -> String {
-    let Some(mut out) = first.iter().find(|s| s.chars().count() <= max).cloned() else {
-        return first
+/// What stops the static pages from being rendered.
+#[derive(thiserror::Error, Debug)]
+pub enum RenderError {
+    #[error(transparent)]
+    Template(#[from] askama::Error),
+    #[error(transparent)]
+    Message(#[from] I18nError),
+}
+
+fn fit(first: &str, fallbacks: &[String], rest: &[String], max: usize) -> String {
+    let Some(mut out) = std::iter::once(first)
+        .chain(fallbacks.iter().map(String::as_str))
+        .find(|s| s.chars().count() <= max)
+        .map(str::to_owned)
+    else {
+        return fallbacks
             .iter()
-            .min_by_key(|s| s.chars().count())
-            .cloned()
-            .unwrap_or_default();
+            .map(String::as_str)
+            .fold(first, |shortest, s| {
+                if s.chars().count() < shortest.chars().count() {
+                    s
+                } else {
+                    shortest
+                }
+            })
+            .to_owned();
     };
     for sentence in rest {
         if out.chars().count() + 1 + sentence.chars().count() <= max {
@@ -51,59 +71,51 @@ fn args<'a>(pairs: impl IntoIterator<Item = (&'a str, FluentValue<'a>)>) -> Flue
     pairs.into_iter().collect()
 }
 
-fn engine_meta(p: &EnginePage, texts: &Texts) -> Meta {
+fn engine_meta(p: &EnginePage, texts: &Texts) -> Result<Meta, I18nError> {
     let n = p.engine.name.as_str();
     let midi = with_midi(n);
     let title = if n.chars().count() <= TITLE_NAME_MAX {
         texts.format(
             MessageId::MapsEngineTitle,
             args([("engineMidi", midi.as_str().into())]),
-        )
+        )?
     } else {
         texts.format(
             MessageId::MapsEngineTitleLongName,
             args([("engine", n.into())]),
-        )
+        )?
     };
-    Meta {
+    Ok(Meta {
         title,
         description: fit(
-            &[
-                texts.format(
-                    MessageId::MapsEngineDescription,
-                    args([("engine", n.into()), ("total", p.total.into())]),
-                ),
-                texts.format(
-                    MessageId::MapsEngineDescriptionShort,
-                    args([("engine", n.into())]),
-                ),
-            ],
+            &texts.format(
+                MessageId::MapsEngineDescription,
+                args([("engine", n.into()), ("total", p.total.into())]),
+            )?,
+            &[texts.format(
+                MessageId::MapsEngineDescriptionShort,
+                args([("engine", n.into())]),
+            )?],
             &[texts.format(
                 MessageId::MapsEngineDescriptionMore,
                 args([("engineMidi", midi.as_str().into())]),
-            )],
+            )?],
             DESCRIPTION_MAX,
         ),
-        canonical: texts.url(&p.engine.href()),
-    }
+        canonical: p.engine.href().in_locale(texts.locale).url(),
+    })
 }
 
-fn pair_summary(
-    texts: &Texts,
-    src: &str,
-    tgt: &str,
-    total: usize,
-    (exact, approximated, dropped): (usize, usize, usize),
-) -> String {
+fn pair_summary(texts: &Texts, src: &str, tgt: &str, tally: Tally) -> Result<String, I18nError> {
     texts.format(
         MessageId::MapsPairSummary,
         args([
-            ("total", total.into()),
+            ("total", tally.total().into()),
             ("source", src.into()),
-            ("exact", exact.into()),
+            ("exact", tally.exact.into()),
             ("target", tgt.into()),
-            ("approximated", approximated.into()),
-            ("dropped", dropped.into()),
+            ("approximated", tally.approximated.into()),
+            ("dropped", tally.dropped.into()),
         ]),
     )
 }
@@ -113,67 +125,59 @@ fn pair_args<'a>(p: &'a PairPage, midi: &'a str) -> FluentArgs<'a> {
         ("sourceMidi", midi.into()),
         ("source", p.src.name.as_str().into()),
         ("target", p.tgt.name.as_str().into()),
-        ("exact", p.exact.into()),
-        ("approximated", p.approximated.into()),
-        ("dropped", p.dropped.into()),
+        ("exact", p.tally.exact.into()),
+        ("approximated", p.tally.approximated.into()),
+        ("dropped", p.tally.dropped.into()),
     ])
 }
 
-fn pair_heading(p: &PairPage, texts: &Texts) -> String {
+fn pair_heading(p: &PairPage, texts: &Texts) -> Result<String, I18nError> {
     texts.format(
         MessageId::MapsPairHeading,
         pair_args(p, &with_midi(&p.src.name)),
     )
 }
 
-fn pair_meta(p: &PairPage, texts: &Texts) -> Meta {
+fn pair_meta(p: &PairPage, texts: &Texts) -> Result<Meta, I18nError> {
     let midi = with_midi(&p.src.name);
-    Meta {
-        title: texts.format(MessageId::MapsPairTitle, pair_args(p, &midi)),
+    Ok(Meta {
+        title: texts.format(MessageId::MapsPairTitle, pair_args(p, &midi))?,
         description: fit(
-            &[texts.format(MessageId::MapsPairDescription, pair_args(p, &midi))],
+            &texts.format(MessageId::MapsPairDescription, pair_args(p, &midi))?,
+            &[],
             &[texts.get(Plain::MapsPairDescriptionMore).to_owned()],
             DESCRIPTION_MAX,
         ),
-        canonical: texts.url(&p.href()),
-    }
+        canonical: p.href().in_locale(texts.locale).url(),
+    })
 }
 
-fn index_meta(p: &IndexPage, texts: &Texts) -> Meta {
+fn index_meta(p: &IndexPage, texts: &Texts) -> Result<Meta, I18nError> {
     let count = || args([("count", p.all.len().into())]);
-    Meta {
-        title: texts.format(MessageId::MapsIndexTitle, count()),
+    Ok(Meta {
+        title: texts.format(MessageId::MapsIndexTitle, count())?,
         description: fit(
-            &[texts.format(MessageId::MapsIndexDescription, count())],
+            &texts.format(MessageId::MapsIndexDescription, count())?,
+            &[],
             &[],
             DESCRIPTION_MAX,
         ),
-        canonical: texts.url(NOTE_MAPS),
-    }
+        canonical: NOTE_MAPS.in_locale(texts.locale).url(),
+    })
 }
 
-fn content_meta(title: String, description: String, path: &str) -> Meta {
+fn content_meta(title: String, description: String, path: &LocalPath) -> Meta {
     Meta {
         title,
         description,
-        canonical: format!("{ORIGIN}{path}"),
+        canonical: path.url(),
     }
 }
 
 struct NavItem<'a> {
     label: &'a str,
-    href: String,
+    href: LocalPath,
     current: bool,
-}
-
-/// What the static pages take from the app's built `index.html`: its stylesheet, its
-/// content security policy (escaped attribute text), and its analytics beacon and usage
-/// statistics `<script>` elements, written as they are.
-pub struct Shell<'a> {
-    pub css: &'a str,
-    pub csp: &'a str,
-    pub beacon: &'a str,
-    pub stats: &'a str,
 }
 
 struct Texts<'a> {
@@ -187,35 +191,31 @@ impl<'a> Texts<'a> {
         self.messages.get(self.locale, id)
     }
 
-    fn format(&self, id: MessageId, args: FluentArgs) -> String {
+    fn format(&self, id: MessageId, args: FluentArgs) -> Result<String, I18nError> {
         self.messages.format(self.locale, id, &args)
     }
 
-    fn engine(&self, id: MessageId, engine: &str) -> String {
+    fn engine(&self, id: MessageId, engine: &str) -> Result<String, I18nError> {
         self.format(id, args([("engine", engine.into())]))
     }
 
-    fn count(&self, id: MessageId, count: impl Borrow<usize>) -> String {
+    fn count(&self, id: MessageId, count: impl Borrow<usize>) -> Result<String, I18nError> {
         self.format(id, args([("count", (*count.borrow()).into())]))
     }
 
-    fn pair(&self, id: MessageId, source: &str, target: &str) -> String {
+    fn pair(&self, id: MessageId, source: &str, target: &str) -> Result<String, I18nError> {
         self.format(
             id,
             args([("source", source.into()), ("target", target.into())]),
         )
     }
 
-    fn path(&self, english: &str) -> String {
-        format!("{}{english}", base(self.locale))
+    fn path(&self, english: SitePath) -> LocalPath {
+        english.in_locale(self.locale)
     }
 
-    fn link(&self, english: &str) -> String {
+    fn link(&self, english: &str) -> LocalPath {
         local_href(english, self.locale, self.docs)
-    }
-
-    fn url(&self, english: &str) -> String {
-        format!("{ORIGIN}{}", self.path(english))
     }
 
     fn links(&self, targets: &[NavTarget], current: Option<NavTarget>) -> Vec<NavItem<'a>> {
@@ -234,29 +234,30 @@ struct LangItem {
     name: &'static str,
     tag: &'static str,
     code: &'static str,
-    href: String,
+    href: LocalPath,
     current: bool,
 }
 
 struct Offer<'a> {
     code: &'static str,
     tag: &'static str,
-    href: String,
+    href: LocalPath,
     text: &'a str,
 }
 
 struct Frame<'a> {
     lang: &'static str,
+    og_image: String,
     code: String,
     menu_label: &'a str,
     dismiss: &'a str,
     languages: Vec<LangItem>,
     offers: Vec<Offer<'a>>,
-    alternates: Vec<(&'static str, String)>,
+    alternates: Vec<Alternate>,
     css: &'a str,
     csp: &'a str,
-    beacon: &'a str,
-    stats: &'a str,
+    analytics: &'a [AnalyticsScript],
+    locale_script: &'a LocaleScript,
     skip: &'a str,
     nav_main: &'a str,
     nav_site: &'a str,
@@ -264,23 +265,23 @@ struct Frame<'a> {
     footer: Vec<NavItem<'a>>,
     tip: &'a str,
     tip_href: &'static str,
-    home: String,
+    home: LocalPath,
     open_converter: &'a str,
     json_ld: Option<String>,
 }
 
 impl<'a> Frame<'a> {
     fn new(
-        shell: &Shell<'a>,
+        manifest: &'a SiteManifest,
         texts: &Texts<'a>,
         current: Option<NavTarget>,
         json_ld: Option<String>,
         page: &Page,
     ) -> Self {
         let here = texts.locale;
-        let versions = alternates(page, texts.docs);
         Self {
             lang: here.lang_tag(),
+            og_image: og_image_url(),
             code: here.code().to_uppercase(),
             menu_label: texts.get(Plain::LangMenuLabel),
             dismiss: texts.get(Plain::NoticeDismiss),
@@ -296,22 +297,21 @@ impl<'a> Frame<'a> {
                 .collect(),
             offers: Locale::ALL
                 .iter()
-                .filter(|&&l| l != here && versions.iter().any(|(tag, _)| *tag == l.lang_tag()))
-                .map(|&l| Offer {
-                    code: l.code(),
-                    tag: l.lang_tag(),
-                    href: page_in(page, l, texts.docs),
-                    text: texts.messages.get(l, Plain::LangOffer),
+                .filter(|&&l| l != here)
+                .filter_map(|&l| {
+                    page.in_locale(l, texts.docs).map(|href| Offer {
+                        code: l.code(),
+                        tag: l.lang_tag(),
+                        href,
+                        text: texts.messages.get(l, Plain::LangOffer),
+                    })
                 })
                 .collect(),
-            alternates: versions
-                .into_iter()
-                .map(|(tag, path)| (tag, format!("{ORIGIN}{path}")))
-                .collect(),
-            css: shell.css,
-            csp: shell.csp,
-            beacon: shell.beacon,
-            stats: shell.stats,
+            alternates: alternates(page, texts.docs),
+            css: &manifest.stylesheet,
+            csp: &manifest.content_security_policy,
+            analytics: &manifest.analytics,
+            locale_script: &manifest.locale_script,
             skip: texts.get(Plain::SkipToContent),
             nav_main: texts.get(Plain::NavMain),
             nav_site: texts.get(Plain::NavSite),
@@ -387,10 +387,10 @@ struct ThanksHtml<'a> {
 /// locale's translated sections and its thank-you page.
 pub fn render_site(
     site: &Site,
-    shell: &Shell,
+    manifest: &SiteManifest,
     messages: &Messages,
     docs: &Docs,
-) -> Result<Vec<(String, String)>, askama::Error> {
+) -> Result<Vec<(String, String)>, RenderError> {
     let mut out = vec![];
     for &locale in Locale::ALL {
         let texts = Texts {
@@ -398,38 +398,42 @@ pub fn render_site(
             docs,
             locale,
         };
-        out.extend(render_note_maps(site, shell, &texts)?);
-        out.extend(render_sections(shell, &texts)?);
-        out.push(render_thanks(shell, &texts)?);
+        out.extend(render_note_maps(site, manifest, &texts)?);
+        out.extend(render_sections(manifest, &texts)?);
+        out.push(render_thanks(manifest, &texts)?);
     }
     Ok(out)
 }
 
-fn render_thanks(shell: &Shell, texts: &Texts) -> Result<(String, String), askama::Error> {
-    let path = texts.path(THANKS);
+fn render_thanks(
+    manifest: &SiteManifest,
+    texts: &Texts,
+) -> Result<(String, String), askama::Error> {
+    let path = THANKS.in_locale(texts.locale);
     let html = ThanksHtml {
         meta: content_meta(
             texts.get(Plain::ThanksTitle).to_owned(),
             texts.get(Plain::ThanksDescription).to_owned(),
             &path,
         ),
-        frame: Frame::new(shell, texts, None, None, &Page::Everywhere(THANKS)),
+        frame: Frame::new(manifest, texts, None, None, &Page::Everywhere(THANKS)),
         texts,
     }
     .render()?;
-    Ok((page_file(&path), html))
+    Ok((path.file(), html))
 }
 
 fn render_note_maps(
     site: &Site,
-    shell: &Shell,
+    manifest: &SiteManifest,
     texts: &Texts,
-) -> Result<Vec<(String, String)>, askama::Error> {
-    let frame = |path: &str| Frame::new(shell, texts, IN_NOTE_MAPS, None, &Page::Everywhere(path));
+) -> Result<Vec<(String, String)>, RenderError> {
+    let frame =
+        |path: SitePath| Frame::new(manifest, texts, IN_NOTE_MAPS, None, &Page::Everywhere(path));
     let mut out = vec![(
-        page_file(&texts.path(NOTE_MAPS)),
+        NOTE_MAPS.in_locale(texts.locale).file(),
         IndexHtml {
-            meta: index_meta(&site.index, texts),
+            meta: index_meta(&site.index, texts)?,
             frame: frame(NOTE_MAPS),
             texts,
             page: &site.index,
@@ -439,10 +443,10 @@ fn render_note_maps(
     for p in &site.engines {
         let path = p.engine.href();
         out.push((
-            page_file(&texts.path(&path)),
+            path.in_locale(texts.locale).file(),
             EngineHtml {
-                meta: engine_meta(p, texts),
-                frame: frame(&path),
+                meta: engine_meta(p, texts)?,
+                frame: frame(path),
                 texts,
                 intro: texts.format(
                     MessageId::MapsEngineIntro,
@@ -450,7 +454,7 @@ fn render_note_maps(
                         ("engine", p.engine.name.as_str().into()),
                         ("total", p.total.into()),
                     ]),
-                ),
+                )?,
                 page: p,
             }
             .render()?,
@@ -459,19 +463,13 @@ fn render_note_maps(
     for p in &site.pairs {
         let path = p.href();
         out.push((
-            page_file(&texts.path(&path)),
+            path.in_locale(texts.locale).file(),
             PairHtml {
-                meta: pair_meta(p, texts),
-                frame: frame(&path),
+                meta: pair_meta(p, texts)?,
+                frame: frame(path),
                 texts,
-                heading: pair_heading(p, texts),
-                summary: pair_summary(
-                    texts,
-                    &p.src.name,
-                    &p.tgt.name,
-                    p.rows.len(),
-                    (p.exact, p.approximated, p.dropped),
-                ),
+                heading: pair_heading(p, texts)?,
+                summary: pair_summary(texts, &p.src.name, &p.tgt.name, p.tally)?,
                 page: p,
             }
             .render()?,
@@ -480,7 +478,10 @@ fn render_note_maps(
     Ok(out)
 }
 
-fn render_sections(shell: &Shell, texts: &Texts) -> Result<Vec<(String, String)>, askama::Error> {
+fn render_sections(
+    manifest: &SiteManifest,
+    texts: &Texts,
+) -> Result<Vec<(String, String)>, askama::Error> {
     let mut out = vec![];
     for &k in SectionKey::ALL {
         let Some(blocks) = texts.docs.blocks(texts.locale, k) else {
@@ -493,7 +494,7 @@ fn render_sections(shell: &Shell, texts: &Texts) -> Result<Vec<(String, String)>
             blocks,
         };
         out.push((
-            page_file(&path),
+            path.file(),
             ContentHtml {
                 meta: content_meta(
                     texts.get(k.title()).to_owned(),
@@ -501,7 +502,7 @@ fn render_sections(shell: &Shell, texts: &Texts) -> Result<Vec<(String, String)>
                     &path,
                 ),
                 frame: Frame::new(
-                    shell,
+                    manifest,
                     texts,
                     Some(target),
                     section_schema(k, &page),
@@ -525,6 +526,8 @@ mod tests {
     use super::*;
     use crate::pages::Site;
 
+    const ORIGIN: &str = "https://drumverter.com";
+
     const STATIC_ASSETS: [&str; 6] = [
         "/favicon.ico",
         "/favicon-32x32.png",
@@ -534,19 +537,45 @@ mod tests {
         "/site.webmanifest",
     ];
 
-    const SHELL: Shell = Shell {
-        css: "/assets/index-test.css",
-        csp: "default-src &#39;self&#39;",
-        beacon: r#"<script defer src="https://static.cloudflareinsights.com/beacon.min.js"></script>"#,
-        stats: r#"<script defer src="https://cloud.umami.is/script.js" data-website-id="w"></script>"#,
-    };
+    const BEACON_TAG: &str = r#"<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon="{&#34;token&#34;: &#34;t&#34;}"></script>"#;
+    const STATS_TAG: &str = r#"<script defer src="https://cloud.umami.is/script.js" data-domains="example.com" data-website-id="w"></script>"#;
+
+    const LOCALE_TAG: &str = r#"<script type="module" src="/assets/site-locale-test.js"></script>"#;
+    const PRELOAD_TAG: &str = r#"<link rel="modulepreload" href="/assets/storage-test.js" />"#;
+
+    fn manifest() -> SiteManifest {
+        let attrs = |pairs: &[(&str, &str)]| {
+            pairs
+                .iter()
+                .map(|&(name, value)| (name.to_owned(), value.to_owned()))
+                .collect()
+        };
+        SiteManifest {
+            stylesheet: "/assets/index-test.css".to_owned(),
+            content_security_policy: "default-src 'self'".to_owned(),
+            analytics: vec![
+                AnalyticsScript {
+                    src: "https://static.cloudflareinsights.com/beacon.min.js".to_owned(),
+                    attrs: attrs(&[("data-cf-beacon", r#"{"token": "t"}"#)]),
+                },
+                AnalyticsScript {
+                    src: "https://cloud.umami.is/script.js".to_owned(),
+                    attrs: attrs(&[("data-website-id", "w"), ("data-domains", "example.com")]),
+                },
+            ],
+            locale_script: LocaleScript {
+                src: "/assets/site-locale-test.js".to_owned(),
+                preload: vec!["/assets/storage-test.js".to_owned()],
+            },
+        }
+    }
 
     fn rendered() -> Vec<(String, String)> {
         let messages = Messages::load().unwrap();
         let docs = Docs::load().unwrap();
         render_site(
             &Site::build(&Catalog::builtin().unwrap()).unwrap(),
-            &SHELL,
+            &manifest(),
             &messages,
             &docs,
         )
@@ -554,7 +583,7 @@ mod tests {
     }
 
     #[test]
-    fn every_page_carries_the_shell_from_the_index() {
+    fn every_page_carries_the_policy_and_analytics_from_the_manifest() {
         for (path, html) in rendered() {
             let head = html.split("</head>").next().unwrap();
             assert!(
@@ -563,8 +592,8 @@ mod tests {
                 ),
                 "{path}"
             );
-            assert_eq!(html.matches(SHELL.beacon).count(), 1, "{path}");
-            assert_eq!(html.matches(SHELL.stats).count(), 1, "{path}");
+            assert_eq!(html.matches(BEACON_TAG).count(), 1, "{path}");
+            assert_eq!(html.matches(STATS_TAG).count(), 1, "{path}");
         }
     }
 
@@ -592,10 +621,8 @@ mod tests {
     #[test]
     fn every_static_page_loads_the_locale_script() {
         for (path, html) in rendered() {
-            assert!(
-                html.contains(r#"<script src="/locale.js" defer></script>"#),
-                "{path}"
-            );
+            assert_eq!(html.matches(LOCALE_TAG).count(), 1, "{path}");
+            assert_eq!(html.matches(PRELOAD_TAG).count(), 1, "{path}");
         }
     }
 
@@ -619,7 +646,10 @@ mod tests {
     fn every_page_links_the_app_stylesheet_and_no_inline_styles() {
         for (path, html) in rendered() {
             assert!(
-                html.contains(&format!(r#"<link rel="stylesheet" href="{}""#, SHELL.css)),
+                html.contains(&format!(
+                    r#"<link rel="stylesheet" href="{}""#,
+                    manifest().stylesheet
+                )),
                 "{path}"
             );
             assert!(
@@ -640,8 +670,9 @@ mod tests {
             include_str!("../templates/filter.html"),
             include_str!("../templates/lang_menu.html"),
             include_str!("../templates/lang_offer.html"),
+            include_str!("../templates/macros.html"),
+            include_str!("../templates/icons.html"),
             include_str!("../static/filter.js"),
-            include_str!("../static/locale.js"),
         ];
         for t in templates {
             for banned in ["text-[", "rounded-[", "text-t6", "style=", "<style"] {
@@ -747,7 +778,7 @@ mod tests {
     fn the_thanks_page_is_in_every_locale_and_kept_out_of_search() {
         let pages = rendered();
         for &l in Locale::ALL {
-            let file = page_file(&format!("{}{THANKS}", base(l)));
+            let file = THANKS.in_locale(l).file();
             let (_, html) = pages
                 .iter()
                 .find(|(p, _)| *p == file)
@@ -813,7 +844,7 @@ mod tests {
     fn a_description_longer_than_a_snippet_stays_whole() {
         let long = "A whole sentence well past the limit.".to_owned();
         let longer = format!("{long} And another one.");
-        assert_eq!(fit(&[longer, long.clone()], &[], 10), long);
+        assert_eq!(fit(&longer, std::slice::from_ref(&long), &[], 10), long);
     }
 
     fn in_locale<R>(locale: Locale, f: impl FnOnce(&Texts) -> R) -> R {
@@ -830,7 +861,7 @@ mod tests {
     fn engine_titles_lead_with_the_keyword() {
         let site = Site::build(&Catalog::builtin().unwrap()).unwrap();
         for p in &site.engines {
-            let title = in_locale(Locale::En, |t| engine_meta(p, t).title);
+            let title = in_locale(Locale::En, |t| engine_meta(p, t).unwrap().title);
             let head: String = title.chars().take(60).collect();
             assert!(head.contains("MIDI Note Map"), "{title}");
         }
@@ -844,9 +875,15 @@ mod tests {
                 let descriptions = site
                     .engines
                     .iter()
-                    .map(|p| engine_meta(p, t).description)
-                    .chain(site.pairs.iter().map(|p| pair_meta(p, t).description))
-                    .chain(std::iter::once(index_meta(&site.index, t).description));
+                    .map(|p| engine_meta(p, t).unwrap().description)
+                    .chain(
+                        site.pairs
+                            .iter()
+                            .map(|p| pair_meta(p, t).unwrap().description),
+                    )
+                    .chain(std::iter::once(
+                        index_meta(&site.index, t).unwrap().description,
+                    ));
                 for d in descriptions {
                     assert!(d.ends_with(['.', '。']), "{d}");
                 }
@@ -878,8 +915,9 @@ mod tests {
     fn every_internal_link_resolves() {
         let pages = rendered();
         let mut known: HashSet<String> = pages.iter().map(|(p, _)| url_of(p)).collect();
-        known.extend(Locale::ALL.iter().map(|&l| home(l)));
-        known.insert(SHELL.css.to_string());
+        known.extend(Locale::ALL.iter().map(|&l| home(l).to_string()));
+        known.insert(manifest().stylesheet);
+        known.extend(manifest().locale_script.preload);
         known.extend(STATIC_ASSETS.iter().map(|s| s.to_string()));
         for (path, html) in &pages {
             for href in html
@@ -898,13 +936,25 @@ mod tests {
     #[test]
     fn pair_summary_agrees_in_number() {
         let summary =
-            |total, counts| in_locale(Locale::En, |t| pair_summary(t, "A", "B", total, counts));
+            |counts| in_locale(Locale::En, |t| pair_summary(t, "A", "B", counts).unwrap());
         assert_eq!(
-            summary(3, (1, 1, 1)),
+            summary(
+                Tally {
+                    exact: 1,
+                    approximated: 1,
+                    dropped: 1
+                }
+            ),
             "Of 3 A notes, 1 maps exactly to B, 1 is approximated with the closest available drum, and 1 has no equivalent."
         );
         assert_eq!(
-            summary(5, (2, 0, 3)),
+            summary(
+                Tally {
+                    exact: 2,
+                    approximated: 0,
+                    dropped: 3
+                }
+            ),
             "Of 5 A notes, 2 map exactly to B, 0 are approximated with the closest available drum, and 3 have no equivalent."
         );
     }
@@ -973,9 +1023,12 @@ mod tests {
             assert!(site
                 .engines
                 .iter()
-                .all(|p| fits(engine_meta(p, t).description)));
-            assert!(site.pairs.iter().all(|p| fits(pair_meta(p, t).description)));
-            assert!(fits(index_meta(&site.index, t).description));
+                .all(|p| fits(engine_meta(p, t).unwrap().description)));
+            assert!(site
+                .pairs
+                .iter()
+                .all(|p| fits(pair_meta(p, t).unwrap().description)));
+            assert!(fits(index_meta(&site.index, t).unwrap().description));
         });
     }
 
@@ -1015,7 +1068,10 @@ mod tests {
     fn polish(id: MessageId, arg: (&str, &str)) -> String {
         let mut args = FluentArgs::new();
         args.set(arg.0, arg.1);
-        Messages::load().unwrap().format(Locale::Pl, id, &args)
+        Messages::load()
+            .unwrap()
+            .format(Locale::Pl, id, &args)
+            .unwrap()
     }
 
     #[test]

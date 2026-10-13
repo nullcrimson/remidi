@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { href, sectionBlocks, targetLabel } from '../content/site';
-import tip from '../content/tip.json';
+import tip from '../../../content/tip.json';
 import { FOOTER, SECTION_KEYS, SECTION_MESSAGES, type SectionKey } from '../generated/i18n';
 import { useLocale } from '../localeContext';
 import { plainClick } from '../lib/plainClick';

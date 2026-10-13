@@ -1,23 +1,19 @@
 use std::collections::{BTreeMap, HashSet};
 
 use midiremap_core::{
-    Canon, Catalog, Drum, EngineMap, Family, Mapping, MissingDrums, Note, OctaveBase, Overrides,
-    PlanStatus,
+    Canon, CanonResolution, Catalog, Drum, EngineMap, Family, Mapping, MissingDrums, Note,
+    OctaveBase, Overrides,
 };
 
-use crate::SiteError;
+use crate::routes::{engine_href, pair_href, SitePath};
 
-pub const ORIGIN: &str = "https://drumverter.com";
-
-/// The note-map index page, and the folder every engine page lives in.
-pub const NOTE_MAPS: &str = "/engines/";
-
-/// Where Stripe sends a visitor back after a tip.
-pub const THANKS: &str = "/thanks/";
-
-/// The file a page's address is served from, relative to the site root.
-pub fn page_file(path: &str) -> String {
-    format!("{}index.html", path.trim_start_matches('/'))
+/// What stops the site's pages from being planned.
+#[derive(thiserror::Error, Debug)]
+pub enum BuildError {
+    #[error("unknown engine id: {0}")]
+    UnknownEngine(String),
+    #[error("slug collision: {0}")]
+    SlugCollision(String),
 }
 
 /// The popular engines that get pair pages, with their column label in the index matrix.
@@ -59,8 +55,8 @@ impl EngineLink {
         }
     }
 
-    pub fn href(&self) -> String {
-        format!("{NOTE_MAPS}{}/", self.slug)
+    pub fn href(&self) -> SitePath {
+        engine_href(&self.slug)
     }
 
     /// Lower-case text the index filter matches against.
@@ -88,28 +84,34 @@ impl PairLink {
         }
     }
 
-    pub fn href(&self) -> String {
+    pub fn href(&self) -> SitePath {
         pair_href(&self.slug)
     }
 }
 
-fn pair_href(slug: &str) -> String {
-    format!("/convert/{slug}/")
-}
-
-pub struct EngineRow {
-    pub note: u8,
-    pub name_c1: String,
-    pub name_c2: String,
+/// A drum on a note, as a table cell shows it.
+pub struct NoteCell {
+    pub note: Note,
     pub drum: String,
 }
 
-impl EngineRow {
+impl NoteCell {
+    pub fn name_c1(&self) -> String {
+        self.note.name(OctaveBase::C1)
+    }
+
+    pub fn name_c2(&self) -> String {
+        self.note.name(OctaveBase::C2)
+    }
+
     /// Lower-case text the engine page filter matches against.
     pub fn search(&self) -> String {
         format!(
             "{} {} {} {}",
-            self.note, self.name_c1, self.name_c2, self.drum
+            self.note,
+            self.name_c1(),
+            self.name_c2(),
+            self.drum
         )
         .to_lowercase()
     }
@@ -117,43 +119,78 @@ impl EngineRow {
 
 pub struct FamilyGroup {
     pub name: &'static str,
-    pub rows: Vec<EngineRow>,
+    pub rows: Vec<NoteCell>,
 }
 
-pub struct Target {
-    pub note: u8,
-    pub name_c1: String,
-    pub name_c2: String,
-    pub drum: String,
+/// Where a source note lands on the target, as the core decides it.
+pub enum Landing {
+    Exact(NoteCell),
+    Approximated(NoteCell),
+    Dropped,
 }
 
-pub struct PairRow {
-    pub note: u8,
-    pub name_c1: String,
-    pub name_c2: String,
-    pub drum: String,
-    /// How the note converts, as the core decides it.
-    pub status: PlanStatus,
-    /// Where the note lands; `None` when it is dropped.
-    pub target: Option<Target>,
-}
-
-impl PairRow {
-    /// The word the page shows for the status.
+impl Landing {
+    /// The word the page shows for the outcome.
     pub fn label(&self) -> &'static str {
-        match self.status {
-            PlanStatus::Direct => "exact",
-            PlanStatus::Fallback => "approximated",
-            PlanStatus::Dropped => "dropped",
+        match self {
+            Landing::Exact(_) => "exact",
+            Landing::Approximated(_) => "approximated",
+            Landing::Dropped => "dropped",
         }
     }
 
-    fn rank(&self) -> u8 {
-        match self.status {
-            PlanStatus::Dropped => 0,
-            PlanStatus::Fallback => 1,
-            PlanStatus::Direct => 2,
+    /// Where the note lands; `None` when it is dropped.
+    pub fn target(&self) -> Option<&NoteCell> {
+        match self {
+            Landing::Exact(cell) | Landing::Approximated(cell) => Some(cell),
+            Landing::Dropped => None,
         }
+    }
+}
+
+pub struct PairRow {
+    pub source: NoteCell,
+    pub landing: Landing,
+}
+
+impl PairRow {
+    fn rank(&self) -> u8 {
+        match self.landing {
+            Landing::Dropped => 0,
+            Landing::Approximated(_) => 1,
+            Landing::Exact(_) => 2,
+        }
+    }
+}
+
+/// How many of a pair's notes land exactly, approximately, or nowhere.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Tally {
+    pub exact: usize,
+    pub approximated: usize,
+    pub dropped: usize,
+}
+
+impl Tally {
+    fn of(rows: &[PairRow]) -> Self {
+        rows.iter().fold(Self::default(), |mut tally, row| {
+            match row.landing {
+                Landing::Exact(_) => tally.exact += 1,
+                Landing::Approximated(_) => tally.approximated += 1,
+                Landing::Dropped => tally.dropped += 1,
+            }
+            tally
+        })
+    }
+
+    /// All the pair's notes.
+    pub fn total(&self) -> usize {
+        self.exact + self.approximated + self.dropped
+    }
+
+    /// Notes that do not land on their exact equivalent.
+    pub fn changes(&self) -> usize {
+        self.approximated + self.dropped
     }
 }
 
@@ -170,21 +207,14 @@ pub struct PairPage {
     pub src: EngineLink,
     pub tgt: EngineLink,
     pub rows: Vec<PairRow>,
-    pub exact: usize,
-    pub approximated: usize,
-    pub dropped: usize,
+    pub tally: Tally,
     pub reverse: PairLink,
     pub siblings: Vec<PairLink>,
 }
 
 impl PairPage {
-    pub fn href(&self) -> String {
+    pub fn href(&self) -> SitePath {
         pair_href(&self.slug)
-    }
-
-    /// Rows whose drum does not land on its exact equivalent.
-    pub fn changes(&self) -> usize {
-        self.approximated + self.dropped
     }
 }
 
@@ -193,10 +223,9 @@ pub struct MatrixRow {
     pub cells: Vec<Option<PairLink>>,
 }
 
-/// Engines grouped under their vendor, or under no vendor for the ones whose vendor makes
-/// no other engine.
+/// Engines of a vendor that makes at least two of them.
 pub struct VendorGroup {
-    pub name: Option<String>,
+    pub name: String,
     pub engines: Vec<EngineLink>,
 }
 
@@ -204,6 +233,8 @@ pub struct IndexPage {
     pub columns: Vec<&'static str>,
     pub matrix: Vec<MatrixRow>,
     pub vendors: Vec<VendorGroup>,
+    /// The engines without a vendor group: no vendor, or a vendor that makes no other engine.
+    pub more: Vec<EngineLink>,
     pub all: Vec<EngineLink>,
 }
 
@@ -213,18 +244,23 @@ pub struct Site {
     pub pairs: Vec<PairPage>,
 }
 
-fn lookup<'a>(catalog: &'a Catalog, id: &str) -> Result<&'a EngineMap, SiteError> {
+fn lookup<'a>(catalog: &'a Catalog, id: &str) -> Result<&'a EngineMap, BuildError> {
     catalog
         .get(id)
-        .ok_or_else(|| SiteError::UnknownEngine(id.to_string()))
+        .ok_or_else(|| BuildError::UnknownEngine(id.to_string()))
 }
 
-fn target(drum: Canon, note: Note) -> Target {
-    Target {
-        note: note.get(),
-        name_c1: note.name(OctaveBase::C1),
-        name_c2: note.name(OctaveBase::C2),
+fn landing(resolution: CanonResolution) -> Landing {
+    let cell = |drum: Canon, note| NoteCell {
+        note,
         drum: drum.label(),
+    };
+    match resolution {
+        CanonResolution::Direct { canon, note } => Landing::Exact(cell(canon, note)),
+        CanonResolution::Fallback { stand_in, note, .. } => {
+            Landing::Approximated(cell(stand_in, note))
+        }
+        CanonResolution::Dropped { .. } => Landing::Dropped,
     }
 }
 
@@ -233,32 +269,25 @@ fn pair_rows(src: &EngineMap, tgt: &EngineMap) -> Vec<PairRow> {
     let mut rows: Vec<PairRow> = src
         .source_notes()
         .into_iter()
-        .map(|d| {
-            let resolution = mapping.resolve_canon(d.canon);
-            PairRow {
-                note: d.note.get(),
-                name_c1: d.note.name(OctaveBase::C1),
-                name_c2: d.note.name(OctaveBase::C2),
+        .map(|d| PairRow {
+            landing: landing(mapping.resolve_canon(d.canon)),
+            source: NoteCell {
+                note: d.note,
                 drum: d.label,
-                status: PlanStatus::from(&resolution),
-                target: resolution.played().map(|(drum, note)| target(drum, note)),
-            }
+            },
         })
         .collect();
-    rows.sort_by_key(|r| (r.rank(), r.note));
+    rows.sort_by_key(|r| (r.rank(), r.source.note));
     rows
 }
 
 fn pair_page(src: &EngineMap, tgt: &EngineMap, majors: &[&EngineMap]) -> PairPage {
     let rows = pair_rows(src, tgt);
-    let count = |rank: u8| rows.iter().filter(|r| r.rank() == rank).count();
     PairPage {
         slug: pair_slug(src.id(), tgt.id()),
         src: EngineLink::of(src),
         tgt: EngineLink::of(tgt),
-        dropped: count(0),
-        approximated: count(1),
-        exact: count(2),
+        tally: Tally::of(&rows),
         rows,
         reverse: PairLink::of(tgt, src),
         siblings: majors
@@ -271,10 +300,8 @@ fn pair_page(src: &EngineMap, tgt: &EngineMap, majors: &[&EngineMap]) -> PairPag
 
 fn family_groups(map: &EngineMap) -> Vec<FamilyGroup> {
     let notes = map.source_notes();
-    let row = |d: &Drum| EngineRow {
-        note: d.note.get(),
-        name_c1: d.note.name(OctaveBase::C1),
-        name_c2: d.note.name(OctaveBase::C2),
+    let row = |d: &Drum| NoteCell {
+        note: d.note,
         drum: d.label.clone(),
     };
     Family::ALL
@@ -310,7 +337,7 @@ fn sort_by_name(maps: &mut [&EngineMap]) {
     maps.sort_by_cached_key(|m| (m.display_name().to_lowercase(), m.id().to_owned()));
 }
 
-fn vendor_groups(maps: &[&EngineMap]) -> Vec<VendorGroup> {
+fn vendor_groups(maps: &[&EngineMap]) -> (Vec<VendorGroup>, Vec<EngineLink>) {
     let mut by_vendor: BTreeMap<(String, String), Vec<EngineLink>> = BTreeMap::new();
     let mut more = Vec::new();
     for m in maps {
@@ -326,24 +353,17 @@ fn vendor_groups(maps: &[&EngineMap]) -> Vec<VendorGroup> {
     let mut groups = Vec::new();
     for ((_, name), engines) in by_vendor {
         if engines.len() >= 2 {
-            groups.push(VendorGroup {
-                name: Some(name),
-                engines,
-            });
+            groups.push(VendorGroup { name, engines });
         } else {
             more.extend(engines);
         }
     }
     more.sort_by_cached_key(|e| (e.name.to_lowercase(), e.id.clone()));
-    groups.push(VendorGroup {
-        name: None,
-        engines: more,
-    });
-    groups
+    (groups, more)
 }
 
 impl Site {
-    pub fn build(catalog: &Catalog) -> Result<Site, SiteError> {
+    pub fn build(catalog: &Catalog) -> Result<Site, BuildError> {
         let majors = MAJORS
             .iter()
             .map(|(id, _)| lookup(catalog, id))
@@ -361,7 +381,7 @@ impl Site {
         for m in &maps {
             let s = slug(m.id());
             if !seen.insert(s.clone()) {
-                return Err(SiteError::SlugCollision(s));
+                return Err(BuildError::SlugCollision(s));
             }
         }
 
@@ -376,6 +396,7 @@ impl Site {
             })
             .map(|(s, t)| pair_page(s, t, &majors))
             .collect();
+        let (vendors, more) = vendor_groups(&maps);
         let index = IndexPage {
             columns: MAJORS.iter().map(|(_, abbr)| *abbr).collect(),
             matrix: majors
@@ -388,7 +409,8 @@ impl Site {
                         .collect(),
                 })
                 .collect(),
-            vendors: vendor_groups(&maps),
+            vendors,
+            more,
             all: maps.iter().map(|m| EngineLink::of(m)).collect(),
         };
         Ok(Site {
@@ -460,7 +482,11 @@ mod tests {
     #[test]
     fn pair_rows_put_changes_first() {
         for p in site().pairs {
-            let keys: Vec<(u8, u8)> = p.rows.iter().map(|r| (r.rank(), r.note)).collect();
+            let keys: Vec<(u8, u8)> = p
+                .rows
+                .iter()
+                .map(|r| (r.rank(), r.source.note.get()))
+                .collect();
             let mut sorted = keys.clone();
             sorted.sort_unstable();
             assert_eq!(keys, sorted, "{}", p.slug);
@@ -502,41 +528,110 @@ mod tests {
         assert_eq!(slugs.len(), 56);
     }
 
+    fn listed_engines(s: &Site) -> Vec<&str> {
+        s.index
+            .vendors
+            .iter()
+            .flat_map(|g| g.engines.iter())
+            .chain(&s.index.more)
+            .map(|e| e.id.as_str())
+            .collect()
+    }
+
     #[test]
-    fn vendor_groups_list_every_engine_once_with_singletons_last() {
+    fn vendor_groups_and_more_list_every_engine_once() {
         let s = site();
-        let listed: Vec<&str> = s
+        let listed = listed_engines(&s);
+        assert_eq!(listed.len(), s.index.all.len());
+        assert_eq!(listed.iter().collect::<HashSet<_>>().len(), listed.len());
+    }
+
+    #[test]
+    fn every_vendor_group_has_two_or_more_engines() {
+        assert!(site().index.vendors.iter().all(|g| g.engines.len() >= 2));
+    }
+
+    #[test]
+    fn more_holds_no_engine_of_a_grouped_vendor() {
+        let s = site();
+        assert!(s
+            .index
+            .more
+            .iter()
+            .all(|e| e.vendor.as_ref().is_none_or(|v| s
+                .index
+                .vendors
+                .iter()
+                .all(|g| &g.name != v))));
+    }
+
+    #[test]
+    fn toontrack_is_a_vendor_group_of_three_engines() {
+        let s = site();
+        let toontrack = s
             .index
             .vendors
             .iter()
-            .flat_map(|g| g.engines.iter().map(|e| e.id.as_str()))
-            .collect();
-        assert_eq!(listed.len(), s.index.all.len());
-        assert_eq!(listed.iter().collect::<HashSet<_>>().len(), listed.len());
-        let (last, named) = s.index.vendors.split_last().unwrap();
-        assert_eq!(last.name, None);
-        assert!(named
-            .iter()
-            .all(|g| g.engines.len() >= 2 && g.name.is_some()));
-        let toontrack = named
-            .iter()
-            .find(|g| g.name.as_deref() == Some("Toontrack"))
+            .find(|g| g.name == "Toontrack")
             .unwrap();
         assert_eq!(toontrack.engines.len(), 3);
-        let vendors: Vec<String> = named
+    }
+
+    #[test]
+    fn vendor_groups_are_sorted_by_vendor_name() {
+        let vendors: Vec<String> = site()
+            .index
+            .vendors
             .iter()
-            .filter_map(|g| g.name.as_deref())
-            .map(str::to_lowercase)
+            .map(|g| g.name.to_lowercase())
             .collect();
         let mut sorted = vendors.clone();
         sorted.sort();
         assert_eq!(vendors, sorted);
     }
 
+    fn cell(note: u8) -> NoteCell {
+        NoteCell {
+            note: Note::new(note).unwrap(),
+            drum: String::new(),
+        }
+    }
+
     #[test]
-    fn counts_add_up_and_siblings_exclude_self() {
+    fn a_tally_counts_each_landing_in_its_own_field() {
+        let rows = [
+            Landing::Exact(cell(36)),
+            Landing::Approximated(cell(38)),
+            Landing::Dropped,
+            Landing::Dropped,
+        ]
+        .map(|landing| PairRow {
+            source: cell(40),
+            landing,
+        });
+        assert_eq!(
+            Tally::of(&rows),
+            Tally {
+                exact: 1,
+                approximated: 1,
+                dropped: 2
+            }
+        );
+    }
+
+    #[test]
+    fn a_tallys_total_is_the_sum_of_its_counts() {
+        let tally = Tally {
+            exact: 1,
+            approximated: 2,
+            dropped: 4,
+        };
+        assert_eq!(tally.total(), 7);
+    }
+
+    #[test]
+    fn siblings_exclude_the_pair_itself() {
         for p in site().pairs {
-            assert_eq!(p.exact + p.approximated + p.dropped, p.rows.len());
             assert_eq!(p.siblings.len(), 6);
             assert!(p.siblings.iter().all(|l| l.slug != p.slug));
         }
@@ -550,17 +645,20 @@ mod tests {
             let (src, tgt) = (by_id[p.src.id.as_str()], by_id[p.tgt.id.as_str()]);
             for row in &p.rows {
                 let out = convert(
-                    &drums(&[(10, on(row.note)), (10, off(row.note))]),
+                    &drums(&[
+                        (10, on(row.source.note.get())),
+                        (10, off(row.source.note.get())),
+                    ]),
                     &Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest),
                     ChannelScope::Auto,
                 )
                 .unwrap();
                 assert_eq!(
                     hit_keys(&out.bytes).first().copied(),
-                    row.target.as_ref().map(|t| t.note),
+                    row.landing.target().map(|t| t.note.get()),
                     "{} note {}",
                     p.slug,
-                    row.note
+                    row.source.note.get()
                 );
             }
         }
@@ -584,7 +682,7 @@ mod tests {
     fn missing_major_engine_is_an_error() {
         let empty = Catalog::from_maps([]).unwrap();
         assert!(
-            matches!(Site::build(&empty), Err(SiteError::UnknownEngine(id)) if id == "general_midi")
+            matches!(Site::build(&empty), Err(BuildError::UnknownEngine(id)) if id == "general_midi")
         );
     }
 }

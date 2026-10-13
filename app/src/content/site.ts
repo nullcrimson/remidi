@@ -1,5 +1,5 @@
-import docs from './docs/en.json';
-import { LOCALES, SECTION_KEYS, SECTION_MESSAGES, SECTION_SLUGS, TRANSLATED_SECTIONS, type Locale, type Message, type NavTarget, type SectionKey } from '../generated/i18n';
+import docs from '../../../locales/en/docs.json';
+import { LOCALES, ROUTE_PATHS, SECTION_KEYS, SECTION_MESSAGES, SECTION_SLUGS, TRANSLATED_SECTIONS, type Locale, type Message, type NavTarget, type SectionKey } from '../generated/i18n';
 import type { Translator } from '../i18n';
 
 export type Inline = string | { text: string; href: string };
@@ -35,7 +35,7 @@ export function sectionBlocks(key: SectionKey, translator: Translator): Block[] 
 export function href(target: NavTarget, locale: Locale = 'en'): string {
   const { prefix } = LOCALES[locale];
   const base = prefix === '' ? '' : `/${prefix}`;
-  if ('route' in target) return target.route === 'converter' ? `${base}/` : `${base}/engines/`;
+  if ('route' in target) return `${base}${ROUTE_PATHS[target.route]}`;
   const slug = SECTION_SLUGS[target.section];
   return TRANSLATED_SECTIONS[locale].includes(target.section) ? `${base}/${slug}/` : `/${slug}/`;
 }

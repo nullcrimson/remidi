@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { builtFile } from '../scripts/devStatic';
 
 const dist = mkdtempSync(join(tmpdir(), 'dist-'));
-for (const file of ['index.html', 'engines/index.html', 'pl/index.html', 'pl/faq/index.html', 'assets/index-a.css', 'locale.js']) {
+for (const file of ['index.html', 'engines/index.html', 'pl/index.html', 'pl/faq/index.html', 'assets/index-a.css', 'filter.js']) {
   mkdirSync(join(dist, file, '..'), { recursive: true });
   writeFileSync(join(dist, file), '');
 }
@@ -15,7 +15,7 @@ describe('the dev server\'s built static pages', () => {
   it('serves a translated page', () => expect(builtFile(dist, '/pl/faq/?x=1', shells)).toBe(join(dist, 'pl', 'faq', 'index.html')));
   it('serves the pages\' stylesheet and scripts', () => {
     expect(builtFile(dist, '/assets/index-a.css', shells)).toBe(join(dist, 'assets', 'index-a.css'));
-    expect(builtFile(dist, '/locale.js', shells)).toBe(join(dist, 'locale.js'));
+    expect(builtFile(dist, '/filter.js', shells)).toBe(join(dist, 'filter.js'));
   });
   it('leaves the converter shells to the app', () => {
     expect(builtFile(dist, '/', shells)).toBeUndefined();

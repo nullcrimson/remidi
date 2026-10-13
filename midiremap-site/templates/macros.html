@@ -1,0 +1,8 @@
+{% macro note_label(cell) %}{{ cell.note }} · <span data-oct="c1">{{ cell.name_c1() }}</span><span data-oct="c2">{{ cell.name_c2() }}</span>{% endmacro %}
+{% macro chip(group, id, checked, text) %}<label class="tap cursor-pointer rounded-chip border border-white/12 px-2 py-0.5 font-mono text-label font-semibold text-t4 outline-offset-2 outline-accent/60 transition-colors hover:border-accent/40 hover:text-t1 has-checked:border-accent has-checked:bg-accent/15 has-checked:text-t1 has-focus-visible:outline-2 pointer-coarse:px-3 pointer-coarse:py-3">
+      <input type="radio" name="{{ group }}" id="{{ id }}"{% if checked %} checked{% endif %} class="sr-only" />{{ text }}
+    </label>{% endmacro %}
+{% macro octave_choice(class) %}<div role="radiogroup" aria-label="{{ texts.get(Plain::MapsOctaveNaming) }}" class="{{ class }}">
+    {% call chip("octave", "oct-c1", true, "C-1") %}{% endcall %}
+    {% call chip("octave", "oct-c2", false, "C-2") %}{% endcall %}
+  </div>{% endmacro %}

@@ -3,6 +3,7 @@ import { argsOf, generate, parseSources } from '../scripts/gen-i18n';
 const ftl = 'plain = Hello\nwith-var = { $count } files from { $name }\n';
 const locales = [{ code: 'en', prefix: '', langTag: 'en', nativeName: 'English', fonts: null }];
 const structure = {
+  routes: { converter: '/', noteMaps: '/engines/' },
   sections: [{ key: 'faq', slug: 'faq' }],
   nav: [{ route: 'converter' as const }, { section: 'faq' }],
   footer: [{ section: 'faq' }],

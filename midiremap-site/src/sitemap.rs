@@ -1,25 +1,25 @@
 use crate::{
-    i18n::{
-        alternates, base, converter_alternates, home, href, Docs, Locale, NavTarget, Page,
-        SectionKey,
+    i18n::{Docs, Locale, SectionKey},
+    pages::{PairPage, Site},
+    routes::{
+        alternates, home, href, sitemap_url, NavTarget, Page, SitePath, CONVERTER_PAGE, NOTE_MAPS,
     },
-    pages::{PairPage, Site, NOTE_MAPS, ORIGIN},
 };
 
 /// Every page's address, each translated one with `xhtml:link`s to all its versions.
 pub fn sitemap(site: &Site, docs: &Docs) -> String {
     let converters = Locale::ALL
         .iter()
-        .map(|&l| (home(l), converter_alternates()));
-    let english: Vec<String> = std::iter::once(NOTE_MAPS.to_owned())
+        .map(|&l| (home(l), alternates(&CONVERTER_PAGE, docs)));
+    let english: Vec<SitePath> = std::iter::once(NOTE_MAPS)
         .chain(site.engines.iter().map(|p| p.engine.href()))
         .chain(site.pairs.iter().map(PairPage::href))
         .collect();
     let note_maps = Locale::ALL.iter().flat_map(|&l| {
         english.iter().map(move |path| {
             (
-                format!("{}{path}", base(l)),
-                alternates(&Page::Everywhere(path), docs),
+                path.in_locale(l),
+                alternates(&Page::Everywhere(path.clone()), docs),
             )
         })
     });
@@ -40,13 +40,15 @@ pub fn sitemap(site: &Site, docs: &Docs) -> String {
         .map(|(path, versions)| {
             let links: String = versions
                 .iter()
-                .map(|(tag, href)| {
+                .map(|version| {
                     format!(
-                        r#"<xhtml:link rel="alternate" hreflang="{tag}" href="{ORIGIN}{href}"/>"#
+                        r#"<xhtml:link rel="alternate" hreflang="{}" href="{}"/>"#,
+                        version.tag,
+                        version.url()
                     )
                 })
                 .collect();
-            format!("  <url><loc>{ORIGIN}{path}</loc>{links}</url>\n")
+            format!("  <url><loc>{}</loc>{links}</url>\n", path.url())
         })
         .collect();
     format!(
@@ -55,7 +57,7 @@ pub fn sitemap(site: &Site, docs: &Docs) -> String {
 }
 
 pub fn robots() -> String {
-    format!("User-agent: *\nAllow: /\n\nSitemap: {ORIGIN}/sitemap.xml\n")
+    format!("User-agent: *\nAllow: /\n\nSitemap: {}\n", sitemap_url())
 }
 
 #[cfg(test)]

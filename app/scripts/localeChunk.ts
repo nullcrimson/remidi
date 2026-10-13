@@ -1,5 +1,5 @@
 const MESSAGES = /[\\/]locales[\\/]([a-z]+)[\\/]app\.ftl/;
-const DOCS = /[\\/]content[\\/]docs[\\/]([a-z]+)\.json/;
+const DOCS = /[\\/]locales[\\/]([a-z]+)[\\/]docs\.json/;
 
 /** The file name of a locale's lazy chunk, so each language's messages and documents are named for it. */
 export function localeChunkName(moduleId: string | null): string | undefined {
