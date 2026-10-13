@@ -140,12 +140,14 @@ pub struct VoiceRow {
     #[serde(flatten)]
     plan: VoicePlan,
     label: String,
+    family: Family,
 }
 
 impl From<VoicePlan> for VoiceRow {
     fn from(plan: VoicePlan) -> Self {
         Self {
             label: plan.canon.label(),
+            family: plan.canon.family(),
             plan,
         }
     }
@@ -178,13 +180,18 @@ pub fn plan(
     to_js_all(&voice_rows(catalog()?, src_id, tgt_id, &ov, missing)?)
 }
 
+/// A preset's name: text that is not blank, its spacing kept.
+#[derive(Serialize, Tsify, Debug, PartialEq, Eq)]
+#[tsify(type = r#"string & { readonly __brand: "PresetName" }"#)]
+pub struct PresetName(String);
+
 /// A preset file read for import: engines resolved to current ids, unreadable edits
 /// listed in `skipped`.
 #[derive(Serialize, Tsify, Debug)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null, hashmap_as_object)]
 pub struct PresetView {
-    name: String,
+    name: PresetName,
     src: String,
     tgt: String,
     edits: BTreeMap<Canon, Note>,
@@ -210,7 +217,7 @@ fn preset_view(json: &str, catalog: &Catalog) -> Result<PresetView, WasmError> {
         tgt: engine(preset.tgt.as_str(), Role::Target)?,
         edits: preset.edits,
         src_edits: preset.src_edits,
-        name: preset.name.into(),
+        name: PresetName(preset.name.into()),
         skipped,
     })
 }
@@ -362,7 +369,7 @@ mod tests {
         let view = preset_view(&json, &catalog).unwrap();
         assert_eq!(view.src, "custom");
         assert_eq!(view.tgt, "ezdrummer");
-        assert_eq!(view.name, "My kit");
+        assert_eq!(view.name, PresetName("My kit".into()));
         assert_eq!(
             serde_json::to_value(&view.edits).unwrap(),
             serde_json::json!({ "china.1.hit": 52 })
@@ -514,5 +521,34 @@ mod tests {
             find("kick.main").plan.outcome,
             PlanOutcome::Direct { .. }
         ));
+    }
+
+    #[test]
+    fn a_voice_row_carries_the_family_of_its_drum() {
+        let catalog = Catalog::builtin().unwrap();
+        let rows = voice_rows(
+            &catalog,
+            "ggd_invasion",
+            "ezdrummer",
+            &Overrides::default(),
+            MissingDrums::Drop,
+        )
+        .unwrap();
+        assert!(!rows.is_empty());
+        for row in &rows {
+            let json = serde_json::to_value(row).unwrap();
+            assert_eq!(json["family"], serde_json::json!(row.plan.canon.family()));
+        }
+    }
+
+    #[test]
+    fn a_preset_name_is_typed_for_typescript_as_a_brand() {
+        assert!(
+            <PresetName as Tsify>::DECL.ends_with(
+                r#"export type PresetName = string & { readonly __brand: "PresetName" };"#
+            ),
+            "{}",
+            <PresetName as Tsify>::DECL
+        );
     }
 }

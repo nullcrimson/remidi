@@ -16,8 +16,8 @@ function intake(load: LoadMidiremap) {
     useFileIntake({
       load,
       storeFiles: vi.fn(),
-      src: '',
-      tgt: '',
+      src: null,
+      tgt: null,
       saved: { mappings: [], save },
       notify,
       focus: vi.fn(),

@@ -10,14 +10,13 @@ const base = {
   base: 'c1' as const,
   srcChanged: false,
   tgtChanged: false,
-  srcExpanded: false,
-  tgtExpanded: false,
+  expanded: null,
   onSrcToggle: () => {},
   onToggle: () => {},
-  result: { text: 'direct', tone: 'text-t5' },
+  result: { text: 'direct', tone: 'faint' as const },
 };
 
-const kickFixture = { canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } };
+const kickFixture = { canon: 'KickMain', label: 'Kick', family: 'Kick' as const, srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } };
 const rowOf = (extra: Partial<Loose<VoiceRowData>> = {}) => typed<VoiceRowData>({ ...kickFixture, ...extra });
 const kick = rowOf();
 
@@ -46,7 +45,7 @@ describe('VoiceRow', () => {
   it('shows a dash for a dropped target but keeps the source chip', () => {
     render(
       <VoiceRow
-        row={typed<VoiceRowData>({ canon: 'China', label: 'China', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } })}
+        row={typed<VoiceRowData>({ canon: 'China', label: 'China', family: 'Cymbals', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } })}
         {...base}
       />,
     );
@@ -57,7 +56,7 @@ describe('VoiceRow', () => {
   it('keeps its picker open on a press inside the row and closes it on one outside', () => {
     const onClose = vi.fn();
     render(
-      <VoiceRow row={kick} {...base} tgtExpanded>
+      <VoiceRow row={kick} {...base} expanded="tgt">
         <PickerShell label="Target note for Kick" onClose={onClose}>
           <p>keys</p>
         </PickerShell>
@@ -77,7 +76,7 @@ describe('VoiceRow', () => {
     );
     expect(screen.queryByTestId('picker-slot')).toBeNull();
     rerender(
-      <VoiceRow row={kick} {...base} tgtExpanded>
+      <VoiceRow row={kick} {...base} expanded="tgt">
         <div data-testid="picker-slot" />
       </VoiceRow>,
     );

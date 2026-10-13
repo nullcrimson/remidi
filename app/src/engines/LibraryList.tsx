@@ -22,10 +22,10 @@ export function LibraryList({
 }: {
   filterRef?: FocusRef;
   label: string;
-  value: string;
+  value: string | null;
   engines: Engine[];
   onChange: (id: string) => void;
-  disabledId?: string;
+  disabledId?: string | null;
   favorites: Set<string>;
   onToggleFavorite: (id: string) => void;
 }) {

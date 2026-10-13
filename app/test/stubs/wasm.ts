@@ -1,6 +1,6 @@
 import type * as Wasm from '@wasm';
 import { vi } from 'vitest';
-import { typed } from '../typed';
+import { presetName, typed } from '../typed';
 
 const init = vi.fn<() => Promise<unknown>>(async () => ({}));
 export default init;
@@ -45,16 +45,16 @@ export const family_order = vi.fn<typeof Wasm.family_order>(() => [
 ]);
 
 const BASE_ROWS = typed<Wasm.VoiceRow[]>([
-  { canon: 'kick.main', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
-  { canon: 'snare1.hit', label: 'Snare', srcNotes: [26], defaultTgtNote: 38, outcome: { status: 'direct', tgtNote: 38 } },
-  { canon: 'hat.open3', label: 'Hi-Hat Open 3', srcNotes: [47], defaultTgtNote: 46, outcome: { status: 'fallback', tgtNote: 46, otherDrum: false } },
-  { canon: 'china.1.hit', label: 'China 1', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: true } },
-  { canon: 'hat.cc', label: 'Hi-Hat CC', srcNotes: [4], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
+  { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+  { canon: 'snare1.hit', label: 'Snare', family: 'Snare', srcNotes: [26], defaultTgtNote: 38, outcome: { status: 'direct', tgtNote: 38 } },
+  { canon: 'hat.open3', label: 'Hi-Hat Open 3', family: 'Hi-Hat', srcNotes: [47], defaultTgtNote: 46, outcome: { status: 'fallback', tgtNote: 46, otherDrum: false } },
+  { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: true } },
+  { canon: 'hat.cc', label: 'Hi-Hat CC', family: 'Hi-Hat', srcNotes: [4], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
 ]);
 
 export const parse_preset_file = vi.fn<typeof Wasm.parse_preset_file>((json) => {
   const p = JSON.parse(json) as Partial<Wasm.PresetView> & { name: string; src: string; tgt: string };
-  return { name: p.name, src: p.src, tgt: p.tgt, edits: p.edits ?? {}, srcEdits: p.srcEdits ?? {}, skipped: [] };
+  return { name: presetName(p.name), src: p.src, tgt: p.tgt, edits: p.edits ?? {}, srcEdits: p.srcEdits ?? {}, skipped: [] };
 });
 
 export const plan = vi.fn<typeof Wasm.plan>((_src, _tgt, overrides) => {

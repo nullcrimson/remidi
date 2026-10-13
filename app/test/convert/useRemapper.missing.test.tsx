@@ -14,7 +14,7 @@ const REPORT = typed<Report>({ unmappedSource: {}, fallbackUsed: {}, dropped: {}
 
 async function ready() {
   const hook = renderHook(() => useRemapper(RUNTIME));
-  await waitFor(() => expect(hook.result.current.status).toBe('ready'));
+  await waitFor(() => expect(hook.result.current.catalog.status).toBe('ready'));
   act(() => hook.result.current.chooseSrc('ggd_invasion'));
   act(() => hook.result.current.chooseTgt('ezdrummer'));
   act(() => hook.result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));

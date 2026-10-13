@@ -1,5 +1,5 @@
 import { useT } from '../locale/localeContext';
-import type { Drum, Note } from '../core/midiremap';
+import type { Drum, Family, Note } from '../core/midiremap';
 import { noteName, type OctaveBase } from '../core/notes';
 import { DrumList } from './DrumList';
 import { IconButton } from '../ui/IconButton';
@@ -24,7 +24,7 @@ export function NotePicker({
   octIndex: number;
   base: OctaveBase;
   drums: Drum[];
-  families: readonly string[];
+  families: readonly Family[];
   onSetOct: (octIndex: number) => void;
   onPickNote: (note: Note) => void;
   onClose: () => void;
@@ -34,7 +34,7 @@ export function NotePicker({
     <PickerShell label={t({ id: 'note-picker-label', args: { drum: voiceLabel } })} onClose={onClose}>
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-baseline gap-2.25">
-          <MonoLabel tone="text-t4">{t({ id: 'note-picker-heading', args: { drum: voiceLabel } })}</MonoLabel>
+          <MonoLabel tone="muted">{t({ id: 'note-picker-heading', args: { drum: voiceLabel } })}</MonoLabel>
           <span className="font-mono text-brand font-bold text-accent">
             {currentNote === null ? '—' : noteName(currentNote, base)}
           </span>

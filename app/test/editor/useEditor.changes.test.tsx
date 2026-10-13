@@ -5,6 +5,7 @@ import { RUNTIME } from '../runtime';
 import type { Drum, Overrides, VoiceRow } from '../../src/core/midiremap';
 import * as stub from '../stubs/wasm';
 import { canon, note, typed } from '../typed';
+import { shownSrcPick, shownTgtPick } from '../picks';
 
 const DEFAULTS: Record<number, string> = { 24: 'kick.main', 26: 'snare1.hit' };
 const LABELS: Record<string, string> = { 'kick.main': 'Kick', 'snare1.hit': 'Snare' };
@@ -15,6 +16,7 @@ function fakePlan(_src: string, _tgt: string, ov?: Overrides | null) {
   return typed<VoiceRow[]>(Object.keys(LABELS).map((canon) => ({
     canon,
     label: LABELS[canon],
+    family: 'Kick' as const,
     srcNotes: Object.entries(decode)
       .filter(([, c]) => c === canon)
       .map(([n]) => Number(n)),
@@ -34,7 +36,7 @@ beforeEach(() => {
 
 async function ready() {
   const hook = renderHook(() => useRemapper(RUNTIME));
-  await waitFor(() => expect(hook.result.current.status).toBe('ready'));
+  await waitFor(() => expect(hook.result.current.catalog.status).toBe('ready'));
   act(() => hook.result.current.chooseSrc('ggd_invasion'));
   act(() => hook.result.current.chooseTgt('ezdrummer'));
   return hook.result;
@@ -51,7 +53,7 @@ describe('editor changes', () => {
   it('counts a target edit', async () => {
     const result = await ready();
     act(() => result.current.editor.openPick(canon('kick.main')));
-    act(() => result.current.editor.chooseNote(note(40)));
+    act(() => result.current.editor.chooseNote(shownTgtPick(result.current.editor), note(40)));
     expect(sorted(result.current.editor.changed)).toEqual(['kick.main']);
     expect(sorted(result.current.editor.changedSrc)).toEqual([]);
   });
@@ -59,7 +61,7 @@ describe('editor changes', () => {
   it('counts a replaced source note on the drum that got it', async () => {
     const result = await ready();
     act(() => result.current.editor.openSrcPick(canon('kick.main')));
-    act(() => result.current.editor.chooseSrcNote(note(27)));
+    act(() => result.current.editor.chooseSrcNote(shownSrcPick(result.current.editor), note(27)));
     expect(sorted(result.current.editor.changedSrc)).toEqual(['kick.main']);
   });
 
@@ -72,11 +74,11 @@ describe('editor changes', () => {
   it('resets one drum to its defaults and leaves the others', async () => {
     const result = await ready();
     act(() => result.current.editor.openPick(canon('snare1.hit')));
-    act(() => result.current.editor.chooseNote(note(41)));
+    act(() => result.current.editor.chooseNote(shownTgtPick(result.current.editor), note(41)));
     act(() => result.current.editor.openSrcPick(canon('kick.main')));
-    act(() => result.current.editor.chooseSrcNote(note(27)));
+    act(() => result.current.editor.chooseSrcNote(shownSrcPick(result.current.editor), note(27)));
     act(() => result.current.editor.openPick(canon('kick.main')));
-    act(() => result.current.editor.chooseNote(note(40)));
+    act(() => result.current.editor.chooseNote(shownTgtPick(result.current.editor), note(40)));
     act(() => result.current.editor.resetRow(canon('kick.main')));
     expect(result.current.editor.edits).toEqual({ 'snare1.hit': 41 });
     expect(result.current.editor.srcEdits).toEqual({});

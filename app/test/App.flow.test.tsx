@@ -45,8 +45,8 @@ describe('App convert flow', () => {
       { canon: 'kick.main', label: 'Kick', family: 'Kick' },
     ]));
     vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
-      { canon: 'kick.main', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
-      { canon: 'china.1.hit', label: 'China 1', srcNotes: [60], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
+      { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+      { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals', srcNotes: [60], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
     ]));
     vi.mocked(stub.remap).mockReturnValue(typed<RemapOutput>({
       bytes: new Uint8Array([1]),

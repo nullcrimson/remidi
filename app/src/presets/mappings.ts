@@ -1,9 +1,29 @@
+import type { PresetName } from '../core/midiremap';
 import { parseEdits, parseSrcEdits, type StoredEdits } from '../core/overrides';
 import { readStored, writeStored } from '../core/storage';
 
+function brand(text: string): PresetName {
+  return text as PresetName;
+}
+
+/** The one reader of a preset name: `text` as a name when it is not blank, its spacing kept, otherwise null. */
+export function parsePresetName(text: string): PresetName | null {
+  return text.trim() === '' ? null : brand(text);
+}
+
+/** `name`, or the first "name copy", "name copy 2", … not in `taken`. */
+export function uniqueName(name: PresetName, taken: PresetName[]): PresetName {
+  const used = new Set(taken);
+  if (!used.has(name)) return name;
+  for (let i = 1; ; i++) {
+    const candidate = brand(`${name}${i === 1 ? ' copy' : ` copy ${i}`}`);
+    if (!used.has(candidate)) return candidate;
+  }
+}
+
 export interface SavedMapping extends StoredEdits {
   id: string;
-  name: string;
+  name: PresetName;
   src: string;
   tgt: string;
   updatedAt: number;
@@ -16,7 +36,6 @@ function parseOne(value: unknown): SavedMapping | null {
   const v = value as Record<string, unknown>;
   if (
     typeof v.id !== 'string'
-    || typeof v.name !== 'string'
     || typeof v.src !== 'string'
     || typeof v.tgt !== 'string'
     || typeof v.updatedAt !== 'number'
@@ -24,11 +43,13 @@ function parseOne(value: unknown): SavedMapping | null {
   ) {
     return null;
   }
+  const name = typeof v.name === 'string' ? parsePresetName(v.name) : null;
+  if (!name) return null;
   const edits = parseEdits(v.edits);
   if (!edits) return null;
   const srcEdits = parseSrcEdits(v.srcEdits);
   if (!srcEdits) return null;
-  return { id: v.id, name: v.name, src: v.src, tgt: v.tgt, edits, srcEdits, updatedAt: v.updatedAt };
+  return { id: v.id, name, src: v.src, tgt: v.tgt, edits, srcEdits, updatedAt: v.updatedAt };
 }
 
 const STORE_VERSION = 1;

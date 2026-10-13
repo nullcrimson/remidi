@@ -18,8 +18,7 @@ describe('runBatch', () => {
         { name: 'broken.mid', bytes: new Uint8Array([0]) },
         { name: 'b.mid', bytes: new Uint8Array([5]) },
       ],
-      'ggd_invasion',
-      'ezdrummer',
+      { src: 'ggd_invasion', tgt: 'ezdrummer' },
       undefined,
       'auto',
       'nearest',
@@ -35,19 +34,18 @@ describe('runBatch', () => {
   it('passes engines, overrides, channel and missing drums through to remap', () => {
     const calls: unknown[][] = [];
     const ov = typed<Overrides>({ tgt: [{ canon: 'kick.main', note: 35 }], src: [] });
-    runBatch([{ name: 'a.mid', bytes: new Uint8Array([1]) }], 's', 't', ov, '10', 'drop', (...args) => {
+    runBatch([{ name: 'a.mid', bytes: new Uint8Array([1]) }], { src: 's', tgt: 't' }, ov, '10', 'drop', (...args) => {
       calls.push(args.slice(1));
       return { bytes: new Uint8Array(), report: REPORT };
     });
-    expect(calls).toEqual([['s', 't', ov, '10', 'drop']]);
+    expect(calls).toEqual([[{ src: 's', tgt: 't' }, ov, '10', 'drop']]);
   });
 });
 
 const REQUEST: BatchRequest = {
   id: 7,
   files: [{ name: 'a.mid', bytes: new Uint8Array([1]) }],
-  src: 'ggd_invasion',
-  tgt: 'ezdrummer',
+  pair: { src: 'ggd_invasion', tgt: 'ezdrummer' },
   channel: 'auto',
   missing: 'nearest',
 };

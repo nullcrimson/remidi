@@ -13,7 +13,7 @@ import { storedName } from '../src/core/storage';
 
 const MAPPINGS_KEY = storedName('mappings');
 
-const ROW = typed<VoiceRow>({ canon: 'kick.main', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } });
+const ROW = typed<VoiceRow>({ canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } });
 
 function planThatRejectsBogus(_s: string, _t: string, ov?: Overrides | null) {
   if (ov?.tgt?.some((e) => e.canon === 'bogus.canon')) throw new Error('unknown canon bogus.canon');
@@ -30,6 +30,8 @@ const PRESET = {
   updatedAt: 1,
 };
 
+const CLEAN_PRESET = { ...PRESET, edits: {} };
+
 describe('plan errors', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -43,13 +45,34 @@ describe('plan errors', () => {
 
   it('become an editor error instead of a render throw, and reset clears them', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.loadMapping(PRESET));
     expect(result.current.editor.planError).toEqual({ kind: 'internal', detail: 'unknown canon bogus.canon' });
     expect(result.current.editor.rows).toEqual([]);
     act(() => result.current.editor.reset());
     expect(result.current.editor.planError).toBeNull();
     expect(result.current.editor.rows).toHaveLength(1);
+  });
+
+  it('become the editor error when a drum lookup fails, not an editor without drums', async () => {
+    vi.mocked(stub.engine_drums).mockImplementation(() => {
+      throw new Error('unknown engine ezdrummer');
+    });
+    const { result } = renderHook(() => useRemapper(RUNTIME));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
+    act(() => result.current.loadMapping(CLEAN_PRESET));
+    expect(result.current.editor.planError).toEqual({ kind: 'internal', detail: 'unknown engine ezdrummer' });
+    expect(result.current.editor.rows).toEqual([]);
+  });
+
+  it('shows a notice on the convert view when a drum lookup fails', async () => {
+    vi.mocked(stub.engine_notes).mockImplementation(() => {
+      throw new Error('unknown engine ggd_invasion');
+    });
+    localStorage.setItem(MAPPINGS_KEY, JSON.stringify([CLEAN_PRESET]));
+    render(<App runtime={RUNTIME} />);
+    await userEvent.click((await screen.findAllByRole('button', { name: /Old preset/ }))[0]);
+    expect(await screen.findByRole('alert')).toHaveTextContent('unknown engine ggd_invasion');
   });
 
   it('shows a notice with Reset edits on the convert view', async () => {

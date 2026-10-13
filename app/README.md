@@ -104,10 +104,10 @@ on a phone and click elsewhere.
   conversion from anything caught to what the UI is told), `notes.ts` (note-name / octave
   helpers, octave base is display-only, over `src/wasm/note_naming.json`, the table the wasm
   build writes from the core), `canon.ts` (the module's drum `Vocabulary` by key, and
-  `byCanon`), `drums.ts` (`labelByNote`), `outcome.ts` (what a plan row does, `playedOn`),
+  `byCanon`), `enginePair.ts` (`EnginePair`, both engines of a conversion, `pairOf`, and `EngineNames` with `namesOf`), `drums.ts` (`labelByNote`), `outcome.ts` (what a plan row does: `playedNote`, `isPlayed`, `leadNote`, `playedOn`),
   `overrides.ts` (target and source edits → the `Overrides` the WASM takes; `StoredEdits` is
   what presets and the session carry, drum keys as unchecked text; `knownEdits` is the one
-  function that turns them into edits, leaving out drums this version does not know;
+  function that turns them into `KnownEdits`, leaving out drums this version does not know (the editor loads nothing else);
   `parseEdits`, `parseSrcEdits` and `sameEdits` read and compare them), `missing.ts` (the
   missing-drums setting, Nearest / Drop, and its hint), `channel.ts`, `files.ts`,
   `selection.ts` (`SelectionEvent`, handed to each reducer), `notice.ts`, `download.ts`,
@@ -115,32 +115,32 @@ on a phone and click elsewhere.
   puts `midiremap:` in front of it, and `readStored`, `readStoredStrict` (blocked or `{ value }`), `writeStored`, `removeStored`, `clearStored`, `onStoredChange` (the one `storage` event subscription); eslint
   rejects `localStorage` anywhere else in `src`), `stats.ts`, `contact.ts` (the issue and contact addresses), `engineCode.ts`
   (the three-letter badge of an engine id).
-- `src/convert/` — the converter screen: `useRemapper.ts` (screen state, Convert + Edit; every
+- `src/convert/` — the converter screen: `useRemapper.ts` (screen state, Convert + Edit, the `View`: the editor's pair and arguments, only ever on show with both engines chosen; every
   selection change is one `SelectionEvent`), `runtime.ts` (`Runtime { load, converter }`, made
   once in `main.tsx` and handed to `App`; tests hand in `test/runtime.ts`), `converter.ts`,
   `convertWorker.ts`, `batch.ts` (conversion in a module Web Worker with its own WASM instance;
   a worker that dies after answering is replaced, one that cannot start or dies before
   answering leaves conversion to the main thread, a batch is stopped through its
-  `AbortSignal`), `useConverter.ts`, `useFileIntake.ts`, `useDropGuard.ts`, `session.ts` (the setup a reload brings back: engines, settings, unsaved
-  edits), `preselect.ts` (the engines a link names), `planBreakdown.ts`
+  `AbortSignal`), `useConverter.ts` (its `Conv` `done` arm carries the pair it converted with), `useFileIntake.ts`, `useDropGuard.ts`, `session.ts` (the setup a reload brings back: engines, settings, unsaved
+  edits; `EMPTY_SESSION` states the starting settings), `preselect.ts` (the engines a link names), `planBreakdown.ts`
   (the groups behind the "N of M drums remapped" pop-up), and FileChips/CardDropzone,
   OctaveToggle, ChannelSelect, MissingDrumsSetting, ConvertSettings, PlanControls, SummaryRow,
   ConvertButton (FollowTip: the reason beside the mouse), DonePanel, InfoPopover (the
   hover/click breakdowns).
 - `src/editor/` — the note editor: EditView (with EditFilters, FamilyRows, EditFooter,
   SavePreset, PlanErrorNotice, `rowGrid.ts`), VoiceRow, NotePicker, SourceEditor, PianoKeyboard, PickerShell
-  (+ `overlayAnchor`, on Floating UI), `useEditor.ts`, `editorState.ts` (the reducer),
-  `useEngineData.ts` (the pair's drums, notes, vocabulary and family order), `families.ts`
-  (`groupByFamily`: groups drums in the core's family order, keeping any family it does not
+  (+ `overlayAnchor`, on Floating UI), `useEditor.ts`, `editorState.ts` (the reducer: edits and one `overlay`, a target pick, a source pick or a notice),
+  `useEngineData.ts` (the pair's drums, notes, vocabulary and family order; a failed lookup is its `error`), `families.ts`
+  (`groupByFamily`: groups drums and plan rows, which carry their canon's `family`, in the core's family order, keeping any family it does not
   list), `editSummary.ts` and `useEditedSummary.ts` (the summary row's "edited" chip: which
   drums differ from the default mapping, their preview lines, and whether they match the open
   preset), `useEditorHistory.ts` (opening the editor adds a history entry, so the browser's
-  Back closes it instead of leaving the converter).
+  Back closes it instead of leaving the converter; a Forward onto it without both engines steps back).
 - `src/engines/` — LibraryList, EngineColumns, `useEngineCatalog.ts`, `useFavorites.ts`.
-- `src/presets/` — stored presets: `mappings.ts` (versioned; unreadable entries and an unreadable quarantine are kept in `midiremap:quarantine`, written, never read), `presetFile.ts`
+- `src/presets/` — stored presets: `mappings.ts` (`PresetName`, generated from Rust, and its one parser `parsePresetName`: not blank, spacing kept, the UI trims typed text first; `uniqueName`; versioned; unreadable entries, a blank name among them, and an unreadable quarantine are kept in `midiremap:quarantine`, written, never read), `presetFile.ts`
   (`<name>-drumverter.json` export), `presetImport.ts` (any `.json` file imports),
   `useSavedMappings.ts` (its `unsaved` flag is drawn by `UnsavedNotice` in the convert view and the editor footer), `usePresetActions.ts`, SavedMappingChip(s).
-- `src/report/` — ReportModal, ContactFooter, `report.ts`, `useConversionReport.ts`,
+- `src/report/` — ReportModal, ContactFooter, `report.ts` (one entry type per group: `DroppedEntry`, `ApproximatedEntry`, `UnrecognizedEntry`; `entryText`, a line as shown and the key that merges files), `useConversionReport.ts`,
   `reportLink.ts` (the "Wrong mapping? Report it" form link, told the engines and language).
 - `src/tip/` — TipToast (pinned to the top) and `tipAsk.ts` (from the third saved file, at
   most once a day, paused 90 days after a tip).
@@ -154,7 +154,7 @@ on a phone and click elsewhere.
   to use · Note maps · FAQ), SiteFooter (section links that open modals, rendered by
   ContentBlocks from `../locales/<code>/docs.json`, the same source the static site pages
   use), LanguageMenu, GlobeIcon, ErrorBoundary, and `plainClick.ts`.
-- `src/ui/` — shared presentational pieces: `styles.ts`, Button, TextButton, IconButton,
+- `src/ui/` — shared presentational pieces: `styles.ts` (with `LabelTone`, `TagTone`, `TextTone`), Button, TextButton, IconButton,
   ChipRadioGroup, ChipSelect, TextField, MonoLabel, ProseLink, Modal, Tooltip, Rich, ErrorText,
   `errorTitle.ts` (`errorParts`, `errorTitle`: an `AppError` as shown text), StatusNotice, FilterInput, and `useFocusIntent.ts` (moves focus after an
   action, `ref` / `request`), `useFilter.ts`, `useTruncationTooltip.tsx`, `reveal.ts`.

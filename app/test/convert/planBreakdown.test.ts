@@ -7,6 +7,7 @@ function row(label: string, extra: Partial<Loose<VoiceRow>>): VoiceRow {
   return typed<VoiceRow>({
     canon: label.toLowerCase(),
     label,
+    family: 'Kick',
     srcNotes: [36],
     defaultTgtNote: 36,
     outcome: { status: 'direct', tgtNote: 36 },

@@ -3,12 +3,15 @@ import { useEffect, useRef, useState } from 'react';
 import type { Editor } from './useEditor';
 import { useFilter } from '../ui/useFilter';
 import { groupByFamily } from './families';
+import type { EnginePair } from '../core/enginePair';
+import type { PresetName } from '../core/midiremap';
 import type { SavedMapping } from '../presets/mappings';
 import type { Note } from '../core/midiremap';
 import type { OctaveBase } from '../core/notes';
 import { isIssue, type EditFilter } from './editFilter';
 import { EditFilters } from './EditFilters';
 import { EditFooter } from './EditFooter';
+import { pickOf } from './editorState';
 import { FamilyRows } from './FamilyRows';
 import { PlanErrorNotice } from './PlanErrorNotice';
 import { SourceEditor } from './SourceEditor';
@@ -16,35 +19,33 @@ import { TextButton } from '../ui/TextButton';
 
 interface EditViewProps {
   editor: Editor;
-  src: string;
-  tgt: string;
+  pair: EnginePair;
   srcName: string;
   tgtName: string;
   oct: OctaveBase;
   existingPreset: SavedMapping | undefined;
   presetsAtCap: boolean;
   presetsUnsaved: boolean;
-  assignNote?: Note | null;
-  initialShow?: EditFilter;
-  setView: (v: 'convert' | 'edit') => void;
-  onSavePreset: (name: string) => void;
-  onUpdatePreset: (id: string, name: string) => void;
+  assignNote: Note | null;
+  initialShow: EditFilter;
+  onClose: () => void;
+  onSavePreset: (name: PresetName) => void;
+  onUpdatePreset: (id: string, name: PresetName) => void;
 }
 
 /** The note editor screen: it owns the editor and hands each part only what it reads. */
 export function EditView({
   editor,
-  src,
-  tgt,
+  pair,
   srcName,
   tgtName,
   oct,
   existingPreset,
   presetsAtCap,
   presetsUnsaved,
-  assignNote = null,
-  initialShow = 'all',
-  setView,
+  assignNote,
+  initialShow,
+  onClose,
   onSavePreset,
   onUpdatePreset,
 }: EditViewProps) {
@@ -52,7 +53,7 @@ export function EditView({
   const { rows, planError, changed, canonOptions, families, reset } = editor;
   const [advanced, setAdvanced] = useState(assignNote !== null);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const [focusHeading] = useState(editor.pick === null && assignNote === null);
+  const [focusHeading] = useState(pickOf(editor.overlay) === null && assignNote === null);
   useEffect(() => {
     if (focusHeading) headingRef.current?.focus();
   }, [focusHeading]);
@@ -62,8 +63,7 @@ export function EditView({
   const shown = filtered.filter((r) =>
     show === 'changed' ? changed.has(r.canon) : show === 'issues' ? isIssue(r) : true,
   );
-  const familyOf = new Map(canonOptions.map((c) => [c.canon, c.family]));
-  const groups = groupByFamily(shown, (r) => familyOf.get(r.canon) ?? 'Other', families);
+  const groups = groupByFamily(shown, (r) => r.family, families);
 
   return (
     <div className="flex flex-col">
@@ -74,7 +74,7 @@ export function EditView({
       >
         <div className="flex flex-col gap-1">
           <div className="flex items-baseline gap-3">
-            <TextButton onClick={() => setView('convert')}>{t({ id: 'edit-back' })}</TextButton>
+            <TextButton onClick={onClose}>{t({ id: 'edit-back' })}</TextButton>
             <h2
               ref={headingRef}
               tabIndex={-1}
@@ -100,8 +100,7 @@ export function EditView({
 
         <FamilyRows
           groups={groups}
-          pick={editor.pick}
-          notice={editor.notice}
+          overlay={editor.overlay}
           edits={editor.edits}
           changed={changed}
           changedSrc={editor.changedSrc}
@@ -153,14 +152,13 @@ export function EditView({
       <EditFooter
         changes={changed.size}
         onResetAll={reset}
-        src={src}
-        tgt={tgt}
+        pair={pair}
         existingPreset={existingPreset}
         presetsAtCap={presetsAtCap}
         presetsUnsaved={presetsUnsaved}
         onSavePreset={onSavePreset}
         onUpdatePreset={onUpdatePreset}
-        onDone={() => setView('convert')}
+        onDone={onClose}
       />
     </div>
   );

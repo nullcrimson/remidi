@@ -3,14 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSavedMappings } from '../../src/presets/useSavedMappings';
 import { MAPPINGS_CAP, parseMappings } from '../../src/presets/mappings';
 import type { StoredEdits } from '../../src/core/overrides';
-import { typed } from '../typed';
+import { presetName, typed } from '../typed';
 import { storedName } from '../../src/core/storage';
 
 const MAPPINGS_KEY = storedName('mappings');
 const QUARANTINE_KEY = storedName('quarantine');
 
 const base = {
-  name: 'GGD→EZ',
+  name: presetName('GGD→EZ'),
   src: 'ggd_invasion',
   tgt: 'ezdrummer',
   edits: typed<StoredEdits['edits']>({ 'kick.main': 36 }),
@@ -77,7 +77,7 @@ describe('useSavedMappings', () => {
     try {
       const { result } = renderHook(() => useSavedMappings());
       act(() => result.current.save(base));
-      act(() => result.current.save({ ...base, name: 'second' }));
+      act(() => result.current.save({ ...base, name: presetName('second') }));
       expect(result.current.unsaved).toBe(true);
     } finally {
       set.mockRestore();
@@ -91,7 +91,7 @@ describe('useSavedMappings', () => {
     try {
       const { result } = renderHook(() => useSavedMappings());
       act(() => result.current.save(base));
-      act(() => result.current.save({ ...base, name: 'second' }));
+      act(() => result.current.save({ ...base, name: presetName('second') }));
       expect(result.current.unsaved).toBe(false);
     } finally {
       set.mockRestore();
@@ -177,16 +177,16 @@ describe('useSavedMappings', () => {
     const { result } = renderHook(() => useSavedMappings());
     act(() => result.current.save(base));
     const id = result.current.mappings[0].id;
-    act(() => result.current.update(id, { name: 'renamed', edits: typed<StoredEdits['edits']>({ 'snare1.hit': 40 }) }));
+    act(() => result.current.update(id, { name: presetName('renamed'), edits: typed<StoredEdits['edits']>({ 'snare1.hit': 40 }) }));
     expect(result.current.mappings[0]).toMatchObject({ name: 'renamed', edits: { 'snare1.hit': 40 } });
   });
 
   it('renames a preset without reordering or bumping recency', () => {
     const { result } = renderHook(() => useSavedMappings());
-    act(() => result.current.save({ ...base, name: 'first' }));
-    act(() => result.current.save({ ...base, name: 'second' }));
+    act(() => result.current.save({ ...base, name: presetName('first') }));
+    act(() => result.current.save({ ...base, name: presetName('second') }));
     const target = result.current.mappings[1];
-    act(() => result.current.rename(target.id, 'renamed'));
+    act(() => result.current.rename(target.id, presetName('renamed')));
     expect(result.current.mappings[1].id).toBe(target.id);
     expect(result.current.mappings[1].name).toBe('renamed');
     expect(result.current.mappings[1].updatedAt).toBe(target.updatedAt);
@@ -211,11 +211,11 @@ describe('useSavedMappings', () => {
   it('blocks saving beyond the cap', () => {
     const { result } = renderHook(() => useSavedMappings());
     act(() => {
-      for (let i = 0; i < MAPPINGS_CAP; i++) result.current.save({ ...base, name: `m${i}` });
+      for (let i = 0; i < MAPPINGS_CAP; i++) result.current.save({ ...base, name: presetName(`m${i}`) });
     });
     expect(result.current.mappings).toHaveLength(MAPPINGS_CAP);
     expect(result.current.atCap).toBe(true);
-    act(() => result.current.save({ ...base, name: 'overflow' }));
+    act(() => result.current.save({ ...base, name: presetName('overflow') }));
     expect(result.current.mappings).toHaveLength(MAPPINGS_CAP);
     expect(result.current.mappings.some((m) => m.name === 'overflow')).toBe(false);
   });

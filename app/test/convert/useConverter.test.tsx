@@ -10,7 +10,7 @@ const FILE = { name: 'a.mid', bytes: new Uint8Array([1]) };
 function stoppable() {
   const signals: AbortSignal[] = [];
   const converter: Converter = {
-    convert: (_files, _src, _tgt, _ov, _channel, _missing, signal) =>
+    convert: (_files, _pair, _ov, _channel, _missing, signal) =>
       new Promise<BatchResult>((_resolve, reject) => {
         if (!signal) return;
         signals.push(signal);
@@ -21,7 +21,7 @@ function stoppable() {
 }
 
 function converting(converter: Converter) {
-  const { result } = renderHook(() => useConverter(converter, 'ggd_invasion', 'ezdrummer', 'k'));
+  const { result } = renderHook(() => useConverter(converter, { src: 'ggd_invasion', tgt: 'ezdrummer' }, 'k'));
   act(() => result.current.addFiles([FILE]));
   let run: Promise<unknown> = Promise.resolve();
   act(() => {
@@ -33,15 +33,14 @@ function converting(converter: Converter) {
 describe('useConverter', () => {
   it('ends in an error, not a spinner, when the batch rejects', async () => {
     const converter: Converter = { convert: vi.fn().mockRejectedValue(new Error('wasm fetch failed')) };
-    const { result } = renderHook(() => useConverter(converter, 'ggd_invasion', 'ezdrummer', 'k'));
+    const { result } = renderHook(() => useConverter(converter, { src: 'ggd_invasion', tgt: 'ezdrummer' }, 'k'));
     act(() => result.current.addFiles([FILE]));
     let out: unknown;
     await act(async () => {
       out = await result.current.convert(OV, 'auto', 'nearest', 'k');
     });
     expect(out).toBeNull();
-    expect(result.current.conv.kind).toBe('error');
-    expect(result.current.convError).toEqual({ kind: 'internal', detail: 'wasm fetch failed' });
+    expect(result.current.conv).toMatchObject({ kind: 'error', error: { kind: 'internal', detail: 'wasm fetch failed' } });
     expect(result.current.failures).toEqual([]);
   });
 
@@ -84,7 +83,7 @@ describe('useConverter', () => {
 
   it('stops the running batch when the screen goes away', () => {
     const { converter, signals } = stoppable();
-    const { result, unmount } = renderHook(() => useConverter(converter, 'ggd_invasion', 'ezdrummer', 'k'));
+    const { result, unmount } = renderHook(() => useConverter(converter, { src: 'ggd_invasion', tgt: 'ezdrummer' }, 'k'));
     act(() => result.current.addFiles([FILE]));
     act(() => {
       void result.current.convert(OV, 'auto', 'nearest', 'k');
@@ -101,7 +100,6 @@ describe('useConverter', () => {
       await run;
     });
     expect(result.current.conv.kind).toBe('idle');
-    expect(result.current.convError).toBeNull();
   });
 
   it('keeps a batch running when no file was actually added', () => {

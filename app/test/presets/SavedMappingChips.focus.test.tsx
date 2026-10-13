@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 import { SavedMappingChips } from '../../src/presets/SavedMappingChips';
 import type { SavedMapping } from '../../src/presets/mappings';
+import { presetName } from '../typed';
 
 const engines = [
   { id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GGD Invasion' },
@@ -12,7 +13,7 @@ const engines = [
 
 const preset = (id: string, name: string): SavedMapping => ({
   id,
-  name,
+  name: presetName(name),
   src: 'ggd_invasion',
   tgt: 'ezdrummer',
   edits: {},

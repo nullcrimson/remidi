@@ -47,8 +47,8 @@ describe('App missing drums', () => {
     ]));
     vi.mocked(stub.plan).mockImplementation((_src, _tgt, _overrides, missing) => typed<VoiceRow[]>([
       missing === 'drop'
-        ? { canon: 'china.1.hit', label: 'China 1', srcNotes: [60], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: true } }
-        : { canon: 'china.1.hit', label: 'China 1', srcNotes: [60], defaultTgtNote: 49, outcome: { status: 'fallback', tgtNote: 49, otherDrum: true } },
+        ? { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals', srcNotes: [60], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: true } }
+        : { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals', srcNotes: [60], defaultTgtNote: 49, outcome: { status: 'fallback', tgtNote: 49, otherDrum: true } },
     ]));
     vi.mocked(stub.remap).mockImplementation((_mid, _src, _tgt, _overrides, _channel, missing) => remapFor(missing));
   });

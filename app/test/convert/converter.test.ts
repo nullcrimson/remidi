@@ -45,7 +45,7 @@ describe('createConverter', () => {
   it('rejects a batch the worker could not convert, without retrying on the main thread', async () => {
     const worker = new FakeWorker();
     const { convert } = createConverter(moduleLoader(), () => worker as unknown as Worker);
-    const pending = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest');
+    const pending = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest');
     worker.fail(worker.sent[0].id, { kind: 'internal', detail: 'wasm fetch failed' });
     await expect(pending).rejects.toEqual({ kind: 'internal', detail: 'wasm fetch failed' });
     expect(remapMock).not.toHaveBeenCalled();
@@ -55,7 +55,7 @@ describe('createConverter', () => {
   it('finishes on the main thread when a worker reply cannot be read', async () => {
     const worker = new FakeWorker();
     const { convert } = createConverter(moduleLoader(), () => worker as unknown as Worker);
-    const pending = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest');
+    const pending = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest');
     worker.onmessageerror?.(new MessageEvent('messageerror'));
     expect(Array.from((await pending).ok[0].bytes)).toEqual([7]);
     expect(worker.terminated).toBe(true);
@@ -65,7 +65,7 @@ describe('createConverter', () => {
     const { convert } = createConverter(noWasm, () => {
       throw new ReferenceError('Worker is not defined');
     });
-    await expect(convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest')).rejects.toThrow(
+    await expect(convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest')).rejects.toThrow(
       'no wasm',
     );
   });
@@ -73,7 +73,7 @@ describe('createConverter', () => {
   it('rejects a stranded batch when the fallback after a worker crash fails too', async () => {
     const worker = new FakeWorker();
     const { convert } = createConverter(noWasm, () => worker as unknown as Worker);
-    const pending = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest');
+    const pending = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest');
     worker.onerror?.(new Event('error'));
     await expect(pending).rejects.toThrow('no wasm');
   });
@@ -84,10 +84,10 @@ describe('createConverter', () => {
     const { convert } = createConverter(moduleLoader(), make);
     expect(make).not.toHaveBeenCalled();
 
-    const first = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest');
-    const second = convert(FILES, 'ggd_invasion', 'superior_drummer3', undefined, '10', 'drop');
+    const first = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest');
+    const second = convert(FILES, { src: 'ggd_invasion', tgt: 'superior_drummer3' }, undefined, '10', 'drop');
     expect(make).toHaveBeenCalledOnce();
-    expect(worker.sent.map((m) => m.tgt)).toEqual(['ezdrummer', 'superior_drummer3']);
+    expect(worker.sent.map((m) => m.pair.tgt)).toEqual(['ezdrummer', 'superior_drummer3']);
     expect(worker.sent[0].files).toEqual(FILES);
     expect(worker.sent.map((m) => m.channel)).toEqual(['auto', '10']);
     expect(worker.sent.map((m) => m.missing)).toEqual(['nearest', 'drop']);
@@ -103,7 +103,7 @@ describe('createConverter', () => {
     const { convert } = createConverter(moduleLoader(), () => {
       throw new ReferenceError('Worker is not defined');
     });
-    const result = await convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'all', 'nearest');
+    const result = await convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'all', 'nearest');
     expect(Array.from(result.ok[0].bytes)).toEqual([7]);
     expect(remapMock).toHaveBeenCalledOnce();
     expect(remapMock.mock.calls[0][4]).toBe('all');
@@ -115,13 +115,13 @@ describe('createConverter', () => {
     const make = vi.fn(() => worker as unknown as Worker);
     const { convert } = createConverter(moduleLoader(), make);
 
-    const pending = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, '3', 'nearest');
+    const pending = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, '3', 'nearest');
     worker.onerror?.(new Event('error'));
     expect(Array.from((await pending).ok[0].bytes)).toEqual([7]);
     expect(remapMock.mock.calls[0][4]).toBe('3');
     expect(worker.terminated).toBe(true);
 
-    await convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest');
+    await convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest');
     expect(make).toHaveBeenCalledOnce();
     expect(remapMock).toHaveBeenCalledTimes(2);
   });
@@ -140,7 +140,7 @@ function workers() {
 async function converterWithAnAnsweredWorker() {
   const { made, make } = workers();
   const { convert } = createConverter(moduleLoader(), make);
-  const first = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest');
+  const first = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest');
   made[0].reply(made[0].sent[0].id, 'first');
   await first;
   return { made, convert };
@@ -149,7 +149,7 @@ async function converterWithAnAnsweredWorker() {
 describe('a converter whose worker died after answering', () => {
   it('sends the stranded batch to a new worker', async () => {
     const { made, convert } = await converterWithAnAnsweredWorker();
-    const stranded = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, '3', 'nearest');
+    const stranded = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, '3', 'nearest');
     made[0].onerror?.(new Event('error'));
     expect(made).toHaveLength(2);
     expect(made[1].sent.map((m) => m.channel)).toEqual(['3']);
@@ -168,13 +168,13 @@ describe('a converter whose worker died after answering', () => {
     const { made, convert } = await converterWithAnAnsweredWorker();
     made[0].onerror?.(new Event('error'));
     expect(made).toHaveLength(1);
-    void convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest');
+    void convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest');
     expect(made).toHaveLength(2);
   });
 
   it('finishes on the main thread when the new worker dies before answering', async () => {
     const { made, convert } = await converterWithAnAnsweredWorker();
-    const stranded = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, '3', 'nearest');
+    const stranded = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, '3', 'nearest');
     made[0].onerror?.(new Event('error'));
     made[1].onerror?.(new Event('error'));
     expect((await stranded).ok[0].name).toBe('a.mid');
@@ -183,18 +183,18 @@ describe('a converter whose worker died after answering', () => {
 
   it('starts no third worker once the new one died before answering', async () => {
     const { made, convert } = await converterWithAnAnsweredWorker();
-    const stranded = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, '3', 'nearest');
+    const stranded = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, '3', 'nearest');
     made[0].onerror?.(new Event('error'));
     made[1].onerror?.(new Event('error'));
     await stranded;
-    await convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest');
+    await convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest');
     expect(made).toHaveLength(2);
   });
 
   it('ignores a late error from the worker it already ended', async () => {
     const { made, convert } = await converterWithAnAnsweredWorker();
     made[0].onerror?.(new Event('error'));
-    const next = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest');
+    const next = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest');
     made[0].onerror?.(new Event('error'));
     made[1].reply(made[1].sent[0].id, 'next');
     expect((await next).ok[0].name).toBe('next');
@@ -207,7 +207,7 @@ describe('a batch whose signal aborts', () => {
     const { make } = workers();
     const { convert } = createConverter(moduleLoader(), make);
     const stop = new AbortController();
-    const batch = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest', stop.signal);
+    const batch = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest', stop.signal);
     stop.abort();
     await expect(batch).rejects.toBe(stop.signal.reason);
   });
@@ -216,7 +216,7 @@ describe('a batch whose signal aborts', () => {
     const { made, make } = workers();
     const { convert } = createConverter(moduleLoader(), make);
     const stop = new AbortController();
-    const batch = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest', stop.signal);
+    const batch = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest', stop.signal);
     stop.abort();
     await expect(batch).rejects.toBeDefined();
     expect(made[0].terminated).toBe(true);
@@ -226,10 +226,10 @@ describe('a batch whose signal aborts', () => {
     const { made, make } = workers();
     const { convert } = createConverter(moduleLoader(), make);
     const stop = new AbortController();
-    const batch = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest', stop.signal);
+    const batch = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest', stop.signal);
     stop.abort();
     await expect(batch).rejects.toBeDefined();
-    const next = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, '10', 'nearest');
+    const next = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, '10', 'nearest');
     expect(made[1].sent.map((m) => m.channel)).toEqual(['10']);
     made[1].reply(made[1].sent[0].id, 'next');
     expect((await next).ok[0].name).toBe('next');
@@ -239,8 +239,8 @@ describe('a batch whose signal aborts', () => {
     const { made, make } = workers();
     const { convert } = createConverter(moduleLoader(), make);
     const stop = new AbortController();
-    const aborted = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest', stop.signal);
-    const kept = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, '5', 'nearest');
+    const aborted = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest', stop.signal);
+    const kept = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, '5', 'nearest');
     stop.abort();
     await expect(aborted).rejects.toBeDefined();
     expect(made[1].sent.map((m) => m.channel)).toEqual(['5']);
@@ -254,7 +254,7 @@ describe('a batch whose signal aborts', () => {
     const stop = new AbortController();
     stop.abort();
     await expect(
-      convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest', stop.signal),
+      convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest', stop.signal),
     ).rejects.toBe(stop.signal.reason);
     expect(made).toHaveLength(0);
   });
@@ -264,7 +264,7 @@ describe('a batch whose signal aborts', () => {
       throw new ReferenceError('Worker is not defined');
     });
     const stop = new AbortController();
-    const batch = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest', stop.signal);
+    const batch = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest', stop.signal);
     stop.abort();
     await expect(batch).rejects.toBe(stop.signal.reason);
   });
@@ -273,7 +273,7 @@ describe('a batch whose signal aborts', () => {
     const { made, make } = workers();
     const { convert } = createConverter(moduleLoader(), make);
     const stop = new AbortController();
-    const batch = convert(FILES, 'ggd_invasion', 'ezdrummer', undefined, 'auto', 'nearest', stop.signal);
+    const batch = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest', stop.signal);
     made[0].reply(made[0].sent[0].id, 'done');
     await batch;
     stop.abort();

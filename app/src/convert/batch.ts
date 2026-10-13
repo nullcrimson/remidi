@@ -1,4 +1,5 @@
 import { toAppError, type AppError } from '../core/errors';
+import type { EnginePair } from '../core/enginePair';
 import type { LoadedFile } from '../core/files';
 import type { ChannelScope, LoadMidiremap, Midiremap, MissingDrums, Overrides, Report } from '../core/midiremap';
 
@@ -22,8 +23,7 @@ export interface BatchResult {
 export interface BatchRequest {
   id: number;
   files: LoadedFile[];
-  src: string;
-  tgt: string;
+  pair: EnginePair;
   ov?: Overrides;
   channel: ChannelScope;
   missing: MissingDrums;
@@ -35,8 +35,7 @@ export type BatchReply = { id: number; result: BatchResult } | { id: number; err
 /** Converts every file independently; one bad file never stops the batch. */
 export function runBatch(
   files: LoadedFile[],
-  src: string,
-  tgt: string,
+  pair: EnginePair,
   ov: Overrides | undefined,
   channel: ChannelScope,
   missing: MissingDrums,
@@ -46,7 +45,7 @@ export function runBatch(
   const failed: FailedFile[] = [];
   for (const f of files) {
     try {
-      const { bytes, report } = remap(f.bytes, src, tgt, ov, channel, missing);
+      const { bytes, report } = remap(f.bytes, pair, ov, channel, missing);
       ok.push({ name: f.name, bytes, report });
     } catch (e) {
       failed.push({ name: f.name, error: toAppError(e) });
@@ -58,10 +57,10 @@ export function runBatch(
 /** Converts a request's files on the module `load` yields; rejects when it cannot load. */
 export async function convertRequest(
   load: LoadMidiremap,
-  { files, src, tgt, ov, channel, missing }: BatchRequest,
+  { files, pair, ov, channel, missing }: BatchRequest,
 ): Promise<BatchResult> {
   const core = await load();
-  return runBatch(files, src, tgt, ov, channel, missing, core.remap);
+  return runBatch(files, pair, ov, channel, missing, core.remap);
 }
 
 /** What a worker answers a request with. */

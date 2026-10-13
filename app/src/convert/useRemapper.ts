@@ -1,23 +1,33 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { vocabularyOf } from '../core/canon';
-import type { ChannelScope, Engine, Midiremap, MissingDrums } from '../core/midiremap';
+import type { ChannelScope, Engine, Midiremap, MissingDrums, Note } from '../core/midiremap';
 import type { OctaveBase } from '../core/notes';
+import { pairOf, type EnginePair } from '../core/enginePair';
 import { editsToOverrides, knownEdits, type StoredEdits } from '../core/overrides';
 import { preselection } from './preselect';
 import type { Runtime } from './runtime';
 import type { SelectionEvent } from '../core/selection';
 import { loadSession, saveSession, type Session } from './session';
 import { useConverter } from './useConverter';
+import type { EditFilter } from '../editor/editFilter';
 import { useEditor } from '../editor/useEditor';
 import { useEngineCatalog } from '../engines/useEngineCatalog';
 
 export type { Conv } from './useConverter';
 
-type View = 'convert' | 'edit';
+/**
+ * The screen on show: the converter, or the note editor with the pair it edits and the
+ * filter and source note it opens on. The editor is only ever on show with both engines chosen.
+ */
+export type View
+  = | { kind: 'convert' }
+    | { kind: 'edit'; pair: EnginePair; show: EditFilter; assignNote: Note | null };
+
+const CONVERT: View = { kind: 'convert' };
 
 interface Selection {
-  src: string;
-  tgt: string;
+  src: string | null;
+  tgt: string | null;
   oct: OctaveBase;
   channel: ChannelScope;
   missing: MissingDrums;
@@ -28,27 +38,18 @@ interface Selection {
 type SelectionAction
   = | SelectionEvent
     | { type: 'SET_OCT'; oct: OctaveBase }
-    | { type: 'SET_VIEW'; view: View }
+    | { type: 'OPEN_EDITOR'; show: EditFilter; assignNote: Note | null }
+    | { type: 'CLOSE_EDITOR' }
     | { type: 'SET_PRESET'; presetId: string | null };
 
 const NO_ENGINES: Engine[] = [];
 
-const INITIAL: Selection = {
-  src: '',
-  tgt: '',
-  oct: 'c1',
-  channel: 'auto',
-  missing: 'nearest',
-  view: 'convert',
-  presetId: null,
-};
-
 function selectionOf(session: Session): Selection {
   const { src, tgt, oct, channel, missing, presetId } = session;
-  return { ...INITIAL, src, tgt, oct, channel, missing, presetId };
+  return { src, tgt, oct, channel, missing, presetId, view: CONVERT };
 }
 
-function selectionReducer(state: Selection, action: SelectionAction): Selection {
+function step(state: Selection, action: SelectionAction): Selection {
   switch (action.type) {
     case 'chooseSrc':
       return { ...state, src: action.id, presetId: null };
@@ -59,18 +60,29 @@ function selectionReducer(state: Selection, action: SelectionAction): Selection 
     case 'preselect':
       return { ...state, src: action.src, tgt: action.tgt, presetId: null };
     case 'loadMapping':
-      return { ...state, src: action.src, tgt: action.tgt, view: 'convert', presetId: action.presetId };
+      return { ...state, src: action.src, tgt: action.tgt, view: CONVERT, presetId: action.presetId };
     case 'setChannel':
       return { ...state, channel: action.channel };
     case 'setMissing':
       return { ...state, missing: action.missing };
     case 'SET_OCT':
       return { ...state, oct: action.oct };
-    case 'SET_VIEW':
-      return { ...state, view: action.view };
+    case 'OPEN_EDITOR': {
+      const pair = pairOf(state.src, state.tgt);
+      return pair === null ? state : { ...state, view: { kind: 'edit', pair, show: action.show, assignNote: action.assignNote } };
+    }
+    case 'CLOSE_EDITOR':
+      return { ...state, view: CONVERT };
     case 'SET_PRESET':
       return { ...state, presetId: action.presetId };
   }
+}
+
+function selectionReducer(state: Selection, action: SelectionAction): Selection {
+  const next = step(state, action);
+  if (next.view.kind !== 'edit' || (next.src === state.src && next.tgt === state.tgt)) return next;
+  const pair = pairOf(next.src, next.tgt);
+  return { ...next, view: pair === null ? CONVERT : { ...next.view, pair } };
 }
 
 /**
@@ -91,16 +103,16 @@ export function useRemapper({ load, converter: batches }: Runtime) {
   const restore = useRef<(list: Engine[], core: Midiremap) => void>(() => {});
   const onCatalogReady = useCallback((list: Engine[], core: Midiremap) => restore.current(list, core), []);
   const catalog = useEngineCatalog(load, onCatalogReady);
-  const { status } = catalog;
-  const editor = useEditor(catalog.status === 'ready' ? catalog.core : null, src, tgt, missing);
+  const pair = useMemo(() => pairOf(src, tgt), [src, tgt]);
+  const editor = useEditor(catalog.status === 'ready' ? catalog.core : null, pair, missing);
   const { edits, srcEdits, vocabulary, load: loadEditor, onSelection: editorSees } = editor;
   const overrides = useMemo(() => editsToOverrides(edits, srcEdits), [edits, srcEdits]);
   const keyFor = useCallback(
-    (m: MissingDrums) => JSON.stringify({ src, tgt, channel, missing: m, overrides }),
-    [src, tgt, channel, overrides],
+    (m: MissingDrums) => JSON.stringify({ pair, channel, missing: m, overrides }),
+    [pair, channel, overrides],
   );
   const settingsKey = useMemo(() => keyFor(missing), [keyFor, missing]);
-  const converter = useConverter(batches, src, tgt, settingsKey);
+  const converter = useConverter(batches, pair, settingsKey);
   const { onSelection: converterSees, convert: runConvert } = converter;
 
   const emit = useCallback(
@@ -118,7 +130,11 @@ export function useRemapper({ load, converter: batches }: Runtime) {
   const setChannel = useCallback((c: ChannelScope) => emit({ type: 'setChannel', channel: c }), [emit]);
   const setMissing = useCallback((m: MissingDrums) => emit({ type: 'setMissing', missing: m }), [emit]);
   const setOct = useCallback((o: OctaveBase) => dispatch({ type: 'SET_OCT', oct: o }), []);
-  const setView = useCallback((v: View) => dispatch({ type: 'SET_VIEW', view: v }), []);
+  const openEditor = useCallback(
+    (show: EditFilter, assignNote: Note | null) => dispatch({ type: 'OPEN_EDITOR', show, assignNote }),
+    [],
+  );
+  const closeEditor = useCallback(() => dispatch({ type: 'CLOSE_EDITOR' }), []);
   const setPreset = useCallback(
     (id: string | null) => dispatch({ type: 'SET_PRESET', presetId: id }),
     [],
@@ -128,26 +144,26 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     restore.current = (list, loaded) => {
       const known = new Set(list.map((e) => e.id));
       const picked = preselection(window.location.search, list);
-      const keep = (id: string) => (known.has(id) ? id : '');
+      const keep = (id: string | null) => (id !== null && known.has(id) ? id : null);
       let nextSrc = picked?.src ?? keep(session.src);
       let nextTgt = picked?.tgt ?? keep(session.tgt);
       if (nextSrc === nextTgt) {
-        if (picked?.src) nextTgt = '';
-        else nextSrc = '';
+        if (picked?.src) nextTgt = null;
+        else nextSrc = null;
       }
       if (nextSrc !== session.src || nextTgt !== session.tgt) {
         emit({ type: 'preselect', src: nextSrc, tgt: nextTgt });
         return;
       }
       const kept = knownEdits(session, vocabularyOf(loaded.canonCatalog()));
-      loadEditor(kept.edits, kept.srcEdits);
+      loadEditor(kept);
     };
   }, [session, emit, loadEditor]);
 
   useEffect(() => {
-    const unsaved: StoredEdits = status === 'ready' ? { edits, srcEdits } : session;
+    const unsaved: StoredEdits = catalog.status === 'ready' ? { edits, srcEdits } : session;
     saveSession({ src, tgt, oct, channel, missing, presetId, edits: unsaved.edits, srcEdits: unsaved.srcEdits });
-  }, [status, session, src, tgt, oct, channel, missing, presetId, edits, srcEdits]);
+  }, [catalog.status, session, src, tgt, oct, channel, missing, presetId, edits, srcEdits]);
 
   const loadMapping = useCallback(
     (m: { id?: string; src: string; tgt: string } & StoredEdits): number => {
@@ -157,8 +173,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
         src: m.src,
         tgt: m.tgt,
         presetId: m.id ?? null,
-        edits: kept.edits,
-        srcEdits: kept.srcEdits,
+        known: kept,
       });
       return kept.skipped;
     },
@@ -178,11 +193,11 @@ export function useRemapper({ load, converter: batches }: Runtime) {
   }, [emit, run]);
 
   return {
-    status,
+    catalog,
     engines: catalog.status === 'ready' ? catalog.engines : NO_ENGINES,
-    error: catalog.status === 'error' ? catalog.error : converter.convError,
     src,
     tgt,
+    pair,
     oct,
     channel,
     missing,
@@ -203,7 +218,8 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     addFiles: converter.addFiles,
     removeFile: converter.removeFile,
     clearFiles: converter.clearFiles,
-    setView,
+    openEditor,
+    closeEditor,
     convert,
     dropMissingAndConvert,
     loadMapping,

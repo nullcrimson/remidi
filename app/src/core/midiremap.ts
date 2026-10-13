@@ -10,6 +10,7 @@ import type {
   VocabularyDrum,
   VoiceRow,
 } from '@wasm';
+import type { EnginePair } from './enginePair';
 import { isWasmError, WasmCallError } from './errors';
 
 type WasmModule = typeof import('@wasm');
@@ -26,6 +27,7 @@ export type {
   OctaveBase,
   Overrides,
   PlanOutcome,
+  PresetName,
   PresetView,
   RemapOutput,
   Report,
@@ -41,11 +43,10 @@ export interface Midiremap {
   canonCatalog(): VocabularyDrum[];
   familyOrder(): Family[];
   parsePresetFile(json: string): PresetView;
-  plan(src: string, tgt: string, ov?: Overrides, missing?: MissingDrums): VoiceRow[];
+  plan(pair: EnginePair, ov?: Overrides, missing?: MissingDrums): VoiceRow[];
   remap(
     mid: Uint8Array,
-    src: string,
-    tgt: string,
+    pair: EnginePair,
     ov?: Overrides,
     channel?: ChannelScope,
     missing?: MissingDrums,
@@ -71,8 +72,8 @@ function calls(m: WasmModule): Midiremap {
     canonCatalog: () => call(() => m.canon_catalog()),
     familyOrder: () => call(() => m.family_order()),
     parsePresetFile: (json) => call(() => m.parse_preset_file(json)),
-    plan: (src, tgt, ov, missing) => call(() => m.plan(src, tgt, ov, missing)),
-    remap: (mid, src, tgt, ov, channel, missing) => call(() => m.remap(mid, src, tgt, ov, channel, missing)),
+    plan: ({ src, tgt }, ov, missing) => call(() => m.plan(src, tgt, ov, missing)),
+    remap: (mid, { src, tgt }, ov, channel, missing) => call(() => m.remap(mid, src, tgt, ov, channel, missing)),
   };
 }
 

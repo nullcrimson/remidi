@@ -20,8 +20,8 @@ describe('App edit view', () => {
       { canon: 'China', label: 'China', family: 'Aux' },
     ]));
     vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
-      { canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
-      { canon: 'China', label: 'China', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
+      { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+      { canon: 'China', label: 'China', family: 'Cymbals', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
     ]));
   });
 
@@ -184,7 +184,7 @@ describe('App edit view', () => {
     await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
     await userEvent.click(screen.getByText(/Edit individual notes/));
     expect(screen.getByText('Edit notes')).toBeInTheDocument();
-    expect(screen.getByText('Kick')).toBeInTheDocument();
+    expect(screen.getAllByText('Kick')).toHaveLength(2);
     expect(screen.getByRole('button', { name: '—' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());

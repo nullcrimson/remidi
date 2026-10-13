@@ -1,20 +1,19 @@
-import type { SavedMapping } from './mappings';
+import type { EnginePair } from '../core/enginePair';
+import { uniqueName, type SavedMapping } from './mappings';
+import type { PresetName } from '../core/midiremap';
 import type { Edits, SrcEdits } from '../core/overrides';
 import type { NoticeLine } from '../core/notice';
-import { uniqueName } from './presetFile';
 import { skippedNotice } from './presetImport';
 import type { SavedMappings } from './useSavedMappings';
 import { track } from '../core/stats';
 
 /** What the preset actions read from and change on the screen. */
 export interface PresetSetup {
-  src: string;
-  tgt: string;
   edits: Edits;
   srcEdits: SrcEdits;
   loadMapping: (m: SavedMapping) => number;
   setPreset: (id: string | null) => void;
-  setView: (view: 'convert' | 'edit') => void;
+  openEditor: () => void;
 }
 
 /**
@@ -26,7 +25,7 @@ export function usePresetActions(
   saved: SavedMappings,
   notify: (lines: NoticeLine[] | null) => void,
 ) {
-  const { src, tgt, edits, srcEdits, loadMapping, setPreset, setView } = setup;
+  const { edits, srcEdits, loadMapping, setPreset, openEditor } = setup;
   const load = (m: SavedMapping) => {
     track('preset-loaded');
     const skipped = skippedNotice(m.name, loadMapping(m));
@@ -34,12 +33,12 @@ export function usePresetActions(
   };
   return {
     open: (id: string | null) => saved.mappings.find((m) => m.id === id),
-    save: (name: string) => {
-      const id = saved.save({ name, src, tgt, edits, srcEdits });
+    save: (pair: EnginePair, name: PresetName) => {
+      const id = saved.save({ name, ...pair, edits, srcEdits });
       track('preset-saved');
       if (id) setPreset(id);
     },
-    update: (id: string, name: string) => saved.update(id, { name, edits, srcEdits }),
+    update: (id: string, name: PresetName) => saved.update(id, { name, edits, srcEdits }),
     duplicate: (m: SavedMapping) =>
       saved.save({
         name: uniqueName(m.name, saved.mappings.map((other) => other.name)),
@@ -51,7 +50,7 @@ export function usePresetActions(
     load,
     edit: (m: SavedMapping) => {
       load(m);
-      setView('edit');
+      openEditor();
     },
   };
 }

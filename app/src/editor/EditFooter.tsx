@@ -1,4 +1,6 @@
 import { useT } from '../locale/localeContext';
+import type { EnginePair } from '../core/enginePair';
+import type { PresetName } from '../core/midiremap';
 import type { SavedMapping } from '../presets/mappings';
 import { UnsavedNotice } from '../presets/UnsavedNotice';
 import { Button } from '../ui/Button';
@@ -9,8 +11,7 @@ import { SavePreset } from './SavePreset';
 export function EditFooter({
   changes,
   onResetAll,
-  src,
-  tgt,
+  pair,
   existingPreset,
   presetsAtCap,
   presetsUnsaved,
@@ -20,13 +21,12 @@ export function EditFooter({
 }: {
   changes: number;
   onResetAll: () => void;
-  src: string;
-  tgt: string;
+  pair: EnginePair;
   existingPreset: SavedMapping | undefined;
   presetsAtCap: boolean;
   presetsUnsaved: boolean;
-  onSavePreset: (name: string) => void;
-  onUpdatePreset: (id: string, name: string) => void;
+  onSavePreset: (name: PresetName) => void;
+  onUpdatePreset: (id: string, name: PresetName) => void;
   onDone: () => void;
 }) {
   const t = useT();
@@ -55,8 +55,7 @@ export function EditFooter({
       "
       >
         <SavePreset
-          src={src}
-          tgt={tgt}
+          pair={pair}
           existingPreset={existingPreset}
           atCap={presetsAtCap}
           onSave={onSavePreset}

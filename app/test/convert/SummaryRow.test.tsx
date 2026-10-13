@@ -18,6 +18,7 @@ function renderRow(edited?: Partial<EditedState>) {
       remapped={45}
       total={47}
       onEdit={() => {}}
+      names={{ source: 'GetGood Drums', target: 'EZdrummer 3' }}
       edited={edited && { count: 2, lines: LINES, preset: { kind: 'none' }, onReview, ...edited }}
     />,
   );

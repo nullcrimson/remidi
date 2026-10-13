@@ -4,19 +4,35 @@ import { labelByNote } from '../core/drums';
 import { byCanon } from '../core/canon';
 import { byNote, noteName, type OctaveBase } from '../core/notes';
 
-export interface ReportEntry {
+/** A drum the target lacks and that was left out. */
+export interface DroppedEntry {
   label: string;
-  sub?: string;
   count: number;
-  /** The drum an entry is about, for dropped and approximated notes. */
-  canon?: Canon;
-  /** The source note an entry is about, for unrecognized notes. */
-  note?: Note;
+  canon: Canon;
+}
+/** A drum the target lacks and that played on another note, named by `sub`. */
+export interface ApproximatedEntry {
+  label: string;
+  sub: string;
+  count: number;
+  canon: Canon;
+}
+/** A source note the engine does not use. */
+export interface UnrecognizedEntry {
+  label: string;
+  count: number;
+  note: Note;
+}
+export type ReportEntry = DroppedEntry | ApproximatedEntry | UnrecognizedEntry;
+
+/** A report line as shown: the drum or note, then what it plays as when it has a `sub`. */
+export function entryText(e: { label: string; sub?: string }): string {
+  return e.sub === undefined ? e.label : `${e.label} → ${e.sub}`;
 }
 export interface ReportGroups {
-  dropped: ReportEntry[];
-  approximated: ReportEntry[];
-  unrecognized: ReportEntry[];
+  dropped: DroppedEntry[];
+  approximated: ApproximatedEntry[];
+  unrecognized: UnrecognizedEntry[];
 }
 export interface ReportFile {
   name: string;
@@ -37,7 +53,7 @@ export interface ReportView {
   files: ReportFile[];
 }
 
-function sortEntries(entries: ReportEntry[]): ReportEntry[] {
+function sortEntries<E extends ReportEntry>(entries: E[]): E[] {
   return [...entries].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 }
 
@@ -76,18 +92,18 @@ export function buildReport(
     converted: r.report.converted,
   }));
 
-  const merge = (acc: Map<string, ReportEntry>, entries: ReportEntry[]) => {
+  const merge = <E extends ReportEntry>(acc: Map<string, E>, entries: E[]) => {
     for (const e of entries) {
-      const key = e.sub === undefined ? e.label : `${e.label} ${e.sub}`;
+      const key = entryText(e);
       const existing = acc.get(key);
       if (existing) existing.count += e.count;
       else acc.set(key, { ...e });
     }
   };
 
-  const dropAcc = new Map<string, ReportEntry>();
-  const apprAcc = new Map<string, ReportEntry>();
-  const unrecAcc = new Map<string, ReportEntry>();
+  const dropAcc = new Map<string, DroppedEntry>();
+  const apprAcc = new Map<string, ApproximatedEntry>();
+  const unrecAcc = new Map<string, UnrecognizedEntry>();
   for (const f of files) {
     merge(dropAcc, f.groups.dropped);
     merge(apprAcc, f.groups.approximated);
@@ -99,7 +115,7 @@ export function buildReport(
     approximated: sortEntries([...apprAcc.values()]),
     unrecognized: sortEntries([...unrecAcc.values()]),
   };
-  const sum = (entries: ReportEntry[]) => entries.reduce((n, e) => n + e.count, 0);
+  const sum = (entries: { count: number }[]) => entries.reduce((n, e) => n + e.count, 0);
   const totals = {
     dropped: sum(groups.dropped),
     approximated: sum(groups.approximated),

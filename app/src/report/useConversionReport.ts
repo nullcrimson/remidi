@@ -34,6 +34,6 @@ export function useConversionReport({
   const swapped = useMemo(() => swappedCanons(rows), [rows]);
   const canDrop
     = missing === 'nearest'
-      && view.groups.approximated.some((e) => e.canon !== undefined && swapped.has(e.canon));
+      && view.groups.approximated.some((e) => swapped.has(e.canon));
   return { view, dropMissing: canDrop ? () => void dropMissingAndConvert() : undefined };
 }

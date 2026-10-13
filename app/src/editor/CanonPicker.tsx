@@ -1,6 +1,6 @@
 import { useT } from '../locale/localeContext';
 import { groupByFamily } from './families';
-import type { Canon, VocabularyDrum } from '../core/midiremap';
+import type { Canon, Family, VocabularyDrum } from '../core/midiremap';
 import { IconButton } from '../ui/IconButton';
 import { ListRow } from './ListRow';
 import { MonoLabel } from '../ui/MonoLabel';
@@ -17,7 +17,7 @@ export function CanonPicker({
   noteLabel: string;
   current: Canon | null;
   options: VocabularyDrum[];
-  families: readonly string[];
+  families: readonly Family[];
   onPick: (canon: Canon) => void;
   onClose: () => void;
 }) {
@@ -27,7 +27,7 @@ export function CanonPicker({
   return (
     <PickerShell label={t({ id: 'canon-picker-label', args: { note: noteLabel } })} onClose={onClose}>
       <div className="mb-3 flex items-center justify-between">
-        <MonoLabel tone="text-t4">{t({ id: 'canon-picker-heading', args: { note: noteLabel } })}</MonoLabel>
+        <MonoLabel tone="muted">{t({ id: 'canon-picker-heading', args: { note: noteLabel } })}</MonoLabel>
         <IconButton label={t({ id: 'close' })} onClick={onClose}>×</IconButton>
       </div>
       <div className="mr-scroll flex max-h-64 flex-col gap-2 pr-1">

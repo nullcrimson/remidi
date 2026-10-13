@@ -32,6 +32,21 @@ export function tag(tone: TagTone): string {
   return `rounded-chip border px-2 py-0.5 font-mono text-label ${TAG_TONE[tone]}`;
 }
 
+export type LabelTone = 'faint' | 'muted' | 'strong' | 'gold' | 'danger';
+
+const LABEL_TONE: Record<LabelTone, string> = {
+  faint: 'text-t5',
+  muted: 'text-t4',
+  strong: 'text-t2',
+  gold: 'text-star',
+  danger: 'text-danger',
+};
+
+/** The text colour of a small label or a row's result. */
+export function labelText(tone: LabelTone): string {
+  return LABEL_TONE[tone];
+}
+
 export type TextTone = 'default' | 'danger' | 'link';
 
 const TEXT_TONE: Record<TextTone, string> = {

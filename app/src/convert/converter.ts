@@ -1,4 +1,5 @@
 import { convertRequest, type BatchReply, type BatchRequest, type BatchResult } from './batch';
+import type { EnginePair } from '../core/enginePair';
 import type { LoadedFile } from '../core/files';
 import type { ChannelScope, LoadMidiremap, MissingDrums, Overrides } from '../core/midiremap';
 
@@ -7,8 +8,7 @@ export interface Converter {
   /** Rejects with `signal.reason` when `signal` aborts before the batch is delivered. */
   convert(
     files: LoadedFile[],
-    src: string,
-    tgt: string,
+    pair: EnginePair,
     ov: Overrides | undefined,
     channel: ChannelScope,
     missing: MissingDrums,
@@ -99,8 +99,8 @@ export function createConverter(load: LoadMidiremap, makeWorker: MakeWorker = mo
   }
 
   return {
-    convert(files, src, tgt, ov, channel, missing, signal) {
-      const request: BatchRequest = { id: nextId++, files, src, tgt, ov, channel, missing };
+    convert(files, pair, ov, channel, missing, signal) {
+      const request: BatchRequest = { id: nextId++, files, pair, ov, channel, missing };
       return new Promise((resolve, reject) => {
         if (signal?.aborted) {
           reject(signal.reason);

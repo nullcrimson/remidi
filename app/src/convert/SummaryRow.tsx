@@ -1,3 +1,4 @@
+import type { EngineNames } from '../core/enginePair';
 import { useT } from '../locale/localeContext';
 import type { FocusRef } from '../ui/useFocusIntent';
 import type { EditFilter } from '../editor/editFilter';
@@ -8,12 +9,6 @@ import { textAction } from '../ui/styles';
 import { TextButton } from '../ui/TextButton';
 import { Tooltip, TooltipBody } from '../ui/Tooltip';
 import { Rich } from '../ui/Rich';
-
-/** The display names of the source and target engines. */
-export interface EngineNames {
-  source: string;
-  target: string;
-}
 
 export function SummaryRow({
   remapped,
@@ -30,7 +25,7 @@ export function SummaryRow({
   editRef?: FocusRef;
   edited?: EditedState;
   breakdown?: PlanBreakdown;
-  names?: EngineNames;
+  names: EngineNames;
 }) {
   const t = useT();
   const summary = (
@@ -48,7 +43,7 @@ export function SummaryRow({
     >
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
         <span className="text-ui text-t4">
-          {breakdown && names
+          {breakdown
             ? (
                 <InfoPopover label={summary}>
                   <BreakdownDetail total={total} breakdown={breakdown} names={names} onEdit={onEdit} />

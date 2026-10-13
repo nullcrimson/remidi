@@ -1,11 +1,12 @@
 import { saveFile } from '../core/download';
 import type { StoredEdits } from '../core/overrides';
+import type { PresetName } from '../core/midiremap';
 
 const PRESET_FORMAT = 'drumverter-preset';
 const PRESET_VERSION = 1;
 
 export interface PresetContent extends StoredEdits {
-  name: string;
+  name: PresetName;
   src: string;
   tgt: string;
 }
@@ -29,16 +30,6 @@ export function presetFileName(name: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
   return `${slug || 'preset'}-drumverter.json`;
-}
-
-/** `name`, or the first "name copy", "name copy 2", … not in `taken`. */
-export function uniqueName(name: string, taken: string[]): string {
-  const used = new Set(taken);
-  if (!used.has(name)) return name;
-  for (let i = 1; ; i++) {
-    const candidate = i === 1 ? `${name} copy` : `${name} copy ${i}`;
-    if (!used.has(candidate)) return candidate;
-  }
 }
 
 /** Downloads a preset as a `<name>-drumverter.json` file. */

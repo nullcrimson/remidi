@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { editorReducer, EDITOR_START, type EditorState } from '../../src/editor/editorState';
-import type { Edits } from '../../src/core/overrides';
+import { editorReducer, EDITOR_START, type EditorState, type Pick } from '../../src/editor/editorState';
+import { knownEdits } from '../../src/core/overrides';
 import type { SelectionEvent } from '../../src/core/selection';
-import { typed } from '../typed';
+import { canon, note, typed } from '../typed';
 
 const edited = typed<EditorState>({
   edits: { 'kick.main': 35 },
   srcEdits: { 24: 'snare1.hit' },
-  pick: { canon: 'kick.main', octIndex: 3, side: 'tgt', defaultNote: 36, prevNote: null },
-  notice: { canon: 'kick.main', note: 24, from: 'Snare' },
+  overlay: { kind: 'tgt', canon: 'kick.main', octIndex: 3, defaultNote: 36 },
 });
 
 describe('editorReducer and selection events', () => {
@@ -27,10 +26,12 @@ describe('editorReducer and selection events', () => {
       src: 'a',
       tgt: 'b',
       presetId: 'p1',
-      edits: typed<Edits>({ 'snare1.hit': 40 }),
-      srcEdits: {},
+      known: knownEdits(
+        { edits: { 'snare1.hit': note(40) }, srcEdits: {} },
+        new Map([['snare1.hit', canon('snare1.hit')]]),
+      ),
     });
-    expect(next).toEqual({ edits: { 'snare1.hit': 40 }, srcEdits: {}, pick: null, notice: null });
+    expect(next).toEqual({ edits: { 'snare1.hit': 40 }, srcEdits: {}, overlay: null });
   });
 
   it.each<SelectionEvent>([
@@ -38,5 +39,11 @@ describe('editorReducer and selection events', () => {
     { type: 'setMissing', missing: 'drop' },
   ])('keeps the edits when only a setting changes ($type)', (event) => {
     expect(editorReducer(edited, event)).toBe(edited);
+  });
+
+  it('replaces the notice when a picker opens', () => {
+    const state = typed<EditorState>({ edits: {}, srcEdits: {}, overlay: { kind: 'notice', canon: 'kick.main', note: 24, from: 'Snare' } });
+    const pick = typed<Pick>({ kind: 'tgt', canon: 'kick.main', octIndex: 2, defaultNote: 36 });
+    expect(editorReducer(state, { type: 'OPEN_PICK', pick }).overlay).toBe(pick);
   });
 });

@@ -11,7 +11,7 @@ import { WasmCallError } from '../src/core/errors';
 import { MAPPINGS_CAP } from '../src/presets/mappings';
 import type { PresetView, VocabularyDrum } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
-import { typed } from './typed';
+import { presetName, typed } from './typed';
 import { storedName } from '../src/core/storage';
 
 const MAPPINGS_KEY = storedName('mappings');
@@ -89,7 +89,7 @@ describe('App presets', () => {
 
   it('imports a preset file as a new preset with a free name', async () => {
     vi.mocked(stub.parse_preset_file).mockReturnValue(typed<PresetView>({
-      name: 'My kit',
+      name: presetName('My kit'),
       src: 'ggd_invasion',
       tgt: 'ezdrummer',
       edits: { 'kick.main': 35 },
@@ -203,7 +203,7 @@ describe('App presets', () => {
 
   it('refuses an import at the preset limit', async () => {
     vi.mocked(stub.parse_preset_file).mockReturnValue(
-      typed<PresetView>({ name: 'New', src: 'ggd_invasion', tgt: 'ezdrummer', edits: {}, srcEdits: {}, skipped: [] }),
+      typed<PresetView>({ name: presetName('New'), src: 'ggd_invasion', tgt: 'ezdrummer', edits: {}, srcEdits: {}, skipped: [] }),
     );
     const full = Array.from({ length: MAPPINGS_CAP }, (_, i) => ({ ...PRESET, id: `p${i}`, name: `P${i}`, edits: {}, srcEdits: {} }));
     await start(full);

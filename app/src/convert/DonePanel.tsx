@@ -2,6 +2,8 @@ import type { Translate } from '../locale/i18n';
 import { useLocale } from '../locale/localeContext';
 import { useEffect, useRef, useState } from 'react';
 import { saveFile } from '../core/download';
+import { engineCode } from '../core/engineCode';
+import type { EnginePair } from '../core/enginePair';
 import { reportLink } from '../report/reportLink';
 import type { FailedFile } from './batch';
 import type { FileResult } from '../core/files';
@@ -49,10 +51,8 @@ export function DonePanel({
   results,
   failures,
   view,
+  pair,
   targetName,
-  targetShort,
-  from,
-  to,
   onViewReport,
   onConvertMore,
   onDropMissing,
@@ -61,10 +61,8 @@ export function DonePanel({
   results: FileResult[];
   failures: FailedFile[];
   view: ReportView;
+  pair: EnginePair;
   targetName: string;
-  targetShort: string;
-  from: string;
-  to: string;
   onViewReport: () => void;
   onConvertMore: () => void;
   onDropMissing?: () => void;
@@ -83,7 +81,7 @@ export function DonePanel({
   const downloadZip = () => {
     markSaved();
     const url = URL.createObjectURL(zipFiles(results));
-    saveFile(url, `remapped-${targetShort}.zip`);
+    saveFile(url, `remapped-${engineCode(pair.tgt)}.zip`);
     setTimeout(() => URL.revokeObjectURL(url), FREE_ZIP_AFTER_MS);
   };
 
@@ -166,7 +164,7 @@ export function DonePanel({
           <TextButton onClick={onDropMissing}>{t({ id: 'drop-missing' })}</TextButton>
         )}
         <a
-          href={reportLink({ from, to, lang: locale })}
+          href={reportLink({ from: pair.src, to: pair.tgt, lang: locale })}
           target="_blank"
           rel="noopener"
           className="prose-link text-ui"

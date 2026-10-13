@@ -6,6 +6,12 @@ import { noteName, type OctaveBase } from './notes';
 export const playedNote = (outcome: PlanOutcome): Note | null =>
   outcome.status === 'dropped' ? null : outcome.tgtNote;
 
+/** Whether some source note plays the drum. */
+export const isPlayed = (row: Pick<VoiceRow, 'srcNotes'>): boolean => row.srcNotes.length > 0;
+
+/** The source note the drum is shown under, or `null` when no note plays it. */
+export const leadNote = (row: Pick<VoiceRow, 'srcNotes'>): Note | null => row.srcNotes[0] ?? null;
+
 /** Whether the target lacks the drum and its nearest stand-in is another drum. */
 export const movesToOtherDrum = (outcome: PlanOutcome): boolean =>
   outcome.status !== 'direct' && outcome.otherDrum;

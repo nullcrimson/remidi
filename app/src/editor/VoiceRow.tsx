@@ -3,16 +3,17 @@ import { useT } from '../locale/localeContext';
 import { useId, useState, type ReactNode } from 'react';
 import type { VoiceRow as VoiceRowData } from '../core/midiremap';
 import { noteName, type OctaveBase } from '../core/notes';
-import { playedNote } from '../core/outcome';
+import { leadNote, playedNote } from '../core/outcome';
 import { IconButton } from '../ui/IconButton';
+import type { Pick } from './editorState';
 import { OverlayAnchor } from './overlayAnchor';
-import { chip } from '../ui/styles';
+import { chip, labelText, type LabelTone } from '../ui/styles';
 import { ROW_GRID } from './rowGrid';
 import { Tooltip } from '../ui/Tooltip';
 
 export interface RowResult {
   text: string;
-  tone: string;
+  tone: LabelTone;
 }
 
 function noteChip(active: boolean, changed: boolean): string {
@@ -31,8 +32,7 @@ export function VoiceRow({
   base,
   srcChanged,
   tgtChanged,
-  srcExpanded,
-  tgtExpanded,
+  expanded,
   onSrcToggle,
   onToggle,
   result,
@@ -43,8 +43,7 @@ export function VoiceRow({
   base: OctaveBase;
   srcChanged: boolean;
   tgtChanged: boolean;
-  srcExpanded: boolean;
-  tgtExpanded: boolean;
+  expanded: Pick['kind'] | null;
   onSrcToggle: () => void;
   onToggle: () => void;
   result: RowResult;
@@ -55,8 +54,9 @@ export function VoiceRow({
   const [rowEl, setRowEl] = useState<HTMLDivElement | null>(null);
   const playsId = useId();
   const tgt = playedNote(row.outcome);
-  const [srcNote, ...extraNotes] = row.srcNotes;
-  const silent = srcNote === undefined;
+  const srcNote = leadNote(row);
+  const silent = srcNote === null;
+  const extraNotes = row.srcNotes.slice(1);
   const extraHint = extrasHint(
     row.label,
     extraNotes.map((n) => noteName(n, base)),
@@ -97,9 +97,9 @@ export function VoiceRow({
           <button
             type="button"
             aria-haspopup="dialog"
-            aria-expanded={srcExpanded}
+            aria-expanded={expanded === 'src'}
             onClick={onSrcToggle}
-            className={noteChip(srcExpanded, srcChanged)}
+            className={noteChip(expanded === 'src', srcChanged)}
           >
             {silent ? '—' : noteName(srcNote, base)}
           </button>
@@ -108,7 +108,7 @@ export function VoiceRow({
         <button
           type="button"
           aria-haspopup="dialog"
-          aria-expanded={tgtExpanded}
+          aria-expanded={expanded === 'tgt'}
           aria-describedby={playsId}
           onClick={onToggle}
           className={
@@ -118,7 +118,7 @@ export function VoiceRow({
                 justify-self-end border-dashed
               `
               : `
-                ${noteChip(tgtExpanded, tgtChanged)}
+                ${noteChip(expanded === 'tgt', tgtChanged)}
                 justify-self-end
               `
           }
@@ -132,7 +132,7 @@ export function VoiceRow({
           className={`
             col-span-3 col-start-2 row-start-2 truncate text-right text-label
             sm:col-span-1 sm:col-start-auto sm:row-start-auto sm:text-left
-            ${result.tone}
+            ${labelText(result.tone)}
           `}
         >
           {result.text}
@@ -143,7 +143,7 @@ export function VoiceRow({
             )
           : <span />}
       </div>
-      <OverlayAnchor value={rowEl}>{(srcExpanded || tgtExpanded) && children}</OverlayAnchor>
+      <OverlayAnchor value={rowEl}>{expanded !== null && children}</OverlayAnchor>
     </div>
   );
 }

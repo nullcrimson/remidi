@@ -27,7 +27,7 @@ describe('App states', () => {
   it('shows the conversion error banner when a file fails to convert', async () => {
     vi.mocked(stub.engine_drums).mockReturnValue([]);
     vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
-      { canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+      { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
     ]));
     vi.mocked(stub.remap).mockImplementation(() => {
       throw new Error('bad midi');

@@ -1,7 +1,9 @@
 import { useT } from '../locale/localeContext';
 import { useState } from 'react';
-import { MAPPINGS_CAP, type SavedMapping } from '../presets/mappings';
+import type { PresetName } from '../core/midiremap';
+import { MAPPINGS_CAP, parsePresetName, type SavedMapping } from '../presets/mappings';
 import { engineCode } from '../core/engineCode';
+import type { EnginePair } from '../core/enginePair';
 import { Button } from '../ui/Button';
 import { IconButton } from '../ui/IconButton';
 import { TextField } from '../ui/TextField';
@@ -9,38 +11,36 @@ import { Tooltip, TooltipBody } from '../ui/Tooltip';
 
 /** Saves the open pair and its edits as a preset, or updates the one it came from. */
 export function SavePreset({
-  src,
-  tgt,
+  pair,
   existingPreset,
   atCap,
   onSave,
   onUpdate,
 }: {
-  src: string;
-  tgt: string;
+  pair: EnginePair;
   existingPreset: SavedMapping | undefined;
   atCap: boolean;
-  onSave: (name: string) => void;
-  onUpdate: (id: string, name: string) => void;
+  onSave: (name: PresetName) => void;
+  onUpdate: (id: string, name: PresetName) => void;
 }) {
   const t = useT();
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState('');
-  const pairLabel = `${engineCode(src)}→${engineCode(tgt)}`;
+  const pairLabel = `${engineCode(pair.src)}→${engineCode(pair.tgt)}`;
 
   const open = () => {
     setName(existingPreset?.name ?? pairLabel);
     setNaming(true);
   };
-  const trimmed = name.trim();
+  const parsed = parsePresetName(name.trim());
   const saveNew = () => {
-    if (!trimmed || atCap) return;
-    onSave(trimmed);
+    if (!parsed || atCap) return;
+    onSave(parsed);
     setNaming(false);
   };
   const saveUpdate = () => {
-    if (!trimmed || !existingPreset) return;
-    onUpdate(existingPreset.id, trimmed);
+    if (!parsed || !existingPreset) return;
+    onUpdate(existingPreset.id, parsed);
     setNaming(false);
   };
   const primary = () => (existingPreset ? saveUpdate() : saveNew());
@@ -85,16 +85,16 @@ export function SavePreset({
         {existingPreset
           ? (
               <>
-                <Button variant="primary" size="sm" onClick={saveUpdate} disabled={!trimmed}>
+                <Button variant="primary" size="sm" onClick={saveUpdate} disabled={!parsed}>
                   {t({ id: 'preset-update' })}
                 </Button>
-                <Button variant="secondary" size="sm" onClick={saveNew} disabled={!trimmed || atCap}>
+                <Button variant="secondary" size="sm" onClick={saveNew} disabled={!parsed || atCap}>
                   {t({ id: 'preset-save-new' })}
                 </Button>
               </>
             )
           : (
-              <Button variant="primary" size="sm" onClick={saveNew} disabled={!trimmed || atCap}>
+              <Button variant="primary" size="sm" onClick={saveNew} disabled={!parsed || atCap}>
                 {t({ id: 'preset-save' })}
               </Button>
             )}

@@ -22,11 +22,14 @@ export function editsToOverrides(edits: Edits, srcEdits: SrcEdits = {}): Overrid
   };
 }
 
+/**
+ * Edits whose drums were checked against the vocabulary, and how many stored edits that
+ * left out. Only `knownEdits` makes one, and the note editor takes edits in no other form.
+ */
+export type KnownEdits = EditSet & { readonly skipped: number; readonly __brand: 'KnownEdits' };
+
 /** The stored edits whose drums this version knows, and how many were left out. */
-export function knownEdits(
-  stored: StoredEdits,
-  vocabulary: Vocabulary,
-): { edits: Edits; srcEdits: SrcEdits; skipped: number } {
+export function knownEdits(stored: StoredEdits, vocabulary: Vocabulary): KnownEdits {
   const edits: Edits = {};
   const srcEdits: SrcEdits = {};
   let skipped = 0;
@@ -40,7 +43,7 @@ export function knownEdits(
     if (canon === undefined) skipped += 1;
     else srcEdits[note] = canon;
   }
-  return { edits, srcEdits, skipped };
+  return { edits, srcEdits, skipped } as KnownEdits;
 }
 
 export function parseEdits(value: unknown): StoredEdits['edits'] | null {

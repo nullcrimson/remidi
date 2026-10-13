@@ -3,11 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { SavedMappingChip } from '../../src/presets/SavedMappingChip';
 import type { SavedMapping } from '../../src/presets/mappings';
-import { typed } from '../typed';
+import { presetName, typed } from '../typed';
 
 const mapping = typed<SavedMapping>({
   id: 'p1',
-  name: 'My kit',
+  name: presetName('My kit'),
   src: 'ggd_invasion',
   tgt: 'ezdrummer',
   edits: { 'kick.main': 36 },

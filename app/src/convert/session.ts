@@ -1,15 +1,19 @@
 import { CHANNELS } from '../core/channel';
 import type { ChannelScope, MissingDrums } from '../core/midiremap';
+import { MISSING_OPTIONS } from '../core/missing';
 import type { OctaveBase } from '../core/notes';
 import { readStored, removeStored, writeStored } from '../core/storage';
 import { parseEdits, parseSrcEdits, type StoredEdits } from '../core/overrides';
 
 const SESSION_VERSION = 1;
 
-/** The setup a reload brings back: engines, settings and unsaved note edits. */
+/**
+ * The setup a reload brings back: engines, settings and unsaved note edits. An engine not
+ * chosen is `null`; it is stored as the empty string, as earlier versions wrote it.
+ */
 export interface Session extends StoredEdits {
-  src: string;
-  tgt: string;
+  src: string | null;
+  tgt: string | null;
   oct: OctaveBase;
   channel: ChannelScope;
   missing: MissingDrums;
@@ -17,8 +21,8 @@ export interface Session extends StoredEdits {
 }
 
 export const EMPTY_SESSION: Session = {
-  src: '',
-  tgt: '',
+  src: null,
+  tgt: null,
   oct: 'c1',
   channel: 'auto',
   missing: 'nearest',
@@ -40,24 +44,28 @@ function stored(): Record<string, unknown> | null {
   }
 }
 
-const text = (value: unknown) => (typeof value === 'string' ? value : '');
+const missingOf = (value: unknown): MissingDrums =>
+  MISSING_OPTIONS.find((o) => o.value === value)?.value ?? EMPTY_SESSION.missing;
+
+const engine = (value: unknown) => (typeof value === 'string' && value !== '' ? value : null);
 
 export function loadSession(): Session {
   const v = stored();
-  const legacyMissing = readStored('missing') === 'drop' ? 'drop' : 'nearest';
+  const legacyMissing = missingOf(readStored('missing'));
   if (!v) return { ...EMPTY_SESSION, missing: legacyMissing };
   return {
-    src: text(v.src),
-    tgt: text(v.tgt),
-    oct: v.oct === 'c2' ? 'c2' : 'c1',
-    channel: CHANNELS.find((c) => c.value === v.channel)?.value ?? 'auto',
-    missing: v.missing === 'drop' ? 'drop' : 'nearest',
-    presetId: typeof v.presetId === 'string' ? v.presetId : null,
-    edits: parseEdits(v.edits) ?? {},
-    srcEdits: parseSrcEdits(v.srcEdits) ?? {},
+    src: engine(v.src),
+    tgt: engine(v.tgt),
+    oct: v.oct === 'c1' || v.oct === 'c2' ? v.oct : EMPTY_SESSION.oct,
+    channel: CHANNELS.find((c) => c.value === v.channel)?.value ?? EMPTY_SESSION.channel,
+    missing: missingOf(v.missing),
+    presetId: typeof v.presetId === 'string' ? v.presetId : EMPTY_SESSION.presetId,
+    edits: parseEdits(v.edits) ?? EMPTY_SESSION.edits,
+    srcEdits: parseSrcEdits(v.srcEdits) ?? EMPTY_SESSION.srcEdits,
   };
 }
 
 export function saveSession(session: Session): void {
-  if (writeStored('session', JSON.stringify({ version: SESSION_VERSION, ...session }))) removeStored('missing');
+  const written = { version: SESSION_VERSION, ...session, src: session.src ?? '', tgt: session.tgt ?? '' };
+  if (writeStored('session', JSON.stringify(written))) removeStored('missing');
 }

@@ -10,6 +10,7 @@ function row(canon: string, extra: Partial<Loose<VoiceRow>>): VoiceRow {
   return typed<VoiceRow>({
     canon,
     label: canon,
+    family: 'Kick',
     srcNotes: [1],
     defaultTgtNote: 36,
     outcome: { status: 'direct', tgtNote: 36 },

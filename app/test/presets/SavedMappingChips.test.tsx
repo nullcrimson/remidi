@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { SavedMappingChips } from '../../src/presets/SavedMappingChips';
 import type { SavedMapping } from '../../src/presets/mappings';
-import { typed } from '../typed';
+import { presetName, typed } from '../typed';
 
 const engines = [
   { id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GGD Invasion' },
@@ -12,7 +12,7 @@ const engines = [
 
 const mapping = typed<SavedMapping>({
   id: 'p1',
-  name: 'My kit',
+  name: presetName('My kit'),
   src: 'ggd_invasion',
   tgt: 'ezdrummer',
   edits: { 'kick.main': 36 },

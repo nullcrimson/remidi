@@ -1,10 +1,10 @@
 import type { Message } from '../generated/i18n';
 import { toAppError } from '../core/errors';
 import type { PresetText } from '../core/files';
-import { MAPPINGS_CAP, type SavedMapping } from './mappings';
+import { MAPPINGS_CAP, uniqueName, type SavedMapping } from './mappings';
 import type { PresetView } from '../core/midiremap';
 import type { NoticeLine } from '../core/notice';
-import { uniqueName, type PresetContent } from './presetFile';
+import type { PresetContent } from './presetFile';
 
 const atCap = (file: string): NoticeLine => ({ message: { id: 'import-at-cap', args: { file, cap: MAPPINGS_CAP } } });
 

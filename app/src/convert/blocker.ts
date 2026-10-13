@@ -1,3 +1,4 @@
+import type { EnginePair } from '../core/enginePair';
 import type { Message } from '../generated/i18n';
 
 /** Why Convert is unavailable. */
@@ -8,10 +9,9 @@ export interface Blocker<R = Message> {
 }
 
 /** What keeps Convert from running, or `null` when it can run. */
-export function convertBlocker({ files, src, tgt }: { files: number; src: string; tgt: string }): Blocker | null {
-  const engines = src !== '' && tgt !== '';
-  if (files === 0 && !engines) return { reason: { id: 'blocker-files-and-engines' }, quiet: false };
+export function convertBlocker({ files, pair }: { files: number; pair: EnginePair | null }): Blocker | null {
+  if (files === 0 && pair === null) return { reason: { id: 'blocker-files-and-engines' }, quiet: false };
   if (files === 0) return { reason: { id: 'blocker-files' }, quiet: true };
-  if (!engines) return { reason: { id: 'blocker-engines' }, quiet: false };
+  if (pair === null) return { reason: { id: 'blocker-engines' }, quiet: false };
   return null;
 }

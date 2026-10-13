@@ -38,7 +38,7 @@ export function SourceNotePicker({
       >
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2.25">
-            <MonoLabel tone="text-t4">{t({ id: 'source-picker-heading', args: { drum: voiceLabel } })}</MonoLabel>
+            <MonoLabel tone="muted">{t({ id: 'source-picker-heading', args: { drum: voiceLabel } })}</MonoLabel>
             <span className="font-mono text-brand font-bold text-accent">
               {currentNote === null ? '—' : noteName(currentNote, base)}
             </span>

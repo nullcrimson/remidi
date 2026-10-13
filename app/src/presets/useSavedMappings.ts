@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type SetStateAction } from 'react';
+import type { PresetName } from '../core/midiremap';
 import type { StoredEdits } from '../core/overrides';
 import { onStoredChange, readStored, readStoredStrict, writeStored } from '../core/storage';
 import {
@@ -15,9 +16,9 @@ export interface SavedMappings {
   mappings: SavedMapping[];
   atCap: boolean;
   /** Stores a new preset and returns its id, or null at the cap. */
-  save: (input: { name: string; src: string; tgt: string } & StoredEdits) => string | null;
-  update: (id: string, patch: { name?: string } & Partial<StoredEdits>) => void;
-  rename: (id: string, name: string) => void;
+  save: (input: { name: PresetName; src: string; tgt: string } & StoredEdits) => string | null;
+  update: (id: string, patch: { name?: PresetName } & Partial<StoredEdits>) => void;
+  rename: (id: string, name: PresetName) => void;
   remove: (id: string) => void;
   /** True after a change the browser could not store, until a later change is stored. */
   unsaved: boolean;

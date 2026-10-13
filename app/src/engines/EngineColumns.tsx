@@ -17,8 +17,8 @@ export function EngineColumns({
   toRef,
 }: {
   engines: Engine[];
-  src: string;
-  tgt: string;
+  src: string | null;
+  tgt: string | null;
   onChooseSrc: (id: string) => void;
   onChooseTgt: (id: string) => void;
   onSwap: () => void;
@@ -49,7 +49,7 @@ export function EngineColumns({
         sm:pt-8
       "
       >
-        <IconButton label={t({ id: 'engine-swap' })} disabled={!src && !tgt} onClick={onSwap}>
+        <IconButton label={t({ id: 'engine-swap' })} disabled={src === null && tgt === null} onClick={onSwap}>
           <span className="
             inline-block rotate-90
             sm:rotate-0

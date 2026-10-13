@@ -2,6 +2,7 @@ import { useT } from '../locale/localeContext';
 import { useRef } from 'react';
 import { flushSync } from 'react-dom';
 import type { Engine } from '../core/midiremap';
+import type { PresetName } from '../core/midiremap';
 import type { SavedMapping } from './mappings';
 import { MonoLabel } from '../ui/MonoLabel';
 import { SavedMappingChip } from './SavedMappingChip';
@@ -25,7 +26,7 @@ export function SavedMappingChips({
   onFocusFallback?: () => void;
   onLoad: (m: SavedMapping) => void;
   onEdit: (m: SavedMapping) => void;
-  onRename: (id: string, name: string) => void;
+  onRename: (id: string, name: PresetName) => void;
   onDuplicate: (m: SavedMapping) => void;
   onExport: (m: SavedMapping) => void;
   onDelete: (id: string) => void;

@@ -22,7 +22,7 @@ import { useRemapper } from './convert/useRemapper';
 import { useSavedMappings } from './presets/useSavedMappings';
 import { convertBlocker } from './convert/blocker';
 import type { EditFilter } from './editor/editFilter';
-import { engineCode } from './core/engineCode';
+import { namesOf } from './core/enginePair';
 import type { Note } from './core/midiremap';
 import { downloadPreset } from './presets/presetFile';
 import { ErrorText } from './ui/ErrorText';
@@ -45,15 +45,18 @@ export default function App({ runtime }: { runtime: Runtime }) {
   const t = useT();
   useDropGuard();
   const remapper = useRemapper(runtime);
-  const { editor } = remapper;
+  const { editor, view, pair, conv } = remapper;
   const focus = useFocusIntent();
   const [notice, setNotice] = useState<NoticeLine[] | null>(null);
   const saved = useSavedMappings();
   const [reportOpen, setReportOpen] = useState(false);
-  const [assignNote, setAssignNote] = useState<Note | null>(null);
-  const [editShow, setEditShow] = useState<EditFilter>('all');
   const presets = usePresetActions(
-    { ...remapper, edits: editor.edits, srcEdits: editor.srcEdits },
+    {
+      ...remapper,
+      edits: editor.edits,
+      srcEdits: editor.srcEdits,
+      openEditor: () => remapper.openEditor('all', null),
+    },
     saved,
     setNotice,
   );
@@ -70,41 +73,36 @@ export default function App({ runtime }: { runtime: Runtime }) {
     focus: request,
   });
   const { view: reportView, dropMissing } = useConversionReport({ ...editor, ...remapper });
-  const targetName = remapper.engines.find((e) => e.id === remapper.tgt)?.name ?? remapper.tgt;
-  const sourceName = remapper.engines.find((e) => e.id === remapper.src)?.name ?? remapper.src;
-  const blocker = convertBlocker({ files: remapper.files.length, src: remapper.src, tgt: remapper.tgt });
+  const names = pair && namesOf(remapper.engines, pair);
+  const blocker = convertBlocker({ files: remapper.files.length, pair: remapper.pair });
   const openEditor = (show: EditFilter = 'all', note: Note | null = null) => {
     track('editor-opened', { show });
-    setEditShow(show);
-    setAssignNote(note);
-    remapper.setView('edit');
+    remapper.openEditor(show, note);
   };
   const closeEditor = () => {
-    setAssignNote(null);
-    setEditShow('all');
-    remapper.setView('convert');
+    remapper.closeEditor();
     request('editLink');
   };
-  useEditorHistory(remapper.view, { open: openEditor, close: closeEditor });
+  useEditorHistory(view.kind === 'edit', { canOpen: pair !== null, open: openEditor, close: closeEditor });
 
-  if (remapper.view === 'edit') {
+  if (view.kind === 'edit') {
+    const shown = namesOf(remapper.engines, view.pair);
     return (
       <Page onSkip={() => request('main')}>
         <Card mainRef={focus.ref('main')}>
           <EditView
             editor={editor}
-            src={remapper.src}
-            tgt={remapper.tgt}
-            srcName={sourceName}
-            tgtName={targetName}
+            pair={view.pair}
+            srcName={shown.source}
+            tgtName={shown.target}
             oct={remapper.oct}
             existingPreset={openPreset}
             presetsAtCap={saved.atCap}
             presetsUnsaved={saved.unsaved}
-            assignNote={assignNote}
-            initialShow={editShow}
-            setView={(v) => (v === 'convert' ? closeEditor() : remapper.setView(v))}
-            onSavePreset={presets.save}
+            assignNote={view.assignNote}
+            initialShow={view.show}
+            onClose={closeEditor}
+            onSavePreset={(name) => presets.save(view.pair, name)}
             onUpdatePreset={presets.update}
           />
         </Card>
@@ -123,13 +121,16 @@ export default function App({ runtime }: { runtime: Runtime }) {
           >
             <Intro />
 
-            {remapper.status === 'loading' && <p className="text-ui text-t3">{t({ id: 'app-loading' })}</p>}
-
-            {remapper.status === 'error' && (
-              <p className="text-ui text-danger">{remapper.error && <ErrorText error={remapper.error} />}</p>
+            {remapper.catalog.status === 'loading' && (
+              <p className="text-ui text-t3">{t({ id: 'app-loading' })}
+              </p>
             )}
 
-            {remapper.status === 'ready' && (
+            {remapper.catalog.status === 'error' && (
+              <p className="text-ui text-danger"><ErrorText error={remapper.catalog.error} /></p>
+            )}
+
+            {remapper.catalog.status === 'ready' && (
               <>
                 <FileChips
                   files={remapper.files}
@@ -173,22 +174,19 @@ export default function App({ runtime }: { runtime: Runtime }) {
                   remapper={remapper}
                   editor={editor}
                   edited={edited}
-                  names={{ source: sourceName, target: targetName }}
                   channelRef={focus.ref('channel')}
                   editRef={focus.ref('editLink')}
                   onOpenEditor={openEditor}
                 />
 
-                {remapper.conv.kind === 'done' && remapper.results.length > 0
+                {conv.kind === 'done' && conv.results.length > 0
                   ? (
                       <DonePanel
-                        results={remapper.results}
-                        failures={remapper.failures}
+                        results={conv.results}
+                        failures={conv.failures}
                         view={reportView}
-                        targetName={targetName}
-                        targetShort={engineCode(remapper.tgt)}
-                        from={remapper.src}
-                        to={remapper.tgt}
+                        pair={conv.pair}
+                        targetName={namesOf(remapper.engines, conv.pair).target}
                         onViewReport={() => setReportOpen(true)}
                         onDropMissing={dropMissing}
                         editedDrums={edited.count}
@@ -201,20 +199,20 @@ export default function App({ runtime }: { runtime: Runtime }) {
                   : (
                       <ConvertButton
                         ref={focus.ref('convert')}
-                        conv={remapper.conv}
+                        conv={conv}
                         blockedBy={blocker && { reason: t(blocker.reason), quiet: blocker.quiet }}
                         onConvert={() => void remapper.convert()}
                       />
                     )}
 
-                {remapper.conv.kind === 'error' && remapper.error && (
+                {conv.kind === 'error' && (
                   <p
                     role="alert"
                     className="
                       rounded-chip bg-danger/10 p-3 text-ui text-danger
                     "
                   >
-                    <Rich id="convert-error" slots={{ error: <ErrorText error={remapper.error} /> }} />
+                    <Rich id="convert-error" slots={{ error: <ErrorText error={conv.error} /> }} />
                   </p>
                 )}
               </>
@@ -223,20 +221,21 @@ export default function App({ runtime }: { runtime: Runtime }) {
         </CardDropzone>
       </Card>
 
-      <ReportModal
-        open={reportOpen}
-        onClose={() => setReportOpen(false)}
-        view={reportView}
-        sourceName={sourceName}
-        targetName={targetName}
-        onPickTarget={(canon) => {
-          openEditor();
-          editor.openPick(canon);
-        }}
-        onAssignSource={(note) => openEditor('all', note)}
-        onChannel={() => request('channel')}
-        onDropMissing={dropMissing}
-      />
+      {names && (
+        <ReportModal
+          open={reportOpen}
+          onClose={() => setReportOpen(false)}
+          view={reportView}
+          names={names}
+          onPickTarget={(canon) => {
+            openEditor();
+            editor.openPick(canon);
+          }}
+          onAssignSource={(note) => openEditor('all', note)}
+          onChannel={() => request('channel')}
+          onDropMissing={dropMissing}
+        />
+      )}
     </Page>
   );
 }

@@ -20,7 +20,7 @@ const STORED = typed<Session>({
 
 async function mount() {
   const hook = renderHook(() => useRemapper(RUNTIME));
-  await waitFor(() => expect(hook.result.current.status).toBe('ready'));
+  await waitFor(() => expect(hook.result.current.catalog.status).toBe('ready'));
   return hook.result;
 }
 
@@ -63,7 +63,7 @@ describe('useRemapper session memory', () => {
   it('drops an engine this version no longer has, with its edits', async () => {
     saveSession({ ...STORED, tgt: 'gone_engine' });
     const result = await mount();
-    await waitFor(() => expect(result.current.tgt).toBe(''));
+    await waitFor(() => expect(result.current.tgt).toBeNull());
     expect(result.current.src).toBe('ggd_invasion');
     expect(result.current.editor.edits).toEqual({});
     expect(result.current.presetId).toBeNull();
@@ -100,7 +100,7 @@ describe('useRemapper session memory', () => {
     saveSession(STORED);
     const failing = { ...RUNTIME, load: () => Promise.reject(new Error('wasm boom')) };
     const { result } = renderHook(() => useRemapper(failing));
-    await waitFor(() => expect(result.current.status).toBe('error'));
+    await waitFor(() => expect(result.current.catalog.status).toBe('error'));
     expect(loadSession()).toMatchObject({ edits: { 'kick.main': 35 }, srcEdits: { 24: 'snare1.hit' } });
   });
 

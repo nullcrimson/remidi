@@ -6,10 +6,11 @@ import { RUNTIME } from '../runtime';
 import type { RemapOutput, VoiceRow } from '../../src/core/midiremap';
 import init, * as stub from '../stubs/wasm';
 import { canon, note, typed } from '../typed';
+import { shownTgtPick } from '../picks';
 
 const ROWS = typed<VoiceRow[]>([
-  { canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
-  { canon: 'China', label: 'China', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
+  { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+  { canon: 'China', label: 'China', family: 'Cymbals', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
 ]);
 
 const converted = () =>
@@ -26,9 +27,9 @@ describe('useRemapper convert path', () => {
 
   it('initializes ready with no default selection', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
-    expect(result.current.src).toBe('');
-    expect(result.current.tgt).toBe('');
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
+    expect(result.current.src).toBeNull();
+    expect(result.current.tgt).toBeNull();
     expect(result.current.editor.rows).toHaveLength(0);
     expect(result.current.editor.rows.length).toBe(0);
     expect(stub.plan).not.toHaveBeenCalled();
@@ -36,7 +37,7 @@ describe('useRemapper convert path', () => {
 
   it('converts queued files to results once both engines are chosen', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
     act(() =>
@@ -56,7 +57,7 @@ describe('useRemapper convert path', () => {
 
   it('enters the running state before settling on done', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
@@ -73,7 +74,7 @@ describe('useRemapper convert path', () => {
 
   it('does not convert until both engines are chosen', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
     await act(() => result.current.convert());
@@ -88,7 +89,7 @@ describe('useRemapper convert path', () => {
       return converted();
     });
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
     act(() =>
@@ -110,19 +111,19 @@ describe('useRemapper convert path', () => {
       throw new Error('unknown source engine');
     });
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'g.mid' }]));
     await act(() => result.current.convert());
     await waitFor(() => expect(result.current.conv.kind).toBe('error'));
     expect(result.current.failures).toHaveLength(1);
-    expect(result.current.error).toEqual({ kind: 'internal', detail: 'unknown source engine' });
+    expect(result.current.conv).toMatchObject({ error: { kind: 'internal', detail: 'unknown source engine' } });
   });
 
   it('remembers skipped files until the next add', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([1]), name: 'a.mid' }], ['notes.txt']));
     expect(result.current.files).toHaveLength(1);
     expect(result.current.skipped).toEqual(['notes.txt']);
@@ -132,7 +133,7 @@ describe('useRemapper convert path', () => {
 
   it('keeps finished results when only non-MIDI files were added', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
@@ -144,7 +145,7 @@ describe('useRemapper convert path', () => {
 
   it('dedupes by name and removes files', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([1]), name: 'a.mid' }]));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([2]), name: 'a.mid' }]));
     expect(result.current.files).toHaveLength(1);
@@ -154,7 +155,7 @@ describe('useRemapper convert path', () => {
 
   it('starts on auto and converts with the chosen channel', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     expect(result.current.channel).toBe('auto');
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
@@ -168,7 +169,7 @@ describe('useRemapper convert path', () => {
 
   it('clears finished results when the channel changes', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
@@ -182,7 +183,7 @@ describe('useRemapper convert path', () => {
 
   it('sets the octave base', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     expect(result.current.oct).toBe('c1');
     act(() => result.current.setOct('c2'));
     expect(result.current.oct).toBe('c2');
@@ -192,21 +193,21 @@ describe('useRemapper convert path', () => {
 
   it('clears finished results when a note is edited', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
     await act(() => result.current.convert());
     expect(result.current.conv.kind).toBe('done');
     act(() => result.current.editor.openPick(canon('KickMain')));
-    act(() => result.current.editor.chooseNote(note(40)));
+    act(() => result.current.editor.chooseNote(shownTgtPick(result.current.editor), note(40)));
     expect(result.current.conv.kind).toBe('idle');
     expect(result.current.results).toHaveLength(0);
   });
 
   it('swaps and recomputes plan', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
     vi.mocked(stub.plan).mockClear();
@@ -218,7 +219,7 @@ describe('useRemapper convert path', () => {
 
   it('lists engines by display name', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     expect(result.current.engines.map((e) => e.name)).toEqual(['EZdrummer', 'GGD Invasion']);
   });
 

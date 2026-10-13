@@ -2,15 +2,16 @@ import type { Translate } from '../locale/i18n';
 import { useT } from '../locale/localeContext';
 import { Fragment } from 'react';
 import type { Editor } from './useEditor';
-import type { Canon, Drum, Note, VoiceRow as VoiceRowData } from '../core/midiremap';
+import type { Canon, Drum, Family, Note, VoiceRow as VoiceRowData } from '../core/midiremap';
 import { labelByNote } from '../core/drums';
 import { noteName, type OctaveBase } from '../core/notes';
 import { MonoLabel } from '../ui/MonoLabel';
 import { NotePicker } from './NotePicker';
 import { SourceNotePicker } from './SourceNotePicker';
 import { ROW_GRID } from './rowGrid';
+import { pickOf } from './editorState';
 import { VoiceRow, type RowResult } from './VoiceRow';
-import { playedNote } from '../core/outcome';
+import { isPlayed, leadNote, playedNote } from '../core/outcome';
 
 type RowActions = Pick<
   Editor,
@@ -24,12 +25,12 @@ type RowActions = Pick<
 >;
 
 function playsOf(row: VoiceRowData, changed: boolean, drumAt: (note: Note) => string, t: Translate): RowResult {
-  if (row.srcNotes.length === 0) return { text: t({ id: 'row-no-source' }), tone: 'text-t5' };
-  if (row.outcome.status === 'dropped') return { text: t({ id: 'row-dropped' }), tone: 'text-danger' };
+  if (!isPlayed(row)) return { text: t({ id: 'row-no-source' }), tone: 'faint' };
+  if (row.outcome.status === 'dropped') return { text: t({ id: 'row-dropped' }), tone: 'danger' };
   const name = drumAt(row.outcome.tgtNote);
-  if (changed) return { text: name, tone: 'text-t2' };
-  if (row.outcome.status === 'fallback') return { text: `≈ ${name}`, tone: 'text-star' };
-  return { text: name, tone: 'text-t5' };
+  if (changed) return { text: name, tone: 'strong' };
+  if (row.outcome.status === 'fallback') return { text: `≈ ${name}`, tone: 'gold' };
+  return { text: name, tone: 'faint' };
 }
 
 function Header() {
@@ -59,8 +60,7 @@ function Header() {
 /** The editor's drum rows, grouped by family, each with its source and target pickers. */
 export function FamilyRows({
   groups,
-  pick,
-  notice,
+  overlay,
   edits,
   changed,
   changedSrc,
@@ -69,14 +69,13 @@ export function FamilyRows({
   oct,
   actions,
 }: {
-  groups: { family: string; items: VoiceRowData[] }[];
-  pick: Editor['pick'];
-  notice: Editor['notice'];
+  groups: { family: Family; items: VoiceRowData[] }[];
+  overlay: Editor['overlay'];
   edits: Editor['edits'];
   changed: ReadonlySet<Canon>;
   changedSrc: ReadonlySet<Canon>;
   targetDrums: Drum[];
-  families: readonly string[];
+  families: readonly Family[];
   oct: OctaveBase;
   actions: RowActions;
 }) {
@@ -100,8 +99,7 @@ export function FamilyRows({
             {g.family}
           </div>
           {g.items.map((row) => {
-            const srcExpanded = pick?.canon === row.canon && pick.side === 'src';
-            const tgtExpanded = pick?.canon === row.canon && pick.side === 'tgt';
+            const here = overlay?.canon === row.canon ? overlay : null;
             const rowChanged = changed.has(row.canon);
             return (
               <Fragment key={row.canon}>
@@ -110,41 +108,40 @@ export function FamilyRows({
                   base={oct}
                   srcChanged={changedSrc.has(row.canon)}
                   tgtChanged={row.canon in edits}
-                  srcExpanded={srcExpanded}
-                  tgtExpanded={tgtExpanded}
-                  onSrcToggle={() => (srcExpanded ? actions.closePick() : actions.openSrcPick(row.canon))}
-                  onToggle={() => (tgtExpanded ? actions.closePick() : actions.openPick(row.canon))}
+                  expanded={pickOf(here)?.kind ?? null}
+                  onSrcToggle={() => (here?.kind === 'src' ? actions.closePick() : actions.openSrcPick(row.canon))}
+                  onToggle={() => (here?.kind === 'tgt' ? actions.closePick() : actions.openPick(row.canon))}
                   result={playsOf(row, rowChanged, drumAt, t)}
                   onReset={rowChanged ? () => actions.resetRow(row.canon) : undefined}
                 >
-                  {srcExpanded && pick && (
+                  {here?.kind === 'src' && (
                     <SourceNotePicker
                       voiceLabel={row.label}
-                      currentNote={row.srcNotes[0] ?? null}
-                      octIndex={pick.octIndex}
+                      currentNote={leadNote(row)}
+                      octIndex={here.octIndex}
                       base={oct}
-                      onSetOct={actions.setPickOct}
-                      onPickNote={actions.chooseSrcNote}
+                      onSetOct={(octIndex) => actions.setPickOct(here, octIndex)}
+                      onPickNote={(note) => actions.chooseSrcNote(here, note)}
                       onClose={actions.closePick}
                     />
                   )}
-                  {tgtExpanded && pick && (
+                  {here?.kind === 'tgt' && (
                     <NotePicker
                       voiceLabel={row.label}
                       currentNote={playedNote(row.outcome)}
-                      octIndex={pick.octIndex}
+                      octIndex={here.octIndex}
                       base={oct}
                       drums={targetDrums}
                       families={families}
-                      onSetOct={actions.setPickOct}
-                      onPickNote={actions.chooseNote}
+                      onSetOct={(octIndex) => actions.setPickOct(here, octIndex)}
+                      onPickNote={(note) => actions.chooseNote(here, note)}
                       onClose={actions.closePick}
                     />
                   )}
                 </VoiceRow>
-                {notice?.canon === row.canon && (
+                {here?.kind === 'notice' && (
                   <p role="status" className="px-1 pb-2 text-label text-t4">
-                    {t({ id: 'rows-reassigned', args: { note: noteName(notice.note, oct), from: notice.from, drum: row.label } })}
+                    {t({ id: 'rows-reassigned', args: { note: noteName(here.note, oct), from: here.from, drum: row.label } })}
                   </p>
                 )}
               </Fragment>

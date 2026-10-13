@@ -1,14 +1,14 @@
 import type { Message } from '../generated/i18n';
 import type { Canon, Drum, MissingDrums, VoiceRow } from './midiremap';
 import type { OctaveBase } from './notes';
-import { movesToOtherDrum, playedOn, type PlayedOn } from './outcome';
+import { isPlayed, movesToOtherDrum, playedOn, type PlayedOn } from './outcome';
 
 export const MISSING_OPTIONS: { value: MissingDrums; label: Message }[] = [
   { value: 'nearest', label: { id: 'missing-nearest' } },
   { value: 'drop', label: { id: 'missing-drop' } },
 ];
 
-const swaps = (rows: VoiceRow[]) => rows.filter((r) => movesToOtherDrum(r.outcome) && r.srcNotes.length > 0);
+const swaps = (rows: VoiceRow[]) => rows.filter((r) => movesToOtherDrum(r.outcome) && isPlayed(r));
 
 /** Drums played by the source that the setting moves to another drum or drops. */
 export function swappedCanons(rows: VoiceRow[]): Set<Canon> {

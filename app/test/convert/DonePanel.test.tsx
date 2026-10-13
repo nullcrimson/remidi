@@ -47,10 +47,8 @@ function renderPanel({
       results={results}
       failures={failures}
       view={report}
+      pair={{ src: 'ggd_invasion', tgt: 'ezdrummer' }}
       targetName="Toontrack EZdrummer 3"
-      targetShort="EZD"
-      from="ggd_invasion"
-      to="ezdrummer"
       onViewReport={onViewReport}
       onConvertMore={onConvertMore}
       onDropMissing={onDropMissing}

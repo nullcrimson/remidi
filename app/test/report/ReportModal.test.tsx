@@ -55,8 +55,7 @@ function show(view: ReportView, onDropMissing?: () => void) {
     <ReportModal
       open
       view={view}
-      targetName="EZdrummer"
-      sourceName="GGD Invasion"
+      names={{ source: 'GGD Invasion', target: 'EZdrummer' }}
       onDropMissing={onDropMissing}
       {...handlers}
     />,

@@ -25,8 +25,8 @@ export function useFileIntake({
 }: {
   load: LoadMidiremap;
   storeFiles: (files: LoadedFile[], skipped: string[]) => void;
-  src: string;
-  tgt: string;
+  src: string | null;
+  tgt: string | null;
   saved: Pick<SavedMappings, 'mappings' | 'save'>;
   notify: (lines: NoticeLine[]) => void;
   focus: (target: FocusTarget) => void;
@@ -50,7 +50,7 @@ export function useFileIntake({
       storeFiles(files, skipped);
       if (files.length === 0) return;
       track('midi-added', { files: files.length });
-      focus(!src ? 'from' : !tgt ? 'to' : 'convert');
+      focus(src === null ? 'from' : tgt === null ? 'to' : 'convert');
     },
     [load, storeFiles, src, tgt, mappings, save, notify, focus],
   );

@@ -1,5 +1,5 @@
 import type { ChannelScope, MissingDrums } from './midiremap';
-import type { Edits, SrcEdits } from './overrides';
+import type { KnownEdits } from './overrides';
 
 /**
  * A change to what is being converted. The screen hands each one to every reducer that
@@ -10,14 +10,13 @@ export type SelectionEvent
   = | { type: 'chooseSrc'; id: string }
     | { type: 'chooseTgt'; id: string }
     | { type: 'swap' }
-    | { type: 'preselect'; src: string; tgt: string }
+    | { type: 'preselect'; src: string | null; tgt: string | null }
     | {
       type: 'loadMapping';
       src: string;
       tgt: string;
       presetId: string | null;
-      edits: Edits;
-      srcEdits: SrcEdits;
+      known: KnownEdits;
     }
     | { type: 'setChannel'; channel: ChannelScope }
     | { type: 'setMissing'; missing: MissingDrums };

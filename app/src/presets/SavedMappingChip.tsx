@@ -15,10 +15,13 @@ import {
   useListNavigation,
   useRole,
 } from '@floating-ui/react';
-import type { SavedMapping } from './mappings';
+import type { PresetName } from '../core/midiremap';
+import { parsePresetName, type SavedMapping } from './mappings';
 import { engineCode } from '../core/engineCode';
 import { IconButton } from '../ui/IconButton';
 import { TextField } from '../ui/TextField';
+
+const CHIP_BOX = 'flex items-stretch overflow-hidden rounded-panel border border-hairline bg-field';
 
 const ICON_BTN = `
   flex w-6 shrink-0 items-center justify-center border-l border-hairline
@@ -42,7 +45,7 @@ export function SavedMappingChip({
   atCap: boolean;
   onLoad: (m: SavedMapping) => void;
   onEdit: (m: SavedMapping) => void;
-  onRename: (id: string, name: string) => void;
+  onRename: (id: string, name: PresetName) => void;
   onDuplicate: (m: SavedMapping) => void;
   onExport: (m: SavedMapping) => void;
   onDelete: (id: string) => void;
@@ -52,8 +55,7 @@ export function SavedMappingChip({
   const [draft, setDraft] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const moreId = useId();
-  const focusMore = () =>
-    document.querySelector<HTMLElement>(`[data-more="${moreId}"]`)?.focus();
+  const focusMore = () => document.querySelector<HTMLElement>(`[data-more="${moreId}"]`)?.focus();
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   const { refs: { setReference, setFloating }, floatingStyles, context } = useFloating({
@@ -87,29 +89,35 @@ export function SavedMappingChip({
     setRenaming(true);
   };
   const mainRef = useRef<HTMLButtonElement>(null);
-  const endRename = (name: string | null) => {
+  const endRename = (name: PresetName | null) => {
     flushSync(() => {
       if (name) onRename(mapping.id, name);
       setRenaming(false);
     });
     mainRef.current?.focus();
   };
-  const commitRename = () => endRename(draft.trim());
+  const commitRename = () => endRename(parsePresetName(draft.trim()));
+
+  const closeThen = (run: () => void) => () => {
+    setMenuOpen(false);
+    run();
+  };
+
+  const duplicate = () => {
+    onDuplicate(mapping);
+    focusMore();
+  };
 
   const items = [
-    { key: 'rename', label: t({ id: 'chip-rename' }), run: startRename, disabled: false, danger: false },
-    { key: 'duplicate', label: t({ id: 'chip-duplicate' }), run: () => onDuplicate(mapping), disabled: atCap, danger: false },
-    { key: 'export', label: t({ id: 'chip-export' }), run: () => onExport(mapping), disabled: false, danger: false },
-    { key: 'delete', label: t({ id: 'chip-delete' }), run: () => onDelete(mapping.id), disabled: false, danger: true },
+    { label: t({ id: 'chip-rename' }), title: undefined, run: startRename, disabled: false, danger: false },
+    { label: t({ id: 'chip-duplicate' }), title: atCap ? t({ id: 'chip-at-cap' }) : undefined, run: closeThen(duplicate), disabled: atCap, danger: false },
+    { label: t({ id: 'chip-export' }), title: undefined, run: closeThen(() => onExport(mapping)), disabled: false, danger: false },
+    { label: t({ id: 'chip-delete' }), title: undefined, run: closeThen(() => onDelete(mapping.id)), disabled: false, danger: true },
   ];
 
   if (renaming) {
     return (
-      <li className="
-        flex items-stretch overflow-hidden rounded-panel border border-hairline
-        bg-field
-      "
-      >
+      <li className={CHIP_BOX}>
         <div className="flex items-center gap-1 p-1">
           <TextField
             mono
@@ -131,11 +139,7 @@ export function SavedMappingChip({
   }
 
   return (
-    <li className="
-      flex items-stretch overflow-hidden rounded-panel border border-hairline
-      bg-field
-    "
-    >
+    <li className={CHIP_BOX}>
       <button
         ref={mainRef}
         data-chip-main
@@ -196,8 +200,8 @@ export function SavedMappingChip({
               "
             >
               {items.map((it, i) => (
-                <div key={it.key}>
-                  {it.key === 'delete' && (
+                <div key={it.label}>
+                  {it.danger && (
                     <div role="separator" className="my-1 h-px bg-hairline" />
                   )}
                   <button
@@ -207,13 +211,10 @@ export function SavedMappingChip({
                     type="button"
                     role="menuitem"
                     disabled={it.disabled}
-                    title={it.key === 'duplicate' && atCap ? t({ id: 'chip-at-cap' }) : undefined}
+                    title={it.title}
                     {...getItemProps({
                       onClick: () => {
-                        if (it.disabled) return;
-                        if (it.key !== 'rename') setMenuOpen(false);
-                        it.run();
-                        if (it.key === 'duplicate') focusMore();
+                        if (!it.disabled) it.run();
                       },
                     })}
                     className={`

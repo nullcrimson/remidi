@@ -386,7 +386,7 @@ error and 2 on a usage error.
   `1`-`16`; `missing` is `nearest` (the default) or `drop`.
 - `plan(src_id, tgt_id, overrides?, missing?) → VoiceRow[]` — a core `VoicePlan`
   (`canon, srcNotes, defaultTgtNote, outcome`, the outcome tagged by `status`) plus its
-  `label`; the app reads it through `core/outcome.ts` (`playedNote`, `movesToOtherDrum`).
+  `label` and its canon's `family`; the app reads it through `core/outcome.ts` (`playedNote`, `movesToOtherDrum`, `isPlayed`, `leadNote`).
 - `engine_catalog() → [{ id, name, fullName }]` — `name` is the display name,
   `fullName` the catalog name.
 - `family_order() → Family[]` — drum families in display order; `note_naming() →
@@ -398,7 +398,7 @@ error and 2 on a usage error.
   for reassigning source notes.
 - `canon_catalog() → [{ canon, label, family }]` — the full canon vocabulary, for
   the source-note canon picker.
-- `parse_preset_file(json) → { name, src, tgt, edits, srcEdits, skipped }` — a preset
+- `parse_preset_file(json) → { name, src, tgt, edits, srcEdits, skipped }` (`name` is the generated `PresetName` brand) — a preset
   file for import, engines resolved to current ids; an unknown engine is an error.
   `skipped` is a list of tagged `SkippedEdit`s; the app shows only their count.
 - A `start` function installs `console_error_panic_hook`, so a panic prints its message.
@@ -452,7 +452,11 @@ test in that file fails on any import outside it.
   is made only in `notes.ts` (`parseNote`, bounded by the core's note table); a `Canon`
   is never made in the app: it comes from the module, and drum keys read from storage
   stay text (`StoredEdits`) until `knownEdits` looks them up in the module's vocabulary
-  (`canon.ts`). Sibling pure modules cover override assembly (`overrides.ts`) and file
+  (`canon.ts`) and returns `KnownEdits`, the only form the note editor loads; a preset's
+  name is a `PresetName`, a brand generated from Rust like `Note` and `Canon`; a preset file's name arrives as one
+  (Rust's `NonBlank`: not blank, spacing kept) and every other name is read by `parsePresetName` (not blank, spacing
+  kept; the UI trims typed text first) in `presets/mappings.ts`, and a stored entry whose name does not parse is kept aside and
+  quarantined like any unreadable one. Sibling pure modules cover override assembly (`overrides.ts`) and file
   naming (`files.ts`); the other features keep their own.
 - **One runtime, handed in.** `convert/runtime.ts` names what the app takes from outside
   React: `Runtime { load, converter }`. `main.tsx` makes the browser's
@@ -480,13 +484,21 @@ test in that file fails on any import outside it.
   edits, and anything else that throws while rendering reaches the root
   `ErrorBoundary` (Reload, Report an issue, two-step Reset saved data).
 - **Screen state** (`convert/useRemapper.ts` and the hooks of each feature) — `useRemapper` is the facade the UI consumes. It composes
-  `useEngineCatalog` (load status + engine list), `useConverter` (files → results),
+  `useEngineCatalog` (one `Catalog` union: loading, ready with the module and its engine list, or the error), `useConverter` (files → results),
   and `useEditor` (per-note edits, the live `plan` preview, and derived
   counts) behind a stable return contract, plus a small selection reducer for
-  source/target/octave/channel/missing drums/view/open preset. `useEditor`'s result is exposed as one nested
+  source/target/octave/channel/missing drums/view/open preset. An engine not chosen is `null`, and `useRemapper` derives
+  the one `EnginePair` (`core/enginePair.ts`) once both are chosen; `plan`, `remap`, the converter and the
+  editor take that pair, so they cannot be called without both. The `View` is `convert` or `edit` carrying the
+  pair, the filter and the source note the editor opens on, so entering the editor states them and leaving drops them;
+  the selection reducer opens the editor only with both engines chosen and keeps its pair current, so the editor is never
+  on show without one, and `useEditorHistory` steps back off the editor's entry when Forward lands on it without a pair.
+  `Conv`'s `done` arm carries the pair it converted with. `useEditor`'s result is exposed as one nested
   `editor` bundle; the editor screen owns it and hands its parts only what they read.
-  Its reducer lives in `editor/editorState.ts`; the pair's drums, notes, vocabulary and
-  family order come from `useEngineData`.
+  Its reducer lives in `editor/editorState.ts`: edits plus one `overlay`, which is a target pick, a source pick
+  (each holds only its own fields) or the notice a pick left behind; the pair's drums, notes, vocabulary and
+  family order come from `useEngineData`, and a lookup that fails there reaches the editor as the same error
+  as a failed `plan`.
   - Every change to what is converted (pick FROM/TO, swap, a link's pair, load a
     preset, channel, missing drums) is one `SelectionEvent` (`core/selection.ts`) that
     `useRemapper` hands to the selection, editor and converter reducers alike; each
@@ -524,8 +536,8 @@ test in that file fails on any import outside it.
     each one. `writeStored` says whether the value was saved; `readStoredStrict` tells a blocked
     read from an empty one (`'blocked'` or `{ value }`), `readStored` treats both as null, and
     `onStoredChange(key, changed)` is the one `storage` event subscription.
-  - The session (`midiremap:session`, versioned) keeps engines, octave, channel,
-    missing drums, the open preset id and unsaved edits; `useRemapper` restores it on
+  - The session (`midiremap:session`, versioned) keeps engines (the empty string for one not chosen), octave, channel,
+    missing drums, the open preset id and unsaved edits; `EMPTY_SESSION` is the one place the starting settings are stated; `useRemapper` restores it on
     load and saves every change. When the catalog loads, a link's `?from/&to` pair
     wins (dropping edits made for another pair), unknown engines are cleared and
     unknown drums in restored edits are left out. Until it has loaded, the session's

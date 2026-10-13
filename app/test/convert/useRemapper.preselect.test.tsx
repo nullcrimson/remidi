@@ -17,7 +17,7 @@ describe('useRemapper URL preselection', () => {
   it('preselects source and target from the query string', async () => {
     window.history.replaceState({}, '', '/?from=ggd_invasion&to=ezdrummer');
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     await waitFor(() => expect(result.current.src).toBe('ggd_invasion'));
     expect(result.current.tgt).toBe('ezdrummer');
   });
@@ -25,8 +25,8 @@ describe('useRemapper URL preselection', () => {
   it('leaves the selection empty for unknown ids', async () => {
     window.history.replaceState({}, '', '/?from=nope');
     const { result } = renderHook(() => useRemapper(RUNTIME));
-    await waitFor(() => expect(result.current.status).toBe('ready'));
-    expect(result.current.src).toBe('');
-    expect(result.current.tgt).toBe('');
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
+    expect(result.current.src).toBeNull();
+    expect(result.current.tgt).toBeNull();
   });
 });

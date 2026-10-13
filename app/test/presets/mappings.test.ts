@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { typed } from '../typed';
-import { parseMappings, quarantine, readStore, serializeMappings, sortByRecent, type SavedMapping } from '../../src/presets/mappings';
+import { presetName, typed } from '../typed';
+import { parseMappings, parsePresetName, quarantine, readStore, serializeMappings, sortByRecent, uniqueName, type SavedMapping } from '../../src/presets/mappings';
 import { readStored, storedName } from '../../src/core/storage';
 
 const sample = typed<SavedMapping>({
   id: 'a1',
-  name: 'GGD→EZ',
+  name: presetName('GGD→EZ'),
   src: 'ggd_invasion',
   tgt: 'ezdrummer',
   edits: { 'kick.main': 36, 'snare1.hit': 38 },
@@ -17,7 +17,7 @@ describe('parseMappings', () => {
   it('keeps a preset that only remembers the engine pair', () => {
     const pairOnly: SavedMapping = {
       id: 'p',
-      name: 'GGD→EZD',
+      name: presetName('GGD→EZD'),
       src: 'ggd_invasion',
       tgt: 'ezdrummer',
       edits: {},
@@ -119,6 +119,11 @@ describe('readStore', () => {
   it('has nothing to read when empty', () => {
     expect(readStore(null)).toEqual({ items: [], invalid: [] });
   });
+
+  it('keeps an entry with a blank name aside instead of listing it', () => {
+    const blank = { ...sample, name: '  ' };
+    expect(readStore(JSON.stringify([sample, blank]))).toEqual({ items: [sample], invalid: [blank] });
+  });
 });
 
 describe('quarantine', () => {
@@ -148,5 +153,21 @@ describe('quarantine', () => {
     localStorage.setItem(storedName('quarantine'), JSON.stringify([{ at: 1, raw: 'old' }]));
     quarantine(['new']);
     expect(stored()).toEqual([{ at: 1, raw: 'old' }, { at: expect.any(Number), raw: 'new' }]);
+  });
+});
+
+describe('preset names', () => {
+  it('picks a free name for an import', () => {
+    expect(uniqueName(presetName('Kit'), [])).toBe('Kit');
+    expect(uniqueName(presetName('Kit'), [presetName('Kit')])).toBe('Kit copy');
+    expect(uniqueName(presetName('Kit'), [presetName('Kit'), presetName('Kit copy')])).toBe('Kit copy 2');
+  });
+
+  it('refuses blank text', () => {
+    expect(parsePresetName('   ')).toBeNull();
+  });
+
+  it('keeps the spacing of text that is not blank', () => {
+    expect(parsePresetName(' My kit ')).toBe(' My kit ');
   });
 });

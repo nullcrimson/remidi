@@ -11,6 +11,7 @@ const row = (canon: string, label: string, srcNotes: number[], tgtNote: number |
   typed<VoiceRow>({
     canon,
     label,
+    family: 'Kick',
     srcNotes,
     defaultTgtNote,
     outcome: tgtNote === null ? { status: 'dropped', otherDrum: false } : { status: 'direct', tgtNote },

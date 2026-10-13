@@ -1,13 +1,14 @@
 import { useCallback, useMemo, useReducer } from 'react';
-import { EDITOR_START, editorReducer } from './editorState';
+import { EDITOR_START, editorReducer, type Pick, type SrcPick, type TgtPick } from './editorState';
 import { toAppError, type AppError } from '../core/errors';
 import type { Canon, Midiremap, MissingDrums, Note, VoiceRow } from '../core/midiremap';
+import type { EnginePair } from '../core/enginePair';
 import { byCanon } from '../core/canon';
 import { byNote, octaveIndexOf } from '../core/notes';
-import { editsToOverrides, type Edits, type SrcEdits } from '../core/overrides';
+import { editsToOverrides, type KnownEdits } from '../core/overrides';
 import type { SelectionEvent } from '../core/selection';
 import { useEngineData } from './useEngineData';
-import { playedNote } from '../core/outcome';
+import { isPlayed, leadNote, playedNote } from '../core/outcome';
 
 export type { Notice, Pick } from './editorState';
 
@@ -15,37 +16,38 @@ const DEFAULT_PICK_OCTAVE = 2;
 
 export function useEditor(
   core: Midiremap | null,
-  src: string,
-  tgt: string,
+  pair: EnginePair | null,
   missing: MissingDrums,
 ) {
-  const [{ edits, srcEdits, pick, notice }, dispatch] = useReducer(editorReducer, EDITOR_START);
-  const { targetDrums, sourceNotes, canonOptions, vocabulary, families } = useEngineData(core, src, tgt);
+  const [{ edits, srcEdits, overlay }, dispatch] = useReducer(editorReducer, EDITOR_START);
+  const { targetDrums, sourceNotes, canonOptions, vocabulary, families, error: dataError }
+    = useEngineData(core, pair);
 
   const { rows, planError } = useMemo<{ rows: VoiceRow[]; planError: AppError | null }>(() => {
-    if (!core || !src || !tgt) return { rows: [], planError: null };
+    if (!core) return { rows: [], planError: null };
+    if (dataError !== null) return { rows: [], planError: dataError };
+    if (!pair) return { rows: [], planError: null };
     try {
-      return { rows: core.plan(src, tgt, editsToOverrides(edits, srcEdits), missing), planError: null };
+      return { rows: core.plan(pair, editsToOverrides(edits, srcEdits), missing), planError: null };
     } catch (err) {
       return { rows: [], planError: toAppError(err) };
     }
-  }, [core, src, tgt, edits, srcEdits, missing]);
+  }, [core, pair, edits, srcEdits, missing, dataError]);
 
   const setPickOct = useCallback(
-    (octIndex: number) => dispatch({ type: 'SET_PICK_OCT', octIndex }),
+    (pick: Pick, octIndex: number) => dispatch({ type: 'SET_PICK_OCT', pick, octIndex }),
     [],
   );
   const chooseNote = useCallback(
-    (note: Note) => dispatch({ type: 'CHOOSE_NOTE', note }),
+    (pick: TgtPick, note: Note) => dispatch({ type: 'CHOOSE_NOTE', pick, note }),
     [],
   );
   const chooseSrcNote = useCallback(
-    (note: Note) => {
-      if (!pick) return;
+    (pick: SrcPick, note: Note) => {
       const owner = rows.find((r) => r.canon !== pick.canon && r.srcNotes.includes(note));
-      dispatch({ type: 'CHOOSE_SRC_NOTE', note, takenFrom: owner?.label ?? null });
+      dispatch({ type: 'CHOOSE_SRC_NOTE', pick, note, takenFrom: owner?.label ?? null });
     },
-    [pick, rows],
+    [rows],
   );
   const setSrcCanon = useCallback(
     (note: Note, canon: Canon) => dispatch({ type: 'SET_SRC_CANON', note, canon }),
@@ -55,24 +57,21 @@ export function useEditor(
   const closePick = useCallback(() => dispatch({ type: 'CLOSE_PICK' }), []);
   const reset = useCallback(() => dispatch({ type: 'RESET' }), []);
   const onSelection = useCallback((event: SelectionEvent) => dispatch(event), []);
-  const load = useCallback(
-    (nextEdits: Edits, nextSrcEdits: SrcEdits) =>
-      dispatch({ type: 'LOAD', edits: nextEdits, srcEdits: nextSrcEdits }),
-    [],
-  );
+  const load = useCallback((known: KnownEdits) => dispatch({ type: 'LOAD', known }), []);
 
   const openPick = useCallback(
     (canon: Canon) => {
       const row = rows.find((r) => r.canon === canon);
       if (!row) return;
-      const note = edits[canon] ?? playedNote(row.outcome) ?? row.srcNotes[0];
+      const note = edits[canon] ?? playedNote(row.outcome) ?? leadNote(row);
       dispatch({
         type: 'OPEN_PICK',
-        canon,
-        octIndex: note === undefined ? DEFAULT_PICK_OCTAVE : octaveIndexOf(note),
-        side: 'tgt',
-        defaultNote: row.defaultTgtNote,
-        prevNote: null,
+        pick: {
+          kind: 'tgt',
+          canon,
+          octIndex: note === null ? DEFAULT_PICK_OCTAVE : octaveIndexOf(note),
+          defaultNote: row.defaultTgtNote,
+        },
       });
     },
     [edits, rows],
@@ -81,14 +80,15 @@ export function useEditor(
     (canon: Canon) => {
       const row = rows.find((r) => r.canon === canon);
       if (!row) return;
-      const note = row.srcNotes[0] ?? playedNote(row.outcome);
+      const note = leadNote(row) ?? playedNote(row.outcome);
       dispatch({
         type: 'OPEN_PICK',
-        canon,
-        octIndex: note === null ? DEFAULT_PICK_OCTAVE : octaveIndexOf(note),
-        side: 'src',
-        defaultNote: null,
-        prevNote: row.srcNotes[0] ?? null,
+        pick: {
+          kind: 'src',
+          canon,
+          octIndex: note === null ? DEFAULT_PICK_OCTAVE : octaveIndexOf(note),
+          prevNote: leadNote(row),
+        },
       });
     },
     [rows],
@@ -96,7 +96,7 @@ export function useEditor(
 
   const remappedCount = useMemo(
     () =>
-      rows.filter((r) => r.outcome.status !== 'dropped' && r.srcNotes.length > 0 && r.srcNotes[0] !== r.outcome.tgtNote)
+      rows.filter((r) => r.outcome.status !== 'dropped' && isPlayed(r) && leadNote(r) !== r.outcome.tgtNote)
         .length,
     [rows],
   );
@@ -129,8 +129,7 @@ export function useEditor(
   return {
     edits,
     srcEdits,
-    pick,
-    notice,
+    overlay,
     rows,
     planError,
     remappedCount,

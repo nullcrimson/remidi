@@ -8,7 +8,7 @@ type View = 'convert' | 'edit';
 function setup() {
   return renderHook(() => {
     const [view, setView] = useState<View>('convert');
-    useEditorHistory(view, { open: () => setView('edit'), close: () => setView('convert') });
+    useEditorHistory(view === 'edit', { canOpen: true, open: () => setView('edit'), close: () => setView('convert') });
     return { view, setView };
   });
 }
@@ -52,5 +52,22 @@ describe('useEditorHistory', () => {
     await waitFor(() => expect(result.current.view).toBe('convert'));
     act(() => history.forward());
     await waitFor(() => expect(result.current.view).toBe('edit'));
+  });
+
+  it('steps back off the editor’s entry on Forward when the editor cannot open', async () => {
+    let canOpen = true;
+    const { result, rerender } = renderHook(() => {
+      const [view, setView] = useState<View>('convert');
+      useEditorHistory(view === 'edit', { canOpen, open: () => setView('edit'), close: () => setView('convert') });
+      return { view, setView };
+    });
+    act(() => result.current.setView('edit'));
+    act(() => history.back());
+    await waitFor(() => expect(result.current.view).toBe('convert'));
+    canOpen = false;
+    rerender();
+    act(() => history.forward());
+    await waitFor(() => expect(history.state).toBeNull());
+    expect(result.current.view).toBe('convert');
   });
 });

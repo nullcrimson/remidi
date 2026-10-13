@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { Drum, Note } from '../core/midiremap';
+import type { Drum, Family, Note } from '../core/midiremap';
 import { noteName, type OctaveBase } from '../core/notes';
 import { reveal } from '../ui/reveal';
 import { useTruncationTooltip } from '../ui/useTruncationTooltip';
@@ -15,7 +15,7 @@ export function DrumList({
   onPickNote,
 }: {
   drums: Drum[];
-  families: readonly string[];
+  families: readonly Family[];
   currentNote: Note | null;
   base: OctaveBase;
   onPickNote: (note: Note) => void;

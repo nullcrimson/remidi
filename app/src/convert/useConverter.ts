@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import type { Converter } from './converter';
 import type { BatchResult, FailedFile } from './batch';
+import type { EnginePair } from '../core/enginePair';
 import { toAppError, type AppError } from '../core/errors';
 import type { ChannelScope, MissingDrums, Overrides } from '../core/midiremap';
 import type { SelectionEvent } from '../core/selection';
@@ -10,7 +11,7 @@ import { track } from '../core/stats';
 export type Conv
   = | { kind: 'idle' }
     | { kind: 'running' }
-    | { kind: 'done'; results: FileResult[]; failures: FailedFile[] }
+    | { kind: 'done'; pair: EnginePair; results: FileResult[]; failures: FailedFile[] }
     | { kind: 'error'; failures: FailedFile[]; error: AppError };
 
 type Stored = Exclude<Conv, { kind: 'idle' }> & { key: string };
@@ -29,7 +30,7 @@ type Action
     | { type: 'REMOVE_FILE'; name: string }
     | { type: 'CLEAR_FILES' }
     | { type: 'CONVERT_START'; key: string }
-    | { type: 'CONVERT_DONE'; key: string; results: FileResult[]; failures: FailedFile[] }
+    | { type: 'CONVERT_DONE'; key: string; pair: EnginePair; results: FileResult[]; failures: FailedFile[] }
     | { type: 'CONVERT_ERROR'; key: string; failures: FailedFile[]; error: AppError };
 
 const INITIAL: State = { files: [], skipped: [], conv: { kind: 'idle' } };
@@ -63,7 +64,7 @@ function reducer(state: State, action: Action): State {
     case 'CONVERT_DONE':
       return {
         ...state,
-        conv: { kind: 'done', key: action.key, results: action.results, failures: action.failures },
+        conv: { kind: 'done', key: action.key, pair: action.pair, results: action.results, failures: action.failures },
       };
     case 'CONVERT_ERROR':
       return {
@@ -84,7 +85,7 @@ function baseName(name: string): string {
  * A run still converting is stopped through its abort signal when another starts, when
  * the files or the selection change, and when the screen goes away.
  */
-export function useConverter(converter: Converter, src: string, tgt: string, settingsKey: string) {
+export function useConverter(converter: Converter, pair: EnginePair | null, settingsKey: string) {
   const [{ files, skipped, conv: stored }, dispatch] = useReducer(reducer, INITIAL);
   const conv: Conv = stored.kind !== 'idle' && stored.key !== settingsKey ? IDLE : stored;
   const running = useRef<AbortController | null>(null);
@@ -131,46 +132,45 @@ export function useConverter(converter: Converter, src: string, tgt: string, set
       missing: MissingDrums,
       key: string,
     ): Promise<FileResult[] | null> => {
-      if (files.length === 0 || !src || !tgt) return null;
+      if (files.length === 0 || pair === null) return null;
       stop();
       const run = new AbortController();
       running.current = run;
       dispatch({ type: 'CONVERT_START', key });
       let batch: BatchResult;
       try {
-        batch = await converter.convert(files, src, tgt, ov, channel, missing, run.signal);
+        batch = await converter.convert(files, pair, ov, channel, missing, run.signal);
       } catch (err) {
         if (run.signal.aborted) return null;
-        track('convert-failed', { from: src, to: tgt });
+        track('convert-failed', { from: pair.src, to: pair.tgt });
         dispatch({ type: 'CONVERT_ERROR', key, failures: [], error: toAppError(err) });
         return null;
       }
       if (run.signal.aborted) return null;
       const ok: FileResult[] = batch.ok.map(({ name, bytes, report }) => ({
-        name: `${baseName(name)}-${tgt}.mid`,
+        name: `${baseName(name)}-${pair.tgt}.mid`,
         url: URL.createObjectURL(new Blob([bytes], { type: 'audio/midi' })),
         bytes,
         report,
       }));
       const bad = batch.failed;
       track('converted', {
-        from: src,
-        to: tgt,
+        from: pair.src,
+        to: pair.tgt,
         files: ok.length,
         failed: bad.length,
         missing,
         edited: (ov.tgt?.length ?? 0) + (ov.src?.length ?? 0) > 0,
       });
-      if (ok.length > 0 || bad.length === 0) dispatch({ type: 'CONVERT_DONE', key, results: ok, failures: bad });
+      if (ok.length > 0 || bad.length === 0) dispatch({ type: 'CONVERT_DONE', key, pair, results: ok, failures: bad });
       else dispatch({ type: 'CONVERT_ERROR', key, failures: bad, error: bad[0].error });
       return ok;
     },
-    [converter, files, src, tgt, stop],
+    [converter, files, pair, stop],
   );
 
   const results = conv.kind === 'done' ? conv.results : [];
   const failures = conv.kind === 'done' || conv.kind === 'error' ? conv.failures : [];
-  const convError = conv.kind === 'error' ? conv.error : null;
 
   return {
     files,
@@ -178,7 +178,6 @@ export function useConverter(converter: Converter, src: string, tgt: string, set
     conv,
     results,
     failures,
-    convError,
     addFiles,
     removeFile,
     clearFiles,

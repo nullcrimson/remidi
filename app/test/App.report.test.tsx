@@ -43,7 +43,7 @@ describe('App loss report', () => {
       { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
     ]));
     vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
-      { canon: 'china.1.hit', label: 'China 1', srcNotes: [60], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
+      { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals', srcNotes: [60], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
     ]));
     vi.mocked(stub.remap).mockReturnValue(reportWith(0));
   });
