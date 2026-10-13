@@ -15,7 +15,7 @@ const remapWithNotes = () => typed<RemapOutput>({
   bytes: new Uint8Array([1]),
   report: {
     unmappedSource: { 51: 1, 52: 1 },
-    fallbackUsed: { 'hat.open3': { note: 46, count: 2 } },
+    fallbackUsed: { 'hat.open3': { standIn: 'hat.open1', note: 46, count: 2 } },
     dropped: { 'china.1.hit': 1, 'hat.cc': 1, 'crash.1.hit': 1 },
     untouched: 0,
     converted: 4,

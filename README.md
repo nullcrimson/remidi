@@ -79,7 +79,7 @@ cargo run -p midiremap-cli -- convert in.mid ggd_invasion ezdrummer out.mid \
 `--preset` applies a preset exported from the app (⋯ → Export); `--overrides` takes raw
 note edits instead; `--user-map` adds your own engine map (JSON), also for `list`. The
 loss report is printed to stderr as JSON (`unmappedSource`, `fallbackUsed`, `dropped`,
-`untouched`, `converted`); the exit code is 0 whenever the file was written, so read the
+`untouched`, `converted`; each `fallbackUsed` entry names the `standIn` drum, its `note` and the `count`); the exit code is 0 whenever the file was written, so read the
 report to see what was lost.
 
 ## Adding an engine

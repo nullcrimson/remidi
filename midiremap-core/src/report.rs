@@ -8,13 +8,16 @@ use crate::{
     translate::{CanonResolution, Resolution},
 };
 
+/// How a drum the target lacks was played: on which stand-in drum, on which note, how often.
 #[derive(Serialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 #[cfg_attr(
     feature = "ts",
     derive(tsify::Tsify),
     tsify(missing_as_null, hashmap_as_object)
 )]
 pub struct FallbackTally {
+    pub stand_in: Canon,
     pub note: Note,
     pub count: u32,
 }
@@ -83,11 +86,16 @@ impl Report {
     pub(crate) fn record(&mut self, source_note: Note, resolution: &Resolution) {
         match resolution {
             Resolution::Unmapped => *self.unmapped_source.entry(source_note).or_default() += 1,
-            Resolution::Resolved(CanonResolution::Fallback { canon, note, .. }) => {
+            Resolution::Resolved(CanonResolution::Fallback {
+                canon,
+                stand_in,
+                note,
+            }) => {
                 self.converted += 1;
                 self.fallback_used
                     .entry(*canon)
                     .or_insert(FallbackTally {
+                        stand_in: *stand_in,
                         note: *note,
                         count: 0,
                     })
@@ -160,10 +168,21 @@ mod tests {
             [(
                 open3(),
                 &FallbackTally {
+                    stand_in: Canon::Hat(HatOpen::Closed, HatZone::Plain),
                     note: n(60),
                     count: 1
                 }
             )]
+        );
+    }
+
+    #[test]
+    fn a_fallback_tally_serializes_its_stand_in_in_camel_case() {
+        let r = tallied_report();
+        let json = serde_json::to_value(&r).unwrap();
+        assert_eq!(
+            json["fallbackUsed"]["hat.open3"],
+            serde_json::json!({ "standIn": "hat.closed", "note": 60, "count": 1 })
         );
     }
 

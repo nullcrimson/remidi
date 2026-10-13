@@ -136,6 +136,7 @@ mod tests {
             [(
                 "china.1.hit".parse::<Canon>().unwrap(),
                 &FallbackTally {
+                    stand_in: "crash.1.hit".parse::<Canon>().unwrap(),
                     note: n(86),
                     count: 1
                 }

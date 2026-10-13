@@ -44,8 +44,12 @@ impl From<&CanonResolution> for PlanStatus {
 pub enum PlanOutcome {
     /// The target has the drum.
     Direct { tgt_note: Note },
-    /// A stand-in plays it; `other_drum` when the stand-in is another drum.
-    Fallback { tgt_note: Note, other_drum: bool },
+    /// The drum `stand_in` plays it, on `tgt_note`; `other_drum` when the stand-in is another drum.
+    Fallback {
+        stand_in: Canon,
+        tgt_note: Note,
+        other_drum: bool,
+    },
     /// Nothing plays it; `other_drum` when only another drum could have, so the
     /// [`MissingDrums`] setting decided it.
     Dropped { other_drum: bool },
@@ -56,7 +60,8 @@ impl PlanOutcome {
         let other_drum = resolved.moves_to_other_drum();
         match resolved {
             CanonResolution::Direct { note, .. } => Self::Direct { tgt_note: note },
-            CanonResolution::Fallback { note, .. } => Self::Fallback {
+            CanonResolution::Fallback { stand_in, note, .. } => Self::Fallback {
+                stand_in,
                 tgt_note: note,
                 other_drum,
             },
@@ -212,6 +217,7 @@ mod tests {
         assert_eq!(
             find(&near, "china.1.hit").outcome,
             PlanOutcome::Fallback {
+                stand_in: "crash.1.hit".parse().unwrap(),
                 tgt_note: n(86),
                 other_drum: true
             }

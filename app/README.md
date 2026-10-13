@@ -110,7 +110,7 @@ on a phone and click elsewhere.
   conversion from anything caught to what the UI is told), `notes.ts` (note-name / octave
   helpers, octave base is display-only, over `src/wasm/note_naming.json`, the table the wasm
   build writes from the core), `canon.ts` (the module's drum `Vocabulary` by key, and
-  `byCanon`), `enginePair.ts` (`EnginePair`, both engines of a conversion, `pairOf`, and `EngineNames` with `namesOf`), `drums.ts` (`labelByNote`), `outcome.ts` (what a plan row does: `playedNote`, `isPlayed`, `leadNote`, `playedOn`),
+  `byCanon`), `enginePair.ts` (`EnginePair`, both engines of a conversion, `pairOf`, and `EngineNames` with `namesOf`), `drums.ts` (`drumLabels`: the target's drum names by note, and by canon for a stand-in), `outcome.ts` (what a plan row does: `playedNote`, `isPlayed`, `leadNote`, `playedOn`),
   `overrides.ts` (target and source edits → the `Overrides` the WASM takes; `StoredEdits` is
   what presets and the session carry, drum keys as unchecked text; `knownEdits` is the one
   function that turns them into `KnownEdits`, leaving out drums this version does not know (the editor loads nothing else);
@@ -184,7 +184,8 @@ on a phone and click elsewhere.
   piano (a bottom sheet on phones); Advanced reassigns raw source notes. A sticky footer
   holds the change count, Reset all, Save as preset and Done; edits apply as you make
   them, and the browser's Back returns to the converter. A Plays column names the
-  target drum each row lands on (≈ when approximated).
+  target drum each row lands on (≈ when approximated, then the stand-in drum the converter
+  chose, wherever a target edit has put it).
 
 ## Keyboard
 

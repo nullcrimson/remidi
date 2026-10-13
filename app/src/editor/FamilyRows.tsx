@@ -2,8 +2,8 @@ import type { Translate } from '../locale/i18n';
 import { useT } from '../locale/localeContext';
 import { Fragment } from 'react';
 import type { Editor } from './useEditor';
-import type { Canon, Drum, Family, Note, VoiceRow as VoiceRowData } from '../core/midiremap';
-import { labelByNote } from '../core/drums';
+import type { Canon, Drum, Family, VoiceRow as VoiceRowData } from '../core/midiremap';
+import { drumLabels, type DrumLabels } from '../core/drums';
 import { noteName, type OctaveBase } from '../core/notes';
 import { MonoLabel } from '../ui/MonoLabel';
 import { NotePicker } from './NotePicker';
@@ -11,7 +11,7 @@ import { SourceNotePicker } from './SourceNotePicker';
 import { ROW_GRID } from './rowGrid';
 import { pickOf } from './editorState';
 import { VoiceRow, type RowResult } from './VoiceRow';
-import { isPlayed, leadNote, playedNote } from '../core/outcome';
+import { isPlayed, leadNote, playedNote, playingDrum } from '../core/outcome';
 
 type RowActions = Pick<
   Editor,
@@ -25,12 +25,13 @@ type RowActions = Pick<
   | 'resetRow'
 >;
 
-function playsOf(row: VoiceRowData, changed: boolean, drumAt: (note: Note) => string, t: Translate): RowResult {
+function playsOf(row: VoiceRowData, changed: boolean, labels: DrumLabels, oct: OctaveBase, t: Translate): RowResult {
   if (!isPlayed(row)) return { text: t({ id: 'row-no-source' }), tone: 'faint' };
-  if (row.outcome.status === 'dropped') return { text: t({ id: 'row-dropped' }), tone: 'danger' };
-  const name = drumAt(row.outcome.tgtNote);
+  const { outcome } = row;
+  if (outcome.status === 'dropped') return { text: t({ id: 'row-dropped' }), tone: 'danger' };
+  const name = playingDrum(outcome, labels, oct);
   if (changed) return { text: name, tone: 'strong' };
-  if (row.outcome.status === 'fallback') return { text: `≈ ${name}`, tone: 'gold' };
+  if (outcome.status === 'fallback') return { text: `≈ ${name}`, tone: 'gold' };
   return { text: name, tone: 'faint' };
 }
 
@@ -81,8 +82,7 @@ export function FamilyRows({
   actions: RowActions;
 }) {
   const t = useT();
-  const drumByNote = labelByNote(targetDrums);
-  const drumAt = (note: Note) => drumByNote.get(note) ?? noteName(note, oct);
+  const labels = drumLabels(targetDrums);
 
   return (
     <div>
@@ -112,7 +112,7 @@ export function FamilyRows({
                   expanded={pickOf(here)?.kind ?? null}
                   onSrcToggle={() => (here?.kind === 'src' ? actions.closePick() : actions.openSrcPick(row.canon))}
                   onToggle={() => (here?.kind === 'tgt' ? actions.closePick() : actions.openPick(row.canon))}
-                  result={playsOf(row, rowChanged, drumAt, t)}
+                  result={playsOf(row, rowChanged, labels, oct, t)}
                   onReset={rowChanged ? () => actions.resetRow(row.canon) : undefined}
                 >
                   {here?.kind === 'src' && (

@@ -13,7 +13,7 @@ function remapFor(missing: MissingDrums | null | undefined) {
     bytes: new Uint8Array([1]),
     report: {
       unmappedSource: {},
-      fallbackUsed: missing === 'drop' ? {} : { 'china.1.hit': { note: 49, count: 3 } },
+      fallbackUsed: missing === 'drop' ? {} : { 'china.1.hit': { standIn: 'crash.1.hit', note: 49, count: 3 } },
       dropped: missing === 'drop' ? { 'china.1.hit': 3 } : {},
       untouched: 0,
       converted: 10,
@@ -46,7 +46,7 @@ describe('App missing drums', () => {
     vi.mocked(stub.plan).mockImplementation((_src, _tgt, _overrides, missing) => typed<VoiceRow[]>([
       missing === 'drop'
         ? { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals', srcNotes: [60], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: true } }
-        : { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals', srcNotes: [60], defaultTgtNote: 49, outcome: { status: 'fallback', tgtNote: 49, otherDrum: true } },
+        : { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals', srcNotes: [60], defaultTgtNote: 49, outcome: { status: 'fallback', standIn: 'crash.1.hit', tgtNote: 49, otherDrum: true } },
     ]));
     vi.mocked(stub.remap).mockImplementation((_mid, _src, _tgt, _overrides, _channel, missing) => remapFor(missing));
   });

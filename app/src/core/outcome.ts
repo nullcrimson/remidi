@@ -1,6 +1,6 @@
-import { labelByNote } from './drums';
+import { drumLabels, type DrumLabels } from './drums';
 import type { Drum, Note, PlanOutcome, VoiceRow } from './midiremap';
-import { noteName, type OctaveBase } from './notes';
+import type { OctaveBase } from './notes';
 
 /** The note a drum plays on, or `null` when it is dropped. */
 export const playedNote = (outcome: PlanOutcome): Note | null =>
@@ -24,9 +24,13 @@ export interface PlayedOn {
 
 /** Each row's drum and the target drum that plays it now, in row order. */
 export function playedOn(rows: VoiceRow[], targetDrums: Drum[], oct: OctaveBase): PlayedOn[] {
-  const labels = labelByNote(targetDrums);
-  return rows.map((r) => ({
-    drum: r.label,
-    now: r.outcome.status === 'dropped' ? null : (labels.get(r.outcome.tgtNote) ?? noteName(r.outcome.tgtNote, oct)),
-  }));
+  const labels = drumLabels(targetDrums);
+  return rows.map((r) => ({ drum: r.label, now: r.outcome.status === 'dropped' ? null : playingDrum(r.outcome, labels, oct) }));
+}
+
+/** The target drum that plays a drum that is not dropped: the stand-in the converter chose, or the drum on its note. */
+export function playingDrum(outcome: Exclude<PlanOutcome, { status: 'dropped' }>, labels: DrumLabels, oct: OctaveBase): string {
+  return outcome.status === 'fallback'
+    ? labels.ofStandIn(outcome.standIn, outcome.tgtNote, oct)
+    : labels.atNote(outcome.tgtNote, oct);
 }

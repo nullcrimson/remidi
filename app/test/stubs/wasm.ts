@@ -47,7 +47,7 @@ export const family_order = vi.fn<typeof Wasm.family_order>(() => [
 const BASE_ROWS = typed<Wasm.VoiceRow[]>([
   { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
   { canon: 'snare1.hit', label: 'Snare', family: 'Snare', srcNotes: [26], defaultTgtNote: 38, outcome: { status: 'direct', tgtNote: 38 } },
-  { canon: 'hat.open3', label: 'Hi-Hat Open 3', family: 'Hi-Hat', srcNotes: [47], defaultTgtNote: 46, outcome: { status: 'fallback', tgtNote: 46, otherDrum: false } },
+  { canon: 'hat.open3', label: 'Hi-Hat Open 3', family: 'Hi-Hat', srcNotes: [47], defaultTgtNote: 46, outcome: { status: 'fallback', standIn: 'hat.open1', tgtNote: 46, otherDrum: false } },
   { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: true } },
   { canon: 'hat.cc', label: 'Hi-Hat CC', family: 'Hi-Hat', srcNotes: [4], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
 ]);
@@ -77,7 +77,7 @@ export const remap = vi.fn<typeof Wasm.remap>(() => ({
   bytes: REMAP_BYTES,
   report: typed<Wasm.Report>({
     unmappedSource: {},
-    fallbackUsed: { 'hat.open3': { note: 46, count: 2 } },
+    fallbackUsed: { 'hat.open3': { standIn: 'hat.open1', note: 46, count: 2 } },
     dropped: { 'china.1.hit': 1 },
     untouched: 5,
     converted: 40,

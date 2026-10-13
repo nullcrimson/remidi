@@ -26,8 +26,8 @@ describe('planBreakdown', () => {
       row('Kick', { srcNotes: [35], outcome: { status: 'direct', tgtNote: 36 } }),
       row('Snare', { srcNotes: [38], outcome: { status: 'direct', tgtNote: 40 } }),
       row('Hat', { srcNotes: [42], outcome: { status: 'direct', tgtNote: 42 } }),
-      row('Kick (Alt)', { srcNotes: [34], outcome: { status: 'fallback', tgtNote: 36, otherDrum: false } }),
-      row('China', { srcNotes: [52], outcome: { status: 'fallback', tgtNote: 49, otherDrum: true } }),
+      row('Kick (Alt)', { srcNotes: [34], outcome: { status: 'fallback', standIn: 'kick', tgtNote: 36, otherDrum: false } }),
+      row('China', { srcNotes: [52], outcome: { status: 'fallback', standIn: 'crash.1.hit', tgtNote: 49, otherDrum: true } }),
       row('Tom 4', { srcNotes: [41], outcome: { status: 'dropped', otherDrum: false } }),
       row('Splash', { srcNotes: [], outcome: { status: 'direct', tgtNote: 55 } }),
     ];

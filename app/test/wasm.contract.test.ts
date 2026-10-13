@@ -20,6 +20,13 @@ const MIDI = new Uint8Array([
   0x00, 0xff, 0x2f, 0x00,
 ]);
 
+const CHINA_MIDI = new Uint8Array([
+  0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 0, 0x60,
+  0x4d, 0x54, 0x72, 0x6b, 0, 0, 0, 0x0c,
+  0x00, 0x99, 0x41, 0x64, 0x30, 0x89, 0x41, 0x00,
+  0x00, 0xff, 0x2f, 0x00,
+]);
+
 let real: Wasm;
 
 beforeAll(async () => {
@@ -67,6 +74,12 @@ describe('real WASM module', () => {
     expect(china.defaultTgtNote).toBeNull();
   });
 
+  it('plans the stand-in of a swapped drum', () => {
+    const rows = real.plan('ggd_invasion', 'ezdrummer');
+    const china = rows.find((r) => r.canon === 'china.1.hit')!;
+    expect(china.outcome).toEqual({ status: 'fallback', standIn: 'crash.1.hit', tgtNote: 86, otherDrum: true });
+  });
+
   it('plans the three statuses', () => {
     const rows = real.plan('ggd_invasion', 'ezdrummer', undefined, 'drop');
     expect(new Set(rows.map((r) => r.outcome.status))).toEqual(new Set(['direct', 'fallback', 'dropped']));
@@ -99,6 +112,11 @@ describe('real WASM module', () => {
     const out = real.remap(MIDI, 'ggd_invasion', 'ezdrummer');
     expect(keys(out.report)).toEqual(['converted', 'dropped', 'fallbackUsed', 'unmappedSource', 'untouched']);
     expect(out.report.converted).toBe(2);
+  });
+
+  it('reports the stand-in a swapped drum played on', () => {
+    const out = real.remap(CHINA_MIDI, 'ggd_invasion', 'ezdrummer');
+    expect(out.report.fallbackUsed).toEqual({ 'china.1.hit': { standIn: 'crash.1.hit', note: 86, count: 1 } });
   });
 
   it('reads the shared preset fixture', () => {
@@ -200,6 +218,7 @@ describe('test stub', () => {
       ...stub.canon_catalog().map((c) => c.canon),
       ...stub.plan('ggd_invasion', 'ezdrummer').map((r) => r.canon),
       ...Object.keys(report.fallbackUsed),
+      ...Object.values(report.fallbackUsed).map((tally) => tally.standIn),
       ...Object.keys(report.dropped),
     ];
     expect(used.filter((c) => !vocabulary.has(canon(c)))).toEqual([]);

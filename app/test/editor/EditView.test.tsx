@@ -220,7 +220,7 @@ describe('EditView', () => {
     { canon: 'hat.cc', label: 'Hi-Hat CC', family: 'Hi-Hat' as const },
   ]);
   const ROWS = typed<VoiceRow[]>([
-    { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback' as const, tgtNote: 51, otherDrum: false } },
+    { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback' as const, standIn: 'ride.1', tgtNote: 51, otherDrum: false } },
     { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } },
     { canon: 'china.1', label: 'China 1', family: 'Cymbals', srcNotes: [52], defaultTgtNote: null, outcome: { status: 'dropped' as const, otherDrum: false } },
     { canon: 'snare.main', label: 'Snare', family: 'Snare', srcNotes: [26], defaultTgtNote: 38, outcome: { status: 'direct' as const, tgtNote: 40 } },
@@ -276,6 +276,14 @@ describe('EditView', () => {
       renderWithTargetDrums();
       expect(plays('Ride Bell')).toHaveTextContent('≈ Ride');
       expect(plays('Ride Bell')).toHaveClass('text-star');
+    });
+
+    it('names the stand-in the converter chose, not the stock drum on the note an edit gave it', () => {
+      const standInMoved = typed<VoiceRow[]>([
+        { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback', standIn: 'snare.rim', tgtNote: 51, otherDrum: true } },
+      ]);
+      render(<EditView {...props} editor={{ ...full, targetDrums, rows: standInMoved }} />);
+      expect(plays('Ride Bell')).toHaveTextContent('≈ Snare Rimshot');
     });
 
     it('says a dropped row is dropped', () => {

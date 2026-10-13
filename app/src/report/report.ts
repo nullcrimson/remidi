@@ -2,7 +2,7 @@ import type { FileResult } from '../core/files';
 import type { Canon, Drum, MissingDrums, Note, Report, VocabularyDrum } from '../core/midiremap';
 import type { EnginePair } from '../core/enginePair';
 import type { StatEvents } from '../core/umami';
-import { labelByNote } from '../core/drums';
+import { drumLabels } from '../core/drums';
 import { byCanon } from '../core/canon';
 import { byNote, noteName, type OctaveBase } from '../core/notes';
 
@@ -66,7 +66,7 @@ export function buildReport(
   oct: OctaveBase,
 ): ReportView {
   const labelByCanon = new Map(canons.map((c) => [c.canon, c.label]));
-  const drumByNote = labelByNote(targetDrums);
+  const labels = drumLabels(targetDrums);
 
   const canonLabel = (canon: Canon) => labelByCanon.get(canon) ?? canon;
 
@@ -75,9 +75,9 @@ export function buildReport(
       byCanon(report.dropped).map(([canon, count]) => ({ label: canonLabel(canon), count, canon })),
     ),
     approximated: sortEntries(
-      byCanon(report.fallbackUsed).map(([canon, { note, count }]) => ({
+      byCanon(report.fallbackUsed).map(([canon, { standIn, note, count }]) => ({
         label: canonLabel(canon),
-        sub: drumByNote.get(note) ?? noteName(note, oct),
+        sub: labels.ofStandIn(standIn, note, oct),
         count,
         canon,
       })),
@@ -159,7 +159,7 @@ export function lossCounts(reports: Report[]): { dropped: number; approximated: 
   const unrecognized = new Set<Note>();
   for (const report of reports) {
     for (const [canon] of byCanon(report.dropped)) dropped.add(canon);
-    for (const [canon, { note }] of byCanon(report.fallbackUsed)) approximated.add(`${canon}:${note}`);
+    for (const [canon, { standIn }] of byCanon(report.fallbackUsed)) approximated.add(`${canon}:${standIn}`);
     for (const [note] of byNote(report.unmappedSource)) unrecognized.add(note);
   }
   return { dropped: dropped.size, approximated: approximated.size, unrecognized: unrecognized.size };

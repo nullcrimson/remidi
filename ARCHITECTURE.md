@@ -179,12 +179,14 @@ the rules allow.
   iterators and totals (`hits()` is every note-on seen); only the converter tallies
   them (`record`, `record_untouched`).
 - `Report::record` keeps the counting policy in one place: it tallies unmapped
-  source notes, fallbacks used (with the target note each one landed on), and
-  dropped canons; direct hits are not recorded. `converted` counts hits written to
+  source notes, fallbacks used (each with the stand-in drum the converter chose, the
+  target note it landed on and the hit count), and dropped canons; direct hits are not recorded. `converted` counts hits written to
   the output (direct or approximated); `untouched` counts note-ons the channel scope
   left alone, which are not loss. It serializes in camelCase (`unmappedSource`,
   `fallbackUsed`, `dropped`, `untouched`, `converted`) with its `BTreeMap`s in a
-  stable order and note keys as strings, so the CLI and WASM print the same JSON.
+  stable order and note keys as strings, so the CLI and WASM print the same JSON. A
+  `fallbackUsed` entry is `{ standIn, note, count }`; the app names the report line
+  after `standIn`, never after whichever drum the stock target has on `note`.
 
 ### `table` — the single source of truth
 
@@ -310,8 +312,9 @@ the rules allow.
   - `src_notes`: every source note that plays this drum — overridden notes first,
     then the engine's primary note, then the rest. Empty for a *silent* drum (its
     notes were reassigned); the row stays so its target remains editable.
-  - `outcome` (`PlanOutcome`): `Direct { tgt_note }`, `Fallback { tgt_note, other_drum }`
-    or `Dropped { other_drum }`, the drum resolved with target overrides, so a dropped
+  - `outcome` (`PlanOutcome`): `Direct { tgt_note }`, `Fallback { stand_in, tgt_note, other_drum }`
+    or `Dropped { other_drum }` (`stand_in` is the drum the converter plays it on, so the
+    app names that drum even when a target edit moved it to another note), the drum resolved with target overrides, so a dropped
     drum cannot carry a note; `other_drum` means the missing-drums setting decides the
     row. `default_tgt_note`: the target note without target overrides.
   - Duplicate overrides resolve last-wins, as in conversion.

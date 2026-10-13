@@ -64,7 +64,7 @@ describe('buildReport', () => {
     [
       result('a.mid', {
         dropped: { 'china.1.hit': 4 },
-        fallbackUsed: { 'ride.1.bell': { note: 51, count: 3 } },
+        fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1', note: 51, count: 3 } },
         unmappedSource: { 63: 1 },
         untouched: 0,
         converted: 10,
@@ -90,6 +90,16 @@ describe('buildReport', () => {
     expect(view.groups.approximated).toEqual([{ label: 'Ride Bell', sub: 'Ride', count: 3, canon: 'ride.1.bell' }]);
   });
 
+  it('names the stand-in drum the converter chose when an edit moved it to a note the stock target gives another drum', () => {
+    const view = buildReport(
+      [result('a.mid', { ...empty, fallbackUsed: { 'china.1.hit': { standIn: 'crash.2.hit', note: 51, count: 2 } } })],
+      canons,
+      drums,
+      'c1',
+    );
+    expect(view.groups.approximated[0].sub).toBe('Crash 2');
+  });
+
   it('labels an unrecognized entry', () => {
     const view = lossy();
     expect(view.groups.unrecognized[0].note).toBe(63);
@@ -107,18 +117,18 @@ describe('buildReport', () => {
     expect(view.totals).toEqual({ dropped: 4, approximated: 3, unrecognized: 1, untouched: 0, converted: 10 });
   });
 
-  it('names a substitute note two drums share after the first of them, as the editor does', () => {
+  it('names a stand-in that shares its note with another drum by the stand-in', () => {
     const shared = typed<Drum[]>([
       { note: 49, canon: 'crash.1.hit', label: 'Crash 1', family: 'Cymbals' },
       { note: 49, canon: 'crash.1.choke', label: 'Crash 1 choke', family: 'Cymbals' },
     ]);
     const view = buildReport(
-      [result('a.mid', { ...empty, fallbackUsed: { 'splash.2.hit': { note: 49, count: 2 } } })],
+      [result('a.mid', { ...empty, fallbackUsed: { 'splash.2.hit': { standIn: 'crash.1.choke', note: 49, count: 2 } } })],
       canons,
       shared,
       'c1',
     );
-    expect(view.groups.approximated[0].sub).toBe('Crash 1');
+    expect(view.groups.approximated[0].sub).toBe('Crash 1 choke');
   });
 
   const twoFiles = () => buildReport(
@@ -166,7 +176,7 @@ describe('buildReport', () => {
 
   it('labels the substitute with the note the conversion actually used', () => {
     const view = buildReport(
-      [result('a.mid', { dropped: {}, fallbackUsed: { 'ride.1.bell': { note: 57, count: 2 } }, unmappedSource: {}, untouched: 0, converted: 10 })],
+      [result('a.mid', { dropped: {}, fallbackUsed: { 'ride.1.bell': { standIn: 'crash.2.hit', note: 57, count: 2 } }, unmappedSource: {}, untouched: 0, converted: 10 })],
       canons,
       drums,
       'c1',
@@ -186,7 +196,7 @@ describe('buildReport', () => {
 
   it('names the substitute note when it is not a known target drum', () => {
     const view = buildReport(
-      [result('a.mid', { dropped: {}, fallbackUsed: { 'ride.1.bell': { note: 60, count: 1 } }, unmappedSource: {}, untouched: 0, converted: 10 })],
+      [result('a.mid', { dropped: {}, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.cup', note: 60, count: 1 } }, unmappedSource: {}, untouched: 0, converted: 10 })],
       canons,
       drums,
       'c1',
@@ -196,7 +206,7 @@ describe('buildReport', () => {
 });
 
 describe('lossCounts', () => {
-  const lossy = result('a.mid', { dropped: { 'china.1.hit': 4 }, fallbackUsed: { 'ride.1.bell': { note: 60, count: 1 } }, unmappedSource: { 51: 2 }, untouched: 0, converted: 10 });
+  const lossy = result('a.mid', { dropped: { 'china.1.hit': 4 }, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.cup', note: 60, count: 1 } }, unmappedSource: { 51: 2 }, untouched: 0, converted: 10 });
 
   it('counts the entries of each group of one file', () => {
     expect(lossCounts([lossy.report])).toEqual({ dropped: 1, approximated: 1, unrecognized: 1 });
@@ -206,9 +216,14 @@ describe('lossCounts', () => {
     expect(lossCounts([lossy.report, lossy.report]).dropped).toBe(1);
   });
 
-  it('counts a drum approximated on two different notes twice', () => {
-    const other = result('b.mid', { ...empty, fallbackUsed: { 'ride.1.bell': { note: 61, count: 1 } } });
+  it('counts a drum approximated by two different stand-ins twice', () => {
+    const other = result('b.mid', { ...empty, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.bowtip', note: 60, count: 1 } } });
     expect(lossCounts([lossy.report, other.report]).approximated).toBe(2);
+  });
+
+  it('counts a drum approximated by one stand-in once, whatever note it landed on', () => {
+    const other = result('b.mid', { ...empty, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.cup', note: 61, count: 1 } } });
+    expect(lossCounts([lossy.report, other.report]).approximated).toBe(1);
   });
 
   it('counts nothing for a clean conversion', () => {
