@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { presetName, typed } from '../typed';
 import { parseMappings, parsePresetName, quarantine, readStore, serializeMappings, sortByRecent, uniqueName, type SavedMapping } from '../../src/presets/mappings';
 import { readStored, storedName } from '../../src/core/storage';
@@ -177,6 +177,25 @@ describe('quarantine', () => {
     localStorage.setItem(storedName('quarantine'), JSON.stringify([{ at: 1, raw: 'old' }]));
     quarantine(['new']);
     expect(stored()).toEqual([{ at: 1, raw: 'old' }, { at: expect.any(Number), raw: 'new' }]);
+  });
+
+  it('leaves the stored list as it is when the browser refuses to read it', () => {
+    localStorage.setItem(storedName('quarantine'), JSON.stringify([{ at: 1, raw: 'old' }]));
+    const get = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    quarantine(['new']);
+    get.mockRestore();
+    expect(stored()).toEqual([{ at: 1, raw: 'old' }]);
+  });
+
+  it('reports the entries unsaved when the browser refuses to read the stored list', () => {
+    const get = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    const saved = quarantine(['new']);
+    get.mockRestore();
+    expect(saved).toBe(false);
   });
 });
 

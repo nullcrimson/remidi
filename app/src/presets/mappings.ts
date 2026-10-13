@@ -1,6 +1,6 @@
 import type { PresetName } from '../core/midiremap';
 import { parseEdits, parseSrcEdits, type StoredEdits } from '../core/overrides';
-import { readStored, writeStored } from '../core/storage';
+import { readStoredStrict, writeStored } from '../core/storage';
 
 function brand(text: string): PresetName {
   return text as PresetName;
@@ -94,15 +94,19 @@ export function serializeMappings(mappings: SavedMapping[]): string {
   return JSON.stringify({ version: STORE_VERSION, items: mappings });
 }
 
-/** Keeps entries that could not be read, so no release ever deletes them. */
+/**
+ * Keeps entries that could not be read, so no release ever deletes them, and says whether
+ * they were kept. A browser that refuses to read what is already kept gets nothing written.
+ */
 export function quarantine(entries: unknown[]): boolean {
   if (entries.length === 0) return true;
+  const before = readStoredStrict('quarantine');
+  if (before === 'blocked') return false;
   const at = Date.now();
-  return writeStored('quarantine', JSON.stringify([...kept(at), ...entries.map((raw) => ({ at, raw }))]));
+  return writeStored('quarantine', JSON.stringify([...kept(before.value, at), ...entries.map((raw) => ({ at, raw }))]));
 }
 
-function kept(at: number): unknown[] {
-  const raw = readStored('quarantine');
+function kept(raw: string | null, at: number): unknown[] {
   if (!raw) return [];
   try {
     const parsed: unknown = JSON.parse(raw);
