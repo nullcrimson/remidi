@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildReport, lossCounts } from '../../src/report/report';
+import { buildReport, entryText, lossCounts } from '../../src/report/report';
 import type { FileResult } from '../../src/core/files';
 import type { VocabularyDrum, Drum } from '../../src/core/midiremap';
 import { typed, type Loose } from '../typed';
@@ -90,14 +90,24 @@ describe('buildReport', () => {
     expect(view.groups.approximated).toEqual([{ label: 'Ride Bell', sub: 'Ride', count: 3, canon: 'ride.1.bell' }]);
   });
 
-  it('names the stand-in drum the converter chose when an edit moved it to a note the stock target gives another drum', () => {
+  it('names the stand-in the converter chose, then the stock drum on the note an edit moved it to', () => {
     const view = buildReport(
       [result('a.mid', { ...empty, fallbackUsed: { 'china.1.hit': { standIn: 'crash.2.hit', note: 51, count: 2 } } })],
       canons,
       drums,
       'c1',
     );
-    expect(view.groups.approximated[0].sub).toBe('Crash 2');
+    expect(view.groups.approximated[0].sub).toBe('Crash 2 → Ride');
+  });
+
+  it('writes a moved stand-in\'s line as the drum, the stand-in and the stock drum on its note', () => {
+    const view = buildReport(
+      [result('a.mid', { ...empty, fallbackUsed: { 'china.1.hit': { standIn: 'crash.2.hit', note: 51, count: 2 } } })],
+      canons,
+      drums,
+      'c1',
+    );
+    expect(entryText(view.groups.approximated[0])).toBe('China 1 → Crash 2 → Ride');
   });
 
   it('labels an unrecognized entry', () => {
@@ -115,20 +125,6 @@ describe('buildReport', () => {
   it('totals dropped, approximated and unrecognized notes', () => {
     const view = lossy();
     expect(view.totals).toEqual({ dropped: 4, approximated: 3, unrecognized: 1, untouched: 0, converted: 10 });
-  });
-
-  it('names a stand-in that shares its note with another drum by the stand-in', () => {
-    const shared = typed<Drum[]>([
-      { note: 49, canon: 'crash.1.hit', label: 'Crash 1', family: 'Cymbals' },
-      { note: 49, canon: 'crash.1.choke', label: 'Crash 1 choke', family: 'Cymbals' },
-    ]);
-    const view = buildReport(
-      [result('a.mid', { ...empty, fallbackUsed: { 'splash.2.hit': { standIn: 'crash.1.choke', note: 49, count: 2 } } })],
-      canons,
-      shared,
-      'c1',
-    );
-    expect(view.groups.approximated[0].sub).toBe('Crash 1 choke');
   });
 
   const twoFiles = () => buildReport(

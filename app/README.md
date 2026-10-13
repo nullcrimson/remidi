@@ -185,7 +185,7 @@ on a phone and click elsewhere.
   holds the change count, Reset all, Save as preset and Done; edits apply as you make
   them, and the browser's Back returns to the converter. A Plays column names the
   target drum each row lands on (≈ when approximated, then the stand-in drum the converter
-  chose, wherever a target edit has put it).
+  chose, and after an arrow the stock drum on its note when a target edit moved it there).
 
 ## Keyboard
 

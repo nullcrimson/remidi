@@ -5,7 +5,11 @@ import { noteName, type OctaveBase } from './notes';
 export interface DrumLabels {
   /** The first drum listed on `note`, or the note's own name when none is. */
   atNote(note: Note, oct: OctaveBase): string;
-  /** The target's own drum for `standIn`, or the name of `note`, where the converter played it, when the target lists none. */
+  /**
+   * What plays a drum the target lacks: the stand-in the converter chose, then `→` and what
+   * the target has on `note` when an edit moved the stand-in there; only what is on `note`
+   * when the target does not list the stand-in.
+   */
   ofStandIn(standIn: Canon, note: Note, oct: OctaveBase): string;
 }
 
@@ -17,8 +21,13 @@ export function drumLabels(drums: Drum[]): DrumLabels {
     if (!byNote.has(d.note)) byNote.set(d.note, d.label);
     if (!byCanon.has(d.canon)) byCanon.set(d.canon, d.label);
   }
+  const atNote = (note: Note, oct: OctaveBase) => byNote.get(note) ?? noteName(note, oct);
   return {
-    atNote: (note, oct) => byNote.get(note) ?? noteName(note, oct),
-    ofStandIn: (standIn, note, oct) => byCanon.get(standIn) ?? noteName(note, oct),
+    atNote,
+    ofStandIn: (standIn, note, oct) => {
+      const landed = atNote(note, oct);
+      const chosen = byCanon.get(standIn);
+      return chosen === undefined || chosen === landed ? landed : `${chosen} → ${landed}`;
+    },
   };
 }

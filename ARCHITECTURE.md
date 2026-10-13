@@ -186,7 +186,8 @@ the rules allow.
   `fallbackUsed`, `dropped`, `untouched`, `converted`) with its `BTreeMap`s in a
   stable order and note keys as strings, so the CLI and WASM print the same JSON. A
   `fallbackUsed` entry is `{ standIn, note, count }`; the app names the report line
-  after `standIn`, never after whichever drum the stock target has on `note`.
+  after `standIn`, and when a target edit moved the stand-in onto another note it adds
+  what the stock target has there ("China → Crash 2 → Ride").
 
 ### `table` — the single source of truth
 
@@ -314,7 +315,7 @@ the rules allow.
     notes were reassigned); the row stays so its target remains editable.
   - `outcome` (`PlanOutcome`): `Direct { tgt_note }`, `Fallback { stand_in, tgt_note, other_drum }`
     or `Dropped { other_drum }` (`stand_in` is the drum the converter plays it on, so the
-    app names that drum even when a target edit moved it to another note), the drum resolved with target overrides, so a dropped
+    app names that drum, followed by what the stock target has on the note when a target edit moved it there), the drum resolved with target overrides, so a dropped
     drum cannot carry a note; `other_drum` means the missing-drums setting decides the
     row. `default_tgt_note`: the target note without target overrides.
   - Duplicate overrides resolve last-wins, as in conversion.

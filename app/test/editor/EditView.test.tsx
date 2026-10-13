@@ -278,12 +278,12 @@ describe('EditView', () => {
       expect(plays('Ride Bell')).toHaveClass('text-star');
     });
 
-    it('names the stand-in the converter chose, not the stock drum on the note an edit gave it', () => {
+    it('names the stand-in the converter chose, then the stock drum on the note an edit gave it', () => {
       const standInMoved = typed<VoiceRow[]>([
         { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback', standIn: 'snare.rim', tgtNote: 51, otherDrum: true } },
       ]);
       render(<EditView {...props} editor={{ ...full, targetDrums, rows: standInMoved }} />);
-      expect(plays('Ride Bell')).toHaveTextContent('≈ Snare Rimshot');
+      expect(plays('Ride Bell').textContent).toBe('≈ Snare Rimshot → Ride');
     });
 
     it('says a dropped row is dropped', () => {
