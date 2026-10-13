@@ -12,9 +12,6 @@ on:
 permissions:
   contents: read
 
-env:
-  NIGHTLY: nightly-2026-05-03
-
 jobs:
   convert:
     runs-on: ubuntu-latest
@@ -24,7 +21,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install pinned nightly
-        run: rustup toolchain install "$NIGHTLY" --profile minimal --component clippy,rustfmt
+        run: |
+          echo "NIGHTLY=$(cat ../nightly-toolchain)" >> "$GITHUB_ENV"
+          rustup toolchain install "$(cat ../nightly-toolchain)" --profile minimal --component clippy,rustfmt
 
       - name: Install cargo-fuzz
         uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2.87.21

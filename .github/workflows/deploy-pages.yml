@@ -13,93 +13,44 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-env:
-  FMT_TOOLCHAIN: nightly-2026-05-03
-
 jobs:
   rust:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install Rust (from rust-toolchain.toml) and nightly rustfmt
+      - name: Install Rust (from rust-toolchain.toml) and the pinned nightly rustfmt
         run: |
           rustup toolchain install
-          rustup toolchain install "$FMT_TOOLCHAIN" --profile minimal --component rustfmt
+          rustup toolchain install "$(cat nightly-toolchain)" --profile minimal --component rustfmt
 
       - name: Cache cargo build
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Rust format
-        run: cargo +"$FMT_TOOLCHAIN" fmt --all -- --check
+        run: bash scripts/gate.sh fmt
 
       - name: Clippy
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+        run: bash scripts/gate.sh clippy
 
       - name: Rust tests
-        run: cargo test --workspace --locked
+        run: bash scripts/gate.sh cargo-test
 
   app:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Read binaryen version
-        id: binaryen
-        run: echo "v=$(node -p "require('./app/package-lock.json').packages['node_modules/binaryen'].version")" >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/app-with-wasm
 
-      - name: Restore wasm build
-        id: wasm
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: app/src/wasm
-          key: wasm-binaryen${{ steps.binaryen.outputs.v }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-wasm/**', 'engines/**', 'app/scripts/build-wasm.mjs') }}
-
-      - name: Install Rust (from rust-toolchain.toml)
-        if: steps.wasm.outputs.cache-hit != 'true'
-        run: rustup toolchain install
-
-      - name: Cache cargo build
-        if: steps.wasm.outputs.cache-hit != 'true'
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-      - name: Read pinned wasm-bindgen version
-        if: steps.wasm.outputs.cache-hit != 'true'
-        id: wb
-        run: |
-          ver=$(grep -A1 '^name = "wasm-bindgen"$' Cargo.lock | grep '^version' | head -1 | sed -E 's/version = "(.+)"/\1/')
-          echo "wasm-bindgen version: $ver"
-          echo "v=$ver" >> "$GITHUB_OUTPUT"
-
-      - name: Install wasm-bindgen-cli (matching Cargo.lock)
-        if: steps.wasm.outputs.cache-hit != 'true'
-        uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2.87.21
-        with:
-          tool: wasm-bindgen-cli@${{ steps.wb.outputs.v }}
-
-      - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: app/package-lock.json
-
-      - name: Install deps
-        working-directory: app
-        run: npm ci
-
-      - name: Build wasm
-        if: steps.wasm.outputs.cache-hit != 'true'
-        working-directory: app
-        run: npm run build:wasm
+      - name: Generate i18n types
+        run: bash scripts/gate.sh gen-i18n
 
       - name: Lint
-        working-directory: app
-        run: npm run lint
+        run: bash scripts/gate.sh eslint
 
       - name: Type check
-        working-directory: app
-        run: npm run typecheck
+        run: bash scripts/gate.sh tsc
 
       - name: App tests
-        working-directory: app
-        run: npm test
+        run: bash scripts/gate.sh vitest
 
   build:
     runs-on: ubuntu-latest
@@ -107,17 +58,6 @@ jobs:
       indexnow: ${{ steps.indexnow.outputs.payload }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Read binaryen version
-        id: binaryen
-        run: echo "v=$(node -p "require('./app/package-lock.json').packages['node_modules/binaryen'].version")" >> "$GITHUB_OUTPUT"
-
-      - name: Restore wasm build
-        id: wasm
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: app/src/wasm
-          key: wasm-binaryen${{ steps.binaryen.outputs.v }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-wasm/**', 'engines/**', 'app/scripts/build-wasm.mjs') }}
-
       - name: Restore site generator
         id: site
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -125,46 +65,12 @@ jobs:
           path: ~/.site-bin
           key: site-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-site/**', 'engines/**', 'locales/**', 'app/src/content/**') }}
 
-      - name: Install Rust (from rust-toolchain.toml)
-        if: steps.wasm.outputs.cache-hit != 'true' || steps.site.outputs.cache-hit != 'true'
-        run: rustup toolchain install
-
-      - name: Cache cargo build
-        if: steps.wasm.outputs.cache-hit != 'true' || steps.site.outputs.cache-hit != 'true'
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-      - name: Read pinned wasm-bindgen version
-        if: steps.wasm.outputs.cache-hit != 'true'
-        id: wb
-        run: |
-          ver=$(grep -A1 '^name = "wasm-bindgen"$' Cargo.lock | grep '^version' | head -1 | sed -E 's/version = "(.+)"/\1/')
-          echo "wasm-bindgen version: $ver"
-          echo "v=$ver" >> "$GITHUB_OUTPUT"
-
-      - name: Install wasm-bindgen-cli (matching Cargo.lock)
-        if: steps.wasm.outputs.cache-hit != 'true'
-        uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2.87.21
+      - uses: ./.github/actions/app-with-wasm
         with:
-          tool: wasm-bindgen-cli@${{ steps.wb.outputs.v }}
-
-      - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: app/package-lock.json
-
-      - name: Install deps
-        working-directory: app
-        run: npm ci
-
-      - name: Build wasm
-        if: steps.wasm.outputs.cache-hit != 'true'
-        working-directory: app
-        run: npm run build:wasm
+          rust: ${{ steps.site.outputs.cache-hit != 'true' }}
 
       - name: Generate i18n types
-        working-directory: app
-        run: npm run gen:i18n
+        run: bash scripts/gate.sh gen-i18n
 
       - name: Build app
         working-directory: app
@@ -181,8 +87,7 @@ jobs:
         run: ~/.site-bin/midiremap-site app/dist
 
       - name: Size budgets
-        working-directory: app
-        run: npm run size
+        run: bash scripts/gate.sh size
 
       - name: Read Playwright version
         id: pw
@@ -202,8 +107,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Browser smoke tests
-        working-directory: app
-        run: npm run e2e
+        run: bash scripts/gate.sh e2e
 
       - name: Upload Playwright report
         if: failure()
@@ -212,7 +116,7 @@ jobs:
           name: playwright-report
           path: app/playwright-report
 
-      - name: IndexNow payload for new or changed pages
+      - name: Sitemap dates and IndexNow payload for new or changed pages
         if: github.event_name != 'pull_request'
         id: indexnow
         working-directory: app

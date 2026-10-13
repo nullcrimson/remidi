@@ -19,8 +19,8 @@ source .mid ──decode──▶ Canon ──encode──▶ target .mid
 ```
 
 When the target engine cannot play a canon directly, a **fallback chain** walks
-toward a coarser articulation it can play (e.g. an open hi-hat steps toward a
-closed one: `hat.loose → hat.closed → hat.tight`). If the chain is exhausted, the
+toward a stroke it can play: first another stroke of the same drum (a rimshot becomes
+a plain hit: `snare1.rimshot → snare1.hit`), then a neighbouring drum. If the chain is exhausted, the
 hit is **dropped** and recorded in a loss report. A source note with no canonical
 meaning is **unmapped** and dropped.
 
@@ -35,17 +35,17 @@ Five crates, a web app, and embedded engine presets:
 
 | Component | Role | Depends on |
 |-------|------|------------|
-| `midiremap-core` | Pure engine. No I/O beyond parsing bytes handed to it. All the logic below. | `midly`, `serde`, `serde_json`, `thiserror` (`toml` at build time only) |
+| `midiremap-core` | Pure engine. No I/O beyond parsing bytes handed to it. All the logic below. | `midly`, `serde`, `serde_json`, `strum`, `thiserror` (`toml` at build and test time only; `tsify` and `wasm-bindgen` behind the feature `ts`) |
 | `midiremap-cli` | Offline `convert` / `list` binary. | core, `clap`, `anyhow` |
-| `midiremap-wasm` | Browser bindings for the web app. | core (feature `ts`), `wasm-bindgen`, `tsify` |
+| `midiremap-wasm` | Browser bindings for the web app. | core (feature `ts`), `wasm-bindgen`, `tsify`, `serde`, `serde_bytes`, `console_error_panic_hook` |
 | `app/` | Vite + React + TypeScript converter UI over the WASM bindings. | Vite, React, Tailwind, Vitest |
-| `midiremap-site` | Static SEO pages (engine note maps, pair tables, FAQ / guide / legal pages) in the app's style. | core, `askama`, `serde_json` |
+| `midiremap-site` | Static SEO pages (engine note maps, pair tables, FAQ / guide / legal pages) in the app's style. | core, `askama`, `fluent-bundle`, `clap`, `serde_json`, `thiserror` (`fluent-syntax`, `heck` in `build.rs`) |
 | `midiremap-testkit` | Test-only: builds and reads small SMFs (channels `1..=16`) for the other crates' tests. | `midly` |
 | `engines/*.toml` | Preset note↔canon maps; core's `build.rs` converts them to one embedded JSON table. | — |
 
-`midiremap-core` never learns that `midly` or `std::fs` exist above its
-`midi`, `channel` and `rewrite` modules; the CLI, WASM, and app layers own all real-world I/O and
-presentation.
+Inside `midiremap-core` only the `midi`, `channel` and `rewrite` modules, and `note`'s
+`u7` conversion, name `midly`, and nothing reads a file; the CLI, WASM, and app layers own
+all real-world I/O and presentation.
 
 ## Core modules (`midiremap-core/src`)
 
@@ -67,13 +67,18 @@ conversion   ── convert(bytes, &Mapping, ChannelScope) → bytes + report
    │
    └── translate   ── Mapping: note → Resolution
           │              (used by table, rewrite, report, conversion and plan)
-          ├── engine_map  ── EngineMap (+ override patching), Note
+          ├── engine_map  ── EngineMap (+ override patching)
+          │      └── canon, family, note, non_blank, overrides
           └── canon       ── Canon enum + fallback chains
-                 └── idx  ── Idx<MAX>: a 1-based position in 1..=MAX
+                 ├── family ── Family, declared in display order
+                 └── idx    ── Idx<MAX>: a 1-based position in 1..=MAX
 
+note        ── Note (0..=127), OctaveBase, note names
+non_blank   ── NonBlank: a string that is not blank
 catalog     ── Catalog: builtin presets (embedded) + user maps
 overrides   ── Overrides: per-note / per-drum edits, applied by EngineMap
-plan        ── per-drum view of the NoteTable (for UI display), no MIDI
+plan        ── per-drum rows from the Mapping the converter uses (for UI display), no MIDI
+preset      ── the preset file the app exports and the CLI reads
 ```
 
 Every concept is one concrete type or function; the core defines no traits.
@@ -179,9 +184,12 @@ the rules allow.
 
 - `NoteTable` holds the `Resolution` of all 128 source notes, compiled once per
   `Mapping` by calling `Mapping::translate` for each note.
-- The converter, the edit preview (`plan`) and therefore the report all read the
-  same table, so the fallback search never runs per MIDI event and the preview
-  cannot disagree with the downloaded file.
+- The converter reads the table for every event, so the fallback search never runs
+  per MIDI event, and the report records what the table said.
+- The edit preview (`plan`) compiles the same table to group source notes by drum, and
+  resolves each drum through the same `Mapping` (`resolve_canon`), not through the
+  table. `tests/preview_matches_conversion.rs` holds the two together: for every builtin
+  pair it checks the preview against the converted file.
 
 ### `midi`, `channel`, `rewrite` — the modules that know `midly`
 
@@ -215,8 +223,8 @@ the rules allow.
   of the note number, so a note-on and its note-off resolve identically and stay
   paired. The only accepted loss is many-to-one collisions (e.g. L/R kick → one
   note).
-- `tests/rewrite_props.rs` (proptest) checks this on generated multi-track files for
-  every built-in pair, missing setting and scope: kept events keep their absolute tick
+- `tests/rewrite_props.rs` (proptest) checks this on generated multi-track files, with
+  the built-in pair, missing setting and scope drawn at random: kept events keep their absolute tick
   and everything but the key, only note events are removed, notes stay paired per
   channel and key, and `converted + dropped + unmapped + untouched` equals the input's
   note-ons.
@@ -239,8 +247,8 @@ the rules allow.
   and reads user maps with `EngineMap::from_json`; a map that lists a note twice is a
   `MapError::DuplicateNote`. A map may list former
   ids as `aliases`; `get` and `canonical_id` resolve them, so renaming an engine never
-  breaks a saved preset. `check_aliases` rejects an alias that is also an id or belongs
-  to two engines.
+  breaks a saved preset. `from_maps` rejects an alias that is also an id or belongs
+  to two engines (`MapError::AliasCollision`). No built-in preset has an alias yet.
 - `Catalog::builtin()`: every `engines/*.toml` (dozens of presets). Core's `build.rs`
   globs the directory, parses each file with `toml`, rejects invalid TOML or a
   duplicate engine id as a build error naming the file, and writes one JSON table
@@ -248,7 +256,8 @@ the rules allow.
   `toml` stays out of the runtime (and the WASM). `builtin()` parses the table;
   `Catalog::shared()` is a process-wide `LazyLock` instance, so the
   WASM parses presets once per page instead of once per call. A semantically invalid
-  preset (unknown canon, duplicate primary or note) is a startup panic caught by tests.
+  preset (unknown canon, duplicate primary or note) makes `builtin()` and `shared()`
+  return a `MapError`; the catalog test `every_embedded_engine_loads` fails the gate on one.
 - `with_user_json(json)` adds a user map that *shadows* a builtin with the same id;
   `from_maps(maps)` builds a catalog from any maps (tests, generators).
 - `tests/stable_ids.rs` guards saved data: every drum key and engine id ever released is
@@ -280,8 +289,8 @@ the rules allow.
 
 ### `plan` — the source→target table (UI, no MIDI)
 
-- `plan(src, tgt, ov, missing) → Vec<VoicePlan>`: a per-drum view of the `NoteTable`
-  compiled with the same `Overrides` and `MissingDrums` conversion uses. One row per
+- `plan(src, tgt, ov, missing) → Vec<VoicePlan>`: per-drum rows from a `Mapping` built
+  with the same `Overrides` and `MissingDrums` conversion uses. One row per
   canon the source engine defines or any note decodes to, in `Canon::all()` order,
   giving `{ canon, src_notes, default_tgt_note, outcome }`:
   - `src_notes`: every source note that plays this drum — overridden notes first,
@@ -292,8 +301,8 @@ the rules allow.
     drum cannot carry a note; `other_drum` means the missing-drums setting decides the
     row. `default_tgt_note`: the target note without target overrides.
   - Duplicate overrides resolve last-wins, as in conversion.
-  A property test converts every note for every builtin pair and checks the
-  preview against the output.
+  `tests/preview_matches_conversion.rs` converts every note for every builtin pair
+  (Nearest, Drop, and with overrides) and checks the preview against the output.
 
 ## Engine preset format
 
@@ -320,7 +329,9 @@ notes = [
 - `note` — MIDI note number `0..=127`.
 - `canon` — a canon's dotted string key (see the `canon` module).
 - `primary` — optional (default `false`); the note used when *encoding* this
-  canon. Multiple notes may decode to the same canon; exactly one may be primary.
+  canon. Multiple notes may decode to the same canon; at most one may be primary, and
+  with none the first one listed encodes it.
+- `aliases` — optional; former ids that still resolve to this engine (see `catalog`).
 
 Built-in presets: dozens of engines spanning GetGood Drums, Toontrack EZdrummer /
 Superior Drummer, Addictive Drums 2, BFD3, Steven Slate SSD5, Native Instruments,
@@ -348,7 +359,9 @@ stderr. `--overrides` takes note edits as
 `--preset` takes a preset exported from the web app instead (its engines, resolved
 through aliases, must match the command's; skipped edits are printed). `--missing drop`
 leaves out drums the target lacks instead of playing them on the nearest drum. `list`
-prints available engine ids.
+prints available engine ids. `--overrides` and `--preset` exclude each other. The exit
+code is 0 when the file was written (even with dropped notes: read the report), 1 on any
+error and 2 on a usage error.
 
 ### WASM (`midiremap-wasm`)
 
@@ -376,9 +389,9 @@ prints available engine ids.
 - A `start` function installs `console_error_panic_hook`, so a panic prints its message.
 
 The browser build uses the `wasm` Cargo profile (release with LTO and one codegen
-unit), then `wasm-opt -Oz` (npm `binaryen`) on the bindgen output: 718 → 543 KB, 197 →
-163 KB gzipped. `opt-level` s / z made it larger — a quarter of the module is the
-embedded engine table.
+unit), then `wasm-opt -Oz` (npm `binaryen`) on the bindgen output: about 536 KB, 160 KB
+gzipped, against a 166 KB budget (`scripts/check-size.ts`). `opt-level` s / z made it
+larger — a quarter of the module is the embedded engine table.
 
 One contract, generated from Rust. Every value crossing the boundary is a serde type
 that also derives `tsify::Tsify` (in core behind the opt-in feature `ts`, which only
@@ -389,7 +402,7 @@ agree: missing notes are `null`, maps are plain objects, `Note` is `number`, `Ca
 is `string`, converted bytes are a `Uint8Array`. A field renamed in Rust changes the
 `.d.ts`, and the app's `tsc` fails.
 
-Every export throws a `WasmError`, a tagged enum: `{ kind: "unknownEngine", role, id }`
+Every export but `start` returns a `Result` and throws its error as a `WasmError`, a tagged enum: `{ kind: "unknownEngine", role, id }`
 (`role` is `source` or `target`), or `{ kind, detail }` for `badOverrides`,
 `badMissing`, `badChannel`, `badMidi`, `badPreset` and `internal`. It carries no English
 sentence: the app translates `kind` (and `role`), and `detail` is the technical cause
@@ -397,30 +410,32 @@ chain (`outer: inner: innermost`), shown untranslated under the message.
 
 ### Web app (`app/`)
 
-Vite + React + TypeScript + Tailwind, tested with Vitest/Testing-Library. It never
-touches `.mid` bytes or the WASM edge directly; both are isolated so the rest of
-the UI is pure data.
+Vite + React + TypeScript + Tailwind, tested with Vitest/Testing-Library. Reading
+`.mid` bytes (`lib/files.ts`) and calling the WASM (`lib/midiremap.ts`) each happen in
+one module, so the rest of the UI is pure data.
 
 - **`lib/`** — framework-free logic and the boundary. `midiremap.ts` is the sole
   WASM adapter: a single init promise, the generated types re-exported under the
   app's names, and a thrown `WasmError` turned into a `WasmCallError` (an `Error`
-  with `kind` and `id`). Sibling pure modules cover notes, mapping (de)serialization, the loss
+  holding that `WasmError`). Sibling pure modules cover notes, mapping (de)serialization, the loss
   report builder, override assembly, file naming, and zipping.
 - **Conversion off the main thread.** `converter.ts` sends each batch to one module
   Web Worker (`convertWorker.ts`), which loads the WASM itself and runs the shared
   `runBatch` (`batch.ts`); converted bytes come back as transferred buffers, so the
-  page and the spinner stay responsive. If a worker cannot be created or dies, the
-  same batch runs on the main thread; a batch the worker could not convert (the WASM
+  page and the spinner stay responsive. The worker loads its own copy of the WASM; the
+  main thread's copy serves the catalog, `plan` and preset import. If a worker cannot be
+  created or dies, that batch and every later one run on the main thread (the worker is
+  not restarted); a batch the worker could not convert (the WASM
   failed to load) is rejected and shown as an error, never retried or left spinning.
   The editor's `plan` preview stays on the main thread (it takes well under a
   millisecond); a `plan` failure (e.g. a damaged preset) becomes a notice with Reset
   edits, and anything else that throws while rendering reaches the root
   `ErrorBoundary` (Reload, Report an issue, two-step Reset saved data).
 - **`hooks/`** — `useRemapper` is the facade the UI consumes. It composes
-  `useEngineCatalog` (load status + engine list), `useConverter` (files → results
-  + report), and `useEditor` (per-note edits, the live `plan` preview, and derived
+  `useEngineCatalog` (load status + engine list), `useConverter` (files → results),
+  and `useEditor` (per-note edits, the live `plan` preview, and derived
   counts) behind a stable return contract, plus a small selection reducer for
-  source/target/octave/channel/view. `useEditor`'s result is exposed as one nested
+  source/target/octave/channel/missing drums/view/open preset. `useEditor`'s result is exposed as one nested
   `editor` bundle; the editor screen owns it and hands its parts only what they read.
   Its reducer lives in `lib/editorState.ts`; the pair's drums, notes, vocabulary and
   family order come from `useEngineData`.
@@ -428,7 +443,10 @@ the UI is pure data.
     preset, channel, missing drums) is one `SelectionEvent` (`lib/selection.ts`) that
     `useRemapper` hands to the selection, editor and converter reducers alike; each
     decides what it means (the editor drops edits when the pair changes, the converter
-    goes idle and cancels a running batch). No action resets another hook by hand.
+    goes idle and ignores the result of a running batch; the worker is not interrupted).
+    Octave, view and the open preset change only the selection reducer. The session
+    restore is the one place that loads edits into the editor directly, when it left out
+    drums this version does not know.
   - `usePresetActions` assembles preset payloads (save, update, duplicate, load, edit);
     `useFileIntake` takes dropped files and presets; `useConversionReport` builds the
     report and decides whether "drop missing drums" applies.
@@ -460,12 +478,12 @@ the UI is pure data.
   crawlers), `PickerShell` (the note pickers: focus in, Escape or a press outside its
   row closes, focus back; the row is its `OverlayAnchor`), menus and tooltips. The
   editor's parts live in `components/edit/`. A structure test keeps every component
-  and hook within 250 lines; the style test keeps raw `rgba(` and `shadow-[` out of
-  components (shadows are `@theme` tokens in `index.css`).
+  and hook within 250 lines; the style test keeps arbitrary text sizes and radii, raw
+  `rgba(` and `shadow-[` out of `src` (shadows are `@theme` tokens in `index.css`).
 
 Edit preview and downloaded output share one source of truth: the editor's rows
-come from the core `plan`, a view of the same `NoteTable` the converter uses, so
-per-row target notes and fallback propagation match the converted file exactly.
+come from the core `plan`, built from the same `Mapping` the converter uses, and a
+core test checks per-row target notes against the converted file for every builtin pair.
 The loss report labels substitutes from the target note recorded during
 conversion, not from the live rows. The drum channel picker beside the octave
 picker (Auto by default, not saved with mappings) is passed to every conversion;
@@ -479,7 +497,8 @@ one per pair of the eight popular engines, and one per content section into `dis
 The pages link the app's own built stylesheet (read from `dist/index.html`); Tailwind
 scans the askama templates through `@source`, so both surfaces share one set of tokens
 and utilities. Octave naming and "Changes only" on pair pages are CSS-only radios; the
-filters on the engine and index pages are the only script. FAQ, How to use, Report an
+scripts are the filters on the engine and index pages (`/filter.js`) and the language
+choice on every page (`/locale.js`). FAQ, How to use, Report an
 issue, Contact and Terms are the documents in `app/src/content/docs/<code>.json`, which
 also feed the app's modals; their FAQPage / HowTo schema is written on `/faq/` and
 `/how-it-works/`. The generator also writes the converter shell: the marked regions of
@@ -531,7 +550,8 @@ variables) into `OUT_DIR`; `npm run gen:i18n` (`app/scripts/gen-i18n.ts`, with
 `@fluent/syntax`) writes the same types to `app/src/generated/i18n.ts`, plus
 `lang.css` (`:lang()` rules setting the sans, display and mono stacks) and `TRANSLATED_SECTIONS` (the keys of each
 locale's documents). A nav target naming an unknown section fails both
-generators; a section missing one of its four messages fails `tsc` and `rustc`.
+generators; a section missing its label, heading or description message fails `tsc`,
+and one missing any of its four (those and the title) fails the site crate's build.
 
 Runtime: a `Translator` (`src/i18n.ts`) holds a locale, its `t(message)` and its
 documents. `t` formats a `Message` — `{ id }`, or `{ id, args }` with exactly the variables
@@ -604,7 +624,14 @@ Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props;
 - **Concrete types, no single-implementation traits.** One conversion entry point
   (`convert`), one catalog type, one mapping type.
 - **Standard crates over hand-rolled** parsing, error handling, and serialization.
-- The verify gate before every change is `fmt` + `test` + `clippy`, all clean.
+- **One gate.** `scripts/gate.sh` owns every check and its flags: Rust fmt (on the nightly
+  named in `nightly-toolchain`), clippy (`-D warnings`) and tests, both `--locked`, beside
+  the app's eslint, tsc and vitest, then the site build, size budgets and Playwright. It
+  takes a group (`rust`, `app`, `site`) or single checks as arguments. The CI jobs call the
+  same script check by check, on every push to `master` and every pull request, and deploy
+  only when all pass; CI differs only in what it caches (the wasm build, and the site
+  generator as a release binary). Both jobs that need the app set it up through the
+  composite action `.github/actions/app-with-wasm`.
 - **Nothing third-party without a reason.** Fonts are self-hosted (`@fontsource`,
   variable Space Grotesk and IBM Plex Sans, IBM Plex Mono 400/600 — the faces the pages
   load). The only outside origins are cookieless analytics: the Cloudflare beacon (visits)
@@ -613,15 +640,17 @@ Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props;
   allows only them, `'self'` and `'wasm-unsafe-eval'`, and the e2e suite aborts their
   requests and fails on any other.
 - **Budgets and audits.** `npm run size` fails the build when gzipped wasm, JS or CSS, or
-  the latin font files, grow past `scripts/check-size.ts`'s budgets. `audit.yml` runs
-  `cargo deny` (advisories, licences, sources; `deny.toml`) and `npm audit` on every
-  push and weekly; Dependabot proposes updates; every action is pinned to a commit.
-- **IndexNow pings only changed pages.** `scripts/indexnow.ts` hashes each sitemap
-  page (asset file names blanked), publishes `page-hashes.json`, and submits the pages
-  whose hash differs from the live copy.
+  the latin font files, or the largest locale chunk, grow past `scripts/check-size.ts`'s
+  budgets. `audit.yml` runs `cargo deny` (advisories, licences, sources; `deny.toml`) and
+  `npm audit` on every push to `master`, every pull request and weekly; Dependabot proposes updates; every action is pinned to a commit.
+- **Changed pages get a new date and an IndexNow ping; others keep theirs.**
+  `scripts/indexnow.ts` hashes each sitemap page (asset file names blanked), compares
+  with the live `page-hashes.json`, writes each page's `<lastmod>` into `sitemap.xml`
+  (the live date if unchanged, the deploy day if new or changed), publishes the hashes
+  with their dates, and submits the changed pages to IndexNow. It runs on deploys only,
+  so the Rust generator's sitemap stays date-free and reproducible.
 - **Browser behaviour is tested in a browser.** `app/e2e` (Playwright, Chromium desktop
   and a Pixel 7 profile) runs against the built site in CI before deploy: conversion
   through the real WASM, keyboard walk and focus, drag and drop, the report dialog,
   tap-target sizes, and the static pages' filters and toggles. Any console error
   fails a test.
-```

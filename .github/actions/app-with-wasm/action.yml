@@ -1,0 +1,63 @@
+name: App with wasm
+description: Node, the app's dependencies and the wasm module, which is rebuilt only when its inputs changed
+
+inputs:
+  rust:
+    description: Install Rust even when the wasm build is restored from the cache
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Read binaryen version
+      id: binaryen
+      shell: bash
+      run: echo "v=$(node -p "require('./app/package-lock.json').packages['node_modules/binaryen'].version")" >> "$GITHUB_OUTPUT"
+
+    - name: Restore wasm build
+      id: wasm
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: app/src/wasm
+        key: wasm-binaryen${{ steps.binaryen.outputs.v }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-wasm/**', 'engines/**', 'app/scripts/build-wasm.mjs') }}
+
+    - name: Install Rust (from rust-toolchain.toml)
+      if: steps.wasm.outputs.cache-hit != 'true' || inputs.rust == 'true'
+      shell: bash
+      run: rustup toolchain install
+
+    - name: Cache cargo build
+      if: steps.wasm.outputs.cache-hit != 'true' || inputs.rust == 'true'
+      uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+    - name: Read pinned wasm-bindgen version
+      if: steps.wasm.outputs.cache-hit != 'true'
+      id: wb
+      shell: bash
+      run: |
+        ver=$(grep -A1 '^name = "wasm-bindgen"$' Cargo.lock | grep '^version' | head -1 | sed -E 's/version = "(.+)"/\1/')
+        echo "wasm-bindgen version: $ver"
+        echo "v=$ver" >> "$GITHUB_OUTPUT"
+
+    - name: Install wasm-bindgen-cli (matching Cargo.lock)
+      if: steps.wasm.outputs.cache-hit != 'true'
+      uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2.87.21
+      with:
+        tool: wasm-bindgen-cli@${{ steps.wb.outputs.v }}
+
+    - name: Setup Node
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+        cache-dependency-path: app/package-lock.json
+
+    - name: Install deps
+      shell: bash
+      working-directory: app
+      run: npm ci
+
+    - name: Build wasm
+      if: steps.wasm.outputs.cache-hit != 'true'
+      shell: bash
+      run: bash scripts/gate.sh build-wasm

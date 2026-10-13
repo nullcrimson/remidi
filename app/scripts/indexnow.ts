@@ -8,6 +8,10 @@ const KEY = 'b70482caafc9bdd6b2cc45b7fd07ddae';
 const HASHES = 'page-hashes.json';
 
 type Hashes = Record<string, string>;
+type Page = { hash: string; lastmod: string };
+type Pages = Record<string, Page>;
+type UndatedHash = string;
+type PublishedPages = Record<string, Page | UndatedHash>;
 
 export function sitemapUrls(xml: string): string[] {
   return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
@@ -27,9 +31,30 @@ export function hashPages(urls: string[], read: (file: string) => string): Hashe
   );
 }
 
+function livePage(live: PublishedPages | undefined, url: string): Partial<Page> | undefined {
+  const entry = live?.[url];
+  return typeof entry === 'string' ? { hash: entry } : entry;
+}
+
 /** URLs new or changed since `live`; every URL when nothing is live yet. */
-export function changedUrls(now: Hashes, live: Hashes | undefined): string[] {
-  return Object.keys(now).filter((url) => live?.[url] !== now[url]);
+export function changedUrls(now: Hashes, live: PublishedPages | undefined): string[] {
+  return Object.keys(now).filter((url) => livePage(live, url)?.hash !== now[url]);
+}
+
+/** Each page with the day its content last changed: the live date if unchanged, else `today`. */
+export function datePages(now: Hashes, live: PublishedPages | undefined, today: string): Pages {
+  return Object.fromEntries(
+    Object.entries(now).map(([url, hash]) => {
+      const was = livePage(live, url);
+      return [url, { hash, lastmod: was?.hash === hash && was.lastmod ? was.lastmod : today }];
+    }),
+  );
+}
+
+export function withLastmod(xml: string, pages: Pages): string {
+  return xml.replace(/<loc>([^<]+)<\/loc>/g, (loc, url: string) =>
+    pages[url] ? `${loc}<lastmod>${pages[url].lastmod}</lastmod>` : loc,
+  );
 }
 
 export function payload(urls: string[]) {
@@ -41,10 +66,10 @@ export function payload(urls: string[]) {
   };
 }
 
-async function liveHashes(): Promise<Hashes | undefined> {
+async function liveHashes(): Promise<PublishedPages | undefined> {
   try {
     const res = await fetch(`${ORIGIN}/${HASHES}`, { signal: AbortSignal.timeout(10_000) });
-    return res.ok ? ((await res.json()) as Hashes) : undefined;
+    return res.ok ? ((await res.json()) as PublishedPages) : undefined;
   } catch {
     return undefined;
   }
@@ -52,10 +77,15 @@ async function liveHashes(): Promise<Hashes | undefined> {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const dist = fileURLToPath(new URL('../dist', import.meta.url));
-  const urls = sitemapUrls(readFileSync(join(dist, 'sitemap.xml'), 'utf8'));
+  const sitemap = join(dist, 'sitemap.xml');
+  const xml = readFileSync(sitemap, 'utf8');
+  const urls = sitemapUrls(xml);
   const now = hashPages(urls, (file) => readFileSync(join(dist, file), 'utf8'));
-  writeFileSync(join(dist, HASHES), JSON.stringify(now));
-  const changed = changedUrls(now, await liveHashes());
+  const live = await liveHashes();
+  const pages = datePages(now, live, new Date().toISOString().slice(0, 10));
+  writeFileSync(sitemap, withLastmod(xml, pages));
+  writeFileSync(join(dist, HASHES), JSON.stringify(pages));
+  const changed = changedUrls(now, live);
   console.log(`${changed.length} of ${urls.length} pages new or changed`);
   const output = process.env.GITHUB_OUTPUT;
   if (output && changed.length > 0) {

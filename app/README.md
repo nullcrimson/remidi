@@ -9,7 +9,8 @@ is no backend.
 - Node 22.18+ (the size and IndexNow scripts are TypeScript run by Node; CI uses the version in the root `.nvmrc`)
 - Rust: rustup installs the version pinned in the root `rust-toolchain.toml`, wasm target
   included
-- `cargo install wasm-bindgen-cli --version 0.2.126`
+- `wasm-bindgen-cli` at the `wasm-bindgen` version in the root `Cargo.lock` (0.2.126 today):
+  `cargo install wasm-bindgen-cli --version 0.2.126`
 
 ## Develop
 
@@ -36,6 +37,7 @@ npm run test     # Vitest; needs npm run build:wasm once (the contract test load
 npm run e2e      # Playwright against vite preview of dist; run npm run build:site first
 npm run size     # size budgets for dist/assets (wasm, JS, CSS gzipped; latin fonts; largest locale chunk)
 ../scripts/gate.sh  # every check: Rust and app checks side by side, then build:site, size, e2e (logs in target/gate/)
+../scripts/gate.sh app   # one group (rust, app, site) or single checks (eslint, tsc, vitest, e2e, ...); CI runs the same script
 ```
 
 `build:wasm` skips wasm-bindgen and wasm-opt when the compiled module, the tool versions and
@@ -72,8 +74,15 @@ on a phone and click elsewhere.
   into `src/wasm/` (gitignored), then type-checks the generated `.d.ts` on its own
   (the app's `tsconfig` skips library checks, which would hide a broken reference).
   Node (not bash) so `cargo`/`wasm-bindgen` resolve from PATH on Windows too.
-- `src/lib/midiremap.ts` — typed wrapper: `ready()`, `engines()`, `plan()`, `remap()`;
-  its types are generated from Rust, and module errors become `WasmCallError`.
+- `src/lib/midiremap.ts` — the only module that imports the WASM. Typed wrapper:
+  `ready()`, `engines()`, `engineDrums()`, `engineNotes()`, `canonCatalog()`,
+  `familyOrder()`, `parsePresetFile()`, `plan()`, `remap()`; its types are generated from
+  Rust, and module errors become `WasmCallError`.
+- `src/lib/converter.ts`, `convertWorker.ts`, `batch.ts` — conversion in a module Web
+  Worker with its own WASM instance, falling back to the main thread when the worker
+  cannot start or dies.
+- `src/lib/errors.ts` — `AppError` and `toAppError`, the one conversion from anything
+  caught to what the UI shows.
 - `test/stubs/wasm.ts` — the WASM stand-in for component tests; each export is typed
   as the real one. `test/wasm.contract.test.ts` loads the real module and checks its
   shapes and errors, and that the stub returns the same fields and real drum keys.
@@ -81,7 +90,8 @@ on a phone and click elsewhere.
   contract test checks the names against the core's.
 - `src/lib/families.ts` — `groupByFamily`: groups drums in the core's family order
   (`editor.families`), keeping any family it does not list.
-- `src/lib/overrides.ts` — per-voice target edits → overrides doc.
+- `src/lib/overrides.ts` — target and source edits → the `Overrides` the WASM takes;
+  `knownEdits` leaves out edits for drums this version does not know.
 - `src/lib/missing.ts` — the missing-drums setting (Nearest / Drop) and its hint.
 - `src/lib/editSummary.ts` — the summary row's "edited" chip: which drums differ from the
   default mapping, their preview lines, and whether they match the open preset.
@@ -145,7 +155,7 @@ on a phone and click elsewhere.
 ## Engine catalog
 
 The From/To lists are populated from `engine_catalog()` in the wasm module, which
-covers **all ~50 (currently 87) drum presets** imported from `mapping.js` — GetGood
-Drums kits, Toontrack EZdrummer 3 / Superior Drummer 3, Addictive Drums 2, BFD3,
-General MIDI, Guitar Pro, and more. Those presets are generated into `engines/*.toml`
-and embedded in `midiremap-core`; see `tools/README.md` for the regeneration flow.
+covers every preset in the root `engines/*.toml` (87 today) — GetGood Drums kits,
+Toontrack EZdrummer 3 / Superior Drummer 3, Addictive Drums 2, BFD3, General MIDI,
+Guitar Pro, and more. The files are embedded in `midiremap-core` at build time; adding
+one needs no code change.

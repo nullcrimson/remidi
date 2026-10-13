@@ -1,4 +1,4 @@
-import { changedUrls, hashPages, pageFile, payload, sitemapUrls } from '../scripts/indexnow';
+import { changedUrls, datePages, hashPages, pageFile, payload, sitemapUrls, withLastmod } from '../scripts/indexnow';
 
 const page = (css: string, body: string) =>
   `<link rel="stylesheet" href="/assets/index-${css}.css"><script src="/assets/index-${css}.js"></script>${body}`;
@@ -37,5 +37,58 @@ describe('IndexNow for changed pages only', () => {
       keyLocation: 'https://drumverter.com/b70482caafc9bdd6b2cc45b7fd07ddae.txt',
       urlList: ['https://drumverter.com/faq/'],
     });
+  });
+});
+
+describe('sitemap lastmod', () => {
+  const home = 'https://drumverter.com/';
+  const faq = 'https://drumverter.com/faq/';
+  const added = 'https://drumverter.com/new/';
+
+  it('keeps the live date of an unchanged page', () => {
+    const live = { [home]: { hash: 'a', lastmod: '2026-09-01' } };
+    expect(datePages({ [home]: 'a' }, live, '2026-09-28')).toEqual({ [home]: { hash: 'a', lastmod: '2026-09-01' } });
+  });
+
+  it('dates a changed page today', () => {
+    const live = { [faq]: { hash: 'b', lastmod: '2026-09-02' } };
+    expect(datePages({ [faq]: 'B' }, live, '2026-09-28')).toEqual({ [faq]: { hash: 'B', lastmod: '2026-09-28' } });
+  });
+
+  it('dates a new page today', () => {
+    const live = { [home]: { hash: 'a', lastmod: '2026-09-01' } };
+    expect(datePages({ [added]: 'c' }, live, '2026-09-28')).toEqual({ [added]: { hash: 'c', lastmod: '2026-09-28' } });
+  });
+
+  it('dates a page today when the live file has its hash but no date', () => {
+    expect(datePages({ [home]: 'a' }, { [home]: 'a' }, '2026-09-28')).toEqual({
+      [home]: { hash: 'a', lastmod: '2026-09-28' },
+    });
+  });
+
+  it('finds changed pages against a live file without dates', () => {
+    expect(changedUrls({ [home]: 'a', [faq]: 'B' }, { [home]: 'a', [faq]: 'b' })).toEqual([faq]);
+  });
+
+  it('finds changed pages against a live file with dates', () => {
+    const live = { [home]: { hash: 'a', lastmod: '2026-09-01' } };
+    expect(changedUrls({ [home]: 'a', [added]: 'c' }, live)).toEqual([added]);
+  });
+
+  it('dates every page today when nothing is live yet', () => {
+    expect(datePages({ [home]: 'a' }, undefined, '2026-09-28')).toEqual({ [home]: { hash: 'a', lastmod: '2026-09-28' } });
+  });
+
+  it('adds a lastmod after the loc of each dated URL only', () => {
+    const xml = `<urlset>\n  <url><loc>${home}</loc></url>\n  <url><loc>${faq}</loc></url>\n</urlset>\n`;
+    expect(withLastmod(xml, { [home]: { hash: 'a', lastmod: '2026-09-01' } })).toBe(
+      `<urlset>\n  <url><loc>${home}</loc><lastmod>2026-09-01</lastmod></url>\n  <url><loc>${faq}</loc></url>\n</urlset>\n`,
+    );
+  });
+
+  it('leaves the URL list readable after dates are added', () => {
+    const xml = `<urlset><url><loc>${home}</loc></url><url><loc>${faq}</loc></url></urlset>`;
+    const dated = withLastmod(xml, { [home]: { hash: 'a', lastmod: '2026-09-01' }, [faq]: { hash: 'b', lastmod: '2026-09-02' } });
+    expect(sitemapUrls(dated)).toEqual([home, faq]);
   });
 });
