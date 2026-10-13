@@ -53,6 +53,7 @@ test('the remapped count explains each drum', async ({ page }) => {
   const detail = page.getByRole('dialog');
   await remapped(page).click();
   await expect(detail.getByText(/^\d+ drums in this mapping$/)).toBeVisible();
+  await detail.locator('summary').filter({ hasText: 'played on another drum' }).click();
   await expect(detail.getByText(/China/).first()).toBeVisible();
 });
 

@@ -125,11 +125,28 @@ function BreakdownDetail({
         {groups.map((g) => (
           <li key={g.label} className="grid grid-cols-[3ch_1fr] gap-x-2">
             <span className="text-right font-mono text-accent">{g.count}</span>
-            <span className="text-t2">{g.label}</span>
-            {g.reason && <span className="col-start-2 text-t3 italic">{g.reason}</span>}
-            {g.names.map((name) => (
-              <span key={name} className="col-start-2 block text-t4">{name}</span>
-            ))}
+            {g.names.length > 0
+              ? (
+                  <details>
+                    <summary className="
+                      cursor-pointer text-t2
+                      marker:text-t4
+                    "
+                    >
+                      {g.label}
+                      <span className="block text-t3 italic">{g.reason}</span>
+                    </summary>
+                    {g.names.map((name) => (
+                      <span key={name} className="block text-t4">{name}</span>
+                    ))}
+                  </details>
+                )
+              : (
+                  <>
+                    <span className="text-t2">{g.label}</span>
+                    {g.reason && <span className="col-start-2 text-t3 italic">{g.reason}</span>}
+                  </>
+                )}
           </li>
         ))}
       </ul>

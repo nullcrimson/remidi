@@ -123,6 +123,32 @@ describe('SummaryRow breakdown', () => {
     expect(within(panel).getByText('Bell → Ride Bell')).toHaveClass('block');
   });
 
+  it('keeps the drums of a group folded until the group is opened', async () => {
+    renderBreakdown(BREAKDOWN);
+    const panel = await open();
+    expect(within(panel).getByText('China → Crash 1')).not.toBeVisible();
+  });
+
+  it('shows the drums of a group once the group is opened', async () => {
+    renderBreakdown(BREAKDOWN);
+    const panel = await open();
+    await userEvent.click(within(panel).getByText('played on another drum'));
+    expect(within(panel).getByText('China → Crash 1')).toBeVisible();
+  });
+
+  it('leaves the other groups folded when one is opened', async () => {
+    renderBreakdown(BREAKDOWN);
+    const panel = await open();
+    await userEvent.click(within(panel).getByText('played on another drum'));
+    expect(within(panel).getByText('Kick (Alt) → Kick')).not.toBeVisible();
+  });
+
+  it('folds only the groups that list drums', async () => {
+    renderBreakdown(BREAKDOWN);
+    const panel = await open();
+    expect(within(panel).getAllByRole('group')).toHaveLength(3);
+  });
+
   it('leaves out empty groups', async () => {
     renderBreakdown({ ...BREAKDOWN, same: 0, unplayed: 0, dropped: [], variant: [] });
     const panel = await open();
