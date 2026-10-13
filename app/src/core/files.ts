@@ -1,11 +1,24 @@
 import type { Message } from '../generated/i18n';
 import type { Report } from './midiremap';
 
-export const MID_EXT = /\.midi?$/i;
+const MID_EXTENSIONS = ['.mid', '.midi'];
+const PRESET_EXTENSIONS = ['.json'];
 
-const isMid = (name: string) => MID_EXT.test(name);
+/** The value of a file input's `accept`: every extension `splitFiles` takes in. */
+export const ACCEPT_EXTENSIONS = [...MID_EXTENSIONS, ...PRESET_EXTENSIONS].join(',');
 
-const isPreset = (name: string) => /\.json$/i.test(name);
+const extensionOf = (name: string, extensions: string[]) =>
+  extensions.find((ext) => name.toLowerCase().endsWith(ext));
+
+const isMid = (name: string) => extensionOf(name, MID_EXTENSIONS) !== undefined;
+
+const isPreset = (name: string) => extensionOf(name, PRESET_EXTENSIONS) !== undefined;
+
+/** A MIDI file's name without its `.mid` or `.midi`. */
+export function withoutMidExtension(name: string): string {
+  const ext = extensionOf(name, MID_EXTENSIONS);
+  return ext === undefined ? name : name.slice(0, -ext.length);
+}
 
 /** Splits picked or dropped files into MIDI files, preset files and the names of the rest. */
 export function splitFiles(files: File[]): { mid: File[]; presets: File[]; skipped: string[] } {

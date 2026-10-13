@@ -1,4 +1,4 @@
-import { saveFile } from '../core/download';
+import { saveBlob } from '../core/download';
 import type { StoredEdits } from '../core/overrides';
 import type { PresetName } from '../core/midiremap';
 
@@ -34,7 +34,5 @@ export function presetFileName(name: string): string {
 
 /** Downloads a preset as a `<name>-drumverter.json` file. */
 export function downloadPreset(p: PresetContent): void {
-  const url = URL.createObjectURL(new Blob([toPresetFile(p)], { type: 'application/json' }));
-  saveFile(url, presetFileName(p.name));
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  saveBlob(new Blob([toPresetFile(p)], { type: 'application/json' }), presetFileName(p.name));
 }

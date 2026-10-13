@@ -2,11 +2,11 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../src/core/download', () => ({ saveFile: vi.fn() }));
+vi.mock('../src/core/download', () => ({ saveBlob: vi.fn() }));
 
 import App from '../src/App';
 import { RUNTIME } from './runtime';
-import { saveFile } from '../src/core/download';
+import { saveBlob } from '../src/core/download';
 import { WasmCallError } from '../src/core/errors';
 import { MAPPINGS_CAP } from '../src/presets/mappings';
 import type { PresetView, VocabularyDrum } from '../src/core/midiremap';
@@ -39,7 +39,7 @@ async function importFile(name: string) {
 
 describe('App presets', () => {
   beforeEach(() => {
-    vi.mocked(saveFile).mockClear();
+    vi.mocked(saveBlob).mockClear();
     vi.mocked(stub.engine_drums).mockReturnValue([]);
     vi.mocked(stub.engine_notes).mockReturnValue([]);
     vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
@@ -61,7 +61,7 @@ describe('App presets', () => {
     await start();
     await userEvent.click(screen.getByRole('button', { name: 'More actions for My kit' }));
     await userEvent.click(screen.getByRole('menuitem', { name: 'Export' }));
-    expect(saveFile).toHaveBeenCalledWith('blob:mock-url', 'my-kit-drumverter.json');
+    expect(saveBlob).toHaveBeenCalledWith(expect.any(Blob), 'my-kit-drumverter.json');
   });
 
   it('says which files the browser could not read and keeps the rest', async () => {

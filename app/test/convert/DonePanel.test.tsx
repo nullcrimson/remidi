@@ -1,10 +1,10 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DonePanel } from '../../src/convert/DonePanel';
 
-vi.mock('../../src/core/download', () => ({ saveFile: vi.fn() }));
-import { saveFile } from '../../src/core/download';
+vi.mock('../../src/core/download', () => ({ saveBlob: vi.fn() }));
+import { saveBlob } from '../../src/core/download';
 import type { FailedFile } from '../../src/convert/batch';
 import type { FileResult } from '../../src/core/files';
 import type { ReportGroups, ReportView } from '../../src/report/report';
@@ -255,32 +255,25 @@ describe('DonePanel', () => {
   });
 
   describe('zip download', () => {
-    beforeEach(() => {
-      vi.useFakeTimers({ shouldAdvanceTime: true });
-      vi.mocked(URL.createObjectURL).mockClear();
-      vi.mocked(URL.revokeObjectURL).mockClear();
-      vi.mocked(saveFile).mockClear();
-    });
-    afterEach(() => {
-      vi.useRealTimers();
-      vi.mocked(URL.createObjectURL).mockReturnValue('blob:mock-url');
+    beforeEach(() => vi.mocked(saveBlob).mockClear());
+
+    const renderBatch = () => renderPanel({ results: [result('a.mid', 'blob:a'), result('b.mid', 'blob:b')] });
+
+    it('saves nothing until the zip button is pressed', () => {
+      renderBatch();
+      expect(saveBlob).not.toHaveBeenCalled();
     });
 
-    it('builds the zip only when asked, saves it and frees it afterwards', async () => {
-      vi.mocked(URL.createObjectURL).mockReturnValueOnce('blob:zip-1');
-      renderPanel({ results: [result('a.mid', 'blob:a'), result('b.mid', 'blob:b')] });
-      expect(URL.createObjectURL).not.toHaveBeenCalled();
+    it("saves the zip under the target engine's code", async () => {
+      renderBatch();
       await userEvent.click(screen.getByRole('button', { name: '↓ Download 2 files (.zip)' }));
-      expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
-      expect(saveFile).toHaveBeenCalledWith('blob:zip-1', 'remapped-EZD.zip');
-      expect(URL.revokeObjectURL).not.toHaveBeenCalled();
-      vi.runAllTimers();
-      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:zip-1');
+      expect(saveBlob).toHaveBeenCalledTimes(1);
+      expect(saveBlob).toHaveBeenCalledWith(expect.any(Blob), 'remapped-EZD.zip');
     });
 
     it('does not zip a single result', () => {
       renderPanel();
-      expect(URL.createObjectURL).not.toHaveBeenCalled();
+      expect(saveBlob).not.toHaveBeenCalled();
       expect(screen.queryByRole('button', { name: /\.zip/ })).not.toBeInTheDocument();
     });
   });

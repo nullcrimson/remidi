@@ -7,6 +7,7 @@ import { useFilter } from '../ui/useFilter';
 import { useTruncationTooltip } from '../ui/useTruncationTooltip';
 import { FilterInput } from '../ui/FilterInput';
 import { MonoLabel } from '../ui/MonoLabel';
+import { rowState, type RowState } from '../ui/styles';
 
 const PAGE = 8;
 
@@ -100,6 +101,7 @@ export function LibraryList({
     const selected = e.id === value;
     const disabled = e.id === disabledId;
     const highlighted = focused && e.id === active?.id;
+    const state: RowState = disabled ? 'disabled' : selected ? 'selected' : 'idle';
     return (
       <div
         key={e.id}
@@ -113,19 +115,11 @@ export function LibraryList({
           if (!disabled) pick(e.id);
         }}
         className={`
-          flex items-stretch border-l-2 transition-colors
+          flex items-stretch
           pointer-coarse:min-h-11
           ${highlighted ? 'bg-accent/8' : ''}
-          ${
-      disabled
-        ? 'cursor-default border-transparent text-t5 opacity-40'
-        : selected
-          ? 'cursor-pointer border-accent font-semibold text-t1'
-          : `
-            cursor-pointer border-transparent text-t4
-            hover:text-t1
-          `
-      }
+          ${disabled ? 'cursor-default' : 'cursor-pointer'}
+          ${rowState(state)}
           ${highlighted && !selected && !disabled ? 'text-t1' : ''}
         `}
       >

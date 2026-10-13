@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { splitFiles, takeFiles } from '../../src/core/files';
+import { ACCEPT_EXTENSIONS, splitFiles, takeFiles, withoutMidExtension } from '../../src/core/files';
 
 const file = (name: string) => new File(['x'], name);
 
@@ -14,6 +14,27 @@ describe('splitFiles', () => {
     expect(mid.map((f) => f.name)).toEqual(['groove.mid', 'fill.MIDI']);
     expect(presets.map((f) => f.name)).toEqual(['kit.drumverter.json']);
     expect(skipped).toEqual(['notes.txt']);
+  });
+});
+
+describe('ACCEPT_EXTENSIONS', () => {
+  it('names only extensions that splitFiles takes in', () => {
+    const { skipped } = splitFiles(ACCEPT_EXTENSIONS.split(',').map((ext) => file(`a${ext}`)));
+    expect(skipped).toEqual([]);
+  });
+});
+
+describe('withoutMidExtension', () => {
+  it('drops .mid in any case', () => {
+    expect(withoutMidExtension('Groove.MID')).toBe('Groove');
+  });
+
+  it('drops .midi', () => {
+    expect(withoutMidExtension('groove.midi')).toBe('groove');
+  });
+
+  it('leaves another name alone', () => {
+    expect(withoutMidExtension('groove.txt')).toBe('groove.txt');
   });
 });
 

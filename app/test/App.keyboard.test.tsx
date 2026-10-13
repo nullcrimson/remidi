@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../src/core/download', () => ({ saveFile: vi.fn() }));
+vi.mock('../src/core/download', () => ({ saveBlob: vi.fn() }));
 
 import App from '../src/App';
 import { RUNTIME } from './runtime';

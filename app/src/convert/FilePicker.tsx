@@ -1,6 +1,6 @@
 import { useRef, type ReactNode } from 'react';
 import type { FocusRef } from '../ui/useFocusIntent';
-import { takeFiles, type OnFiles } from '../core/files';
+import { ACCEPT_EXTENSIONS, takeFiles, type OnFiles } from '../core/files';
 
 export function FilePicker({
   onFiles,
@@ -32,7 +32,7 @@ export function FilePicker({
         ref={inputRef}
         data-testid="file-input"
         type="file"
-        accept=".mid,.midi,.json"
+        accept={ACCEPT_EXTENSIONS}
         multiple
         className="hidden"
         onChange={(e) => {

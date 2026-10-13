@@ -1,10 +1,6 @@
-import {
-  FloatingFocusManager,
-  useDismiss,
-  useFloating,
-  useInteractions,
-} from '@floating-ui/react';
-import { useCallback, useContext, useRef, useState, type ReactNode } from 'react';
+import { FloatingFocusManager } from '@floating-ui/react';
+import { useContext, useRef, type ReactNode } from 'react';
+import { useDialog } from '../ui/useDialog';
 import { OverlayAnchor } from './overlayAnchor';
 
 /**
@@ -24,27 +20,13 @@ export function PickerShell({
   children: ReactNode;
 }) {
   const anchor = useContext(OverlayAnchor);
-  const [opener] = useState(() => ({ current: document.activeElement as HTMLElement | null }));
-  const [panel, setPanel] = useState<HTMLDivElement | null>(null);
-  const panelRef = useRef<HTMLDivElement | null>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
-  const attachPanel = useCallback((el: HTMLDivElement | null) => {
-    panelRef.current = el;
-    setPanel(el);
-  }, []);
-  const { context } = useFloating({
-    open: true,
-    onOpenChange: (open) => {
-      if (!open) onClose();
-    },
-    elements: { reference: anchor, floating: panel },
+  const { focus, panel } = useDialog({
+    onClose,
+    reference: anchor,
+    outsidePressEvent: 'mousedown',
+    outsidePress: (event) => event.target !== backdropRef.current,
   });
-  const { getFloatingProps } = useInteractions([
-    useDismiss(context, {
-      outsidePressEvent: 'mousedown',
-      outsidePress: (event) => event.target !== backdropRef.current,
-    }),
-  ]);
   return (
     <>
       <div
@@ -57,19 +39,10 @@ export function PickerShell({
           sm:hidden
         "
       />
-      <FloatingFocusManager
-        context={context}
-        modal={false}
-        initialFocus={panelRef}
-        returnFocus={opener}
-        closeOnFocusOut={false}
-      >
+      <FloatingFocusManager {...focus} modal={false} closeOnFocusOut={false}>
         <div
-          ref={attachPanel}
-          role="dialog"
+          {...panel}
           aria-label={label}
-          tabIndex={-1}
-          {...getFloatingProps()}
           className={`
             fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto
             rounded-t-card border border-accent/18 bg-card p-[16px_16px_24px]

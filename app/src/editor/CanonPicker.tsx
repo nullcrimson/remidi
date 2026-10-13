@@ -1,9 +1,9 @@
 import { useT } from '../locale/localeContext';
 import { groupByFamily } from './families';
 import type { Canon, Family, VocabularyDrum } from '../core/midiremap';
-import { IconButton } from '../ui/IconButton';
 import { ListRow } from './ListRow';
 import { MonoLabel } from '../ui/MonoLabel';
+import { PickerHeader } from './PickerHeader';
 import { PickerShell } from './PickerShell';
 
 export function CanonPicker({
@@ -26,10 +26,11 @@ export function CanonPicker({
 
   return (
     <PickerShell label={t({ id: 'canon-picker-label', args: { note: noteLabel } })} onClose={onClose}>
-      <div className="mb-3 flex items-center justify-between">
-        <MonoLabel tone="muted">{t({ id: 'canon-picker-heading', args: { note: noteLabel } })}</MonoLabel>
-        <IconButton label={t({ id: 'close' })} onClick={onClose}>×</IconButton>
-      </div>
+      <PickerHeader
+        heading={t({ id: 'canon-picker-heading', args: { note: noteLabel } })}
+        className="mb-3"
+        onClose={onClose}
+      />
       <div className="mr-scroll flex max-h-64 flex-col gap-2 pr-1">
         {groups.map((g) => (
           <div key={g.family}>

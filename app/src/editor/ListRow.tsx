@@ -1,4 +1,5 @@
 import type { FocusEvent, MouseEvent, ReactNode } from 'react';
+import { rowState } from '../ui/styles';
 
 interface RowHoverProps {
   onMouseEnter?: (e: MouseEvent<HTMLElement>) => void;
@@ -29,15 +30,8 @@ export function ListRow({
         {...hoverProps}
         className={`
           ${className}
-          border-l-2 text-left transition-colors
-          ${
-    selected
-      ? 'border-accent font-semibold text-t1'
-      : `
-        border-transparent text-t4
-        hover:text-t1
-      `
-    }
+          text-left
+          ${rowState(selected ? 'selected' : 'idle')}
         `}
       >
         {children}

@@ -1,10 +1,8 @@
 import { useT } from '../locale/localeContext';
 import type { Note } from '../core/midiremap';
 import { noteName, type OctaveBase } from '../core/notes';
-import { IconButton } from '../ui/IconButton';
-import { MonoLabel } from '../ui/MonoLabel';
-import { OctaveTabs } from './OctaveTabs';
-import { PianoKeyboard } from './PianoKeyboard';
+import { KeyboardPane } from './KeyboardPane';
+import { PickerHeader } from './PickerHeader';
 import { PickerShell } from './PickerShell';
 
 export function SourceNotePicker({
@@ -36,20 +34,19 @@ export function SourceNotePicker({
         sm:w-96
       "
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-baseline gap-2.25">
-            <MonoLabel tone="muted">{t({ id: 'source-picker-heading', args: { drum: voiceLabel } })}</MonoLabel>
-            <span className="font-mono text-brand font-bold text-accent">
-              {currentNote === null ? '—' : noteName(currentNote, base)}
-            </span>
-          </div>
-          <IconButton label={t({ id: 'close' })} onClick={onClose}>×</IconButton>
-        </div>
-        <OctaveTabs value={octIndex} base={base} onChange={onSetOct} />
-        <PianoKeyboard
+        <PickerHeader
+          heading={t({ id: 'source-picker-heading', args: { drum: voiceLabel } })}
+          onClose={onClose}
+        >
+          <span className="font-mono text-brand font-bold text-accent">
+            {currentNote === null ? '—' : noteName(currentNote, base)}
+          </span>
+        </PickerHeader>
+        <KeyboardPane
           octIndex={octIndex}
           currentNote={currentNote}
           base={base}
+          onSetOct={onSetOct}
           onPickNote={onPickNote}
         />
       </div>

@@ -109,8 +109,8 @@ on a phone and click elsewhere.
   what presets and the session carry, drum keys as unchecked text; `knownEdits` is the one
   function that turns them into `KnownEdits`, leaving out drums this version does not know (the editor loads nothing else);
   `parseEdits`, `parseSrcEdits` and `sameEdits` read and compare them), `missing.ts` (the
-  missing-drums setting, Nearest / Drop, and its hint), `channel.ts`, `files.ts`,
-  `selection.ts` (`SelectionEvent`, handed to each reducer), `notice.ts`, `download.ts`,
+  missing-drums setting, Nearest / Drop, and its hint), `channel.ts`, `files.ts` (the accepted extensions, once: `ACCEPT_EXTENSIONS`, `splitFiles`, `withoutMidExtension`),
+  `selection.ts` (`SelectionEvent`, handed to each reducer), `notice.ts`, `download.ts` (`saveBlob`: save a file made in memory, free its address after ten seconds),
   `storage.ts` (the only module that touches `localStorage`: the closed `StorageKey` set, `storedName` which
   puts `midiremap:` in front of it, and `readStored`, `readStoredStrict` (blocked or `{ value }`), `writeStored`, `removeStored`, `clearStored`, `onStoredChange` (the one `storage` event subscription); eslint
   rejects `localStorage` anywhere else in `src`), `stats.ts`, `contact.ts` (the issue and contact addresses), `engineCode.ts`
@@ -128,7 +128,7 @@ on a phone and click elsewhere.
   ConvertButton (FollowTip: the reason beside the mouse), DonePanel, InfoPopover (the
   hover/click breakdowns).
 - `src/editor/` — the note editor: EditView (with EditFilters, FamilyRows, EditFooter,
-  SavePreset, PlanErrorNotice, `rowGrid.ts`), VoiceRow, NotePicker, SourceEditor, PianoKeyboard, PickerShell
+  SavePreset, PlanErrorNotice, `rowGrid.ts`), VoiceRow, NotePicker, SourceEditor, PianoKeyboard, PickerShell, PickerHeader (a picker's title line; CanonPicker uses it bare, the note pickers add the note name as its child), KeyboardPane (the octave tabs over the piano, shared by both note pickers)
   (+ `overlayAnchor`, on Floating UI), `useEditor.ts`, `editorState.ts` (the reducer: edits and one `overlay`, a target pick, a source pick or a notice),
   `useEngineData.ts` (the pair's drums, notes, vocabulary and family order; a failed lookup is its `error`), `families.ts`
   (`groupByFamily`: groups drums and plan rows, which carry their canon's `family`, in the core's family order, keeping any family it does not
@@ -154,7 +154,7 @@ on a phone and click elsewhere.
   to use · Note maps · FAQ), SiteFooter (section links that open modals, rendered by
   ContentBlocks from `../locales/<code>/docs.json`, the same source the static site pages
   use), LanguageMenu, GlobeIcon, ErrorBoundary, and `plainClick.ts`.
-- `src/ui/` — shared presentational pieces: `styles.ts` (with `LabelTone`, `TagTone`, `TextTone`), Button, TextButton, IconButton,
+- `src/ui/` — shared presentational pieces: `styles.ts` (with `LabelTone`, `TagTone`, `TextTone`, `rowState`: the look of a pickable list row, its left rule included; `tip()` and `TIP_MAX_WIDTH_CLASS`: the small dark tip of FollowTip and the truncation tooltip), `useDialog.ts` (the open-dialog plumbing of Modal and PickerShell: it returns the `focus` and `panel` prop groups to spread), Button, TextButton, IconButton,
   ChipRadioGroup, ChipSelect, TextField, MonoLabel, ProseLink, Modal, Tooltip, Rich, ErrorText,
   `errorTitle.ts` (`errorParts`, `errorTitle`: an `AppError` as shown text), StatusNotice, FilterInput, and `useFocusIntent.ts` (moves focus after an
   action, `ref` / `request`), `useFilter.ts`, `useTruncationTooltip.tsx`, `reveal.ts`.

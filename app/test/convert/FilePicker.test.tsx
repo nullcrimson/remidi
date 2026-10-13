@@ -4,6 +4,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { FilePicker } from '../../src/convert/FilePicker';
 
 describe('FilePicker', () => {
+  it('offers the MIDI and preset extensions in its file dialog', () => {
+    render(<FilePicker onFiles={vi.fn()}>choose</FilePicker>);
+    expect(screen.getByTestId('file-input')).toHaveAttribute('accept', '.mid,.midi,.json');
+  });
+
   it('reads multiple chosen files into byte arrays', async () => {
     const onFiles = vi.fn();
     render(<FilePicker onFiles={onFiles}>choose</FilePicker>);

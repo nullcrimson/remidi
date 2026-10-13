@@ -550,11 +550,15 @@ test in that file fails on any import outside it.
   controlled-overlay modals (guide/FAQ/issue/contact/terms, loss report). The header
   and footer (`SiteHeader`, `SiteFooter`) frame every view; the footer's links go to
   the site's pages and open the same text in a modal on a plain click. Overlays use
-  Floating UI throughout: `Modal` (focus trap, scroll lock, Escape and backdrop close,
+  Floating UI throughout, the open dialog's plumbing (focus on open, focus back to the
+  opener, Escape, press outside) being the one hook `ui/useDialog.ts` (two prop groups to spread, `focus` and `panel`): `Modal` (focus trap, scroll lock, Escape and backdrop close,
   focus back to the opener; closed, its content stays in the page, hidden, for
   crawlers), `PickerShell` (the note pickers: focus in, Escape or a press outside its
   row closes, focus back; the row is its `OverlayAnchor`), menus and tooltips. The
-  editor's parts live in `editor/`. A structure test keeps every source file under `src`
+  editor's parts live in `editor/`; the pickers share `PickerHeader.tsx` (the title line)
+  and the note pickers `KeyboardPane.tsx` (the octave tabs over the piano). A file made in memory reaches the
+  browser through `core/download.ts` `saveBlob`, which frees its address after ten
+  seconds; the accepted file extensions are listed once, in `core/files.ts`. A structure test keeps every source file under `src`
   within 250 lines; the style test keeps arbitrary text sizes and radii, raw
   `rgba(` and `shadow-[` out of `src` (shadows are `@theme` tokens in `index.css`).
 

@@ -5,7 +5,7 @@ import type { EnginePair } from '../core/enginePair';
 import { toAppError, type AppError } from '../core/errors';
 import type { ChannelScope, MissingDrums, Overrides } from '../core/midiremap';
 import type { SelectionEvent } from '../core/selection';
-import { MID_EXT, type FileResult, type LoadedFile } from '../core/files';
+import { withoutMidExtension, type FileResult, type LoadedFile } from '../core/files';
 import { track } from '../core/stats';
 
 export type Conv
@@ -72,10 +72,6 @@ function reducer(state: State, action: Action): State {
         conv: { kind: 'error', key: action.key, failures: action.failures, error: action.error },
       };
   }
-}
-
-function baseName(name: string): string {
-  return name.replace(MID_EXT, '');
 }
 
 /**
@@ -148,7 +144,7 @@ export function useConverter(converter: Converter, pair: EnginePair | null, sett
       }
       if (run.signal.aborted) return null;
       const ok: FileResult[] = batch.ok.map(({ name, bytes, report }) => ({
-        name: `${baseName(name)}-${pair.tgt}.mid`,
+        name: `${withoutMidExtension(name)}-${pair.tgt}.mid`,
         url: URL.createObjectURL(new Blob([bytes], { type: 'audio/midi' })),
         bytes,
         report,

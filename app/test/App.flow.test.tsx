@@ -2,11 +2,11 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../src/core/download', () => ({ saveFile: vi.fn() }));
+vi.mock('../src/core/download', () => ({ saveBlob: vi.fn() }));
 
 import App from '../src/App';
 import { RUNTIME } from './runtime';
-import { saveFile } from '../src/core/download';
+import { saveBlob } from '../src/core/download';
 import type { RemapOutput, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
@@ -37,7 +37,7 @@ async function convertAndOpenReport() {
 
 describe('App convert flow', () => {
   beforeEach(() => {
-    vi.mocked(saveFile).mockClear();
+    vi.mocked(saveBlob).mockClear();
     vi.mocked(stub.engine_drums).mockReturnValue([]);
     vi.mocked(stub.engine_notes).mockReturnValue([]);
     vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
@@ -104,7 +104,7 @@ describe('App convert flow', () => {
     await upload('groove.mid');
     await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
     expect(await screen.findByText('1 file converted → EZdrummer')).toBeInTheDocument();
-    expect(saveFile).not.toHaveBeenCalled();
+    expect(saveBlob).not.toHaveBeenCalled();
     const download = screen.getByRole('link', { name: '↓ Download .mid' });
     expect(download).toHaveAttribute('href', 'blob:mock-url');
     expect(download).toHaveAttribute('download', 'groove-ezdrummer.mid');

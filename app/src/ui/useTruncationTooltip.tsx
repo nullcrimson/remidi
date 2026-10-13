@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { tip as tipClasses } from './styles';
 
 interface Tip {
   name: string;
@@ -22,11 +23,7 @@ export function useTruncationTooltip() {
         <div
           role="tooltip"
           style={{ left: tip.x, top: tip.y + 6 }}
-          className="
-            pointer-events-none fixed z-50 max-w-70 rounded-panel border
-            border-accent/25 bg-ink px-2.5 py-1.5 font-sans text-ui/tight
-            text-t1 shadow-tip
-          "
+          className={tipClasses()}
         >
           {tip.name}
         </div>,

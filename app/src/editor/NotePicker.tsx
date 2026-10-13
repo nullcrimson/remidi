@@ -2,10 +2,8 @@ import { useT } from '../locale/localeContext';
 import type { Drum, Family, Note } from '../core/midiremap';
 import { noteName, type OctaveBase } from '../core/notes';
 import { DrumList } from './DrumList';
-import { IconButton } from '../ui/IconButton';
-import { MonoLabel } from '../ui/MonoLabel';
-import { OctaveTabs } from './OctaveTabs';
-import { PianoKeyboard } from './PianoKeyboard';
+import { KeyboardPane } from './KeyboardPane';
+import { PickerHeader } from './PickerHeader';
 import { PickerShell } from './PickerShell';
 
 export function NotePicker({
@@ -32,15 +30,15 @@ export function NotePicker({
   const t = useT();
   return (
     <PickerShell label={t({ id: 'note-picker-label', args: { drum: voiceLabel } })} onClose={onClose}>
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-baseline gap-2.25">
-          <MonoLabel tone="muted">{t({ id: 'note-picker-heading', args: { drum: voiceLabel } })}</MonoLabel>
-          <span className="font-mono text-brand font-bold text-accent">
-            {currentNote === null ? '—' : noteName(currentNote, base)}
-          </span>
-        </div>
-        <IconButton label={t({ id: 'close' })} onClick={onClose}>×</IconButton>
-      </div>
+      <PickerHeader
+        heading={t({ id: 'note-picker-heading', args: { drum: voiceLabel } })}
+        className="mb-3"
+        onClose={onClose}
+      >
+        <span className="font-mono text-brand font-bold text-accent">
+          {currentNote === null ? '—' : noteName(currentNote, base)}
+        </span>
+      </PickerHeader>
       <div className="@container">
         <div
           data-testid="picker-layout"
@@ -57,11 +55,11 @@ export function NotePicker({
             @2xl:w-96
           "
           >
-            <OctaveTabs value={octIndex} base={base} onChange={onSetOct} />
-            <PianoKeyboard
+            <KeyboardPane
               octIndex={octIndex}
               currentNote={currentNote}
               base={base}
+              onSetOct={onSetOct}
               onPickNote={onPickNote}
             />
           </div>

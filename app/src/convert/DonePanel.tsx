@@ -1,7 +1,7 @@
 import type { Translate } from '../locale/i18n';
 import { useLocale } from '../locale/localeContext';
 import { useEffect, useRef, useState } from 'react';
-import { saveFile } from '../core/download';
+import { saveBlob } from '../core/download';
 import { engineCode } from '../core/engineCode';
 import type { EnginePair } from '../core/enginePair';
 import { reportLink } from '../report/reportLink';
@@ -16,8 +16,6 @@ import { tag, type TagTone } from '../ui/styles';
 import { TextButton } from '../ui/TextButton';
 import { TipToast } from '../tip/TipToast';
 import { track } from '../core/stats';
-
-const FREE_ZIP_AFTER_MS = 10_000;
 
 function outcomeTags(view: ReportView, failed: number, t: Translate): { text: string; tone: TagTone }[] {
   const { converted, approximated, dropped, unrecognized, untouched } = view.totals;
@@ -80,9 +78,7 @@ export function DonePanel({
   const single = results.length === 1;
   const downloadZip = () => {
     markSaved();
-    const url = URL.createObjectURL(zipFiles(results));
-    saveFile(url, `remapped-${engineCode(pair.tgt)}.zip`);
-    setTimeout(() => URL.revokeObjectURL(url), FREE_ZIP_AFTER_MS);
+    saveBlob(zipFiles(results), `remapped-${engineCode(pair.tgt)}.zip`);
   };
 
   const reportByName = new Map(view.files.map((f) => [f.name, f]));

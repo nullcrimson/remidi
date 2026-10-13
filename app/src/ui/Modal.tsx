@@ -1,12 +1,7 @@
 import { useT } from '../locale/localeContext';
-import {
-  FloatingFocusManager,
-  FloatingOverlay,
-  useDismiss,
-  useFloating,
-  useInteractions,
-} from '@floating-ui/react';
-import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { FloatingFocusManager, FloatingOverlay } from '@floating-ui/react';
+import type { ReactNode } from 'react';
+import { useDialog } from './useDialog';
 import { IconButton } from './IconButton';
 
 interface ModalProps {
@@ -32,23 +27,7 @@ export function Modal({ open, ...props }: ModalProps) {
 
 function ModalDialog(props: Omit<ModalProps, 'open'>) {
   const { heading, onClose } = props;
-  const [opener] = useState(() => ({ current: document.activeElement as HTMLElement | null }));
-  const [panel, setPanel] = useState<HTMLDivElement | null>(null);
-  const panelRef = useRef<HTMLDivElement | null>(null);
-  const attachPanel = useCallback((el: HTMLDivElement | null) => {
-    panelRef.current = el;
-    setPanel(el);
-  }, []);
-  const { context } = useFloating({
-    open: true,
-    onOpenChange: (next) => {
-      if (!next) onClose();
-    },
-    elements: { floating: panel },
-  });
-  const { getFloatingProps } = useInteractions([
-    useDismiss(context, { outsidePressEvent: 'click' }),
-  ]);
+  const { focus, panel } = useDialog({ onClose, outsidePressEvent: 'click' });
 
   return (
     <FloatingOverlay
@@ -56,14 +35,11 @@ function ModalDialog(props: Omit<ModalProps, 'open'>) {
       data-testid="modal-backdrop"
       className="z-40 bg-page/72 backdrop-blur-[1.5px]"
     >
-      <FloatingFocusManager context={context} initialFocus={panelRef} returnFocus={opener}>
+      <FloatingFocusManager {...focus}>
         <div
-          ref={attachPanel}
-          role="dialog"
+          {...panel}
           aria-modal
           aria-label={heading}
-          tabIndex={-1}
-          {...getFloatingProps()}
           className="
             fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] w-160 max-w-[92vw]
             -translate-1/2 flex-col overflow-hidden rounded-card border

@@ -1,9 +1,11 @@
 import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { TIP_MAX_WIDTH_CLASS, tip } from '../ui/styles';
 
 const GAP_X = 14;
 const GAP_Y = 18;
-const MAX_WIDTH = 280;
+const SPACING_PX = 4;
+const MAX_WIDTH = Number(TIP_MAX_WIDTH_CLASS.slice('max-w-'.length)) * SPACING_PX;
 
 /** Shows `text` beside the mouse pointer while it is over `children`, following it; touch shows nothing. */
 export function FollowTip({ text, children }: { text: string | null; children: ReactNode }) {
@@ -25,11 +27,7 @@ export function FollowTip({ text, children }: { text: string | null; children: R
           style={flip
             ? { right: window.innerWidth - at.x + GAP_X, top: at.y + GAP_Y }
             : { left: at.x + GAP_X, top: at.y + GAP_Y }}
-          className="
-            pointer-events-none fixed z-50 max-w-70 rounded-panel border
-            border-accent/25 bg-ink px-2.5 py-1.5 font-sans text-ui/tight
-            text-t1 shadow-tip
-          "
+          className={tip()}
         >
           {text}
         </div>,

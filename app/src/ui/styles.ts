@@ -19,6 +19,35 @@ export function chip(state: ChipState, size: ChipSize): string {
   return `${CHIP_BASE} ${CHIP_SIZE[size]} ${CHIP_STATE[state]}`;
 }
 
+export type RowState = 'selected' | 'idle' | 'disabled';
+
+const ROW_BASE = 'border-l-2 transition-colors';
+
+const ROW_STATE: Record<RowState, string> = {
+  selected: 'border-accent font-semibold text-t1',
+  idle: 'border-transparent text-t4 hover:text-t1',
+  disabled: 'border-transparent text-t5 opacity-40',
+};
+
+/** Classes for the left rule, colour and weight of a pickable list row. */
+export function rowState(state: RowState): string {
+  return `${ROW_BASE} ${ROW_STATE[state]}`;
+}
+
+/** The tip's width cap as a Tailwind class, the one place it is stated. */
+export const TIP_MAX_WIDTH_CLASS = 'max-w-70';
+
+const TIP_LOOK = `
+  pointer-events-none fixed z-50 ${TIP_MAX_WIDTH_CLASS} rounded-panel border
+  border-accent/25 bg-ink px-2.5 py-1.5 font-sans text-ui/tight text-t1
+  shadow-tip
+`;
+
+/** Classes for the small dark tip that a tooltip and the pointer-following reason both wear. */
+export function tip(): string {
+  return TIP_LOOK;
+}
+
 export type TagTone = 'neutral' | 'gold' | 'danger';
 
 const TAG_TONE: Record<TagTone, string> = {
