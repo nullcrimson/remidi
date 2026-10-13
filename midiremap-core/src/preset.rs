@@ -169,12 +169,17 @@ mod tests {
     }
 
     #[test]
-    fn turns_into_overrides() {
+    fn turns_into_target_overrides() {
         let ov = parse_preset(FIXTURE).unwrap().preset.overrides();
         assert_eq!(
             ov.target(),
             HashMap::from([(k("kick.main"), n(35)), (k("china.1.hit"), n(52))])
         );
+    }
+
+    #[test]
+    fn turns_into_source_overrides() {
+        let ov = parse_preset(FIXTURE).unwrap().preset.overrides();
         assert_eq!(
             ov.source(),
             HashMap::from([(n(24), Some(k("snare1.hit"))), (n(60), None)])
@@ -235,20 +240,34 @@ mod tests {
     }
 
     #[test]
-    fn skips_only_the_edits_it_cannot_read() {
-        let loaded = parse_preset(&with(
-            r#"{"kick.main":35,"bogus.drum":40,"snare1.hit":200,"hat.closed":"x"}"#,
-            r#"{"24":"snare1.hit","999":"kick.main","25":"nope.drum","26":7}"#,
-        ))
-        .unwrap();
+    fn keeps_only_the_target_edits_it_can_read() {
+        let loaded = load_with_unreadable_edits();
         assert_eq!(
             loaded.preset.edits,
             BTreeMap::from([(k("kick.main"), n(35))])
         );
+    }
+
+    #[test]
+    fn keeps_only_the_source_edits_it_can_read() {
+        let loaded = load_with_unreadable_edits();
         assert_eq!(
             loaded.preset.src_edits,
             BTreeMap::from([(n(24), Some(k("snare1.hit")))])
         );
+    }
+
+    fn load_with_unreadable_edits() -> LoadedPreset {
+        parse_preset(&with(
+            r#"{"kick.main":35,"bogus.drum":40,"snare1.hit":200,"hat.closed":"x"}"#,
+            r#"{"24":"snare1.hit","999":"kick.main","25":"nope.drum","26":7}"#,
+        ))
+        .unwrap()
+    }
+
+    #[test]
+    fn names_the_edits_it_skips() {
+        let loaded = load_with_unreadable_edits();
         let skipped: Vec<String> = loaded.skipped.iter().map(ToString::to_string).collect();
         assert_eq!(
             skipped,

@@ -19,15 +19,32 @@ const SIZES = [
 ] as const;
 
 describe('chip', () => {
-  it('styles each state on one base', () => {
+  it('styles the on state', () => {
     expect(chip('on', 'sm')).toContain('border-accent bg-accent/15 text-t1');
+  });
+
+  it('styles the changed state', () => {
     expect(chip('changed', 'md')).toContain('border-accent/40');
+  });
+
+  it('styles the off state', () => {
     expect(chip('off', 'sm')).toContain('border-white/12 text-t4');
-    for (const c of [chip('on', 'sm'), chip('off', 'md')]) {
-      expect(c).toContain('rounded-chip');
-      expect(c).toContain('font-mono');
-    }
+  });
+
+  it('puts each state on the chip base', () => {
+    const on = chip('on', 'sm');
+    const off = chip('off', 'md');
+    expect(on).toContain('rounded-chip');
+    expect(on).toContain('font-mono');
+    expect(off).toContain('rounded-chip');
+    expect(off).toContain('font-mono');
+  });
+
+  it('sizes the small chip', () => {
     expect(chip('off', 'sm')).toContain('text-label');
+  });
+
+  it('sizes the medium chip', () => {
     expect(chip('off', 'md')).toContain('text-ui');
   });
 });
@@ -41,12 +58,16 @@ describe('ChipRadioGroup', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('reports clicks and arrow keys', async () => {
+  it('reports clicks', async () => {
     const onChange = vi.fn();
     render(<ChipRadioGroup labelledBy="x" options={SIZES} value="s" onChange={onChange} />);
     await userEvent.click(screen.getByText('Large'));
     expect(onChange).toHaveBeenLastCalledWith('l');
-    onChange.mockClear();
+  });
+
+  it('reports arrow keys', async () => {
+    const onChange = vi.fn();
+    render(<ChipRadioGroup labelledBy="x" options={SIZES} value="s" onChange={onChange} />);
     screen.getByRole('radio', { name: 'Small' }).focus();
     await userEvent.keyboard('{ArrowRight}');
     expect(onChange).toHaveBeenLastCalledWith('l');
@@ -54,25 +75,37 @@ describe('ChipRadioGroup', () => {
 });
 
 describe('ChipSelect', () => {
-  it('is a native select in chip dress with a hidden caret', async () => {
-    const onChange = vi.fn();
+  const renderSelect = (onChange = vi.fn()) => {
     render(
       <>
         <span id="lbl">Size</span>
         <ChipSelect labelledBy="lbl" options={SIZES} value="s" onChange={onChange} />
       </>,
     );
-    const select = screen.getByRole('combobox', { name: 'Size' });
+    return screen.getByRole('combobox', { name: 'Size' });
+  };
+
+  it('is a native select in chip dress', () => {
+    const select = renderSelect();
     expect(select).toHaveClass('rounded-chip', 'appearance-none');
+  });
+
+  it('hides its caret from assistive technology', () => {
+    renderSelect();
     expect(screen.getByText('▾')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('reports the chosen option', async () => {
+    const onChange = vi.fn();
+    const select = renderSelect(onChange);
     await userEvent.selectOptions(select, 'l');
     expect(onChange).toHaveBeenCalledWith('l');
   });
 });
 
 describe('Button', () => {
-  it('shows and links the reason only while disabled', () => {
-    const { rerender } = render(
+  it('shows and links the reason while disabled', () => {
+    render(
       <Button variant="primary" size="lg" disabled reason="Add a file" onClick={() => {}}>
         Go
       </Button>,
@@ -80,7 +113,10 @@ describe('Button', () => {
     const button = screen.getByRole('button', { name: 'Go' });
     expect(button).toBeDisabled();
     expect(button).toHaveAccessibleDescription('Add a file');
-    rerender(
+  });
+
+  it('shows no reason while enabled', () => {
+    render(
       <Button variant="primary" size="lg" reason="Add a file" onClick={() => {}}>
         Go
       </Button>,
@@ -89,14 +125,13 @@ describe('Button', () => {
     expect(screen.getByRole('button', { name: 'Go' })).not.toHaveAttribute('aria-describedby');
   });
 
-  it('styles primary solid and secondary outlined', () => {
-    render(
-      <>
-        <Button variant="primary" size="md" onClick={() => {}}>P</Button>
-        <Button variant="secondary" size="sm" onClick={() => {}}>S</Button>
-      </>,
-    );
+  it('styles primary solid', () => {
+    render(<Button variant="primary" size="md" onClick={() => {}}>P</Button>);
     expect(screen.getByRole('button', { name: 'P' })).toHaveClass('bg-accent', 'text-ink');
+  });
+
+  it('styles secondary outlined', () => {
+    render(<Button variant="secondary" size="sm" onClick={() => {}}>S</Button>);
     expect(screen.getByRole('button', { name: 'S' })).toHaveClass('border-accent/40', 'text-accent');
   });
 
@@ -109,18 +144,17 @@ describe('Button', () => {
 });
 
 describe('TextButton', () => {
-  it('is a button, or a link when given href', async () => {
+  it('is a button', async () => {
     const onClick = vi.fn();
-    render(
-      <>
-        <TextButton onClick={onClick}>View report →</TextButton>
-        <TextButton href="blob:x" download="a.mid">Download</TextButton>
-      </>,
-    );
+    render(<TextButton onClick={onClick}>View report →</TextButton>);
     await userEvent.click(screen.getByRole('button', { name: 'View report →' }));
     expect(onClick).toHaveBeenCalledOnce();
-    expect(screen.getByRole('link', { name: 'Download' })).toHaveAttribute('download', 'a.mid');
     expect(screen.getByRole('button', { name: 'View report →' })).toHaveClass('text-t2');
+  });
+
+  it('is a link when given href', () => {
+    render(<TextButton href="blob:x" download="a.mid">Download</TextButton>);
+    expect(screen.getByRole('link', { name: 'Download' })).toHaveAttribute('download', 'a.mid');
   });
 
   it('danger tone rests muted', () => {
@@ -151,35 +185,53 @@ describe('ProseLink', () => {
     const link = screen.getByRole('link', { name: 'site' });
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  it('styles as a prose link', () => {
+    render(<ProseLink href="https://example.com">site</ProseLink>);
+    const link = screen.getByRole('link', { name: 'site' });
     expect(link).toHaveClass('prose-link');
   });
 });
 
 describe('TextField', () => {
-  it('passes input props through and avoids iOS zoom on phones', async () => {
+  it('avoids iOS zoom on phones', () => {
+    render(<TextField aria-label="Name" mono value="" onChange={vi.fn()} />);
+    const input = screen.getByRole('textbox', { name: 'Name' });
+    expect(input).toHaveClass('text-body', 'sm:text-label', 'rounded-chip');
+  });
+
+  it('passes input props through', async () => {
     const onChange = vi.fn();
     render(<TextField aria-label="Name" mono value="" onChange={onChange} />);
     const input = screen.getByRole('textbox', { name: 'Name' });
-    expect(input).toHaveClass('text-body', 'sm:text-label', 'rounded-chip');
     await userEvent.type(input, 'a');
     expect(onChange).toHaveBeenCalled();
   });
 });
 
 describe('touch targets', () => {
-  it('grows the hit area of small controls on coarse pointers', () => {
-    render(
-      <>
-        <IconButton label="Close" onClick={() => {}}>×</IconButton>
-        <TextButton onClick={() => {}}>View report →</TextButton>
-        <ProseLink href="https://example.com">site</ProseLink>
-      </>,
-    );
+  it('grows the hit area of icon buttons on coarse pointers', () => {
+    render(<IconButton label="Close" onClick={() => {}}>×</IconButton>);
     expect(screen.getByRole('button', { name: 'Close' })).toHaveClass('tap');
+  });
+
+  it('grows the hit area of text buttons on coarse pointers', () => {
+    render(<TextButton onClick={() => {}}>View report →</TextButton>);
     expect(screen.getByRole('button', { name: 'View report →' })).toHaveClass('tap');
+  });
+
+  it('grows the hit area of prose links on coarse pointers', () => {
+    render(<ProseLink href="https://example.com">site</ProseLink>);
     expect(screen.getByRole('link', { name: 'site' })).toHaveClass('prose-link');
     expect(utility('prose-link')).toMatch(/@apply tap /);
+  });
+
+  it('grows the hit area of nav links on coarse pointers', () => {
     expect(utility('nav-link')).toMatch(/@apply tap /);
+  });
+
+  it('grows the hit area of chips on coarse pointers', () => {
     expect(chip('off', 'sm')).toContain('tap');
     expect(chip('off', 'sm')).toContain('pointer-coarse:py-3');
   });

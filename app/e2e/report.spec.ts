@@ -24,7 +24,7 @@ async function tab(page: Page) {
   )).toBe(false);
 }
 
-test('the report traps focus, locks scroll and gives focus back', async ({ page }) => {
+test('the open report traps focus', async ({ page }) => {
   await convertBand(page);
   const open = page.getByRole('button', { name: /View report/ });
   const report = page.getByRole('dialog');
@@ -36,13 +36,41 @@ test('the report traps focus, locks scroll and gives focus back', async ({ page 
     await tab(page);
     expect(await inside(page)).toBe(true);
   }
+});
+
+test('the open report locks the page scroll', async ({ page }) => {
+  await convertBand(page);
+  const open = page.getByRole('button', { name: /View report/ });
+  const report = page.getByRole('dialog');
+
+  await open.click();
+  await expect(report).toBeVisible();
   expect(await page.evaluate(() =>
     [document.body, document.documentElement].some((el) => getComputedStyle(el).overflow === 'hidden'),
   )).toBe(true);
+});
+
+test('Escape closes the report and gives focus back to its button', async ({ page }) => {
+  await convertBand(page);
+  const open = page.getByRole('button', { name: /View report/ });
+  const report = page.getByRole('dialog');
+  await open.click();
+  await report.waitFor();
 
   await page.keyboard.press('Escape');
   await expect(report).toBeHidden();
   await expect(open).toBeFocused();
+});
+
+test('a click outside closes the report and gives focus back to its button', async ({ page }) => {
+  await convertBand(page);
+  const open = page.getByRole('button', { name: /View report/ });
+  const report = page.getByRole('dialog');
+
+  await open.click();
+  await expect(report).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(report).toBeHidden();
 
   await open.click();
   await expect(report).toBeVisible();

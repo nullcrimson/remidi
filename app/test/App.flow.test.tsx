@@ -2,11 +2,9 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../src/core/download', () => ({ saveBlob: vi.fn() }));
-
 import App from '../src/App';
 import { RUNTIME } from './runtime';
-import { saveBlob } from '../src/core/download';
+import { recordDownloads } from './downloads';
 import type { RemapOutput, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
@@ -35,9 +33,10 @@ async function convertAndOpenReport() {
   return screen.findByRole('dialog', { name: 'Conversion report' });
 }
 
+const downloads = recordDownloads();
+
 describe('App convert flow', () => {
   beforeEach(() => {
-    vi.mocked(saveBlob).mockClear();
     vi.mocked(stub.engine_drums).mockReturnValue([]);
     vi.mocked(stub.engine_notes).mockReturnValue([]);
     vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
@@ -67,47 +66,75 @@ describe('App convert flow', () => {
     expect(screen.getByText(/drums remapped/)).toBeInTheDocument();
   });
 
-  it('keeps both engine columns inside the card and spaces the tagline dash', async () => {
+  it('keeps both engine columns inside the card', async () => {
     await start();
     expect(screen.getByRole('group', { name: 'FROM engine' }).parentElement).toHaveClass(
       'sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]',
     );
+  });
+
+  it('spaces the tagline dash', async () => {
+    await start();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('— drum MIDI converter');
   });
 
-  it('widens the converter on large screens but keeps the editor narrow', async () => {
+  it('widens the converter on large screens', async () => {
     await start();
     expect(screen.getByTestId('page-column')).toHaveClass('w-200', 'lg:w-240', 'xl:w-280');
+  });
+
+  it('keeps the editor narrow', async () => {
+    await start();
     await pickEngines();
     await userEvent.click(screen.getByRole('button', { name: /Edit individual notes/ }));
     expect(screen.getByTestId('page-column')).toHaveClass('w-200');
     expect(screen.getByTestId('page-column')).not.toHaveClass('lg:w-240');
   });
 
-  it('names the chosen engines in the list headings and swaps them', async () => {
+  it('disables swap before any engine is chosen', async () => {
     await start();
     const swap = screen.getByRole('button', { name: 'Swap FROM and TO' });
     expect(swap).toBeDisabled();
+  });
+
+  it('names the chosen engines in the list headings', async () => {
+    await start();
     await pickEngines();
     const from = screen.getByRole('group', { name: 'FROM engine' });
     const to = screen.getByRole('group', { name: 'TO engine' });
     expect(within(from).getByTestId('chosen-engine')).toHaveTextContent('GGD Invasion');
     expect(within(to).getByTestId('chosen-engine')).toHaveTextContent('EZdrummer');
+  });
+
+  it('swaps the chosen engines', async () => {
+    await start();
+    await pickEngines();
+    const swap = screen.getByRole('button', { name: 'Swap FROM and TO' });
+    const from = screen.getByRole('group', { name: 'FROM engine' });
+    const to = screen.getByRole('group', { name: 'TO engine' });
     await userEvent.click(swap);
     expect(within(from).getByTestId('chosen-engine')).toHaveTextContent('EZdrummer');
     expect(within(to).getByTestId('chosen-engine')).toHaveTextContent('GGD Invasion');
   });
 
-  it('converts first, offers the file to download, and Convert more', async () => {
+  it('converts first and offers the file to download', async () => {
     await start();
     await pickEngines();
     await upload('groove.mid');
     await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
     expect(await screen.findByText('1 file converted → EZdrummer')).toBeInTheDocument();
-    expect(saveBlob).not.toHaveBeenCalled();
+    expect(downloads()).toEqual([]);
     const download = screen.getByRole('link', { name: '↓ Download .mid' });
     expect(download).toHaveAttribute('href', 'blob:mock-url');
     expect(download).toHaveAttribute('download', 'groove-ezdrummer.mid');
+  });
+
+  it('Convert more empties the files and keeps the engines', async () => {
+    await start();
+    await pickEngines();
+    await upload('groove.mid');
+    await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
+    await screen.findByText('1 file converted → EZdrummer');
     await userEvent.click(screen.getByRole('button', { name: 'Convert more' }));
     expect(screen.queryByText('groove.mid')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Convert' })).toBeDisabled();

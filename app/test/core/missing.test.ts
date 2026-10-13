@@ -31,22 +31,37 @@ describe('missing drums setting', () => {
     ]);
   });
 
-  it('explains the choice before a pair is picked', () => {
+  it('explains Nearest before a pair is picked', () => {
     expect(t(missingHint('nearest', []))).toBe('play on the closest drum');
+  });
+
+  it('explains Drop before a pair is picked', () => {
     expect(t(missingHint('drop', []))).toBe('leave them out');
   });
 
-  it('counts drums played on another drum under Nearest', () => {
+  it('says no drum moves under Nearest when none is played on another drum', () => {
     expect(t(missingHint('nearest', [SAME]))).toBe('no drum moves to another drum');
+  });
+
+  it('counts one drum played on another drum under Nearest', () => {
     expect(t(missingHint('nearest', [SWAP, SAME, SILENT_SWAP]))).toBe('1 drum played on another drum');
+  });
+
+  it('counts several drums played on another drum under Nearest', () => {
     expect(t(missingHint('nearest', [SWAP, row('x', { outcome: { status: 'fallback', tgtNote: 36, otherDrum: true } })]))).toBe(
       '2 drums played on another drum',
     );
   });
 
-  it('counts drums the setting drops under Drop', () => {
+  it('says no drums are dropped under Drop when none is', () => {
     expect(t(missingHint('drop', [SAME]))).toBe('no drums dropped');
+  });
+
+  it('counts one drum the setting drops under Drop', () => {
     expect(t(missingHint('drop', [DROPPED_SWAP, SAME]))).toBe('1 drum dropped');
+  });
+
+  it('counts several drums the setting drops under Drop', () => {
     expect(t(missingHint('drop', [DROPPED_SWAP, row('y', { outcome: { status: 'dropped', otherDrum: true } })]))).toBe(
       '2 drums dropped',
     );

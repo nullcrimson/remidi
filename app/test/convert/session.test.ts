@@ -34,9 +34,13 @@ describe('session', () => {
     });
   });
 
-  it('round-trips everything it saves, versioned', () => {
+  it('saves the session versioned', () => {
     saveSession(FULL);
     expect(JSON.parse(localStorage.getItem(SESSION_KEY)!).version).toBe(1);
+  });
+
+  it('round-trips everything it saves', () => {
+    saveSession(FULL);
     expect(loadSession()).toEqual(FULL);
   });
 
@@ -58,9 +62,12 @@ describe('session', () => {
     expect(loadSession().missing).toBe('nearest');
   });
 
-  it('ignores unreadable or future sessions', () => {
+  it('ignores an unreadable session', () => {
     localStorage.setItem(SESSION_KEY, '{');
     expect(loadSession()).toEqual(EMPTY_SESSION);
+  });
+
+  it('ignores a future session', () => {
     localStorage.setItem(SESSION_KEY, JSON.stringify({ ...FULL, version: 2 }));
     expect(loadSession()).toEqual(EMPTY_SESSION);
   });
@@ -75,9 +82,13 @@ describe('session', () => {
     expect(JSON.parse(localStorage.getItem(SESSION_KEY)!)).toMatchObject({ src: '', tgt: '' });
   });
 
-  it('picks up the old missing-drums choice and retires its key on save', () => {
+  it('picks up the old missing-drums choice', () => {
     localStorage.setItem(MISSING_KEY, 'drop');
     expect(loadSession().missing).toBe('drop');
+  });
+
+  it('retires the old missing-drums key on save', () => {
+    localStorage.setItem(MISSING_KEY, 'drop');
     saveSession(EMPTY_SESSION);
     expect(localStorage.getItem(MISSING_KEY)).toBeNull();
   });

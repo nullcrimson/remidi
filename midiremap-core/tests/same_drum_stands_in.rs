@@ -229,7 +229,30 @@ fn every_builtin_pair_plays_the_agreed_stand_in_or_drops() {
 }
 
 #[test]
-fn guitar_pro_hats_play_on_benny_greb_hats_of_the_same_opening() {
+fn guitar_pro_closed_hat_plays_on_the_benny_greb_closed_hat() {
+    let played = guitar_pro_to_benny_greb();
+    assert_eq!(played("hat.closed"), Some(43));
+}
+
+#[test]
+fn guitar_pro_first_open_hat_plays_on_the_benny_greb_first_open_hat() {
+    let played = guitar_pro_to_benny_greb();
+    assert_eq!(played("hat.open1"), Some(46));
+}
+
+#[test]
+fn guitar_pro_second_open_hat_plays_on_the_benny_greb_second_open_hat() {
+    let played = guitar_pro_to_benny_greb();
+    assert_eq!(played("hat.open2"), Some(48));
+}
+
+#[test]
+fn guitar_pro_pedal_hat_plays_on_the_benny_greb_pedal_hat() {
+    let played = guitar_pro_to_benny_greb();
+    assert_eq!(played("hat.pedal"), Some(53));
+}
+
+fn guitar_pro_to_benny_greb() -> impl Fn(&'static str) -> Option<u8> {
     let catalog = Catalog::builtin().unwrap();
     let mapping = Mapping::new(
         catalog.get("guitar_pro").unwrap(),
@@ -237,9 +260,5 @@ fn guitar_pro_hats_play_on_benny_greb_hats_of_the_same_opening() {
         &Default::default(),
         MissingDrums::Drop,
     );
-    let played = |src| mapping.resolve_canon(k(src)).note().map(Note::get);
-    assert_eq!(played("hat.closed"), Some(43));
-    assert_eq!(played("hat.open1"), Some(46));
-    assert_eq!(played("hat.open2"), Some(48));
-    assert_eq!(played("hat.pedal"), Some(53));
+    move |src| mapping.resolve_canon(k(src)).note().map(Note::get)
 }

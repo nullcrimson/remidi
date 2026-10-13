@@ -2,8 +2,6 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../src/core/download', () => ({ saveBlob: vi.fn() }));
-
 import App from '../src/App';
 import { RUNTIME } from './runtime';
 import type { RemapOutput, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
@@ -68,39 +66,72 @@ describe('keyboard use', () => {
     expect(tabs).toBeLessThan(12);
   });
 
-  it('moves focus to the next missing step after files are added', async () => {
+  it('moves focus to the TO engine box after a file is added with only FROM chosen', async () => {
     await start();
     await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
     await addFile();
     await waitFor(() => expect(toBox()).toHaveFocus());
+  });
+
+  it('moves focus to Convert after a file is added with both engines chosen', async () => {
+    await start();
+    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
     await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
-    await userEvent.click(screen.getByRole('button', { name: 'Remove groove.mid' }));
     await addFile();
     await waitFor(() => expect(convertButton()).toHaveFocus());
   });
 
-  it('announces the result by focusing it, and returns to the file picker for more', async () => {
+  it('moves focus to Convert after the file is removed and added again', async () => {
+    await start();
+    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
+    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await addFile();
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove groove.mid' }));
+    await addFile();
+    await waitFor(() => expect(convertButton()).toHaveFocus());
+  });
+
+  async function convertToResult() {
     await start();
     await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
     await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
     await addFile();
     await waitFor(() => expect(convertButton()).toBeEnabled());
     await userEvent.click(convertButton());
-    const heading = await screen.findByRole('heading', { name: '1 file converted → EZdrummer' });
+    return screen.findByRole('heading', { name: '1 file converted → EZdrummer' });
+  }
+
+  it('announces the result by focusing it', async () => {
+    const heading = await convertToResult();
     await waitFor(() => expect(heading).toHaveFocus());
+  });
+
+  it('returns to the file picker for more', async () => {
+    await convertToResult();
     await userEvent.click(screen.getByRole('button', { name: 'Convert more' }));
     expect(document.activeElement).toHaveTextContent(/Drop one or more \.mid files/);
   });
 
-  it('focuses the editor heading and comes back to the edit link', async () => {
+  async function openEditor() {
     await start();
     await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
     await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
     await userEvent.click(screen.getByRole('button', { name: /Edit individual notes/ }));
+  }
+
+  it('focuses the editor heading', async () => {
+    await openEditor();
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Edit notes' })).toHaveFocus());
+  });
+
+  it('comes back to the edit link from Done', async () => {
+    await openEditor();
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(screen.getByRole('button', { name: /Edit individual notes/ })).toHaveFocus();
-    await userEvent.click(screen.getByRole('button', { name: /Edit individual notes/ }));
+  });
+
+  it('comes back to the edit link from Back', async () => {
+    await openEditor();
     await userEvent.click(screen.getByRole('button', { name: '← Back' }));
     expect(screen.getByRole('button', { name: /Edit individual notes/ })).toHaveFocus();
   });

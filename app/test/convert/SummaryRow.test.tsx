@@ -31,10 +31,15 @@ describe('SummaryRow edited chip', () => {
     expect(screen.queryByRole('button', { name: /edited/ })).not.toBeInTheDocument();
   });
 
-  it('counts the edited drums and opens the review', async () => {
-    const onReview = renderRow({});
+  it('counts the edited drums', () => {
+    renderRow({});
     const chip = screen.getByRole('button', { name: '2 drums edited — review changes' });
     expect(chip).toHaveTextContent('2 edited');
+  });
+
+  it('opens the review', async () => {
+    const onReview = renderRow({});
+    const chip = screen.getByRole('button', { name: '2 drums edited — review changes' });
     await userEvent.click(chip);
     expect(onReview).toHaveBeenCalledOnce();
   });

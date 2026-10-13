@@ -109,10 +109,16 @@ mod tests {
         note::n,
     };
 
-    #[test]
-    fn report_tallies_each_arm() {
-        let open3 = Canon::Hat(HatOpen::Open(idx(3)), HatZone::Plain);
-        let snare = Canon::Snare(idx(1), SnareArtic::Hit);
+    fn open3() -> Canon {
+        Canon::Hat(HatOpen::Open(idx(3)), HatZone::Plain)
+    }
+
+    fn snare() -> Canon {
+        Canon::Snare(idx(1), SnareArtic::Hit)
+    }
+
+    fn tallied_report() -> Report {
+        let (open3, snare) = (open3(), snare());
         let mut r = Report::default();
         r.record(n(99), &Resolution::Unmapped);
         r.record(
@@ -137,22 +143,59 @@ mod tests {
                 note: n(50),
             }),
         );
+        r
+    }
+
+    #[test]
+    fn report_tallies_an_unmapped_note() {
+        let r = tallied_report();
         assert_eq!(r.unmapped_source().collect::<Vec<_>>(), [(n(99), 1)]);
+    }
+
+    #[test]
+    fn report_tallies_a_fallback() {
+        let r = tallied_report();
         assert_eq!(
             r.fallback_used().collect::<Vec<_>>(),
             [(
-                open3,
+                open3(),
                 &FallbackTally {
                     note: n(60),
                     count: 1
                 }
             )]
         );
-        assert_eq!(r.dropped().collect::<Vec<_>>(), [(snare, 1)]);
+    }
+
+    #[test]
+    fn report_tallies_a_dropped_drum() {
+        let r = tallied_report();
+        assert_eq!(r.dropped().collect::<Vec<_>>(), [(snare(), 1)]);
+    }
+
+    #[test]
+    fn report_counts_direct_and_fallback_hits_as_converted() {
+        let r = tallied_report();
         assert_eq!(r.converted(), 2);
+    }
+
+    #[test]
+    fn recorded_hits_are_not_untouched() {
+        let r = tallied_report();
         assert_eq!(r.untouched(), 0);
+    }
+
+    #[test]
+    fn report_counts_an_untouched_event() {
+        let mut r = tallied_report();
         r.record_untouched();
         assert_eq!(r.untouched(), 1);
+    }
+
+    #[test]
+    fn report_hits_count_every_recorded_event() {
+        let mut r = tallied_report();
+        r.record_untouched();
         assert_eq!(r.hits(), 5);
     }
 

@@ -89,16 +89,26 @@ mod tests {
     }
 
     #[test]
-    fn engine_specific_decodes() {
+    fn general_midi_decodes_36_as_the_main_kick() {
         let b = Catalog::builtin().unwrap();
         assert_eq!(
             b.get("general_midi").unwrap().decode(n(36)),
             Some(Canon::Kick(KickKind::Main))
         );
+    }
+
+    #[test]
+    fn general_midi_decodes_42_as_the_closed_hat() {
+        let b = Catalog::builtin().unwrap();
         assert_eq!(
             b.get("general_midi").unwrap().decode(n(42)),
             Some(Canon::Hat(HatOpen::Closed, HatZone::Plain))
         );
+    }
+
+    #[test]
+    fn guitar_pro_decodes_38_as_the_first_snare() {
+        let b = Catalog::builtin().unwrap();
         assert_eq!(
             b.get("guitar_pro").unwrap().decode(n(38)),
             Some(Canon::Snare(idx(1), SnareArtic::Hit))
@@ -128,7 +138,7 @@ mod tests {
     }
 
     #[test]
-    fn addictive_drums2_native_layout() {
+    fn addictive_drums2_decodes_its_native_layout() {
         let b = Catalog::builtin().unwrap();
         let ad2 = b.get("addictive_drums2").unwrap();
         assert_eq!(
@@ -136,6 +146,12 @@ mod tests {
             Some(Canon::Hat(HatOpen::Tight, HatZone::Tip))
         );
         assert_eq!(ad2.decode(n(36)), Some(Canon::Kick(KickKind::Main)));
+    }
+
+    #[test]
+    fn addictive_drums2_encodes_its_native_layout() {
+        let b = Catalog::builtin().unwrap();
+        let ad2 = b.get("addictive_drums2").unwrap();
         assert_eq!(
             ad2.encode(Canon::Hat(HatOpen::Open(idx(1)), HatZone::Plain)),
             Some(n(55))
@@ -159,17 +175,47 @@ mod tests {
             p.get("ggd_invasion").unwrap().decode(n(24)),
             Some(Canon::Kick(KickKind::Main))
         );
+    }
+
+    #[test]
+    fn layered_serves_the_added_engine() {
+        let json = r#"{"id":"custom","name":"Custom","notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
+        let p = Catalog::builtin().unwrap().with_user_json(json).unwrap();
         assert!(p.get("custom").is_some());
+    }
+
+    fn catalog_with_an_alias() -> Catalog {
+        let json = r#"{"id":"custom","name":"Custom","aliases":["legacy_kit"],"notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
+        Catalog::builtin().unwrap().with_user_json(json).unwrap()
     }
 
     #[test]
     fn an_alias_resolves_to_its_engine() {
-        let json = r#"{"id":"custom","name":"Custom","aliases":["legacy_kit"],"notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
-        let p = Catalog::builtin().unwrap().with_user_json(json).unwrap();
+        let p = catalog_with_an_alias();
         assert_eq!(p.get("legacy_kit").map(EngineMap::id), Some("custom"));
+    }
+
+    #[test]
+    fn canonical_id_resolves_an_alias() {
+        let p = catalog_with_an_alias();
         assert_eq!(p.canonical_id("legacy_kit"), Some("custom"));
+    }
+
+    #[test]
+    fn canonical_id_keeps_an_engine_id() {
+        let p = catalog_with_an_alias();
         assert_eq!(p.canonical_id("custom"), Some("custom"));
+    }
+
+    #[test]
+    fn canonical_id_of_an_unknown_name_is_none() {
+        let p = catalog_with_an_alias();
         assert_eq!(p.canonical_id("nope"), None);
+    }
+
+    #[test]
+    fn an_alias_is_not_listed_among_the_ids() {
+        let p = catalog_with_an_alias();
         assert!(!p.ids().any(|id| id == "legacy_kit"));
     }
 
@@ -193,7 +239,6 @@ mod tests {
         let p = Catalog::builtin().unwrap().with_user_json(json).unwrap();
         let n = Catalog::builtin().unwrap().ids().count();
         assert_eq!(p.ids().count(), n + 1);
-        assert!(p.get("custom").is_some());
     }
 
     #[test]
@@ -215,18 +260,32 @@ mod tests {
     }
 
     #[test]
-    fn ids_and_engines_come_sorted_by_id() {
-        let json = r#"{"id":"aaa_first","name":"First","notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
-        let c = Catalog::builtin().unwrap().with_user_json(json).unwrap();
+    fn ids_come_sorted() {
+        let c = catalog_with_aaa_first();
         assert!(c.ids().is_sorted());
         assert_eq!(c.ids().next(), Some("aaa_first"));
+    }
+
+    #[test]
+    fn engines_come_in_id_order() {
+        let c = catalog_with_aaa_first();
         assert!(c.engines().map(EngineMap::id).eq(c.ids()));
+    }
+
+    fn catalog_with_aaa_first() -> Catalog {
+        let json = r#"{"id":"aaa_first","name":"First","notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
+        Catalog::builtin().unwrap().with_user_json(json).unwrap()
     }
 
     #[test]
     fn shared_is_parsed_once() {
         let shared = Catalog::shared().unwrap();
         assert!(std::ptr::eq(shared, Catalog::shared().unwrap()));
+    }
+
+    #[test]
+    fn shared_holds_the_builtin_engines() {
+        let shared = Catalog::shared().unwrap();
         assert!(shared.ids().eq(Catalog::builtin().unwrap().ids()));
     }
 }

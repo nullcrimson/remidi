@@ -241,10 +241,17 @@ mod tests {
     }
 
     #[test]
-    fn chain_has_no_self_and_no_dupes() {
+    fn chain_has_no_self() {
         for &c in Canon::all() {
             let chain = c.fallback_chain();
             assert!(!chain.contains(&c), "{c} in own chain");
+        }
+    }
+
+    #[test]
+    fn chain_has_no_dupes() {
+        for &c in Canon::all() {
+            let chain = c.fallback_chain();
             let unique: HashSet<Canon> = chain.iter().copied().collect();
             assert_eq!(unique.len(), chain.len(), "dupes in {c}");
         }
@@ -277,11 +284,15 @@ mod tests {
     }
 
     #[test]
-    fn a_snare_tries_its_own_stroke_then_the_other_snare() {
+    fn a_snare_hit_tries_its_sidestick_then_the_other_snare() {
         assert_eq!(
             chain("snare1.hit"),
             keys(&["snare1.side", "snare2.hit", "snare2.side"])
         );
+    }
+
+    #[test]
+    fn a_snare_rimshot_tries_its_hit_then_the_other_snare() {
         assert_eq!(
             chain("snare2.rimshot"),
             keys(&["snare2.hit", "snare1.rimshot", "snare1.hit"])

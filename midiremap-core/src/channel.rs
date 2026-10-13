@@ -168,9 +168,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_channel_is_one_to_sixteen() {
+    fn a_channel_outside_one_to_sixteen_is_rejected() {
         assert_eq!(Channel::new(0), None);
         assert_eq!(Channel::new(17), None);
+    }
+
+    #[test]
+    fn a_channel_from_one_to_sixteen_is_accepted() {
         assert_eq!(Channel::new(1).map(Channel::get), Some(1));
         assert_eq!(Channel::new(16).map(Channel::get), Some(16));
     }

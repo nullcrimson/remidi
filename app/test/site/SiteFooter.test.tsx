@@ -19,11 +19,16 @@ describe('SiteFooter', () => {
     ]);
   });
 
-  it('opens the tip page in a new tab, marked with a coffee', () => {
+  it('opens the tip page in a new tab', () => {
     render(<SiteFooter />);
     const tip = screen.getByRole('link', { name: 'Buy me a coffee' });
     expect(tip).toHaveAttribute('target', '_blank');
     expect(tip).toHaveAttribute('rel', 'noopener');
+  });
+
+  it('marks the tip link with a coffee', () => {
+    render(<SiteFooter />);
+    const tip = screen.getByRole('link', { name: 'Buy me a coffee' });
     expect(tip).toHaveClass('tip-link');
   });
 
@@ -32,17 +37,26 @@ describe('SiteFooter', () => {
     expect(screen.getByText(/trademarks/)).not.toBeVisible();
   });
 
-  it('shows gold links, centred', () => {
+  it('shows gold links', () => {
     render(<SiteFooter />);
     for (const link of footerLinks()) expect(link).toHaveClass('prose-link');
+  });
+
+  it('centres the links', () => {
+    render(<SiteFooter />);
     expect(screen.getByRole('navigation', { name: 'Site' }).firstElementChild).toHaveClass('justify-center');
   });
 
-  it('opens a section in a dialog on a plain click and closes it', async () => {
+  it('opens a section in a dialog on a plain click', async () => {
     render(<SiteFooter />);
     await userEvent.click(within(screen.getByRole('navigation', { name: 'Site' })).getByRole('link', { name: 'FAQ' }));
     expect(screen.getByRole('dialog', { name: 'Frequently asked questions' })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Is Drumverter free?' })).toBeVisible();
+  });
+
+  it('closes the section dialog', async () => {
+    render(<SiteFooter />);
+    await userEvent.click(within(screen.getByRole('navigation', { name: 'Site' })).getByRole('link', { name: 'FAQ' }));
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
@@ -61,7 +75,7 @@ describe('SiteFooter', () => {
     expect(screen.getByText(/not liable for any damages or data loss/i)).toBeVisible();
   });
 
-  it('opens an issue dialog with a GitHub link and a contact email', async () => {
+  it('opens an issue dialog with a GitHub link', async () => {
     render(<SiteFooter />);
     await userEvent.click(screen.getByRole('link', { name: 'Report an issue' }));
     const dialog = screen.getByRole('dialog', { name: 'Report an issue' });
@@ -69,16 +83,26 @@ describe('SiteFooter', () => {
     expect(issue).toHaveAttribute('href', 'https://github.com/nullcrimson/remidi/issues');
     expect(issue).toHaveAttribute('target', '_blank');
     expect(issue).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  it('opens an issue dialog with a contact email', async () => {
+    render(<SiteFooter />);
+    await userEvent.click(screen.getByRole('link', { name: 'Report an issue' }));
+    const dialog = screen.getByRole('dialog', { name: 'Report an issue' });
     expect(within(dialog).getByRole('link', { name: 'null.crimson.dev@gmail.com' })).toHaveAttribute(
       'href',
       'mailto:null.crimson.dev@gmail.com',
     );
   });
 
-  it('shows three short steps and tips in How to use, linking internal pages in place', async () => {
+  const openHowToUse = async () => {
     render(<SiteFooter />);
     await userEvent.click(screen.getByRole('link', { name: 'How to use' }));
-    const dialog = screen.getByRole('dialog', { name: 'How to convert drum MIDI' });
+    return screen.getByRole('dialog', { name: 'How to convert drum MIDI' });
+  };
+
+  it('shows three short steps and tips in How to use', async () => {
+    const dialog = await openHowToUse();
     expect(within(dialog).getAllByRole('listitem').map((li) => li.textContent?.split('.')[0])).toEqual([
       'Add your files',
       'Pick two engines',
@@ -87,7 +111,15 @@ describe('SiteFooter', () => {
       'Save a preset to reuse your setup',
       'Every supported engine and its notes: note maps',
     ]);
+  });
+
+  it('keeps the supported engines list out of How to use', async () => {
+    const dialog = await openHowToUse();
     expect(within(dialog).queryByRole('heading', { name: 'Supported drum engines' })).not.toBeInTheDocument();
+  });
+
+  it('links internal pages of How to use in place', async () => {
+    const dialog = await openHowToUse();
     const maps = within(dialog).getByRole('link', { name: 'note maps' });
     expect(maps).toHaveAttribute('href', '/engines/');
     expect(maps).not.toHaveAttribute('target');

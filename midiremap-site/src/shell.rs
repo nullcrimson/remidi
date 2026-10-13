@@ -120,30 +120,64 @@ mod tests {
 
     const MARKED: &str = "<html lang=\"en\"><head><!--app-head--><title>Drumverter</title><!--/app-head--></head><body><div id=\"root\"><!--app-title--><!--/app-title--></div><!--app-noscript--><!--/app-noscript--></body></html>";
 
-    #[test]
-    fn the_english_shell_carries_todays_head_and_noscript_text() {
-        let out = localize_shell(
+    fn english_shell() -> String {
+        localize_shell(
             MARKED,
             Locale::En,
             &Messages::load().unwrap(),
             &Docs::load().unwrap(),
         )
-        .unwrap();
+        .unwrap()
+    }
+
+    #[test]
+    fn the_english_shell_carries_todays_title() {
+        let out = english_shell();
         assert!(out.contains("<title>Drumverter — free drum MIDI remapper &#38; converter</title>"));
+    }
+
+    #[test]
+    fn the_english_shell_carries_the_share_image_description() {
+        let out = english_shell();
         assert!(out.contains(
             r#"<meta property="og:image:alt" content="Drumverter — drum MIDI converter and remapper" />"#
         ));
+    }
+
+    #[test]
+    fn the_english_shell_carries_the_software_application_schema() {
+        let out = english_shell();
         assert!(out.contains(r#""@type":"SoftwareApplication""#));
+    }
+
+    #[test]
+    fn the_english_shell_carries_the_noscript_text() {
+        let out = english_shell();
         assert!(out.contains("enable JavaScript to use the converter"));
+    }
+
+    #[test]
+    fn the_english_shell_carries_the_load_failure_notice() {
+        let out = english_shell();
         assert!(out.contains(r#"<div id="load-failed" hidden"#));
+    }
+
+    #[test]
+    fn the_english_shell_carries_one_structured_data_block() {
+        let out = english_shell();
         assert_eq!(out.matches("application/ld+json").count(), 1);
     }
 
     #[test]
-    fn the_shell_carries_a_heading_the_app_replaces_on_mount() {
+    fn the_english_shell_carries_a_heading_the_app_replaces_on_mount() {
         let m = Messages::load().unwrap();
         let en = localize_shell(MARKED, Locale::En, &m, &Docs::load().unwrap()).unwrap();
         assert!(en.contains(r#"<div id="root"><!--app-title--><h1 class="sr-only">Drumverter — free drum MIDI remapper &#38; converter</h1><!--/app-title--></div>"#));
+    }
+
+    #[test]
+    fn the_polish_shell_carries_a_heading_the_app_replaces_on_mount() {
+        let m = Messages::load().unwrap();
         let pl = localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap()).unwrap();
         assert!(pl.contains(&format!(
             r#"<h1 class="sr-only">{}</h1>"#,
@@ -162,11 +196,23 @@ mod tests {
     }
 
     #[test]
-    fn each_shell_has_its_language_title_and_canonical() {
+    fn the_polish_shell_declares_polish() {
         let m = Messages::load().unwrap();
         let pl = localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap()).unwrap();
         assert!(pl.contains(r#"<html lang="pl">"#));
+    }
+
+    #[test]
+    fn the_polish_shell_has_its_canonical() {
+        let m = Messages::load().unwrap();
+        let pl = localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap()).unwrap();
         assert!(pl.contains(r#"<link rel="canonical" href="https://drumverter.com/pl/" />"#));
+    }
+
+    #[test]
+    fn the_polish_shell_has_its_title() {
+        let m = Messages::load().unwrap();
+        let pl = localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap()).unwrap();
         assert!(pl.contains(&format!(
             "<title>{}</title>",
             m.get(Locale::Pl, Plain::ConverterTitle)
@@ -175,17 +221,16 @@ mod tests {
 
     #[test]
     fn every_shell_lists_every_version_and_the_default() {
-        let out = localize_shell(
-            MARKED,
-            Locale::En,
-            &Messages::load().unwrap(),
-            &Docs::load().unwrap(),
-        )
-        .unwrap();
+        let out = english_shell();
         assert_eq!(
             out.matches(r#"rel="alternate" hreflang="#).count(),
             Locale::ALL.len() + 1
         );
+    }
+
+    #[test]
+    fn the_english_shell_points_the_default_version_at_the_root() {
+        let out = english_shell();
         assert!(out.contains(r#"hreflang="x-default" href="https://drumverter.com/""#));
     }
 

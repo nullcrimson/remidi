@@ -43,12 +43,18 @@ describe('plan errors', () => {
     vi.mocked(stub.plan).mockImplementation(planThatRejectsBogus);
   });
 
-  it('become an editor error instead of a render throw, and reset clears them', async () => {
+  it('become an editor error instead of a render throw', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.loadMapping(PRESET));
     expect(result.current.editor.planError).toEqual({ kind: 'internal', detail: 'unknown canon bogus.canon' });
     expect(result.current.editor.rows).toEqual([]);
+  });
+
+  it('are cleared by reset', async () => {
+    const { result } = renderHook(() => useRemapper(RUNTIME));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
+    act(() => result.current.loadMapping(PRESET));
     act(() => result.current.editor.reset());
     expect(result.current.editor.planError).toBeNull();
     expect(result.current.editor.rows).toHaveLength(1);
@@ -75,13 +81,20 @@ describe('plan errors', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('unknown engine ggd_invasion');
   });
 
-  it('shows a notice with Reset edits on the convert view', async () => {
+  it('shows a notice on the convert view', async () => {
     localStorage.setItem(MAPPINGS_KEY, JSON.stringify([PRESET]));
     render(<App runtime={RUNTIME} />);
     await userEvent.click((await screen.findAllByRole('button', { name: /Old preset/ }))[0]);
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('The note editor could not load: Something went wrong Details: unknown canon bogus.canon');
     expect(screen.queryByText(/of 1 drum remapped/)).not.toBeInTheDocument();
+  });
+
+  it('clears the notice with Reset edits', async () => {
+    localStorage.setItem(MAPPINGS_KEY, JSON.stringify([PRESET]));
+    render(<App runtime={RUNTIME} />);
+    await userEvent.click((await screen.findAllByRole('button', { name: /Old preset/ }))[0]);
+    await screen.findByRole('alert');
     await userEvent.click(screen.getByRole('button', { name: 'Reset edits' }));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByText(/of 1 drum remapped/)).toBeInTheDocument();

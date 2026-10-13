@@ -35,7 +35,7 @@ describe('useRemapper loadMapping', () => {
     expect(result.current.view).toEqual({ kind: 'convert' });
   });
 
-  it('replaces prior edits and returns to the convert view from edit', async () => {
+  async function loadOverEditedEditor() {
     const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
 
@@ -44,6 +44,11 @@ describe('useRemapper loadMapping', () => {
     act(() => result.current.editor.openPick(canon('kick.main')));
     act(() => result.current.editor.chooseNote(shownTgtPick(result.current.editor), note(45)));
     act(() => result.current.openEditor('all', null));
+    return result;
+  }
+
+  it('replaces prior edits', async () => {
+    const result = await loadOverEditedEditor();
     expect(result.current.editor.edits).toEqual({ 'kick.main': 45 });
 
     act(() =>
@@ -53,6 +58,15 @@ describe('useRemapper loadMapping', () => {
     expect(result.current.src).toBe('ezdrummer');
     expect(result.current.tgt).toBe('ggd_invasion');
     expect(result.current.editor.edits).toEqual({ 'snare1.hit': 38 });
+  });
+
+  it('returns to the convert view from edit', async () => {
+    const result = await loadOverEditedEditor();
+
+    act(() =>
+      result.current.loadMapping({ src: 'ezdrummer', tgt: 'ggd_invasion', edits: typed<StoredEdits['edits']>({ 'snare1.hit': 38 }), srcEdits: {} }),
+    );
+
     expect(result.current.view).toEqual({ kind: 'convert' });
     expect(result.current.editor.overlay).toBeNull();
   });

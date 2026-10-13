@@ -170,6 +170,11 @@ mod tests {
     fn schema_json_cannot_close_its_script() {
         let s = script_json(&json!({ "q": "</script><b>" }));
         assert!(!s.contains('<'));
+    }
+
+    #[test]
+    fn schema_json_still_decodes_to_its_value() {
+        let s = script_json(&json!({ "q": "</script><b>" }));
         assert_eq!(
             serde_json::from_str::<serde_json::Value>(&s).unwrap()["q"],
             "</script><b>"

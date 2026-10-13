@@ -43,21 +43,29 @@ test('walks from page load to a converted file by keyboard', async ({ page }) =>
   await expect(page.locator('button:has(+ [data-testid=file-input])')).toBeFocused();
 });
 
-test('focus moves to the next missing step as files arrive', async ({ page }) => {
+test('focus moves to the TO engine filter when files arrive and TO is missing', async ({ page }) => {
   await page.goto('/?from=ggd_invasion');
   await addFiles(page, groove());
   await expect(page.getByRole('combobox', { name: 'Filter TO engines' })).toBeFocused();
+});
 
+test('focus moves to Convert when files arrive and both engines are chosen', async ({ page }) => {
   await openPair(page);
   await addFiles(page, groove());
   await expect(page.getByRole('button', { name: /^Convert/ })).toBeFocused();
 });
 
-test('the note editor keeps focus where the keyboard is', async ({ page }) => {
+test('opening the note editor focuses its heading', async ({ page }) => {
   await openPair(page);
   const editLink = page.getByRole('button', { name: /Edit individual notes/ });
   await editLink.click();
   await expect(page.getByRole('heading', { name: 'Edit notes' })).toBeFocused();
+});
+
+test('a note picker opened with Enter takes focus', async ({ page }) => {
+  await openPair(page);
+  await page.getByRole('button', { name: /Edit individual notes/ }).click();
+  await page.getByRole('heading', { name: 'Edit notes' }).waitFor();
 
   const note = page.getByRole('button', { name: 'C2', exact: true }).first();
   await note.focus();
@@ -65,9 +73,28 @@ test('the note editor keeps focus where the keyboard is', async ({ page }) => {
   const picker = page.getByRole('dialog');
   await expect(picker).toBeVisible();
   await expect.poll(() => picker.evaluate((d) => d.contains(document.activeElement))).toBe(true);
+});
+
+test('Escape in the note picker gives focus back to the note', async ({ page }) => {
+  await openPair(page);
+  await page.getByRole('button', { name: /Edit individual notes/ }).click();
+  await page.getByRole('heading', { name: 'Edit notes' }).waitFor();
+  const note = page.getByRole('button', { name: 'C2', exact: true }).first();
+  await note.focus();
+  await page.keyboard.press('Enter');
+  const picker = page.getByRole('dialog');
+  await picker.waitFor();
+
   await page.keyboard.press('Escape');
   await expect(picker).toBeHidden();
   await expect(note).toBeFocused();
+});
+
+test('Back from the note editor gives focus back to the Edit link', async ({ page }) => {
+  await openPair(page);
+  const editLink = page.getByRole('button', { name: /Edit individual notes/ });
+  await editLink.click();
+  await page.getByRole('heading', { name: 'Edit notes' }).waitFor();
 
   await page.getByRole('button', { name: /Back/ }).click();
   await expect(editLink).toBeFocused();

@@ -204,6 +204,11 @@ mod tests {
         assert_eq!(m.decode(n(24)), Some(Canon::Kick(KickKind::Main)));
         assert_eq!(m.decode(n(23)), Some(Canon::Kick(KickKind::Main)));
         assert_eq!(m.decode(n(26)), Some(Canon::Snare(idx(1), SnareArtic::Hit)));
+    }
+
+    #[test]
+    fn an_unlisted_note_decodes_to_none() {
+        let m = from_toml(SAMPLE).unwrap();
         assert_eq!(m.decode(n(99)), None);
     }
 
@@ -255,7 +260,18 @@ mod tests {
 
     #[test]
     fn display_name_prefers_short_name() {
-        let m = from_toml(
+        let m = with_short_name();
+        assert_eq!(m.display_name(), "Short");
+    }
+
+    #[test]
+    fn a_short_name_leaves_the_name_unchanged() {
+        let m = with_short_name();
+        assert_eq!(m.name(), "Very Long Official Name");
+    }
+
+    fn with_short_name() -> EngineMap {
+        from_toml(
             r#"
             id = "x"
             name = "Very Long Official Name"
@@ -263,9 +279,7 @@ mod tests {
             notes = [ { note = 36, canon = "kick.main", primary = true } ]
         "#,
         )
-        .unwrap();
-        assert_eq!(m.display_name(), "Short");
-        assert_eq!(m.name(), "Very Long Official Name");
+        .unwrap()
     }
 
     #[test]
@@ -280,8 +294,12 @@ mod tests {
     }
 
     #[test]
-    fn vendor_is_optional_and_read_when_given() {
+    fn vendor_is_optional() {
         assert_eq!(from_toml(SAMPLE).unwrap().vendor(), None);
+    }
+
+    #[test]
+    fn vendor_is_read_when_given() {
         let m = from_toml(
             r#"
             id = "x"

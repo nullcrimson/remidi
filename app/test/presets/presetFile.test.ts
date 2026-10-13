@@ -17,7 +17,13 @@ describe('preset file', () => {
 
   it('names the file after the preset', () => {
     expect(presetFileName('My kit')).toBe('my-kit-drumverter.json');
+  });
+
+  it('leaves punctuation and edge spaces out of the file name', () => {
     expect(presetFileName('  GGD → EZD (live)! ')).toBe('ggd-ezd-live-drumverter.json');
+  });
+
+  it('names the file preset when the name has no letters or digits', () => {
     expect(presetFileName('→→')).toBe('preset-drumverter.json');
   });
 });

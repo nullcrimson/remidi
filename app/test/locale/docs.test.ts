@@ -6,9 +6,13 @@ import { ENGLISH } from '../../src/locale/i18n';
 import { href } from '../../src/site/site';
 
 describe('documents', () => {
-  it('links the contact and issue documents to the addresses the app uses', () => {
-    const links = JSON.stringify([sectionBlocks('issue', ENGLISH.docs), sectionBlocks('contact', ENGLISH.docs)]);
+  it('links the issue document to the address the app uses', () => {
+    const links = JSON.stringify(sectionBlocks('issue', ENGLISH.docs));
     expect(links).toContain(`"href":"${ISSUES_URL}"`);
+  });
+
+  it('links the contact document to the address the app uses', () => {
+    const links = JSON.stringify(sectionBlocks('contact', ENGLISH.docs));
     expect(links).toContain(`"href":"mailto:${CONTACT_EMAIL}"`);
   });
 

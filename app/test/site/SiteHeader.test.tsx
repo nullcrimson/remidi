@@ -3,9 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { SiteHeader } from '../../src/site/SiteHeader';
 
 describe('SiteHeader', () => {
-  it('shows the brand heading and the shared nav with the converter current', () => {
+  it('shows the brand heading', () => {
     render(<SiteHeader />);
     expect(screen.getByRole('heading', { level: 1, name: /^Drumverter/ })).toBeInTheDocument();
+  });
+
+  it('shows the shared nav', () => {
+    render(<SiteHeader />);
     const nav = screen.getByRole('navigation', { name: 'Main' });
     const links = within(nav).getAllByRole('link');
     expect(links.map((l) => [l.textContent, l.getAttribute('href')])).toEqual([
@@ -14,6 +18,12 @@ describe('SiteHeader', () => {
       ['Note maps', '/engines/'],
       ['FAQ', '/faq/'],
     ]);
+  });
+
+  it('marks the converter current in the nav', () => {
+    render(<SiteHeader />);
+    const nav = screen.getByRole('navigation', { name: 'Main' });
+    const links = within(nav).getAllByRole('link');
     expect(links[0]).toHaveAttribute('aria-current', 'page');
     expect(links[1]).not.toHaveAttribute('aria-current');
   });

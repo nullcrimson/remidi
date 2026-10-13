@@ -62,12 +62,18 @@ describe('picking a drum’s source note', () => {
     expect(Object.keys(result.current.editor.srcEdits)).not.toContain('27');
   });
 
-  it('says which drum a picked note was taken from, until the next edit', async () => {
+  it('says which drum a picked note was taken from', async () => {
     const result = await ready();
     act(() => result.current.editor.openSrcPick(canon('kick.main')));
     act(() => result.current.editor.chooseSrcNote(shownSrcPick(result.current.editor), note(26)));
     expect(result.current.editor.overlay).toEqual({ kind: 'notice', canon: 'kick.main', note: 26, from: 'Snare' });
     expect(srcNotesOf(result.current.editor.rows, 'snare1.hit')).toEqual([]);
+  });
+
+  it('replaces the taken-from notice when the next pick opens', async () => {
+    const result = await ready();
+    act(() => result.current.editor.openSrcPick(canon('kick.main')));
+    act(() => result.current.editor.chooseSrcNote(shownSrcPick(result.current.editor), note(26)));
     act(() => result.current.editor.openPick(canon('snare1.hit')));
     expect(result.current.editor.overlay).toMatchObject({ kind: 'tgt' });
   });

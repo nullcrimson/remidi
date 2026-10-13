@@ -24,15 +24,21 @@ test('the last engines, settings and unsaved edits come back on a fresh visit', 
   await expect(targetNote(page, 'Kick')).toHaveText('F1');
 });
 
-test('a link with engines wins over the remembered ones and keeps the settings', async ({ page }) => {
+test('a link with engines wins over the remembered ones', async ({ page }) => {
   await openPair(page);
-  await press(page.getByRole('radiogroup', { name: 'Octaves start at' }).getByText('C-2'));
-  await expect(page.getByRole('radio', { name: 'C-2' })).toBeChecked();
 
   await page.goto('/?from=ezdrummer&to=general_midi');
   await expect(page.getByRole('group', { name: 'FROM engine' }).getByTestId('chosen-engine'))
     .toHaveText('EZdrummer 3');
   await expect(page.getByRole('group', { name: 'TO engine' }).getByTestId('chosen-engine'))
     .toHaveText(/General MIDI/);
+});
+
+test('a link with engines keeps the remembered settings', async ({ page }) => {
+  await openPair(page);
+  await press(page.getByRole('radiogroup', { name: 'Octaves start at' }).getByText('C-2'));
+  await expect(page.getByRole('radio', { name: 'C-2' })).toBeChecked();
+
+  await page.goto('/?from=ezdrummer&to=general_midi');
   await expect(page.getByRole('radio', { name: 'C-2' })).toBeChecked();
 });

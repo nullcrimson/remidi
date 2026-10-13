@@ -40,6 +40,12 @@ fn ezdrummer2_is_the_richest_source_kit() {
         src_id, "ezdrummer2",
         "expected ezdrummer2 to have the most decodable notes"
     );
+}
+
+#[test]
+fn the_richest_source_kit_decodes_127_notes() {
+    let maps = Catalog::builtin().unwrap();
+    let src_id = richest_engine(&maps);
     assert_eq!(
         maps.get(src_id).unwrap().source_notes().len(),
         127,

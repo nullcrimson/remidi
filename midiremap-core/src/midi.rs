@@ -89,21 +89,42 @@ mod tests {
         riff
     }
 
+    fn smf(timing: &[u8]) -> Vec<u8> {
+        [
+            b"MThd\0\0\0\x06\0\0\0\x01".as_slice(),
+            timing,
+            b"MTrk\0\0\0\x04\0\xff\x2f\0",
+        ]
+        .concat()
+    }
+
+    #[test]
+    fn a_valid_smpte_rate_parses() {
+        let good = smf(b"\xe7\x28");
+        assert!(parse(&good).is_ok());
+    }
+
+    #[test]
+    fn a_valid_smpte_rate_parses_inside_a_riff_wrapper() {
+        let good = smf(b"\xe7\x28");
+        assert!(parse(&riff(&good)).is_ok());
+    }
+
     #[test]
     fn an_smpte_rate_of_minus_128_is_an_error() {
-        let smf = |timing: &[u8]| {
-            [
-                b"MThd\0\0\0\x06\0\0\0\x01".as_slice(),
-                timing,
-                b"MTrk\0\0\0\x04\0\xff\x2f\0",
-            ]
-            .concat()
-        };
-        let (bad, good) = (smf(b"\x80\xe0"), smf(b"\xe7\x28"));
-        assert!(parse(&good).is_ok());
-        assert!(parse(&riff(&good)).is_ok());
+        let bad = smf(b"\x80\xe0");
         assert!(matches!(parse(&bad), Err(CodecError::SmpteRate)));
+    }
+
+    #[test]
+    fn an_smpte_rate_of_minus_128_inside_a_riff_wrapper_is_an_error() {
+        let bad = smf(b"\x80\xe0");
         assert!(matches!(parse(&riff(&bad)), Err(CodecError::SmpteRate)));
+    }
+
+    #[test]
+    fn a_later_header_with_an_smpte_rate_of_minus_128_is_an_error() {
+        let good = smf(b"\xe7\x28");
         let later = [good.as_slice(), b"MThd\0\0\0\x06\0\0\0\x01\x80\xe0"].concat();
         assert!(parse(&later).is_err());
     }

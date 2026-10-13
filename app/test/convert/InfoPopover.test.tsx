@@ -25,24 +25,47 @@ describe('InfoPopover', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('opens on hover and closes a moment after the mouse leaves', async () => {
+  it('opens on hover', async () => {
     const trigger = renderPopover();
     await userEvent.hover(trigger);
     expect(await screen.findByRole('dialog')).toBeVisible();
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('closes a moment after the mouse leaves', async () => {
+    const trigger = renderPopover();
+    await userEvent.hover(trigger);
+    await screen.findByRole('dialog');
     await userEvent.unhover(trigger);
     expect(panel()).toBeInTheDocument();
     await waitFor(() => expect(panel()).not.toBeInTheDocument());
   });
 
-  it('stays open after a click until Esc', async () => {
+  it('stays open after a click when the mouse leaves', async () => {
     const trigger = renderPopover();
     await userEvent.click(trigger);
     await userEvent.unhover(trigger);
     await wait(500);
     expect(panel()).toBeInTheDocument();
+  });
+
+  it('closes a pinned panel on Esc', async () => {
+    const trigger = renderPopover();
+    await userEvent.click(trigger);
+    await userEvent.unhover(trigger);
+    await wait(500);
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(panel()).not.toBeInTheDocument());
+  });
+
+  it('opens again after Esc closed it', async () => {
+    const trigger = renderPopover();
+    await userEvent.click(trigger);
+    await screen.findByRole('dialog');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(panel()).not.toBeInTheDocument());
+    await userEvent.click(trigger);
+    expect(await screen.findByRole('dialog')).toBeVisible();
   });
 
   it('closes a pinned panel on a click outside', async () => {
@@ -52,11 +75,18 @@ describe('InfoPopover', () => {
     await waitFor(() => expect(panel()).not.toBeInTheDocument());
   });
 
-  it('opens from the keyboard and tabs straight into its controls', async () => {
+  it('opens from the keyboard', async () => {
     const trigger = renderPopover();
     trigger.focus();
     await userEvent.keyboard('{Enter}');
     expect(await screen.findByRole('dialog')).toBeVisible();
+  });
+
+  it('tabs straight into its controls', async () => {
+    const trigger = renderPopover();
+    trigger.focus();
+    await userEvent.keyboard('{Enter}');
+    await screen.findByRole('dialog');
     await userEvent.tab();
     expect(screen.getByRole('button', { name: 'Change in note editor →' })).toHaveFocus();
   });

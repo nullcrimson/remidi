@@ -4,11 +4,15 @@ import { describe, expect, it, vi } from 'vitest';
 import { MissingDrumsSetting } from '../../src/convert/MissingDrumsSetting';
 
 describe('MissingDrumsSetting', () => {
-  it('shows Nearest and Drop with the current one checked, and the hint', () => {
+  it('shows Nearest and Drop with the current one checked', () => {
     render(<MissingDrumsSetting value="nearest" hint="2 drums played on another drum" onChange={() => {}} />);
     expect(screen.getByRole('radiogroup', { name: 'Missing drums' })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'Nearest' })).toBeChecked();
     expect(screen.getByRole('radio', { name: 'Drop' })).not.toBeChecked();
+  });
+
+  it('shows the hint', () => {
+    render(<MissingDrumsSetting value="nearest" hint="2 drums played on another drum" onChange={() => {}} />);
     expect(screen.getByText('2 drums played on another drum')).toBeInTheDocument();
   });
 
@@ -19,7 +23,7 @@ describe('MissingDrumsSetting', () => {
     expect(onChange).toHaveBeenCalledWith('drop');
   });
 
-  it('lists the replaced drums on hover and opens the note editor from there', async () => {
+  const renderSwaps = () => {
     const onOpenEditor = vi.fn();
     render(
       <MissingDrumsSetting
@@ -30,10 +34,21 @@ describe('MissingDrumsSetting', () => {
         onChange={() => {}}
       />,
     );
+    return onOpenEditor;
+  };
+
+  it('lists the replaced drums on hover', async () => {
+    renderSwaps();
     await userEvent.hover(screen.getByRole('button', { name: '2 drums played on another drum' }));
     const panel = await screen.findByRole('dialog');
     expect(panel).toHaveTextContent('Played on another drum');
     expect(within(panel).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['China→Crash 1', 'Tom 4→Tom 3']);
+  });
+
+  it('opens the note editor from the replaced drums panel', async () => {
+    const onOpenEditor = renderSwaps();
+    await userEvent.hover(screen.getByRole('button', { name: '2 drums played on another drum' }));
+    const panel = await screen.findByRole('dialog');
     await userEvent.click(within(panel).getByRole('button', { name: 'Change in note editor →' }));
     expect(onOpenEditor).toHaveBeenCalledOnce();
   });

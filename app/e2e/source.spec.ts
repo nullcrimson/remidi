@@ -35,12 +35,18 @@ test('a source note the FROM engine lacks plays a drum once assigned in Advanced
   await strayPlaysKick(page);
 });
 
-test('Assign in the report opens the unrecognized note in Advanced, and assigning it fixes the file', async ({ page }) => {
+test('a note the FROM engine lacks is counted as unrecognized and left out of the file', async ({ page }) => {
   await openPair(page);
   await addFiles(page, kickAndStray());
   await convert(page);
   await expect(page.getByRole('listitem').filter({ hasText: /^1 unrecognized$/ })).toBeVisible();
   expect(hitKeys(await download(page))).toEqual([36]);
+});
+
+test('Assign in the report opens the unrecognized note in Advanced', async ({ page }) => {
+  await openPair(page);
+  await addFiles(page, kickAndStray());
+  await convert(page);
 
   await press(page.getByRole('button', { name: /View report/ }));
   const report = page.getByRole('dialog', { name: 'Conversion report' });
@@ -49,5 +55,16 @@ test('Assign in the report opens the unrecognized note in Advanced, and assignin
   await expect(report).toBeHidden();
   await expect(page.getByRole('heading', { name: 'Edit notes' })).toBeVisible();
   await expect(advanced(page)).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('assigning the unrecognized note from the report fixes the file', async ({ page }) => {
+  await openPair(page);
+  await addFiles(page, kickAndStray());
+  await convert(page);
+  await press(page.getByRole('button', { name: /View report/ }));
+  const report = page.getByRole('dialog', { name: 'Conversion report' });
+  await press(report.getByRole('button', { name: 'Assign →' }));
+  await page.getByRole('heading', { name: 'Edit notes' }).waitFor();
+
   await strayPlaysKick(page);
 });

@@ -32,8 +32,11 @@ describe('parseMappings', () => {
     expect(parseMappings('')).toEqual([]);
   });
 
-  it('returns empty for corrupt JSON or non-arrays', () => {
+  it('returns empty for corrupt JSON', () => {
     expect(parseMappings('{')).toEqual([]);
+  });
+
+  it('returns empty for JSON that is not an array', () => {
     expect(parseMappings('{"id":"x"}')).toEqual([]);
     expect(parseMappings('42')).toEqual([]);
   });
@@ -71,14 +74,24 @@ describe('parseMappings', () => {
     );
   });
 
-  it('drops entries whose edits contain out-of-range or non-integer notes', () => {
-    const bad = [
-      JSON.stringify([{ ...sample, edits: { 'kick.main': 200 } }]),
-      JSON.stringify([{ ...sample, edits: { 'kick.main': -1 } }]),
-      JSON.stringify([{ ...sample, edits: { 'kick.main': 1.5 } }]),
-      JSON.stringify([{ ...sample, edits: { 'kick.main': 'x' } }]),
-    ];
-    for (const raw of bad) expect(parseMappings(raw)).toEqual([]);
+  it('drops entries whose edits contain a note above 127', () => {
+    const raw = JSON.stringify([{ ...sample, edits: { 'kick.main': 200 } }]);
+    expect(parseMappings(raw)).toEqual([]);
+  });
+
+  it('drops entries whose edits contain a negative note', () => {
+    const raw = JSON.stringify([{ ...sample, edits: { 'kick.main': -1 } }]);
+    expect(parseMappings(raw)).toEqual([]);
+  });
+
+  it('drops entries whose edits contain a note that is not a whole number', () => {
+    const raw = JSON.stringify([{ ...sample, edits: { 'kick.main': 1.5 } }]);
+    expect(parseMappings(raw)).toEqual([]);
+  });
+
+  it('drops entries whose edits contain a note that is not a number', () => {
+    const raw = JSON.stringify([{ ...sample, edits: { 'kick.main': 'x' } }]);
+    expect(parseMappings(raw)).toEqual([]);
   });
 
   it('drops entries with non-object edits', () => {
@@ -88,12 +101,17 @@ describe('parseMappings', () => {
 });
 
 describe('sortByRecent', () => {
-  it('orders by updatedAt descending without mutating input', () => {
-    const older = { ...sample, id: 'old', updatedAt: 1 };
-    const newer = { ...sample, id: 'new', updatedAt: 9 };
-    const input = [older, newer];
-    const sorted = sortByRecent(input);
+  const older = { ...sample, id: 'old', updatedAt: 1 };
+  const newer = { ...sample, id: 'new', updatedAt: 9 };
+
+  it('orders by updatedAt descending', () => {
+    const sorted = sortByRecent([older, newer]);
     expect(sorted.map((m) => m.id)).toEqual(['new', 'old']);
+  });
+
+  it('does not mutate its input', () => {
+    const input = [older, newer];
+    sortByRecent(input);
     expect(input.map((m) => m.id)).toEqual(['old', 'new']);
   });
 });
@@ -107,12 +125,18 @@ describe('readStore', () => {
 
   it('reads the versioned envelope', () => {
     expect(readStore(serializeMappings([sample]))).toEqual({ items: [sample], invalid: [] });
+  });
+
+  it('writes the versioned envelope', () => {
     expect(JSON.parse(serializeMappings([sample]))).toEqual({ version: 1, items: [sample] });
   });
 
-  it('keeps data it cannot read, whole, instead of dropping it', () => {
+  it('keeps data of a newer version whole instead of dropping it', () => {
     const future = JSON.stringify({ version: 2, items: [sample] });
     expect(readStore(future)).toEqual({ items: [], invalid: [JSON.parse(future)] });
+  });
+
+  it('keeps text it cannot parse whole instead of dropping it', () => {
     expect(readStore('{')).toEqual({ items: [], invalid: ['{'] });
   });
 
@@ -157,9 +181,15 @@ describe('quarantine', () => {
 });
 
 describe('preset names', () => {
-  it('picks a free name for an import', () => {
+  it('keeps a free name for an import', () => {
     expect(uniqueName(presetName('Kit'), [])).toBe('Kit');
+  });
+
+  it('adds copy to a taken name for an import', () => {
     expect(uniqueName(presetName('Kit'), [presetName('Kit')])).toBe('Kit copy');
+  });
+
+  it('numbers the copy when the copy name is taken too', () => {
     expect(uniqueName(presetName('Kit'), [presetName('Kit'), presetName('Kit copy')])).toBe('Kit copy 2');
   });
 

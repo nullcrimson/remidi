@@ -6,7 +6,7 @@ const mid = () => new File([new Uint8Array([1, 2])], 'a.mid', { type: 'audio/mid
 const txt = () => new File([new Uint8Array([9])], 'note.txt', { type: 'text/plain' });
 
 describe('CardDropzone', () => {
-  it('shows the overlay while dragging and hides on balanced leave', () => {
+  it('shows the overlay while dragging', () => {
     render(
       <CardDropzone onFiles={() => {}}>
         <div>body</div>
@@ -16,6 +16,15 @@ describe('CardDropzone', () => {
     fireEvent.dragEnter(window);
     expect(screen.getByText(/drop \.mid/i)).toBeInTheDocument();
     expect(screen.getByText('or an exported preset (.json)')).toBeInTheDocument();
+  });
+
+  it('hides the overlay on a balanced leave', () => {
+    render(
+      <CardDropzone onFiles={() => {}}>
+        <div>body</div>
+      </CardDropzone>,
+    );
+    fireEvent.dragEnter(window);
     fireEvent.dragLeave(window);
     expect(screen.queryByText(/drop \.mid/i)).toBeNull();
   });

@@ -41,7 +41,7 @@ mod tests {
     use crate::Canon;
 
     #[test]
-    fn families_are_listed_in_display_order() {
+    fn families_are_labelled_in_display_order() {
         let labels: Vec<&str> = Family::ALL.iter().map(|f| f.label()).collect();
         assert_eq!(
             labels,
@@ -55,17 +55,25 @@ mod tests {
                 "Aux"
             ]
         );
+    }
+
+    #[test]
+    fn families_sort_in_display_order() {
         let mut sorted = Family::ALL.to_vec();
         sorted.sort_unstable();
         assert_eq!(sorted, Family::ALL);
     }
 
     #[test]
-    fn a_family_serializes_and_prints_as_its_label() {
+    fn a_family_serializes_as_its_label() {
         assert_eq!(
             serde_json::to_string(&Family::HiHat).unwrap(),
             r#""Hi-Hat""#
         );
+    }
+
+    #[test]
+    fn a_family_prints_as_its_label() {
         assert_eq!(Family::Percussion.to_string(), "Percussion");
     }
 

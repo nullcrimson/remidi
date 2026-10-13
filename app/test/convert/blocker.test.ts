@@ -6,8 +6,11 @@ const { t } = ENGLISH;
 const said = (b: ReturnType<typeof convertBlocker>) => b && { reason: t(b.reason), quiet: b.quiet };
 
 describe('convertBlocker', () => {
-  it('names what is missing under the button', () => {
+  it('asks for a file and both engines when nothing is there', () => {
     expect(said(convertBlocker({ files: 0, pair: null }))).toEqual({ reason: 'Add a .mid file and pick both engines', quiet: false });
+  });
+
+  it('asks for both engines when only files are there', () => {
     expect(said(convertBlocker({ files: 2, pair: null }))).toEqual({ reason: 'Pick a FROM and a TO engine', quiet: false });
   });
 

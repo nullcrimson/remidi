@@ -33,7 +33,7 @@ test('the edited chip opens the editor on just the edited drums', async ({ page 
   await expect(page.getByText('2 changes', { exact: true })).toBeVisible();
 });
 
-test('the drum filter narrows the rows and Escape brings them all back', async ({ page }) => {
+test('the drum filter narrows the rows to the matching drums', async ({ page }) => {
   await openPair(page);
   await openEditor(page);
   const total = await labels(page).count();
@@ -45,10 +45,25 @@ test('the drum filter narrows the rows and Escape brings them all back', async (
   const kicks = await labels(page).allTextContents();
   expect(kicks.length).toBeLessThan(total);
   for (const label of kicks) expect(label).toMatch(/kick/i);
+});
+
+test('the drum filter says so when no drum matches', async ({ page }) => {
+  await openPair(page);
+  await openEditor(page);
+  const filter = page.getByRole('textbox', { name: 'Filter drums' });
 
   await filter.fill('no such drum');
   await expect(labels(page)).toHaveCount(0);
   await expect(page.getByText('No drums match')).toBeVisible();
+});
+
+test('Escape clears the drum filter and brings all the rows back', async ({ page }) => {
+  await openPair(page);
+  await openEditor(page);
+  const total = await labels(page).count();
+  const filter = page.getByRole('textbox', { name: 'Filter drums' });
+  await filter.fill('no such drum');
+  await page.getByText('No drums match').waitFor();
 
   await filter.press('Escape');
   await expect(filter).toHaveValue('');
@@ -68,6 +83,15 @@ test('resetting one edited drum restores its default note and keeps the other ed
   await expect(targetNote(page, 'Snare')).toHaveText('F2');
   await expect(page.getByRole('button', { name: 'Reset Kick' })).toHaveCount(0);
   await expect(page.getByText('1 change', { exact: true })).toBeVisible();
+});
+
+test('the edited chip counts only the drum still edited after a reset', async ({ page }) => {
+  await openPair(page);
+  await openEditor(page);
+  await retarget(page, 'Kick', 'E2');
+  await retarget(page, 'Snare', 'F2');
+  await press(page.getByRole('button', { name: 'Reset Kick' }));
+  await targetNote(page, 'Kick').filter({ hasText: 'C2' }).waitFor();
 
   await leaveEditor(page);
   await expect(page.getByRole('button', { name: '1 drum edited — review changes', exact: true })).toBeVisible();

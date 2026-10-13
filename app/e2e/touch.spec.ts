@@ -45,7 +45,7 @@ test('every control is big enough to tap', async ({ page }) => {
   expect(await smallTargets(page)).toEqual([]);
 });
 
-test('the note picker opens as a sheet that its backdrop closes', async ({ page }) => {
+test('the note picker opens as a sheet at the bottom of the screen', async ({ page }) => {
   await openPair(page);
   await page.getByRole('button', { name: /Edit individual notes/ }).tap();
   await page.getByRole('button', { name: 'C2', exact: true }).first().tap();
@@ -53,6 +53,14 @@ test('the note picker opens as a sheet that its backdrop closes', async ({ page 
   await expect(sheet).toBeVisible();
   const box = await sheet.boundingBox();
   expect(Math.round(page.viewportSize()!.height - box!.y - box!.height)).toBe(0);
+});
+
+test('a tap on the backdrop closes the note picker sheet', async ({ page }) => {
+  await openPair(page);
+  await page.getByRole('button', { name: /Edit individual notes/ }).tap();
+  await page.getByRole('button', { name: 'C2', exact: true }).first().tap();
+  const sheet = page.getByRole('dialog');
+  await sheet.waitFor();
 
   await page.touchscreen.tap(20, 60);
   await expect(sheet).toBeHidden();

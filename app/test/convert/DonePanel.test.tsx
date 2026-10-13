@@ -3,8 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DonePanel } from '../../src/convert/DonePanel';
 
-vi.mock('../../src/core/download', () => ({ saveBlob: vi.fn() }));
-import { saveBlob } from '../../src/core/download';
+import { recordDownloads } from '../downloads';
 import type { FailedFile } from '../../src/convert/batch';
 import type { FileResult } from '../../src/core/files';
 import type { ReportGroups, ReportView } from '../../src/report/report';
@@ -59,18 +58,25 @@ function renderPanel({
 }
 
 describe('DonePanel', () => {
-  it('offers to drop missing drums and convert again only when asked to', async () => {
+  it('does not offer to drop missing drums unless asked to', () => {
     renderPanel();
     expect(screen.queryByRole('button', { name: /Drop missing drums/ })).not.toBeInTheDocument();
+  });
+
+  it('offers to drop missing drums and convert again when asked to', async () => {
     const onDropMissing = vi.fn();
     renderPanel({ onDropMissing });
     await userEvent.click(screen.getByRole('button', { name: 'Drop missing drums & convert again' }));
     expect(onDropMissing).toHaveBeenCalledOnce();
   });
 
-  it('names the result and offers the file as the primary download', () => {
+  it('names the result', () => {
     renderPanel();
     expect(screen.getByText('1 file converted → Toontrack EZdrummer 3')).toBeInTheDocument();
+  });
+
+  it('offers the file as the primary download', () => {
+    renderPanel();
     const link = screen.getByRole('link', { name: '↓ Download .mid' });
     expect(link).toHaveAttribute('href', 'blob:x');
     expect(link).toHaveAttribute('download', 'groove-ezd.mid');
@@ -110,7 +116,7 @@ describe('DonePanel', () => {
     expect(screen.queryByText(/notes converted/)).not.toBeInTheDocument();
   });
 
-  it('offers a zip and lists every file of a batch, failures inline', () => {
+  const renderFailingBatch = () =>
     renderPanel({
       results: [result('a-ezd.mid', 'blob:a'), result('b-ezd.mid', 'blob:b')],
       failures: [{ name: 'c.mid', error: { kind: 'badMidi', detail: 'invalid midi' } }],
@@ -124,9 +130,20 @@ describe('DonePanel', () => {
         },
       ])),
     });
+
+  it('names a batch result and counts its failures', () => {
+    renderFailingBatch();
     expect(screen.getByText('2 files converted → Toontrack EZdrummer 3')).toBeInTheDocument();
     expect(screen.getByText('1 failed')).toHaveClass('text-danger');
+  });
+
+  it('offers a zip of a batch', () => {
+    renderFailingBatch();
     expect(screen.getByRole('button', { name: '↓ Download 2 files (.zip)' })).toBeInTheDocument();
+  });
+
+  it('lists every file of a batch, failures inline', () => {
+    renderFailingBatch();
     const files = screen.getByRole('list', { name: 'Converted files' });
     const [a, b, c] = within(files).getAllByRole('listitem');
     expect(a).toHaveTextContent('a-ezd.mid');
@@ -158,10 +175,15 @@ describe('DonePanel', () => {
       expect(tip()).toBeVisible();
     });
 
-    it('floats at the top of the screen with a close button', async () => {
+    it('floats at the top of the screen', async () => {
       renderPanel();
       await download();
       expect(tip()).toHaveClass('tip-toast');
+    });
+
+    it('closes with its close button', async () => {
+      renderPanel();
+      await download();
       await userEvent.click(within(tip()!).getByRole('button', { name: 'Close' }));
       expect(tip()).not.toBeInTheDocument();
     });
@@ -176,11 +198,17 @@ describe('DonePanel', () => {
       expect(tip()).not.toBeInTheDocument();
     });
 
-    it('closes once a tip is chosen and remembers it', async () => {
+    it('closes once a tip is chosen', async () => {
       renderPanel();
       await download();
       await userEvent.click(within(tip()!).getByRole('link', { name: '€5' }));
       expect(tip()).not.toBeInTheDocument();
+    });
+
+    it('remembers a chosen tip', async () => {
+      renderPanel();
+      await download();
+      await userEvent.click(within(tip()!).getByRole('link', { name: '€5' }));
       expect(JSON.parse(localStorage.getItem(TIP_KEY)!).tippedAt).toEqual(expect.any(Number));
     });
 
@@ -212,7 +240,7 @@ describe('DonePanel', () => {
       expect(tip()).toBeVisible();
     });
 
-    it('offers three amounts and any other, each on its own Stripe page in a new tab', async () => {
+    it('offers three amounts and any other, each on its own Stripe page', async () => {
       renderPanel();
       await userEvent.click(screen.getByRole('link', { name: '↓ Download .mid' }));
       const links = within(tip()!).getAllByRole('link');
@@ -222,6 +250,12 @@ describe('DonePanel', () => {
         ['€10', 'https://buy.stripe.com/5kQeVddm3aNN91sa3K6wE02'],
         ['Other amount', 'https://buy.stripe.com/eVq7sL81J4pp91s1xe6wE03'],
       ]);
+    });
+
+    it('opens each amount in a new tab', async () => {
+      renderPanel();
+      await userEvent.click(screen.getByRole('link', { name: '↓ Download .mid' }));
+      const links = within(tip()!).getAllByRole('link');
       for (const link of links) {
         expect(link).toHaveAttribute('target', '_blank');
         expect(link).toHaveAttribute('rel', 'noopener');
@@ -246,34 +280,38 @@ describe('DonePanel', () => {
     expect(link).toHaveAttribute('rel', 'noopener');
   });
 
-  it('opens the report and starts over', async () => {
-    const { onViewReport, onConvertMore } = renderPanel();
+  it('opens the report', async () => {
+    const { onViewReport } = renderPanel();
     await userEvent.click(screen.getByRole('button', { name: 'View report →' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Convert more' }));
     expect(onViewReport).toHaveBeenCalledOnce();
+  });
+
+  it('starts over', async () => {
+    const { onConvertMore } = renderPanel();
+    await userEvent.click(screen.getByRole('button', { name: 'Convert more' }));
     expect(onConvertMore).toHaveBeenCalledOnce();
   });
 
   describe('zip download', () => {
-    beforeEach(() => vi.mocked(saveBlob).mockClear());
+    const downloads = recordDownloads();
 
     const renderBatch = () => renderPanel({ results: [result('a.mid', 'blob:a'), result('b.mid', 'blob:b')] });
 
     it('saves nothing until the zip button is pressed', () => {
       renderBatch();
-      expect(saveBlob).not.toHaveBeenCalled();
+      expect(downloads()).toEqual([]);
     });
 
     it("saves the zip under the target engine's code", async () => {
       renderBatch();
       await userEvent.click(screen.getByRole('button', { name: '↓ Download 2 files (.zip)' }));
-      expect(saveBlob).toHaveBeenCalledTimes(1);
-      expect(saveBlob).toHaveBeenCalledWith(expect.any(Blob), 'remapped-EZD.zip');
+      expect(downloads()).toHaveLength(1);
+      expect(downloads()).toContainEqual({ name: 'remapped-EZD.zip', blob: expect.any(Blob) });
     });
 
     it('does not zip a single result', () => {
       renderPanel();
-      expect(saveBlob).not.toHaveBeenCalled();
+      expect(downloads()).toEqual([]);
       expect(screen.queryByRole('button', { name: /\.zip/ })).not.toBeInTheDocument();
     });
   });

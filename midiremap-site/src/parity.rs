@@ -67,10 +67,17 @@ fn english_has_every_section() {
 }
 
 #[test]
-fn every_locale_translates_the_guide_and_faq() {
+fn every_locale_translates_the_guide() {
     let docs = Docs::load().unwrap();
     for &l in Locale::ALL {
         assert!(docs.has(l, SectionKey::Guide), "{}", l.code());
+    }
+}
+
+#[test]
+fn every_locale_translates_the_faq() {
+    let docs = Docs::load().unwrap();
+    for &l in Locale::ALL {
         assert!(docs.has(l, SectionKey::Faq), "{}", l.code());
     }
 }

@@ -73,11 +73,15 @@ describe('EditView', () => {
     expect(screen.getByRole('status')).toHaveTextContent('D1 was Snare — now plays Kick');
   });
 
-  it('renders rows and returns to convert view', async () => {
-    const onClose = vi.fn();
-    render(<EditView {...props} onClose={onClose} />);
+  it('renders rows', () => {
+    render(<EditView {...props} />);
     expect(screen.getAllByText('Kick')).toHaveLength(2);
     expect(screen.getByText('GGD Invasion → EZdrummer 3')).toBeInTheDocument();
+  });
+
+  it('returns to convert view', async () => {
+    const onClose = vi.fn();
+    render(<EditView {...props} onClose={onClose} />);
     await userEvent.click(screen.getByRole('button', { name: /back/i }));
     expect(onClose).toHaveBeenCalledOnce();
   });
@@ -123,10 +127,15 @@ describe('EditView', () => {
     expect(screen.getByLabelText('Add source note')).toBeInTheDocument();
   });
 
-  it('shows the advanced toggle as a full-width row with a turning chevron', async () => {
+  it('shows the advanced toggle as a full-width row', () => {
     render(<EditView {...props} />);
     const toggle = screen.getByRole('button', { name: /Advanced/i });
     expect(toggle).toHaveClass('w-full', 'rounded-panel', 'border');
+  });
+
+  it('turns the chevron of the advanced toggle when it opens', async () => {
+    render(<EditView {...props} />);
+    const toggle = screen.getByRole('button', { name: /Advanced/i });
     const chevron = toggle.querySelector('[aria-hidden="true"]');
     expect(chevron).not.toHaveClass('rotate-180');
     await userEvent.click(toggle);
@@ -230,27 +239,56 @@ describe('EditView', () => {
     expect(drumNames()).toEqual(['Kick', 'Snare', 'Hi-Hat CC', 'Ride Bell', 'China 1']);
   });
 
-  it('names the target drum each row plays', () => {
+  describe('naming the target drum each row plays', () => {
     const targetDrums = typed<Drum[]>([
       { note: 36, canon: 'kick.main', label: 'EZ Kick', family: 'Kick' as const },
       { note: 51, canon: 'ride.1', label: 'Ride', family: 'Cymbals' as const },
       { note: 40, canon: 'snare.rim', label: 'Snare Rimshot', family: 'Snare' as const },
     ]);
-    render(<EditView {...props} editor={{ ...full, targetDrums }} />);
     const plays = (drum: string) =>
       screen.getAllByTestId('drum-label').find((e) => e.textContent === drum)!.closest('[data-row]')!
         .querySelector('[data-testid=result]')!;
-    expect(screen.getAllByText('PLAYS')[0]).toBeInTheDocument();
-    expect(plays('Kick')).toHaveTextContent('EZ Kick');
-    expect(plays('Kick')).toHaveClass('text-t5');
-    expect(plays('Snare')).toHaveTextContent('Snare Rimshot');
-    expect(plays('Snare')).toHaveClass('text-t2');
-    expect(plays('Ride Bell')).toHaveTextContent('≈ Ride');
-    expect(plays('Ride Bell')).toHaveClass('text-star');
-    expect(plays('China 1')).toHaveTextContent('dropped');
-    expect(plays('China 1')).toHaveClass('text-danger');
-    expect(plays('Hi-Hat CC')).toHaveTextContent('no source');
-    expect(screen.getByRole('button', { name: 'C2' })).toHaveAccessibleDescription('EZ Kick');
+
+    const renderWithTargetDrums = () => render(<EditView {...props} editor={{ ...full, targetDrums }} />);
+
+    it('labels the result column PLAYS', () => {
+      renderWithTargetDrums();
+      expect(screen.getAllByText('PLAYS')[0]).toBeInTheDocument();
+    });
+
+    it('names the drum a direct row plays', () => {
+      renderWithTargetDrums();
+      expect(plays('Kick')).toHaveTextContent('EZ Kick');
+      expect(plays('Kick')).toHaveClass('text-t5');
+    });
+
+    it('names the drum an edited row plays', () => {
+      renderWithTargetDrums();
+      expect(plays('Snare')).toHaveTextContent('Snare Rimshot');
+      expect(plays('Snare')).toHaveClass('text-t2');
+    });
+
+    it('marks a fallback row with its approximate drum', () => {
+      renderWithTargetDrums();
+      expect(plays('Ride Bell')).toHaveTextContent('≈ Ride');
+      expect(plays('Ride Bell')).toHaveClass('text-star');
+    });
+
+    it('says a dropped row is dropped', () => {
+      renderWithTargetDrums();
+      expect(plays('China 1')).toHaveTextContent('dropped');
+      expect(plays('China 1')).toHaveClass('text-danger');
+    });
+
+    it('says a row without a source note has no source', () => {
+      renderWithTargetDrums();
+      expect(plays('Hi-Hat CC')).toHaveTextContent('no source');
+    });
+
+    it('describes a target note chip by the drum on it', () => {
+      renderWithTargetDrums();
+      expect(screen.getByRole('button', { name: 'C2' })).toHaveAccessibleDescription('EZ Kick');
+    });
   });
 
   it('falls back to the note name when no target drum sits on the note', () => {
@@ -259,20 +297,30 @@ describe('EditView', () => {
     expect(row.querySelector('[data-testid=result]')).toHaveTextContent('E2');
   });
 
-  it('filters to changed drums and to drums with issues', async () => {
+  it('filters to changed drums', async () => {
     render(<EditView {...props} editor={full} />);
     const show = screen.getByRole('radiogroup', { name: 'Show' });
     expect(within(show).getByRole('radio', { name: 'All 5' })).toBeChecked();
     await userEvent.click(within(show).getByText('Changed 1'));
     expect(drumNames()).toEqual(['Snare']);
+  });
+
+  it('filters to drums with issues', async () => {
+    render(<EditView {...props} editor={full} />);
+    const show = screen.getByRole('radiogroup', { name: 'Show' });
     await userEvent.click(within(show).getByText('Issues 2'));
     expect(drumNames()).toEqual(['Ride Bell', 'China 1']);
   });
 
-  it('filters by drum name and says when nothing matches', async () => {
+  it('filters by drum name', async () => {
     render(<EditView {...props} editor={full} />);
     await userEvent.type(screen.getByRole('textbox', { name: 'Filter drums' }), 'ri');
     expect(drumNames()).toEqual(['Ride Bell']);
+  });
+
+  it('says when no drum matches the filter', async () => {
+    render(<EditView {...props} editor={full} />);
+    await userEvent.type(screen.getByRole('textbox', { name: 'Filter drums' }), 'ri');
     await userEvent.type(screen.getByRole('textbox', { name: 'Filter drums' }), 'zz');
     expect(screen.getByText('No drums match')).toBeInTheDocument();
   });
@@ -285,18 +333,28 @@ describe('EditView', () => {
     expect(resetRow).toHaveBeenCalledWith('snare.main');
   });
 
-  it('keeps the change count and actions in a sticky footer', async () => {
-    const reset = vi.fn();
-    const onClose = vi.fn();
-    render(<EditView {...props} onClose={onClose} editor={{ ...full, reset }} />);
+  it('keeps the change count in a sticky footer', () => {
+    render(<EditView {...props} editor={full} />);
     const footer = screen.getByRole('region', { name: 'Edit actions' });
     expect(footer).toHaveClass('sticky', 'bottom-0');
     expect(footer).toHaveTextContent('1 change');
+    expect(screen.queryByText(/= remapped/)).not.toBeInTheDocument();
+  });
+
+  it('resets all edits from the footer', async () => {
+    const reset = vi.fn();
+    render(<EditView {...props} editor={{ ...full, reset }} />);
+    const footer = screen.getByRole('region', { name: 'Edit actions' });
     await userEvent.click(within(footer).getByRole('button', { name: 'Reset all' }));
     expect(reset).toHaveBeenCalledOnce();
+  });
+
+  it('closes from Done in the footer', async () => {
+    const onClose = vi.fn();
+    render(<EditView {...props} onClose={onClose} editor={full} />);
+    const footer = screen.getByRole('region', { name: 'Edit actions' });
     await userEvent.click(within(footer).getByRole('button', { name: 'Done' }));
     expect(onClose).toHaveBeenCalledOnce();
-    expect(screen.queryByText(/= remapped/)).not.toBeInTheDocument();
   });
 
   it('cannot reset all when nothing changed', () => {

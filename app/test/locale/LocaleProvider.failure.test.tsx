@@ -22,11 +22,18 @@ function Probe() {
   );
 }
 
-it('stays in its language and reports a locale that fails to load', async () => {
+it('reports a locale that fails to load', async () => {
   vi.spyOn(console, 'error').mockImplementation(() => {});
   render(<LocaleProvider initial={ENGLISH}><Probe /></LocaleProvider>);
   await userEvent.click(screen.getByText('pl'));
   expect(await screen.findByText('pl', { selector: 'p' })).toBeInTheDocument();
+});
+
+it('stays in its language when a locale fails to load', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  render(<LocaleProvider initial={ENGLISH}><Probe /></LocaleProvider>);
+  await userEvent.click(screen.getByText('pl'));
+  await screen.findByText('pl', { selector: 'p' });
   expect(screen.getByText('Converter')).toBeInTheDocument();
   expect(location.pathname).toBe('/');
 });

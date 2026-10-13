@@ -130,7 +130,7 @@ describe('App edit view', () => {
     expect(screen.queryByRole('button', { name: /edited — review changes/ })).not.toBeInTheDocument();
   });
 
-  it('shows the loaded preset on an edited chip that opens the editor on the changed drums', async () => {
+  async function loadMyKit() {
     localStorage.setItem(
       MAPPINGS_KEY,
       JSON.stringify([
@@ -140,12 +140,25 @@ describe('App edit view', () => {
     render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
     await userEvent.click(screen.getByRole('button', { name: /^My kit/ }));
-    const chip = screen.getByRole('button', { name: '1 drum edited — review changes, from preset My kit' });
+    return screen.getByRole('button', { name: '1 drum edited — review changes, from preset My kit' });
+  }
+
+  it('shows the loaded preset on an edited chip', async () => {
+    const chip = await loadMyKit();
     expect(chip).toHaveTextContent('My kit · 1 edited');
+  });
+
+  it('opens the editor on the changed drums from the edited chip', async () => {
+    const chip = await loadMyKit();
     await userEvent.click(chip);
     expect(screen.getByText('Edit notes')).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'Changed 1' })).toBeChecked();
     expect(screen.queryByText('China')).not.toBeInTheDocument();
+  });
+
+  it('opens the editor on all drums from the edit link after the edited chip', async () => {
+    const chip = await loadMyKit();
+    await userEvent.click(chip);
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     await userEvent.click(screen.getByRole('button', { name: /Edit individual notes/ }));
     expect(screen.getByRole('radio', { name: 'All 2' })).toBeChecked();
@@ -177,7 +190,7 @@ describe('App edit view', () => {
     expect(chip).toHaveTextContent('1 edited · unsaved');
   });
 
-  it('navigates to edit and back', async () => {
+  it('navigates to edit', async () => {
     render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
     await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
@@ -186,6 +199,14 @@ describe('App edit view', () => {
     expect(screen.getByText('Edit notes')).toBeInTheDocument();
     expect(screen.getAllByText('Kick')).toHaveLength(2);
     expect(screen.getByRole('button', { name: '—' })).toBeInTheDocument();
+  });
+
+  it('navigates back from edit', async () => {
+    render(<App runtime={RUNTIME} />);
+    await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
+    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
+    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await userEvent.click(screen.getByText(/Edit individual notes/));
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
   });

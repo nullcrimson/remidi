@@ -64,11 +64,16 @@ function show(view: ReportView, onDropMissing?: () => void) {
 }
 
 describe('ReportModal', () => {
-  it('offers to drop missing drums and convert again once, then closes', async () => {
+  it('offers to drop missing drums and convert again once', () => {
+    show(lossy, vi.fn());
+    const buttons = screen.getAllByRole('button', { name: 'Drop missing drums & convert again' });
+    expect(buttons).toHaveLength(1);
+  });
+
+  it('drops missing drums and converts again, then closes', async () => {
     const onDropMissing = vi.fn();
     const h = show(lossy, onDropMissing);
     const buttons = screen.getAllByRole('button', { name: 'Drop missing drums & convert again' });
-    expect(buttons).toHaveLength(1);
     await userEvent.click(buttons[0]);
     expect(onDropMissing).toHaveBeenCalledOnce();
     expect(h.onClose).toHaveBeenCalled();
@@ -92,9 +97,13 @@ describe('ReportModal', () => {
     expect(screen.getAllByText('China 1').length).toBeGreaterThan(0);
   });
 
-  it('lists unchanged notes without losing the clean message', () => {
+  it('keeps the clean message beside unchanged notes', () => {
     show(cleanWithUnchanged);
     expect(screen.getByText(/Clean conversion/i)).toBeInTheDocument();
+  });
+
+  it('lists unchanged notes', () => {
+    show(cleanWithUnchanged);
     expect(screen.getAllByText(/^Unchanged/)[0]).toHaveTextContent('Unchanged · other tracks / channels');
     expect(screen.getByText('×170')).toBeInTheDocument();
     expect(screen.getByText('a.mid')).toBeInTheDocument();
@@ -137,13 +146,26 @@ describe('ReportModal', () => {
     expect(screen.queryByText('a.mid')).not.toBeInTheDocument();
   });
 
-  it('colours approximated notes gold and explains each group', () => {
+  it('colours approximated notes gold', () => {
     show(lossy);
     const approx = screen.getAllByText(/^Approximated/)[0];
     expect(approx).toHaveClass('text-star');
+  });
+
+  it('explains the approximated group', () => {
+    show(lossy);
+    const approx = screen.getAllByText(/^Approximated/)[0];
     expect(approx).toHaveTextContent('played on the nearest drum');
     expect(screen.getAllByText(/played on the nearest drum/)[0]).toHaveClass('normal-case');
+  });
+
+  it('explains the dropped group', () => {
+    show(lossy);
     expect(screen.getAllByText(/^Dropped/)[0]).toHaveTextContent('EZdrummer has no such drum');
+  });
+
+  it('explains the unrecognized group', () => {
+    show(lossy);
     expect(screen.getAllByText(/^Unrecognized/)[0]).toHaveTextContent(
       'not in the GGD Invasion map — removed from the file',
     );
@@ -163,9 +185,13 @@ describe('ReportModal', () => {
     expect(h.onClose).toHaveBeenCalledOnce();
   });
 
+  it('explains where unchanged notes come from', () => {
+    show(cleanWithUnchanged);
+    expect(screen.getAllByText('Notes on other tracks or channels, left as they were')[0]).toBeInTheDocument();
+  });
+
   it('points unchanged notes at the drum channel setting', async () => {
     const h = show(cleanWithUnchanged);
-    expect(screen.getAllByText('Notes on other tracks or channels, left as they were')[0]).toBeInTheDocument();
     await userEvent.click(screen.getAllByRole('button', { name: 'Drum channel →' })[0]);
     expect(h.onChannel).toHaveBeenCalledOnce();
   });

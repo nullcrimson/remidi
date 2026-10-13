@@ -4,11 +4,15 @@ import { describe, expect, it, vi } from 'vitest';
 import { OctaveToggle } from '../../src/convert/OctaveToggle';
 
 describe('OctaveToggle', () => {
-  it('shows both bases with the current one checked, and its DAWs', () => {
+  it('shows both bases with the current one checked', () => {
     render(<OctaveToggle value="c1" onChange={() => {}} />);
     expect(screen.getByRole('radiogroup', { name: 'Octaves start at' })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'C-1' })).toBeChecked();
     expect(screen.getByRole('radio', { name: 'C-2' })).not.toBeChecked();
+  });
+
+  it('shows the DAWs of the current base', () => {
+    render(<OctaveToggle value="c1" onChange={() => {}} />);
     expect(screen.getByText(/Reaper/)).toBeInTheDocument();
   });
 

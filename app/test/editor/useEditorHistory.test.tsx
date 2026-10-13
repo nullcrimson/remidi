@@ -39,6 +39,13 @@ describe('useEditorHistory', () => {
     act(() => result.current.setView('convert'));
     await waitFor(() => expect(history.state).toBeNull());
     expect(result.current.view).toBe('convert');
+  });
+
+  it('closes the editor on Back after it was closed and opened again in the app', async () => {
+    const { result } = setup();
+    act(() => result.current.setView('edit'));
+    act(() => result.current.setView('convert'));
+    await waitFor(() => expect(history.state).toBeNull());
     act(() => result.current.setView('edit'));
     act(() => history.back());
     await waitFor(() => expect(result.current.view).toBe('convert'));
@@ -52,6 +59,17 @@ describe('useEditorHistory', () => {
     await waitFor(() => expect(result.current.view).toBe('convert'));
     act(() => history.forward());
     await waitFor(() => expect(result.current.view).toBe('edit'));
+  });
+
+  it('adds no history entry when Forward reopens the editor', async () => {
+    const { result } = setup();
+    act(() => result.current.setView('edit'));
+    act(() => history.back());
+    await waitFor(() => expect(result.current.view).toBe('convert'));
+    const before = history.length;
+    act(() => history.forward());
+    await waitFor(() => expect(result.current.view).toBe('edit'));
+    expect(history.length).toBe(before);
   });
 
   it('steps back off the editor’s entry on Forward when the editor cannot open', async () => {

@@ -14,11 +14,25 @@ describe('gen-i18n', () => {
     expect(argsOf(ftl)).toEqual({ plain: [], 'with-var': ['count', 'name'] });
   });
 
-  it('emits Locale, SectionKey, NavTarget and Message types', () => {
-    const { ts } = generate(parseSources({ locales, structure, ftl }));
+  const emitted = () => generate(parseSources({ locales, structure, ftl })).ts;
+
+  it('emits the Locale type', () => {
+    const ts = emitted();
     expect(ts).toContain(`export type Locale = 'en';`);
+  });
+
+  it('emits the SectionKey type', () => {
+    const ts = emitted();
     expect(ts).toContain(`export type SectionKey = 'faq';`);
+  });
+
+  it('emits the Message type with its variables', () => {
+    const ts = emitted();
     expect(ts).toContain(`'with-var': { count: FluentVariable; name: FluentVariable }`);
+  });
+
+  it('emits the NavTarget list', () => {
+    const ts = emitted();
     expect(ts).toContain(`export const NAV: NavTarget[] = [{"route":"converter"},{"section":"faq"}];`);
   });
 
@@ -36,15 +50,25 @@ describe('gen-i18n', () => {
     expect(css).toBe(':lang(ja) {\n  --font-sans: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;\n  --font-display: var(--font-sans);\n  --font-mono: \'IBM Plex Mono\', "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;\n}\n');
   });
 
+  const withDocs = () => generate(parseSources({
+    locales: [...locales, { code: 'pl', prefix: 'pl', langTag: 'pl', nativeName: 'Polski', fonts: null }],
+    structure: { ...structure, sections: ['guide', 'faq', 'terms'].map((key) => ({ key, slug: key })) },
+    ftl: 'a = x\n',
+    docs: { en: ['guide', 'faq', 'terms'], pl: ['guide', 'faq'] },
+  }));
+
   it('lists each locale\'s translated sections from its documents', () => {
-    const out = generate(parseSources({
-      locales: [...locales, { code: 'pl', prefix: 'pl', langTag: 'pl', nativeName: 'Polski', fonts: null }],
-      structure: { ...structure, sections: ['guide', 'faq', 'terms'].map((key) => ({ key, slug: key })) },
-      ftl: 'a = x\n',
-      docs: { en: ['guide', 'faq', 'terms'], pl: ['guide', 'faq'] },
-    }));
+    const out = withDocs();
     expect(out.ts).toContain('export const TRANSLATED_SECTIONS: Record<Locale, readonly SectionKey[]> = {"en":["guide","faq","terms"],"pl":["guide","faq"]};');
+  });
+
+  it('lists the locale codes', () => {
+    const out = withDocs();
     expect(out.ts).toContain('export const LOCALE_CODES: readonly Locale[] = ["en","pl"];');
+  });
+
+  it('carries each locale\'s native name', () => {
+    const out = withDocs();
     expect(out.ts).toContain('"nativeName":"Polski"');
   });
 

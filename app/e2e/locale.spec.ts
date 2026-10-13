@@ -56,10 +56,13 @@ test.describe('a German browser', () => {
 test.describe('a Traditional Chinese browser', () => {
   test.use({ locale: 'zh-TW' });
 
-  test('stays on English at / and is offered nothing', async ({ page }) => {
+  test('stays on English at /', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page).toHaveURL(/localhost:\d+\/$/);
+  });
+
+  test('is offered no other language on an English guide page', async ({ page }) => {
     await page.goto('/faq/');
     await expect(page.locator('#lang-offer')).toBeHidden();
   });
@@ -107,14 +110,21 @@ test.describe('a Polish browser', () => {
   });
 });
 
-test('switching language on the converter keeps a loaded file and its settings', async ({ page }) => {
+test('switching language on the converter keeps a loaded file', async ({ page }) => {
   await openPair(page);
   await addFiles(page, midFile('kick.mid', [{ channel: DRUMS, key: 24 }]));
-  await page.getByText('C-2', { exact: true }).click();
   await page.getByRole('button', { name: 'Language' }).click();
   await page.locator('#language-menu').getByRole('link', { name: 'Polski' }).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
   await expect(page.getByText('kick.mid')).toBeVisible();
+});
+
+test('switching language on the converter keeps its settings', async ({ page }) => {
+  await openPair(page);
+  await page.getByText('C-2', { exact: true }).click();
+  await page.getByRole('button', { name: 'Language' }).click();
+  await page.locator('#language-menu').getByRole('link', { name: 'Polski' }).click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
   await expect(page.getByRole('radio', { name: 'C-2' })).toBeChecked();
 });
 

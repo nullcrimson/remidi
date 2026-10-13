@@ -13,13 +13,17 @@ const shells = ['/', '/pl/'];
 describe('the dev server\'s built static pages', () => {
   it('serves a generated page', () => expect(builtFile(dist, '/engines/', shells)).toBe(join(dist, 'engines', 'index.html')));
   it('serves a translated page', () => expect(builtFile(dist, '/pl/faq/?x=1', shells)).toBe(join(dist, 'pl', 'faq', 'index.html')));
-  it('serves the pages\' stylesheet and scripts', () => {
+  it('serves the pages\' stylesheet', () => {
     expect(builtFile(dist, '/assets/index-a.css', shells)).toBe(join(dist, 'assets', 'index-a.css'));
+  });
+  it('serves the pages\' scripts', () => {
     expect(builtFile(dist, '/filter.js', shells)).toBe(join(dist, 'filter.js'));
   });
   it('leaves the converter shells to the app', () => {
     expect(builtFile(dist, '/', shells)).toBeUndefined();
     expect(builtFile(dist, '/pl/', shells)).toBeUndefined();
+  });
+  it('leaves the index.html of the converter to the app', () => {
     expect(builtFile(dist, '/index.html', shells)).toBeUndefined();
   });
   it('leaves source modules to Vite', () => expect(builtFile(dist, '/src/main.tsx', shells)).toBeUndefined());

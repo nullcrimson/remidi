@@ -1,13 +1,21 @@
+import type { Page } from '@playwright/test';
 import { ANALYTICS, expect, test } from './fixtures';
 import { openEditor, presetChip, saved, saveKickPreset, targetNote } from './steps';
 
 const NAME = 'Heavy Kick';
 
-test('a saved preset survives a reload and brings its edit back', async ({ page }) => {
+test('a saved preset is still listed after a reload', async ({ page }) => {
   await saveKickPreset(page, NAME);
   await page.reload();
   const chip = presetChip(page, NAME);
   await expect(chip).toBeVisible();
+});
+
+test('choosing a saved preset brings its edit back', async ({ page }) => {
+  await saveKickPreset(page, NAME);
+  await page.reload();
+  const chip = presetChip(page, NAME);
+  await chip.waitFor();
 
   await openEditor(page);
   await page.getByRole('button', { name: 'Reset all' }).click();
@@ -22,13 +30,21 @@ test('a saved preset survives a reload and brings its edit back', async ({ page 
   await expect(targetNote(page, 'Kick')).toHaveText('E2');
 });
 
-test('an exported preset imports into a browser that has never seen it', async ({ page, browser, baseURL }) => {
+async function exportPreset(page: Page) {
   await saveKickPreset(page, NAME);
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: `More actions for ${NAME}` }).click();
   await page.getByRole('menuitem', { name: 'Export' }).click();
-  const file = await download;
+  return download;
+}
+
+test('an exported preset is a file named after the preset', async ({ page }) => {
+  const file = await exportPreset(page);
   expect(file.suggestedFilename()).toBe('heavy-kick-drumverter.json');
+});
+
+test('an exported preset imports into a browser that has never seen it', async ({ page, browser, baseURL }) => {
+  const file = await exportPreset(page);
   const path = test.info().outputPath(file.suggestedFilename());
   await file.saveAs(path);
 

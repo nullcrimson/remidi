@@ -31,13 +31,19 @@ describe('useSavedMappings', () => {
     expect(localStorage.getItem(MAPPINGS_KEY)).toBe(raw);
   });
 
-  it('moves unreadable entries to quarantine on the next write', () => {
+  it('writes only the readable entries on the next write', () => {
     localStorage.setItem(MAPPINGS_KEY, JSON.stringify([{ id: 'x', name: 'broken' }]));
     const { result } = renderHook(() => useSavedMappings());
     act(() => result.current.save(base));
     const envelope = JSON.parse(localStorage.getItem(MAPPINGS_KEY)!);
     expect(envelope.version).toBe(1);
     expect(envelope.items).toHaveLength(1);
+  });
+
+  it('moves unreadable entries to quarantine on the next write', () => {
+    localStorage.setItem(MAPPINGS_KEY, JSON.stringify([{ id: 'x', name: 'broken' }]));
+    const { result } = renderHook(() => useSavedMappings());
+    act(() => result.current.save(base));
     const quarantine = JSON.parse(localStorage.getItem(QUARANTINE_KEY)!);
     expect(quarantine).toHaveLength(1);
     expect(quarantine[0].raw).toEqual({ id: 'x', name: 'broken' });
@@ -155,12 +161,17 @@ describe('useSavedMappings', () => {
     expect(result.current.atCap).toBe(false);
   });
 
-  it('saves a mapping and persists it', () => {
+  it('saves a mapping', () => {
     const { result } = renderHook(() => useSavedMappings());
     act(() => result.current.save(base));
     expect(result.current.mappings).toHaveLength(1);
     expect(result.current.mappings[0]).toMatchObject(base);
     expect(result.current.mappings[0].id).toBeTruthy();
+  });
+
+  it('persists a saved mapping', () => {
+    const { result } = renderHook(() => useSavedMappings());
+    act(() => result.current.save(base));
     expect(stored()).toHaveLength(1);
   });
 
@@ -181,14 +192,30 @@ describe('useSavedMappings', () => {
     expect(result.current.mappings[0]).toMatchObject({ name: 'renamed', edits: { 'snare1.hit': 40 } });
   });
 
-  it('renames a preset without reordering or bumping recency', () => {
+  it('renames a preset', () => {
+    const { result } = renderHook(() => useSavedMappings());
+    act(() => result.current.save({ ...base, name: presetName('first') }));
+    act(() => result.current.save({ ...base, name: presetName('second') }));
+    const target = result.current.mappings[1];
+    act(() => result.current.rename(target.id, presetName('renamed')));
+    expect(result.current.mappings[1].name).toBe('renamed');
+  });
+
+  it('keeps the order of the presets when one is renamed', () => {
     const { result } = renderHook(() => useSavedMappings());
     act(() => result.current.save({ ...base, name: presetName('first') }));
     act(() => result.current.save({ ...base, name: presetName('second') }));
     const target = result.current.mappings[1];
     act(() => result.current.rename(target.id, presetName('renamed')));
     expect(result.current.mappings[1].id).toBe(target.id);
-    expect(result.current.mappings[1].name).toBe('renamed');
+  });
+
+  it('keeps the recency of a renamed preset', () => {
+    const { result } = renderHook(() => useSavedMappings());
+    act(() => result.current.save({ ...base, name: presetName('first') }));
+    act(() => result.current.save({ ...base, name: presetName('second') }));
+    const target = result.current.mappings[1];
+    act(() => result.current.rename(target.id, presetName('renamed')));
     expect(result.current.mappings[1].updatedAt).toBe(target.updatedAt);
   });
 
@@ -198,6 +225,13 @@ describe('useSavedMappings', () => {
     const id = result.current.mappings[0].id;
     act(() => result.current.remove(id));
     expect(result.current.mappings).toEqual([]);
+  });
+
+  it('removes a preset from storage', () => {
+    const { result } = renderHook(() => useSavedMappings());
+    act(() => result.current.save(base));
+    const id = result.current.mappings[0].id;
+    act(() => result.current.remove(id));
     expect(stored()).toEqual([]);
   });
 
@@ -208,13 +242,20 @@ describe('useSavedMappings', () => {
     expect(second.result.current.mappings[0]).toMatchObject(base);
   });
 
-  it('blocks saving beyond the cap', () => {
+  it('reports the cap once it is reached', () => {
     const { result } = renderHook(() => useSavedMappings());
     act(() => {
       for (let i = 0; i < MAPPINGS_CAP; i++) result.current.save({ ...base, name: presetName(`m${i}`) });
     });
     expect(result.current.mappings).toHaveLength(MAPPINGS_CAP);
     expect(result.current.atCap).toBe(true);
+  });
+
+  it('blocks saving beyond the cap', () => {
+    const { result } = renderHook(() => useSavedMappings());
+    act(() => {
+      for (let i = 0; i < MAPPINGS_CAP; i++) result.current.save({ ...base, name: presetName(`m${i}`) });
+    });
     act(() => result.current.save({ ...base, name: presetName('overflow') }));
     expect(result.current.mappings).toHaveLength(MAPPINGS_CAP);
     expect(result.current.mappings.some((m) => m.name === 'overflow')).toBe(false);

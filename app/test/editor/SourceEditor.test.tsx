@@ -46,11 +46,15 @@ describe('SourceEditor', () => {
     expect(onClear).toHaveBeenCalledWith(24);
   });
 
-  it('shows an unassigned default note as unassigned, with a way back', async () => {
-    const { onClear } = setup(typed<SrcEdits>({ 24: null }));
+  it('shows an unassigned default note as unassigned', () => {
+    setup(typed<SrcEdits>({ 24: null }));
     const row = screen.getByRole('button', { name: /^C1/ });
     expect(row).toHaveTextContent('— unassigned');
     expect(row).not.toHaveTextContent('Kick');
+  });
+
+  it('gives an unassigned default note a way back', async () => {
+    const { onClear } = setup(typed<SrcEdits>({ 24: null }));
     await userEvent.click(screen.getByRole('button', { name: /Clear source note/i }));
     expect(onClear).toHaveBeenCalledWith(24);
   });
@@ -68,9 +72,22 @@ describe('SourceEditor', () => {
     expect(input).toHaveAttribute('aria-invalid', 'true');
     expect(input).toHaveAccessibleDescription('Enter a note number from 0 to 127');
     expect(screen.queryByRole('dialog', { name: /Canon for/i })).not.toBeInTheDocument();
+  });
+
+  it('drops the rejection when the input is cleared', async () => {
+    setup();
+    const input = screen.getByRole('textbox', { name: 'Add source note' });
+    await userEvent.type(input, '200{Enter}');
     await userEvent.clear(input);
     expect(input).not.toHaveAttribute('aria-invalid');
     expect(screen.queryByText('Enter a note number from 0 to 127')).not.toBeInTheDocument();
+  });
+
+  it('accepts a valid note after a rejected one', async () => {
+    setup();
+    const input = screen.getByRole('textbox', { name: 'Add source note' });
+    await userEvent.type(input, '200{Enter}');
+    await userEvent.clear(input);
     await userEvent.type(input, '60{Enter}');
     expect(screen.getByRole('dialog', { name: /Canon for/i })).toBeInTheDocument();
   });

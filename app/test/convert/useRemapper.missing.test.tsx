@@ -41,18 +41,34 @@ describe('useRemapper missing drums', () => {
     expect(vi.mocked(stub.plan).mock.lastCall?.[3]).toBe('drop');
   });
 
-  it('remembers a change, re-plans and clears a finished conversion', async () => {
+  it('remembers a change', async () => {
     const result = await ready();
-    await act(() => result.current.convert());
-    expect(result.current.conv.kind).toBe('done');
-    expect(vi.mocked(stub.remap).mock.lastCall?.[5]).toBe('nearest');
-
     act(() => result.current.setMissing('drop'));
     expect(result.current.missing).toBe('drop');
     expect(loadSession().missing).toBe('drop');
-    expect(vi.mocked(stub.plan).mock.lastCall?.[3]).toBe('drop');
-    expect(result.current.conv.kind).toBe('idle');
+  });
 
+  it('re-plans after a change', async () => {
+    const result = await ready();
+    act(() => result.current.setMissing('drop'));
+    expect(vi.mocked(stub.plan).mock.lastCall?.[3]).toBe('drop');
+  });
+
+  it('clears a finished conversion after a change', async () => {
+    const result = await ready();
+    await act(() => result.current.convert());
+    expect(result.current.conv.kind).toBe('done');
+
+    act(() => result.current.setMissing('drop'));
+    expect(result.current.conv.kind).toBe('idle');
+  });
+
+  it('converts with the changed choice', async () => {
+    const result = await ready();
+    await act(() => result.current.convert());
+    expect(vi.mocked(stub.remap).mock.lastCall?.[5]).toBe('nearest');
+
+    act(() => result.current.setMissing('drop'));
     await act(() => result.current.convert());
     expect(vi.mocked(stub.remap).mock.lastCall?.[5]).toBe('drop');
   });

@@ -542,6 +542,7 @@ mod tests {
 
     const LOCALE_TAG: &str = r#"<script type="module" src="/assets/site-locale-test.js"></script>"#;
     const PRELOAD_TAG: &str = r#"<link rel="modulepreload" href="/assets/storage-test.js" />"#;
+    const FILTER_TAG: &str = r#"<script src="/filter.js" defer></script>"#;
 
     fn manifest() -> SiteManifest {
         let attrs = |pairs: &[(&str, &str)]| {
@@ -583,7 +584,7 @@ mod tests {
     }
 
     #[test]
-    fn every_page_carries_the_policy_and_analytics_from_the_manifest() {
+    fn every_page_carries_the_policy_from_the_manifest() {
         for (path, html) in rendered() {
             let head = html.split("</head>").next().unwrap();
             assert!(
@@ -592,7 +593,19 @@ mod tests {
                 ),
                 "{path}"
             );
+        }
+    }
+
+    #[test]
+    fn every_page_carries_the_beacon_script_from_the_manifest() {
+        for (path, html) in rendered() {
             assert_eq!(html.matches(BEACON_TAG).count(), 1, "{path}");
+        }
+    }
+
+    #[test]
+    fn every_page_carries_the_stats_script_from_the_manifest() {
+        for (path, html) in rendered() {
             assert_eq!(html.matches(STATS_TAG).count(), 1, "{path}");
         }
     }
@@ -622,16 +635,29 @@ mod tests {
     fn every_static_page_loads_the_locale_script() {
         for (path, html) in rendered() {
             assert_eq!(html.matches(LOCALE_TAG).count(), 1, "{path}");
+        }
+    }
+
+    #[test]
+    fn every_static_page_preloads_the_locale_chunks() {
+        for (path, html) in rendered() {
             assert_eq!(html.matches(PRELOAD_TAG).count(), 1, "{path}");
         }
     }
 
     #[test]
-    fn filter_pages_load_the_filter_script() {
-        let script = r#"<script src="/filter.js" defer></script>"#;
-        assert!(page("engines/index.html").contains(script));
-        assert!(page("engines/ezdrummer/index.html").contains(script));
-        assert!(!page("convert/addictive-drums2-to-ezdrummer/index.html").contains(script));
+    fn the_note_map_index_loads_the_filter_script() {
+        assert!(page("engines/index.html").contains(FILTER_TAG));
+    }
+
+    #[test]
+    fn an_engine_page_loads_the_filter_script() {
+        assert!(page("engines/ezdrummer/index.html").contains(FILTER_TAG));
+    }
+
+    #[test]
+    fn a_pair_page_does_not_load_the_filter_script() {
+        assert!(!page("convert/addictive-drums2-to-ezdrummer/index.html").contains(FILTER_TAG));
     }
 
     fn page(path: &str) -> String {
@@ -643,7 +669,7 @@ mod tests {
     }
 
     #[test]
-    fn every_page_links_the_app_stylesheet_and_no_inline_styles() {
+    fn every_page_links_the_app_stylesheet() {
         for (path, html) in rendered() {
             assert!(
                 html.contains(&format!(
@@ -652,6 +678,12 @@ mod tests {
                 )),
                 "{path}"
             );
+        }
+    }
+
+    #[test]
+    fn no_page_has_inline_styles() {
+        for (path, html) in rendered() {
             assert!(
                 !html.contains("<style") && !html.contains("style=\""),
                 "{path}"
@@ -659,25 +691,69 @@ mod tests {
         }
     }
 
+    fn templates() -> Vec<(String, String)> {
+        let root = concat!(env!("CARGO_MANIFEST_DIR"), "/");
+        let mut files: Vec<_> = std::fs::read_dir(format!("{root}templates"))
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .collect();
+        files.push(format!("{root}static/filter.js").into());
+        files.sort();
+        files
+            .into_iter()
+            .map(|path| {
+                let name = path.file_name().unwrap().to_string_lossy().into_owned();
+                (name, std::fs::read_to_string(&path).unwrap())
+            })
+            .collect()
+    }
+
     #[test]
-    fn templates_use_only_theme_sizes() {
-        let templates = [
-            include_str!("../templates/base.html"),
-            include_str!("../templates/engine.html"),
-            include_str!("../templates/index.html"),
-            include_str!("../templates/pair.html"),
-            include_str!("../templates/content.html"),
-            include_str!("../templates/filter.html"),
-            include_str!("../templates/lang_menu.html"),
-            include_str!("../templates/lang_offer.html"),
-            include_str!("../templates/macros.html"),
-            include_str!("../templates/icons.html"),
-            include_str!("../static/filter.js"),
-        ];
-        for t in templates {
-            for banned in ["text-[", "rounded-[", "text-t6", "style=", "<style"] {
-                assert!(!t.contains(banned), "{banned}");
-            }
+    fn the_template_scan_sees_every_template() {
+        let names: Vec<_> = templates().into_iter().map(|(name, _)| name).collect();
+        for expected in ["app_head.html", "app_noscript.html", "thanks.html"] {
+            assert!(names.iter().any(|name| name == expected), "{expected}");
+        }
+        assert!(names.len() >= 14, "{names:?}");
+    }
+
+    #[test]
+    fn templates_use_no_arbitrary_text_sizes() {
+        for (name, t) in templates() {
+            let banned = "text-[";
+            assert!(!t.contains(banned), "{name}: {banned}");
+        }
+    }
+
+    #[test]
+    fn templates_use_no_arbitrary_radii() {
+        for (name, t) in templates() {
+            let banned = "rounded-[";
+            assert!(!t.contains(banned), "{name}: {banned}");
+        }
+    }
+
+    #[test]
+    fn templates_use_no_text_t6() {
+        for (name, t) in templates() {
+            let banned = "text-t6";
+            assert!(!t.contains(banned), "{name}: {banned}");
+        }
+    }
+
+    #[test]
+    fn templates_use_no_inline_style_attributes() {
+        for (name, t) in templates() {
+            let banned = "style=";
+            assert!(!t.contains(banned), "{name}: {banned}");
+        }
+    }
+
+    #[test]
+    fn templates_use_no_style_elements() {
+        for (name, t) in templates() {
+            let banned = "<style";
+            assert!(!t.contains(banned), "{name}: {banned}");
         }
     }
 
@@ -689,19 +765,32 @@ mod tests {
             .collect()
     }
 
+    fn locale_and_rest(path: &str) -> (Locale, &str) {
+        let locale = Locale::ALL
+            .iter()
+            .copied()
+            .find(|l| !l.prefix().is_empty() && path.starts_with(&format!("{}/", l.prefix())))
+            .unwrap_or(Locale::En);
+        let rest = path.trim_start_matches(&format!("{}/", locale.prefix()));
+        (locale, rest)
+    }
+
+    #[test]
+    fn every_page_labels_its_navigation_landmarks() {
+        let messages = Messages::load().unwrap();
+        for (path, html) in rendered() {
+            let (locale, _) = locale_and_rest(&path);
+            let aria = |nav| format!(r#"<nav aria-label="{}""#, messages.get(locale, nav));
+            assert!(html.contains(&aria(Plain::NavMain)), "{path}");
+            assert!(html.contains(&aria(Plain::NavSite)), "{path}");
+        }
+    }
+
     #[test]
     fn header_marks_the_current_section() {
         let messages = Messages::load().unwrap();
         for (path, html) in rendered() {
-            let locale = Locale::ALL
-                .iter()
-                .copied()
-                .find(|l| !l.prefix().is_empty() && path.starts_with(&format!("{}/", l.prefix())))
-                .unwrap_or(Locale::En);
-            let rest = path.trim_start_matches(&format!("{}/", locale.prefix()));
-            let aria = |nav| format!(r#"<nav aria-label="{}""#, messages.get(locale, nav));
-            assert!(html.contains(&aria(Plain::NavMain)), "{path}");
-            assert!(html.contains(&aria(Plain::NavSite)), "{path}");
+            let (locale, rest) = locale_and_rest(&path);
             let expected: Vec<&str> =
                 if rest.starts_with("engines/") || rest.starts_with("convert/") {
                     vec![messages.get(locale, Plain::NavNoteMaps)]
@@ -717,7 +806,7 @@ mod tests {
     }
 
     #[test]
-    fn site_chrome_stays_out_of_search_snippets() {
+    fn the_header_stays_out_of_search_snippets() {
         for (path, html) in rendered() {
             let body = html.split("<body").nth(1).unwrap();
             let before_header = body.split("<header").next().unwrap();
@@ -725,6 +814,13 @@ mod tests {
                 before_header.contains("<div data-nosnippet>"),
                 "{path}: header"
             );
+        }
+    }
+
+    #[test]
+    fn the_footer_stays_out_of_search_snippets() {
+        for (path, html) in rendered() {
+            let body = html.split("<body").nth(1).unwrap();
             let footer = body.split("<footer").nth(1).unwrap();
             assert!(
                 footer
@@ -750,11 +846,23 @@ mod tests {
     }
 
     #[test]
-    fn footer_links_are_gold_and_centred() {
+    fn footer_links_are_centred() {
         let html = page("faq/index.html");
         let footer = html.split("<footer").nth(1).unwrap();
         assert!(footer.contains("justify-center"));
+    }
+
+    #[test]
+    fn the_footer_carries_no_trademark_notice() {
+        let html = page("faq/index.html");
+        let footer = html.split("<footer").nth(1).unwrap();
         assert!(!footer.contains("trademarks"));
+    }
+
+    #[test]
+    fn footer_links_are_gold() {
+        let html = page("faq/index.html");
+        let footer = html.split("<footer").nth(1).unwrap();
         assert_eq!(
             footer.matches("<a ").count(),
             footer.matches(r#"class="prose-link"#).count()
@@ -771,64 +879,161 @@ mod tests {
             let last = footer.split("<li>").last().unwrap();
             assert!(last.contains(&tip), "{path}");
         }
-        assert!(page("pl/faq/index.html").contains("Postaw mi kawę"));
     }
 
     #[test]
-    fn the_thanks_page_is_in_every_locale_and_kept_out_of_search() {
+    fn the_polish_tip_link_is_in_polish() {
+        assert!(page("pl/faq/index.html").contains("Postaw mi kawę"));
+    }
+
+    fn thanks_page(pages: &[(String, String)], l: Locale) -> (String, &str) {
+        let file = THANKS.in_locale(l).file();
+        let html = pages
+            .iter()
+            .find(|(p, _)| *p == file)
+            .map(|(_, h)| h.as_str())
+            .unwrap_or_else(|| panic!("{file}"));
+        (file, html)
+    }
+
+    #[test]
+    fn the_thanks_page_is_kept_out_of_search_in_every_locale() {
         let pages = rendered();
         for &l in Locale::ALL {
-            let file = THANKS.in_locale(l).file();
-            let (_, html) = pages
-                .iter()
-                .find(|(p, _)| *p == file)
-                .unwrap_or_else(|| panic!("{file}"));
+            let (file, html) = thanks_page(&pages, l);
             let head = html.split("</head>").next().unwrap();
             assert!(
                 head.contains(r#"<meta name="robots" content="noindex" />"#),
                 "{file}"
             );
+        }
+    }
+
+    #[test]
+    fn the_thanks_page_links_home_in_every_locale() {
+        let pages = rendered();
+        for &l in Locale::ALL {
+            let (file, html) = thanks_page(&pages, l);
             assert!(html.contains(&format!(r#"href="{}""#, home(l))), "{file}");
         }
+    }
+
+    #[test]
+    fn the_english_thanks_page_says_thank_you() {
         assert!(page("thanks/index.html").contains(">Thank you!</h1>"));
     }
 
     #[test]
-    fn content_pages_render_their_section() {
+    fn the_faq_page_renders_its_section() {
         let faq = page("faq/index.html");
         assert!(faq.contains(">Frequently asked questions</h1>"));
         assert!(faq.contains("Is Drumverter free?"));
+    }
+
+    #[test]
+    fn the_faq_page_carries_structured_data() {
+        let faq = page("faq/index.html");
         assert!(faq.contains(r#"<script type="application/ld+json">"#));
+    }
+
+    #[test]
+    fn the_report_an_issue_page_renders_its_section() {
         let issue = page("report-an-issue/index.html");
         assert!(issue.contains(r#"href="https://github.com/nullcrimson/remidi/issues""#));
         assert!(issue.contains(r#"<a href="https://tally.so/r/J95eYd" target="_blank""#));
+    }
+
+    #[test]
+    fn the_report_an_issue_page_carries_no_structured_data() {
+        let issue = page("report-an-issue/index.html");
         assert!(!issue.contains("application/ld+json"));
-        let guide = page("how-it-works/index.html");
-        assert!(guide.contains(r#"href="/engines/""#));
     }
 
     #[test]
-    fn pair_pages_switch_octave_and_changes_without_script() {
+    fn the_guide_links_the_note_maps() {
+        let html = page("how-it-works/index.html");
+        let main = html
+            .split("<main")
+            .nth(1)
+            .unwrap()
+            .split("</main>")
+            .next()
+            .unwrap();
+        assert!(main.contains(r#"href="/engines/""#));
+    }
+
+    #[test]
+    fn pair_pages_carry_an_octave_c1_switch() {
         let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
-        for needle in [
-            r#"id="oct-c1""#,
-            r#"id="oct-c2""#,
-            r#"id="show-all""#,
-            r#"id="show-changes""#,
-            r#"data-outcome="exact""#,
-            r#"data-outcome="approximated""#,
-            r#"data-oct="c1""#,
-            r#"data-oct="c2""#,
-            "⇄ Reverse direction",
-        ] {
-            assert!(html.contains(needle), "{needle}");
-        }
+        let needle = r#"id="oct-c1""#;
+        assert!(html.contains(needle), "{needle}");
     }
 
     #[test]
-    fn index_matrix_names_each_pair_link() {
+    fn pair_pages_carry_an_octave_c2_switch() {
+        let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
+        let needle = r#"id="oct-c2""#;
+        assert!(html.contains(needle), "{needle}");
+    }
+
+    #[test]
+    fn pair_pages_carry_a_show_all_switch() {
+        let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
+        let needle = r#"id="show-all""#;
+        assert!(html.contains(needle), "{needle}");
+    }
+
+    #[test]
+    fn pair_pages_carry_a_show_changes_switch() {
+        let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
+        let needle = r#"id="show-changes""#;
+        assert!(html.contains(needle), "{needle}");
+    }
+
+    #[test]
+    fn pair_pages_carry_exact_outcome_rows() {
+        let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
+        let needle = r#"data-outcome="exact""#;
+        assert!(html.contains(needle), "{needle}");
+    }
+
+    #[test]
+    fn pair_pages_carry_approximated_outcome_rows() {
+        let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
+        let needle = r#"data-outcome="approximated""#;
+        assert!(html.contains(needle), "{needle}");
+    }
+
+    #[test]
+    fn pair_pages_carry_octave_c1_note_names() {
+        let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
+        let needle = r#"data-oct="c1""#;
+        assert!(html.contains(needle), "{needle}");
+    }
+
+    #[test]
+    fn pair_pages_carry_octave_c2_note_names() {
+        let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
+        let needle = r#"data-oct="c2""#;
+        assert!(html.contains(needle), "{needle}");
+    }
+
+    #[test]
+    fn pair_pages_carry_a_reverse_direction_link() {
+        let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
+        let needle = "⇄ Reverse direction";
+        assert!(html.contains(needle), "{needle}");
+    }
+
+    #[test]
+    fn index_matrix_names_the_pair_links_from_general_midi() {
         let html = page("engines/index.html");
         assert_eq!(html.matches(r#"aria-label="General MIDI to "#).count(), 7);
+    }
+
+    #[test]
+    fn index_matrix_links_fifty_six_named_pairs() {
+        let html = page("engines/index.html");
         let matrix_links = html
             .split("<a ")
             .filter(|a| a.contains("href=\"/convert/") && a.contains(" to "))
@@ -892,13 +1097,25 @@ mod tests {
     }
 
     #[test]
-    fn every_page_has_one_h1_title_and_canonical() {
+    fn every_page_has_one_h1() {
         for (path, html) in rendered() {
             assert_eq!(html.matches("<h1").count(), 1, "{path}");
+        }
+    }
+
+    #[test]
+    fn every_page_has_a_title() {
+        for (path, html) in rendered() {
             assert!(
                 html.contains("<title>") && !html.contains("<title></title>"),
                 "{path}"
             );
+        }
+    }
+
+    #[test]
+    fn every_page_has_its_canonical() {
+        for (path, html) in rendered() {
             let canonical = format!(r#"<link rel="canonical" href="{ORIGIN}{}""#, url_of(&path));
             assert!(html.contains(&canonical), "{path}");
         }
@@ -933,12 +1150,14 @@ mod tests {
         }
     }
 
+    fn english_summary(counts: Tally) -> String {
+        in_locale(Locale::En, |t| pair_summary(t, "A", "B", counts).unwrap())
+    }
+
     #[test]
-    fn pair_summary_agrees_in_number() {
-        let summary =
-            |counts| in_locale(Locale::En, |t| pair_summary(t, "A", "B", counts).unwrap());
+    fn pair_summary_agrees_in_number_for_single_counts() {
         assert_eq!(
-            summary(
+            english_summary(
                 Tally {
                     exact: 1,
                     approximated: 1,
@@ -947,8 +1166,12 @@ mod tests {
             ),
             "Of 3 A notes, 1 maps exactly to B, 1 is approximated with the closest available drum, and 1 has no equivalent."
         );
+    }
+
+    #[test]
+    fn pair_summary_agrees_in_number_for_plural_counts() {
         assert_eq!(
-            summary(
+            english_summary(
                 Tally {
                     exact: 2,
                     approximated: 0,
@@ -960,10 +1183,20 @@ mod tests {
     }
 
     #[test]
-    fn pair_pages_name_both_drum_columns() {
+    fn pair_pages_name_the_source_drum_column() {
         let html = page("convert/ggd-invasion-to-ezdrummer/index.html");
         assert!(html.contains(">GetGood Drums Invasion drum</th>"));
+    }
+
+    #[test]
+    fn pair_pages_name_the_target_drum_column() {
+        let html = page("convert/ggd-invasion-to-ezdrummer/index.html");
         assert!(html.contains(">EZdrummer 3 drum</th>"));
+    }
+
+    #[test]
+    fn pair_pages_have_no_unnamed_drum_column() {
+        let html = page("convert/ggd-invasion-to-ezdrummer/index.html");
         assert!(!html.contains(">Drum</th>"));
     }
 
@@ -999,55 +1232,90 @@ mod tests {
     }
 
     #[test]
-    fn names_are_escaped_and_intact() {
-        let pages = rendered();
-        let find = |p: &str| {
-            pages
-                .iter()
-                .find(|(path, _)| path == p)
-                .map(|(_, h)| h.clone())
-                .unwrap()
-        };
-        let mm = find("engines/ggd-modernmassive/index.html");
+    fn names_are_escaped() {
+        let mm = page("engines/ggd-modernmassive/index.html");
         assert!(mm.contains("Modern &amp; Massive") || mm.contains("Modern &#38; Massive"));
         assert!(!mm.contains("Modern & Massive"));
-        let mj = find("engines/solemntones-mjolnir/index.html");
-        assert!(mj.contains("Mjölnir"));
     }
 
     #[test]
-    fn descriptions_fit() {
+    fn names_keep_their_accents() {
+        let mj = page("engines/solemntones-mjolnir/index.html");
+        assert!(mj.contains("Mjölnir"));
+    }
+
+    fn description_fits(d: String) -> bool {
+        d.chars().count() <= DESCRIPTION_MAX
+    }
+
+    #[test]
+    fn engine_descriptions_fit() {
         let site = Site::build(&Catalog::builtin().unwrap()).unwrap();
-        let fits = |d: String| d.chars().count() <= DESCRIPTION_MAX;
         in_locale(Locale::En, |t| {
             assert!(site
                 .engines
                 .iter()
-                .all(|p| fits(engine_meta(p, t).unwrap().description)));
-            assert!(site
-                .pairs
-                .iter()
-                .all(|p| fits(pair_meta(p, t).unwrap().description)));
-            assert!(fits(index_meta(&site.index, t).unwrap().description));
+                .all(|p| description_fits(engine_meta(p, t).unwrap().description)));
         });
     }
 
     #[test]
-    fn polish_faq_renders_the_polish_document_in_polish() {
+    fn pair_descriptions_fit() {
+        let site = Site::build(&Catalog::builtin().unwrap()).unwrap();
+        in_locale(Locale::En, |t| {
+            assert!(site
+                .pairs
+                .iter()
+                .all(|p| description_fits(pair_meta(p, t).unwrap().description)));
+        });
+    }
+
+    #[test]
+    fn the_index_description_fits() {
+        let site = Site::build(&Catalog::builtin().unwrap()).unwrap();
+        in_locale(Locale::En, |t| {
+            assert!(description_fits(
+                index_meta(&site.index, t).unwrap().description
+            ));
+        });
+    }
+
+    #[test]
+    fn a_polish_page_declares_polish() {
         let html = page("pl/faq/index.html");
         assert!(html.contains(r#"<html lang="pl">"#));
+    }
+
+    #[test]
+    fn the_polish_faq_has_a_polish_heading() {
+        let html = page("pl/faq/index.html");
         let messages = Messages::load().unwrap();
         let heading = messages.get(Locale::Pl, SectionKey::Faq.heading());
         assert_ne!(heading, messages.get(Locale::En, SectionKey::Faq.heading()));
         assert!(html.contains(&format!(">{heading}<")));
+    }
+
+    #[test]
+    fn the_polish_faq_has_polish_questions() {
+        let html = page("pl/faq/index.html");
         assert!(html.contains("Czy Drumverter jest darmowy?"));
     }
 
     #[test]
-    fn polish_pages_link_the_polish_sections() {
+    fn polish_pages_link_the_polish_faq() {
         let html = page("pl/faq/index.html");
         assert!(html.contains(r#"href="/pl/faq/""#));
+    }
+
+    #[test]
+    fn polish_pages_link_the_polish_terms() {
+        let html = page("pl/faq/index.html");
         assert!(html.contains(r#"href="/pl/terms/""#));
+    }
+
+    #[test]
+    fn polish_pages_link_the_polish_converter() {
+        let html = page("pl/faq/index.html");
         assert!(html.contains(r#"href="/pl/""#));
     }
 
@@ -1055,6 +1323,12 @@ mod tests {
     fn every_page_offers_the_language_menu() {
         for (path, html) in rendered() {
             assert!(html.contains(r#"id="language-menu""#), "{path}");
+        }
+    }
+
+    #[test]
+    fn every_language_menu_lists_polish() {
+        for (path, html) in rendered() {
             assert!(html.contains(">Polski<"), "{path}");
         }
     }
@@ -1075,22 +1349,41 @@ mod tests {
     }
 
     #[test]
-    fn polish_engine_pages_are_written_in_polish_and_link_polish_pages() {
+    fn polish_engine_pages_have_a_polish_heading() {
         let html = page("pl/engines/ezdrummer/index.html");
-        assert!(html.contains(r#"<html lang="pl">"#));
         assert!(html.contains(&polish(
             MessageId::MapsEngineHeading,
             ("engine", "EZdrummer 3")
         )));
+    }
+
+    #[test]
+    fn polish_engine_pages_open_the_polish_converter() {
+        let html = page("pl/engines/ezdrummer/index.html");
         assert!(html.contains(r#"href="/pl/?to=ezdrummer""#));
+    }
+
+    #[test]
+    fn polish_engine_pages_link_the_polish_note_maps() {
+        let html = page("pl/engines/ezdrummer/index.html");
         assert!(html.contains(r#"href="/pl/engines/""#));
     }
 
     #[test]
-    fn polish_note_map_index_links_polish_engine_and_pair_pages() {
+    fn the_polish_note_map_index_links_polish_engine_pages() {
         let html = page("pl/engines/index.html");
         assert!(html.contains(r#"href="/pl/engines/ezdrummer/""#));
+    }
+
+    #[test]
+    fn the_polish_note_map_index_links_polish_pair_pages() {
+        let html = page("pl/engines/index.html");
         assert!(html.contains(r#"href="/pl/convert/"#));
+    }
+
+    #[test]
+    fn the_polish_note_map_index_links_no_english_pair_pages() {
+        let html = page("pl/engines/index.html");
         assert!(!html.contains(r#"href="/convert/"#));
     }
 
@@ -1119,28 +1412,55 @@ mod tests {
     fn polish_pair_pages_open_the_polish_converter() {
         let html = page("pl/convert/addictive-drums2-to-ezdrummer/index.html");
         assert!(html.contains(r#"href="/pl/?from="#));
+    }
+
+    #[test]
+    fn polish_pair_pages_head_their_sibling_pairs_in_polish() {
+        let html = page("pl/convert/addictive-drums2-to-ezdrummer/index.html");
         assert!(html.contains(&polish(
             MessageId::MapsMoreFrom,
             ("engine", "Addictive Drums 2")
         )));
     }
 
-    #[test]
-    fn translated_pages_list_their_alternates() {
-        let html = page("pl/faq/index.html");
-        for (tag, path) in [("en", "/faq/"), ("pl", "/pl/faq/"), ("x-default", "/faq/")] {
-            let link =
-                format!(r#"<link rel="alternate" hreflang="{tag}" href="{ORIGIN}{path}" />"#);
-            assert!(html.contains(&link), "{link}");
-        }
-        assert!(page("engines/ezdrummer/index.html").contains(&format!(
-            r#"<link rel="alternate" hreflang="pl" href="{ORIGIN}/pl/engines/ezdrummer/" />"#
-        )));
+    fn alternate_link(tag: &str, path: &str) -> String {
+        format!(r#"<link rel="alternate" hreflang="{tag}" href="{ORIGIN}{path}" />"#)
     }
 
     #[test]
-    fn a_polish_page_offers_english_and_an_english_page_offers_polish() {
+    fn translated_pages_list_their_english_alternate() {
+        let html = page("pl/faq/index.html");
+        let link = alternate_link("en", "/faq/");
+        assert!(html.contains(&link), "{link}");
+    }
+
+    #[test]
+    fn translated_pages_list_their_own_alternate() {
+        let html = page("pl/faq/index.html");
+        let link = alternate_link("pl", "/pl/faq/");
+        assert!(html.contains(&link), "{link}");
+    }
+
+    #[test]
+    fn translated_pages_list_the_default_alternate() {
+        let html = page("pl/faq/index.html");
+        let link = alternate_link("x-default", "/faq/");
+        assert!(html.contains(&link), "{link}");
+    }
+
+    #[test]
+    fn an_english_page_lists_its_polish_alternate() {
+        assert!(page("engines/ezdrummer/index.html")
+            .contains(&alternate_link("pl", "/pl/engines/ezdrummer/")));
+    }
+
+    #[test]
+    fn a_polish_page_offers_english() {
         assert!(page("pl/faq/index.html").contains(r#"data-offer="en""#));
+    }
+
+    #[test]
+    fn an_english_page_offers_polish() {
         assert!(page("faq/index.html").contains(r#"data-offer="pl""#));
     }
 

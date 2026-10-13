@@ -140,12 +140,15 @@ mod tests {
     }
 
     #[test]
-    fn serde_is_string_form() {
+    fn a_canon_serializes_as_its_key() {
         let c = Canon::Cymbal(CymSlot::China(idx(1)), CymArtic::Hit);
-        let j = serde_json::to_string(&c).unwrap();
-        assert_eq!(j, "\"china.1.hit\"");
-        let back: Canon = serde_json::from_str(&j).unwrap();
-        assert_eq!(c, back);
+        assert_eq!(serde_json::to_string(&c).unwrap(), "\"china.1.hit\"");
+    }
+
+    #[test]
+    fn a_canon_deserializes_from_its_key() {
+        let c = Canon::Cymbal(CymSlot::China(idx(1)), CymArtic::Hit);
+        assert_eq!(serde_json::from_str::<Canon>("\"china.1.hit\"").unwrap(), c);
     }
 
     #[test]
@@ -154,28 +157,92 @@ mod tests {
         assert_eq!(k("ride.2.bow"), Canon::Ride(idx(2), RideArtic::Bow));
     }
 
+    fn assert_rejected(bad: &str) {
+        assert!(bad.parse::<Canon>().is_err(), "{bad:?} must be rejected");
+    }
+
     #[test]
-    fn parse_rejects_out_of_range_and_unknown_keys() {
-        for bad in [
-            "crash.7.hit",
-            "china.4.hit",
-            "splash.4.hit",
-            "stack.5.hit",
-            "bell.3.hit",
-            "snare3.hit",
-            "snare0.hit",
-            "aux3.closed",
-            "hat.open7",
-            "hat.open0",
-            "hat.closed.plain",
-            "tom.rack9.hit",
-            "tom.floor5.hit",
-            "ride.3",
-            "ride.0.bell",
-            "kick.main.hit",
-            "",
-        ] {
-            assert!(bad.parse::<Canon>().is_err(), "{bad:?} must be rejected");
-        }
+    fn parse_rejects_a_crash_beyond_the_last_one() {
+        assert_rejected("crash.7.hit");
+    }
+
+    #[test]
+    fn parse_rejects_a_china_beyond_the_last_one() {
+        assert_rejected("china.4.hit");
+    }
+
+    #[test]
+    fn parse_rejects_a_splash_beyond_the_last_one() {
+        assert_rejected("splash.4.hit");
+    }
+
+    #[test]
+    fn parse_rejects_a_stack_beyond_the_last_one() {
+        assert_rejected("stack.5.hit");
+    }
+
+    #[test]
+    fn parse_rejects_a_bell_beyond_the_last_one() {
+        assert_rejected("bell.3.hit");
+    }
+
+    #[test]
+    fn parse_rejects_a_snare_beyond_the_last_one() {
+        assert_rejected("snare3.hit");
+    }
+
+    #[test]
+    fn parse_rejects_snare_zero() {
+        assert_rejected("snare0.hit");
+    }
+
+    #[test]
+    fn parse_rejects_an_aux_hat_beyond_the_last_one() {
+        assert_rejected("aux3.closed");
+    }
+
+    #[test]
+    fn parse_rejects_a_hat_open_level_beyond_the_last_one() {
+        assert_rejected("hat.open7");
+    }
+
+    #[test]
+    fn parse_rejects_hat_open_level_zero() {
+        assert_rejected("hat.open0");
+    }
+
+    #[test]
+    fn parse_rejects_a_closed_hat_with_an_explicit_plain_zone() {
+        assert_rejected("hat.closed.plain");
+    }
+
+    #[test]
+    fn parse_rejects_a_rack_tom_beyond_the_last_one() {
+        assert_rejected("tom.rack9.hit");
+    }
+
+    #[test]
+    fn parse_rejects_a_floor_tom_beyond_the_last_one() {
+        assert_rejected("tom.floor5.hit");
+    }
+
+    #[test]
+    fn parse_rejects_a_ride_beyond_the_last_one() {
+        assert_rejected("ride.3");
+    }
+
+    #[test]
+    fn parse_rejects_ride_zero() {
+        assert_rejected("ride.0.bell");
+    }
+
+    #[test]
+    fn parse_rejects_a_kick_with_an_articulation() {
+        assert_rejected("kick.main.hit");
+    }
+
+    #[test]
+    fn parse_rejects_the_empty_key() {
+        assert_rejected("");
     }
 }

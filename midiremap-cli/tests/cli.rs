@@ -30,37 +30,26 @@ fn lists_builtin_engines() {
 }
 
 #[test]
-fn converts_a_file_end_to_end() {
-    let dir = std::env::temp_dir();
-    let pid = std::process::id();
-    let in_path = dir.join(format!("midiremap_in_{pid}.mid"));
-    let out_path = dir.join(format!("midiremap_out_{pid}.mid"));
-    std::fs::write(&in_path, one_kick_smf()).unwrap();
-
-    let out = Command::new(BIN)
-        .args([
-            "convert",
-            in_path.to_str().unwrap(),
-            "ggd_invasion",
-            "ezdrummer",
-            out_path.to_str().unwrap(),
-        ])
-        .output()
-        .unwrap();
-
+fn converting_a_file_succeeds() {
+    let (out, _) = convert_note("end_to_end_status", 24, &[]);
     assert!(
         out.status.success(),
         "stderr: {}",
         String::from_utf8_lossy(&out.stderr)
     );
+}
+
+#[test]
+fn converting_a_file_prints_the_report_on_stderr() {
+    let (out, _) = convert_note("end_to_end_report", 24, &[]);
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(err.contains("unmappedSource"), "report missing: {err}");
+}
 
-    let bytes = std::fs::read(&out_path).unwrap();
+#[test]
+fn converting_a_file_writes_the_converted_notes() {
+    let (_, bytes) = convert_note("end_to_end_notes", 24, &[]);
     assert_eq!(hit_keys(&bytes), vec![36]);
-
-    let _ = std::fs::remove_file(&in_path);
-    let _ = std::fs::remove_file(&out_path);
 }
 
 fn first_note_on(bytes: &[u8]) -> u8 {
@@ -116,12 +105,12 @@ fn invalid_overrides_file_fails_with_its_path() {
     assert!(err.contains("0..=127"), "stderr: {err}");
 }
 
-fn convert_china(name: &str, extra: &[&str]) -> (std::process::Output, Vec<u8>) {
+fn convert_note(name: &str, note: u8, extra: &[&str]) -> (std::process::Output, Vec<u8>) {
     let dir = std::env::temp_dir();
     let pid = std::process::id();
     let in_path = dir.join(format!("midiremap_{name}_in_{pid}.mid"));
     let out_path = dir.join(format!("midiremap_{name}_out_{pid}.mid"));
-    std::fs::write(&in_path, one_note_smf(65)).unwrap();
+    std::fs::write(&in_path, one_note_smf(note)).unwrap();
     let out = Command::new(BIN)
         .args([
             "convert",
@@ -142,27 +131,32 @@ fn convert_china(name: &str, extra: &[&str]) -> (std::process::Output, Vec<u8>) 
 
 #[test]
 fn missing_drums_default_to_the_nearest_drum() {
-    let (out, bytes) = convert_china("missing_default", &[]);
+    let (out, bytes) = convert_note("missing_default", 65, &[]);
     assert!(out.status.success());
     assert_eq!(hit_keys(&bytes), vec![86]);
 }
 
 #[test]
 fn missing_drop_leaves_a_swapped_drum_out() {
-    let (out, bytes) = convert_china("missing_drop", &["--missing", "drop"]);
+    let (out, bytes) = convert_note("missing_drop", 65, &["--missing", "drop"]);
     assert!(
         out.status.success(),
         "stderr: {}",
         String::from_utf8_lossy(&out.stderr)
     );
     assert!(hit_keys(&bytes).is_empty());
+}
+
+#[test]
+fn missing_drop_reports_the_swapped_drum() {
+    let (out, _) = convert_note("missing_drop_report", 65, &["--missing", "drop"]);
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(err.contains("china.1.hit"), "report: {err}");
 }
 
 #[test]
 fn unknown_missing_value_is_rejected() {
-    let (out, _) = convert_china("missing_bad", &["--missing", "maybe"]);
+    let (out, _) = convert_note("missing_bad", 65, &["--missing", "maybe"]);
     assert!(!out.status.success());
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(

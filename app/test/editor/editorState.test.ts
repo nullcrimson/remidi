@@ -11,12 +11,23 @@ const edited = typed<EditorState>({
 });
 
 describe('editorReducer and selection events', () => {
-  it.each<SelectionEvent>([
-    { type: 'chooseSrc', id: 'ezdrummer' },
-    { type: 'chooseTgt', id: 'ezdrummer' },
-    { type: 'swap' },
-    { type: 'preselect', src: 'a', tgt: 'b' },
-  ])('drops every edit when the pair changes ($type)', (event) => {
+  it('drops every edit when the FROM engine is chosen (chooseSrc)', () => {
+    const event: SelectionEvent = { type: 'chooseSrc', id: 'ezdrummer' };
+    expect(editorReducer(edited, event)).toEqual(EDITOR_START);
+  });
+
+  it('drops every edit when the TO engine is chosen (chooseTgt)', () => {
+    const event: SelectionEvent = { type: 'chooseTgt', id: 'ezdrummer' };
+    expect(editorReducer(edited, event)).toEqual(EDITOR_START);
+  });
+
+  it('drops every edit when the engines are swapped (swap)', () => {
+    const event: SelectionEvent = { type: 'swap' };
+    expect(editorReducer(edited, event)).toEqual(EDITOR_START);
+  });
+
+  it('drops every edit when a pair is preselected (preselect)', () => {
+    const event: SelectionEvent = { type: 'preselect', src: 'a', tgt: 'b' };
     expect(editorReducer(edited, event)).toEqual(EDITOR_START);
   });
 
@@ -34,10 +45,13 @@ describe('editorReducer and selection events', () => {
     expect(next).toEqual({ edits: { 'snare1.hit': 40 }, srcEdits: {}, overlay: null });
   });
 
-  it.each<SelectionEvent>([
-    { type: 'setChannel', channel: '10' },
-    { type: 'setMissing', missing: 'drop' },
-  ])('keeps the edits when only a setting changes ($type)', (event) => {
+  it('keeps the edits when the drum channel changes (setChannel)', () => {
+    const event: SelectionEvent = { type: 'setChannel', channel: '10' };
+    expect(editorReducer(edited, event)).toBe(edited);
+  });
+
+  it('keeps the edits when the missing-drums setting changes (setMissing)', () => {
+    const event: SelectionEvent = { type: 'setMissing', missing: 'drop' };
     expect(editorReducer(edited, event)).toBe(edited);
   });
 

@@ -220,7 +220,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn eleven_locales_in_menu_order_each_with_its_own_prefix() {
+    fn eleven_locales_in_menu_order() {
         let names: Vec<&str> = Locale::ALL.iter().map(|l| l.native_name()).collect();
         assert_eq!(
             names,
@@ -238,6 +238,10 @@ mod tests {
                 "한국어"
             ]
         );
+    }
+
+    #[test]
+    fn every_locale_has_its_own_prefix() {
         let prefixes: std::collections::HashSet<&str> =
             Locale::ALL.iter().map(|l| l.prefix()).collect();
         assert_eq!(prefixes.len(), Locale::ALL.len());

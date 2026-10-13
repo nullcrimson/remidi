@@ -19,10 +19,20 @@ test('a target note picked in the editor is written to the file without pressing
   await page.getByRole('button', { name: '← Back' }).click();
   await expect(page.getByRole('button', { name: /^1 drum edited/ })).toBeVisible();
   expect(await convertAndDownload(page)).toEqual([40]);
+});
+
+test('the done heading counts the drums edited in the editor', async ({ page }) => {
+  await openPair(page);
+  await addFiles(page, kickFile());
+  await openEditor(page);
+  await retarget(page, 'Kick', 'E2');
+  await page.getByRole('button', { name: '← Back' }).click();
+
+  await convert(page);
   await expect(page.getByRole('heading', { name: /1 drum edited/ })).toBeVisible();
 });
 
-test('the Changed filter shows only the edited drum and Issues leaves it out', async ({ page }) => {
+test('the Changed filter shows only the edited drum', async ({ page }) => {
   await openPair(page);
   await openEditor(page);
   await retarget(page, 'Kick', 'E2');
@@ -34,18 +44,37 @@ test('the Changed filter shows only the edited drum and Issues leaves it out', a
   await show.getByText('Changed 1', { exact: true }).click();
   await expect(rows).toHaveCount(1);
   await expect(rows.getByTestId('drum-label')).toHaveText('Kick');
+});
+
+test('the Issues filter leaves the edited drum out', async ({ page }) => {
+  await openPair(page);
+  await openEditor(page);
+  await retarget(page, 'Kick', 'E2');
+  const rows = page.locator('[data-row]');
+  const show = page.getByRole('radiogroup', { name: 'Show' });
 
   const issues = show.getByText(/^Issues \d+$/);
   const count = Number((await issues.textContent())!.replace(/\D/g, ''));
   await issues.click();
   await expect(rows).toHaveCount(count);
   await expect(drumRow(page, 'Kick')).toHaveCount(0);
+});
+
+test('the All filter brings every drum back', async ({ page }) => {
+  await openPair(page);
+  await openEditor(page);
+  await retarget(page, 'Kick', 'E2');
+  const rows = page.locator('[data-row]');
+  const total = await rows.count();
+  const show = page.getByRole('radiogroup', { name: 'Show' });
+  await show.getByText('Changed 1', { exact: true }).click();
+  await expect.poll(() => rows.count()).toBe(1);
 
   await show.getByText(`All ${total}`, { exact: true }).click();
   await expect(rows).toHaveCount(total);
 });
 
-test('octave naming renames the notes in the editor but not in the file', async ({ page }) => {
+test('octave naming renames the notes in the editor', async ({ page }) => {
   await openPair(page);
   await addFiles(page, kickFile());
   await openEditor(page);
@@ -57,7 +86,13 @@ test('octave naming renames the notes in the editor but not in the file', async 
   await expect(page.getByText('Studio One · Cubase · FL Studio')).toBeVisible();
   await openEditor(page);
   await expect(noteButtons(page, 'Kick')).toHaveText(['C0', 'C1']);
+});
 
-  await page.getByRole('button', { name: '← Back' }).click();
+test('octave naming does not change the notes in the file', async ({ page }) => {
+  await openPair(page);
+  await addFiles(page, kickFile());
+  await page.getByRole('radiogroup', { name: 'Octaves start at' }).getByText('C-2').click();
+  await page.getByText('Studio One · Cubase · FL Studio').waitFor();
+
   expect(await convertAndDownload(page)).toEqual([36]);
 });

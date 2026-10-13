@@ -12,6 +12,9 @@ describe('locale chunk names', () => {
 
   it('leaves every other chunk to the default name', () => {
     expect(localeChunkName('E:/dev/midiremap/app/src/components/EditView.tsx')).toBeUndefined();
+  });
+
+  it('leaves a chunk without a name to the default name', () => {
     expect(localeChunkName(null)).toBeUndefined();
   });
 });

@@ -1,4 +1,4 @@
-import type { Locator, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { addFiles, expect, hitKeys, kickAndChina, openPair, test } from './fixtures';
 import { convert, download as downloadFile } from './steps';
 
@@ -6,21 +6,7 @@ const moved = /^\d+ drums? played on another drum$/;
 
 const download = async (page: Page) => hitKeys(await downloadFile(page));
 
-async function detailLeadsToIssues(page: Page, opener: Locator, heading: string | RegExp) {
-  const detail = page.getByRole('dialog');
-  await opener.click();
-  await expect(detail.getByText(heading)).toBeVisible();
-  await expect(detail.getByText(/China/).first()).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(detail).toBeHidden();
-
-  await opener.click();
-  await detail.getByRole('button', { name: 'Change in note editor →' }).click();
-  await expect(page.getByRole('heading', { name: 'Edit notes' })).toBeVisible();
-  await expect(page.getByRole('radio', { name: /^Issues [1-9]/ })).toBeChecked();
-}
-
-test('leaving missing drums out changes the hint and the converted file', async ({ page }) => {
+test('leaving missing drums out changes the hint', async ({ page }) => {
   await openPair(page);
   await addFiles(page, kickAndChina());
   await expect(page.getByRole('button', { name: moved })).toBeVisible();
@@ -29,6 +15,13 @@ test('leaving missing drums out changes the hint and the converted file', async 
   await expect(page.getByRole('radio', { name: 'Drop' })).toBeChecked();
   await expect(page.getByRole('button', { name: /^\d+ drums? dropped$/ })).toBeVisible();
   await expect(page.getByRole('button', { name: moved })).toHaveCount(0);
+});
+
+test('leaving missing drums out changes the converted file', async ({ page }) => {
+  await openPair(page);
+  await addFiles(page, kickAndChina());
+  await page.getByRole('radiogroup', { name: 'Missing drums' }).getByText('Drop', { exact: true }).click();
+  await page.getByRole('radio', { name: 'Drop' }).waitFor();
 
   await convert(page);
   expect(await download(page)).toEqual([36]);
@@ -52,16 +45,57 @@ test('the report drops missing drums and converts again', async ({ page }) => {
   expect(await download(page)).toEqual([36]);
 });
 
-test('the remapped count explains each drum and opens the editor on the issues', async ({ page }) => {
+const remapped = (page: Page) => page.getByRole('button', { name: /^\d+ of \d+ drums remapped$/ });
+const movedHint = (page: Page) => page.getByRole('button', { name: moved });
+
+test('the remapped count explains each drum', async ({ page }) => {
   await openPair(page);
-  await detailLeadsToIssues(
-    page,
-    page.getByRole('button', { name: /^\d+ of \d+ drums remapped$/ }),
-    /^\d+ drums in this mapping$/,
-  );
+  const detail = page.getByRole('dialog');
+  await remapped(page).click();
+  await expect(detail.getByText(/^\d+ drums in this mapping$/)).toBeVisible();
+  await expect(detail.getByText(/China/).first()).toBeVisible();
 });
 
-test('the missing drums hint lists the drums played elsewhere and opens the editor on them', async ({ page }) => {
+test('Escape closes the remapped count detail', async ({ page }) => {
   await openPair(page);
-  await detailLeadsToIssues(page, page.getByRole('button', { name: moved }), 'Played on another drum');
+  const detail = page.getByRole('dialog');
+  await remapped(page).click();
+  await detail.waitFor();
+
+  await page.keyboard.press('Escape');
+  await expect(detail).toBeHidden();
+});
+
+test('the remapped count opens the editor on the issues', async ({ page }) => {
+  await openPair(page);
+  const detail = page.getByRole('dialog');
+  await remapped(page).click();
+  await detail.waitFor();
+  await page.keyboard.press('Escape');
+  await expect(detail).toBeHidden();
+  await remapped(page).click();
+  await detail.getByRole('button', { name: 'Change in note editor →' }).click();
+  await expect(page.getByRole('heading', { name: 'Edit notes' })).toBeVisible();
+  await expect(page.getByRole('radio', { name: /^Issues [1-9]/ })).toBeChecked();
+});
+
+test('the missing drums hint lists the drums played elsewhere', async ({ page }) => {
+  await openPair(page);
+  const detail = page.getByRole('dialog');
+  await movedHint(page).click();
+  await expect(detail.getByText('Played on another drum')).toBeVisible();
+  await expect(detail.getByText(/China/).first()).toBeVisible();
+});
+
+test('the missing drums hint opens the editor on the issues', async ({ page }) => {
+  await openPair(page);
+  const detail = page.getByRole('dialog');
+  await movedHint(page).click();
+  await detail.waitFor();
+  await page.keyboard.press('Escape');
+  await expect(detail).toBeHidden();
+  await movedHint(page).click();
+  await detail.getByRole('button', { name: 'Change in note editor →' }).click();
+  await expect(page.getByRole('heading', { name: 'Edit notes' })).toBeVisible();
+  await expect(page.getByRole('radio', { name: /^Issues [1-9]/ })).toBeChecked();
 });

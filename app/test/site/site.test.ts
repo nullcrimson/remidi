@@ -12,9 +12,15 @@ const NAV_LINKS: unknown = JSON.parse(readFileSync(
 ));
 
 describe('site content', () => {
-  it('leaves the home page head and no-script text to the site generator', () => {
+  it('leaves the home page head to the site generator', () => {
     expect(indexHtml).toContain('<!--app-head--><title>Drumverter</title><!--/app-head-->');
+  });
+
+  it('leaves the home page no-script text to the site generator', () => {
     expect(indexHtml).toContain('<!--app-noscript--><!--/app-noscript-->');
+  });
+
+  it('keeps structured data out of the home page source', () => {
     expect(indexHtml).not.toContain('application/ld+json');
   });
 
@@ -29,14 +35,20 @@ describe('site content', () => {
   it('points a document link at the same page in the page language', () => {
     expect(localHref('/engines/', 'pl')).toBe('/pl/engines/');
     expect(localHref('/faq/', 'pl')).toBe('/pl/faq/');
+  });
+
+  it('leaves a document link in English as it is', () => {
     expect(localHref('/engines/', 'en')).toBe('/engines/');
   });
 });
 
 describe('links', () => {
-  it('resolves routes and links sections by slug for English', () => {
+  it('resolves routes for English', () => {
     expect(href({ route: 'converter' })).toBe('/');
     expect(href({ route: 'noteMaps' })).toBe('/engines/');
+  });
+
+  it('links sections by slug for English', () => {
     expect(href({ section: 'guide' })).toBe('/how-it-works/');
   });
 });

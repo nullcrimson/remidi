@@ -42,8 +42,8 @@ function arrange(skipped = 0, mappings = [kit]) {
 }
 
 describe('usePresetActions', () => {
-  it('saves the open pair and its edits as a new preset and marks it open', () => {
-    const { actions, saved, setup } = arrange();
+  it('saves the open pair and its edits as a new preset', () => {
+    const { actions, saved } = arrange();
     actions.save({ src: 'ggd_invasion', tgt: 'ezdrummer' }, presetName('Mine'));
     expect(saved.save).toHaveBeenCalledWith({
       name: 'Mine',
@@ -52,6 +52,11 @@ describe('usePresetActions', () => {
       edits: { 'china.1.hit': 52 },
       srcEdits: { 60: null },
     });
+  });
+
+  it('marks a newly saved preset open', () => {
+    const { actions, setup } = arrange();
+    actions.save({ src: 'ggd_invasion', tgt: 'ezdrummer' }, presetName('Mine'));
     expect(setup.setPreset).toHaveBeenCalledWith('new-id');
   });
 
@@ -83,14 +88,28 @@ describe('usePresetActions', () => {
     expect(vi.mocked(saved.save).mock.lastCall?.[0].name).toBe('My kit copy 2');
   });
 
-  it('loads a preset, says how many edits it skipped, and opens the editor on edit', () => {
-    const { actions, setup, notify } = arrange(2);
+  it('loads a preset', () => {
+    const { actions, setup } = arrange(2);
     actions.load(kit);
     expect(setup.loadMapping).toHaveBeenCalledWith(kit);
+  });
+
+  it('says how many edits a loaded preset skipped', () => {
+    const { actions, notify } = arrange(2);
+    actions.load(kit);
     expect(notify.mock.lastCall?.[0].map((l: NoticeLine) => ('message' in l ? t(l.message) : l.failed))).toEqual([
       "2 edits in 'My kit' use drums this version doesn't know; skipped.",
     ]);
+  });
+
+  it('does not open the editor when a preset loads', () => {
+    const { actions, setup } = arrange(2);
+    actions.load(kit);
     expect(setup.openEditor).not.toHaveBeenCalled();
+  });
+
+  it('opens the editor on edit', () => {
+    const { actions, setup } = arrange(2);
     actions.edit(kit);
     expect(setup.openEditor).toHaveBeenCalledOnce();
   });
@@ -98,6 +117,10 @@ describe('usePresetActions', () => {
   it('finds the open preset', () => {
     const { actions } = arrange();
     expect(actions.open('p1')).toBe(kit);
+  });
+
+  it('finds no preset when none is open', () => {
+    const { actions } = arrange();
     expect(actions.open(null)).toBeUndefined();
   });
 });

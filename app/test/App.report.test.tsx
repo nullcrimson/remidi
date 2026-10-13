@@ -48,9 +48,13 @@ describe('App loss report', () => {
     vi.mocked(stub.remap).mockReturnValue(reportWith(0));
   });
 
-  it('opens the report modal from the done card', async () => {
+  it('shows no unchanged-notes count on the done card when none were left', async () => {
     await convertOneFile();
     expect(screen.queryByText(/on other channels unchanged/)).not.toBeInTheDocument();
+  });
+
+  it('opens the report modal from the done card', async () => {
+    await convertOneFile();
     await userEvent.click(screen.getByRole('button', { name: /View report/i }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Conversion report' });
@@ -60,10 +64,15 @@ describe('App loss report', () => {
     expect(screen.queryByText(/left as they were/)).not.toBeInTheDocument();
   });
 
-  it('counts notes left on other channels on the done card and in the report', async () => {
+  it('counts notes left on other channels on the done card', async () => {
     vi.mocked(stub.remap).mockReturnValue(reportWith(168));
     await convertOneFile();
     expect(screen.getByText('168 on other channels unchanged')).toBeInTheDocument();
+  });
+
+  it('counts notes left on other channels in the report', async () => {
+    vi.mocked(stub.remap).mockReturnValue(reportWith(168));
+    await convertOneFile();
     await userEvent.click(screen.getByRole('button', { name: /View report/i }));
     await screen.findByRole('dialog', { name: 'Conversion report' });
     expect(screen.getByText('Notes on other tracks or channels, left as they were')).toBeInTheDocument();

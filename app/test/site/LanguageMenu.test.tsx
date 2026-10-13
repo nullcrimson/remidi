@@ -15,6 +15,11 @@ describe('LanguageMenu', () => {
     render(<LanguageMenu />);
     const list = screen.getByRole('list', { hidden: true });
     expect(within(list).getByRole('link', { name: 'Polski', hidden: true })).toHaveAttribute('href', '/pl/');
+  });
+
+  it('marks the language already shown as current', () => {
+    render(<LanguageMenu />);
+    const list = screen.getByRole('list', { hidden: true });
     expect(within(list).getByRole('link', { name: 'English', hidden: true })).toHaveAttribute('aria-current', 'true');
   });
 

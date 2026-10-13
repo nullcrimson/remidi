@@ -22,10 +22,14 @@ describe('translators', () => {
     expect(await loadTranslator('en')).toBe(ENGLISH);
   });
 
-  it('loads Polish messages and documents together', async () => {
+  it('loads Polish messages', async () => {
     const pl = await loadTranslator('pl');
     expect(pl.locale).toBe('pl');
     expect(pl.t({ id: 'nav-converter' })).not.toBe(ENGLISH.t({ id: 'nav-converter' }));
+  });
+
+  it('loads Polish documents', async () => {
+    const pl = await loadTranslator('pl');
     expect(pl.docs.faq?.length).toBeGreaterThan(0);
     expect(pl.docs.terms?.length).toBeGreaterThan(0);
   });

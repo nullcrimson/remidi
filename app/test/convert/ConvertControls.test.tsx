@@ -5,10 +5,14 @@ import { ConvertButton } from '../../src/convert/ConvertButton';
 import { SummaryRow } from '../../src/convert/SummaryRow';
 
 describe('SummaryRow', () => {
-  it('shows counts and fires edit', async () => {
+  it('shows counts', () => {
+    render(<SummaryRow remapped={3} total={14} onEdit={() => {}} names={{ source: 'GetGood Drums', target: 'EZdrummer 3' }} />);
+    expect(screen.getByText(/of 14 drums remapped/)).toBeInTheDocument();
+  });
+
+  it('fires edit', async () => {
     const onEdit = vi.fn();
     render(<SummaryRow remapped={3} total={14} onEdit={onEdit} names={{ source: 'GetGood Drums', target: 'EZdrummer 3' }} />);
-    expect(screen.getByText(/of 14 drums remapped/)).toBeInTheDocument();
     await userEvent.click(screen.getByText(/Edit individual notes/));
     expect(onEdit).toHaveBeenCalledOnce();
   });
@@ -35,13 +39,19 @@ describe('ConvertButton', () => {
     expect(screen.getByText('Add a .mid file to convert')).toHaveClass('sr-only');
   });
 
-  it('shows the reason next to the mouse at once and follows it', () => {
+  it('shows the reason next to the mouse at once', () => {
     const button = blocked('Add a .mid file to convert', true);
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     move(button, 100, 50);
     const tip = screen.getByRole('tooltip');
     expect(tip).toHaveTextContent('Add a .mid file to convert');
     expect(tip).toHaveStyle({ left: '114px', top: '68px' });
+  });
+
+  it('makes the tip follow the mouse', () => {
+    const button = blocked('Add a .mid file to convert', true);
+    move(button, 100, 50);
+    const tip = screen.getByRole('tooltip');
     move(button, 200, 60);
     expect(tip).toHaveStyle({ left: '214px', top: '78px' });
   });

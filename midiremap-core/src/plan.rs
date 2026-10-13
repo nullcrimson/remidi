@@ -181,7 +181,7 @@ mod tests {
     }
 
     #[test]
-    fn a_voice_serializes_in_camel_case_with_its_outcome_tagged_by_status() {
+    fn a_dropped_voice_serializes_in_camel_case_with_its_outcome_tagged_by_status() {
         let drop = ggd_to_ezd_with("{}", MissingDrums::Drop);
         let json = serde_json::to_value(find(&drop, "china.1.hit")).unwrap();
         assert_eq!(
@@ -194,6 +194,11 @@ mod tests {
             })
         );
         assert!(json["srcNotes"].as_array().is_some_and(|a| !a.is_empty()));
+    }
+
+    #[test]
+    fn a_direct_outcome_serializes_tagged_by_status() {
+        let drop = ggd_to_ezd_with("{}", MissingDrums::Drop);
         let kick = serde_json::to_value(find(&drop, "kick.main")).unwrap();
         assert_eq!(
             kick["outcome"],
@@ -202,7 +207,7 @@ mod tests {
     }
 
     #[test]
-    fn a_swapped_drum_is_marked_and_dropped_under_drop() {
+    fn a_swapped_drum_is_marked_as_a_fallback_under_nearest() {
         let near = ggd_to_ezd("{}");
         assert_eq!(
             find(&near, "china.1.hit").outcome,
@@ -211,19 +216,23 @@ mod tests {
                 other_drum: true
             }
         );
+    }
+
+    #[test]
+    fn a_present_drum_is_direct() {
+        let near = ggd_to_ezd("{}");
         assert_eq!(
             find(&near, "kick.main").outcome,
             PlanOutcome::Direct { tgt_note: n(36) }
         );
+    }
 
+    #[test]
+    fn a_swapped_drum_is_marked_and_dropped_under_drop() {
         let drop = ggd_to_ezd_with("{}", MissingDrums::Drop);
         let china = find(&drop, "china.1.hit");
         assert_eq!(china.outcome, PlanOutcome::Dropped { other_drum: true });
         assert_eq!(china.default_tgt_note, None);
-        assert_eq!(
-            find(&drop, "kick.main").outcome,
-            PlanOutcome::Direct { tgt_note: n(36) }
-        );
     }
 
     #[test]
@@ -282,20 +291,35 @@ mod tests {
         let rows =
             ggd_to_ezd(r#"{"src":[{"note":24,"canon":null},{"canon":"kick.main","note":99}]}"#);
         assert_eq!(find(&rows, "kick.main").src_notes, vec![n(99)]);
+    }
+
+    #[test]
+    fn src_override_can_unassign_the_primary() {
         let rows = ggd_to_ezd(r#"{"src":[{"note":24,"canon":null}]}"#);
         assert!(find(&rows, "kick.main").src_notes.is_empty());
     }
 
     #[test]
-    fn reassigned_note_moves_between_rows() {
+    fn reassigned_note_leaves_its_old_row() {
         let rows = ggd_to_ezd(r#"{"src":[{"canon":"snare1.hit","note":24}]}"#);
         let kick = find(&rows, "kick.main");
         assert!(kick.src_notes.is_empty(), "kick keeps {:?}", kick.src_notes);
+    }
+
+    #[test]
+    fn a_row_that_lost_its_source_note_still_resolves_its_target() {
+        let rows = ggd_to_ezd(r#"{"src":[{"canon":"snare1.hit","note":24}]}"#);
+        let kick = find(&rows, "kick.main");
         assert_eq!(
             kick.outcome.tgt_note(),
             Some(n(36)),
             "a silent row still resolves its target"
         );
+    }
+
+    #[test]
+    fn a_reassigned_note_lands_on_its_new_row() {
+        let rows = ggd_to_ezd(r#"{"src":[{"canon":"snare1.hit","note":24}]}"#);
         assert_eq!(find(&rows, "snare1.hit").src_notes.first(), Some(&n(24)));
     }
 

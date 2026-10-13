@@ -38,9 +38,15 @@ describe('detection by language and script', () => {
     expect(detectLocale(['en_US', '*', 'fr-FR'])).toBe('fr');
   });
 
-  it('compares language and script, not region', () => {
+  it('ignores the region when comparing languages', () => {
     expect(sameLanguage('pt-BR', 'pt-PT')).toBe(true);
+  });
+
+  it('tells scripts apart when comparing languages', () => {
     expect(sameLanguage('zh-Hans', 'zh-TW')).toBe(false);
+  });
+
+  it('does not equate an invalid tag with its language', () => {
     expect(sameLanguage('en', 'en_US')).toBe(false);
   });
 });

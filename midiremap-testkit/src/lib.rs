@@ -154,12 +154,17 @@ mod tests {
     }
 
     #[test]
-    fn one_track_is_single_track_and_more_are_parallel() {
+    fn one_track_is_single_track() {
         let one = parse(&tracks(&[&[(0, 1, cc())]])).header.format;
+        assert_eq!(one, Format::SingleTrack);
+    }
+
+    #[test]
+    fn more_tracks_are_parallel() {
         let two = parse(&tracks(&[&[(0, 1, cc())], &[(0, 2, cc())]]))
             .header
             .format;
-        assert_eq!((one, two), (Format::SingleTrack, Format::Parallel));
+        assert_eq!(two, Format::Parallel);
     }
 
     #[test]

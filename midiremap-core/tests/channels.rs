@@ -17,23 +17,42 @@ fn ggd_to_ezd(midi: &[u8], scope: ChannelScope) -> Result<Converted, CodecError>
     )
 }
 
-#[test]
-fn auto_leaves_tracks_without_channel_10_hits_untouched() {
-    let bass: &[Ev] = &[
+fn bass_track() -> Vec<Ev> {
+    vec![
         (0, BASS, on(24)),
         (0, BASS, on(99)),
         (0, BASS, cc()),
         (0, BASS, choke(24)),
         (10, BASS, off(24)),
         (0, BASS, off(99)),
-    ];
-    let midi = tracks(&[&[(0, DRUMS, on(24)), (10, DRUMS, off(24))], bass]);
+    ]
+}
+
+fn drum_track_beside_a_bass_track() -> Vec<u8> {
+    tracks(&[&[(0, DRUMS, on(24)), (10, DRUMS, off(24))], &bass_track()])
+}
+
+#[test]
+fn auto_converts_the_track_with_channel_10_hits() {
+    let midi = drum_track_beside_a_bass_track();
     let out = ggd_to_ezd(&midi, ChannelScope::Auto).unwrap();
     assert_eq!(
         events(&out.bytes, 0),
         vec![(0, DRUMS, on(36)), (10, DRUMS, off(36))]
     );
-    assert_eq!(events(&out.bytes, 1), bass);
+}
+
+#[test]
+fn auto_leaves_tracks_without_channel_10_hits_untouched() {
+    let midi = drum_track_beside_a_bass_track();
+    let out = ggd_to_ezd(&midi, ChannelScope::Auto).unwrap();
+    assert_eq!(events(&out.bytes, 1), bass_track());
+}
+
+#[test]
+fn auto_reports_no_unmapped_notes_for_untouched_tracks() {
+    let midi = drum_track_beside_a_bass_track();
+    let out = ggd_to_ezd(&midi, ChannelScope::Auto).unwrap();
     assert!(out.report.unmapped_source().next().is_none());
 }
 
@@ -109,6 +128,16 @@ fn choke_on_a_removed_note_is_removed_and_its_delta_folds_forward() {
         events(&out.bytes, 0),
         vec![(0, DRUMS, on(36)), (15, DRUMS, off(36))]
     );
+}
+
+#[test]
+fn choke_on_a_removed_note_is_not_reported_as_unmapped() {
+    let midi = tracks(&[&[
+        (0, DRUMS, on(24)),
+        (10, DRUMS, choke(99)),
+        (5, DRUMS, off(24)),
+    ]]);
+    let out = ggd_to_ezd(&midi, ChannelScope::Auto).unwrap();
     assert!(
         out.report.unmapped_source().next().is_none(),
         "aftertouch is not a hit"
@@ -131,21 +160,53 @@ fn a_folded_gap_past_the_delta_range_is_an_error() {
 }
 
 #[test]
-fn channel_scope_parses_cli_values() {
+fn channel_scope_parses_auto() {
     assert_eq!("auto".parse::<ChannelScope>().unwrap(), ChannelScope::Auto);
+}
+
+#[test]
+fn channel_scope_parses_all() {
     assert_eq!("all".parse::<ChannelScope>().unwrap(), ChannelScope::All);
+}
+
+#[test]
+fn channel_scope_parses_the_drum_channel() {
     assert_eq!(
         "10".parse::<ChannelScope>().unwrap(),
         ChannelScope::Only(Channel::DRUMS)
     );
+}
+
+#[test]
+fn channel_scope_parses_the_last_channel() {
     assert_eq!(
         "16".parse::<ChannelScope>().unwrap(),
         ChannelScope::Only(Channel::new(16).unwrap())
     );
+}
+
+#[test]
+fn channel_scope_rejects_channel_zero() {
     assert!("0".parse::<ChannelScope>().is_err());
+}
+
+#[test]
+fn channel_scope_rejects_channel_seventeen() {
     assert!("17".parse::<ChannelScope>().is_err());
+}
+
+#[test]
+fn channel_scope_rejects_a_letter() {
     assert!("x".parse::<ChannelScope>().is_err());
+}
+
+#[test]
+fn channel_scope_rejects_the_empty_text() {
     assert!("".parse::<ChannelScope>().is_err());
+}
+
+#[test]
+fn channel_scope_rejects_a_negative_number() {
     assert!("-1".parse::<ChannelScope>().is_err());
 }
 
@@ -185,12 +246,18 @@ fn nothing_is_untouched_when_every_channel_is_converted() {
     let midi = tracks(&[&[(0, DRUMS, on(24))], &[(0, BASS, on(24))]]);
     let out = ggd_to_ezd(&midi, ChannelScope::All).unwrap();
     assert_eq!(out.report.untouched(), 0);
+}
+
+#[test]
+fn nothing_is_untouched_in_the_serialized_report_when_every_channel_is_converted() {
+    let midi = tracks(&[&[(0, DRUMS, on(24))], &[(0, BASS, on(24))]]);
+    let out = ggd_to_ezd(&midi, ChannelScope::All).unwrap();
     let json = serde_json::to_value(&out.report).unwrap();
     assert_eq!(json["untouched"], 0);
 }
 
 #[test]
-fn converted_counts_hits_written_to_the_output() {
+fn converted_counts_hits_written_to_the_output_under_auto() {
     let midi = tracks(&[&[
         (0, DRUMS, on(24)),
         (0, DRUMS, silent_on(24)),
@@ -204,6 +271,16 @@ fn converted_counts_hits_written_to_the_output() {
             .converted(),
         2
     );
+}
+
+#[test]
+fn converted_counts_nothing_when_the_named_channel_has_no_hits() {
+    let midi = tracks(&[&[
+        (0, DRUMS, on(24)),
+        (0, DRUMS, silent_on(24)),
+        (0, DRUMS, on(99)),
+        (0, BASS, on(24)),
+    ]]);
     assert_eq!(
         ggd_to_ezd(&midi, "2".parse().unwrap())
             .unwrap()

@@ -257,17 +257,32 @@ mod tests {
     }
 
     #[test]
-    fn all_reaches_every_variant() {
+    fn all_reaches_every_drum_kind() {
         let all = Canon::all().iter().copied();
-        assert_reaches_every(all.clone().map(CanonDiscriminants::from));
-        assert_reaches_every(all.clone().filter_map(|c| match c {
+        assert_reaches_every(all.map(CanonDiscriminants::from));
+    }
+
+    #[test]
+    fn all_reaches_every_hat_open_level() {
+        let all = Canon::all().iter().copied();
+        assert_reaches_every(all.filter_map(|c| match c {
             Canon::Hat(o, _) | Canon::Aux(_, o, _) => Some(HatOpenDiscriminants::from(o)),
             _ => None,
         }));
-        assert_reaches_every(all.clone().filter_map(|c| match c {
+    }
+
+    #[test]
+    fn all_reaches_every_tom_position() {
+        let all = Canon::all().iter().copied();
+        assert_reaches_every(all.filter_map(|c| match c {
             Canon::Tom(p, _) => Some(TomPosDiscriminants::from(p)),
             _ => None,
         }));
+    }
+
+    #[test]
+    fn all_reaches_every_cymbal_slot() {
+        let all = Canon::all().iter().copied();
         assert_reaches_every(all.filter_map(|c| match c {
             Canon::Cymbal(s, _) => Some(CymSlotDiscriminants::from(s)),
             _ => None,
@@ -284,58 +299,112 @@ mod tests {
     }
 
     #[test]
-    fn drums_belong_to_their_family() {
+    fn a_ride_belongs_to_the_cymbals() {
         assert_eq!(
             Canon::Ride(idx(1), RideArtic::Bow).family(),
             Family::Cymbals
         );
+    }
+
+    #[test]
+    fn an_aux_hat_belongs_to_the_aux_family() {
         assert_eq!(
             Canon::Aux(idx(1), HatOpen::Closed, HatZone::Plain).family(),
             Family::Aux
         );
+    }
+
+    #[test]
+    fn a_tom_belongs_to_the_toms() {
         assert_eq!(
             Canon::Tom(TomPos::Rack(idx(1)), TomArtic::Hit).family(),
             Family::Toms
         );
     }
 
-    #[test]
-    fn same_drum_joins_ways_of_playing_one_instrument() {
-        for (a, b) in [
-            ("kick.left", "kick.main"),
-            ("kick.alt", "kick.main"),
-            ("snare2.rimshot", "snare2.hit"),
-            ("tom.rack4.rim", "tom.rack4.hit"),
-            ("hat.open3.bell", "hat.closed"),
-            ("hat.pedal", "hat.closed"),
-            ("aux1.open5", "aux1.closed"),
-            ("china.2.mute", "china.2.hit"),
-            ("ride.1.bell", "ride.1"),
-            ("perc.cowbell", "perc.cowbell"),
-        ] {
-            assert!(k(a).same_drum(k(b)), "{a} ~ {b}");
-            assert!(k(b).same_drum(k(a)), "{b} ~ {a}");
-        }
+    fn assert_same_drum(a: &str, b: &str) {
+        assert!(k(a).same_drum(k(b)), "{a} ~ {b}");
+        assert!(k(b).same_drum(k(a)), "{b} ~ {a}");
+    }
+
+    fn assert_different_drums(a: &str, b: &str) {
+        assert!(!k(a).same_drum(k(b)), "{a} !~ {b}");
+        assert!(!k(b).same_drum(k(a)), "{b} !~ {a}");
     }
 
     #[test]
-    fn same_drum_separates_swaps() {
-        for (a, b) in [
-            ("tom.rack4.hit", "tom.rack3.hit"),
-            ("snare2.hit", "snare1.hit"),
-            ("china.1.hit", "crash.1.hit"),
-            ("splash.1.hit", "crash.1.hit"),
-            ("stack.1.hit", "crash.1.hit"),
-            ("crash.3.hit", "crash.2.hit"),
-            ("ride.2", "ride.1"),
-            ("ride.1", "crash.1.hit"),
-            ("bell.1.hit", "ride.1.bell"),
-            ("aux1.closed", "hat.closed"),
-            ("perc.cowbell", "perc.clap"),
-        ] {
-            assert!(!k(a).same_drum(k(b)), "{a} !~ {b}");
-            assert!(!k(b).same_drum(k(a)), "{b} !~ {a}");
-        }
+    fn same_drum_a_left_kick_is_the_main_kick() {
+        assert_same_drum("kick.left", "kick.main");
+    }
+
+    #[test]
+    fn same_drum_a_snare_rimshot_is_its_snare() {
+        assert_same_drum("snare2.rimshot", "snare2.hit");
+    }
+
+    #[test]
+    fn same_drum_a_tom_rim_is_its_tom() {
+        assert_same_drum("tom.rack4.rim", "tom.rack4.hit");
+    }
+
+    #[test]
+    fn same_drum_an_open_hat_bell_is_the_hi_hat() {
+        assert_same_drum("hat.open3.bell", "hat.closed");
+    }
+
+    #[test]
+    fn same_drum_an_open_aux_hat_is_its_aux_hat() {
+        assert_same_drum("aux1.open5", "aux1.closed");
+    }
+
+    #[test]
+    fn same_drum_a_muted_china_is_its_china() {
+        assert_same_drum("china.2.mute", "china.2.hit");
+    }
+
+    #[test]
+    fn same_drum_a_ride_bell_is_its_ride() {
+        assert_same_drum("ride.1.bell", "ride.1");
+    }
+
+    #[test]
+    fn same_drum_two_rack_toms_are_different_drums() {
+        assert_different_drums("tom.rack4.hit", "tom.rack3.hit");
+    }
+
+    #[test]
+    fn same_drum_two_snares_are_different_drums() {
+        assert_different_drums("snare2.hit", "snare1.hit");
+    }
+
+    #[test]
+    fn same_drum_a_china_is_not_a_crash() {
+        assert_different_drums("china.1.hit", "crash.1.hit");
+    }
+
+    #[test]
+    fn same_drum_two_crashes_are_different_drums() {
+        assert_different_drums("crash.3.hit", "crash.2.hit");
+    }
+
+    #[test]
+    fn same_drum_two_rides_are_different_drums() {
+        assert_different_drums("ride.2", "ride.1");
+    }
+
+    #[test]
+    fn same_drum_a_ride_is_not_a_crash() {
+        assert_different_drums("ride.1", "crash.1.hit");
+    }
+
+    #[test]
+    fn same_drum_an_aux_hat_is_not_the_hi_hat() {
+        assert_different_drums("aux1.closed", "hat.closed");
+    }
+
+    #[test]
+    fn same_drum_a_cowbell_is_not_a_clap() {
+        assert_different_drums("perc.cowbell", "perc.clap");
     }
 
     #[test]

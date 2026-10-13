@@ -55,8 +55,7 @@ describe('FileChips', () => {
     );
   });
 
-  it('renders a rectangle per file and removes one', async () => {
-    const onRemove = vi.fn();
+  const renderTwoFiles = (onRemove: (name: string) => void = () => {}) =>
     render(
       <FileChips
         files={[
@@ -69,8 +68,16 @@ describe('FileChips', () => {
         onClear={() => {}}
       />,
     );
+
+  it('renders a rectangle per file', () => {
+    renderTwoFiles();
     expect(screen.getByText('a.mid')).toBeInTheDocument();
     expect(screen.getByText('b.mid')).toBeInTheDocument();
+  });
+
+  it('removes one file', async () => {
+    const onRemove = vi.fn();
+    renderTwoFiles(onRemove);
     await userEvent.click(screen.getByRole('button', { name: /Remove a.mid/i }));
     expect(onRemove).toHaveBeenCalledWith('a.mid');
   });

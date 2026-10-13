@@ -2,11 +2,9 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../src/core/download', () => ({ saveBlob: vi.fn() }));
-
 import App from '../src/App';
 import { RUNTIME } from './runtime';
-import { saveBlob } from '../src/core/download';
+import { recordDownloads } from './downloads';
 import { WasmCallError } from '../src/core/errors';
 import { MAPPINGS_CAP } from '../src/presets/mappings';
 import type { PresetView, VocabularyDrum } from '../src/core/midiremap';
@@ -37,9 +35,10 @@ async function importFile(name: string) {
   await userEvent.upload(input, new File(['{}'], name), { applyAccept: false });
 }
 
+const downloads = recordDownloads();
+
 describe('App presets', () => {
   beforeEach(() => {
-    vi.mocked(saveBlob).mockClear();
     vi.mocked(stub.engine_drums).mockReturnValue([]);
     vi.mocked(stub.engine_notes).mockReturnValue([]);
     vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
@@ -53,6 +52,12 @@ describe('App presets', () => {
     await userEvent.click(screen.getByRole('button', { name: /^My kit/ }));
     const status = screen.getByRole('status');
     expect(status).toHaveTextContent("2 edits in 'My kit' use drums this version doesn't know; skipped.");
+  });
+
+  it('dismisses the skipped-edits notice', async () => {
+    await start();
+    await userEvent.click(screen.getByRole('button', { name: /^My kit/ }));
+    const status = screen.getByRole('status');
     await userEvent.click(within(status).getByRole('button', { name: 'Dismiss' }));
     expect(screen.queryByText(/this version doesn't know/)).not.toBeInTheDocument();
   });
@@ -61,24 +66,29 @@ describe('App presets', () => {
     await start();
     await userEvent.click(screen.getByRole('button', { name: 'More actions for My kit' }));
     await userEvent.click(screen.getByRole('menuitem', { name: 'Export' }));
-    expect(saveBlob).toHaveBeenCalledWith(expect.any(Blob), 'my-kit-drumverter.json');
+    expect(downloads()).toContainEqual({ name: 'my-kit-drumverter.json', blob: expect.any(Blob) });
   });
 
-  it('says which files the browser could not read and keeps the rest', async () => {
+  const gone = (name: string) => {
+    const f = new File(['x'], name);
+    const fail = () => Promise.reject(new DOMException('gone', 'NotReadableError'));
+    Object.defineProperty(f, 'arrayBuffer', { value: fail });
+    Object.defineProperty(f, 'text', { value: fail });
+    return f;
+  };
+
+  it('says which file the browser could not read and keeps the rest', async () => {
     await start();
-    const gone = (name: string) => {
-      const f = new File(['x'], name);
-      const fail = () => Promise.reject(new DOMException('gone', 'NotReadableError'));
-      Object.defineProperty(f, 'arrayBuffer', { value: fail });
-      Object.defineProperty(f, 'text', { value: fail });
-      return f;
-    };
     const input = screen.getAllByTestId('file-input')[0];
     await userEvent.upload(input, [gone('groove.mid'), new File(['MThd'], 'fill.mid')], { applyAccept: false });
     await waitFor(() =>
       expect(screen.getByRole('status')).toHaveTextContent("Couldn't read groove.mid — pick it again."),
     );
     expect(screen.getByText('fill.mid')).toBeInTheDocument();
+  });
+
+  it('says which files the browser could not read when several fail', async () => {
+    await start();
     await userEvent.upload(screen.getAllByTestId('file-input')[0], [gone('a.mid'), gone('b.drumverter.json')], {
       applyAccept: false,
     });

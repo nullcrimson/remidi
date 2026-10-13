@@ -20,7 +20,7 @@ describe('useRemapper edit path', () => {
     vi.mocked(stub.plan).mockReturnValue(ROWS);
   });
 
-  it('opens a picker, sets octave, and picks a target note', async () => {
+  it('opens a picker', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
@@ -33,8 +33,15 @@ describe('useRemapper edit path', () => {
       octIndex: 2,
       defaultNote: 36,
     });
+  });
 
-    act(() => result.current.editor.setPickOct(shownTgtPick(result.current.editor), 3));
+  it('re-plans with the picked target note and counts it as remapped', async () => {
+    const { result } = renderHook(() => useRemapper(RUNTIME));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
+
+    act(() => result.current.editor.openPick(canon('KickMain')));
     act(() => result.current.editor.chooseNote(shownTgtPick(result.current.editor), note(50)));
     expect(result.current.editor.overlay).toBeNull();
     expect(result.current.editor.edits[canon('KickMain')]).toBe(50);
@@ -47,12 +54,19 @@ describe('useRemapper edit path', () => {
     );
   });
 
-  it('sets an absolute target note from the drum list', async () => {
+  it('lists the target engine drums', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
     expect(result.current.editor.targetDrums).toHaveLength(1);
+  });
+
+  it('sets an absolute target note from the drum list', async () => {
+    const { result } = renderHook(() => useRemapper(RUNTIME));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
     act(() => result.current.editor.openPick(canon('KickMain')));
     act(() => result.current.editor.chooseNote(shownTgtPick(result.current.editor), note(50)));
     expect(result.current.editor.overlay).toBeNull();
@@ -99,7 +113,7 @@ describe('useRemapper edit path', () => {
     expect(result.current.editor.overlay).toMatchObject({ octIndex: 3 });
   });
 
-  it('opens pickers on a silent row and leaves it out of the counts', async () => {
+  async function withSilentRows() {
     vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
       { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
       { canon: 'China', label: 'China', family: 'Cymbals', srcNotes: [], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
@@ -108,9 +122,22 @@ describe('useRemapper edit path', () => {
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
+    return result;
+  }
+
+  it('leaves a silent row out of the counts', async () => {
+    const result = await withSilentRows();
     expect(result.current.editor.remappedCount).toBe(0);
+  });
+
+  it('opens a source picker on a silent row', async () => {
+    const result = await withSilentRows();
     act(() => result.current.editor.openSrcPick(canon('KickMain')));
     expect(result.current.editor.overlay).toMatchObject({ octIndex: 2 });
+  });
+
+  it('opens a source picker on a silent row with no target note', async () => {
+    const result = await withSilentRows();
     act(() => result.current.editor.openSrcPick(canon('China')));
     expect(result.current.editor.overlay).toMatchObject({ canon: 'China' });
   });

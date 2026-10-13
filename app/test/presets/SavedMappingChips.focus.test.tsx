@@ -48,22 +48,39 @@ async function openMenu(name: string) {
 }
 
 describe('saved preset focus', () => {
-  it('returns to the chip after a rename is saved or cancelled', async () => {
+  it('returns to the chip after a rename is saved', async () => {
     render(<Harness initial={[preset('a', 'Alpha')]} />);
     await userEvent.click(within(await openMenu('Alpha')).getByRole('menuitem', { name: 'Rename' }));
     await userEvent.keyboard('{Control>}a{/Control}Beta{Enter}');
     expect(screen.getByRole('button', { name: /^Beta/ })).toHaveFocus();
+  });
+
+  it('returns to the chip after a rename is cancelled', async () => {
+    render(<Harness initial={[preset('a', 'Alpha')]} />);
+    await userEvent.click(within(await openMenu('Alpha')).getByRole('menuitem', { name: 'Rename' }));
+    await userEvent.keyboard('{Control>}a{/Control}Beta{Enter}');
     await userEvent.click(within(await openMenu('Beta')).getByRole('menuitem', { name: 'Rename' }));
     await userEvent.keyboard('{Escape}');
     expect(screen.getByRole('button', { name: /^Beta/ })).toHaveFocus();
   });
 
-  it('moves to the next chip, then the previous, then the fallback after deletes', async () => {
+  it('moves to the next chip after a delete', async () => {
     render(<Harness initial={[preset('a', 'Alpha'), preset('b', 'Bravo'), preset('c', 'Charlie')]} />);
     await userEvent.click(within(await openMenu('Alpha')).getByRole('menuitem', { name: 'Delete' }));
     expect(screen.getByRole('button', { name: /^Bravo/ })).toHaveFocus();
+  });
+
+  it('moves to the previous chip after deleting the last one', async () => {
+    render(<Harness initial={[preset('a', 'Alpha'), preset('b', 'Bravo'), preset('c', 'Charlie')]} />);
+    await userEvent.click(within(await openMenu('Alpha')).getByRole('menuitem', { name: 'Delete' }));
     await userEvent.click(within(await openMenu('Charlie')).getByRole('menuitem', { name: 'Delete' }));
     expect(screen.getByRole('button', { name: /^Bravo/ })).toHaveFocus();
+  });
+
+  it('moves to the fallback after deleting the last remaining chip', async () => {
+    render(<Harness initial={[preset('a', 'Alpha'), preset('b', 'Bravo'), preset('c', 'Charlie')]} />);
+    await userEvent.click(within(await openMenu('Alpha')).getByRole('menuitem', { name: 'Delete' }));
+    await userEvent.click(within(await openMenu('Charlie')).getByRole('menuitem', { name: 'Delete' }));
     await userEvent.click(within(await openMenu('Bravo')).getByRole('menuitem', { name: 'Delete' }));
     expect(screen.getByRole('textbox', { name: 'FROM' })).toHaveFocus();
   });
@@ -74,12 +91,16 @@ describe('saved preset focus', () => {
     expect(screen.getByRole('textbox', { name: 'Rename Alpha' })).toHaveFocus();
   });
 
-  it('returns to the menu button after Escape or Duplicate', async () => {
+  it('returns to the menu button after Escape', async () => {
     render(<Harness initial={[preset('a', 'Alpha')]} />);
     await openMenu('Alpha');
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'More actions for Alpha' })).toHaveFocus();
+  });
+
+  it('returns to the menu button after Duplicate', async () => {
+    render(<Harness initial={[preset('a', 'Alpha')]} />);
     await userEvent.click(within(await openMenu('Alpha')).getByRole('menuitem', { name: 'Duplicate' }));
     expect(screen.getByRole('button', { name: 'More actions for Alpha' })).toHaveFocus();
   });

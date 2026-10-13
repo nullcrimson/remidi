@@ -13,11 +13,15 @@ const DRUMS = typed<Drum[]>([
 ]);
 
 describe('DrumList', () => {
-  it('renders family headers and picks a drum note', async () => {
-    const onPick = vi.fn();
-    render(<DrumList drums={DRUMS} families={family_order()} currentNote={note(38)} base="c1" onPickNote={onPick} />);
+  it('renders family headers', () => {
+    render(<DrumList drums={DRUMS} families={family_order()} currentNote={note(38)} base="c1" onPickNote={() => {}} />);
     expect(screen.getByText('Cymbals')).toBeInTheDocument();
     expect(screen.getAllByText('Kick')).toHaveLength(2);
+  });
+
+  it('picks a drum note', async () => {
+    const onPick = vi.fn();
+    render(<DrumList drums={DRUMS} families={family_order()} currentNote={note(38)} base="c1" onPickNote={onPick} />);
     await userEvent.click(screen.getByRole('button', { name: /Crash 1/ }));
     expect(onPick).toHaveBeenCalledWith(49);
   });

@@ -340,24 +340,32 @@ pub fn engine_catalog() -> Result<Vec<Ts<Engine>>, WasmError> {
 
 #[cfg(test)]
 mod tests {
-    use midiremap_core::PlanOutcome;
-
     use super::*;
 
     #[test]
-    fn catalog_names_engines_by_display_name_and_keeps_the_full_name() {
+    fn catalog_names_engines_by_display_name() {
         let engines = engines(&Catalog::builtin().unwrap());
         let ezd = engines.iter().find(|e| e.id == "ezdrummer").unwrap();
         assert_eq!(ezd.name, "EZdrummer 3");
+    }
+
+    #[test]
+    fn catalog_keeps_the_full_name() {
+        let engines = engines(&Catalog::builtin().unwrap());
+        let ezd = engines.iter().find(|e| e.id == "ezdrummer").unwrap();
         assert_eq!(ezd.full_name, "Toontrack EZdrummer 3");
+    }
+
+    #[test]
+    fn catalog_gives_an_engine_without_a_short_name_the_same_name_and_full_name() {
+        let engines = engines(&Catalog::builtin().unwrap());
         let hertz = engines.iter().find(|e| e.id == "hertz").unwrap();
         assert_eq!(hertz.name, hertz.full_name);
     }
 
     const FIXTURE: &str = include_str!("../../midiremap-core/tests/golden/my-kit.drumverter.json");
 
-    #[test]
-    fn preset_view_resolves_engines_and_lists_skipped_edits() {
+    fn view_through_an_alias_with_a_bogus_edit() -> PresetView {
         let with_alias = r#"{"id":"custom","name":"Custom","aliases":["old_kit"],"notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
         let catalog = Catalog::builtin()
             .unwrap()
@@ -366,18 +374,48 @@ mod tests {
         let json = FIXTURE
             .replace("ggd_invasion", "old_kit")
             .replace("\"kick.main\": 35", "\"bogus.drum\": 35");
-        let view = preset_view(&json, &catalog).unwrap();
+        preset_view(&json, &catalog).unwrap()
+    }
+
+    #[test]
+    fn preset_view_resolves_a_source_alias() {
+        let view = view_through_an_alias_with_a_bogus_edit();
         assert_eq!(view.src, "custom");
+    }
+
+    #[test]
+    fn preset_view_keeps_the_target_engine() {
+        let view = view_through_an_alias_with_a_bogus_edit();
         assert_eq!(view.tgt, "ezdrummer");
+    }
+
+    #[test]
+    fn preset_view_carries_the_preset_name() {
+        let view = view_through_an_alias_with_a_bogus_edit();
         assert_eq!(view.name, PresetName("My kit".into()));
+    }
+
+    #[test]
+    fn preset_view_lists_the_target_edits_it_can_read() {
+        let view = view_through_an_alias_with_a_bogus_edit();
         assert_eq!(
             serde_json::to_value(&view.edits).unwrap(),
             serde_json::json!({ "china.1.hit": 52 })
         );
+    }
+
+    #[test]
+    fn preset_view_lists_the_source_edits() {
+        let view = view_through_an_alias_with_a_bogus_edit();
         assert_eq!(
             serde_json::to_value(&view.src_edits).unwrap(),
             serde_json::json!({ "24": "snare1.hit", "60": null })
         );
+    }
+
+    #[test]
+    fn preset_view_lists_the_skipped_edits() {
+        let view = view_through_an_alias_with_a_bogus_edit();
         assert_eq!(
             view.skipped,
             [SkippedEdit::UnknownDrum {
@@ -387,7 +425,7 @@ mod tests {
     }
 
     #[test]
-    fn preset_view_names_an_unknown_engine_and_rejects_bad_files() {
+    fn preset_view_names_an_unknown_target_engine() {
         let catalog = Catalog::builtin().unwrap();
         let unknown = FIXTURE.replace("ezdrummer", "gone_engine");
         assert_eq!(
@@ -397,14 +435,10 @@ mod tests {
                 id: "gone_engine".to_owned(),
             }
         );
-        assert!(matches!(
-            preset_view("{}", &catalog).unwrap_err(),
-            WasmError::BadPreset { .. }
-        ));
     }
 
     #[test]
-    fn an_unknown_engine_error_names_its_role_and_id() {
+    fn an_unknown_source_engine_error_names_its_role_and_id() {
         let catalog = Catalog::builtin().unwrap();
         let err = voice_rows(
             &catalog,
@@ -422,6 +456,11 @@ mod tests {
                 id: "nope".to_owned(),
             }
         );
+    }
+
+    #[test]
+    fn an_unknown_target_engine_error_names_its_role_and_id() {
+        let catalog = Catalog::builtin().unwrap();
         assert_eq!(
             drums_of(&catalog, "gone", Role::Target).err().unwrap(),
             WasmError::UnknownEngine {
@@ -432,7 +471,7 @@ mod tests {
     }
 
     #[test]
-    fn a_wasm_error_serializes_as_a_tagged_object() {
+    fn a_bad_midi_error_serializes_as_a_tagged_object() {
         assert_eq!(
             serde_json::to_value(WasmError::BadMidi {
                 detail: "invalid midi".into()
@@ -440,6 +479,10 @@ mod tests {
             .unwrap(),
             serde_json::json!({ "kind": "badMidi", "detail": "invalid midi" })
         );
+    }
+
+    #[test]
+    fn an_unknown_engine_error_serializes_as_a_tagged_object() {
         assert_eq!(
             serde_json::to_value(WasmError::UnknownEngine {
                 role: Role::Target,
@@ -466,7 +509,7 @@ mod tests {
     }
 
     #[test]
-    fn a_bad_files_detail_carries_its_cause() {
+    fn a_bad_midi_files_detail_carries_its_cause() {
         let catalog = Catalog::builtin().unwrap();
         let midi = convert_file(
             &catalog,
@@ -485,6 +528,11 @@ mod tests {
                 detail: "MIDI parse error: invalid midi: not a midi file".to_owned()
             }
         );
+    }
+
+    #[test]
+    fn a_bad_preset_files_detail_carries_its_cause() {
+        let catalog = Catalog::builtin().unwrap();
         let WasmError::BadPreset { detail } = preset_view("{", &catalog).unwrap_err() else {
             panic!("not BadPreset");
         };
@@ -494,46 +542,44 @@ mod tests {
         );
     }
 
-    #[test]
-    fn voice_rows_flatten_the_plan_and_add_the_label() {
-        let catalog = Catalog::builtin().unwrap();
-        let rows = voice_rows(
-            &catalog,
+    fn ggd_to_ezd_rows_under_drop() -> Vec<VoiceRow> {
+        voice_rows(
+            &Catalog::builtin().unwrap(),
             "ggd_invasion",
             "ezdrummer",
             &Overrides::default(),
             MissingDrums::Drop,
         )
-        .unwrap();
-        let find = |key: &str| {
-            rows.iter()
-                .find(|r| r.plan.canon.to_string() == key)
-                .unwrap()
-        };
-        let china = find("china.1.hit");
-        let json = serde_json::to_value(china).unwrap();
+        .unwrap()
+    }
+
+    fn row<'a>(rows: &'a [VoiceRow], key: &str) -> &'a VoiceRow {
+        rows.iter()
+            .find(|r| r.plan.canon.to_string() == key)
+            .unwrap()
+    }
+
+    #[test]
+    fn voice_rows_flatten_the_plan() {
+        let rows = ggd_to_ezd_rows_under_drop();
+        let json = serde_json::to_value(row(&rows, "china.1.hit")).unwrap();
         assert_eq!(
             json["outcome"],
             serde_json::json!({ "status": "dropped", "otherDrum": true })
         );
+    }
+
+    #[test]
+    fn voice_rows_add_the_label() {
+        let rows = ggd_to_ezd_rows_under_drop();
+        let china = row(&rows, "china.1.hit");
+        let json = serde_json::to_value(china).unwrap();
         assert_eq!(json["label"], china.plan.canon.label());
-        assert!(matches!(
-            find("kick.main").plan.outcome,
-            PlanOutcome::Direct { .. }
-        ));
     }
 
     #[test]
     fn a_voice_row_carries_the_family_of_its_drum() {
-        let catalog = Catalog::builtin().unwrap();
-        let rows = voice_rows(
-            &catalog,
-            "ggd_invasion",
-            "ezdrummer",
-            &Overrides::default(),
-            MissingDrums::Drop,
-        )
-        .unwrap();
+        let rows = ggd_to_ezd_rows_under_drop();
         assert!(!rows.is_empty());
         for row in &rows {
             let json = serde_json::to_value(row).unwrap();

@@ -78,20 +78,35 @@ describe('createConverter', () => {
     await expect(pending).rejects.toThrow('no wasm');
   });
 
-  it('sends each batch to one lazily created worker', async () => {
+  function twoBatches() {
+    const worker = new FakeWorker();
+    const { convert } = createConverter(moduleLoader(), () => worker as unknown as Worker);
+    const first = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest');
+    const second = convert(FILES, { src: 'ggd_invasion', tgt: 'superior_drummer3' }, undefined, '10', 'drop');
+    return { worker, first, second };
+  }
+
+  it('creates its worker lazily, once for all batches', () => {
     const worker = new FakeWorker();
     const make = vi.fn(() => worker as unknown as Worker);
     const { convert } = createConverter(moduleLoader(), make);
     expect(make).not.toHaveBeenCalled();
 
-    const first = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest');
-    const second = convert(FILES, { src: 'ggd_invasion', tgt: 'superior_drummer3' }, undefined, '10', 'drop');
+    void convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest');
+    void convert(FILES, { src: 'ggd_invasion', tgt: 'superior_drummer3' }, undefined, '10', 'drop');
     expect(make).toHaveBeenCalledOnce();
+  });
+
+  it('sends each batch to the worker with its own settings', () => {
+    const { worker } = twoBatches();
     expect(worker.sent.map((m) => m.pair.tgt)).toEqual(['ezdrummer', 'superior_drummer3']);
     expect(worker.sent[0].files).toEqual(FILES);
     expect(worker.sent.map((m) => m.channel)).toEqual(['auto', '10']);
     expect(worker.sent.map((m) => m.missing)).toEqual(['nearest', 'drop']);
+  });
 
+  it('hands each worker reply to the batch that asked', async () => {
+    const { worker, first, second } = twoBatches();
     worker.reply(worker.sent[1].id, 'second');
     worker.reply(worker.sent[0].id, 'first');
     expect((await first).ok[0].name).toBe('first');
@@ -110,7 +125,7 @@ describe('createConverter', () => {
     expect(remapMock.mock.calls[0][5]).toBe('nearest');
   });
 
-  it('finishes pending and later batches on the main thread after a worker error', async () => {
+  it('finishes the pending batch on the main thread after a worker error', async () => {
     const worker = new FakeWorker();
     const make = vi.fn(() => worker as unknown as Worker);
     const { convert } = createConverter(moduleLoader(), make);
@@ -120,6 +135,16 @@ describe('createConverter', () => {
     expect(Array.from((await pending).ok[0].bytes)).toEqual([7]);
     expect(remapMock.mock.calls[0][4]).toBe('3');
     expect(worker.terminated).toBe(true);
+  });
+
+  it('runs later batches on the main thread after a worker error', async () => {
+    const worker = new FakeWorker();
+    const make = vi.fn(() => worker as unknown as Worker);
+    const { convert } = createConverter(moduleLoader(), make);
+
+    const pending = convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, '3', 'nearest');
+    worker.onerror?.(new Event('error'));
+    await pending;
 
     await convert(FILES, { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest');
     expect(make).toHaveBeenCalledOnce();

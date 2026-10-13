@@ -29,14 +29,38 @@ describe('LocaleProvider', () => {
     vi.restoreAllMocks();
   });
 
-  it('switches in place, keeps component state, updates the URL and the document', async () => {
+  async function switchToPolish() {
     renderProbe();
     await userEvent.click(screen.getByText('clicked 0'));
     await userEvent.click(screen.getByText('pl'));
+  }
+
+  it('switches in place', async () => {
+    await switchToPolish();
     expect(await screen.findByText('Konwerter')).toBeInTheDocument();
+  });
+
+  it('keeps component state across a switch', async () => {
+    await switchToPolish();
+    await screen.findByText('Konwerter');
     expect(screen.getByText('clicked 1')).toBeInTheDocument();
+  });
+
+  it('updates the URL on a switch', async () => {
+    await switchToPolish();
+    await screen.findByText('Konwerter');
     expect(location.pathname).toBe('/pl/');
+  });
+
+  it('updates the document language on a switch', async () => {
+    await switchToPolish();
+    await screen.findByText('Konwerter');
     expect(document.documentElement.lang).toBe('pl');
+  });
+
+  it('remembers the chosen language on a switch', async () => {
+    await switchToPolish();
+    await screen.findByText('Konwerter');
     expect(localStorage.getItem('midiremap:locale')).toBe('pl');
   });
 
@@ -51,7 +75,7 @@ describe('LocaleProvider', () => {
     expect(location.pathname).toBe('/');
   });
 
-  it('follows Back to the previous language without pushing history', async () => {
+  async function backToEnglish() {
     renderProbe();
     await userEvent.click(screen.getByText('pl'));
     await screen.findByText('Konwerter');
@@ -60,7 +84,17 @@ describe('LocaleProvider', () => {
       history.replaceState(null, '', '/');
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
+    return length;
+  }
+
+  it('follows Back to the previous language', async () => {
+    await backToEnglish();
     expect(await screen.findByText('Converter')).toBeInTheDocument();
+  });
+
+  it('does not push history when following Back', async () => {
+    const length = await backToEnglish();
+    await screen.findByText('Converter');
     expect(history.length).toBe(length);
   });
 });

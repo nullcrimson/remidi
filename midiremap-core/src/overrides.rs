@@ -103,18 +103,27 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_overrides_last_wins() {
-        let ov: Overrides = serde_json::from_str(
+    fn duplicate_target_overrides_last_wins() {
+        let ov = with_duplicates();
+        assert_eq!(
+            ov.target(),
+            HashMap::from([(Canon::Kick(KickKind::Main), n(40))])
+        );
+    }
+
+    fn with_duplicates() -> Overrides {
+        serde_json::from_str(
             r#"{
                 "tgt":[{"canon":"kick.main","note":35},{"canon":"kick.main","note":40}],
                 "src":[{"note":99,"canon":"kick.main"},{"note":99,"canon":"snare1.hit"}]
             }"#,
         )
-        .unwrap();
-        assert_eq!(
-            ov.target(),
-            HashMap::from([(Canon::Kick(KickKind::Main), n(40))])
-        );
+        .unwrap()
+    }
+
+    #[test]
+    fn duplicate_source_overrides_last_wins() {
+        let ov = with_duplicates();
         assert_eq!(
             ov.source(),
             HashMap::from([(n(99), Some(Canon::Snare(idx(1), SnareArtic::Hit)))])

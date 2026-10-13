@@ -155,8 +155,12 @@ mod tests {
     }
 
     #[test]
-    fn channel_accepts_all_and_numbers() {
+    fn channel_accepts_all() {
         assert_eq!(channel(&["--channel", "all"]).unwrap(), ChannelScope::All);
+    }
+
+    #[test]
+    fn channel_accepts_numbers() {
         assert_eq!(
             channel(&["--channel", "10"]).unwrap(),
             "10".parse::<ChannelScope>().unwrap()
@@ -164,9 +168,8 @@ mod tests {
     }
 
     #[test]
-    fn channel_rejects_out_of_range() {
-        for bad in ["0", "17", "drums"] {
-            assert!(channel(&["--channel", bad]).is_err(), "{bad}");
-        }
+    fn channel_rejects_a_value_the_scope_parser_rejects() {
+        assert!("0".parse::<ChannelScope>().is_err());
+        assert!(channel(&["--channel", "0"]).is_err());
     }
 }

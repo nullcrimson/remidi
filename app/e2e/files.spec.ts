@@ -9,7 +9,7 @@ async function choose(page: Page, ...files: ReturnType<typeof midFile>[]) {
   await (await chooser).setFiles(files);
 }
 
-test('files picked with Choose files can be removed one at a time or cleared', async ({ page }) => {
+test('Choose files lists the picked files and enables Convert', async ({ page }) => {
   await openPair(page);
   const convert = page.getByRole('button', { name: 'Convert', exact: true });
   await expect(convert).toBeDisabled();
@@ -18,11 +18,25 @@ test('files picked with Choose files can be removed one at a time or cleared', a
   await expect(page.getByText('one.mid', { exact: true })).toBeVisible();
   await expect(page.getByText('two.mid', { exact: true })).toBeVisible();
   await expect(convert).toBeEnabled();
+});
+
+test('a picked file is removed on its own', async ({ page }) => {
+  await openPair(page);
+  const convert = page.getByRole('button', { name: 'Convert', exact: true });
+  await choose(page, kick('one.mid'), kick('two.mid'));
+  await page.getByText('two.mid', { exact: true }).waitFor();
 
   await page.getByRole('button', { name: 'Remove one.mid' }).click();
   await expect(page.getByText('one.mid', { exact: true })).toBeHidden();
   await expect(page.getByText('two.mid', { exact: true })).toBeVisible();
   await expect(convert).toBeEnabled();
+});
+
+test('clear all empties the file list and disables Convert', async ({ page }) => {
+  await openPair(page);
+  const convert = page.getByRole('button', { name: 'Convert', exact: true });
+  await choose(page, kick('one.mid'), kick('two.mid'));
+  await page.getByText('two.mid', { exact: true }).waitFor();
 
   await page.getByRole('button', { name: 'clear all' }).click();
   await expect(page.getByText('two.mid', { exact: true })).toBeHidden();
@@ -43,6 +57,16 @@ test('Convert more leaves the done panel for an empty converter with the same en
   await expect(page.getByRole('button', { name: 'Convert', exact: true })).toBeDisabled();
   await expect(page.getByRole('group', { name: 'TO engine' }).getByTestId('chosen-engine'))
     .toHaveText('EZdrummer 3');
+});
+
+test('a file added after Convert more converts again', async ({ page }) => {
+  await openPair(page);
+  await addFiles(page, kick('kick.mid'));
+  await page.getByRole('button', { name: 'Convert', exact: true }).click();
+  const done = page.getByRole('heading', { name: /1 file converted/ });
+  await done.waitFor();
+  await page.getByRole('button', { name: 'Convert more' }).click();
+  await done.waitFor({ state: 'hidden' });
 
   await choose(page, kick('again.mid'));
   await page.getByRole('button', { name: 'Convert', exact: true }).click();

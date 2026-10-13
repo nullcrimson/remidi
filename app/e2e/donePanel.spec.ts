@@ -1,9 +1,10 @@
+import type { Page } from '@playwright/test';
 import { addFiles, DRUMS, expect, hitKeys, midFile, openPair, test } from './fixtures';
 import { convert, download, press } from './steps';
 
 const REPORT_FORM = 'https://tally.so/r/J95eYd';
 
-test('each file in the done list downloads on its own, converted', async ({ page }) => {
+async function convertKickAndSnare(page: Page) {
   await openPair(page);
   await addFiles(
     page,
@@ -12,9 +13,18 @@ test('each file in the done list downloads on its own, converted', async ({ page
   );
   await convert(page, 2);
   const list = page.getByRole('list', { name: 'Converted files' });
-  await expect(list.getByRole('listitem')).toHaveCount(2);
   const row = (name: string) => list.getByRole('listitem').filter({ hasText: name });
+  return { list, row };
+}
+
+test('the done list has a row for each file and marks a clean one', async ({ page }) => {
+  const { list, row } = await convertKickAndSnare(page);
+  await expect(list.getByRole('listitem')).toHaveCount(2);
   await expect(row('snare-ezdrummer.mid')).toContainText('clean');
+});
+
+test('each file in the done list downloads on its own, converted', async ({ page }) => {
+  const { row } = await convertKickAndSnare(page);
 
   const link = (name: string) => row(name).getByRole('link', { name: '↓ .mid' });
   await expect(link('snare-ezdrummer.mid')).toHaveAttribute('download', 'snare-ezdrummer.mid');

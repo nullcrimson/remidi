@@ -34,11 +34,16 @@ describe('useFavorites', () => {
     expect(result.current.favorites.has('ggd_invasion')).toBe(true);
   });
 
-  it('toggles a favourite on then off and persists to the scoped key', () => {
+  it('toggles a favourite on and persists to the scoped key', () => {
     const { result } = renderHook(() => useFavorites('from'));
     act(() => result.current.toggleFavorite('ezdrummer'));
     expect(result.current.favorites.has('ezdrummer')).toBe(true);
     expect(JSON.parse(localStorage.getItem(FROM_KEY)!)).toEqual(['ezdrummer']);
+  });
+
+  it('toggles a favourite off and persists to the scoped key', () => {
+    const { result } = renderHook(() => useFavorites('from'));
+    act(() => result.current.toggleFavorite('ezdrummer'));
     act(() => result.current.toggleFavorite('ezdrummer'));
     expect(result.current.favorites.has('ezdrummer')).toBe(false);
     expect(JSON.parse(localStorage.getItem(FROM_KEY)!)).toEqual([]);

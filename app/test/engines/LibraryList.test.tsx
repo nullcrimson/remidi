@@ -33,57 +33,103 @@ describe('LibraryList', () => {
     expect(box).toHaveAccessibleDescription(/Enter picks/);
   });
 
-  it('starts on the chosen engine and moves with the arrow keys', async () => {
+  it('starts on the chosen engine', async () => {
+    render(<LibraryList label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />);
+    await userEvent.click(combobox());
+    expect(active()).toBe('GGD Invasion');
+  });
+
+  it('moves down with the arrow key', async () => {
+    render(<LibraryList label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />);
+    await userEvent.click(combobox());
+    await userEvent.keyboard('{ArrowDown}');
+    expect(active()).toBe('EZdrummer');
+  });
+
+  it('stops at the last engine', async () => {
+    render(<LibraryList label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />);
+    await userEvent.click(combobox());
+    await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+    expect(active()).toBe('EZdrummer');
+  });
+
+  it('moves up with the arrow key', async () => {
+    render(<LibraryList label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />);
+    await userEvent.click(combobox());
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{ArrowUp}{ArrowUp}');
+    expect(active()).toBe('Addictive Drums 2');
+  });
+
+  it('picks the active engine with Enter', async () => {
     const onChange = vi.fn();
     render(<LibraryList label="FROM" value="ggd_invasion" engines={engines} onChange={onChange} {...noFav} />);
     await userEvent.click(combobox());
-    expect(active()).toBe('GGD Invasion');
-    await userEvent.keyboard('{ArrowDown}');
-    expect(active()).toBe('EZdrummer');
-    await userEvent.keyboard('{ArrowDown}');
-    expect(active()).toBe('EZdrummer');
-    await userEvent.keyboard('{ArrowUp}{ArrowUp}');
-    expect(active()).toBe('Addictive Drums 2');
+    await userEvent.keyboard('{ArrowUp}');
     await userEvent.keyboard('{Enter}');
     expect(onChange).toHaveBeenCalledWith('addictive');
   });
 
-  it('skips the engine chosen on the other side', async () => {
-    const onChange = vi.fn();
-    render(
-      <LibraryList
-        label="FROM"
-        value="addictive"
-        disabledId="ggd_invasion"
-        engines={engines}
-        onChange={onChange}
-        {...noFav}
-      />,
-    );
-    const disabled = screen.getByRole('option', { name: 'GGD Invasion' });
-    expect(disabled).toHaveAttribute('aria-disabled', 'true');
-    await userEvent.click(combobox());
-    await userEvent.keyboard('{ArrowDown}');
-    expect(active()).toBe('EZdrummer');
-    await userEvent.click(disabled);
-    expect(onChange).not.toHaveBeenCalled();
+  describe('with the engine chosen on the other side', () => {
+    const renderDisabled = () => {
+      const onChange = vi.fn();
+      render(
+        <LibraryList
+          label="FROM"
+          value="addictive"
+          disabledId="ggd_invasion"
+          engines={engines}
+          onChange={onChange}
+          {...noFav}
+        />,
+      );
+      return onChange;
+    };
+
+    it('marks it disabled', () => {
+      renderDisabled();
+      const disabled = screen.getByRole('option', { name: 'GGD Invasion' });
+      expect(disabled).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('skips it with the arrow keys', async () => {
+      renderDisabled();
+      await userEvent.click(combobox());
+      await userEvent.keyboard('{ArrowDown}');
+      expect(active()).toBe('EZdrummer');
+    });
+
+    it('does not pick it with a click', async () => {
+      const onChange = renderDisabled();
+      await userEvent.click(screen.getByRole('option', { name: 'GGD Invasion' }));
+      expect(onChange).not.toHaveBeenCalled();
+    });
   });
 
-  it('makes the first match active while typing and picks it with Enter', async () => {
-    const onChange = vi.fn();
-    render(<LibraryList label="FROM" value="ggd_invasion" engines={engines} onChange={onChange} {...noFav} />);
+  it('makes the first match active while typing', async () => {
+    render(<LibraryList label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />);
     await userEvent.type(combobox(), 'ez');
     expect(screen.queryByRole('option', { name: 'GGD Invasion' })).toBeNull();
     expect(active()).toBe('EZdrummer');
+  });
+
+  it('picks the first match with Enter', async () => {
+    const onChange = vi.fn();
+    render(<LibraryList label="FROM" value="ggd_invasion" engines={engines} onChange={onChange} {...noFav} />);
+    await userEvent.type(combobox(), 'ez');
     await userEvent.keyboard('{Enter}');
     expect(onChange).toHaveBeenCalledWith('ezdrummer');
   });
 
-  it('filters case-insensitively and says when nothing matches', async () => {
+  it('filters case-insensitively', async () => {
     render(<LibraryList label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />);
     await userEvent.type(combobox(), 'INV');
     expect(screen.getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['GGD Invasion']);
-    await userEvent.type(combobox(), 'zzz');
+  });
+
+  it('says when nothing matches', async () => {
+    render(<LibraryList label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />);
+    await userEvent.type(combobox(), 'INVzzz');
     expect(screen.getByText('no matches')).toBeInTheDocument();
     expect(screen.queryAllByRole('option')).toHaveLength(0);
     expect(combobox()).not.toHaveAttribute('aria-activedescendant');
@@ -133,7 +179,7 @@ describe('LibraryList', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('toggles a favourite with Ctrl+Enter or the star, without selecting', async () => {
+  const renderFavourites = () => {
     const onChange = vi.fn();
     const onToggleFavorite = vi.fn();
     render(
@@ -146,12 +192,32 @@ describe('LibraryList', () => {
         onToggleFavorite={onToggleFavorite}
       />,
     );
+    return { onChange, onToggleFavorite };
+  };
+
+  it('toggles a favourite with Ctrl+Enter', async () => {
+    const { onToggleFavorite } = renderFavourites();
     await userEvent.click(combobox());
     await userEvent.keyboard('{Control>}{Enter}{/Control}');
     expect(onToggleFavorite).toHaveBeenLastCalledWith('ggd_invasion');
+  });
+
+  it('toggles a favourite with the star', async () => {
+    const { onToggleFavorite } = renderFavourites();
     await userEvent.click(screen.getByTestId('star-ezdrummer'));
     expect(onToggleFavorite).toHaveBeenLastCalledWith('ezdrummer');
+  });
+
+  it('does not select an engine when toggling a favourite', async () => {
+    const { onChange } = renderFavourites();
+    await userEvent.click(combobox());
+    await userEvent.keyboard('{Control>}{Enter}{/Control}');
+    await userEvent.click(screen.getByTestId('star-ezdrummer'));
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('hides the star from assistive technology', () => {
+    renderFavourites();
     expect(screen.getByTestId('star-ezdrummer')).toHaveAttribute('aria-hidden', 'true');
   });
 
@@ -172,12 +238,15 @@ describe('LibraryList', () => {
     expect(within(rest).getAllByRole('option')).toHaveLength(2);
   });
 
-  it('uses no groups when none or all are starred', () => {
-    const { rerender } = render(
+  it('uses no groups when none are starred', () => {
+    render(
       <LibraryList label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />,
     );
     expect(screen.queryByRole('group', { name: 'Favourites' })).toBeNull();
-    rerender(
+  });
+
+  it('uses no groups when all are starred', () => {
+    render(
       <LibraryList
         label="FROM"
         value="ggd_invasion"

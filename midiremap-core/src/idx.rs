@@ -42,9 +42,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn idx_holds_only_one_to_max() {
+    fn idx_rejects_zero_and_past_max() {
         assert_eq!(Idx::<2>::new(0), None);
         assert_eq!(Idx::<2>::new(3), None);
+    }
+
+    #[test]
+    fn all_lists_one_to_max() {
         assert_eq!(Idx::<2>::all().map(Idx::get).collect::<Vec<_>>(), [1, 2]);
     }
 

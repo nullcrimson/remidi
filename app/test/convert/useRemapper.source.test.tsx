@@ -16,13 +16,19 @@ beforeEach(() => {
 });
 
 describe('useRemapper source edits', () => {
-  it('sets and clears a source-note canon override', async () => {
+  it('sets a source-note canon override', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
 
     act(() => result.current.editor.setSrcCanon(note(60), canon('china.1.hit')));
     expect(result.current.editor.srcEdits).toEqual({ 60: 'china.1.hit' });
+  });
 
+  it('clears a source-note canon override', async () => {
+    const { result } = renderHook(() => useRemapper(RUNTIME));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
+
+    act(() => result.current.editor.setSrcCanon(note(60), canon('china.1.hit')));
     act(() => result.current.editor.clearSrcCanon(note(60)));
     expect(result.current.editor.srcEdits).toEqual({});
   });

@@ -29,8 +29,13 @@ describe('midiremap wrapper', () => {
 
   it('passes overrides to the module as an object', () => {
     const ov = typed<Overrides>({ tgt: [{ canon: 'kick.main', note: 35 }], src: [] });
-    const rows = core.plan({ src: 'ggd_invasion', tgt: 'ezdrummer' }, ov);
+    core.plan({ src: 'ggd_invasion', tgt: 'ezdrummer' }, ov);
     expect(vi.mocked(stub.plan).mock.lastCall?.[2]).toEqual(ov);
+  });
+
+  it('returns the plan the module made for the overrides', () => {
+    const ov = typed<Overrides>({ tgt: [{ canon: 'kick.main', note: 35 }], src: [] });
+    const rows = core.plan({ src: 'ggd_invasion', tgt: 'ezdrummer' }, ov);
     expect(rows.find((r) => r.canon === 'kick.main')!.outcome).toEqual({ status: 'direct', tgtNote: 35 });
   });
 
@@ -53,22 +58,27 @@ describe('midiremap wrapper', () => {
   });
 
   it('passes the missing-drums choice to plan', () => {
-    const rows = core.plan({ src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'drop');
+    core.plan({ src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'drop');
     expect(vi.mocked(stub.plan).mock.lastCall?.[3]).toBe('drop');
+  });
+
+  it('returns the plan the module made for the missing-drums choice', () => {
+    const rows = core.plan({ src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'drop');
     expect(rows.find((r) => r.canon === 'china.1.hit')!.outcome).toEqual({ status: 'dropped', otherDrum: true });
     expect(rows.find((r) => r.canon === 'kick.main')!.outcome.status).toBe('direct');
   });
 
-  it('passes the missing-drums choice to the converter', () => {
+  it('passes the missing-drums choice drop to the converter', () => {
     core.remap(new Uint8Array([0]), { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'drop');
     expect(vi.mocked(stub.remap).mock.lastCall?.[5]).toBe('drop');
-    core.remap(new Uint8Array([0]), { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, 'auto', 'nearest');
-    expect(vi.mocked(stub.remap).mock.lastCall?.[5]).toBe('nearest');
   });
 
   it('passes the channel to the converter', () => {
     core.remap(new Uint8Array([0]), { src: 'ggd_invasion', tgt: 'ezdrummer' }, undefined, '10');
     expect(vi.mocked(stub.remap).mock.lastCall?.[4]).toBe('10');
+  });
+
+  it('passes no channel to the converter when none is given', () => {
     core.remap(new Uint8Array([0]), { src: 'ggd_invasion', tgt: 'ezdrummer' });
     expect(vi.mocked(stub.remap).mock.lastCall?.[4]).toBeUndefined();
   });

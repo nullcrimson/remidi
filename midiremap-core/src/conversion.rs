@@ -57,18 +57,50 @@ mod tests {
         .unwrap()
     }
 
-    #[test]
-    fn drop_leaves_a_swapped_china_out_and_reports_it() {
-        let out = convert_ids_with(
+    fn convert_edited(mid: &[u8], overrides: &str) -> Converted {
+        let b = Catalog::builtin().unwrap();
+        let src = b.get("ggd_invasion").unwrap();
+        let tgt = b.get("ezdrummer").unwrap();
+        let overrides: Overrides = serde_json::from_str(overrides).unwrap();
+        convert(
+            mid,
+            &Mapping::new(src, tgt, &overrides, MissingDrums::Nearest),
+            ChannelScope::Auto,
+        )
+        .unwrap()
+    }
+
+    fn drop_a_swapped_china() -> Converted {
+        convert_ids_with(
             &drums(&[(0, on(24)), (10, off(24)), (0, on(65)), (48, off(65))]),
             "ggd_invasion",
             "ezdrummer",
             MissingDrums::Drop,
-        );
-        let china = "china.1.hit".parse::<Canon>().unwrap();
+        )
+    }
+
+    #[test]
+    fn drop_leaves_a_swapped_china_out_of_the_output() {
+        let out = drop_a_swapped_china();
         assert_eq!(hit_keys(&out.bytes), vec![36]);
+    }
+
+    #[test]
+    fn drop_reports_the_swapped_china_as_dropped() {
+        let out = drop_a_swapped_china();
+        let china = "china.1.hit".parse::<Canon>().unwrap();
         assert_eq!(out.report.dropped().collect::<Vec<_>>(), [(china, 1)]);
+    }
+
+    #[test]
+    fn drop_uses_no_fallback_for_a_swapped_china() {
+        let out = drop_a_swapped_china();
         assert!(out.report.fallback_used().next().is_none());
+    }
+
+    #[test]
+    fn drop_counts_only_the_kept_note_as_converted() {
+        let out = drop_a_swapped_china();
         assert_eq!(out.report.converted(), 1);
     }
 
@@ -82,14 +114,23 @@ mod tests {
         assert_eq!(hit_keys(&out.bytes), vec![36, 36]);
     }
 
-    #[test]
-    fn china1_falls_back_to_crash() {
-        let out = convert_ids(
+    fn convert_china_one() -> Converted {
+        convert_ids(
             &drums(&[(0, on(65)), (48, off(65))]),
             "ggd_invasion",
             "ezdrummer",
-        );
+        )
+    }
+
+    #[test]
+    fn china1_falls_back_to_crash() {
+        let out = convert_china_one();
         assert_eq!(hit_keys(&out.bytes), vec![86]);
+    }
+
+    #[test]
+    fn china1_fallback_is_reported() {
+        let out = convert_china_one();
         assert_eq!(
             out.report.fallback_used().collect::<Vec<_>>(),
             [(
@@ -102,14 +143,23 @@ mod tests {
         );
     }
 
-    #[test]
-    fn unmapped_dropped_and_reported() {
-        let out = convert_ids(
+    fn convert_unmapped_note() -> Converted {
+        convert_ids(
             &drums(&[(0, on(99)), (48, off(99))]),
             "ggd_invasion",
             "ezdrummer",
-        );
+        )
+    }
+
+    #[test]
+    fn unmapped_note_is_dropped() {
+        let out = convert_unmapped_note();
         assert!(hit_keys(&out.bytes).is_empty());
+    }
+
+    #[test]
+    fn unmapped_note_is_reported() {
+        let out = convert_unmapped_note();
         assert_eq!(
             out.report.unmapped_source().collect::<Vec<_>>(),
             [(n(99), 1)]
@@ -157,49 +207,28 @@ mod tests {
     #[test]
     fn tgt_override_changes_output_note() {
         let mid = drums(&[(0, on(24)), (48, off(24))]);
-        let b = Catalog::builtin().unwrap();
-        let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
-        let ov: Overrides =
-            serde_json::from_str(r#"{"tgt":[{"canon":"kick.main","note":35}]}"#).unwrap();
-        let out = convert(
-            &mid,
-            &Mapping::new(src, tgt, &ov, MissingDrums::Nearest),
-            ChannelScope::Auto,
-        )
-        .unwrap();
+        let out = convert_edited(&mid, r#"{"tgt":[{"canon":"kick.main","note":35}]}"#);
         assert_eq!(hit_keys(&out.bytes), vec![35]);
     }
 
     #[test]
-    fn src_override_rescues_unmapped_note() {
+    fn src_override_rescues_unmapped_note_into_the_output() {
         let mid = drums(&[(0, on(99)), (48, off(99))]);
-        let b = Catalog::builtin().unwrap();
-        let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
-        let ov: Overrides =
-            serde_json::from_str(r#"{"src":[{"note":99,"canon":"kick.main"}]}"#).unwrap();
-        let out = convert(
-            &mid,
-            &Mapping::new(src, tgt, &ov, MissingDrums::Nearest),
-            ChannelScope::Auto,
-        )
-        .unwrap();
+        let out = convert_edited(&mid, r#"{"src":[{"note":99,"canon":"kick.main"}]}"#);
         assert_eq!(hit_keys(&out.bytes), vec![36]);
+    }
+
+    #[test]
+    fn src_override_takes_the_rescued_note_off_the_unmapped_list() {
+        let mid = drums(&[(0, on(99)), (48, off(99))]);
+        let out = convert_edited(&mid, r#"{"src":[{"note":99,"canon":"kick.main"}]}"#);
         assert!(out.report.unmapped_source().next().is_none());
     }
 
     #[test]
     fn src_override_reassigns_mapped_note() {
         let mid = drums(&[(0, on(24)), (48, off(24))]);
-        let b = Catalog::builtin().unwrap();
-        let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
-        let ov: Overrides =
-            serde_json::from_str(r#"{"src":[{"note":24,"canon":"snare1.hit"}]}"#).unwrap();
-        let out = convert(
-            &mid,
-            &Mapping::new(src, tgt, &ov, MissingDrums::Nearest),
-            ChannelScope::Auto,
-        )
-        .unwrap();
+        let out = convert_edited(&mid, r#"{"src":[{"note":24,"canon":"snare1.hit"}]}"#);
         assert_eq!(hit_keys(&out.bytes), vec![38]);
     }
 

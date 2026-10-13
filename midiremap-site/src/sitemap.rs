@@ -70,23 +70,38 @@ mod tests {
     use crate::pages::{EXCLUDED_IDS, MAJORS};
 
     #[test]
-    fn robots_allows_all_and_points_to_the_sitemap() {
+    fn robots_allows_all() {
         let r = robots();
         assert!(r.contains("User-agent: *"));
         assert!(r.contains("Allow: /"));
-        assert!(r.contains("Sitemap: https://drumverter.com/sitemap.xml"));
     }
 
     #[test]
-    fn lists_every_page_once_on_the_canonical_origin() {
-        let catalog = Catalog::builtin().unwrap();
-        let xml = sitemap(&Site::build(&catalog).unwrap(), &Docs::load().unwrap());
-        let doc = roxmltree::Document::parse(&xml).unwrap();
-        let locs: Vec<&str> = doc
-            .descendants()
+    fn robots_points_to_the_sitemap() {
+        let r = robots();
+        assert!(r.contains("Sitemap: https://drumverter.com/sitemap.xml"));
+    }
+
+    fn sitemap_xml() -> String {
+        sitemap(
+            &Site::build(&Catalog::builtin().unwrap()).unwrap(),
+            &Docs::load().unwrap(),
+        )
+    }
+
+    fn locations<'a>(doc: &'a roxmltree::Document) -> Vec<&'a str> {
+        doc.descendants()
             .filter(|n| n.has_tag_name("loc"))
             .filter_map(|n| n.text())
-            .collect();
+            .collect()
+    }
+
+    #[test]
+    fn lists_as_many_addresses_as_there_are_pages() {
+        let catalog = Catalog::builtin().unwrap();
+        let xml = sitemap_xml();
+        let doc = roxmltree::Document::parse(&xml).unwrap();
+        let locs: Vec<&str> = locations(&doc);
         let engines = catalog.ids().count() - EXCLUDED_IDS.len();
         let pairs = MAJORS.len() * (MAJORS.len() - 1);
         let docs = Docs::load().unwrap();
@@ -98,8 +113,29 @@ mod tests {
             locs.len(),
             Locale::ALL.len() * (2 + engines + pairs) + sections
         );
+    }
+
+    #[test]
+    fn lists_the_english_faq() {
+        let xml = sitemap_xml();
+        let doc = roxmltree::Document::parse(&xml).unwrap();
+        let locs: Vec<&str> = locations(&doc);
         assert!(locs.contains(&"https://drumverter.com/faq/"));
+    }
+
+    #[test]
+    fn lists_no_page_twice() {
+        let xml = sitemap_xml();
+        let doc = roxmltree::Document::parse(&xml).unwrap();
+        let locs: Vec<&str> = locations(&doc);
         assert_eq!(locs.iter().collect::<HashSet<_>>().len(), locs.len());
+    }
+
+    #[test]
+    fn lists_every_page_on_the_canonical_origin() {
+        let xml = sitemap_xml();
+        let doc = roxmltree::Document::parse(&xml).unwrap();
+        let locs: Vec<&str> = locations(&doc);
         assert!(locs
             .iter()
             .all(|l| l.starts_with("https://drumverter.com/")));
@@ -132,10 +168,7 @@ mod tests {
     }
 
     fn all_urls() -> Vec<(String, Vec<(String, String)>)> {
-        urls(&sitemap(
-            &Site::build(&Catalog::builtin().unwrap()).unwrap(),
-            &Docs::load().unwrap(),
-        ))
+        urls(&sitemap_xml())
     }
 
     #[test]
@@ -143,33 +176,60 @@ mod tests {
         assert!(all_urls().iter().all(|(url, _)| !url.contains("/thanks/")));
     }
 
+    fn version(tag: &str, url: &str) -> (String, String) {
+        (tag.to_owned(), url.to_owned())
+    }
+
+    fn url_entry(location: &str) -> (String, Vec<(String, String)>) {
+        all_urls()
+            .into_iter()
+            .find(|(loc, _)| loc == location)
+            .unwrap()
+    }
+
     #[test]
-    fn a_translated_page_lists_its_versions_and_the_default() {
-        let all = all_urls();
-        let pl_faq = all
-            .iter()
-            .find(|(loc, _)| loc == "https://drumverter.com/pl/faq/")
-            .unwrap();
-        let pair = |tag: &str, url: &str| (tag.to_owned(), url.to_owned());
+    fn a_translated_page_lists_every_version_and_the_default() {
+        let pl_faq = url_entry("https://drumverter.com/pl/faq/");
         assert_eq!(pl_faq.1.len(), Locale::ALL.len() + 1);
+    }
+
+    #[test]
+    fn a_translated_page_lists_english_first() {
+        let pl_faq = url_entry("https://drumverter.com/pl/faq/");
         assert_eq!(
             pl_faq.1.first(),
-            Some(&pair("en", "https://drumverter.com/faq/"))
+            Some(&version("en", "https://drumverter.com/faq/"))
         );
+    }
+
+    #[test]
+    fn a_translated_page_lists_its_polish_version() {
+        let pl_faq = url_entry("https://drumverter.com/pl/faq/");
         assert!(pl_faq
             .1
-            .contains(&pair("pl", "https://drumverter.com/pl/faq/")));
+            .contains(&version("pl", "https://drumverter.com/pl/faq/")));
+    }
+
+    #[test]
+    fn a_translated_page_lists_its_brazilian_portuguese_version() {
+        let pl_faq = url_entry("https://drumverter.com/pl/faq/");
         assert!(pl_faq
             .1
-            .contains(&pair("pt-BR", "https://drumverter.com/pt/faq/")));
+            .contains(&version("pt-BR", "https://drumverter.com/pt/faq/")));
+    }
+
+    #[test]
+    fn a_translated_page_lists_the_default_last() {
+        let pl_faq = url_entry("https://drumverter.com/pl/faq/");
         assert_eq!(
             pl_faq.1.last(),
-            Some(&pair("x-default", "https://drumverter.com/faq/"))
+            Some(&version("x-default", "https://drumverter.com/faq/"))
         );
-        let pl_home = all
-            .iter()
-            .find(|(loc, _)| loc == "https://drumverter.com/pl/")
-            .unwrap();
+    }
+
+    #[test]
+    fn a_polish_home_page_lists_every_version_and_the_default() {
+        let pl_home = url_entry("https://drumverter.com/pl/");
         assert_eq!(pl_home.1.len(), Locale::ALL.len() + 1);
     }
 

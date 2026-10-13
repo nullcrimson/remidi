@@ -45,6 +45,15 @@ describe('PickerShell', () => {
     expect(dialog).toHaveTextContent('body');
   });
 
+  it('hides its backdrop from sm up', () => {
+    render(
+      <PickerShell label="Target note for Kick" onClose={() => {}}>
+        <p>body</p>
+      </PickerShell>,
+    );
+    expect(screen.getByTestId('sheet-backdrop')).toHaveClass('sm:hidden');
+  });
+
   it('closes when the backdrop is tapped', async () => {
     const onClose = vi.fn();
     render(
@@ -52,28 +61,38 @@ describe('PickerShell', () => {
         <p>body</p>
       </PickerShell>,
     );
-    const backdrop = screen.getByTestId('sheet-backdrop');
-    expect(backdrop).toHaveClass('sm:hidden');
-    await userEvent.click(backdrop);
+    await userEvent.click(screen.getByTestId('sheet-backdrop'));
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it('takes focus when it opens and gives it back to the opener when it closes', async () => {
+  it('takes focus when it opens', async () => {
     render(<Row onClose={() => {}} />);
     await userEvent.click(screen.getByRole('button', { name: 'Open' }));
     await waitFor(() => expect(screen.getByRole('dialog', { name: 'Target note for Kick' })).toHaveFocus());
+  });
+
+  it('gives focus back to the opener when it closes', async () => {
+    render(<Row onClose={() => {}} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Open' }));
+    await screen.findByRole('dialog', { name: 'Target note for Kick' });
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('dialog')).toBeNull();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Open' })).toHaveFocus());
   });
 
-  it('closes on a press outside its row, not on one inside it', async () => {
+  it('stays open on a press inside its row', async () => {
     const onClose = vi.fn();
     render(<Row onClose={onClose} />);
     await userEvent.click(screen.getByRole('button', { name: 'Open' }));
     fireEvent.mouseDown(screen.getByTestId('row-label'));
     fireEvent.mouseDown(screen.getByRole('button', { name: 'C2' }));
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('closes on a press outside its row', async () => {
+    const onClose = vi.fn();
+    render(<Row onClose={onClose} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Open' }));
     fireEvent.mouseDown(screen.getByTestId('elsewhere'));
     expect(onClose).toHaveBeenCalledOnce();
   });

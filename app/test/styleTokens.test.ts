@@ -31,19 +31,31 @@ describe('style tokens', () => {
     expect(offenders(/rounded(-[a-z]+)?-\[/)).toEqual([]);
   });
 
-  it('keeps raw colours and arbitrary shadows in the theme tokens', () => {
+  it('keeps raw colours in the theme tokens', () => {
     expect(offenders(/rgba\(/)).toEqual([]);
+  });
+
+  it('keeps arbitrary shadows in the theme tokens', () => {
     expect(offenders(/shadow-\[/)).toEqual([]);
   });
 
   it('keeps the decoration colour off text that must be read', () => {
     expect(offenders(/\btext-t6\b/)).toEqual([]);
+  });
+
+  it('does not define the decoration colour', () => {
     expect(css).not.toContain('--color-t6');
   });
 
-  it('replaces the default scales and lifts t5 to AA contrast', () => {
+  it('replaces the default type scale', () => {
     expect(css).toContain('--text-*: initial;');
+  });
+
+  it('replaces the default radius scale', () => {
     expect(css).toContain('--radius-*: initial;');
+  });
+
+  it('lifts t5 to AA contrast', () => {
     expect(css).toContain('--color-t5: #8a8375;');
   });
 });

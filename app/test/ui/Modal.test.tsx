@@ -67,24 +67,51 @@ describe('Modal', () => {
     expect(calls).toEqual([1]);
   });
 
-  it('closes on Escape or the backdrop and gives focus back to what opened it', async () => {
-    function Parent() {
-      const [open, setOpen] = useState(false);
-      return (
-        <>
-          <button type="button" onClick={() => setOpen(true)}>Open report</button>
-          <Modal open={open} heading="Report" onClose={() => setOpen(false)}>
-            <p>body</p>
-          </Modal>
-        </>
-      );
-    }
-    render(<Parent />);
+  function Opener() {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)}>Open report</button>
+        <Modal open={open} heading="Report" onClose={() => setOpen(false)}>
+          <p>body</p>
+        </Modal>
+      </>
+    );
+  }
+
+  it('takes focus when it opens', async () => {
+    render(<Opener />);
     await userEvent.click(screen.getByRole('button', { name: 'Open report' }));
     await waitFor(() => expect(screen.getByRole('dialog', { name: 'Report' })).toHaveFocus());
+  });
+
+  it('closes on Escape', async () => {
+    render(<Opener />);
+    await userEvent.click(screen.getByRole('button', { name: 'Open report' }));
+    await screen.findByRole('dialog', { name: 'Report' });
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('opens again after Escape closed it', async () => {
+    render(<Opener />);
+    await userEvent.click(screen.getByRole('button', { name: 'Open report' }));
+    await screen.findByRole('dialog', { name: 'Report' });
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByRole('button', { name: 'Open report' }));
+    expect(await screen.findByRole('dialog', { name: 'Report' })).toBeVisible();
+  });
+
+  it('gives focus back to what opened it', async () => {
+    render(<Opener />);
+    await userEvent.click(screen.getByRole('button', { name: 'Open report' }));
+    await screen.findByRole('dialog', { name: 'Report' });
+    await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.getByRole('button', { name: 'Open report' })).toHaveFocus());
+  });
+
+  it('closes on the backdrop', async () => {
+    render(<Opener />);
     await userEvent.click(screen.getByRole('button', { name: 'Open report' }));
     await userEvent.click(screen.getByTestId('modal-backdrop'));
     expect(screen.queryByRole('dialog')).toBeNull();

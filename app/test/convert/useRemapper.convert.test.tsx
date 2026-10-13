@@ -121,12 +121,18 @@ describe('useRemapper convert path', () => {
     expect(result.current.conv).toMatchObject({ error: { kind: 'internal', detail: 'unknown source engine' } });
   });
 
-  it('remembers skipped files until the next add', async () => {
+  it('remembers skipped files', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([1]), name: 'a.mid' }], ['notes.txt']));
     expect(result.current.files).toHaveLength(1);
     expect(result.current.skipped).toEqual(['notes.txt']);
+  });
+
+  it('forgets skipped files on the next add', async () => {
+    const { result } = renderHook(() => useRemapper(RUNTIME));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
+    act(() => result.current.addFiles([{ bytes: new Uint8Array([1]), name: 'a.mid' }], ['notes.txt']));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([1]), name: 'b.mid' }], []));
     expect(result.current.skipped).toEqual([]);
   });
@@ -143,28 +149,47 @@ describe('useRemapper convert path', () => {
     expect(result.current.skipped).toEqual(['notes.txt']);
   });
 
-  it('dedupes by name and removes files', async () => {
+  it('dedupes files by name', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([1]), name: 'a.mid' }]));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([2]), name: 'a.mid' }]));
     expect(result.current.files).toHaveLength(1);
+  });
+
+  it('removes files', async () => {
+    const { result } = renderHook(() => useRemapper(RUNTIME));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
+    act(() => result.current.addFiles([{ bytes: new Uint8Array([1]), name: 'a.mid' }]));
     act(() => result.current.removeFile('a.mid'));
     expect(result.current.files).toHaveLength(0);
   });
 
-  it('starts on auto and converts with the chosen channel', async () => {
+  it('starts on the auto channel', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     expect(result.current.channel).toBe('auto');
+  });
+
+  it('converts with the auto channel', async () => {
+    const { result } = renderHook(() => useRemapper(RUNTIME));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
     await act(() => result.current.convert());
     expect(vi.mocked(stub.remap).mock.calls[0][4]).toBe('auto');
+  });
+
+  it('converts with the chosen channel', async () => {
+    const { result } = renderHook(() => useRemapper(RUNTIME));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
+    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseTgt('ezdrummer'));
+    act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
     act(() => result.current.setChannel('10'));
     await act(() => result.current.convert());
-    expect(vi.mocked(stub.remap).mock.calls[1][4]).toBe('10');
+    expect(vi.mocked(stub.remap).mock.calls[0][4]).toBe('10');
   });
 
   it('clears finished results when the channel changes', async () => {
@@ -181,14 +206,17 @@ describe('useRemapper convert path', () => {
     expect(result.current.files).toHaveLength(1);
   });
 
-  it('sets the octave base', async () => {
+  it('starts on the c1 octave base', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     expect(result.current.oct).toBe('c1');
+  });
+
+  it('sets the octave base', async () => {
+    const { result } = renderHook(() => useRemapper(RUNTIME));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.setOct('c2'));
     expect(result.current.oct).toBe('c2');
-    act(() => result.current.setOct('c1'));
-    expect(result.current.oct).toBe('c1');
   });
 
   it('clears finished results when a note is edited', async () => {

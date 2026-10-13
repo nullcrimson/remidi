@@ -11,7 +11,20 @@ async function menu(page: Page, name: string, action: 'Rename' | 'Duplicate' | '
 
 const chips = (page: Page) => saved(page).getByRole('listitem');
 
-test('a preset is renamed, duplicated and deleted from its chip menu', async ({ page }) => {
+async function editSnare(page: Page) {
+  await openEditor(page);
+  await retarget(page, 'Snare', 'F2');
+  await leaveEditor(page);
+}
+
+async function updatePreset(page: Page) {
+  await openEditor(page);
+  await press(page.getByRole('button', { name: 'Update preset' }));
+  await press(page.getByRole('button', { name: 'Update', exact: true }));
+  await leaveEditor(page);
+}
+
+test('a preset is renamed from its chip menu', async ({ page }) => {
   await saveKickPreset(page, NAME);
 
   await menu(page, NAME, 'Rename');
@@ -21,17 +34,40 @@ test('a preset is renamed, duplicated and deleted from its chip menu', async ({ 
   await press(page.getByRole('button', { name: 'Save name' }));
   await expect(presetChip(page, 'Big Kick')).toBeFocused();
   await expect(presetChip(page, NAME)).toHaveCount(0);
+});
+
+test('a preset is duplicated from its chip menu', async ({ page }) => {
+  await saveKickPreset(page, 'Big Kick');
 
   await menu(page, 'Big Kick', 'Duplicate');
   await expect(presetChip(page, 'Big Kick copy')).toBeVisible();
   await expect(chips(page)).toHaveCount(2);
+});
+
+test('a duplicated preset is still there after a reload', async ({ page }) => {
+  await saveKickPreset(page, 'Big Kick');
+  await menu(page, 'Big Kick', 'Duplicate');
+  await presetChip(page, 'Big Kick copy').waitFor();
 
   await page.reload();
   await expect(chips(page)).toHaveCount(2);
+});
+
+test('a preset is deleted from its chip menu and focus moves to the next chip', async ({ page }) => {
+  await saveKickPreset(page, 'Big Kick');
+  await menu(page, 'Big Kick', 'Duplicate');
+  await presetChip(page, 'Big Kick copy').waitFor();
+
   await menu(page, 'Big Kick', 'Delete');
   await expect(chips(page)).toHaveCount(1);
   await expect(presetChip(page, 'Big Kick')).toHaveCount(0);
   await expect(presetChip(page, 'Big Kick copy')).toBeFocused();
+});
+
+test('a duplicated preset carries the edit of its original', async ({ page }) => {
+  await saveKickPreset(page, 'Big Kick');
+  await menu(page, 'Big Kick', 'Duplicate');
+  await presetChip(page, 'Big Kick copy').waitFor();
 
   await openEditor(page);
   await press(page.getByRole('button', { name: 'Reset all' }));
@@ -39,6 +75,10 @@ test('a preset is renamed, duplicated and deleted from its chip menu', async ({ 
   await press(presetChip(page, 'Big Kick copy'));
   await expect(page.getByRole('button', { name: '1 drum edited — review changes, from preset Big Kick copy' }))
     .toBeVisible();
+});
+
+test('deleting the last preset removes the saved mappings group', async ({ page }) => {
+  await saveKickPreset(page, 'Big Kick copy');
 
   await page.reload();
   await expect(chips(page)).toHaveCount(1);
@@ -46,20 +86,35 @@ test('a preset is renamed, duplicated and deleted from its chip menu', async ({ 
   await expect(saved(page)).toHaveCount(0);
 });
 
-test('Update preset saves a further edit into the preset that is open', async ({ page }) => {
+test('a saved preset chip counts the overrides it holds', async ({ page }) => {
   await saveKickPreset(page, NAME);
   await expect(presetChip(page, NAME)).toHaveAttribute('title', '1 override');
+});
 
-  await openEditor(page);
-  await retarget(page, 'Snare', 'F2');
-  await leaveEditor(page);
+test('an edit made after saving is marked as not saved to the preset', async ({ page }) => {
+  await saveKickPreset(page, NAME);
+
+  await editSnare(page);
   await expect(page.getByRole('button', { name: `2 drums edited — review changes, not saved to ${NAME}` }))
     .toBeVisible();
+});
+
+test('Update preset opens the save dialog on the preset that is open', async ({ page }) => {
+  await saveKickPreset(page, NAME);
+  await editSnare(page);
 
   await openEditor(page);
   await press(page.getByRole('button', { name: 'Update preset' }));
   await expect(page.getByRole('textbox', { name: 'Preset name' })).toHaveValue(NAME);
   await expect(page.getByText('A preset for GGD→EZD already exists.')).toBeVisible();
+});
+
+test('confirming Update saves the further edit into the same preset', async ({ page }) => {
+  await saveKickPreset(page, NAME);
+  await editSnare(page);
+
+  await openEditor(page);
+  await press(page.getByRole('button', { name: 'Update preset' }));
   await press(page.getByRole('button', { name: 'Update', exact: true }));
   await expect(page.getByRole('button', { name: 'Update preset' })).toBeVisible();
   await leaveEditor(page);
@@ -67,6 +122,12 @@ test('Update preset saves a further edit into the preset that is open', async ({
     .toBeVisible();
   await expect(chips(page)).toHaveCount(1);
   await expect(presetChip(page, NAME)).toHaveAttribute('title', '2 overrides');
+});
+
+test('an updated preset brings both edits back after a reload', async ({ page }) => {
+  await saveKickPreset(page, NAME);
+  await editSnare(page);
+  await updatePreset(page);
 
   await page.reload();
   await openEditor(page);

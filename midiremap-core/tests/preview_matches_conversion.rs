@@ -100,6 +100,10 @@ fn preview_matches_conversion_for_every_builtin_pair() {
 #[test]
 fn preview_matches_conversion_under_drop_for_every_builtin_pair() {
     assert_preview_matches_conversion("{}", MissingDrums::Drop);
+}
+
+#[test]
+fn preview_matches_conversion_with_overrides_under_drop_for_every_builtin_pair() {
     assert_preview_matches_conversion(OVERRIDES, MissingDrums::Drop);
 }
 

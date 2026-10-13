@@ -14,13 +14,19 @@ describe('preselection', () => {
     });
   });
 
-  it('returns only the given side', () => {
+  it('returns only the given source', () => {
     expect(preselection('?from=ezdrummer', ENGINES)).toEqual({ src: 'ezdrummer' });
+  });
+
+  it('returns only the given target', () => {
     expect(preselection('?to=ezdrummer', ENGINES)).toEqual({ tgt: 'ezdrummer' });
   });
 
-  it('ignores unknown ids', () => {
+  it('ignores an unknown id beside a known one', () => {
     expect(preselection('?from=nope&to=ezdrummer', ENGINES)).toEqual({ tgt: 'ezdrummer' });
+  });
+
+  it('returns null for an unknown id alone', () => {
     expect(preselection('?from=nope', ENGINES)).toBeNull();
   });
 

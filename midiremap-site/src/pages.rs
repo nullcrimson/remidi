@@ -438,22 +438,53 @@ mod tests {
         let maps = Catalog::builtin().unwrap();
         let s = site();
         assert_eq!(s.engines.len(), maps.ids().count() - EXCLUDED_IDS.len());
+    }
+
+    #[test]
+    fn no_excluded_engine_gets_a_page() {
+        let s = site();
         assert!(s
             .engines
             .iter()
             .all(|p| !EXCLUDED_IDS.contains(&p.engine.id.as_str())));
+    }
+
+    #[test]
+    fn engine_page_slugs_are_distinct() {
+        let s = site();
         let slugs: HashSet<_> = s.engines.iter().map(|p| p.engine.slug.clone()).collect();
         assert_eq!(slugs.len(), s.engines.len());
+    }
+
+    #[test]
+    fn engine_page_slugs_have_no_underscore() {
+        let s = site();
+        let slugs: HashSet<_> = s.engines.iter().map(|p| p.engine.slug.clone()).collect();
         assert!(slugs.iter().all(|s| !s.contains('_')));
     }
 
     #[test]
-    fn fifty_six_distinct_pairs() {
+    fn fifty_six_pairs() {
         let s = site();
         assert_eq!(s.pairs.len(), 56);
+    }
+
+    #[test]
+    fn no_pair_converts_an_engine_to_itself() {
+        let s = site();
         assert!(s.pairs.iter().all(|p| p.src.id != p.tgt.id));
+    }
+
+    #[test]
+    fn pair_slugs_are_distinct() {
+        let s = site();
         let slugs: HashSet<_> = s.pairs.iter().map(|p| p.slug.clone()).collect();
         assert_eq!(slugs.len(), 56);
+    }
+
+    #[test]
+    fn a_pair_names_its_source_engine_by_display_name() {
+        let s = site();
         assert_eq!(
             s.pairs
                 .iter()
@@ -464,7 +495,7 @@ mod tests {
     }
 
     #[test]
-    fn major_engine_pages_link_fourteen_pairs() {
+    fn major_engine_pages_link_seven_pairs_from_the_engine() {
         let s = site();
         let ezd = s
             .engines
@@ -472,9 +503,24 @@ mod tests {
             .find(|p| p.engine.id == "ezdrummer")
             .unwrap();
         assert_eq!(ezd.pairs_from.len(), 7);
-        assert_eq!(ezd.pairs_to.len(), 7);
         assert!(ezd.pairs_from.iter().all(|l| l.src_name == "EZdrummer 3"));
+    }
+
+    #[test]
+    fn major_engine_pages_link_seven_pairs_to_the_engine() {
+        let s = site();
+        let ezd = s
+            .engines
+            .iter()
+            .find(|p| p.engine.id == "ezdrummer")
+            .unwrap();
+        assert_eq!(ezd.pairs_to.len(), 7);
         assert!(ezd.pairs_to.iter().all(|l| l.tgt_name == "EZdrummer 3"));
+    }
+
+    #[test]
+    fn minor_engine_pages_link_no_pairs() {
+        let s = site();
         let minor = s.engines.iter().find(|p| p.engine.id == "hertz").unwrap();
         assert!(minor.pairs_from.is_empty() && minor.pairs_to.is_empty());
     }
@@ -495,7 +541,6 @@ mod tests {
 
     #[test]
     fn engine_rows_are_grouped_by_family_in_app_order() {
-        let maps = Catalog::builtin().unwrap();
         for p in site().engines {
             let names: Vec<&str> = p.groups.iter().map(|g| g.name).collect();
             let order: Vec<&str> = Family::ALL
@@ -504,7 +549,20 @@ mod tests {
                 .filter(|f| names.contains(f))
                 .collect();
             assert_eq!(names, order, "{}", p.engine.id);
+        }
+    }
+
+    #[test]
+    fn engine_page_groups_are_never_empty() {
+        for p in site().engines {
             assert!(p.groups.iter().all(|g| !g.rows.is_empty()));
+        }
+    }
+
+    #[test]
+    fn engine_page_rows_cover_every_source_note() {
+        let maps = Catalog::builtin().unwrap();
+        for p in site().engines {
             let total: usize = p.groups.iter().map(|g| g.rows.len()).sum();
             let map = maps.get(&p.engine.id).unwrap();
             assert_eq!(total, map.source_notes().len(), "{}", p.engine.id);
@@ -512,17 +570,61 @@ mod tests {
     }
 
     #[test]
-    fn index_matrix_links_every_major_pair_once() {
+    fn index_matrix_has_eight_columns() {
         let s = site();
         assert_eq!(s.index.columns.len(), 8);
+    }
+
+    #[test]
+    fn index_matrix_has_eight_rows() {
+        let s = site();
         assert_eq!(s.index.matrix.len(), 8);
-        let mut slugs = HashSet::new();
-        for (i, row) in s.index.matrix.iter().enumerate() {
+    }
+
+    #[test]
+    fn index_matrix_rows_have_eight_cells() {
+        let s = site();
+        for row in s.index.matrix.iter() {
             assert_eq!(row.cells.len(), 8);
+        }
+    }
+
+    #[test]
+    fn index_matrix_leaves_its_diagonal_empty() {
+        let s = site();
+        for (i, row) in s.index.matrix.iter().enumerate() {
             assert!(row.cells[i].is_none());
+        }
+    }
+
+    #[test]
+    fn index_matrix_cells_carry_their_rows_source_name() {
+        let s = site();
+        for row in s.index.matrix.iter() {
             for cell in row.cells.iter().flatten() {
                 assert_eq!(cell.src_name, row.engine.name);
+            }
+        }
+    }
+
+    #[test]
+    fn index_matrix_links_no_pair_twice() {
+        let s = site();
+        let mut slugs = HashSet::new();
+        for row in s.index.matrix.iter() {
+            for cell in row.cells.iter().flatten() {
                 assert!(slugs.insert(cell.slug.clone()));
+            }
+        }
+    }
+
+    #[test]
+    fn index_matrix_links_every_major_pair() {
+        let s = site();
+        let mut slugs = HashSet::new();
+        for row in s.index.matrix.iter() {
+            for cell in row.cells.iter().flatten() {
+                slugs.insert(cell.slug.clone());
             }
         }
         assert_eq!(slugs.len(), 56);
@@ -539,10 +641,17 @@ mod tests {
     }
 
     #[test]
-    fn vendor_groups_and_more_list_every_engine_once() {
+    fn vendor_groups_and_more_list_every_engine() {
+        let s = site();
+        let listed: HashSet<&str> = listed_engines(&s).into_iter().collect();
+        let all: HashSet<&str> = s.index.all.iter().map(|e| e.id.as_str()).collect();
+        assert_eq!(listed, all);
+    }
+
+    #[test]
+    fn vendor_groups_and_more_list_no_engine_twice() {
         let s = site();
         let listed = listed_engines(&s);
-        assert_eq!(listed.len(), s.index.all.len());
         assert_eq!(listed.iter().collect::<HashSet<_>>().len(), listed.len());
     }
 
@@ -630,9 +739,15 @@ mod tests {
     }
 
     #[test]
-    fn siblings_exclude_the_pair_itself() {
+    fn a_pair_lists_six_siblings() {
         for p in site().pairs {
             assert_eq!(p.siblings.len(), 6);
+        }
+    }
+
+    #[test]
+    fn siblings_exclude_the_pair_itself() {
+        for p in site().pairs {
             assert!(p.siblings.iter().all(|l| l.slug != p.slug));
         }
     }

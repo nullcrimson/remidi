@@ -2,8 +2,6 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../src/core/download', () => ({ saveBlob: vi.fn() }));
-
 import App from '../src/App';
 import { RUNTIME } from './runtime';
 import type { Drum, MissingDrums, RemapOutput, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
@@ -53,15 +51,28 @@ describe('App missing drums', () => {
     vi.mocked(stub.remap).mockImplementation((_mid, _src, _tgt, _overrides, _channel, missing) => remapFor(missing));
   });
 
-  it('shows the setting third, with a live hint for the pair', async () => {
+  it('starts on Nearest with its hint', async () => {
     render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
     const group = screen.getByRole('radiogroup', { name: 'Missing drums' });
     expect(within(group).getByRole('radio', { name: 'Nearest' })).toBeChecked();
     expect(screen.getByText('play on the closest drum')).toBeInTheDocument();
+  });
+
+  it('counts the drums played on another drum once the pair is chosen', async () => {
+    render(<App runtime={RUNTIME} />);
+    await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
     await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
     await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
     expect(screen.getByText('1 drum played on another drum')).toBeInTheDocument();
+  });
+
+  it('counts the dropped drums once Drop is chosen', async () => {
+    render(<App runtime={RUNTIME} />);
+    await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
+    const group = screen.getByRole('radiogroup', { name: 'Missing drums' });
+    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
+    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
     await userEvent.click(within(group).getByText('Drop'));
     expect(screen.getByText('1 drum dropped')).toBeInTheDocument();
   });

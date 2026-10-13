@@ -229,6 +229,11 @@ mod tests {
             page_in(&Page::Section(SectionKey::Faq), Locale::Pl, &docs).to_string(),
             "/pl/faq/"
         );
+    }
+
+    #[test]
+    fn a_translated_section_switches_back_to_english() {
+        let docs = Docs::load().unwrap();
         assert_eq!(
             page_in(&Page::Section(SectionKey::Faq), Locale::En, &docs).to_string(),
             "/faq/"
@@ -252,16 +257,26 @@ mod tests {
     }
 
     #[test]
-    fn a_document_link_points_at_the_page_in_the_readers_language() {
+    fn a_document_link_to_a_note_map_points_at_the_page_in_the_readers_language() {
         let docs = Docs::load().unwrap();
         assert_eq!(
             local_href("/engines/", Locale::Pl, &docs).to_string(),
             "/pl/engines/"
         );
+    }
+
+    #[test]
+    fn a_document_link_to_a_section_points_at_the_page_in_the_readers_language() {
+        let docs = Docs::load().unwrap();
         assert_eq!(
             local_href("/faq/", Locale::Pl, &docs).to_string(),
             "/pl/faq/"
         );
+    }
+
+    #[test]
+    fn a_document_link_for_an_english_reader_stays_unprefixed() {
+        let docs = Docs::load().unwrap();
         assert_eq!(
             local_href("/engines/", Locale::En, &docs).to_string(),
             "/engines/"
@@ -294,17 +309,42 @@ mod tests {
             .collect()
     }
 
+    fn faq_versions() -> Vec<(&'static str, String)> {
+        versions(&Page::Section(SectionKey::Faq), &Docs::load().unwrap())
+    }
+
+    fn version(tag: &'static str, path: &str) -> (&'static str, String) {
+        (tag, path.to_owned())
+    }
+
     #[test]
-    fn a_translated_section_lists_its_versions_and_the_default() {
-        let docs = Docs::load().unwrap();
-        let faq = versions(&Page::Section(SectionKey::Faq), &docs);
-        assert_eq!(faq.len(), Locale::ALL.len() + 1);
-        let version = |tag, path: &str| (tag, path.to_owned());
-        assert_eq!(faq.first(), Some(&version("en", "/faq/")));
-        assert!(faq.contains(&version("pl", "/pl/faq/")));
-        assert!(faq.contains(&version("pt-BR", "/pt/faq/")));
-        assert!(faq.contains(&version("zh-Hans", "/zh/faq/")));
-        assert_eq!(faq.last(), Some(&version("x-default", "/faq/")));
+    fn a_translated_section_lists_every_locale_and_the_default() {
+        assert_eq!(faq_versions().len(), Locale::ALL.len() + 1);
+    }
+
+    #[test]
+    fn a_translated_section_lists_english_first() {
+        assert_eq!(faq_versions().first(), Some(&version("en", "/faq/")));
+    }
+
+    #[test]
+    fn a_translated_section_lists_its_polish_version() {
+        assert!(faq_versions().contains(&version("pl", "/pl/faq/")));
+    }
+
+    #[test]
+    fn a_translated_section_lists_its_brazilian_portuguese_version() {
+        assert!(faq_versions().contains(&version("pt-BR", "/pt/faq/")));
+    }
+
+    #[test]
+    fn a_translated_section_lists_its_simplified_chinese_version() {
+        assert!(faq_versions().contains(&version("zh-Hans", "/zh/faq/")));
+    }
+
+    #[test]
+    fn a_translated_section_lists_the_default_last() {
+        assert_eq!(faq_versions().last(), Some(&version("x-default", "/faq/")));
     }
 
     #[test]

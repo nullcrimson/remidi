@@ -41,13 +41,20 @@ describe('SavedMappingChips', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders a chip per mapping and applies on body click', async () => {
+  it('renders a chip per mapping', () => {
     const p = makeProps({
       mappings: [mapping, { ...mapping, id: 'p2', name: 'Second' }],
     });
     render(<SavedMappingChips {...p} />);
     expect(screen.getByRole('button', { name: /^My kit/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Second/ })).toBeInTheDocument();
+  });
+
+  it('applies a mapping on body click', async () => {
+    const p = makeProps({
+      mappings: [mapping, { ...mapping, id: 'p2', name: 'Second' }],
+    });
+    render(<SavedMappingChips {...p} />);
     await userEvent.click(screen.getByRole('button', { name: /^My kit/ }));
     expect(p.onLoad).toHaveBeenCalledWith(mapping);
   });

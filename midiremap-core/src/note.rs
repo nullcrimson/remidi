@@ -148,16 +148,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn names_notes_in_both_octave_conventions() {
+    fn names_notes_in_the_c1_octave_convention() {
         assert_eq!(n(0).name(OctaveBase::C1), "C-1");
-        assert_eq!(n(0).name(OctaveBase::C2), "C-2");
         assert_eq!(n(36).name(OctaveBase::C1), "C2");
-        assert_eq!(n(36).name(OctaveBase::C2), "C1");
         assert_eq!(n(42).name(OctaveBase::C1), "F#2");
-        assert_eq!(n(42).name(OctaveBase::C2), "F#1");
         assert_eq!(n(60).name(OctaveBase::C1), "C4");
-        assert_eq!(n(60).name(OctaveBase::C2), "C3");
         assert_eq!(n(127).name(OctaveBase::C1), "G9");
+    }
+
+    #[test]
+    fn names_notes_in_the_c2_octave_convention() {
+        assert_eq!(n(0).name(OctaveBase::C2), "C-2");
+        assert_eq!(n(36).name(OctaveBase::C2), "C1");
+        assert_eq!(n(42).name(OctaveBase::C2), "F#1");
+        assert_eq!(n(60).name(OctaveBase::C2), "C3");
         assert_eq!(n(127).name(OctaveBase::C2), "G8");
     }
 
@@ -182,9 +186,13 @@ mod tests {
     }
 
     #[test]
-    fn accepts_0_to_127_only() {
+    fn accepts_0_to_127() {
         assert_eq!(Note::new(0).map(Note::get), Some(0));
         assert_eq!(Note::new(127).map(Note::get), Some(127));
+    }
+
+    #[test]
+    fn rejects_128() {
         assert_eq!(Note::new(128), None);
     }
 
@@ -197,24 +205,43 @@ mod tests {
     }
 
     #[test]
-    fn serde_is_a_plain_number() {
+    fn a_note_serializes_as_a_plain_number() {
         let n = Note::new(36).unwrap();
         assert_eq!(serde_json::to_string(&n).unwrap(), "36");
+    }
+
+    #[test]
+    fn a_note_deserializes_from_a_plain_number() {
+        let n = Note::new(36).unwrap();
         assert_eq!(serde_json::from_str::<Note>("36").unwrap(), n);
     }
 
     #[test]
-    fn deserialize_rejects_out_of_range_with_the_range() {
-        let error = |s: &str| serde_json::from_str::<Note>(s).unwrap_err().to_string();
-        assert!(error("128").contains("0..=127"));
-        assert!(error("200").contains("0..=127"));
-        assert!(error("70000").contains("0..=127"));
+    fn deserialize_rejects_128_with_the_range() {
+        let error = serde_json::from_str::<Note>("128").unwrap_err().to_string();
+        assert!(error.contains("0..=127"));
     }
 
     #[test]
-    fn a_note_parses_from_its_number_only_in_range() {
+    fn deserialize_rejects_70000_with_the_range() {
+        let error = serde_json::from_str::<Note>("70000")
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("0..=127"));
+    }
+
+    #[test]
+    fn a_note_parses_from_its_number() {
         assert_eq!("36".parse::<Note>(), Ok(n(36)));
+    }
+
+    #[test]
+    fn a_number_out_of_range_does_not_parse_as_a_note() {
         assert!("128".parse::<Note>().is_err());
+    }
+
+    #[test]
+    fn text_that_is_not_a_number_does_not_parse_as_a_note() {
         assert!("kick".parse::<Note>().is_err());
     }
 

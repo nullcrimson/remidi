@@ -12,12 +12,18 @@ async function convertAndSave(page: Page, times = 1) {
   for (let i = 0; i < times; i += 1) await download(page);
 }
 
-test('the tip ask waits for a third saved file, then stays pinned to the top while the page scrolls', async ({ page }) => {
+test('the tip ask waits for a third saved file', async ({ page }) => {
   await openPair(page);
   await convertAndSave(page, 2);
   await expect(tip(page)).toHaveCount(0);
   await download(page);
   await expect(tip(page)).toBeVisible();
+});
+
+test('the tip ask stays pinned to the top while the page scrolls', async ({ page }) => {
+  await openPair(page);
+  await convertAndSave(page, 3);
+  await tip(page).waitFor();
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
   const box = (await tip(page).boundingBox())!;

@@ -16,12 +16,16 @@ function Fixture() {
 }
 
 describe('SettingRow', () => {
-  it('opens the tip from the dotted label, not the control', async () => {
+  it('does not open the tip from the control', async () => {
+    render(<Fixture />);
+    await userEvent.hover(screen.getByRole('button', { name: 'Mode' }));
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('opens the tip from the dotted label', async () => {
     render(<Fixture />);
     const label = screen.getByText('Mode');
     expect(label).toHaveClass('cursor-help', 'border-dotted');
-    await userEvent.hover(screen.getByRole('button', { name: 'Mode' }));
-    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     await userEvent.hover(label);
     expect(screen.getByRole('tooltip')).toHaveTextContent('It picks the mode.');
   });

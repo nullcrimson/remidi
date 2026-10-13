@@ -47,10 +47,14 @@ describe('editLines', () => {
 });
 
 describe('previewLines', () => {
-  it('keeps up to five lines and counts the rest', () => {
-    const lines = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((drum): Message => ({ id: 'edit-line', args: { drum, now: '1', byDefault: '2' } }));
-    const shown = (ls: Message[]) => ls.map(t);
+  const lines = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((drum): Message => ({ id: 'edit-line', args: { drum, now: '1', byDefault: '2' } }));
+  const shown = (ls: Message[]) => ls.map(t);
+
+  it('keeps five lines and counts the rest', () => {
     expect(shown(previewLines(lines))).toEqual([...shown(lines.slice(0, 5)), '+2 more']);
+  });
+
+  it('keeps up to five lines whole', () => {
     expect(previewLines(lines.slice(0, 5))).toEqual(lines.slice(0, 5));
   });
 });

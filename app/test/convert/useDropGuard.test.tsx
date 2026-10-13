@@ -10,9 +10,13 @@ function fire(type: string): boolean {
 
 describe('useDropGuard', () => {
   it('keeps the browser from opening a dropped file while mounted', () => {
-    const { unmount } = renderHook(() => useDropGuard());
+    renderHook(() => useDropGuard());
     expect(fire('dragover')).toBe(true);
     expect(fire('drop')).toBe(true);
+  });
+
+  it('lets the browser handle drops once unmounted', () => {
+    const { unmount } = renderHook(() => useDropGuard());
     unmount();
     expect(fire('dragover')).toBe(false);
     expect(fire('drop')).toBe(false);

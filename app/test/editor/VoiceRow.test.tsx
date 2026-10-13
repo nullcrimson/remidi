@@ -53,7 +53,7 @@ describe('VoiceRow', () => {
     expect(screen.getByRole('button', { name: 'B3' })).toBeInTheDocument();
   });
 
-  it('keeps its picker open on a press inside the row and closes it on one outside', () => {
+  it('keeps its picker open on a press inside the row', () => {
     const onClose = vi.fn();
     render(
       <VoiceRow row={kick} {...base} expanded="tgt">
@@ -64,6 +64,17 @@ describe('VoiceRow', () => {
     );
     fireEvent.mouseDown(screen.getByText('Kick'));
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('closes its picker on a press outside the row', () => {
+    const onClose = vi.fn();
+    render(
+      <VoiceRow row={kick} {...base} expanded="tgt">
+        <PickerShell label="Target note for Kick" onClose={onClose}>
+          <p>keys</p>
+        </PickerShell>
+      </VoiceRow>,
+    );
     fireEvent.mouseDown(document.body);
     expect(onClose).toHaveBeenCalledOnce();
   });
@@ -100,14 +111,17 @@ describe('VoiceRow', () => {
     );
   });
 
-  it('explains a single extra note and a dropped row', () => {
-    const { rerender } = render(
+  it('explains a single extra note', () => {
+    render(
       <VoiceRow row={rowOf({ srcNotes: [24, 23] })} {...base} />,
     );
     expect(
       screen.getByLabelText('1 more source note plays Kick: B0. Both go to C2.'),
     ).toBeInTheDocument();
-    rerender(
+  });
+
+  it('explains a single extra note of a dropped row', () => {
+    render(
       <VoiceRow
         row={rowOf({ srcNotes: [24, 23], outcome: { status: 'dropped', otherDrum: false } })}
         {...base}
@@ -123,14 +137,20 @@ describe('VoiceRow', () => {
     expect(screen.queryByText(/^\+\d/)).toBeNull();
   });
 
-  it('shows a dash on the source chip of a silent row and dims it', async () => {
+  it('shows a dash on the source chip of a silent row and toggles the source picker on it', async () => {
     const onSrcToggle = vi.fn();
-    const { container } = render(
+    render(
       <VoiceRow row={rowOf({ srcNotes: [] })} {...base} onSrcToggle={onSrcToggle} />,
     );
     const chip = screen.getByRole('button', { name: '—' });
     await userEvent.click(chip);
     expect(onSrcToggle).toHaveBeenCalledOnce();
+  });
+
+  it('dims a silent row', () => {
+    const { container } = render(
+      <VoiceRow row={rowOf({ srcNotes: [] })} {...base} />,
+    );
     expect(container.firstElementChild).toHaveClass('opacity-60');
   });
 });

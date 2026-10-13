@@ -53,10 +53,15 @@ describe('the static pages locale script', () => {
     expect(offer()?.hidden).toBe(true);
   });
 
-  it('remembers a dismissal and hides the offer', () => {
+  it('remembers a dismissal', () => {
     runLocaleScript(document, ['pl'], locationStub());
     document.querySelector<HTMLElement>('[data-dismiss]')?.click();
     expect(localStorage.getItem('midiremap:locale-offer')).toBe('dismissed');
+  });
+
+  it('hides the offer on a dismissal', () => {
+    runLocaleScript(document, ['pl'], locationStub());
+    document.querySelector<HTMLElement>('[data-dismiss]')?.click();
     expect(offer()?.hidden).toBe(true);
   });
 });

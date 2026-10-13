@@ -14,9 +14,12 @@ const page = (css: string, body: string) =>
   `<link rel="stylesheet" href="/assets/index-${css}.css"><script src="/assets/index-${css}.js"></script>${body}`;
 
 describe('IndexNow for changed pages only', () => {
-  it('reads the sitemap and finds each URL page on disk', () => {
+  it('reads the sitemap', () => {
     const xml = '<urlset><url><loc>https://drumverter.com/</loc></url><url><loc>https://drumverter.com/faq/</loc></url></urlset>';
     expect(sitemapUrls(xml)).toEqual(['https://drumverter.com/', 'https://drumverter.com/faq/']);
+  });
+
+  it('finds each URL page on disk', () => {
     expect(pageFile('https://drumverter.com/')).toBe('index.html');
     expect(pageFile('https://drumverter.com/engines/bfd3/')).toBe('engines/bfd3/index.html');
   });
@@ -34,9 +37,13 @@ describe('IndexNow for changed pages only', () => {
     expect(changedUrls(hashPages(urls, (f) => files[f]), parseLive(before))).toEqual(['https://drumverter.com/faq/']);
   });
 
-  it('submits new pages, and every page when nothing is live yet', () => {
+  it('submits new pages', () => {
     const now = { 'https://drumverter.com/': 'a', 'https://drumverter.com/new/': 'b' };
     expect(changedUrls(now, { 'https://drumverter.com/': { hash: 'a' } })).toEqual(['https://drumverter.com/new/']);
+  });
+
+  it('submits every page when nothing is live yet', () => {
+    const now = { 'https://drumverter.com/': 'a', 'https://drumverter.com/new/': 'b' };
     expect(changedUrls(now, undefined)).toEqual(Object.keys(now));
   });
 
