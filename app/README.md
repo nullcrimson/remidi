@@ -90,6 +90,10 @@ on a phone and click elsewhere.
   return what the real module could not. No test replaces `core/midiremap` or
   `convert/converter`. `test/wasm.contract.test.ts` loads the real module and checks its
   shapes and errors, and that the stub returns the same fields and real drum keys.
+- Tests run as two Vitest projects (`vite.config.ts`): `*.test.tsx` and `*.dom.test.ts` get
+  a jsdom page and `test/setup.dom.ts`; every other `*.test.ts` runs in plain Node, which
+  starts faster. A test of code that reads `document` or `window` and has no JSX is named
+  `*.dom.test.ts`; in Node it fails on the missing global.
 - `src/` is foldered by feature, and `test/` mirrors it (shared helpers stay at the top of
   `test/`). Imports point one way, from `convert` on top down through `editor`, the other
   features, `ui` and `locale` to `core`; no two folders import each other. The table

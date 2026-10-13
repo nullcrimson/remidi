@@ -116,13 +116,32 @@ export default defineConfig({
     },
   },
   test: {
-    environment: 'jsdom',
     globals: true,
-    setupFiles: ['./test/setup.ts'],
-    include: ['test/**/*.test.{ts,tsx}'],
+    pool: 'threads',
     css: { include: [/src\/index\.css/] },
     alias: {
       '@wasm': fileURLToPath(new URL('./test/stubs/wasm.ts', import.meta.url)),
     },
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'node',
+          environment: 'node',
+          setupFiles: ['./test/setup.ts'],
+          include: ['test/**/*.test.ts'],
+          exclude: ['test/**/*.dom.test.ts'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'dom',
+          environment: 'jsdom',
+          setupFiles: ['./test/setup.ts', './test/setup.dom.ts'],
+          include: ['test/**/*.test.tsx', 'test/**/*.dom.test.ts'],
+        },
+      },
+    ],
   },
 });

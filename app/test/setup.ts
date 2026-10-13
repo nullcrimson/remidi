@@ -1,19 +1,8 @@
-import '@testing-library/jest-dom/vitest';
 import { beforeEach, vi } from 'vitest';
 import * as stub from './stubs/wasm';
 
 globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
 globalThis.URL.revokeObjectURL = vi.fn();
-
-class ResizeObserverStub {
-  observe(): void {}
-  unobserve(): void {}
-  disconnect(): void {}
-}
-HTMLElement.prototype.showPopover ??= function showPopover() {};
-HTMLElement.prototype.hidePopover ??= function hidePopover() {};
-
-globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
 
 class MemoryStorage {
   private store = new Map<string, string>();
