@@ -34,7 +34,7 @@ describe('CardDropzone', () => {
     expect(Array.from(arg[0].bytes)).toEqual([1, 2]);
   });
 
-  it('does not call onFiles when only non-mid files are dropped', () => {
+  it('names a dropped non-MIDI file as skipped', async () => {
     const onFiles = vi.fn();
     render(
       <CardDropzone onFiles={onFiles}>
@@ -42,7 +42,7 @@ describe('CardDropzone', () => {
       </CardDropzone>,
     );
     fireEvent.drop(window, { dataTransfer: { files: [txt()] } });
-    expect(onFiles).not.toHaveBeenCalled();
+    await waitFor(() => expect(onFiles).toHaveBeenCalledWith([], ['note.txt'], [], []));
   });
 
   it('hides the overlay after a drop', () => {

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 
-export type FavoritesScope = 'from' | 'to';
+type FavoritesScope = 'from' | 'to';
 
-export interface Favorites {
+interface Favorites {
   favorites: Set<string>;
   toggleFavorite: (id: string) => void;
 }

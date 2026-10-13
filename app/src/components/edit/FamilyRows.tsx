@@ -12,8 +12,7 @@ import { ROW_GRID } from '../styles';
 import { VoiceRow, type RowResult } from '../VoiceRow';
 import { playedNote } from '../../lib/outcome';
 
-/** The editor actions a row and its pickers use. */
-export type RowActions = Pick<
+type RowActions = Pick<
   Editor,
   | 'openPick'
   | 'openSrcPick'

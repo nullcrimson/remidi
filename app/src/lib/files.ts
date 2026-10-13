@@ -1,9 +1,9 @@
 import type { Message } from '../generated/i18n';
-import type { RemapReport } from './midiremap';
+import type { Report } from './midiremap';
 
 export const MID_EXT = /\.midi?$/i;
 
-export const isMid = (name: string) => MID_EXT.test(name);
+const isMid = (name: string) => MID_EXT.test(name);
 
 const isPreset = (name: string) => /\.json$/i.test(name);
 
@@ -62,15 +62,9 @@ export interface LoadedFile {
   name: string;
 }
 
-export async function loadFiles(files: File[]): Promise<LoadedFile[]> {
-  return Promise.all(
-    files.map(async (f) => ({ bytes: new Uint8Array(await f.arrayBuffer()), name: f.name })),
-  );
-}
-
 export interface FileResult {
   name: string;
   url: string;
   bytes: Uint8Array;
-  report: RemapReport;
+  report: Report;
 }

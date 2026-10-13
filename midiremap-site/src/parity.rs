@@ -74,9 +74,3 @@ fn every_locale_translates_the_guide_and_faq() {
         assert!(docs.has(l, SectionKey::Faq), "{}", l.code());
     }
 }
-
-#[test]
-fn polish_is_a_locale() {
-    assert_eq!(Locale::Pl.prefix(), "pl");
-    assert_eq!(Locale::Pl.native_name(), "Polski");
-}

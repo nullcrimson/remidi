@@ -263,17 +263,17 @@ pub fn engine_notes(src_id: &str) -> Result<Vec<Ts<Drum>>, WasmError> {
 /// One entry of the canonical drum vocabulary.
 #[derive(Serialize, Tsify)]
 #[tsify(missing_as_null, hashmap_as_object)]
-pub struct CanonInfo {
+pub struct VocabularyDrum {
     canon: Canon,
     label: String,
     family: Family,
 }
 
 #[wasm_bindgen]
-pub fn canon_catalog() -> Result<Vec<Ts<CanonInfo>>, WasmError> {
-    let items: Vec<CanonInfo> = Canon::all()
+pub fn canon_catalog() -> Result<Vec<Ts<VocabularyDrum>>, WasmError> {
+    let items: Vec<VocabularyDrum> = Canon::all()
         .iter()
-        .map(|&c| CanonInfo {
+        .map(|&c| VocabularyDrum {
             canon: c,
             label: c.label(),
             family: c.family(),
@@ -301,16 +301,16 @@ pub fn note_names(base: Ts<OctaveBase>) -> Result<Vec<String>, WasmError> {
 #[derive(Serialize, Tsify, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null, hashmap_as_object)]
-pub struct EngineInfo {
+pub struct Engine {
     id: String,
     name: String,
     full_name: String,
 }
 
-fn engine_infos(catalog: &Catalog) -> Vec<EngineInfo> {
+fn engines(catalog: &Catalog) -> Vec<Engine> {
     catalog
         .engines()
-        .map(|m| EngineInfo {
+        .map(|m| Engine {
             id: m.id().to_owned(),
             name: m.display_name().to_owned(),
             full_name: m.name().to_owned(),
@@ -319,8 +319,8 @@ fn engine_infos(catalog: &Catalog) -> Vec<EngineInfo> {
 }
 
 #[wasm_bindgen]
-pub fn engine_catalog() -> Result<Vec<Ts<EngineInfo>>, WasmError> {
-    to_js_all(&engine_infos(catalog()?))
+pub fn engine_catalog() -> Result<Vec<Ts<Engine>>, WasmError> {
+    to_js_all(&engines(catalog()?))
 }
 
 #[cfg(test)]
@@ -331,11 +331,11 @@ mod tests {
 
     #[test]
     fn catalog_names_engines_by_display_name_and_keeps_the_full_name() {
-        let infos = engine_infos(&Catalog::builtin().unwrap());
-        let ezd = infos.iter().find(|i| i.id == "ezdrummer").unwrap();
+        let engines = engines(&Catalog::builtin().unwrap());
+        let ezd = engines.iter().find(|e| e.id == "ezdrummer").unwrap();
         assert_eq!(ezd.name, "EZdrummer 3");
         assert_eq!(ezd.full_name, "Toontrack EZdrummer 3");
-        let hertz = infos.iter().find(|i| i.id == "hertz").unwrap();
+        let hertz = engines.iter().find(|e| e.id == "hertz").unwrap();
         assert_eq!(hertz.name, hertz.full_name);
     }
 

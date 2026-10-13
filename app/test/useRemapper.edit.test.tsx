@@ -117,7 +117,6 @@ describe('useRemapper edit path', () => {
     act(() => result.current.chooseSrc('ggd_invasion'));
     act(() => result.current.chooseTgt('ezdrummer'));
     expect(result.current.editor.remappedCount).toBe(0);
-    expect(result.current.editor.droppedCount).toBe(0);
     act(() => result.current.editor.openSrcPick('KickMain'));
     expect(result.current.editor.pick?.octIndex).toBe(2);
     act(() => result.current.editor.openSrcPick('China'));

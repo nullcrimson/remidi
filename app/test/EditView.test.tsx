@@ -17,7 +17,6 @@ const editor = {
   canonOptions: [{ canon: 'kick.main', label: 'Kick', family: 'Kick' as const }],
   families: family_order(),
   remappedCount: 0,
-  droppedCount: 0,
   changed: new Set<string>(),
   changedSrc: new Set<string>(),
   resetRow: vi.fn(),
@@ -111,14 +110,6 @@ describe('EditView', () => {
     expect(screen.getByRole('dialog', { name: /Source note for Kick/i })).toBeInTheDocument();
   });
 
-  it('saves a preset of just the engine pair when no notes changed', async () => {
-    const onSavePreset = vi.fn();
-    render(<EditView {...props} editor={{ ...editor, edits: {} }} onSavePreset={onSavePreset} />);
-    await userEvent.click(screen.getByRole('button', { name: 'Save as preset' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-    expect(onSavePreset).toHaveBeenCalledWith('GGD→EZD');
-  });
-
   it('reveals the advanced source editor on demand', async () => {
     render(<EditView {...props} />);
     expect(screen.queryByLabelText('Add source note')).toBeNull();
@@ -134,11 +125,6 @@ describe('EditView', () => {
     expect(chevron).not.toHaveClass('rotate-180');
     await userEvent.click(toggle);
     expect(chevron).toHaveClass('rotate-180');
-  });
-
-  it('enables Save as preset when only source edits exist', () => {
-    render(<EditView {...props} editor={{ ...editor, edits: {}, srcEdits: { 60: 'china.1.hit' } }} />);
-    expect(screen.getByRole('button', { name: 'Save as preset' })).toBeEnabled();
   });
 
   it('saves a new preset with the prefilled pair name', async () => {

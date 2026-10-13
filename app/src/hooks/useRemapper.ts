@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { Channel } from '../lib/channel';
-import { canonCatalog, type Engine } from '../lib/midiremap';
-import type { Missing } from '../lib/missing';
+import { canonCatalog, type Engine, type MissingDrums } from '../lib/midiremap';
 import type { OctaveBase } from '../lib/notes';
 import { editsToOverrides, knownEdits, type Edits, type SrcEdits } from '../lib/overrides';
 import { preselection } from '../lib/preselect';
@@ -20,7 +19,7 @@ interface Selection {
   tgt: string;
   oct: OctaveBase;
   channel: Channel;
-  missing: Missing;
+  missing: MissingDrums;
   view: View;
   presetId: string | null;
 }
@@ -100,7 +99,7 @@ export function useRemapper() {
   const { edits, srcEdits, canonOptions, load: loadEditor, onSelection: editorSees } = editor;
   const overrides = useMemo(() => editsToOverrides(edits, srcEdits), [edits, srcEdits]);
   const keyFor = useCallback(
-    (m: Missing) => JSON.stringify({ src, tgt, channel, missing: m, overrides }),
+    (m: MissingDrums) => JSON.stringify({ src, tgt, channel, missing: m, overrides }),
     [src, tgt, channel, overrides],
   );
   const settingsKey = useMemo(() => keyFor(missing), [keyFor, missing]);
@@ -120,7 +119,7 @@ export function useRemapper() {
   const chooseTgt = useCallback((id: string) => emit({ type: 'chooseTgt', id }), [emit]);
   const swap = useCallback(() => emit({ type: 'swap' }), [emit]);
   const setChannel = useCallback((c: Channel) => emit({ type: 'setChannel', channel: c }), [emit]);
-  const setMissing = useCallback((m: Missing) => emit({ type: 'setMissing', missing: m }), [emit]);
+  const setMissing = useCallback((m: MissingDrums) => emit({ type: 'setMissing', missing: m }), [emit]);
   const setOct = useCallback((o: OctaveBase) => dispatch({ type: 'SET_OCT', oct: o }), []);
   const setView = useCallback((v: View) => dispatch({ type: 'SET_VIEW', view: v }), []);
   const setPreset = useCallback(
@@ -175,7 +174,7 @@ export function useRemapper() {
   );
 
   const run = useCallback(
-    async (m: Missing) => {
+    async (m: MissingDrums) => {
       await runConvert(overrides, channel, m, keyFor(m));
     },
     [runConvert, overrides, channel, keyFor],
@@ -219,3 +218,5 @@ export function useRemapper() {
     setPreset,
   };
 }
+
+export type Remapper = ReturnType<typeof useRemapper>;

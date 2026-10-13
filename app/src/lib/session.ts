@@ -1,6 +1,7 @@
 import { CHANNELS, type Channel } from './channel';
 import { parseEdits, parseSrcEdits } from './mappings';
-import { MISSING_KEY, type Missing } from './missing';
+import type { MissingDrums } from './midiremap';
+import { MISSING_KEY } from './missing';
 import type { OctaveBase } from './notes';
 import { readStored } from './storage';
 import type { Edits, SrcEdits } from './overrides';
@@ -14,7 +15,7 @@ export interface Session {
   tgt: string;
   oct: OctaveBase;
   channel: Channel;
-  missing: Missing;
+  missing: MissingDrums;
   presetId: string | null;
   edits: Edits;
   srcEdits: SrcEdits;

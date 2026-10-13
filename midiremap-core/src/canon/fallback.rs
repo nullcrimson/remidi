@@ -65,7 +65,12 @@ fn ride_order(a: RideArtic) -> &'static [RideArtic] {
 fn open_level(o: HatOpen) -> u8 {
     match o {
         HatOpen::Open(n) => n.get(),
-        _ => 0,
+        HatOpen::Tight
+        | HatOpen::Closed
+        | HatOpen::Loose
+        | HatOpen::Cc
+        | HatOpen::Pedal
+        | HatOpen::PedalSplash => 0,
     }
 }
 
@@ -111,7 +116,6 @@ fn hat_order(o: HatOpen, z: HatZone) -> Vec<(HatOpen, HatZone)> {
     own.chain(others).collect()
 }
 
-/// The other strokes of the same drum that may stand in for this one, nearest first.
 fn variants(c: Canon) -> Vec<Canon> {
     match c {
         Canon::Kick(k) => kick_order(k).iter().map(|&b| Canon::Kick(b)).collect(),
@@ -133,18 +137,14 @@ fn variants(c: Canon) -> Vec<Canon> {
 
 fn tom_rank(p: TomPos) -> u8 {
     match p {
-        TomPos::Rack(n) => n.get() - 1,
-        TomPos::Floor(n) => RackIdx::MAX + n.get() - 1,
+        TomPos::Rack(n) => n.offset(),
+        TomPos::Floor(n) => RackIdx::MAX + n.offset(),
     }
 }
 
 fn tom_neighbors(p: TomPos) -> Vec<TomPos> {
-    let r = i16::from(tom_rank(p));
     let mut others: Vec<TomPos> = tom_positions().filter(|&q| q != p).collect();
-    others.sort_by_key(|&q| {
-        let d = (i16::from(tom_rank(q)) - r).abs();
-        (d, tom_rank(q))
-    });
+    others.sort_by_key(|&q| (tom_rank(q).abs_diff(tom_rank(p)), tom_rank(q)));
     others
 }
 
@@ -156,8 +156,6 @@ fn cymbals_like(slot: CymSlot) -> Vec<CymSlot> {
     others
 }
 
-/// The slots on other drums that stand in next, nearest first, played the same way where
-/// they can be; only Nearest uses them.
 fn neighbours(c: Canon) -> Vec<Canon> {
     let crash = |a| Canon::Cymbal(CymSlot::Crash(Idx::FIRST), a);
     match c {

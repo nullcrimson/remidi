@@ -14,10 +14,7 @@ vi.mock('../src/lib/midiremap', () => ({
   remap: (...a: unknown[]) => remapMock(...a),
 }));
 
-vi.mock('../src/lib/download', () => ({ saveFile: vi.fn() }));
-
 import { useRemapper } from '../src/hooks/useRemapper';
-import { saveFile } from '../src/lib/download';
 
 const ROWS = [
   { canon: 'KickMain', label: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
@@ -28,7 +25,6 @@ describe('useRemapper convert path', () => {
   beforeEach(() => {
     planMock.mockReset().mockReturnValue(ROWS);
     readyMock.mockReset().mockImplementation(() => Promise.resolve());
-    vi.mocked(saveFile).mockClear();
     remapMock.mockReset().mockReturnValue({
       bytes: new Uint8Array([1, 2, 3]),
       report: { unmappedSource: {}, fallbackUsed: {}, dropped: {} },
@@ -258,56 +254,5 @@ describe('useRemapper convert path', () => {
     const { result } = renderHook(() => useRemapper());
     await waitFor(() => expect(result.current.status).toBe('ready'));
     expect(result.current.engines.map((e) => e.name)).toEqual(['EZdrummer', 'GGD Invasion']);
-  });
-
-  it('leaves even a single converted file for the download button', async () => {
-    const { result } = renderHook(() => useRemapper());
-    await waitFor(() => expect(result.current.status).toBe('ready'));
-    act(() => result.current.chooseSrc('ggd_invasion'));
-    act(() => result.current.chooseTgt('ezdrummer'));
-    act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
-    await act(() => result.current.convert());
-    expect(result.current.conv.kind).toBe('done');
-    expect(saveFile).not.toHaveBeenCalled();
-  });
-
-  it('leaves a batch for the zip download', async () => {
-    const { result } = renderHook(() => useRemapper());
-    await waitFor(() => expect(result.current.status).toBe('ready'));
-    act(() => result.current.chooseSrc('ggd_invasion'));
-    act(() => result.current.chooseTgt('ezdrummer'));
-    act(() =>
-      result.current.addFiles([
-        { bytes: new Uint8Array([9]), name: 'a.mid' },
-        { bytes: new Uint8Array([9]), name: 'b.mid' },
-      ]),
-    );
-    await act(() => result.current.convert());
-    expect(result.current.conv.kind).toBe('done');
-    expect(saveFile).not.toHaveBeenCalled();
-  });
-
-  it('does not save a result that was superseded', async () => {
-    let release: () => void = () => {};
-    readyMock.mockImplementation(() => Promise.resolve());
-    const { result } = renderHook(() => useRemapper());
-    await waitFor(() => expect(result.current.status).toBe('ready'));
-    act(() => result.current.chooseSrc('ggd_invasion'));
-    act(() => result.current.chooseTgt('ezdrummer'));
-    act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
-    readyMock.mockImplementation(
-      () =>
-        new Promise<void>((r) => {
-          release = r;
-        }),
-    );
-    let pending: Promise<void> | undefined;
-    act(() => {
-      pending = result.current.convert();
-    });
-    act(() => result.current.clearFiles());
-    release();
-    await act(() => pending);
-    expect(saveFile).not.toHaveBeenCalled();
   });
 });

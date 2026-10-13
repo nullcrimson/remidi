@@ -1,7 +1,7 @@
 import { useId, type ReactElement, type ReactNode } from 'react';
 import { Tooltip, TooltipBody } from './Tooltip';
 
-export interface SettingIds {
+interface SettingIds {
   labelledBy: string;
   describedBy: string;
 }

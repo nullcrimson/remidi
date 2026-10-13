@@ -1,6 +1,6 @@
 import { useT } from '../localeContext';
 import { groupByFamily } from '../lib/families';
-import type { CanonInfo } from '../lib/midiremap';
+import type { VocabularyDrum } from '../lib/midiremap';
 import { IconButton } from './IconButton';
 import { ListRow } from './ListRow';
 import { MonoLabel } from './MonoLabel';
@@ -16,7 +16,7 @@ export function CanonPicker({
 }: {
   noteLabel: string;
   current: string | null;
-  options: CanonInfo[];
+  options: VocabularyDrum[];
   families: readonly string[];
   onPick: (canon: string) => void;
   onClose: () => void;

@@ -1,5 +1,5 @@
-export type ChipState = 'on' | 'changed' | 'off';
-export type ChipSize = 'sm' | 'md';
+type ChipState = 'on' | 'changed' | 'off';
+type ChipSize = 'sm' | 'md';
 
 const CHIP_BASE = 'tap rounded-chip border font-mono font-semibold transition-colors';
 

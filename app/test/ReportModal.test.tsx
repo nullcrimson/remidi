@@ -126,10 +126,15 @@ describe('ReportModal', () => {
     expect(screen.queryByText(/left as they were/)).not.toBeInTheDocument();
   });
 
-  it('renders per-file sections only for multi-file batches', () => {
+  it('lists each file of a batch', () => {
     show(lossy);
     expect(screen.getByText('a.mid')).toBeInTheDocument();
     expect(screen.getByText('b.mid')).toBeInTheDocument();
+  });
+
+  it('has no per-file section for a single file', () => {
+    show({ ...lossy, files: [lossy.files[0]] });
+    expect(screen.queryByText('a.mid')).not.toBeInTheDocument();
   });
 
   it('colours approximated notes gold and explains each group', () => {
@@ -144,13 +149,18 @@ describe('ReportModal', () => {
     );
   });
 
-  it('links each fixable entry to its fix and closes', async () => {
+  it('sends a dropped drum to its target picker and closes', async () => {
     const h = show(lossy);
     await userEvent.click(screen.getAllByRole('button', { name: 'Pick a target →' })[0]);
     expect(h.onPickTarget).toHaveBeenCalledWith('china.1.hit');
+    expect(h.onClose).toHaveBeenCalledOnce();
+  });
+
+  it('sends an unrecognized note to its source assignment and closes', async () => {
+    const h = show(lossy);
     await userEvent.click(screen.getAllByRole('button', { name: 'Assign →' })[0]);
     expect(h.onAssignSource).toHaveBeenCalledWith(51);
-    expect(screen.queryByRole('button', { name: 'Drum channel →' })).not.toBeInTheDocument();
+    expect(h.onClose).toHaveBeenCalledOnce();
   });
 
   it('points unchanged notes at the drum channel setting', async () => {

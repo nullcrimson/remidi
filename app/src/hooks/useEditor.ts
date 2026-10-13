@@ -1,8 +1,7 @@
 import { useCallback, useMemo, useReducer } from 'react';
 import { EDITOR_START, editorReducer } from '../lib/editorState';
 import { toAppError, type AppError } from '../lib/errors';
-import { plan as computePlan, type VoiceRow } from '../lib/midiremap';
-import type { Missing } from '../lib/missing';
+import { plan as computePlan, type MissingDrums, type VoiceRow } from '../lib/midiremap';
 import { noteInOctave, octaveIndexOf } from '../lib/notes';
 import { editsToOverrides, type Edits, type SrcEdits } from '../lib/overrides';
 import type { SelectionEvent } from '../lib/selection';
@@ -18,7 +17,7 @@ export function useEditor(
   status: CatalogStatus,
   src: string,
   tgt: string,
-  missing: Missing,
+  missing: MissingDrums,
   initial?: { edits: Edits; srcEdits: SrcEdits },
 ) {
   const [{ edits, srcEdits, pick, notice }, dispatch] = useReducer(editorReducer, initial, (start) =>
@@ -108,10 +107,6 @@ export function useEditor(
         .length,
     [rows],
   );
-  const droppedCount = useMemo(
-    () => rows.filter((r) => r.outcome.status === 'dropped' && r.srcNotes.length > 0).length,
-    [rows],
-  );
   const defaultCanon = useMemo(
     () => new Map(sourceNotes.map((n) => [n.note, n.canon])),
     [sourceNotes],
@@ -146,7 +141,6 @@ export function useEditor(
     rows,
     planError,
     remappedCount,
-    droppedCount,
     targetDrums,
     sourceNotes,
     canonOptions,

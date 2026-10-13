@@ -4,10 +4,6 @@ import { addFiles, DRUMS, expect, midFile, openPair, test } from './fixtures';
 const MIN = 44;
 const BLACK_KEY_MIN = 24;
 
-/**
- * Visible controls smaller than a fingertip, counting a `tap` ::after hit area. Black piano
- * keys only need the WCAG AA 24 px: they cannot grow without covering the white keys.
- */
 function smallTargets(page: Page) {
   return page.evaluate(([min, blackKeyMin]) => {
     const controls = document.querySelectorAll<HTMLElement>(

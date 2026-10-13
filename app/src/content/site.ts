@@ -3,11 +3,11 @@ import { LOCALES, SECTION_KEYS, SECTION_MESSAGES, SECTION_SLUGS, TRANSLATED_SECT
 import type { Translator } from '../i18n';
 
 export type Inline = string | { text: string; href: string };
-export interface Step {
+interface Step {
   title: string;
   body: string;
 }
-export interface Qa {
+interface Qa {
   q: string;
   a: string;
 }
@@ -51,8 +51,4 @@ export function localHref(path: string, locale: Locale): string {
 export function targetLabel(target: NavTarget): Message {
   if ('route' in target) return { id: target.route === 'converter' ? 'nav-converter' : 'nav-note-maps' };
   return { id: SECTION_MESSAGES[target.section].label };
-}
-
-export function plainText(inline: Inline[]): string {
-  return inline.map((i) => (typeof i === 'string' ? i : i.text)).join('');
 }

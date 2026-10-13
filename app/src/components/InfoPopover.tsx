@@ -21,7 +21,7 @@ import {
 export function InfoPopover({ label, children }: { label: ReactNode; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
-  const { refs, floatingStyles, context } = useFloating({
+  const { refs: { setReference, setFloating }, floatingStyles, context } = useFloating({
     open,
     onOpenChange: (next, _event, reason) => {
       if (reason === 'click' && !next && !pinned) {
@@ -47,7 +47,7 @@ export function InfoPopover({ label, children }: { label: ReactNode; children: R
   return (
     <>
       <button
-        ref={refs.setReference}
+        ref={setReference}
         type="button"
         {...getReferenceProps()}
         className="
@@ -61,8 +61,7 @@ export function InfoPopover({ label, children }: { label: ReactNode; children: R
       </button>
       {open && (
         <div
-          // eslint-disable-next-line react-hooks/refs -- Floating UI setFloating is a callback-ref setter, not a during-render ref read
-          ref={refs.setFloating}
+          ref={setFloating}
           style={floatingStyles}
           {...getFloatingProps()}
           className="

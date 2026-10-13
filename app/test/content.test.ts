@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import indexHtml from '../index.html?raw';
-import { CONTACT_EMAIL, href, ISSUES_URL, localHref, plainText, sectionBlocks } from '../src/content/site';
+import { CONTACT_EMAIL, href, ISSUES_URL, localHref, sectionBlocks } from '../src/content/site';
 import { FOOTER, NAV, SECTION_KEYS } from '../src/generated/i18n';
 import { ENGLISH } from '../src/i18n';
 
@@ -17,10 +17,6 @@ describe('site content', () => {
       .map((m) => m.slice(8, -1));
     expect(internal.length).toBeGreaterThan(0);
     for (const h of internal) expect(known).toContain(h);
-  });
-
-  it('flattens inline links to their text', () => {
-    expect(plainText(['See ', { text: 'maps', href: '/engines/' }, '.'])).toBe('See maps.');
   });
 
   it('leaves the home page head and no-script text to the site generator', () => {

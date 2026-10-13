@@ -99,22 +99,22 @@ describe('sortByRecent', () => {
 describe('readStore', () => {
   const bad = { id: 'b', name: 'broken' };
 
-  it('reads the legacy bare array as version 0 and keeps invalid entries aside', () => {
-    expect(readStore(JSON.stringify([sample, bad]))).toEqual({ version: 0, items: [sample], invalid: [bad] });
+  it('reads the legacy bare array and keeps invalid entries aside', () => {
+    expect(readStore(JSON.stringify([sample, bad]))).toEqual({ items: [sample], invalid: [bad] });
   });
 
   it('reads the versioned envelope', () => {
-    expect(readStore(serializeMappings([sample]))).toEqual({ version: 1, items: [sample], invalid: [] });
+    expect(readStore(serializeMappings([sample]))).toEqual({ items: [sample], invalid: [] });
     expect(JSON.parse(serializeMappings([sample]))).toEqual({ version: 1, items: [sample] });
   });
 
   it('keeps data it cannot read, whole, instead of dropping it', () => {
     const future = JSON.stringify({ version: 2, items: [sample] });
-    expect(readStore(future)).toEqual({ version: null, items: [], invalid: [JSON.parse(future)] });
-    expect(readStore('{')).toEqual({ version: null, items: [], invalid: ['{'] });
+    expect(readStore(future)).toEqual({ items: [], invalid: [JSON.parse(future)] });
+    expect(readStore('{')).toEqual({ items: [], invalid: ['{'] });
   });
 
   it('has nothing to read when empty', () => {
-    expect(readStore(null)).toEqual({ version: null, items: [], invalid: [] });
+    expect(readStore(null)).toEqual({ items: [], invalid: [] });
   });
 });

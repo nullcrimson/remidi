@@ -88,14 +88,14 @@ pub fn localize_shell(index_html: &str, locale: Locale, m: &Messages) -> Result<
         load_failed_reload: get(Plain::LoadFailedReload),
     }
     .render()?;
-    let missing = |what| SiteError::MissingMarker(what);
-    let html = replace_region(index_html, HEAD, &head).ok_or_else(|| missing(HEAD.0))?;
-    let html = replace_region(&html, NOSCRIPT, &noscript).ok_or_else(|| missing(NOSCRIPT.0))?;
+    let html = replace_region(index_html, HEAD, &head).ok_or(SiteError::MissingMarker(HEAD.0))?;
+    let html =
+        replace_region(&html, NOSCRIPT, &noscript).ok_or(SiteError::MissingMarker(NOSCRIPT.0))?;
     let title = AppTitle {
         title: get(Plain::ConverterTitle),
     }
     .render()?;
-    let html = replace_region(&html, TITLE, &title).ok_or_else(|| missing(TITLE.0))?;
+    let html = replace_region(&html, TITLE, &title).ok_or(SiteError::MissingMarker(TITLE.0))?;
     Ok(html.replacen(
         r#"<html lang="en">"#,
         &format!(r#"<html lang="{}">"#, locale.lang_tag()),

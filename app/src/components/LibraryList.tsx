@@ -2,21 +2,13 @@ import { useT } from '../localeContext';
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import type { FocusRef } from '../hooks/useFocusIntent';
 import type { Engine } from '../lib/midiremap';
-import { revealScrollTop } from '../lib/reveal';
+import { reveal } from '../lib/reveal';
 import { useFilter } from '../hooks/useFilter';
 import { useTruncationTooltip } from '../hooks/useTruncationTooltip';
 import { FilterInput } from './FilterInput';
 import { MonoLabel } from './MonoLabel';
 
 const PAGE = 8;
-
-function reveal(list: HTMLElement, row: HTMLElement) {
-  const next = revealScrollTop(
-    { top: row.offsetTop, height: row.offsetHeight },
-    { scrollTop: list.scrollTop, height: list.clientHeight },
-  );
-  if (next !== null) list.scrollTop = next;
-}
 
 export function LibraryList({
   label,

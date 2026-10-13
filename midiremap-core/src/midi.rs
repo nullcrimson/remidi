@@ -2,9 +2,7 @@ use std::error::Error;
 
 use midly::{MidiMessage, Smf};
 
-/// Where the timing division starts in an `MThd` chunk's data, after format and track count.
 const MTHD_DIVISION: usize = 4;
-/// The SMPTE frame-rate byte midly cannot read.
 const SMPTE_MINUS_128: u8 = 0x80;
 
 #[derive(thiserror::Error, Debug)]
@@ -26,9 +24,6 @@ pub(crate) fn parse(bytes: &[u8]) -> Result<Smf<'_>, CodecError> {
     Smf::parse(bytes).map_err(|e| CodecError::Parse(Box::new(e)))
 }
 
-/// Whether any header chunk has SMPTE rate byte `0x80`, which midly 0.5.3 negates with an
-/// overflow (a panic when overflow checks are on) wherever it reads a header. No real
-/// frame rate uses it.
 fn has_smpte_rate_minus_128(bytes: &[u8]) -> bool {
     smf_body(bytes).is_some_and(|smf| {
         chunks(smf, Chunking::Smf)
@@ -36,8 +31,6 @@ fn has_smpte_rate_minus_128(bytes: &[u8]) -> bool {
     })
 }
 
-/// The SMF in `bytes`: the file itself, or an RMID file's first `data` chunk, found the
-/// way midly finds it.
 fn smf_body(bytes: &[u8]) -> Option<&[u8]> {
     if !bytes.starts_with(b"RIFF") {
         return Some(bytes);
@@ -53,8 +46,6 @@ enum Chunking {
     Riff,
 }
 
-/// `(id, data)` chunks as midly splits them: a short chunk runs to the end of the input,
-/// RIFF lengths are little-endian and odd ones padded.
 fn chunks(mut raw: &[u8], chunking: Chunking) -> impl Iterator<Item = (&[u8; 4], &[u8])> {
     std::iter::from_fn(move || {
         let (id, rest) = raw.split_first_chunk::<4>()?;

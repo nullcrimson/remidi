@@ -8,7 +8,7 @@ function baseOffset(base: OctaveBase): number {
   return base === 'c1' ? 1 : 2;
 }
 
-export function octaveOf(n: number, base: OctaveBase): number {
+function octaveOf(n: number, base: OctaveBase): number {
   return Math.floor(n / 12) - baseOffset(base);
 }
 

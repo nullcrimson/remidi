@@ -3,8 +3,7 @@ import type { Channel } from '../lib/channel';
 import { convertBatch } from '../lib/converter';
 import type { FailedFile } from '../lib/batch';
 import { toAppError, type AppError } from '../lib/errors';
-import type { Overrides } from '../lib/midiremap';
-import type { Missing } from '../lib/missing';
+import type { MissingDrums, Overrides } from '../lib/midiremap';
 import type { SelectionEvent } from '../lib/selection';
 import { MID_EXT, type FileResult, type LoadedFile } from '../lib/files';
 import { track } from '../lib/stats';
@@ -124,7 +123,7 @@ export function useConverter(src: string, tgt: string, settingsKey: string) {
     async (
       ov: Overrides,
       channel: Channel,
-      missing: Missing,
+      missing: MissingDrums,
       key: string,
     ): Promise<FileResult[] | null> => {
       if (files.length === 0 || !src || !tgt) return null;

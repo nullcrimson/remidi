@@ -21,7 +21,7 @@ export function Tooltip({
   children: ReactElement<Record<string, unknown>>;
 }) {
   const [open, setOpen] = useState(false);
-  const { refs, floatingStyles, context } = useFloating({
+  const { refs: { setReference, setFloating }, floatingStyles, context } = useFloating({
     open,
     onOpenChange: setOpen,
     placement: 'top',
@@ -39,14 +39,12 @@ export function Tooltip({
     <>
       {cloneElement(
         children,
-        // eslint-disable-next-line react-hooks/refs -- Floating UI setReference is a callback-ref setter, not a during-render ref read
-        getReferenceProps({ ref: refs.setReference, ...children.props }),
+        getReferenceProps({ ref: setReference, ...children.props }),
       )}
       {open && (
         <FloatingPortal>
           <div
-            // eslint-disable-next-line react-hooks/refs -- Floating UI setFloating is a callback-ref setter, not a during-render ref read
-            ref={refs.setFloating}
+            ref={setFloating}
             style={floatingStyles}
             {...getFloatingProps()}
             className="

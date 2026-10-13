@@ -56,7 +56,7 @@ export function SavedMappingChip({
     document.querySelector<HTMLElement>(`[data-more="${moreId}"]`)?.focus();
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-  const { refs, floatingStyles, context } = useFloating({
+  const { refs: { setReference, setFloating }, floatingStyles, context } = useFloating({
     open: menuOpen,
     onOpenChange: (open, _event, reason) => {
       setMenuOpen(open);
@@ -169,7 +169,7 @@ export function SavedMappingChip({
         ✎
       </button>
       <button
-        ref={refs.setReference}
+        ref={setReference}
         data-more={moreId}
         type="button"
         aria-label={t({ id: 'chip-more', args: { name: mapping.name } })}
@@ -187,8 +187,7 @@ export function SavedMappingChip({
         <FloatingPortal>
           <FloatingFocusManager context={context} modal={false} returnFocus={false}>
             <div
-              // eslint-disable-next-line react-hooks/refs -- Floating UI setFloating is a callback-ref setter, not a during-render ref read
-              ref={refs.setFloating}
+              ref={setFloating}
               style={floatingStyles}
               {...getFloatingProps()}
               className="

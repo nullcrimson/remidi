@@ -191,21 +191,15 @@ describe('LibraryList', () => {
   });
 
   it('scrolls the list to the selected engine when it is out of view', () => {
-    const props = ['offsetTop', 'offsetHeight', 'clientHeight'] as const;
+    const props = ['getBoundingClientRect', 'clientHeight'] as const;
     const saved = props.map((p) => Object.getOwnPropertyDescriptor(HTMLElement.prototype, p));
-    const layout: Record<(typeof props)[number], (el: HTMLElement) => number> = {
-      offsetTop: (el) => (el.getAttribute('aria-selected') === 'true' ? 600 : 0),
-      offsetHeight: () => 30,
-      clientHeight: () => 240,
-    };
-    for (const p of props) {
-      Object.defineProperty(HTMLElement.prototype, p, {
-        configurable: true,
-        get(this: HTMLElement) {
-          return layout[p](this);
-        },
-      });
-    }
+    Object.defineProperty(HTMLElement.prototype, 'getBoundingClientRect', {
+      configurable: true,
+      value(this: HTMLElement) {
+        return new DOMRect(0, this.getAttribute('aria-selected') === 'true' ? 600 : 0, 200, 30);
+      },
+    });
+    Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => 240 });
     try {
       const { rerender } = render(
         <LibraryList label="FROM" value="" engines={engines} onChange={() => {}} {...noFav} />,
@@ -218,6 +212,7 @@ describe('LibraryList', () => {
       props.forEach((p, i) => {
         const d = saved[i];
         if (d) Object.defineProperty(HTMLElement.prototype, p, d);
+        else Reflect.deleteProperty(HTMLElement.prototype, p);
       });
     }
   });

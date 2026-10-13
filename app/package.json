@@ -15,7 +15,7 @@
     "build:site": "npm run build && cargo run --manifest-path ../Cargo.toml -p midiremap-site --locked -- dist",
     "preview": "vite preview",
     "prelint": "npm run gen:i18n",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "pretest": "npm run gen:i18n",
     "test": "vitest run",
     "pretypecheck": "npm run gen:i18n",

@@ -13,10 +13,7 @@ vi.mock('../src/lib/midiremap', () => ({
   remap: (...a: unknown[]) => remapMock(...a),
 }));
 
-vi.mock('../src/lib/download', () => ({ saveFile: vi.fn() }));
-
 import { useRemapper } from '../src/hooks/useRemapper';
-import { saveFile } from '../src/lib/download';
 import { MISSING_KEY } from '../src/lib/missing';
 import { loadSession } from '../src/lib/session';
 
@@ -36,7 +33,6 @@ describe('useRemapper missing drums', () => {
     localStorage.clear();
     planMock.mockReset().mockReturnValue([]);
     remapMock.mockReset().mockReturnValue({ bytes: new Uint8Array([1]), report: REPORT });
-    vi.mocked(saveFile).mockClear();
   });
 
   it('starts on nearest and plans with it', async () => {
@@ -77,6 +73,5 @@ describe('useRemapper missing drums', () => {
     expect(result.current.missing).toBe('drop');
     expect(remapMock.mock.lastCall?.[5]).toBe('drop');
     expect(result.current.conv.kind).toBe('done');
-    expect(saveFile).not.toHaveBeenCalled();
   });
 });

@@ -7,7 +7,7 @@ import { TextButton } from './TextButton';
 import type { ReportEntry, ReportFile, ReportGroups, ReportView } from '../lib/report';
 import { ContactFooter } from './ContactFooter';
 
-export interface ReportFixes {
+interface ReportFixes {
   onPickTarget: (canon: string) => void;
   onAssignSource: (note: number) => void;
   onChannel: () => void;

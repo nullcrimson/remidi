@@ -1,13 +1,12 @@
 import type { Channel } from './channel';
 import { toAppError, type AppError } from './errors';
 import type { LoadedFile } from './files';
-import type { Overrides, RemapReport, RemapResult } from './midiremap';
-import type { Missing } from './missing';
+import type { MissingDrums, Overrides, RemapOutput, Report } from './midiremap';
 
-export interface ConvertedFile {
+interface ConvertedFile {
   name: string;
   bytes: Uint8Array<ArrayBuffer>;
-  report: RemapReport;
+  report: Report;
 }
 
 export interface FailedFile {
@@ -20,14 +19,14 @@ export interface BatchResult {
   failed: FailedFile[];
 }
 
-export type Remap = (
+type Remap = (
   mid: Uint8Array,
   src: string,
   tgt: string,
   ov?: Overrides,
   channel?: Channel,
-  missing?: Missing,
-) => RemapResult;
+  missing?: MissingDrums,
+) => RemapOutput;
 
 /** Converts every file independently; one bad file never stops the batch. */
 export function runBatch(
@@ -36,7 +35,7 @@ export function runBatch(
   tgt: string,
   ov: Overrides | undefined,
   channel: Channel,
-  missing: Missing,
+  missing: MissingDrums,
   remap: Remap,
 ): BatchResult {
   const ok: ConvertedFile[] = [];

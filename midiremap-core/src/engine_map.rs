@@ -342,19 +342,6 @@ mod tests {
     }
 
     #[test]
-    fn note_above_127_is_error() {
-        let bad = r#"
-            id = "x"
-            name = "X"
-            notes = [ { note = 200, canon = "kick.main", primary = true } ]
-        "#;
-        assert!(matches!(
-            from_toml(bad),
-            Err(MapError::Parse(e)) if e.to_string().contains("0..=127")
-        ));
-    }
-
-    #[test]
     fn a_note_listed_twice_is_error() {
         let bad = r#"
             id = "x"

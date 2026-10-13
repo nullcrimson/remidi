@@ -66,7 +66,6 @@ fn write(path: PathBuf, contents: &str) -> Result<(), SiteError> {
     fs::write(&path, contents).map_err(io)
 }
 
-/// The app's own stylesheet, as the Vite build links it from `index.html`.
 fn stylesheet_href(index_html: &str) -> Option<&str> {
     index_html
         .split("<link")
@@ -77,7 +76,6 @@ fn stylesheet_href(index_html: &str) -> Option<&str> {
         .find(|href| href.starts_with('/') && href.ends_with(".css"))
 }
 
-/// The built `index.html`'s content security policy, as HTML-escaped attribute text.
 fn content_security_policy(index_html: &str) -> Option<&str> {
     index_html
         .split("<meta")
@@ -87,7 +85,6 @@ fn content_security_policy(index_html: &str) -> Option<&str> {
         .find_map(|tag| tag.split(r#"content=""#).nth(1)?.split('"').next())
 }
 
-/// The built `index.html`'s first `<script>` element whose opening tag has `attribute`.
 fn script_with<'a>(index_html: &'a str, attribute: &str) -> Option<&'a str> {
     index_html.match_indices("<script").find_map(|(at, _)| {
         let rest = &index_html[at..];
@@ -113,8 +110,8 @@ fn app_shell<'a>(index_html: &'a str, path: &Path) -> Result<Shell<'a>, SiteErro
     })
 }
 
-fn run(args: Args) -> Result<usize, SiteError> {
-    let index = args.out_dir.join("index.html");
+fn run(out_dir: &Path) -> Result<usize, SiteError> {
+    let index = out_dir.join("index.html");
     let html = fs::read_to_string(&index).map_err(|source| SiteError::Io {
         path: index.clone(),
         source,
@@ -126,28 +123,24 @@ fn run(args: Args) -> Result<usize, SiteError> {
     let pages = render::render_site(&site, &shell, &messages, &docs)?;
     let written = pages.len();
     for (rel, page) in pages {
-        write(args.out_dir.join(rel), &page)?;
+        write(out_dir.join(rel), &page)?;
     }
     for &l in Locale::ALL {
         write(
-            args.out_dir.join(page_file(&home(l))),
+            out_dir.join(page_file(&home(l))),
             &shell::localize_shell(&html, l, &messages)?,
         )?;
     }
-    write(args.out_dir.join("filter.js"), FILTER_JS)?;
-    write(args.out_dir.join("locale.js"), LOCALE_JS)?;
-    write(
-        args.out_dir.join("sitemap.xml"),
-        &sitemap::sitemap(&site, &docs),
-    )?;
-    write(args.out_dir.join("robots.txt"), &sitemap::robots())?;
+    write(out_dir.join("filter.js"), FILTER_JS)?;
+    write(out_dir.join("locale.js"), LOCALE_JS)?;
+    write(out_dir.join("sitemap.xml"), &sitemap::sitemap(&site, &docs))?;
+    write(out_dir.join("robots.txt"), &sitemap::robots())?;
     Ok(written)
 }
 
 fn main() -> ExitCode {
-    let args = Args::parse();
-    let out_dir = args.out_dir.clone();
-    match run(args) {
+    let Args { out_dir } = Args::parse();
+    match run(&out_dir) {
         Ok(pages) => {
             println!(
                 "wrote {pages} static pages and {} converter pages in {} languages, sitemap and robots.txt to {}",

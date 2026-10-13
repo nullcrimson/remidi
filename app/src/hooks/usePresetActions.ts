@@ -1,6 +1,7 @@
 import type { SavedMapping } from '../lib/mappings';
 import type { Edits, SrcEdits } from '../lib/overrides';
 import type { NoticeLine } from '../lib/notice';
+import { uniqueName } from '../lib/presetFile';
 import { skippedNotice } from '../lib/presetImport';
 import type { SavedMappings } from './useSavedMappings';
 import { track } from '../lib/stats';
@@ -40,7 +41,13 @@ export function usePresetActions(
     },
     update: (id: string, name: string) => saved.update(id, { name, edits, srcEdits }),
     duplicate: (m: SavedMapping) =>
-      saved.save({ name: `${m.name} copy`, src: m.src, tgt: m.tgt, edits: m.edits, srcEdits: m.srcEdits }),
+      saved.save({
+        name: uniqueName(m.name, saved.mappings.map((other) => other.name)),
+        src: m.src,
+        tgt: m.tgt,
+        edits: m.edits,
+        srcEdits: m.srcEdits,
+      }),
     load,
     edit: (m: SavedMapping) => {
       load(m);

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { Drum } from '../lib/midiremap';
 import { noteName, type OctaveBase } from '../lib/notes';
+import { reveal } from '../lib/reveal';
 import { useTruncationTooltip } from '../hooks/useTruncationTooltip';
 import { groupByFamily } from '../lib/families';
 import { ListRow } from './ListRow';
@@ -24,11 +25,9 @@ export function DrumList({
   const groups = groupByFamily(drums, (d) => d.family, families);
 
   useEffect(() => {
-    const c = scrollRef.current;
-    const el = c?.querySelector<HTMLElement>('button[aria-pressed="true"]');
-    if (!c || !el) return;
-    c.scrollTop += el.getBoundingClientRect().top - c.getBoundingClientRect().top
-      - (c.clientHeight - el.clientHeight) / 2;
+    const list = scrollRef.current;
+    const row = list?.querySelector<HTMLElement>('button[aria-pressed="true"]');
+    if (list && row) reveal(list, row);
   }, []);
 
   return (

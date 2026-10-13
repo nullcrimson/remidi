@@ -26,7 +26,7 @@ export interface EditorState {
   notice: Notice | null;
 }
 
-export type EditorAction
+type EditorAction
   = | SelectionEvent
     | {
       type: 'OPEN_PICK';

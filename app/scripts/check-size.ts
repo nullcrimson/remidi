@@ -16,7 +16,7 @@ export const BUDGETS = {
   locale: 12_000,
 } as const;
 
-export type Kind = keyof typeof BUDGETS;
+type Kind = keyof typeof BUDGETS;
 
 export function kindOf(name: string): Kind | undefined {
   if (name.endsWith('.wasm')) return 'wasm';
@@ -38,10 +38,10 @@ export function totals(assets: { name: string; bytes: Uint8Array }[]): Record<Ki
   return sum;
 }
 
-export function overBudget(sizes: Record<Kind, number>, budgets: Record<Kind, number> = BUDGETS): string[] {
-  return (Object.keys(budgets) as Kind[])
-    .filter((kind) => sizes[kind] > budgets[kind])
-    .map((kind) => `${kind}: ${sizes[kind]} B > budget ${budgets[kind]} B`);
+export function overBudget(sizes: Record<Kind, number>): string[] {
+  return (Object.keys(BUDGETS) as Kind[])
+    .filter((kind) => sizes[kind] > BUDGETS[kind])
+    .map((kind) => `${kind}: ${sizes[kind]} B > budget ${BUDGETS[kind]} B`);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

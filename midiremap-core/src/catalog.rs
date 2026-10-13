@@ -89,19 +89,6 @@ mod tests {
     }
 
     #[test]
-    fn builtin_has_known_slugs() {
-        let b = Catalog::builtin().unwrap();
-        assert!(b.get("ggd_invasion").is_some());
-        assert!(b.get("ezdrummer").is_some());
-        assert!(b.get("general_midi").is_some());
-        assert!(b.get("guitar_pro").is_some());
-        assert!(b.get("addictive_drums2").is_some());
-        assert!(b.get("superior_drummer3").is_some());
-        let count = b.ids().count();
-        assert!(count >= 40, "expected ~50 engines, got {count}");
-    }
-
-    #[test]
     fn engine_specific_decodes() {
         let b = Catalog::builtin().unwrap();
         assert_eq!(

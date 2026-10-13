@@ -3,13 +3,10 @@ import type { Drum, MissingDrums, VoiceRow } from './midiremap';
 import { noteName, type OctaveBase } from './notes';
 import { movesToOtherDrum } from './outcome';
 
-/** What a conversion does with a drum the target lacks, as the converter defines it. */
-export type Missing = MissingDrums;
-
 /** Where the choice was kept before it moved into the session; read once, then removed. */
 export const MISSING_KEY = 'midiremap:missing';
 
-export const MISSING_OPTIONS: { value: Missing; label: Message }[] = [
+export const MISSING_OPTIONS: { value: MissingDrums; label: Message }[] = [
   { value: 'nearest', label: { id: 'missing-nearest' } },
   { value: 'drop', label: { id: 'missing-drop' } },
 ];
@@ -48,7 +45,7 @@ export function swapList(rows: VoiceRow[], targetDrums: Drum[], oct: OctaveBase)
   return playedOn(swaps(rows), targetDrums, oct);
 }
 
-export function missingHint(missing: Missing, rows: VoiceRow[]): Message {
+export function missingHint(missing: MissingDrums, rows: VoiceRow[]): Message {
   if (rows.length === 0) return { id: missing === 'nearest' ? 'missing-hint-nearest' : 'missing-hint-drop' };
   if (missing === 'nearest') return { id: 'missing-hint-moved', args: { count: swaps(rows).length } };
   return { id: 'missing-hint-dropped', args: { count: swaps(rows).filter((r) => r.outcome.status === 'dropped').length } };

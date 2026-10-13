@@ -37,7 +37,7 @@ npm run test     # Vitest; needs npm run build:wasm once (the contract test load
 npm run e2e      # Playwright against vite preview of dist; run npm run build:site first
 npm run size     # size budgets for dist/assets (wasm, JS, CSS gzipped; latin fonts; largest locale chunk)
 ../scripts/gate.sh  # every check: Rust and app checks side by side, then build:site, size, e2e (logs in target/gate/)
-../scripts/gate.sh app   # one group (rust, app, site) or single checks (eslint, tsc, vitest, e2e, ...); CI runs the same script
+../scripts/gate.sh app   # one group (rust; app = eslint, tsc, vitest; dist = size, e2e) or single steps; CI runs the same groups
 ```
 
 `build:wasm` skips wasm-bindgen and wasm-opt when the compiled module, the tool versions and

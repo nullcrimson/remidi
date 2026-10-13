@@ -1,5 +1,6 @@
 import { useT } from '../localeContext';
-import { MISSING_OPTIONS, type Missing, type Swap } from '../lib/missing';
+import type { MissingDrums } from '../lib/midiremap';
+import { MISSING_OPTIONS, type Swap } from '../lib/missing';
 import { ChipRadioGroup } from './ChipRadioGroup';
 import { InfoPopover } from './InfoPopover';
 import { SettingRow } from './SettingRow';
@@ -12,11 +13,11 @@ export function MissingDrumsSetting({
   onOpenEditor,
   onChange,
 }: {
-  value: Missing;
+  value: MissingDrums;
   hint: string;
   swaps?: Swap[];
   onOpenEditor?: () => void;
-  onChange: (missing: Missing) => void;
+  onChange: (missing: MissingDrums) => void;
 }) {
   const t = useT();
   const detail = swaps.length > 0 && (

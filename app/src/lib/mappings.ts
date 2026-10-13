@@ -62,15 +62,12 @@ function parseOne(value: unknown): SavedMapping | null {
 export const QUARANTINE_KEY = 'midiremap:quarantine';
 const STORE_VERSION = 1;
 
-/** What storage holds: readable presets, and raw entries that could not be read. */
-export interface Store {
-  /** 0 for the legacy bare array, 1 for the envelope, null when absent or unreadable. */
-  version: 0 | 1 | null;
+interface Store {
   items: SavedMapping[];
   invalid: unknown[];
 }
 
-function split(entries: unknown[], version: 0 | 1): Store {
+function split(entries: unknown[]): Store {
   const items: SavedMapping[] = [];
   const invalid: unknown[] = [];
   for (const entry of entries) {
@@ -78,23 +75,23 @@ function split(entries: unknown[], version: 0 | 1): Store {
     if (m) items.push(m);
     else invalid.push(entry);
   }
-  return { version, items, invalid };
+  return { items, invalid };
 }
 
 export function readStore(raw: string | null): Store {
-  if (!raw) return { version: null, items: [], invalid: [] };
+  if (!raw) return { items: [], invalid: [] };
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return { version: null, items: [], invalid: [raw] };
+    return { items: [], invalid: [raw] };
   }
-  if (Array.isArray(parsed)) return split(parsed, 0);
+  if (Array.isArray(parsed)) return split(parsed);
   const envelope = parsed as { version?: unknown; items?: unknown };
   if (envelope?.version === STORE_VERSION && Array.isArray(envelope.items)) {
-    return split(envelope.items, 1);
+    return split(envelope.items);
   }
-  return { version: null, items: [], invalid: [parsed] };
+  return { items: [], invalid: [parsed] };
 }
 
 export function parseMappings(raw: string | null): SavedMapping[] {
@@ -106,8 +103,9 @@ export function serializeMappings(mappings: SavedMapping[]): string {
 }
 
 /** Keeps entries that could not be read, so no release ever deletes them. */
-export function quarantine(entries: unknown[], at = Date.now()): void {
+export function quarantine(entries: unknown[]): void {
   if (entries.length === 0) return;
+  const at = Date.now();
   let kept: unknown[] = [];
   try {
     const prev: unknown = JSON.parse(localStorage.getItem(QUARANTINE_KEY) ?? '[]');

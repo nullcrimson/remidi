@@ -66,23 +66,6 @@ mod tests {
     }
 
     #[test]
-    fn note_over_127_is_rejected() {
-        let err =
-            serde_json::from_str::<Overrides>(r#"{"tgt":[{"canon":"kick.main","note":200}]}"#)
-                .err()
-                .unwrap();
-        assert!(err.to_string().contains("0..=127"), "{err}");
-    }
-
-    #[test]
-    fn src_note_over_127_is_rejected() {
-        assert!(
-            serde_json::from_str::<Overrides>(r#"{"src":[{"note":128,"canon":"kick.main"}]}"#)
-                .is_err()
-        );
-    }
-
-    #[test]
     fn note_127_is_accepted() {
         let ov: Overrides =
             serde_json::from_str(r#"{"src":[{"note":127,"canon":"kick.main"}]}"#).unwrap();

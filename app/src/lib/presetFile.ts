@@ -1,7 +1,6 @@
 import { saveFile } from './download';
 import type { Edits, SrcEdits } from './overrides';
 
-/** The `format` tag and version the core's `parse_preset` reads. */
 const PRESET_FORMAT = 'drumverter-preset';
 const PRESET_VERSION = 1;
 

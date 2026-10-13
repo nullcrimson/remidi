@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { runBatch } from '../src/lib/batch';
 import { WasmCallError } from '../src/lib/errors';
-import type { RemapResult } from '../src/lib/midiremap';
+import type { RemapOutput } from '../src/lib/midiremap';
 
 const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 };
 
 describe('runBatch', () => {
   it('converts each file in order and collects failures by name', () => {
-    const remap = (mid: Uint8Array): RemapResult => {
+    const remap = (mid: Uint8Array): RemapOutput => {
       if (mid[0] === 0) throw new WasmCallError({ kind: 'badMidi', detail: 'bad midi' });
       return { bytes: new Uint8Array([mid[0] + 1]), report: REPORT };
     };

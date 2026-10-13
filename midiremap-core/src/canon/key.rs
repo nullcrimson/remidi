@@ -14,7 +14,12 @@ static BY_KEY: LazyLock<HashMap<String, Canon>> = LazyLock::new(|| {
 fn hat_open_key(o: HatOpen) -> String {
     match o {
         HatOpen::Open(n) => format!("{}{n}", key(o)),
-        _ => key(o).to_owned(),
+        HatOpen::Tight
+        | HatOpen::Closed
+        | HatOpen::Loose
+        | HatOpen::Cc
+        | HatOpen::Pedal
+        | HatOpen::PedalSplash => key(o).to_owned(),
     }
 }
 fn hat_zone_key(z: HatZone) -> Option<&'static str> {

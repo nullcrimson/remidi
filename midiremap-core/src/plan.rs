@@ -90,7 +90,6 @@ pub struct VoicePlan {
     pub outcome: PlanOutcome,
 }
 
-/// The order of a drum's source notes: overridden notes, then the primary, then the rest.
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 enum SrcNoteRank {
     Overridden,

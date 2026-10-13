@@ -20,6 +20,11 @@ impl<const MAX: u8> Idx<MAX> {
         self.0
     }
 
+    /// The position counted from zero.
+    pub const fn offset(self) -> u8 {
+        self.0 - 1
+    }
+
     /// Every position, ascending.
     pub fn all() -> impl Iterator<Item = Self> {
         (1..=MAX).map(Self)
@@ -41,5 +46,10 @@ mod tests {
         assert_eq!(Idx::<2>::new(0), None);
         assert_eq!(Idx::<2>::new(3), None);
         assert_eq!(Idx::<2>::all().map(Idx::get).collect::<Vec<_>>(), [1, 2]);
+    }
+
+    #[test]
+    fn offset_counts_from_zero() {
+        assert_eq!(Idx::<2>::all().map(Idx::offset).collect::<Vec<_>>(), [0, 1]);
     }
 }

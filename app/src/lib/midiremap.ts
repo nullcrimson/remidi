@@ -1,12 +1,12 @@
 import type {
-  CanonInfo,
   Drum,
-  EngineInfo,
+  Engine,
   Family,
   MissingDrums,
   Overrides,
   PresetView,
   RemapOutput,
+  VocabularyDrum,
   VoiceRow,
 } from '@wasm';
 import type { Channel } from './channel';
@@ -15,20 +15,18 @@ import { isWasmError, WasmCallError } from './errors';
 type WasmModule = typeof import('@wasm');
 
 export type {
-  CanonInfo,
   Drum,
-  EngineInfo as Engine,
+  Engine,
   Family,
-  FallbackTally,
-  PresetView as ImportedPreset,
   MissingDrums,
   OctaveBase,
   Overrides,
-  RemapOutput as RemapResult,
-  Report as RemapReport,
-  VoiceRow,
   PlanOutcome,
-  WasmError,
+  PresetView,
+  RemapOutput,
+  Report,
+  VocabularyDrum,
+  VoiceRow,
 } from '@wasm';
 
 function call<T>(f: (m: WasmModule) => T): T {
@@ -58,7 +56,7 @@ function mod(): WasmModule {
   return wasm;
 }
 
-export function engines(): EngineInfo[] {
+export function engines(): Engine[] {
   return call((m) => m.engine_catalog());
 }
 
@@ -70,7 +68,7 @@ export function engineNotes(srcId: string): Drum[] {
   return call((m) => m.engine_notes(srcId));
 }
 
-export function canonCatalog(): CanonInfo[] {
+export function canonCatalog(): VocabularyDrum[] {
   return call((m) => m.canon_catalog());
 }
 

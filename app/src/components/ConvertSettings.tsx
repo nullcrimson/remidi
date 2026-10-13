@@ -1,6 +1,7 @@
 import type { FocusRef } from '../hooks/useFocusIntent';
 import type { Channel } from '../lib/channel';
-import type { Missing, Swap } from '../lib/missing';
+import type { MissingDrums } from '../lib/midiremap';
+import type { Swap } from '../lib/missing';
 import type { OctaveBase } from '../lib/notes';
 import { ChannelSelect } from './ChannelSelect';
 import { MissingDrumsSetting } from './MissingDrumsSetting';
@@ -24,11 +25,11 @@ export function ConvertSettings({
   channel: Channel;
   onChannel: (channel: Channel) => void;
   channelRef: FocusRef;
-  missing: Missing;
+  missing: MissingDrums;
   missingHint: string;
   missingSwaps?: Swap[];
   onMissingDetail?: () => void;
-  onMissing: (missing: Missing) => void;
+  onMissing: (missing: MissingDrums) => void;
 }) {
   return (
     <div className="

@@ -1,7 +1,7 @@
 import type { useEditedSummary } from '../hooks/useEditedSummary';
 import type { Editor } from '../hooks/useEditor';
 import type { FocusRef } from '../hooks/useFocusIntent';
-import type { useRemapper } from '../hooks/useRemapper';
+import type { Remapper } from '../hooks/useRemapper';
 import type { EditFilter } from '../lib/editFilter';
 import { missingHint, swapList } from '../lib/missing';
 import { planBreakdown } from '../lib/planBreakdown';
@@ -12,7 +12,7 @@ import { SummaryRow, type EngineNames } from './SummaryRow';
 
 /** The conversion settings and, once both engines are picked, what the plan does to every drum. */
 export function PlanControls({
-  c,
+  remapper,
   editor,
   edited,
   names,
@@ -20,7 +20,7 @@ export function PlanControls({
   editRef,
   onOpenEditor,
 }: {
-  c: ReturnType<typeof useRemapper>;
+  remapper: Remapper;
   editor: Editor;
   edited: ReturnType<typeof useEditedSummary>;
   names: EngineNames;
@@ -29,20 +29,20 @@ export function PlanControls({
   onOpenEditor: (show?: EditFilter) => void;
 }) {
   const t = useT();
-  const bothSelected = c.src !== '' && c.tgt !== '';
+  const bothSelected = remapper.src !== '' && remapper.tgt !== '';
   return (
     <>
       <ConvertSettings
-        oct={c.oct}
-        onOct={c.setOct}
-        channel={c.channel}
-        onChannel={c.setChannel}
+        oct={remapper.oct}
+        onOct={remapper.setOct}
+        channel={remapper.channel}
+        onChannel={remapper.setChannel}
         channelRef={channelRef}
-        missing={c.missing}
-        missingHint={t(missingHint(c.missing, editor.rows))}
-        missingSwaps={swapList(editor.rows, editor.targetDrums, c.oct)}
+        missing={remapper.missing}
+        missingHint={t(missingHint(remapper.missing, editor.rows))}
+        missingSwaps={swapList(editor.rows, editor.targetDrums, remapper.oct)}
         onMissingDetail={() => onOpenEditor('issues')}
-        onMissing={c.setMissing}
+        onMissing={remapper.setMissing}
       />
 
       {bothSelected && editor.planError !== null && (
@@ -54,7 +54,7 @@ export function PlanControls({
           remapped={editor.remappedCount}
           total={editor.rows.length}
           onEdit={onOpenEditor}
-          breakdown={planBreakdown(editor.rows, editor.targetDrums, c.oct)}
+          breakdown={planBreakdown(editor.rows, editor.targetDrums, remapper.oct)}
           names={names}
           editRef={editRef}
           edited={edited.count > 0 ? { ...edited, onReview: () => onOpenEditor('changed') } : undefined}

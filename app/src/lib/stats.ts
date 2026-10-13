@@ -1,5 +1,4 @@
-/** The anonymous usage events the app counts; no file names or contents ever go with them. */
-export type StatEvent
+type StatEvent
   = | 'midi-added'
     | 'converted'
     | 'convert-failed'
@@ -9,7 +8,7 @@ export type StatEvent
     | 'preset-loaded'
     | 'preset-imported';
 
-export type StatProps = Record<string, string | number | boolean>;
+type StatProps = Record<string, string | number | boolean>;
 
 declare global {
   interface Window {

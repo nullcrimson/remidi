@@ -1,5 +1,5 @@
 import type { Channel } from './channel';
-import type { Missing } from './missing';
+import type { MissingDrums } from './midiremap';
 import type { Edits, SrcEdits } from './overrides';
 
 /**
@@ -21,7 +21,7 @@ export type SelectionEvent
       srcEdits: SrcEdits;
     }
     | { type: 'setChannel'; channel: Channel }
-    | { type: 'setMissing'; missing: Missing };
+    | { type: 'setMissing'; missing: MissingDrums };
 
 /** Whether the event picks another engine pair, so edits made for the old one no longer apply. */
 export function changesPair(event: SelectionEvent): boolean {

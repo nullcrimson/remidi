@@ -13,7 +13,7 @@ import { PlanErrorNotice } from './PlanErrorNotice';
 import { SourceEditor } from './SourceEditor';
 import { TextButton } from './TextButton';
 
-export interface EditViewProps {
+interface EditViewProps {
   editor: Editor;
   src: string;
   tgt: string;

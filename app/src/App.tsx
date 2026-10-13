@@ -41,8 +41,8 @@ function Intro() {
 export default function App() {
   const t = useT();
   useDropGuard();
-  const c = useRemapper();
-  const { editor } = c;
+  const remapper = useRemapper();
+  const { editor } = remapper;
   const focus = useFocusIntent();
   const saved = useSavedMappings();
   const [reportOpen, setReportOpen] = useState(false);
@@ -50,55 +50,55 @@ export default function App() {
   const [notice, setNotice] = useState<NoticeLine[] | null>(null);
   const [editShow, setEditShow] = useState<EditFilter>('all');
   const presets = usePresetActions(
-    { ...c, edits: editor.edits, srcEdits: editor.srcEdits },
+    { ...remapper, edits: editor.edits, srcEdits: editor.srcEdits },
     saved,
     setNotice,
   );
-  const openPreset = presets.open(c.presetId);
-  const edited = useEditedSummary(editor, c.oct, openPreset);
+  const openPreset = presets.open(remapper.presetId);
+  const edited = useEditedSummary(editor, remapper.oct, openPreset);
   const { request } = focus;
   const addFiles = useFileIntake({
-    storeFiles: c.addFiles,
-    src: c.src,
-    tgt: c.tgt,
+    storeFiles: remapper.addFiles,
+    src: remapper.src,
+    tgt: remapper.tgt,
     saved,
     notify: setNotice,
     focus: request,
   });
-  const { view: reportView, dropMissing } = useConversionReport({ ...editor, ...c });
-  const targetName = c.engines.find((e) => e.id === c.tgt)?.name ?? c.tgt;
-  const sourceName = c.engines.find((e) => e.id === c.src)?.name ?? c.src;
-  const blocker = convertBlocker({ files: c.files.length, src: c.src, tgt: c.tgt });
+  const { view: reportView, dropMissing } = useConversionReport({ ...editor, ...remapper });
+  const targetName = remapper.engines.find((e) => e.id === remapper.tgt)?.name ?? remapper.tgt;
+  const sourceName = remapper.engines.find((e) => e.id === remapper.src)?.name ?? remapper.src;
+  const blocker = convertBlocker({ files: remapper.files.length, src: remapper.src, tgt: remapper.tgt });
   const openEditor = (show: EditFilter = 'all', note: number | null = null) => {
     track('editor-opened', { show });
     setEditShow(show);
     setAssignNote(note);
-    c.setView('edit');
+    remapper.setView('edit');
   };
   const closeEditor = () => {
     setAssignNote(null);
     setEditShow('all');
-    c.setView('convert');
+    remapper.setView('convert');
     request('editLink');
   };
-  useEditorHistory(c.view, { open: openEditor, close: closeEditor });
+  useEditorHistory(remapper.view, { open: openEditor, close: closeEditor });
 
-  if (c.view === 'edit') {
+  if (remapper.view === 'edit') {
     return (
       <Page onSkip={() => request('main')}>
         <Card mainRef={focus.ref('main')}>
           <EditView
             editor={editor}
-            src={c.src}
-            tgt={c.tgt}
+            src={remapper.src}
+            tgt={remapper.tgt}
             srcName={sourceName}
             tgtName={targetName}
-            oct={c.oct}
+            oct={remapper.oct}
             existingPreset={openPreset}
             presetsAtCap={saved.atCap}
             assignNote={assignNote}
             initialShow={editShow}
-            setView={(v) => (v === 'convert' ? closeEditor() : c.setView(v))}
+            setView={(v) => (v === 'convert' ? closeEditor() : remapper.setView(v))}
             onSavePreset={presets.save}
             onUpdatePreset={presets.update}
           />
@@ -118,31 +118,31 @@ export default function App() {
           >
             <Intro />
 
-            {c.status === 'loading' && <p className="text-ui text-t3">{t({ id: 'app-loading' })}</p>}
+            {remapper.status === 'loading' && <p className="text-ui text-t3">{t({ id: 'app-loading' })}</p>}
 
-            {c.status === 'error' && (
-              <p className="text-ui text-danger">{c.error && <ErrorText error={c.error} />}</p>
+            {remapper.status === 'error' && (
+              <p className="text-ui text-danger">{remapper.error && <ErrorText error={remapper.error} />}</p>
             )}
 
-            {c.status === 'ready' && (
+            {remapper.status === 'ready' && (
               <>
                 <FileChips
-                  files={c.files}
-                  failures={c.failures}
-                  skipped={c.skipped}
+                  files={remapper.files}
+                  failures={remapper.failures}
+                  skipped={remapper.skipped}
                   onFiles={addFiles}
-                  onRemove={c.removeFile}
-                  onClear={c.clearFiles}
+                  onRemove={remapper.removeFile}
+                  onClear={remapper.clearFiles}
                   pickerRef={focus.ref('filePicker')}
                 />
 
                 <EngineColumns
-                  engines={c.engines}
-                  src={c.src}
-                  tgt={c.tgt}
-                  onChooseSrc={c.chooseSrc}
-                  onChooseTgt={c.chooseTgt}
-                  onSwap={c.swap}
+                  engines={remapper.engines}
+                  src={remapper.src}
+                  tgt={remapper.tgt}
+                  onChooseSrc={remapper.chooseSrc}
+                  onChooseTgt={remapper.chooseTgt}
+                  onSwap={remapper.swap}
                   fromRef={focus.ref('from')}
                   toRef={focus.ref('to')}
                 />
@@ -152,7 +152,7 @@ export default function App() {
                 <SavedMappingChips
                   onFocusFallback={() => request('from')}
                   mappings={saved.mappings}
-                  engines={c.engines}
+                  engines={remapper.engines}
                   atCap={saved.atCap}
                   onLoad={presets.load}
                   onEdit={presets.edit}
@@ -163,7 +163,7 @@ export default function App() {
                 />
 
                 <PlanControls
-                  c={c}
+                  remapper={remapper}
                   editor={editor}
                   edited={edited}
                   names={{ source: sourceName, target: targetName }}
@@ -172,21 +172,21 @@ export default function App() {
                   onOpenEditor={openEditor}
                 />
 
-                {c.conv.kind === 'done' && c.results.length > 0
+                {remapper.conv.kind === 'done' && remapper.results.length > 0
                   ? (
                       <DonePanel
-                        results={c.results}
-                        failures={c.failures}
+                        results={remapper.results}
+                        failures={remapper.failures}
                         view={reportView}
                         targetName={targetName}
-                        targetShort={shortCode(c.tgt)}
-                        from={c.src}
-                        to={c.tgt}
+                        targetShort={shortCode(remapper.tgt)}
+                        from={remapper.src}
+                        to={remapper.tgt}
                         onViewReport={() => setReportOpen(true)}
                         onDropMissing={dropMissing}
                         editedDrums={edited.count}
                         onConvertMore={() => {
-                          c.clearFiles();
+                          remapper.clearFiles();
                           request('filePicker');
                         }}
                       />
@@ -194,20 +194,20 @@ export default function App() {
                   : (
                       <ConvertButton
                         ref={focus.ref('convert')}
-                        conv={c.conv}
+                        conv={remapper.conv}
                         blockedBy={blocker && { reason: t(blocker.reason), quiet: blocker.quiet }}
-                        onConvert={() => void c.convert()}
+                        onConvert={() => void remapper.convert()}
                       />
                     )}
 
-                {c.conv.kind === 'error' && c.error && (
+                {remapper.conv.kind === 'error' && remapper.error && (
                   <p
                     role="alert"
                     className="
                       rounded-chip bg-danger/10 p-3 text-ui text-danger
                     "
                   >
-                    <Rich id="convert-error" slots={{ error: <ErrorText error={c.error} /> }} />
+                    <Rich id="convert-error" slots={{ error: <ErrorText error={remapper.error} /> }} />
                   </p>
                 )}
               </>

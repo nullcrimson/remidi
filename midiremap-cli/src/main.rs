@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand};
@@ -51,15 +51,15 @@ struct ConvertArgs {
 }
 
 fn build_catalog(user_map: Option<PathBuf>) -> Result<Catalog> {
-    let mut provider = Catalog::builtin().context("the builtin engine maps are broken")?;
+    let mut catalog = Catalog::builtin().context("the builtin engine maps are broken")?;
     if let Some(path) = user_map {
         let json = std::fs::read_to_string(&path)
             .with_context(|| format!("cannot read user map {}", path.display()))?;
-        provider = provider
+        catalog = catalog
             .with_user_json(&json)
             .with_context(|| format!("invalid user map {}", path.display()))?;
     }
-    Ok(provider)
+    Ok(catalog)
 }
 
 fn read_overrides(path: Option<PathBuf>) -> Result<Overrides> {
@@ -71,7 +71,7 @@ fn read_overrides(path: Option<PathBuf>) -> Result<Overrides> {
     serde_json::from_str(&json).with_context(|| format!("invalid overrides {}", path.display()))
 }
 
-fn read_preset(path: &PathBuf, catalog: &Catalog, src: &str, tgt: &str) -> Result<Overrides> {
+fn read_preset(path: &Path, catalog: &Catalog, src: &str, tgt: &str) -> Result<Overrides> {
     let json = std::fs::read_to_string(path)
         .with_context(|| format!("cannot read preset {}", path.display()))?;
     let loaded =
@@ -92,20 +92,20 @@ fn read_preset(path: &PathBuf, catalog: &Catalog, src: &str, tgt: &str) -> Resul
 }
 
 fn run_list(user_map: Option<PathBuf>) -> Result<()> {
-    let provider = build_catalog(user_map)?;
-    for id in provider.ids() {
+    let catalog = build_catalog(user_map)?;
+    for id in catalog.ids() {
         println!("{id}");
     }
     Ok(())
 }
 
 fn run_convert(a: ConvertArgs) -> Result<()> {
-    let provider = build_catalog(a.user_map)?;
+    let catalog = build_catalog(a.user_map)?;
 
-    let src = provider
+    let src = catalog
         .get(&a.src)
         .with_context(|| format!("unknown source engine '{}'", a.src))?;
-    let tgt = provider
+    let tgt = catalog
         .get(&a.tgt)
         .with_context(|| format!("unknown target engine '{}'", a.tgt))?;
 
@@ -113,7 +113,7 @@ fn run_convert(a: ConvertArgs) -> Result<()> {
         std::fs::read(&a.input).with_context(|| format!("cannot read {}", a.input.display()))?;
 
     let overrides = match &a.preset {
-        Some(path) => read_preset(path, &provider, src.id(), tgt.id())?,
+        Some(path) => read_preset(path, &catalog, src.id(), tgt.id())?,
         None => read_overrides(a.overrides)?,
     };
     let out = convert(

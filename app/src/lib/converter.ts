@@ -2,8 +2,7 @@ import { runBatch, type BatchResult } from './batch';
 import type { Channel } from './channel';
 import type { AppError } from './errors';
 import type { LoadedFile } from './files';
-import { ready, remap, type Overrides } from './midiremap';
-import type { Missing } from './missing';
+import { ready, remap, type MissingDrums, type Overrides } from './midiremap';
 
 export interface BatchRequest {
   id: number;
@@ -12,7 +11,7 @@ export interface BatchRequest {
   tgt: string;
   ov?: Overrides;
   channel: Channel;
-  missing: Missing;
+  missing: MissingDrums;
 }
 
 /** A converted batch, or why the worker could not convert it. */
@@ -89,7 +88,7 @@ export function createConverter(makeWorker: MakeWorker = moduleWorker) {
     tgt: string,
     ov: Overrides | undefined,
     channel: Channel,
-    missing: Missing,
+    missing: MissingDrums,
   ): Promise<BatchResult> => {
     const request: BatchRequest = { id: nextId++, files, src, tgt, ov, channel, missing };
     const w = connect();

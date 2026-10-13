@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { buildReport } from '../src/lib/report';
 import type { FileResult } from '../src/lib/files';
-import type { CanonInfo, Drum } from '../src/lib/midiremap';
+import type { VocabularyDrum, Drum } from '../src/lib/midiremap';
 
-const canons: CanonInfo[] = [
+const canons: VocabularyDrum[] = [
   { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
   { canon: 'ride.1.bell', label: 'Ride Bell', family: 'Cymbals' },
   { canon: 'splash.2.hit', label: 'Splash 2', family: 'Cymbals' },
@@ -72,6 +72,20 @@ describe('buildReport', () => {
     expect(view.groups.unrecognized[0].count).toBe(1);
     expect(view.groups.unrecognized[0].label).toMatch(/^[A-G]/);
     expect(view.totals).toEqual({ dropped: 4, approximated: 3, unrecognized: 1, untouched: 0, converted: 10 });
+  });
+
+  it('names a substitute note two drums share after the first of them, as the editor does', () => {
+    const shared: Drum[] = [
+      { note: 49, canon: 'crash.1.hit', label: 'Crash 1', family: 'Cymbals' },
+      { note: 49, canon: 'crash.1.choke', label: 'Crash 1 choke', family: 'Cymbals' },
+    ];
+    const view = buildReport(
+      [result('a.mid', { ...empty, fallbackUsed: { 'splash.2.hit': { note: 49, count: 2 } } })],
+      canons,
+      shared,
+      'c1',
+    );
+    expect(view.groups.approximated[0].sub).toBe('Crash 1');
   });
 
   it('aggregates counts across files and keeps per-file groups in order', () => {

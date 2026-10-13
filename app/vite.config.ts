@@ -14,7 +14,6 @@ const BEACON_REPORTS = 'https://cloudflareinsights.com';
 const STATS = 'https://cloud.umami.is';
 const STATS_REPORTS = 'https://gateway.umami.is';
 
-/** The site's content security policy; the static pages copy it from the built index.html. */
 const CONTENT_SECURITY_POLICY = [
   `default-src 'self'`,
   `script-src 'self' 'wasm-unsafe-eval' ${BEACON} ${STATS}`,
@@ -28,7 +27,6 @@ const CONTENT_SECURITY_POLICY = [
   `form-action 'none'`,
 ].join('; ');
 
-/** Adds the policy to the built page only: the dev server injects inline scripts. */
 function contentSecurityPolicy(): Plugin {
   return {
     name: 'content-security-policy',
@@ -52,7 +50,6 @@ const TYPES: Record<string, string> = {
   '.woff2': 'font/woff2',
 };
 
-/** Lets `npm run dev` open the static pages the last `npm run build:site` wrote to `dist`. */
 function builtStaticPages(): Plugin {
   const dist = fileURLToPath(new URL('./dist', import.meta.url));
   const shells = Object.values(LOCALES).map(({ prefix }) => (prefix === '' ? '/' : `/${prefix}/`));

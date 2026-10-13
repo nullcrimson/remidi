@@ -18,9 +18,9 @@ const kit: SavedMapping = {
   updatedAt: 1,
 };
 
-function arrange(skipped = 0) {
+function arrange(skipped = 0, mappings = [kit]) {
   const saved: SavedMappings = {
-    mappings: [kit],
+    mappings,
     atCap: false,
     save: vi.fn(() => 'new-id'),
     update: vi.fn(),
@@ -75,6 +75,12 @@ describe('usePresetActions', () => {
       edits: kit.edits,
       srcEdits: kit.srcEdits,
     });
+  });
+
+  it('numbers the second copy of a preset', () => {
+    const { actions, saved } = arrange(0, [kit, { ...kit, id: 'p2', name: 'My kit copy' }]);
+    actions.duplicate(kit);
+    expect(vi.mocked(saved.save).mock.lastCall?.[0].name).toBe('My kit copy 2');
   });
 
   it('loads a preset, says how many edits it skipped, and opens the editor on edit', () => {

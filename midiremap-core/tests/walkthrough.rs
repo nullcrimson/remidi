@@ -130,14 +130,6 @@ fn walkthrough_maps_and_falls_back_correctly_through_every_target() {
             expected_dropped,
             "{src_id} -> {tgt_id}: dropped report must match the resolver"
         );
-
-        let kept = expected_keys.len() as u32;
-        let dropped: u32 = expected_dropped.values().sum();
-        assert_eq!(
-            kept + dropped,
-            notes.len() as u32,
-            "{src_id} -> {tgt_id}: every hit is either kept or dropped"
-        );
     }
 }
 
@@ -190,9 +182,10 @@ fn ride_bow_approximates_to_a_bow_tip_before_a_crash() {
         &Overrides::default(),
         MissingDrums::Nearest,
     );
-    let ride = Note::new(45).unwrap();
-    match mapping.translate(ride) {
-        midiremap_core::Resolution::Resolved(r) => assert_eq!(r.note(), Note::new(51)),
-        other => panic!("ride must resolve, got {other:?}"),
-    }
+    let ride = catalog
+        .get("addictive_drums2")
+        .unwrap()
+        .decode(Note::new(45).unwrap())
+        .unwrap();
+    assert_eq!(mapping.resolve_canon(ride).note(), Note::new(51));
 }

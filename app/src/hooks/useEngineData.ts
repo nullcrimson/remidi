@@ -4,7 +4,7 @@ import {
   engineDrums,
   engineNotes,
   familyOrder,
-  type CanonInfo,
+  type VocabularyDrum,
   type Drum,
   type Family,
 } from '../lib/midiremap';
@@ -33,7 +33,7 @@ export function useEngineData(status: CatalogStatus, src: string, tgt: string) {
     () => (ready && src ? orEmpty(() => engineNotes(src)) : []),
     [ready, src],
   );
-  const canonOptions = useMemo<CanonInfo[]>(() => (ready ? orEmpty(() => canonCatalog()) : []), [ready]);
+  const canonOptions = useMemo<VocabularyDrum[]>(() => (ready ? orEmpty(() => canonCatalog()) : []), [ready]);
   const families = useMemo<Family[]>(() => (ready ? orEmpty(() => familyOrder()) : []), [ready]);
   return { targetDrums, sourceNotes, canonOptions, families };
 }

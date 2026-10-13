@@ -1,5 +1,6 @@
 import type { FileResult } from './files';
-import type { CanonInfo, Drum, RemapReport } from './midiremap';
+import type { Drum, Report, VocabularyDrum } from './midiremap';
+import { labelByNote } from './missing';
 import { noteName, type OctaveBase } from './notes';
 
 export interface ReportEntry {
@@ -41,16 +42,16 @@ function sortEntries(entries: ReportEntry[]): ReportEntry[] {
 
 export function buildReport(
   results: FileResult[],
-  canons: CanonInfo[],
+  canons: VocabularyDrum[],
   targetDrums: Drum[],
   oct: OctaveBase,
 ): ReportView {
   const labelByCanon = new Map(canons.map((c) => [c.canon, c.label]));
-  const drumByNote = new Map(targetDrums.map((d) => [d.note, d.label]));
+  const drumByNote = labelByNote(targetDrums);
 
   const canonLabel = (canon: string) => labelByCanon.get(canon) ?? canon;
 
-  const groupsOf = (report: RemapReport): ReportGroups => ({
+  const groupsOf = (report: Report): ReportGroups => ({
     dropped: sortEntries(
       Object.entries(report.dropped).map(([canon, count]) => ({ label: canonLabel(canon), count, canon })),
     ),

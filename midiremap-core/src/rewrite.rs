@@ -12,7 +12,6 @@ use crate::{
     translate::{CanonResolution, Resolution},
 };
 
-/// The delta time of events removed from a track, carried into the next kept event.
 #[derive(Default)]
 struct DeltaFold(u28);
 
@@ -21,13 +20,11 @@ impl DeltaFold {
         u28::try_from(self.0.as_int() + ev.delta.as_int()).ok_or(CodecError::DeltaOverflow)
     }
 
-    /// Removes `ev`, carrying its delta forward.
     fn remove(&mut self, ev: &TrackEvent) -> Result<(), CodecError> {
         self.0 = self.carried(ev)?;
         Ok(())
     }
 
-    /// Keeps `ev`, giving it the delta carried so far.
     fn keep(&mut self, ev: &mut TrackEvent) -> Result<(), CodecError> {
         ev.delta = self.carried(ev)?;
         self.0 = u28::default();

@@ -624,14 +624,16 @@ Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props;
 - **Concrete types, no single-implementation traits.** One conversion entry point
   (`convert`), one catalog type, one mapping type.
 - **Standard crates over hand-rolled** parsing, error handling, and serialization.
-- **One gate.** `scripts/gate.sh` owns every check and its flags: Rust fmt (on the nightly
-  named in `nightly-toolchain`), clippy (`-D warnings`) and tests, both `--locked`, beside
-  the app's eslint, tsc and vitest, then the site build, size budgets and Playwright. It
-  takes a group (`rust`, `app`, `site`) or single checks as arguments. The CI jobs call the
-  same script check by check, on every push to `master` and every pull request, and deploy
-  only when all pass; CI differs only in what it caches (the wasm build, and the site
-  generator as a release binary). Both jobs that need the app set it up through the
-  composite action `.github/actions/app-with-wasm`.
+- **One gate.** `scripts/gate.sh` runs every check. It owns the Rust checks and their
+  flags: fmt (on the nightly named in `nightly-toolchain`), clippy (`-D warnings`) and
+  tests, both `--locked`. The app's checks are `app/package.json`'s scripts, which own
+  their flags and generate the i18n types first: eslint, tsc and vitest, then the site
+  build, size budgets and Playwright. The script takes groups (`rust`, `app`, `dist`) or
+  single steps as arguments. Each CI job runs one
+  group (`rust`, `app`, and `dist` after the build), on every push to `master` and every
+  pull request, and a push deploys only when all pass; CI differs only in how it builds (the
+  wasm module from a cache, the site generator as a cached release binary). Both jobs that
+  need the app set it up through the composite action `.github/actions/app-with-wasm`.
 - **Nothing third-party without a reason.** Fonts are self-hosted (`@fontsource`,
   variable Space Grotesk and IBM Plex Sans, IBM Plex Mono 400/600 — the faces the pages
   load). The only outside origins are cookieless analytics: the Cloudflare beacon (visits)
@@ -647,8 +649,10 @@ Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props;
   `scripts/indexnow.ts` hashes each sitemap page (asset file names blanked), compares
   with the live `page-hashes.json`, writes each page's `<lastmod>` into `sitemap.xml`
   (the live date if unchanged, the deploy day if new or changed), publishes the hashes
-  with their dates, and submits the changed pages to IndexNow. It runs on deploys only,
-  so the Rust generator's sitemap stays date-free and reproducible.
+  with their dates, and submits the changed pages to IndexNow. Only a missing live file
+  (404) counts as "nothing published yet"; any other failure to read it fails the deploy
+  rather than redating every page. It runs on deploys only, so the Rust generator's
+  sitemap stays date-free and reproducible.
 - **Browser behaviour is tested in a browser.** `app/e2e` (Playwright, Chromium desktop
   and a Pixel 7 profile) runs against the built site in CI before deploy: conversion
   through the real WASM, keyboard walk and focus, drag and drop, the report dialog,

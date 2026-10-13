@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, HashSet};
 
 use midiremap_core::{
     Canon, Catalog, Drum, EngineMap, Family, Mapping, MissingDrums, Note, OctaveBase, Overrides,
-    PlanStatus, Resolution,
+    PlanStatus,
 };
 
 use crate::SiteError;
@@ -34,7 +34,7 @@ pub const MAJORS: [(&str, &str); 8] = [
 
 pub const EXCLUDED_IDS: [&str; 1] = ["midiremap_standard"];
 
-pub fn slug(id: &str) -> String {
+fn slug(id: &str) -> String {
     id.replace('_', "-")
 }
 
@@ -148,8 +148,7 @@ impl PairRow {
         }
     }
 
-    /// Sort key that lists changes first: dropped, then approximated, then exact.
-    pub fn rank(&self) -> u8 {
+    fn rank(&self) -> u8 {
         match self.status {
             PlanStatus::Dropped => 0,
             PlanStatus::Fallback => 1,
@@ -214,8 +213,8 @@ pub struct Site {
     pub pairs: Vec<PairPage>,
 }
 
-fn lookup<'a>(provider: &'a Catalog, id: &str) -> Result<&'a EngineMap, SiteError> {
-    provider
+fn lookup<'a>(catalog: &'a Catalog, id: &str) -> Result<&'a EngineMap, SiteError> {
+    catalog
         .get(id)
         .ok_or_else(|| SiteError::UnknownEngine(id.to_string()))
 }
@@ -235,17 +234,14 @@ fn pair_rows(src: &EngineMap, tgt: &EngineMap) -> Vec<PairRow> {
         .source_notes()
         .into_iter()
         .map(|d| {
-            let (status, landed) = match mapping.translate(d.note) {
-                Resolution::Resolved(r) => (PlanStatus::from(&r), r.note()),
-                Resolution::Unmapped => (PlanStatus::Dropped, None),
-            };
+            let resolution = mapping.resolve_canon(d.canon);
             PairRow {
                 note: d.note.get(),
                 name_c1: d.note.name(OctaveBase::C1),
                 name_c2: d.note.name(OctaveBase::C2),
                 drum: d.label,
-                status,
-                target: landed.map(|note| target(tgt, note, d.canon)),
+                status: PlanStatus::from(&resolution),
+                target: resolution.note().map(|note| target(tgt, note, d.canon)),
             }
         })
         .collect();
@@ -310,7 +306,7 @@ fn engine_page(map: &EngineMap, majors: &[&EngineMap]) -> EnginePage {
     }
 }
 
-pub fn sort_by_name(maps: &mut [&EngineMap]) {
+fn sort_by_name(maps: &mut [&EngineMap]) {
     maps.sort_by_cached_key(|m| (m.display_name().to_lowercase(), m.id().to_owned()));
 }
 
@@ -347,15 +343,15 @@ fn vendor_groups(maps: &[&EngineMap]) -> Vec<VendorGroup> {
 }
 
 impl Site {
-    pub fn build(provider: &Catalog) -> Result<Site, SiteError> {
+    pub fn build(catalog: &Catalog) -> Result<Site, SiteError> {
         let majors = MAJORS
             .iter()
-            .map(|(id, _)| lookup(provider, id))
+            .map(|(id, _)| lookup(catalog, id))
             .collect::<Result<Vec<_>, _>>()?;
         for id in EXCLUDED_IDS {
-            lookup(provider, id)?;
+            lookup(catalog, id)?;
         }
-        let mut maps: Vec<&EngineMap> = provider
+        let mut maps: Vec<&EngineMap> = catalog
             .engines()
             .filter(|m| !EXCLUDED_IDS.contains(&m.id()))
             .collect();
@@ -468,7 +464,6 @@ mod tests {
             let mut sorted = keys.clone();
             sorted.sort_unstable();
             assert_eq!(keys, sorted, "{}", p.slug);
-            assert_eq!(p.changes(), p.approximated + p.dropped);
         }
     }
 

@@ -17,7 +17,6 @@ async function convertBand(page: Page) {
 const inside = (page: Page) =>
   page.evaluate(() => !!document.activeElement?.closest('[role=dialog]'));
 
-/** Presses Tab and waits for Floating UI's focus guards, which redirect on the next frame. */
 async function tab(page: Page) {
   await page.keyboard.press('Tab');
   await expect.poll(() => page.evaluate(() =>

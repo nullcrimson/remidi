@@ -13,15 +13,15 @@ use crate::{
     pages::{page_file, EnginePage, IndexPage, PairPage, Site, NOTE_MAPS, ORIGIN, THANKS},
 };
 
-pub const DESCRIPTION_MAX: usize = 155;
+const DESCRIPTION_MAX: usize = 155;
 
-pub struct Meta {
-    pub title: String,
-    pub description: String,
-    pub canonical: String,
+struct Meta {
+    title: String,
+    description: String,
+    canonical: String,
 }
 
-pub const TITLE_NAME_MAX: usize = 40;
+const TITLE_NAME_MAX: usize = 40;
 
 fn fit(first: &[String], rest: &[String], max: usize) -> String {
     let Some(mut out) = first.iter().find(|s| s.chars().count() <= max).cloned() else {
@@ -39,7 +39,6 @@ fn fit(first: &[String], rest: &[String], max: usize) -> String {
     out
 }
 
-/// `name` followed by "MIDI", unless the name already ends with it ("General MIDI").
 fn with_midi(name: &str) -> String {
     if name.ends_with("MIDI") {
         name.to_string()
@@ -153,7 +152,7 @@ fn index_meta(p: &IndexPage, texts: &Texts) -> Meta {
     }
 }
 
-pub fn content_meta(title: String, description: String, path: &str) -> Meta {
+fn content_meta(title: String, description: String, path: &str) -> Meta {
     Meta {
         title,
         description,
@@ -177,7 +176,6 @@ pub struct Shell<'a> {
     pub stats: &'a str,
 }
 
-/// The words pages are written in: one locale's messages and documents.
 struct Texts<'a> {
     messages: &'a Messages,
     docs: &'a Docs,
@@ -232,7 +230,6 @@ impl<'a> Texts<'a> {
     }
 }
 
-/// One entry of the language menu: a locale, named in itself, and this page in it.
 struct LangItem {
     name: &'static str,
     tag: &'static str,
@@ -241,7 +238,6 @@ struct LangItem {
     current: bool,
 }
 
-/// A hidden notice offering this page in another locale, in that locale's words.
 struct Offer<'a> {
     code: &'static str,
     tag: &'static str,
@@ -249,7 +245,6 @@ struct Offer<'a> {
     text: &'a str,
 }
 
-/// What every page shares: the app shell, header nav, footer and optional schema.
 struct Frame<'a> {
     lang: &'static str,
     code: String,

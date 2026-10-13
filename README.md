@@ -59,7 +59,7 @@ npm run size         # size budgets for app/dist/assets
 
 cd ..
 bash scripts/gate.sh # every check in one run; logs in target/gate/
-bash scripts/gate.sh rust        # or one group (rust, app, site) or single checks (fmt, vitest, ...)
+bash scripts/gate.sh rust        # or one group (rust, app, dist) or single steps (fmt, vitest, build-site, ...)
 ```
 
 Every push to `master` and every pull request runs the same `scripts/gate.sh` checks in CI;

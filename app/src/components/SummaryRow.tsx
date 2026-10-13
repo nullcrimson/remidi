@@ -20,7 +20,6 @@ export function SummaryRow({
   total,
   onEdit,
   editRef,
-  disabled,
   edited,
   breakdown,
   names,
@@ -29,7 +28,6 @@ export function SummaryRow({
   total: number;
   onEdit: (show?: EditFilter) => void;
   editRef?: FocusRef;
-  disabled?: boolean;
   edited?: EditedState;
   breakdown?: PlanBreakdown;
   names?: EngineNames;
@@ -71,7 +69,6 @@ export function SummaryRow({
           ref={editRef}
           type="button"
           onClick={() => onEdit()}
-          disabled={disabled}
           className={`
             whitespace-nowrap
             ${textAction('link')}

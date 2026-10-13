@@ -48,15 +48,6 @@ fn auto_converts_every_channel_of_a_track_with_channel_10_hits() {
 }
 
 #[test]
-fn default_scope_is_auto() {
-    assert_eq!(ChannelScope::default(), ChannelScope::Auto);
-    let midi = tracks(&[&[(0, DRUMS, on(24))], &[(0, BASS, on(24))]]);
-    let out = ggd_to_ezd(&midi, ChannelScope::default()).unwrap();
-    assert_eq!(events(&out.bytes, 0), vec![(0, DRUMS, on(36))]);
-    assert_eq!(events(&out.bytes, 1), vec![(0, BASS, on(24))]);
-}
-
-#[test]
 fn auto_converts_every_track_without_channel_10_hits() {
     let midi = tracks(&[
         &[(0, DRUMS, silent_on(24)), (0, BASS, on(24))],

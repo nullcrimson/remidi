@@ -1,6 +1,6 @@
 import type { Engine } from './midiremap';
 
-export interface Preselection {
+interface Preselection {
   src?: string;
   tgt?: string;
 }

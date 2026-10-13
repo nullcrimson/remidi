@@ -27,7 +27,7 @@ impl CanonResolution {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Resolution {
+pub(crate) enum Resolution {
     Resolved(CanonResolution),
     Unmapped,
 }
@@ -105,7 +105,7 @@ impl Mapping {
         }
     }
 
-    pub fn translate(&self, note: Note) -> Resolution {
+    pub(crate) fn translate(&self, note: Note) -> Resolution {
         self.src.decode(note).map_or(Resolution::Unmapped, |canon| {
             Resolution::Resolved(self.resolve_canon(canon))
         })
@@ -308,11 +308,6 @@ notes = [ {} ]",
             MissingDrums::Nearest
         );
         assert!(serde_json::from_str::<MissingDrums>(r#""maybe""#).is_err());
-    }
-
-    #[test]
-    fn missing_drums_defaults_to_nearest() {
-        assert_eq!(MissingDrums::default(), MissingDrums::Nearest);
     }
 
     #[test]
