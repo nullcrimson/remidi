@@ -146,7 +146,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
   useEffect(() => {
     restore.current = (list, loaded) => {
       const known = new Set(list.map((e) => e.id));
-      const picked = preselection(window.location.search, list);
+      const picked = preselection(window.location, list);
       const keep = (id: string | null) => (id !== null && known.has(id) ? id : null);
       let nextSrc = picked?.src ?? keep(session.src);
       let nextTgt = picked?.tgt ?? keep(session.tgt);

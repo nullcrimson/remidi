@@ -13,6 +13,8 @@ const OG_IMAGE: SitePath = SitePath::fixed("/og-image.png");
 
 const SITEMAP: SitePath = SitePath::fixed("/sitemap.xml");
 
+const LOGO: SitePath = SitePath::fixed("/icon-512.png");
+
 /// A page's address as the site defines it, before any locale prefix: `/engines/`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SitePath(Cow<'static, str>);
@@ -72,6 +74,11 @@ fn asset_url(path: &SitePath) -> String {
 /// The full URL of the social card image.
 pub fn og_image_url() -> String {
     asset_url(&OG_IMAGE)
+}
+
+/// The full URL of the logo search engines show for the site.
+pub fn logo_url() -> String {
+    asset_url(&LOGO)
 }
 
 /// The full URL of the sitemap.

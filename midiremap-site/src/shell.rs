@@ -1,10 +1,14 @@
 use askama::Template;
+use fluent_bundle::FluentArgs;
 use serde_json::json;
 
 use crate::{
     content::script_json,
-    i18n::{Docs, Locale, Messages, Plain},
-    routes::{alternates, home, og_image_url, Alternate, CONVERTER_PAGE},
+    i18n::{Docs, I18nError, Locale, MessageId, Messages, Plain},
+    pages::PairLink,
+    routes::{
+        alternates, home, logo_url, og_image_url, Alternate, LocalPath, CONVERTER_PAGE, NOTE_MAPS,
+    },
 };
 
 /// What stops the built `index.html` from being localized.
@@ -14,16 +18,49 @@ pub enum ShellError {
     MissingMarker(&'static str),
     #[error(transparent)]
     Render(#[from] askama::Error),
+    #[error(transparent)]
+    I18n(#[from] I18nError),
 }
 
 const HEAD: (&str, &str) = ("<!--app-head-->", "<!--/app-head-->");
 const NOSCRIPT: (&str, &str) = ("<!--app-noscript-->", "<!--/app-noscript-->");
 const TITLE: (&str, &str) = ("<!--app-title-->", "<!--/app-title-->");
 
+struct ShellLink {
+    href: LocalPath,
+    label: String,
+}
+
 #[derive(Template)]
-#[template(source = r#"<h1 class="sr-only">{{ title }}</h1>"#, ext = "html")]
+#[template(
+    source = r#"<h1 class="sr-only">{{ title }}</h1><nav class="sr-only" aria-label="{{ heading }}"><ul>{% for l in links %}<li><a href="{{ l.href }}">{{ l.label }}</a></li>{% endfor %}</ul></nav>"#,
+    ext = "html"
+)]
 struct AppTitle<'a> {
     title: &'a str,
+    heading: &'a str,
+    links: Vec<ShellLink>,
+}
+
+fn popular_links(
+    locale: Locale,
+    m: &Messages,
+    popular: &[PairLink],
+) -> Result<Vec<ShellLink>, I18nError> {
+    let pairs = popular.iter().map(|p| {
+        let mut args = FluentArgs::new();
+        args.set("source", p.src_name.as_str());
+        args.set("target", p.tgt_name.as_str());
+        Ok(ShellLink {
+            href: p.href().in_locale(locale),
+            label: m.format(locale, MessageId::MapsPairLink, &args)?,
+        })
+    });
+    let note_maps = std::iter::once(Ok(ShellLink {
+        href: NOTE_MAPS.in_locale(locale),
+        label: m.get(locale, Plain::NavNoteMaps).to_owned(),
+    }));
+    pairs.chain(note_maps).collect()
 }
 
 #[derive(Template)]
@@ -61,15 +98,18 @@ fn replace_region(html: &str, (open, close): (&str, &str), with: &str) -> Option
 }
 
 /// The converter's built `index.html` in `locale`: its title, descriptions, social cards,
-/// schema, no-script text and load-failure notice written from that locale's messages.
+/// schema, no-script text, load-failure notice and the links to the `popular` conversions
+/// written from that locale's messages.
 pub fn localize_shell(
     index_html: &str,
     locale: Locale,
     m: &Messages,
     docs: &Docs,
+    popular: &[PairLink],
 ) -> Result<String, ShellError> {
     let get = |id| m.get(locale, id);
     let canonical = home(locale).url();
+    let site_root = home(Locale::En).url();
     let head = AppHead {
         title: get(Plain::ConverterTitle),
         description: get(Plain::ConverterDescription),
@@ -80,13 +120,24 @@ pub fn localize_shell(
         alternates: alternates(&CONVERTER_PAGE, docs),
         json_ld: script_json(&json!({
             "@context": "https://schema.org",
-            "@type": "SoftwareApplication",
-            "name": "Drumverter",
-            "description": get(Plain::ConverterAppDescription),
-            "url": canonical,
-            "applicationCategory": "MultimediaApplication",
-            "operatingSystem": "Web",
-            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "@graph": [
+                {
+                    "@type": "SoftwareApplication",
+                    "name": "Drumverter",
+                    "description": get(Plain::ConverterAppDescription),
+                    "url": canonical,
+                    "applicationCategory": "MultimediaApplication",
+                    "operatingSystem": "Web",
+                    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+                },
+                { "@type": "WebSite", "name": "Drumverter", "url": site_root },
+                {
+                    "@type": "Organization",
+                    "name": "Drumverter",
+                    "url": site_root,
+                    "logo": logo_url(),
+                },
+            ],
         })),
         canonical,
     }
@@ -103,6 +154,8 @@ pub fn localize_shell(
         replace_region(&html, NOSCRIPT, &noscript).ok_or(ShellError::MissingMarker(NOSCRIPT.0))?;
     let title = AppTitle {
         title: get(Plain::ConverterTitle),
+        heading: get(Plain::MapsPopular),
+        links: popular_links(locale, m, popular)?,
     }
     .render()?;
     let html = replace_region(&html, TITLE, &title).ok_or(ShellError::MissingMarker(TITLE.0))?;
@@ -115,8 +168,17 @@ pub fn localize_shell(
 
 #[cfg(test)]
 mod tests {
+    use midiremap_core::Catalog;
+
     use super::*;
-    use crate::i18n::{Locale, Messages};
+    use crate::{
+        i18n::{Locale, Messages},
+        pages::Site,
+    };
+
+    fn popular() -> Vec<PairLink> {
+        Site::build(&Catalog::builtin().unwrap()).unwrap().popular
+    }
 
     const MARKED: &str = "<html lang=\"en\"><head><!--app-head--><title>Drumverter</title><!--/app-head--></head><body><div id=\"root\"><!--app-title--><!--/app-title--></div><!--app-noscript--><!--/app-noscript--></body></html>";
 
@@ -126,6 +188,7 @@ mod tests {
             Locale::En,
             &Messages::load().unwrap(),
             &Docs::load().unwrap(),
+            &popular(),
         )
         .unwrap()
     }
@@ -151,6 +214,30 @@ mod tests {
     }
 
     #[test]
+    fn the_english_shell_names_the_site() {
+        let out = english_shell();
+        assert!(out.contains(
+            r#"{"@type":"WebSite","name":"Drumverter","url":"https://drumverter.com/"}"#
+        ));
+    }
+
+    #[test]
+    fn the_polish_shell_names_the_site_at_its_root() {
+        let m = Messages::load().unwrap();
+        let pl =
+            localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap(), &popular()).unwrap();
+        assert!(pl.contains(
+            r#"{"@type":"WebSite","name":"Drumverter","url":"https://drumverter.com/"}"#
+        ));
+    }
+
+    #[test]
+    fn the_english_shell_names_the_organization_and_its_logo() {
+        let out = english_shell();
+        assert!(out.contains(r#"{"@type":"Organization","logo":"https://drumverter.com/icon-512.png","name":"Drumverter","url":"https://drumverter.com/"}"#));
+    }
+
+    #[test]
     fn the_english_shell_carries_the_noscript_text() {
         let out = english_shell();
         assert!(out.contains("enable JavaScript to use the converter"));
@@ -171,14 +258,42 @@ mod tests {
     #[test]
     fn the_english_shell_carries_a_heading_the_app_replaces_on_mount() {
         let m = Messages::load().unwrap();
-        let en = localize_shell(MARKED, Locale::En, &m, &Docs::load().unwrap()).unwrap();
-        assert!(en.contains(r#"<div id="root"><!--app-title--><h1 class="sr-only">Drumverter — free drum MIDI remapper &#38; converter</h1><!--/app-title--></div>"#));
+        let en =
+            localize_shell(MARKED, Locale::En, &m, &Docs::load().unwrap(), &popular()).unwrap();
+        assert!(en.contains(r#"<div id="root"><!--app-title--><h1 class="sr-only">Drumverter — free drum MIDI remapper &#38; converter</h1><nav class="sr-only" aria-label="Popular conversions">"#));
+        assert!(en.contains("</nav><!--/app-title--></div>"));
+    }
+
+    #[test]
+    fn the_english_shell_links_every_popular_conversion() {
+        let out = english_shell();
+        assert!(out.contains(r#"<li><a href="/convert/ggd-invasion-to-ezdrummer/">GetGood Drums Invasion to EZdrummer 3</a></li>"#));
+        assert_eq!(
+            out.matches(r#"<li><a href="/convert/"#).count(),
+            popular().len()
+        );
+    }
+
+    #[test]
+    fn the_english_shell_links_the_note_maps() {
+        let out = english_shell();
+        assert!(out.contains(r#"<li><a href="/engines/">Note maps</a></li>"#));
+    }
+
+    #[test]
+    fn the_polish_shell_links_the_polish_conversions() {
+        let m = Messages::load().unwrap();
+        let pl =
+            localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap(), &popular()).unwrap();
+        assert!(pl.contains(r#"<a href="/pl/convert/ggd-invasion-to-ezdrummer/">"#));
+        assert!(pl.contains(r#"<a href="/pl/engines/">"#));
     }
 
     #[test]
     fn the_polish_shell_carries_a_heading_the_app_replaces_on_mount() {
         let m = Messages::load().unwrap();
-        let pl = localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap()).unwrap();
+        let pl =
+            localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap(), &popular()).unwrap();
         assert!(pl.contains(&format!(
             r#"<h1 class="sr-only">{}</h1>"#,
             m.get(Locale::Pl, Plain::ConverterTitle)
@@ -188,9 +303,10 @@ mod tests {
     #[test]
     fn localizing_twice_gives_the_same_page() {
         let m = Messages::load().unwrap();
-        let once = localize_shell(MARKED, Locale::En, &m, &Docs::load().unwrap()).unwrap();
+        let once =
+            localize_shell(MARKED, Locale::En, &m, &Docs::load().unwrap(), &popular()).unwrap();
         assert_eq!(
-            localize_shell(&once, Locale::En, &m, &Docs::load().unwrap()).unwrap(),
+            localize_shell(&once, Locale::En, &m, &Docs::load().unwrap(), &popular()).unwrap(),
             once
         );
     }
@@ -198,21 +314,24 @@ mod tests {
     #[test]
     fn the_polish_shell_declares_polish() {
         let m = Messages::load().unwrap();
-        let pl = localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap()).unwrap();
+        let pl =
+            localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap(), &popular()).unwrap();
         assert!(pl.contains(r#"<html lang="pl">"#));
     }
 
     #[test]
     fn the_polish_shell_has_its_canonical() {
         let m = Messages::load().unwrap();
-        let pl = localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap()).unwrap();
+        let pl =
+            localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap(), &popular()).unwrap();
         assert!(pl.contains(r#"<link rel="canonical" href="https://drumverter.com/pl/" />"#));
     }
 
     #[test]
     fn the_polish_shell_has_its_title() {
         let m = Messages::load().unwrap();
-        let pl = localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap()).unwrap();
+        let pl =
+            localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap(), &popular()).unwrap();
         assert!(pl.contains(&format!(
             "<title>{}</title>",
             m.get(Locale::Pl, Plain::ConverterTitle)
@@ -237,7 +356,8 @@ mod tests {
     #[test]
     fn the_polish_shell_carries_the_polish_load_failure_notice() {
         let m = Messages::load().unwrap();
-        let pl = localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap()).unwrap();
+        let pl =
+            localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap(), &popular()).unwrap();
         assert!(pl.contains(m.get(Locale::Pl, Plain::LoadFailed)));
     }
 
@@ -247,7 +367,8 @@ mod tests {
             "<html></html>",
             Locale::En,
             &Messages::load().unwrap(),
-            &Docs::load().unwrap()
+            &Docs::load().unwrap(),
+            &popular()
         )
         .is_err());
     }

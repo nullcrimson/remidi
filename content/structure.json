@@ -8,5 +8,19 @@
     { "key": "terms", "slug": "terms" }
   ],
   "nav": [{ "route": "converter" }, { "section": "guide" }, { "route": "noteMaps" }, { "section": "faq" }],
-  "footer": [{ "section": "guide" }, { "section": "faq" }, { "route": "noteMaps" }, { "section": "issue" }, { "section": "contact" }, { "section": "terms" }]
+  "footer": [{ "section": "guide" }, { "section": "faq" }, { "route": "noteMaps" }, { "section": "issue" }, { "section": "contact" }, { "section": "terms" }],
+  "popular": [
+    ["ggd_invasion", "ezdrummer"],
+    ["ggd_invasion", "superior_drummer3"],
+    ["guitar_pro", "superior_drummer3"],
+    ["guitar_pro", "ezdrummer"],
+    ["guitar_pro", "ggd_invasion"],
+    ["ezdrummer", "superior_drummer3"],
+    ["superior_drummer3", "ezdrummer"],
+    ["general_midi", "addictive_drums2"],
+    ["general_midi", "superior_drummer3"],
+    ["superior_drummer3", "ssd5"],
+    ["addictive_drums2", "superior_drummer3"],
+    ["bfd3", "superior_drummer3"]
+  ]
 }

@@ -12,14 +12,14 @@
 </div>
 <div class="flex flex-wrap items-center gap-3">
   <a
-    href="{{ frame.home }}?to={{ page.engine.id }}"
+    href="{{ frame.home }}#to={{ page.engine.id }}"
     data-umami-event="converter-opened"
     data-umami-event-page="{{ frame.kind }}"
     data-umami-event-to="{{ page.engine.id }}"
     class="inline-flex items-center justify-center rounded-panel bg-accent px-5 py-3 font-display text-body font-semibold text-ink transition hover:brightness-110 pointer-coarse:min-h-11"
   >{{ texts.engine(MessageId::MapsConvertTo, page.engine.name.as_str())? }}</a>
   <a
-    href="{{ frame.home }}?from={{ page.engine.id }}"
+    href="{{ frame.home }}#from={{ page.engine.id }}"
     data-umami-event="converter-opened"
     data-umami-event-page="{{ frame.kind }}"
     data-umami-event-from="{{ page.engine.id }}"

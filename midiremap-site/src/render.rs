@@ -4,7 +4,7 @@ use askama::Template;
 use fluent_bundle::{FluentArgs, FluentValue};
 
 use crate::{
-    content::{faq_schema, how_to_schema, Block, ContentPage},
+    content::{breadcrumb_schema, faq_schema, how_to_schema, Block, ContentPage},
     i18n::{Docs, I18nError, Locale, MessageId, Messages, Plain, SectionKey, TIP_HREF},
     manifest::{AnalyticsScript, LocaleScript, SiteManifest},
     pages::{EnginePage, IndexPage, Landing, PairPage, Site, Tally},
@@ -459,21 +459,30 @@ fn render_note_maps(
     manifest: &SiteManifest,
     texts: &Texts,
 ) -> Result<Vec<(String, String)>, RenderError> {
-    let frame = |path: SitePath, kind: PageKind| {
+    let frame = |path: SitePath, kind: PageKind, json_ld: Option<String>| {
         Frame::new(
             manifest,
             texts,
             IN_NOTE_MAPS,
-            None,
+            json_ld,
             &Page::Everywhere(path),
             kind,
         )
+    };
+    let trail = |name: &str, path: &SitePath| {
+        Some(breadcrumb_schema(&[
+            (
+                texts.get(Plain::NavNoteMaps),
+                NOTE_MAPS.in_locale(texts.locale).url(),
+            ),
+            (name, path.in_locale(texts.locale).url()),
+        ]))
     };
     let mut out = vec![(
         NOTE_MAPS.in_locale(texts.locale).file(),
         IndexHtml {
             meta: index_meta(&site.index, texts)?,
-            frame: frame(NOTE_MAPS, PageKind::Index),
+            frame: frame(NOTE_MAPS, PageKind::Index, None),
             texts,
             page: &site.index,
         }
@@ -485,7 +494,7 @@ fn render_note_maps(
             path.in_locale(texts.locale).file(),
             EngineHtml {
                 meta: engine_meta(p, texts)?,
-                frame: frame(path, PageKind::Engine),
+                frame: frame(path.clone(), PageKind::Engine, trail(&p.engine.name, &path)),
                 texts,
                 intro: texts.format(
                     MessageId::MapsEngineIntro,
@@ -505,7 +514,11 @@ fn render_note_maps(
             path.in_locale(texts.locale).file(),
             PairHtml {
                 meta: pair_meta(p, texts)?,
-                frame: frame(path, PageKind::Pair),
+                frame: frame(
+                    path.clone(),
+                    PageKind::Pair,
+                    trail(&format!("{} → {}", p.src.name, p.tgt.name), &path),
+                ),
                 texts,
                 heading: pair_heading(p, texts)?,
                 summary: pair_summary(texts, &p.src.name, &p.tgt.name, p.tally)?,
@@ -1182,7 +1195,7 @@ mod tests {
                 .skip(1)
                 .filter_map(|s| s.split('"').next())
             {
-                let target = href.split('?').next().unwrap_or(href);
+                let target = href.split(['?', '#']).next().unwrap_or(href);
                 if target.starts_with('/') {
                     assert!(known.contains(target), "{path} links to missing {href}");
                 }
@@ -1250,9 +1263,9 @@ mod tests {
                 .split("href=\"")
                 .skip(1)
                 .filter_map(|s| s.split('"').next())
-                .filter(|h| h.starts_with("/?"))
+                .filter(|h| h.starts_with("/#"))
             {
-                let query = href.trim_start_matches("/?").replace("&amp;", "&");
+                let query = href.trim_start_matches("/#").replace("&amp;", "&");
                 let params: Vec<(&str, &str)> = query
                     .split('&')
                     .filter_map(|kv| kv.split_once('='))
@@ -1271,11 +1284,18 @@ mod tests {
         assert_eq!(checked, 86 * 2 + 56);
     }
 
+    fn structured_data(html: &str) -> &str {
+        let start = html.find(r#"<script type="application/ld+json">"#).unwrap();
+        let end = start + html[start..].find("</script>").unwrap();
+        &html[start..end]
+    }
+
     #[test]
     fn names_are_escaped() {
         let mm = page("engines/ggd-modernmassive/index.html");
-        assert!(mm.contains("Modern &amp; Massive") || mm.contains("Modern &#38; Massive"));
-        assert!(!mm.contains("Modern & Massive"));
+        let markup = mm.replace(structured_data(&mm), "");
+        assert!(markup.contains("Modern &amp; Massive") || markup.contains("Modern &#38; Massive"));
+        assert!(!markup.contains("Modern & Massive"));
     }
 
     #[test]
@@ -1400,7 +1420,28 @@ mod tests {
     #[test]
     fn polish_engine_pages_open_the_polish_converter() {
         let html = page("pl/engines/ezdrummer/index.html");
-        assert!(html.contains(r#"href="/pl/?to=ezdrummer""#));
+        assert!(html.contains(r#"href="/pl/#to=ezdrummer""#));
+    }
+
+    #[test]
+    fn engine_pages_carry_their_breadcrumb_trail() {
+        let html = page("engines/ezdrummer/index.html");
+        assert_eq!(html.matches("application/ld+json").count(), 1);
+        assert!(html.contains(r#""@type":"BreadcrumbList""#));
+        assert!(html.contains(r#"{"@type":"ListItem","item":"https://drumverter.com/engines/","name":"Note maps","position":1}"#));
+        assert!(html.contains(r#"{"@type":"ListItem","item":"https://drumverter.com/engines/ezdrummer/","name":"EZdrummer 3","position":2}"#));
+    }
+
+    #[test]
+    fn polish_pair_pages_carry_their_polish_breadcrumb_trail() {
+        let html = page("pl/convert/ggd-invasion-to-ezdrummer/index.html");
+        assert!(html.contains(r#""item":"https://drumverter.com/pl/engines/""#));
+        assert!(html.contains(r#"{"@type":"ListItem","item":"https://drumverter.com/pl/convert/ggd-invasion-to-ezdrummer/","name":"GetGood Drums Invasion → EZdrummer 3","position":2}"#));
+    }
+
+    #[test]
+    fn the_note_maps_index_carries_no_breadcrumb_trail() {
+        assert!(!page("engines/index.html").contains("BreadcrumbList"));
     }
 
     #[test]
@@ -1451,7 +1492,7 @@ mod tests {
     #[test]
     fn polish_pair_pages_open_the_polish_converter() {
         let html = page("pl/convert/addictive-drums2-to-ezdrummer/index.html");
-        assert!(html.contains(r#"href="/pl/?from="#));
+        assert!(html.contains(r#"href="/pl/#from="#));
     }
 
     #[test]
@@ -1538,13 +1579,13 @@ mod tests {
     #[test]
     fn an_engine_page_tells_the_stats_which_page_kind_opened_the_converter() {
         let html = page("engines/ezdrummer/index.html");
-        assert!(anchor_to(&html, "/?to=ezdrummer").contains(r#"data-umami-event-page="engine""#));
+        assert!(anchor_to(&html, "/#to=ezdrummer").contains(r#"data-umami-event-page="engine""#));
     }
 
     #[test]
     fn an_engine_pages_convert_to_link_names_the_target_engine() {
         let html = page("engines/ezdrummer/index.html");
-        let tag = anchor_to(&html, "/?to=ezdrummer");
+        let tag = anchor_to(&html, "/#to=ezdrummer");
         assert!(opened_converter(tag));
         assert!(tag.contains(r#"data-umami-event-to="ezdrummer""#));
     }
@@ -1552,13 +1593,13 @@ mod tests {
     #[test]
     fn an_engine_pages_convert_to_link_names_no_source_engine() {
         let html = page("engines/ezdrummer/index.html");
-        assert!(!anchor_to(&html, "/?to=ezdrummer").contains("data-umami-event-from"));
+        assert!(!anchor_to(&html, "/#to=ezdrummer").contains("data-umami-event-from"));
     }
 
     #[test]
     fn an_engine_pages_convert_from_link_names_the_source_engine() {
         let html = page("engines/ezdrummer/index.html");
-        let tag = anchor_to(&html, "/?from=ezdrummer");
+        let tag = anchor_to(&html, "/#from=ezdrummer");
         assert!(opened_converter(tag));
         assert!(tag.contains(r#"data-umami-event-from="ezdrummer""#));
     }
@@ -1566,7 +1607,7 @@ mod tests {
     #[test]
     fn a_pair_pages_convert_link_names_both_engines() {
         let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
-        let tag = anchor_to(&html, "/?from=addictive_drums2&amp;to=ezdrummer");
+        let tag = anchor_to(&html, "/#from=addictive_drums2&amp;to=ezdrummer");
         assert!(opened_converter(tag));
         assert!(tag.contains(r#"data-umami-event-from="addictive_drums2""#));
         assert!(tag.contains(r#"data-umami-event-to="ezdrummer""#));
@@ -1575,7 +1616,7 @@ mod tests {
     #[test]
     fn a_pair_pages_convert_link_says_it_is_on_a_pair_page() {
         let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
-        let tag = anchor_to(&html, "/?from=addictive_drums2&amp;to=ezdrummer");
+        let tag = anchor_to(&html, "/#from=addictive_drums2&amp;to=ezdrummer");
         assert!(tag.contains(r#"data-umami-event-page="pair""#));
     }
 
@@ -1647,7 +1688,7 @@ mod tests {
     #[test]
     fn a_polish_engine_page_keeps_the_event_on_its_converter_link() {
         let html = page("pl/engines/ezdrummer/index.html");
-        assert!(opened_converter(anchor_to(&html, "/pl/?to=ezdrummer")));
+        assert!(opened_converter(anchor_to(&html, "/pl/#to=ezdrummer")));
     }
 
     fn filter_input<'a>(html: &'a str, scope: &str) -> &'a str {

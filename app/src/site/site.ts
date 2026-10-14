@@ -8,6 +8,12 @@ export function href(target: NavTarget, locale: Locale = 'en'): SitePath {
   return TRANSLATED_SECTIONS[locale].includes(target.section) ? localePath(locale, `/${slug}/`) : `/${slug}/`;
 }
 
+/** The English address of the conversion table from engine `src` to engine `tgt`. */
+export function pairPath(src: string, tgt: string): SitePath {
+  const slug = (id: string) => id.replace(/_/g, '-');
+  return `/convert/${slug(src)}-to-${slug(tgt)}/`;
+}
+
 /** A document's internal link, pointed at the same page in `locale`. */
 export function localHref(path: SitePath, locale: Locale): SitePath {
   const section = SECTION_KEYS.find((k) => path === `/${SECTION_SLUGS[k]}/`);

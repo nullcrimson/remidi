@@ -111,6 +111,22 @@ pub fn faq_schema(blocks: &[Block]) -> String {
     )
 }
 
+/// The BreadcrumbList schema for a trail of `(name, url)` steps, outermost first.
+pub fn breadcrumb_schema(trail: &[(&str, String)]) -> String {
+    let items: Vec<serde_json::Value> = trail
+        .iter()
+        .zip(1..)
+        .map(|((name, url), position)| {
+            json!({ "@type": "ListItem", "position": position, "name": name, "item": url })
+        })
+        .collect();
+    script_json(&json!({
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": items,
+    }))
+}
+
 /// The HowTo schema for the steps in `blocks`.
 pub fn how_to_schema(heading: &str, blocks: &[Block]) -> String {
     let steps: Vec<serde_json::Value> = blocks

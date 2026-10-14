@@ -5,11 +5,22 @@ interface Preselection {
   tgt?: string;
 }
 
-export function preselection(search: string, engines: Engine[]): Preselection | null {
-  const params = new URLSearchParams(search);
+/** The part of a page address that can name engines to preselect. */
+export interface Address {
+  search: string;
+  hash: string;
+}
+
+function params({ search, hash }: Address): URLSearchParams {
+  const fragment = new URLSearchParams(hash.replace(/^#/, ''));
+  return fragment.has('from') || fragment.has('to') ? fragment : new URLSearchParams(search);
+}
+
+export function preselection(address: Address, engines: Engine[]): Preselection | null {
+  const given = params(address);
   const known = new Set(engines.map((e) => e.id));
   const pick = (key: string): string | undefined => {
-    const value = params.get(key);
+    const value = given.get(key);
     return value !== null && known.has(value) ? value : undefined;
   };
   const src = pick('from');

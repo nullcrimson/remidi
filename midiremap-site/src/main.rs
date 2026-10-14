@@ -84,7 +84,7 @@ fn run(out_dir: &Path) -> Result<usize, SiteError> {
     for &l in Locale::ALL {
         write(
             out_dir.join(home(l).file()),
-            &shell::localize_shell(&index_html, l, &messages, &docs)?,
+            &shell::localize_shell(&index_html, l, &messages, &docs, &site.popular)?,
         )?;
     }
     write(out_dir.join("filter.js"), FILTER_JS)?;

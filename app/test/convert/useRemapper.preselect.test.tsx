@@ -22,6 +22,14 @@ describe('useRemapper URL preselection', () => {
     expect(result.current.tgt).toBe('ezdrummer');
   });
 
+  it('preselects source and target from the fragment', async () => {
+    window.history.replaceState({}, '', '/#from=ggd_invasion&to=ezdrummer');
+    const { result } = renderHook(() => useRemapper(RUNTIME));
+    await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
+    await waitFor(() => expect(result.current.src).toBe('ggd_invasion'));
+    expect(result.current.tgt).toBe('ezdrummer');
+  });
+
   it('leaves the selection empty for unknown ids', async () => {
     window.history.replaceState({}, '', '/?from=nope');
     const { result } = renderHook(() => useRemapper(RUNTIME));

@@ -146,8 +146,9 @@ test('a blocked language file on /pl/ shows the Polish load-failure notice and n
   await expect(page.locator('#load-failed')).toBeVisible();
   await expect(page.locator('#load-failed')).toContainText('Nie udało się wczytać aplikacji Drumverter.');
   await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
-  await expect(page.locator('#root > :not(h1.sr-only)')).toHaveCount(0);
+  await expect(page.locator('#root > :not(h1.sr-only, nav.sr-only)')).toHaveCount(0);
   await expect(page.locator('#root > h1.sr-only')).toHaveCount(1);
+  await expect(page.locator('#root > nav.sr-only a[href="/pl/convert/ggd-invasion-to-ezdrummer/"]')).toHaveCount(1);
   expect(pageErrors.every((e) => /locale-[\w-]+\.js|Failed to load resource/.test(e))).toBe(true);
   pageErrors.length = 0;
 });
@@ -194,14 +195,20 @@ test.describe('after choosing Polski', () => {
 
   test('a Polish engine page converts in the Polish converter', async ({ page }) => {
     await page.goto('/pl/engines/ezdrummer/');
-    await page.locator('main a[href="/pl/?to=ezdrummer"]').click();
-    await expect(page).toHaveURL(/\/pl\/\?to=ezdrummer$/);
+    await page.locator('main a[href="/pl/#to=ezdrummer"]').click();
+    await expect(page).toHaveURL(/\/pl\/#to=ezdrummer$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
   });
 
   test('a converter link with engines keeps them in Polish', async ({ page }) => {
     await page.goto('/?from=ggd_invasion&to=ezdrummer');
     await expect(page).toHaveURL(/\/pl\/\?from=ggd_invasion&to=ezdrummer$/);
+    await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
+  });
+
+  test('a converter fragment with engines keeps them in Polish', async ({ page }) => {
+    await page.goto('/#from=ggd_invasion&to=ezdrummer');
+    await expect(page).toHaveURL(/\/pl\/#from=ggd_invasion&to=ezdrummer$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
   });
 });

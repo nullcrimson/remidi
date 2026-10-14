@@ -6,6 +6,7 @@ import { EditView } from './editor/EditView';
 import { EngineColumns } from './engines/EngineColumns';
 import { FileChips } from './convert/FileChips';
 import { Card, Page } from './site/PageFrame';
+import { PopularConversions } from './site/PopularConversions';
 import { PlanControls } from './convert/PlanControls';
 import { ReportModal } from './report/ReportModal';
 import { SavedMappingChips } from './presets/SavedMappingChips';
@@ -211,6 +212,8 @@ export default function App({ runtime }: { runtime: Runtime }) {
           </div>
         </CardDropzone>
       </Card>
+
+      <PopularConversions engines={remapper.engines} />
 
       {names && (
         <ReportModal

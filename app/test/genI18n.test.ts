@@ -7,6 +7,7 @@ const structure = {
   sections: [{ key: 'faq', slug: 'faq' }],
   nav: [{ route: 'converter' as const }, { section: 'faq' }],
   footer: [{ section: 'faq' }],
+  popular: [['ggd_invasion', 'ezdrummer'] as [string, string]],
 };
 
 describe('gen-i18n', () => {
@@ -29,6 +30,11 @@ describe('gen-i18n', () => {
   it('emits the Message type with its variables', () => {
     const ts = emitted();
     expect(ts).toContain(`'with-var': { count: FluentVariable; name: FluentVariable }`);
+  });
+
+  it('emits the popular conversions', () => {
+    const ts = emitted();
+    expect(ts).toContain(`export const POPULAR: readonly (readonly [string, string])[] = [["ggd_invasion","ezdrummer"]];`);
   });
 
   it('emits the NavTarget list', () => {

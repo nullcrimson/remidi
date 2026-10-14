@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 interface LocaleEntry { code: string; prefix: string; langTag: string; nativeName: string; fonts: string | null }
 type RouteName = 'converter' | 'noteMaps';
 type Target = { route: RouteName } | { section: string };
-interface Structure { routes: Record<RouteName, string>; sections: { key: string; slug: string }[]; nav: Target[]; footer: Target[] }
+interface Structure { routes: Record<RouteName, string>; sections: { key: string; slug: string }[]; nav: Target[]; footer: Target[]; popular: [string, string][] }
 interface Sources { locales: LocaleEntry[]; structure: Structure; ftl: string; docs?: Record<string, string[]> }
 
 function variables(pattern: Pattern | null, out: Set<string>): void {
@@ -68,6 +68,7 @@ export const ROUTE_PATHS: Record<RouteName, SitePath> = ${JSON.stringify(s.struc
 export type NavTarget = { route: RouteName } | { section: SectionKey };
 export const NAV: NavTarget[] = ${JSON.stringify(s.structure.nav)};
 export const FOOTER: NavTarget[] = ${JSON.stringify(s.structure.footer)};
+export const POPULAR: readonly (readonly [string, string])[] = ${JSON.stringify(s.structure.popular)};
 
 export type MessageId = ${union(ids)};
 export const MESSAGE_IDS: readonly MessageId[] = ${JSON.stringify(ids)};

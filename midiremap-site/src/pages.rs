@@ -5,7 +5,7 @@ use midiremap_core::{
     OctaveBase, Overrides,
 };
 
-use crate::routes::{engine_href, pair_href, SitePath};
+use crate::routes::{engine_href, pair_href, SitePath, POPULAR};
 
 /// What stops the site's pages from being planned.
 #[derive(thiserror::Error, Debug)]
@@ -14,6 +14,8 @@ pub enum BuildError {
     UnknownEngine(String),
     #[error("slug collision: {0}")]
     SlugCollision(String),
+    #[error("popular conversion without a pair page: {0}")]
+    NoPairPage(String),
 }
 
 /// The popular engines that get pair pages, with their column label in the index matrix.
@@ -213,6 +215,14 @@ pub struct PairPage {
 }
 
 impl PairPage {
+    fn link(&self) -> PairLink {
+        PairLink {
+            slug: self.slug.clone(),
+            src_name: self.src.name.clone(),
+            tgt_name: self.tgt.name.clone(),
+        }
+    }
+
     pub fn href(&self) -> SitePath {
         pair_href(&self.slug)
     }
@@ -242,6 +252,22 @@ pub struct Site {
     pub index: IndexPage,
     pub engines: Vec<EnginePage>,
     pub pairs: Vec<PairPage>,
+    /// The conversions the converter's page links, in `content/structure.json` order.
+    pub popular: Vec<PairLink>,
+}
+
+fn popular_links(pairs: &[PairPage], wanted: &[(&str, &str)]) -> Result<Vec<PairLink>, BuildError> {
+    wanted
+        .iter()
+        .map(|&(src, tgt)| {
+            let slug = pair_slug(src, tgt);
+            pairs
+                .iter()
+                .find(|p| p.slug == slug)
+                .map(PairPage::link)
+                .ok_or(BuildError::NoPairPage(slug))
+        })
+        .collect()
 }
 
 fn lookup<'a>(catalog: &'a Catalog, id: &str) -> Result<&'a EngineMap, BuildError> {
@@ -386,7 +412,7 @@ impl Site {
         }
 
         let engines = maps.iter().map(|m| engine_page(m, &majors)).collect();
-        let pairs = majors
+        let pairs: Vec<PairPage> = majors
             .iter()
             .flat_map(|s| {
                 majors
@@ -416,6 +442,7 @@ impl Site {
         Ok(Site {
             index,
             engines,
+            popular: popular_links(&pairs, POPULAR)?,
             pairs,
         })
     }
@@ -461,6 +488,42 @@ mod tests {
         let s = site();
         let slugs: HashSet<_> = s.engines.iter().map(|p| p.engine.slug.clone()).collect();
         assert!(slugs.iter().all(|s| !s.contains('_')));
+    }
+
+    #[test]
+    fn every_popular_conversion_links_its_pair_page() {
+        let s = site();
+        let slugs: HashSet<_> = s.pairs.iter().map(|p| p.slug.as_str()).collect();
+        assert_eq!(s.popular.len(), POPULAR.len());
+        assert!(s.popular.iter().all(|l| slugs.contains(l.slug.as_str())));
+    }
+
+    #[test]
+    fn popular_conversions_link_the_recorded_addresses() {
+        let recorded: Vec<String> =
+            serde_json::from_str(include_str!("../tests/golden/popular-links.json")).unwrap();
+        let hrefs: Vec<String> = site()
+            .popular
+            .iter()
+            .map(|l| l.href().to_string())
+            .collect();
+        assert_eq!(hrefs, recorded);
+    }
+
+    #[test]
+    fn popular_conversions_keep_their_listed_order() {
+        let first = &site().popular[0];
+        let (src, tgt) = POPULAR[0];
+        assert_eq!(first.slug, pair_slug(src, tgt));
+    }
+
+    #[test]
+    fn a_popular_conversion_without_a_pair_page_is_an_error() {
+        let s = site();
+        assert!(matches!(
+            popular_links(&s.pairs, &[("ugritone", "ezdrummer")]),
+            Err(BuildError::NoPairPage(_))
+        ));
     }
 
     #[test]

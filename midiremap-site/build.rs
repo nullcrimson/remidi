@@ -50,6 +50,7 @@ struct Structure {
     sections: Vec<Section>,
     nav: Vec<Target>,
     footer: Vec<Target>,
+    popular: Vec<(String, String)>,
 }
 
 fn target(t: &Target, keys: &BTreeSet<&str>) -> String {
@@ -233,6 +234,15 @@ fn main() {
     routes += &format!(
         "pub const FOOTER: &[NavTarget] = &[{}];\n",
         list(structure.footer.iter().map(|t| target(t, &keys)))
+    );
+    routes += &format!(
+        "pub const POPULAR: &[(&str, &str)] = &[{}];\n",
+        list(
+            structure
+                .popular
+                .iter()
+                .map(|(src, tgt)| format!("({src:?}, {tgt:?})"))
+        )
     );
 
     out += &format!(
