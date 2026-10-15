@@ -115,6 +115,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   console.log(`${changed.length} of ${urls.length} pages new or changed`);
   const output = process.env.GITHUB_OUTPUT;
   if (output && changed.length > 0) {
-    appendFileSync(output, `payload=${JSON.stringify(payload(changed))}\n`);
+    writeFileSync(fileURLToPath(new URL('../indexnow.json', import.meta.url)), JSON.stringify(payload(changed)));
+    appendFileSync(output, `changed=${changed.length}\n`);
   }
 }
