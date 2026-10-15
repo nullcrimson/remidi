@@ -148,7 +148,7 @@ fn pair_meta(p: &PairPage, texts: &Texts) -> Result<Meta, I18nError> {
         title: texts.format(MessageId::MapsPairTitle, pair_args(p, &midi))?,
         description: fit(
             &texts.format(MessageId::MapsPairDescription, pair_args(p, &midi))?,
-            &[],
+            &[texts.format(MessageId::MapsPairDescriptionShort, pair_args(p, &midi))?],
             &[texts.get(Plain::MapsPairDescriptionMore).to_owned()],
             DESCRIPTION_MAX,
         ),
@@ -641,7 +641,7 @@ fn render_sections(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
+    use std::{collections::HashSet, sync::LazyLock};
 
     use midiremap_core::Catalog;
 
@@ -693,16 +693,19 @@ mod tests {
         }
     }
 
-    fn rendered() -> Vec<(String, String)> {
-        let messages = Messages::load().unwrap();
-        let docs = Docs::load().unwrap();
-        render_site(
-            &Site::build(&Catalog::builtin().unwrap()).unwrap(),
-            &manifest(),
-            &messages,
-            &docs,
-        )
-        .unwrap()
+    fn rendered() -> &'static [(String, String)] {
+        static RENDERED: LazyLock<Vec<(String, String)>> = LazyLock::new(|| {
+            let messages = Messages::load().unwrap();
+            let docs = Docs::load().unwrap();
+            render_site(
+                &Site::build(&Catalog::builtin().unwrap()).unwrap(),
+                &manifest(),
+                &messages,
+                &docs,
+            )
+            .unwrap()
+        });
+        &RENDERED
     }
 
     #[test]
@@ -782,11 +785,11 @@ mod tests {
         assert!(!page("convert/addictive-drums2-to-ezdrummer/index.html").contains(FILTER_TAG));
     }
 
-    fn page(path: &str) -> String {
+    fn page(path: &str) -> &'static str {
         rendered()
-            .into_iter()
+            .iter()
             .find(|(p, _)| p == path)
-            .map(|(_, h)| h)
+            .map(|(_, h)| h.as_str())
             .unwrap()
     }
 
@@ -901,7 +904,7 @@ mod tests {
     fn every_page_labels_its_navigation_landmarks() {
         let messages = Messages::load().unwrap();
         for (path, html) in rendered() {
-            let (locale, _) = locale_and_rest(&path);
+            let (locale, _) = locale_and_rest(path);
             let aria = |nav| format!(r#"<nav aria-label="{}""#, messages.get(locale, nav));
             assert!(html.contains(&aria(Plain::NavMain)), "{path}");
             assert!(html.contains(&aria(Plain::NavSite)), "{path}");
@@ -912,7 +915,7 @@ mod tests {
     fn header_marks_the_current_section() {
         let messages = Messages::load().unwrap();
         for (path, html) in rendered() {
-            let (locale, rest) = locale_and_rest(&path);
+            let (locale, rest) = locale_and_rest(path);
             let expected: Vec<&str> =
                 if rest.starts_with("engines/") || rest.starts_with("convert/") {
                     vec![messages.get(locale, Plain::NavNoteMaps)]
@@ -923,7 +926,7 @@ mod tests {
                 } else {
                     vec![]
                 };
-            assert_eq!(current_nav(&html), expected, "{path}");
+            assert_eq!(current_nav(html), expected, "{path}");
         }
     }
 
@@ -1022,7 +1025,7 @@ mod tests {
     fn the_thanks_page_is_kept_out_of_search_in_every_locale() {
         let pages = rendered();
         for &l in Locale::ALL {
-            let (file, html) = thanks_page(&pages, l);
+            let (file, html) = thanks_page(pages, l);
             let head = html.split("</head>").next().unwrap();
             assert!(
                 head.contains(r#"<meta name="robots" content="noindex" />"#),
@@ -1035,7 +1038,7 @@ mod tests {
     fn the_thanks_page_links_home_in_every_locale() {
         let pages = rendered();
         for &l in Locale::ALL {
-            let (file, html) = thanks_page(&pages, l);
+            let (file, html) = thanks_page(pages, l);
             assert!(html.contains(&format!(r#"href="{}""#, home(l))), "{file}");
         }
     }
@@ -1238,7 +1241,7 @@ mod tests {
     #[test]
     fn every_page_has_its_canonical() {
         for (path, html) in rendered() {
-            let canonical = format!(r#"<link rel="canonical" href="{ORIGIN}{}""#, url_of(&path));
+            let canonical = format!(r#"<link rel="canonical" href="{ORIGIN}{}""#, url_of(path));
             assert!(html.contains(&canonical), "{path}");
         }
     }
@@ -1265,7 +1268,7 @@ mod tests {
                 .iter()
                 .map(|(path, _)| path.to_string()),
         );
-        for (path, html) in &pages {
+        for (path, html) in pages {
             for href in html
                 .split("href=\"")
                 .skip(1)
@@ -1357,7 +1360,7 @@ mod tests {
                 checked += 1;
             }
         }
-        assert_eq!(checked, 86 * 2 + 56);
+        assert_eq!(checked, 86 * 2 + 368 + 312);
     }
 
     fn structured_data(html: &str) -> &str {
@@ -1369,7 +1372,7 @@ mod tests {
     #[test]
     fn names_are_escaped() {
         let mm = page("engines/ggd-modernmassive/index.html");
-        let markup = mm.replace(structured_data(&mm), "");
+        let markup = mm.replace(structured_data(mm), "");
         assert!(markup.contains("Modern &amp; Massive") || markup.contains("Modern &#38; Massive"));
         assert!(!markup.contains("Modern & Massive"));
     }
@@ -1399,10 +1402,13 @@ mod tests {
     fn pair_descriptions_fit() {
         let site = Site::build(&Catalog::builtin().unwrap()).unwrap();
         in_locale(Locale::En, |t| {
-            assert!(site
+            let long: Vec<String> = site
                 .pairs
                 .iter()
-                .all(|p| description_fits(pair_meta(p, t).unwrap().description)));
+                .map(|p| pair_meta(p, t).unwrap().description)
+                .filter(|d| d.chars().count() > DESCRIPTION_MAX)
+                .collect();
+            assert_eq!(long, Vec::<String>::new());
         });
     }
 
@@ -1502,7 +1508,7 @@ mod tests {
     #[test]
     fn engine_pages_offer_a_drum_map_for_each_daw() {
         let html = page("engines/ggd-invasion/index.html");
-        let reaper = anchor_to(&html, "/drum-maps/files/ggd-invasion.txt");
+        let reaper = anchor_to(html, "/drum-maps/files/ggd-invasion.txt");
         assert!(reaper.contains(r#"download="GetGood Drums Invasion (Drumverter).txt""#));
         assert!(reaper.contains(r#"aria-label="GetGood Drums Invasion drum map for Reaper""#));
         assert!(html.contains(r#"href="/drum-maps/files/ggd-invasion.drm""#));
@@ -1518,14 +1524,14 @@ mod tests {
     #[test]
     fn a_drum_map_link_is_no_stats_element_so_the_browser_downloads_it() {
         let html = page("engines/ggd-invasion/index.html");
-        let reaper = anchor_to(&html, "/drum-maps/files/ggd-invasion.txt");
+        let reaper = anchor_to(html, "/drum-maps/files/ggd-invasion.txt");
         assert!(!reaper.contains("data-umami-event"));
     }
 
     #[test]
     fn a_drum_map_download_tells_the_stats_what_was_downloaded_where() {
         let html = page("engines/ggd-invasion/index.html");
-        let cubase = download_wrapper(&html, "/drum-maps/files/ggd-invasion.drm");
+        let cubase = download_wrapper(html, "/drum-maps/files/ggd-invasion.drm");
         assert!(cubase.contains(r#"data-umami-event="drum-map-downloaded""#));
         assert!(cubase.contains(r#"data-umami-event-engine="ggd_invasion""#));
         assert!(cubase.contains(r#"data-umami-event-daw="cubase""#));
@@ -1563,7 +1569,7 @@ mod tests {
                 .count(),
             site.drum_map_files.len()
         );
-        assert!(download_wrapper(&html, "/drum-maps/files/ssd5.drm")
+        assert!(download_wrapper(html, "/drum-maps/files/ssd5.drm")
             .contains(r#"data-umami-event-page="drum-maps""#));
     }
 
@@ -1737,13 +1743,13 @@ mod tests {
     #[test]
     fn an_engine_page_tells_the_stats_which_page_kind_opened_the_converter() {
         let html = page("engines/ezdrummer/index.html");
-        assert!(anchor_to(&html, "/#to=ezdrummer").contains(r#"data-umami-event-page="engine""#));
+        assert!(anchor_to(html, "/#to=ezdrummer").contains(r#"data-umami-event-page="engine""#));
     }
 
     #[test]
     fn an_engine_pages_convert_to_link_names_the_target_engine() {
         let html = page("engines/ezdrummer/index.html");
-        let tag = anchor_to(&html, "/#to=ezdrummer");
+        let tag = anchor_to(html, "/#to=ezdrummer");
         assert!(opened_converter(tag));
         assert!(tag.contains(r#"data-umami-event-to="ezdrummer""#));
     }
@@ -1751,13 +1757,13 @@ mod tests {
     #[test]
     fn an_engine_pages_convert_to_link_names_no_source_engine() {
         let html = page("engines/ezdrummer/index.html");
-        assert!(!anchor_to(&html, "/#to=ezdrummer").contains("data-umami-event-from"));
+        assert!(!anchor_to(html, "/#to=ezdrummer").contains("data-umami-event-from"));
     }
 
     #[test]
     fn an_engine_pages_convert_from_link_names_the_source_engine() {
         let html = page("engines/ezdrummer/index.html");
-        let tag = anchor_to(&html, "/#from=ezdrummer");
+        let tag = anchor_to(html, "/#from=ezdrummer");
         assert!(opened_converter(tag));
         assert!(tag.contains(r#"data-umami-event-from="ezdrummer""#));
     }
@@ -1765,7 +1771,7 @@ mod tests {
     #[test]
     fn a_pair_pages_convert_link_names_both_engines() {
         let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
-        let tag = anchor_to(&html, "/#from=addictive_drums2&amp;to=ezdrummer");
+        let tag = anchor_to(html, "/#from=addictive_drums2&amp;to=ezdrummer");
         assert!(opened_converter(tag));
         assert!(tag.contains(r#"data-umami-event-from="addictive_drums2""#));
         assert!(tag.contains(r#"data-umami-event-to="ezdrummer""#));
@@ -1774,14 +1780,14 @@ mod tests {
     #[test]
     fn a_pair_pages_convert_link_says_it_is_on_a_pair_page() {
         let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
-        let tag = anchor_to(&html, "/#from=addictive_drums2&amp;to=ezdrummer");
+        let tag = anchor_to(html, "/#from=addictive_drums2&amp;to=ezdrummer");
         assert!(tag.contains(r#"data-umami-event-page="pair""#));
     }
 
     #[test]
     fn the_headers_converter_link_says_which_kind_of_page_it_is_on() {
         let html = page("engines/index.html");
-        let tag = anchors(&html)
+        let tag = anchors(html)
             .into_iter()
             .find(|tag| tag.contains("nav-link") && tag.contains(r#"href="/""#))
             .unwrap();
@@ -1791,7 +1797,7 @@ mod tests {
     #[test]
     fn the_headers_converter_link_opens_the_converter() {
         let html = page("faq/index.html");
-        let tag = anchors(&html)
+        let tag = anchors(html)
             .into_iter()
             .find(|tag| tag.contains("nav-link") && tag.contains(r#"href="/""#))
             .unwrap();
@@ -1801,7 +1807,7 @@ mod tests {
     #[test]
     fn the_headers_other_links_do_not_open_the_converter() {
         let html = page("faq/index.html");
-        let tag = anchors(&html)
+        let tag = anchors(html)
             .into_iter()
             .find(|tag| tag.contains("nav-link") && tag.contains(r#"href="/engines/""#))
             .unwrap();
@@ -1811,7 +1817,7 @@ mod tests {
     #[test]
     fn the_brand_link_opens_the_converter() {
         let html = page("engines/ezdrummer/index.html");
-        let tag = anchors(&html)
+        let tag = anchors(html)
             .into_iter()
             .find(|tag| tag.contains("brand-mark"))
             .unwrap();
@@ -1821,7 +1827,7 @@ mod tests {
     #[test]
     fn a_document_pages_open_converter_link_says_it_is_on_a_doc_page() {
         let html = page("faq/index.html");
-        let tag = anchors(&html)
+        let tag = anchors(html)
             .into_iter()
             .find(|tag| tag.contains("prose-link text-ui") && tag.contains(r#"href="/""#))
             .unwrap();
@@ -1831,7 +1837,7 @@ mod tests {
     #[test]
     fn the_thanks_pages_open_converter_link_says_it_is_on_a_doc_page() {
         let pages = rendered();
-        let (_, html) = thanks_page(&pages, Locale::En);
+        let (_, html) = thanks_page(pages, Locale::En);
         let tag = anchor_to(html, "/");
         assert!(tag.contains(r#"data-umami-event-page="doc""#));
     }
@@ -1846,7 +1852,7 @@ mod tests {
     #[test]
     fn a_polish_engine_page_keeps_the_event_on_its_converter_link() {
         let html = page("pl/engines/ezdrummer/index.html");
-        assert!(opened_converter(anchor_to(&html, "/pl/#to=ezdrummer")));
+        assert!(opened_converter(anchor_to(html, "/pl/#to=ezdrummer")));
     }
 
     fn filter_input<'a>(html: &'a str, scope: &str) -> &'a str {
@@ -1861,12 +1867,12 @@ mod tests {
     #[test]
     fn the_note_map_filter_says_it_is_on_the_index() {
         let html = page("engines/index.html");
-        assert!(filter_input(&html, "engines").contains(r#"data-page="index""#));
+        assert!(filter_input(html, "engines").contains(r#"data-page="index""#));
     }
 
     #[test]
     fn an_engine_page_filter_says_it_is_on_an_engine_page() {
         let html = page("engines/ezdrummer/index.html");
-        assert!(filter_input(&html, "drums").contains(r#"data-page="engine""#));
+        assert!(filter_input(html, "drums").contains(r#"data-page="engine""#));
     }
 }

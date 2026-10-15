@@ -332,6 +332,7 @@ maps-pair-description = { $source } 드럼 MIDI를 { $target }용으로 변환: 
    *[other] { $exact }개
 }, 대체 { $approximated }개, 제외 { $dropped }개.
 maps-pair-description-more = 무료 브라우저 변환기.
+maps-pair-description-short = { $source } 드럼 MIDI를 { $target }용으로 변환.
 maps-pair-summary = { $source } 노트 { $total }개 중 { $exact ->
    *[other] { $exact }개는
 } { $target }에 정확히 매핑되고, { $approximated ->

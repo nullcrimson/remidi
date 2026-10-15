@@ -37,3 +37,18 @@ test('the converter links a popular conversion table', async ({ page }) => {
   await expect(page).toHaveURL('/convert/ggd-invasion-to-ezdrummer/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Convert GetGood Drums Invasion MIDI to EZdrummer 3');
 });
+
+test('an engine without hub pairs links its conversion table to EZdrummer', async ({ page }) => {
+  await page.goto('/engines/hertz/');
+  await press(page.getByRole('link', { name: '→ EZdrummer 3', exact: true }));
+  await expect(page).toHaveURL('/convert/hertz-to-ezdrummer/');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Convert Hertz Drums MIDI to EZdrummer 3');
+});
+
+test('a conversion table without a page the other way reverses in the converter', async ({ page }) => {
+  await page.goto('/convert/hertz-to-ezdrummer/');
+  await press(page.getByRole('link', { name: '⇄ Reverse direction', exact: true }));
+  await expect(page).toHaveURL('/#from=ezdrummer&to=hertz');
+  await expect(chosen(page, 'FROM')).toHaveText('EZdrummer 3');
+  await expect(chosen(page, 'TO')).toHaveText('Hertz Drums');
+});

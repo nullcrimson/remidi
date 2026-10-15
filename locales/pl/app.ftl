@@ -388,6 +388,7 @@ maps-pair-heading = Konwertuj { $sourceMidi } na { $target }
 maps-pair-title = Konwertuj { $sourceMidi } na { $target } | Drumverter
 maps-pair-description = Konwertuj MIDI { $source } na { $target }. Dokładne: { $exact }, zastąpione: { $approximated }, usunięte: { $dropped }.
 maps-pair-description-more = Darmowy konwerter w przeglądarce.
+maps-pair-description-short = Konwertuj MIDI { $source } na { $target }.
 maps-pair-summary = Z { $total } nut { $source }: { $exact } zmapowano dokładnie na { $target }, { $approximated } zastąpiono najbardziej podobnym dostępnym instrumentem, a dla { $dropped } nie ma odpowiednika.
 maps-pair-convert = Konwertuj { $source } → { $target }
 maps-reverse = ⇄ Odwróć kierunek

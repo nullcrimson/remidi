@@ -366,6 +366,7 @@ maps-pair-heading = Convertir { $sourceMidi } a { $target }
 maps-pair-title = Convertir { $sourceMidi } a { $target } | Drumverter
 maps-pair-description = Convierte MIDI de batería de { $source } a { $target }. Notas exactas: { $exact }, reemplazadas: { $approximated }, quitadas: { $dropped }.
 maps-pair-description-more = Conversor gratuito en el navegador.
+maps-pair-description-short = Convierte MIDI de batería de { $source } a { $target }.
 maps-pair-summary = De las { $total } notas de { $source }, { $exact } { $exact ->
     [one] coincide
    *[other] coinciden

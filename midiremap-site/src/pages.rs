@@ -30,7 +30,18 @@ pub const MAJORS: [(&str, &str); 8] = [
     ("guitar_pro", "GP"),
 ];
 
+/// The engines every other engine gets a pair page to.
+pub const TARGETS: [&str; 4] = [
+    "ezdrummer",
+    "superior_drummer3",
+    "general_midi",
+    "ggd_invasion",
+];
+
 pub const EXCLUDED_IDS: [&str; 1] = ["midiremap_standard"];
+
+/// A conversion with its own pair page: source, then target.
+type Route<'a> = (&'a EngineMap, &'a EngineMap);
 
 fn slug(id: &str) -> String {
     id.replace('_', "-")
@@ -244,7 +255,8 @@ pub struct PairPage {
     pub tgt: EngineLink,
     pub rows: Vec<PairRow>,
     pub tally: Tally,
-    pub reverse: PairLink,
+    /// The page for the other direction, when the site has one.
+    pub reverse: Option<PairLink>,
     pub siblings: Vec<PairLink>,
 }
 
@@ -343,7 +355,7 @@ fn pair_rows(src: &EngineMap, tgt: &EngineMap) -> Vec<PairRow> {
     rows
 }
 
-fn pair_page(src: &EngineMap, tgt: &EngineMap, majors: &[&EngineMap]) -> PairPage {
+fn pair_page(src: &EngineMap, tgt: &EngineMap, routes: &[Route]) -> PairPage {
     let rows = pair_rows(src, tgt);
     PairPage {
         slug: pair_slug(src.id(), tgt.id()),
@@ -351,11 +363,14 @@ fn pair_page(src: &EngineMap, tgt: &EngineMap, majors: &[&EngineMap]) -> PairPag
         tgt: EngineLink::of(tgt),
         tally: Tally::of(&rows),
         rows,
-        reverse: PairLink::of(tgt, src),
-        siblings: majors
+        reverse: routes
             .iter()
-            .filter(|m| m.id() != src.id() && m.id() != tgt.id())
-            .map(|m| PairLink::of(src, m))
+            .any(|(s, t)| s.id() == tgt.id() && t.id() == src.id())
+            .then(|| PairLink::of(tgt, src)),
+        siblings: routes
+            .iter()
+            .filter(|(s, t)| s.id() == src.id() && t.id() != tgt.id())
+            .map(|(s, t)| PairLink::of(s, t))
             .collect(),
     }
 }
@@ -380,18 +395,20 @@ fn family_groups(map: &EngineMap) -> Vec<FamilyGroup> {
         .collect()
 }
 
-fn engine_page(map: &EngineMap, majors: &[&EngineMap]) -> EnginePage {
-    let others: Vec<&&EngineMap> = if majors.iter().any(|m| m.id() == map.id()) {
-        majors.iter().filter(|m| m.id() != map.id()).collect()
-    } else {
-        Vec::new()
+fn engine_page(map: &EngineMap, routes: &[Route]) -> EnginePage {
+    let links = |touches: &dyn Fn(&Route) -> bool| -> Vec<PairLink> {
+        routes
+            .iter()
+            .filter(|r| touches(r))
+            .map(|(s, t)| PairLink::of(s, t))
+            .collect()
     };
     EnginePage {
         engine: EngineLink::of(map),
         total: map.source_notes().len(),
         groups: family_groups(map),
-        pairs_from: others.iter().map(|m| PairLink::of(map, m)).collect(),
-        pairs_to: others.iter().map(|m| PairLink::of(m, map)).collect(),
+        pairs_from: links(&|(s, _)| s.id() == map.id()),
+        pairs_to: links(&|(_, t)| t.id() == map.id()),
     }
 }
 
@@ -430,6 +447,10 @@ impl Site {
             .iter()
             .map(|(id, _)| lookup(catalog, id))
             .collect::<Result<Vec<_>, _>>()?;
+        let targets = TARGETS
+            .iter()
+            .map(|id| lookup(catalog, id))
+            .collect::<Result<Vec<_>, _>>()?;
         for id in EXCLUDED_IDS {
             lookup(catalog, id)?;
         }
@@ -447,7 +468,19 @@ impl Site {
             }
         }
 
-        let engines = maps.iter().map(|m| engine_page(m, &majors)).collect();
+        let hub_routes = majors.iter().flat_map(|&s| {
+            majors
+                .iter()
+                .filter(move |t| t.id() != s.id())
+                .map(move |&t| (s, t))
+        });
+        let wide_routes = maps
+            .iter()
+            .filter(|m| majors.iter().all(|h| h.id() != m.id()))
+            .flat_map(|&s| targets.iter().map(move |&t| (s, t)));
+        let routes: Vec<Route> = hub_routes.chain(wide_routes).collect();
+
+        let engines = maps.iter().map(|m| engine_page(m, &routes)).collect();
         let drum_map_files = maps
             .iter()
             .flat_map(|m| {
@@ -456,15 +489,9 @@ impl Site {
                     .map(|&daw| (drum_map_href(&slug(m.id()), daw), daw.drum_map(m)))
             })
             .collect();
-        let pairs: Vec<PairPage> = majors
+        let pairs: Vec<PairPage> = routes
             .iter()
-            .flat_map(|s| {
-                majors
-                    .iter()
-                    .filter(move |t| t.id() != s.id())
-                    .map(move |t| (*s, *t))
-            })
-            .map(|(s, t)| pair_page(s, t, &majors))
+            .map(|&(s, t)| pair_page(s, t, &routes))
             .collect();
         let (vendors, more) = vendor_groups(&maps);
         let index = IndexPage {
@@ -494,15 +521,32 @@ impl Site {
 }
 #[cfg(test)]
 mod tests {
-    use std::collections::{HashMap, HashSet};
+    use std::{
+        collections::{HashMap, HashSet},
+        sync::LazyLock,
+    };
 
     use midiremap_core::{convert, ChannelScope};
     use midiremap_testkit::{drums, hit_keys, off, on};
 
     use super::*;
 
-    fn site() -> Site {
-        Site::build(&Catalog::builtin().unwrap()).unwrap()
+    fn site() -> &'static Site {
+        static SITE: LazyLock<Site> =
+            LazyLock::new(|| Site::build(&Catalog::builtin().unwrap()).unwrap());
+        &SITE
+    }
+
+    fn hub_engines() -> usize {
+        MAJORS.len()
+    }
+
+    fn other_engines() -> usize {
+        site().engines.len() - hub_engines()
+    }
+
+    fn engine(id: &str) -> &'static EnginePage {
+        site().engines.iter().find(|p| p.engine.id == id).unwrap()
     }
 
     #[test]
@@ -590,15 +634,22 @@ mod tests {
     fn a_popular_conversion_without_a_pair_page_is_an_error() {
         let s = site();
         assert!(matches!(
-            popular_links(&s.pairs, &[("ugritone", "ezdrummer")]),
+            popular_links(&s.pairs, &[("ugritone", "bfd3")]),
             Err(BuildError::NoPairPage(_))
         ));
     }
 
     #[test]
-    fn fifty_six_pairs() {
-        let s = site();
-        assert_eq!(s.pairs.len(), 56);
+    fn pairs_join_the_hub_engines_and_every_other_engine_to_each_target() {
+        assert_eq!(
+            site().pairs.len(),
+            hub_engines() * (hub_engines() - 1) + other_engines() * TARGETS.len()
+        );
+    }
+
+    #[test]
+    fn every_target_is_a_hub_engine() {
+        assert!(TARGETS.iter().all(|t| MAJORS.iter().any(|(id, _)| id == t)));
     }
 
     #[test]
@@ -611,7 +662,7 @@ mod tests {
     fn pair_slugs_are_distinct() {
         let s = site();
         let slugs: HashSet<_> = s.pairs.iter().map(|p| p.slug.clone()).collect();
-        assert_eq!(slugs.len(), 56);
+        assert_eq!(slugs.len(), s.pairs.len());
     }
 
     #[test]
@@ -639,27 +690,75 @@ mod tests {
     }
 
     #[test]
-    fn major_engine_pages_link_seven_pairs_to_the_engine() {
-        let s = site();
-        let ezd = s
-            .engines
-            .iter()
-            .find(|p| p.engine.id == "ezdrummer")
-            .unwrap();
-        assert_eq!(ezd.pairs_to.len(), 7);
+    fn a_target_engine_page_links_a_pair_to_it_from_every_other_engine() {
+        let ezd = engine("ezdrummer");
+        assert_eq!(ezd.pairs_to.len(), hub_engines() - 1 + other_engines());
         assert!(ezd.pairs_to.iter().all(|l| l.tgt_name == "EZdrummer 3"));
     }
 
     #[test]
-    fn minor_engine_pages_link_no_pairs() {
+    fn a_target_engine_page_lists_the_hub_sources_first() {
+        let names: Vec<&str> = engine("ezdrummer").pairs_to[..hub_engines() - 1]
+            .iter()
+            .map(|l| l.src_name.as_str())
+            .collect();
+        assert!(names.contains(&"General MIDI") && names.contains(&"Guitar Pro"));
+    }
+
+    #[test]
+    fn a_hub_engine_that_is_no_target_links_seven_pairs_to_it() {
+        assert_eq!(engine("addictive_drums2").pairs_to.len(), 7);
+    }
+
+    #[test]
+    fn other_engine_pages_link_a_pair_to_each_target() {
+        let hertz = engine("hertz");
+        let targets: Vec<String> = hertz
+            .pairs_from
+            .iter()
+            .map(|l| l.slug.rsplit("-to-").next().unwrap().replace('-', "_"))
+            .collect();
+        assert_eq!(targets, TARGETS);
+        assert!(hertz
+            .pairs_from
+            .iter()
+            .all(|l| l.src_name == hertz.engine.name));
+    }
+
+    #[test]
+    fn other_engine_pages_link_no_pair_to_them() {
+        assert!(engine("hertz").pairs_to.is_empty());
+    }
+
+    #[test]
+    fn a_reverse_link_names_a_pair_page_that_exists() {
         let s = site();
-        let minor = s.engines.iter().find(|p| p.engine.id == "hertz").unwrap();
-        assert!(minor.pairs_from.is_empty() && minor.pairs_to.is_empty());
+        let slugs: HashSet<&str> = s.pairs.iter().map(|p| p.slug.as_str()).collect();
+        for p in &s.pairs {
+            if let Some(reverse) = &p.reverse {
+                assert!(slugs.contains(reverse.slug.as_str()), "{}", p.slug);
+            }
+        }
+    }
+
+    #[test]
+    fn only_a_pair_whose_other_direction_has_a_page_links_a_reverse_page() {
+        let s = site();
+        let slugs: HashSet<&str> = s.pairs.iter().map(|p| p.slug.as_str()).collect();
+        for p in &s.pairs {
+            let other_way = pair_slug(&p.tgt.id, &p.src.id);
+            assert_eq!(
+                p.reverse.is_some(),
+                slugs.contains(other_way.as_str()),
+                "{}",
+                p.slug
+            );
+        }
     }
 
     #[test]
     fn pair_rows_put_changes_first() {
-        for p in site().pairs {
+        for p in &site().pairs {
             let keys: Vec<(u8, u8)> = p
                 .rows
                 .iter()
@@ -673,7 +772,7 @@ mod tests {
 
     #[test]
     fn engine_rows_are_grouped_by_family_in_app_order() {
-        for p in site().engines {
+        for p in &site().engines {
             let names: Vec<&str> = p.groups.iter().map(|g| g.name).collect();
             let order: Vec<&str> = Family::ALL
                 .iter()
@@ -686,7 +785,7 @@ mod tests {
 
     #[test]
     fn engine_page_groups_are_never_empty() {
-        for p in site().engines {
+        for p in &site().engines {
             assert!(p.groups.iter().all(|g| !g.rows.is_empty()));
         }
     }
@@ -694,7 +793,7 @@ mod tests {
     #[test]
     fn engine_page_rows_cover_every_source_note() {
         let maps = Catalog::builtin().unwrap();
-        for p in site().engines {
+        for p in &site().engines {
             let total: usize = p.groups.iter().map(|g| g.rows.len()).sum();
             let map = maps.get(&p.engine.id).unwrap();
             assert_eq!(total, map.source_notes().len(), "{}", p.engine.id);
@@ -775,7 +874,7 @@ mod tests {
     #[test]
     fn vendor_groups_and_more_list_every_engine() {
         let s = site();
-        let listed: HashSet<&str> = listed_engines(&s).into_iter().collect();
+        let listed: HashSet<&str> = listed_engines(s).into_iter().collect();
         let all: HashSet<&str> = s.index.all.iter().map(|e| e.id.as_str()).collect();
         assert_eq!(listed, all);
     }
@@ -783,7 +882,7 @@ mod tests {
     #[test]
     fn vendor_groups_and_more_list_no_engine_twice() {
         let s = site();
-        let listed = listed_engines(&s);
+        let listed = listed_engines(s);
         assert_eq!(listed.iter().collect::<HashSet<_>>().len(), listed.len());
     }
 
@@ -871,15 +970,41 @@ mod tests {
     }
 
     #[test]
-    fn a_pair_lists_six_siblings() {
-        for p in site().pairs {
-            assert_eq!(p.siblings.len(), 6);
+    fn a_hub_pair_lists_six_siblings() {
+        let s = site();
+        let pair = s
+            .pairs
+            .iter()
+            .find(|p| p.slug == "ggd-invasion-to-ezdrummer")
+            .unwrap();
+        assert_eq!(pair.siblings.len(), 6);
+    }
+
+    #[test]
+    fn a_pair_from_another_engine_lists_the_other_targets() {
+        let s = site();
+        let pair = s
+            .pairs
+            .iter()
+            .find(|p| p.slug == "hertz-to-ezdrummer")
+            .unwrap();
+        assert_eq!(pair.siblings.len(), TARGETS.len() - 1);
+    }
+
+    #[test]
+    fn siblings_start_where_their_pair_starts() {
+        for p in &site().pairs {
+            assert!(
+                p.siblings.iter().all(|l| l.src_name == p.src.name),
+                "{}",
+                p.slug
+            );
         }
     }
 
     #[test]
     fn siblings_exclude_the_pair_itself() {
-        for p in site().pairs {
+        for p in &site().pairs {
             assert!(p.siblings.iter().all(|l| l.slug != p.slug));
         }
     }
@@ -888,7 +1013,7 @@ mod tests {
     fn pair_rows_agree_with_the_converter() {
         let maps = Catalog::builtin().unwrap();
         let by_id: HashMap<&str, &EngineMap> = maps.engines().map(|m| (m.id(), m)).collect();
-        for p in site().pairs {
+        for p in &site().pairs {
             let (src, tgt) = (by_id[p.src.id.as_str()], by_id[p.tgt.id.as_str()]);
             for row in &p.rows {
                 let out = convert(

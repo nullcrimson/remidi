@@ -333,6 +333,7 @@ maps-pair-description = { $source }のドラムMIDIを{ $target }用に変換：
    *[other] 一致{ $exact }個
 }、置き換え{ $approximated }個、削除{ $dropped }個。
 maps-pair-description-more = ブラウザで使える無料コンバーター。
+maps-pair-description-short = { $source }のドラムMIDIを{ $target }用に変換。
 maps-pair-summary = { $source }の全{ $total }個のノートのうち、{ $exact ->
    *[other] { $exact }個
 }は{ $target }にそのまま対応し、{ $approximated ->

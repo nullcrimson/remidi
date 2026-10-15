@@ -334,6 +334,7 @@ maps-pair-description = 将 { $source } 鼓 MIDI 转换为 { $target }：{ $exac
    *[other] 精确对应
 }，{ $approximated } 个替换，{ $dropped } 个删除。
 maps-pair-description-more = 免费的浏览器端转换器。
+maps-pair-description-short = 将 { $source } 鼓 MIDI 转换为 { $target }。
 maps-pair-summary = 在 { $source } 的 { $total } 个音符中，{ $exact } 个{ $exact ->
    *[other] 精确对应
 }到 { $target }，{ $approximated } 个{ $approximated ->

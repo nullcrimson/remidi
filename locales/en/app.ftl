@@ -351,6 +351,7 @@ maps-pair-description = Convert { $source } drum MIDI to { $target }: { $exact }
    *[other] notes map
 } exactly, { $approximated } approximated, { $dropped } dropped.
 maps-pair-description-more = Free in-browser converter.
+maps-pair-description-short = Convert { $source } drum MIDI to { $target }.
 maps-pair-summary = Of { $total } { $source } notes, { $exact } { $exact ->
     [one] maps
    *[other] map

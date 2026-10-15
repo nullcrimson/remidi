@@ -351,6 +351,7 @@ maps-pair-description = Drum-MIDI von { $source } nach { $target } konvertieren:
    *[other] Noten passen
 } exakt, { $approximated } ersetzt, { $dropped } entfernt.
 maps-pair-description-more = Kostenloser Konverter im Browser.
+maps-pair-description-short = Drum-MIDI von { $source } nach { $target } konvertieren.
 maps-pair-summary = Von { $total } { $total ->
     [one] Note
    *[other] Noten

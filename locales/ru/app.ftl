@@ -413,6 +413,7 @@ maps-pair-heading = Конвертация { $sourceMidi } в { $target }
 maps-pair-title = Конвертация { $sourceMidi } в { $target } | Drumverter
 maps-pair-description = Конвертация MIDI ударных из { $source } в { $target }: точно — { $exact }, заменено — { $approximated }, убрано — { $dropped }.
 maps-pair-description-more = Бесплатный конвертер прямо в браузере.
+maps-pair-description-short = Конвертация MIDI ударных из { $source } в { $target }.
 maps-pair-summary = Из { $total } { $total ->
     [one] ноты
     [few] нот

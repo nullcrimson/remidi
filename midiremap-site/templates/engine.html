@@ -79,11 +79,13 @@
     <li><a href="{{ texts.path(l.href()) }}" class="inline-flex rounded-chip border border-white/12 px-2.5 py-1 text-ui text-t2 transition-colors hover:border-accent/40 hover:text-t1 pointer-coarse:py-3">→ {{ l.tgt_name }}</a></li>
     {% endfor %}
   </ul>
+  {% if !page.pairs_to.is_empty() %}
   <ul class="flex flex-wrap gap-2">
     {% for l in page.pairs_to %}
     <li><a href="{{ texts.path(l.href()) }}" class="inline-flex rounded-chip border border-white/12 px-2.5 py-1 text-ui text-t2 transition-colors hover:border-accent/40 hover:text-t1 pointer-coarse:py-3">{{ l.src_name }} →</a></li>
     {% endfor %}
   </ul>
+  {% endif %}
 </div>
 {% endif %}
 {% endblock %}

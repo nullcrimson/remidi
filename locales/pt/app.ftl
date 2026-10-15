@@ -383,6 +383,7 @@ maps-pair-description = Converta MIDI de bateria de { $source } para { $target }
    *[other] removidas
 }.
 maps-pair-description-more = Conversor grátis no navegador.
+maps-pair-description-short = Converta MIDI de bateria de { $source } para { $target }.
 maps-pair-summary = Das { $total } notas de { $source }, { $exact } { $exact ->
     [0] são mapeadas
     [one] é mapeada

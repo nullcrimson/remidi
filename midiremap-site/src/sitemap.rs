@@ -72,7 +72,7 @@ mod tests {
     use midiremap_core::Catalog;
 
     use super::*;
-    use crate::pages::{EXCLUDED_IDS, MAJORS};
+    use crate::pages::{EXCLUDED_IDS, MAJORS, TARGETS};
 
     #[test]
     fn robots_allows_all() {
@@ -108,7 +108,7 @@ mod tests {
         let doc = roxmltree::Document::parse(&xml).unwrap();
         let locs: Vec<&str> = locations(&doc);
         let engines = catalog.ids().count() - EXCLUDED_IDS.len();
-        let pairs = MAJORS.len() * (MAJORS.len() - 1);
+        let pairs = MAJORS.len() * (MAJORS.len() - 1) + (engines - MAJORS.len()) * TARGETS.len();
         let docs = Docs::load().unwrap();
         let sections: usize = Locale::ALL
             .iter()
