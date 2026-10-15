@@ -1509,10 +1509,23 @@ mod tests {
         assert!(html.contains(r#"href="/drum-maps/files/ggd-invasion.pitchlist""#));
     }
 
+    fn download_wrapper<'a>(html: &'a str, href: &str) -> &'a str {
+        let link = html.find(&format!(r#"href="{href}""#)).unwrap();
+        let start = html[..link].rfind("<span ").unwrap();
+        &html[start..start + html[start..].find('>').unwrap()]
+    }
+
+    #[test]
+    fn a_drum_map_link_is_no_stats_element_so_the_browser_downloads_it() {
+        let html = page("engines/ggd-invasion/index.html");
+        let reaper = anchor_to(&html, "/drum-maps/files/ggd-invasion.txt");
+        assert!(!reaper.contains("data-umami-event"));
+    }
+
     #[test]
     fn a_drum_map_download_tells_the_stats_what_was_downloaded_where() {
         let html = page("engines/ggd-invasion/index.html");
-        let cubase = anchor_to(&html, "/drum-maps/files/ggd-invasion.drm");
+        let cubase = download_wrapper(&html, "/drum-maps/files/ggd-invasion.drm");
         assert!(cubase.contains(r#"data-umami-event="drum-map-downloaded""#));
         assert!(cubase.contains(r#"data-umami-event-engine="ggd_invasion""#));
         assert!(cubase.contains(r#"data-umami-event-daw="cubase""#));
@@ -1550,7 +1563,7 @@ mod tests {
                 .count(),
             site.drum_map_files.len()
         );
-        assert!(anchor_to(&html, "/drum-maps/files/ssd5.drm")
+        assert!(download_wrapper(&html, "/drum-maps/files/ssd5.drm")
             .contains(r#"data-umami-event-page="drum-maps""#));
     }
 
