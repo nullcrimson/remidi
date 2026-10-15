@@ -2,6 +2,7 @@ use std::borrow::Borrow;
 
 use askama::Template;
 use fluent_bundle::{FluentArgs, FluentValue};
+use midiremap_core::Daw;
 
 use crate::{
     content::{breadcrumb_schema, faq_schema, how_to_schema, Block, ContentPage},
@@ -10,7 +11,7 @@ use crate::{
     pages::{EnginePage, IndexPage, Landing, PairPage, Site, Tally},
     routes::{
         alternates, home, href, label, local_href, og_image_url, page_in, Alternate, LocalPath,
-        NavTarget, Page, SitePath, FOOTER, NAV, NOTE_MAPS, THANKS,
+        NavTarget, Page, SitePath, DRUM_MAPS, FOOTER, NAV, NOTE_MAPS, THANKS,
     },
 };
 
@@ -96,10 +97,13 @@ fn engine_meta(p: &EnginePage, texts: &Texts) -> Result<Meta, I18nError> {
                 MessageId::MapsEngineDescriptionShort,
                 args([("engine", n.into())]),
             )?],
-            &[texts.format(
-                MessageId::MapsEngineDescriptionMore,
-                args([("engineMidi", midi.as_str().into())]),
-            )?],
+            &[
+                texts.get(Plain::MapsEngineDescriptionDrumMaps).to_owned(),
+                texts.format(
+                    MessageId::MapsEngineDescriptionMore,
+                    args([("engineMidi", midi.as_str().into())]),
+                )?,
+            ],
             DESCRIPTION_MAX,
         ),
         canonical: p.engine.href().in_locale(texts.locale).url(),
@@ -166,6 +170,34 @@ fn index_meta(p: &IndexPage, texts: &Texts) -> Result<Meta, I18nError> {
     })
 }
 
+fn drum_maps_meta(p: &IndexPage, texts: &Texts) -> Result<Meta, I18nError> {
+    let count = || args([("count", p.all.len().into())]);
+    Ok(Meta {
+        title: texts.format(MessageId::DrumMapsTitle, count())?,
+        description: fit(
+            &texts.format(MessageId::DrumMapsDescription, count())?,
+            &[],
+            &[],
+            DESCRIPTION_MAX,
+        ),
+        canonical: DRUM_MAPS.in_locale(texts.locale).url(),
+    })
+}
+
+fn daw_steps<'a>(texts: &Texts<'a>) -> Vec<(Daw, &'a str)> {
+    Daw::ALL
+        .iter()
+        .map(|&daw| {
+            let how = match daw {
+                Daw::Reaper => Plain::DrumMapsReaper,
+                Daw::Cubase => Plain::DrumMapsCubase,
+                Daw::StudioOne => Plain::DrumMapsStudioOne,
+            };
+            (daw, texts.get(how))
+        })
+        .collect()
+}
+
 fn content_meta(title: String, description: String, path: &LocalPath) -> Meta {
     Meta {
         title,
@@ -186,6 +218,7 @@ enum PageKind {
     Index,
     Engine,
     Pair,
+    DrumMaps,
     Doc,
 }
 
@@ -195,6 +228,7 @@ impl std::fmt::Display for PageKind {
             Self::Index => "index",
             Self::Engine => "engine",
             Self::Pair => "pair",
+            Self::DrumMaps => "drum-maps",
             Self::Doc => "doc",
         })
     }
@@ -227,6 +261,13 @@ impl<'a> Texts<'a> {
         self.format(
             id,
             args([("source", source.into()), ("target", target.into())]),
+        )
+    }
+
+    fn drum_map_label(&self, engine: &str, daw: &str) -> Result<String, I18nError> {
+        self.format(
+            MessageId::DrumMapsDownloadLabel,
+            args([("engine", engine.into()), ("daw", daw.into())]),
         )
     }
 
@@ -391,6 +432,16 @@ struct IndexHtml<'a> {
 }
 
 #[derive(Template)]
+#[template(path = "drum_maps.html")]
+struct DrumMapsHtml<'a> {
+    meta: Meta,
+    frame: Frame<'a>,
+    texts: &'a Texts<'a>,
+    page: &'a IndexPage,
+    steps: Vec<(Daw, &'a str)>,
+}
+
+#[derive(Template)]
 #[template(path = "content.html")]
 struct ContentHtml<'a> {
     meta: Meta,
@@ -488,6 +539,24 @@ fn render_note_maps(
         }
         .render()?,
     )];
+    out.push((
+        DRUM_MAPS.in_locale(texts.locale).file(),
+        DrumMapsHtml {
+            meta: drum_maps_meta(&site.index, texts)?,
+            frame: Frame::new(
+                manifest,
+                texts,
+                Some(NavTarget::DrumMaps),
+                None,
+                &Page::Everywhere(DRUM_MAPS),
+                PageKind::DrumMaps,
+            ),
+            texts,
+            page: &site.index,
+            steps: daw_steps(texts),
+        }
+        .render()?,
+    ));
     for p in &site.engines {
         let path = p.engine.href();
         out.push((
@@ -1189,6 +1258,13 @@ mod tests {
         known.insert(manifest().stylesheet);
         known.extend(manifest().locale_script.preload);
         known.extend(STATIC_ASSETS.iter().map(|s| s.to_string()));
+        known.extend(
+            Site::build(&Catalog::builtin().unwrap())
+                .unwrap()
+                .drum_map_files
+                .iter()
+                .map(|(path, _)| path.to_string()),
+        );
         for (path, html) in &pages {
             for href in html
                 .split("href=\"")
@@ -1421,6 +1497,75 @@ mod tests {
     fn polish_engine_pages_open_the_polish_converter() {
         let html = page("pl/engines/ezdrummer/index.html");
         assert!(html.contains(r#"href="/pl/#to=ezdrummer""#));
+    }
+
+    #[test]
+    fn engine_pages_offer_a_drum_map_for_each_daw() {
+        let html = page("engines/ggd-invasion/index.html");
+        let reaper = anchor_to(&html, "/drum-maps/files/ggd-invasion.txt");
+        assert!(reaper.contains(r#"download="GetGood Drums Invasion (Drumverter).txt""#));
+        assert!(reaper.contains(r#"aria-label="GetGood Drums Invasion drum map for Reaper""#));
+        assert!(html.contains(r#"href="/drum-maps/files/ggd-invasion.drm""#));
+        assert!(html.contains(r#"href="/drum-maps/files/ggd-invasion.pitchlist""#));
+    }
+
+    #[test]
+    fn a_drum_map_download_tells_the_stats_what_was_downloaded_where() {
+        let html = page("engines/ggd-invasion/index.html");
+        let cubase = anchor_to(&html, "/drum-maps/files/ggd-invasion.drm");
+        assert!(cubase.contains(r#"data-umami-event="drum-map-downloaded""#));
+        assert!(cubase.contains(r#"data-umami-event-engine="ggd_invasion""#));
+        assert!(cubase.contains(r#"data-umami-event-daw="cubase""#));
+        assert!(cubase.contains(r#"data-umami-event-page="engine""#));
+    }
+
+    #[test]
+    fn polish_engine_pages_link_the_same_drum_map_files_and_the_polish_guide() {
+        let html = page("pl/engines/ggd-invasion/index.html");
+        assert!(html.contains(r#"href="/drum-maps/files/ggd-invasion.txt""#));
+        assert!(html.contains(r#"href="/pl/drum-maps/""#));
+    }
+
+    #[test]
+    fn engine_descriptions_mention_the_drum_maps_when_they_fit() {
+        let html = page("engines/ggd-invasion/index.html");
+        assert!(html.contains("Free Cubase, Reaper and Studio One drum maps."));
+    }
+
+    #[test]
+    fn every_locale_has_a_drum_maps_page() {
+        let pages = rendered();
+        for &l in Locale::ALL {
+            let file = DRUM_MAPS.in_locale(l).file();
+            assert!(pages.iter().any(|(p, _)| *p == file), "{file}");
+        }
+    }
+
+    #[test]
+    fn the_drum_maps_page_offers_every_engine_in_every_format() {
+        let html = page("drum-maps/index.html");
+        let site = Site::build(&Catalog::builtin().unwrap()).unwrap();
+        assert_eq!(
+            html.matches(r#"data-umami-event="drum-map-downloaded""#)
+                .count(),
+            site.drum_map_files.len()
+        );
+        assert!(anchor_to(&html, "/drum-maps/files/ssd5.drm")
+            .contains(r#"data-umami-event-page="drum-maps""#));
+    }
+
+    #[test]
+    fn the_drum_maps_page_explains_each_daw() {
+        let html = page("drum-maps/index.html");
+        assert!(html.contains(">How to load a drum map</h2>"));
+        assert!(html.contains("Load note/CC names from file"));
+        assert!(html.contains("Drum Map Setup"));
+        assert!(html.contains("Pitch Names"));
+    }
+
+    #[test]
+    fn the_note_maps_index_links_the_drum_maps_page() {
+        assert!(page("engines/index.html").contains(r#"href="/drum-maps/""#));
     }
 
     #[test]

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% import "macros.html" as macros %}
+{% block content %}
+<div class="flex flex-col gap-2.5">
+  <h1 class="font-display text-display/tight font-bold text-t1">{{ texts.get(Plain::DrumMapsHeading) }}</h1>
+  <p class="text-body/relaxed text-t3">{{ texts.count(MessageId::DrumMapsIntro, page.all.len())? }}</p>
+</div>
+
+<section class="flex flex-col gap-3">
+  <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::DrumMapsHowHeading) }}</h2>
+  <dl class="flex flex-col gap-3">
+    {% for (daw, how) in steps %}
+    <div class="flex flex-col gap-1">
+      <dt class="font-display text-body font-semibold text-t1">{{ daw.name() }} <span class="font-mono text-caption font-normal text-t5">.{{ daw.extension() }}</span></dt>
+      <dd class="text-ui/relaxed text-t3">{{ how }}</dd>
+    </div>
+    {% endfor %}
+  </dl>
+  <p class="text-ui/relaxed text-t4">{{ texts.get(Plain::DrumMapsOther) }}</p>
+</section>
+
+<section class="flex flex-col gap-3">
+  <h2 class="font-display text-title font-semibold text-t1">{{ texts.count(MessageId::DrumMapsListHeading, page.all.len())? }}</h2>
+  <input
+    type="search"
+    hidden
+    data-filter="drum-maps"
+    data-page="{{ frame.kind }}"
+    aria-label="{{ texts.get(Plain::MapsFilterEnginesLabel) }}"
+    placeholder="{{ texts.get(Plain::MapsFilterEnginesPlaceholder) }}"
+    class="rounded-chip border border-field-border bg-field px-2 py-1.25 font-mono text-body text-t2 transition-colors outline-none placeholder:text-t5 focus:border-accent/40 sm:text-label pointer-coarse:py-2.5"
+  />
+  <ul id="drum-maps" class="flex flex-col">
+    <li data-group>
+      <ul class="flex flex-col">
+        {% for e in page.all %}
+        <li data-q="{{ e.search() }}" class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5 border-t border-white/5 py-2">
+          <a href="{{ texts.path(e.href()) }}" class="text-ui text-t2 transition-colors hover:text-accent">{{ e.name }}</a>
+          <span class="flex flex-wrap gap-2">{% for d in e.drum_maps() %}{% call macros::drum_map_download(e, d) %}{% endcall %}{% endfor %}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </li>
+  </ul>
+  <p id="drum-maps-empty" hidden class="font-mono text-label text-t5">{{ texts.get(Plain::MapsNoEngines) }}</p>
+</section>
+{% endblock %}
+{% block script %}{% include "filter.html" %}{% endblock %}

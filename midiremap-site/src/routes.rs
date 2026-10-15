@@ -1,5 +1,7 @@
 use std::{borrow::Cow, fmt};
 
+use midiremap_core::Daw;
+
 use crate::i18n::{Docs, Locale, Plain, SectionKey};
 
 include!(concat!(env!("OUT_DIR"), "/routes.rs"));
@@ -91,6 +93,11 @@ pub fn engine_href(slug: &str) -> SitePath {
     SitePath::new(format!("{NOTE_MAPS}{slug}/"))
 }
 
+/// A drum map file's address: one copy every locale links.
+pub fn drum_map_href(slug: &str, daw: Daw) -> SitePath {
+    SitePath::new(format!("{DRUM_MAPS}files/{slug}.{}", daw.extension()))
+}
+
 /// A conversion pair page's address.
 pub fn pair_href(slug: &str) -> SitePath {
     SitePath::new(format!("/convert/{slug}/"))
@@ -114,6 +121,7 @@ pub fn href(target: NavTarget, locale: Locale, docs: &Docs) -> LocalPath {
     match target {
         NavTarget::Converter => home(locale),
         NavTarget::NoteMaps => NOTE_MAPS.in_locale(locale),
+        NavTarget::DrumMaps => DRUM_MAPS.in_locale(locale),
         NavTarget::Section(k) if docs.has(locale, k) => section_path(k).in_locale(locale),
         NavTarget::Section(k) => section_path(k).in_locale(Locale::En),
     }
@@ -124,6 +132,7 @@ pub fn label(target: NavTarget) -> Plain {
     match target {
         NavTarget::Converter => Plain::NavConverter,
         NavTarget::NoteMaps => Plain::NavNoteMaps,
+        NavTarget::DrumMaps => Plain::NavDrumMaps,
         NavTarget::Section(k) => k.label(),
     }
 }

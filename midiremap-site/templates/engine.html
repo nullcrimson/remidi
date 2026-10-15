@@ -60,6 +60,17 @@
 </table>
 <p id="drums-empty" hidden class="font-mono text-label text-t5">{{ texts.get(Plain::RowsNone) }}</p>
 
+<section class="flex flex-col gap-3 border-t border-hairline pt-5">
+  <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::MapsDawHeading) }}</h2>
+  <p class="text-ui/relaxed text-t3">{{ texts.engine(MessageId::MapsDawIntro, page.engine.name.as_str())? }}</p>
+  <ul class="flex flex-wrap gap-2">
+    {% for d in page.engine.drum_maps() %}
+    <li>{% call macros::drum_map_download(page.engine, d) %}{% endcall %}</li>
+    {% endfor %}
+  </ul>
+  <p class="text-label text-t5"><a href="{{ texts.path(DRUM_MAPS) }}" class="prose-link">{{ texts.get(Plain::MapsDawHow) }}</a></p>
+</section>
+
 {% if !page.pairs_from.is_empty() %}
 <div class="flex flex-col gap-3 border-t border-hairline pt-5">
   <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::MapsConversionTables) }}</h2>

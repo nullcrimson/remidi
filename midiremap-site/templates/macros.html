@@ -6,3 +6,4 @@
     {% call chip("octave", "oct-c1", true, "C-1") %}{% endcall %}
     {% call chip("octave", "oct-c2", false, "C-2") %}{% endcall %}
   </div>{% endmacro %}
+{% macro drum_map_download(engine, d) %}<a href="{{ d.href }}" download="{{ d.file_name }}" aria-label="{{ texts.drum_map_label(engine.name.as_str(), d.daw.name())? }}" data-umami-event="drum-map-downloaded" data-umami-event-engine="{{ engine.id }}" data-umami-event-daw="{{ d.daw.key() }}" data-umami-event-page="{{ frame.kind }}" class="inline-flex items-baseline gap-1.5 rounded-chip border border-white/12 px-2.5 py-1 text-ui text-t2 transition-colors hover:border-accent/40 hover:text-t1 pointer-coarse:py-3">{{ d.daw.name() }}<span aria-hidden="true" class="font-mono text-caption text-t5">.{{ d.daw.extension() }}</span></a>{% endmacro %}

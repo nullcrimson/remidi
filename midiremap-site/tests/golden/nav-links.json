@@ -4,6 +4,7 @@
       "/de/how-it-works/",
       "/de/faq/",
       "/de/engines/",
+      "/de/drum-maps/",
       "/de/report-an-issue/",
       "/de/contact/",
       "/de/terms/"
@@ -20,6 +21,7 @@
       "/how-it-works/",
       "/faq/",
       "/engines/",
+      "/drum-maps/",
       "/report-an-issue/",
       "/contact/",
       "/terms/"
@@ -36,6 +38,7 @@
       "/es/how-it-works/",
       "/es/faq/",
       "/es/engines/",
+      "/es/drum-maps/",
       "/es/report-an-issue/",
       "/es/contact/",
       "/es/terms/"
@@ -52,6 +55,7 @@
       "/fr/how-it-works/",
       "/fr/faq/",
       "/fr/engines/",
+      "/fr/drum-maps/",
       "/fr/report-an-issue/",
       "/fr/contact/",
       "/fr/terms/"
@@ -68,6 +72,7 @@
       "/it/how-it-works/",
       "/it/faq/",
       "/it/engines/",
+      "/it/drum-maps/",
       "/it/report-an-issue/",
       "/it/contact/",
       "/it/terms/"
@@ -84,6 +89,7 @@
       "/ja/how-it-works/",
       "/ja/faq/",
       "/ja/engines/",
+      "/ja/drum-maps/",
       "/ja/report-an-issue/",
       "/ja/contact/",
       "/ja/terms/"
@@ -100,6 +106,7 @@
       "/ko/how-it-works/",
       "/ko/faq/",
       "/ko/engines/",
+      "/ko/drum-maps/",
       "/ko/report-an-issue/",
       "/ko/contact/",
       "/ko/terms/"
@@ -116,6 +123,7 @@
       "/pl/how-it-works/",
       "/pl/faq/",
       "/pl/engines/",
+      "/pl/drum-maps/",
       "/pl/report-an-issue/",
       "/pl/contact/",
       "/pl/terms/"
@@ -132,6 +140,7 @@
       "/pt/how-it-works/",
       "/pt/faq/",
       "/pt/engines/",
+      "/pt/drum-maps/",
       "/pt/report-an-issue/",
       "/pt/contact/",
       "/pt/terms/"
@@ -148,6 +157,7 @@
       "/ru/how-it-works/",
       "/ru/faq/",
       "/ru/engines/",
+      "/ru/drum-maps/",
       "/ru/report-an-issue/",
       "/ru/contact/",
       "/ru/terms/"
@@ -164,6 +174,7 @@
       "/zh/how-it-works/",
       "/zh/faq/",
       "/zh/engines/",
+      "/zh/drum-maps/",
       "/zh/report-an-issue/",
       "/zh/contact/",
       "/zh/terms/"

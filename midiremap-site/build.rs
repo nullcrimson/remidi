@@ -42,6 +42,7 @@ struct Tip {
 struct Routes {
     converter: String,
     note_maps: String,
+    drum_maps: String,
 }
 
 #[derive(Deserialize)]
@@ -57,6 +58,7 @@ fn target(t: &Target, keys: &BTreeSet<&str>) -> String {
     match t {
         Target::Route { route } if route == "converter" => "NavTarget::Converter".into(),
         Target::Route { route } if route == "noteMaps" => "NavTarget::NoteMaps".into(),
+        Target::Route { route } if route == "drumMaps" => "NavTarget::DrumMaps".into(),
         Target::Route { route } => panic!("structure.json: unknown route '{route}'"),
         Target::Section { section } if keys.contains(section.as_str()) => {
             format!(
@@ -223,10 +225,10 @@ fn main() {
     out += "}\n";
 
     let mut routes = format!(
-        "pub const CONVERTER: SitePath = SitePath::fixed({:?});\npub const NOTE_MAPS: SitePath = SitePath::fixed({:?});\n",
-        structure.routes.converter, structure.routes.note_maps
+        "pub const CONVERTER: SitePath = SitePath::fixed({:?});\npub const NOTE_MAPS: SitePath = SitePath::fixed({:?});\npub const DRUM_MAPS: SitePath = SitePath::fixed({:?});\n",
+        structure.routes.converter, structure.routes.note_maps, structure.routes.drum_maps
     );
-    routes += "#[derive(Copy, Clone, Debug, PartialEq, Eq)]\npub enum NavTarget { Converter, NoteMaps, Section(SectionKey) }\n";
+    routes += "#[derive(Copy, Clone, Debug, PartialEq, Eq)]\npub enum NavTarget { Converter, NoteMaps, DrumMaps, Section(SectionKey) }\n";
     routes += &format!(
         "pub const NAV: &[NavTarget] = &[{}];\n",
         list(structure.nav.iter().map(|t| target(t, &keys)))

@@ -2,7 +2,8 @@ use crate::{
     i18n::{Docs, Locale, SectionKey},
     pages::{PairPage, Site},
     routes::{
-        alternates, home, href, sitemap_url, NavTarget, Page, SitePath, CONVERTER_PAGE, NOTE_MAPS,
+        alternates, home, href, sitemap_url, NavTarget, Page, SitePath, CONVERTER_PAGE, DRUM_MAPS,
+        NOTE_MAPS,
     },
 };
 
@@ -11,7 +12,8 @@ pub fn sitemap(site: &Site, docs: &Docs) -> String {
     let converters = Locale::ALL
         .iter()
         .map(|&l| (home(l), alternates(&CONVERTER_PAGE, docs)));
-    let english: Vec<SitePath> = std::iter::once(NOTE_MAPS)
+    let english: Vec<SitePath> = [NOTE_MAPS, DRUM_MAPS]
+        .into_iter()
         .chain(site.engines.iter().map(|p| p.engine.href()))
         .chain(site.pairs.iter().map(PairPage::href))
         .collect();
@@ -57,7 +59,10 @@ pub fn sitemap(site: &Site, docs: &Docs) -> String {
 }
 
 pub fn robots() -> String {
-    format!("User-agent: *\nAllow: /\n\nSitemap: {}\n", sitemap_url())
+    format!(
+        "User-agent: *\nAllow: /\nDisallow: {DRUM_MAPS}files/\n\nSitemap: {}\n",
+        sitemap_url()
+    )
 }
 
 #[cfg(test)]
@@ -111,8 +116,29 @@ mod tests {
             .sum();
         assert_eq!(
             locs.len(),
-            Locale::ALL.len() * (2 + engines + pairs) + sections
+            Locale::ALL.len() * (3 + engines + pairs) + sections
         );
+    }
+
+    #[test]
+    fn lists_the_drum_maps_page_in_every_locale() {
+        let xml = sitemap_xml();
+        let doc = roxmltree::Document::parse(&xml).unwrap();
+        let locs = locations(&doc);
+        for &l in Locale::ALL {
+            let url = DRUM_MAPS.in_locale(l).url();
+            assert!(locs.contains(&url.as_str()), "{url}");
+        }
+    }
+
+    #[test]
+    fn robots_keeps_crawlers_out_of_the_drum_map_files() {
+        assert!(robots().contains("Disallow: /drum-maps/files/\n"));
+    }
+
+    #[test]
+    fn lists_no_drum_map_file() {
+        assert!(!sitemap_xml().contains("/drum-maps/files/"));
     }
 
     #[test]

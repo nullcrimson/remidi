@@ -12,6 +12,7 @@ describe('SiteFooter', () => {
       ['How to use', '/how-it-works/'],
       ['FAQ', '/faq/'],
       ['Note maps', '/engines/'],
+      ['Drum maps', '/drum-maps/'],
       ['Report an issue', '/report-an-issue/'],
       ['Contact', '/contact/'],
       ['Terms', '/terms/'],

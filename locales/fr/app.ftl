@@ -1,6 +1,7 @@
 brand-tagline = convertisseur de MIDI batterie
 nav-converter = Convertisseur
 nav-note-maps = Mappings
+nav-drum-maps = Drum maps
 section-guide-label = Mode d’emploi
 section-guide-heading = Comment convertir du MIDI batterie
 section-guide-title = Convertir du MIDI batterie d’un plugin à l’autre | Drumverter
@@ -434,3 +435,31 @@ maps-status-approximated = remplacée
 maps-status-dropped = supprimée
 maps-more-from = Autres conversions depuis { $engine }
 maps-full-maps = Mappings complets :
+maps-index-drum-maps = Drum maps pour votre DAW, pour chaque plugin : Cubase, Reaper et Studio One
+maps-engine-description-drum-maps = Drum maps gratuites pour Cubase, Reaper et Studio One.
+maps-daw-heading = Drum maps pour votre DAW
+maps-daw-intro = Chargez l’un de ces fichiers dans votre DAW pour voir sur les touches du piano roll les noms des éléments ({ $engine }).
+maps-daw-how = Charger une drum map dans Reaper, Cubase ou Studio One
+drum-maps-title = { $count ->
+    [one] Drum maps pour Cubase, Reaper et Studio One : { $count } plugin | Drumverter
+   *[other] Drum maps pour Cubase, Reaper et Studio One : { $count } plugins | Drumverter
+}
+drum-maps-description = { $count ->
+    [one] Drum maps gratuites pour { $count } plugin : drum maps Cubase (.drm), noms de notes Reaper (.txt) et pitch lists Studio One (.pitchlist).
+   *[other] Drum maps gratuites pour { $count } plugins : drum maps Cubase (.drm), noms de notes Reaper (.txt) et pitch lists Studio One (.pitchlist).
+}
+drum-maps-heading = Drum maps pour votre DAW
+drum-maps-intro = { $count ->
+    [one] Drum maps gratuites pour { $count } plugin de batterie, tirées des mêmes mappings que le convertisseur. Chaque fichier nomme toutes les notes que joue le plugin : le piano roll affiche les noms des éléments au lieu des numéros de note. Les fichiers utilisent les numéros de note MIDI et fonctionnent donc avec les deux conventions d’octave.
+   *[other] Drum maps gratuites pour { $count } plugins de batterie, tirées des mêmes mappings que le convertisseur. Chaque fichier nomme toutes les notes que joue le plugin : le piano roll affiche les noms des éléments au lieu des numéros de note. Les fichiers utilisent les numéros de note MIDI et fonctionnent donc avec les deux conventions d’octave.
+}
+drum-maps-how-heading = Charger une drum map
+drum-maps-reaper = Dans l’éditeur MIDI, choisissez File → Note/CC names → Load note/CC names from file, puis le fichier .txt.
+drum-maps-cubase = Ouvrez MIDI → Configuration des Drum Maps (Drum Map Setup), cliquez sur Charger et choisissez le fichier .drm. Sélectionnez ensuite la map dans le champ Drum Map de l’Inspecteur de la piste.
+drum-maps-studio-one = Dans la vue Edit, cliquez sur l’icône de clé pour afficher les noms de notes, puis glissez le fichier .pitchlist dessus. Enregistrez-le depuis le menu Pitch Names pour le réutiliser.
+drum-maps-other = Logic Pro, Ableton Live, FL Studio et Bitwig Studio ne savent pas charger de fichiers de noms de notes. Servez-vous du mapping du plugin pour trouver chaque élément, ou convertissez votre MIDI vers le plugin que vous utilisez.
+drum-maps-list-heading = { $count ->
+    [one] Drum maps de { $count } plugin
+   *[other] Drum maps des { $count } plugins
+}
+drum-maps-download-label = Drum map { $engine } pour { $daw }

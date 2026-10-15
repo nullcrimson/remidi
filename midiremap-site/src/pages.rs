@@ -1,11 +1,11 @@
 use std::collections::{BTreeMap, HashSet};
 
 use midiremap_core::{
-    Canon, CanonResolution, Catalog, Drum, EngineMap, Family, Mapping, MissingDrums, Note,
+    Canon, CanonResolution, Catalog, Daw, Drum, EngineMap, Family, Mapping, MissingDrums, Note,
     OctaveBase, Overrides,
 };
 
-use crate::routes::{engine_href, pair_href, SitePath, POPULAR};
+use crate::routes::{drum_map_href, engine_href, pair_href, SitePath, POPULAR};
 
 /// What stops the site's pages from being planned.
 #[derive(thiserror::Error, Debug)]
@@ -61,6 +61,22 @@ impl EngineLink {
         engine_href(&self.slug)
     }
 
+    /// The engine's DAW drum maps, one per DAW.
+    pub fn drum_maps(&self) -> Vec<DrumMapLink> {
+        Daw::ALL
+            .iter()
+            .map(|&daw| DrumMapLink {
+                daw,
+                href: drum_map_href(&self.slug, daw),
+                file_name: format!(
+                    "{} (Drumverter).{}",
+                    safe_file_name(&self.name),
+                    daw.extension()
+                ),
+            })
+            .collect()
+    }
+
     /// Lower-case text the index filter matches against.
     pub fn search(&self) -> String {
         match &self.vendor {
@@ -69,6 +85,24 @@ impl EngineLink {
         }
         .to_lowercase()
     }
+}
+
+/// A download of one engine's drum map for one DAW.
+pub struct DrumMapLink {
+    pub daw: Daw,
+    pub href: SitePath,
+    /// The name the browser saves the file under.
+    pub file_name: String,
+}
+
+fn safe_file_name(name: &str) -> String {
+    name.chars()
+        .map(|c| match c {
+            '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => '-',
+            c if c.is_control() => '-',
+            c => c,
+        })
+        .collect()
 }
 
 pub struct PairLink {
@@ -254,6 +288,8 @@ pub struct Site {
     pub pairs: Vec<PairPage>,
     /// The conversions the converter's page links, in `content/structure.json` order.
     pub popular: Vec<PairLink>,
+    /// Every engine's drum map in every DAW's format, by address.
+    pub drum_map_files: Vec<(SitePath, String)>,
 }
 
 fn popular_links(pairs: &[PairPage], wanted: &[(&str, &str)]) -> Result<Vec<PairLink>, BuildError> {
@@ -412,6 +448,14 @@ impl Site {
         }
 
         let engines = maps.iter().map(|m| engine_page(m, &majors)).collect();
+        let drum_map_files = maps
+            .iter()
+            .flat_map(|m| {
+                Daw::ALL
+                    .iter()
+                    .map(|&daw| (drum_map_href(&slug(m.id()), daw), daw.drum_map(m)))
+            })
+            .collect();
         let pairs: Vec<PairPage> = majors
             .iter()
             .flat_map(|s| {
@@ -444,6 +488,7 @@ impl Site {
             engines,
             popular: popular_links(&pairs, POPULAR)?,
             pairs,
+            drum_map_files,
         })
     }
 }
@@ -488,6 +533,30 @@ mod tests {
         let s = site();
         let slugs: HashSet<_> = s.engines.iter().map(|p| p.engine.slug.clone()).collect();
         assert!(slugs.iter().all(|s| !s.contains('_')));
+    }
+
+    #[test]
+    fn every_engine_has_a_drum_map_file_per_daw() {
+        let s = site();
+        assert_eq!(s.drum_map_files.len(), s.engines.len() * Daw::ALL.len());
+        let written: HashSet<String> = s
+            .drum_map_files
+            .iter()
+            .map(|(p, _)| p.to_string())
+            .collect();
+        for p in &s.engines {
+            for d in p.engine.drum_maps() {
+                assert!(written.contains(&d.href.to_string()), "{}", d.href);
+            }
+        }
+    }
+
+    #[test]
+    fn a_drum_map_file_name_has_no_character_windows_forbids() {
+        assert_eq!(
+            safe_file_name(r#"A/B\C:D*E?F"G<H>I|J"#),
+            "A-B-C-D-E-F-G-H-I-J"
+        );
     }
 
     #[test]

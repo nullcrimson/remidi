@@ -46,7 +46,7 @@ pub struct Note(u8);
 pub struct NoteParseError(String);
 
 impl Note {
-    const MAX: u8 = 127;
+    pub(crate) const MAX: u8 = 127;
 
     pub(crate) const COUNT: usize = Self::MAX as usize + 1;
 

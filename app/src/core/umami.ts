@@ -8,7 +8,8 @@ export type ErrorKind = AppError['kind'];
 /** What each event carries, by name: the one list of what the app and the static pages send. */
 export interface StatEvents {
   'converter-opened': { page: 'index' | 'engine' | 'pair' | 'doc'; from?: string; to?: string };
-  'maps-filtered': { page: 'index' | 'engine' };
+  'maps-filtered': { page: 'index' | 'engine' | 'drum-maps' };
+  'drum-map-downloaded': { engine: string; daw: 'reaper' | 'cubase' | 'studio-one'; page: 'engine' | 'drum-maps' };
   'language-offered': { to: Locale };
   'language-offer-answered': { to: Locale; answer: 'accepted' | 'dismissed' };
   'engine-picked': { side: 'from' | 'to'; id: string; via: 'list' | 'filter' | 'favorite' };
@@ -76,7 +77,7 @@ export interface StatEvents {
 export type StatEvent = keyof StatEvents;
 
 /** The events only the static pages send, which never pass through the tier switch. */
-export type StaticOnlyEvent = 'converter-opened' | 'maps-filtered' | 'language-offered' | 'language-offer-answered';
+export type StaticOnlyEvent = 'converter-opened' | 'maps-filtered' | 'drum-map-downloaded' | 'language-offered' | 'language-offer-answered';
 
 /** The events the app sends through `track`. */
 export type AppEvent = Exclude<StatEvent, StaticOnlyEvent>;

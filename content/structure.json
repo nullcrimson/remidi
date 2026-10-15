@@ -1,5 +1,5 @@
 {
-  "routes": { "converter": "/", "noteMaps": "/engines/" },
+  "routes": { "converter": "/", "noteMaps": "/engines/", "drumMaps": "/drum-maps/" },
   "sections": [
     { "key": "guide", "slug": "how-it-works" },
     { "key": "faq", "slug": "faq" },
@@ -8,7 +8,7 @@
     { "key": "terms", "slug": "terms" }
   ],
   "nav": [{ "route": "converter" }, { "section": "guide" }, { "route": "noteMaps" }, { "section": "faq" }],
-  "footer": [{ "section": "guide" }, { "section": "faq" }, { "route": "noteMaps" }, { "section": "issue" }, { "section": "contact" }, { "section": "terms" }],
+  "footer": [{ "section": "guide" }, { "section": "faq" }, { "route": "noteMaps" }, { "route": "drumMaps" }, { "section": "issue" }, { "section": "contact" }, { "section": "terms" }],
   "popular": [
     ["ggd_invasion", "ezdrummer"],
     ["ggd_invasion", "superior_drummer3"],

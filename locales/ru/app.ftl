@@ -1,6 +1,7 @@
 brand-tagline = конвертер MIDI плагинов для барабанов
 nav-converter = Конвертер
 nav-note-maps = Маппинги
+nav-drum-maps = Драм-карты
 section-guide-label = Как пользоваться
 section-guide-heading = Как конвертировать MIDI ударных
 section-guide-title = Как конвертировать MIDI ударных между плагинами | Drumverter
@@ -435,3 +436,30 @@ maps-status-approximated = заменено
 maps-status-dropped = убрано
 maps-more-from = Другие конвертации из { $engine }
 maps-full-maps = Полные маппинги нот:
+maps-index-drum-maps = Драм-карты для DAW для каждого плагина: Cubase, Reaper и Studio One
+maps-engine-description-drum-maps = Бесплатные драм-карты для Cubase, Reaper и Studio One.
+maps-daw-heading = Драм-карты для DAW
+maps-daw-intro = Загрузите один из этих файлов в DAW, чтобы видеть названия барабанов { $engine } на клавишах пиано-ролла.
+maps-daw-how = Как загрузить драм-карту в Reaper, Cubase или Studio One
+drum-maps-title = { $count ->
+    [one] Драм-карты для Cubase, Reaper и Studio One: { $count } плагин | Drumverter
+    [few] Драм-карты для Cubase, Reaper и Studio One: { $count } плагина | Drumverter
+    [many] Драм-карты для Cubase, Reaper и Studio One: { $count } плагинов | Drumverter
+   *[other] Драм-карты для Cubase, Reaper и Studio One: { $count } плагина | Drumverter
+}
+drum-maps-description = { $count ->
+    [one] Бесплатные драм-карты для { $count } плагина ударных: drum maps для Cubase (.drm), имена нот для Reaper (.txt) и pitch lists для Studio One (.pitchlist).
+   *[other] Бесплатные драм-карты для { $count } плагинов ударных: drum maps для Cubase (.drm), имена нот для Reaper (.txt) и pitch lists для Studio One (.pitchlist).
+}
+drum-maps-heading = Драм-карты для DAW
+drum-maps-intro = { $count ->
+    [one] Бесплатные драм-карты для { $count } плагина ударных, сделанные из тех же маппингов, что использует конвертер. Каждый файл называет все ноты, которые играет плагин, поэтому пиано-ролл показывает названия барабанов вместо номеров нот. Файлы используют номера нот MIDI, поэтому подходят для любой нумерации октав.
+   *[other] Бесплатные драм-карты для { $count } плагинов ударных, сделанные из тех же маппингов, что использует конвертер. Каждый файл называет все ноты, которые играет плагин, поэтому пиано-ролл показывает названия барабанов вместо номеров нот. Файлы используют номера нот MIDI, поэтому подходят для любой нумерации октав.
+}
+drum-maps-how-heading = Как загрузить драм-карту
+drum-maps-reaper = В MIDI-редакторе выберите File → Note/CC names → Load note/CC names from file и укажите файл .txt.
+drum-maps-cubase = Откройте MIDI → Drum Map Setup, нажмите Load и выберите файл .drm. Затем выберите карту в поле Drum Map в инспекторе трека.
+drum-maps-studio-one = В окне Edit нажмите значок гаечного ключа, чтобы показать названия нот, и перетащите на них файл .pitchlist. Сохраните его через меню Pitch Names, чтобы использовать снова.
+drum-maps-other = Logic Pro, Ableton Live, FL Studio и Bitwig Studio не умеют загружать файлы с названиями нот. Найдите нужный барабан по маппингу плагина или сконвертируйте MIDI под плагин, на котором играете.
+drum-maps-list-heading = Драм-карты всех плагинов ({ $count })
+drum-maps-download-label = Драм-карта { $engine } для { $daw }

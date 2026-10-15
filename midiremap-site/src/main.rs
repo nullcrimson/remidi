@@ -87,6 +87,9 @@ fn run(out_dir: &Path) -> Result<usize, SiteError> {
             &shell::localize_shell(&index_html, l, &messages, &docs, &site.popular)?,
         )?;
     }
+    for (path, file) in &site.drum_map_files {
+        write(out_dir.join(path.to_string().trim_start_matches('/')), file)?;
+    }
     write(out_dir.join("filter.js"), FILTER_JS)?;
     write(out_dir.join("sitemap.xml"), &sitemap::sitemap(&site, &docs))?;
     write(out_dir.join("robots.txt"), &sitemap::robots())?;

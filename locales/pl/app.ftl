@@ -1,6 +1,7 @@
 brand-tagline = konwerter i remapper MIDI perkusji
 nav-converter = Konwerter
 nav-note-maps = Mapy nut
+nav-drum-maps = Mapy perkusji
 section-guide-label = Jak używać
 section-guide-heading = Jak konwertować MIDI perkusji
 section-guide-title = Jak konwertować MIDI perkusji między wtyczkami | Drumverter
@@ -405,3 +406,32 @@ maps-status-approximated = zastąpiony
 maps-status-dropped = usunięty
 maps-more-from = Więcej z { $engine }
 maps-full-maps = Pełne mapy nut:
+maps-index-drum-maps = Mapy perkusji do DAW dla każdej wtyczki: Cubase, Reaper i Studio One
+maps-engine-description-drum-maps = Darmowe mapy perkusji do Cubase, Reapera i Studio One.
+maps-daw-heading = Mapy perkusji do DAW
+maps-daw-intro = Wczytaj jeden z tych plików do DAW, a na klawiszach piano rolla zobaczysz nazwy instrumentów { $engine }.
+maps-daw-how = Jak wczytać mapę perkusji w Reaperze, Cubase lub Studio One
+drum-maps-title = { $count ->
+    [one] Mapy perkusji do Cubase, Reapera i Studio One: { $count } wtyczka | Drumverter
+    [few] Mapy perkusji do Cubase, Reapera i Studio One: { $count } wtyczki | Drumverter
+   *[many] Mapy perkusji do Cubase, Reapera i Studio One: { $count } wtyczek | Drumverter
+}
+drum-maps-description = { $count ->
+    [one] Darmowe mapy perkusji dla { $count } wtyczki: drum mapy Cubase (.drm), nazwy nut Reapera (.txt) i pitch listy Studio One (.pitchlist).
+   *[other] Darmowe mapy perkusji dla { $count } wtyczek: drum mapy Cubase (.drm), nazwy nut Reapera (.txt) i pitch listy Studio One (.pitchlist).
+}
+drum-maps-heading = Mapy perkusji do DAW
+drum-maps-intro = { $count ->
+    [one] Darmowe mapy perkusji dla { $count } wtyczki, zrobione z tych samych map nut, których używa konwerter. Każdy plik nazywa wszystkie nuty, które gra wtyczka, więc piano roll pokazuje nazwy instrumentów zamiast numerów nut. Pliki używają numerów nut MIDI, więc działają z oboma konwencjami oktaw.
+   *[other] Darmowe mapy perkusji dla { $count } wtyczek, zrobione z tych samych map nut, których używa konwerter. Każdy plik nazywa wszystkie nuty, które gra wtyczka, więc piano roll pokazuje nazwy instrumentów zamiast numerów nut. Pliki używają numerów nut MIDI, więc działają z oboma konwencjami oktaw.
+}
+drum-maps-how-heading = Jak wczytać mapę perkusji
+drum-maps-reaper = W edytorze MIDI wybierz File → Note/CC names → Load note/CC names from file i wskaż plik .txt.
+drum-maps-cubase = Otwórz MIDI → Drum Map Setup, kliknij Load i wskaż plik .drm. Potem wybierz mapę w polu Drum Map w Inspectorze ścieżki.
+drum-maps-studio-one = W widoku Edit kliknij ikonę klucza, żeby pokazać nazwy nut, i przeciągnij na nie plik .pitchlist. Zapisz go z menu Pitch Names, żeby używać go ponownie.
+drum-maps-other = Logic Pro, Ableton Live, FL Studio i Bitwig Studio nie wczytują plików z nazwami nut. Znajdź instrument na mapie nut wtyczki albo przekonwertuj MIDI na wtyczkę, której używasz.
+drum-maps-list-heading = { $count ->
+    [one] Mapy perkusji { $count } wtyczki
+   *[other] Mapy perkusji wszystkich { $count } wtyczek
+}
+drum-maps-download-label = Mapa perkusji { $engine } do { $daw }
