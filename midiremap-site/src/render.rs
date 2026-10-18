@@ -17,10 +17,11 @@ use crate::{
 
 const DESCRIPTION_MAX: usize = 155;
 
-struct Meta {
-    title: String,
-    description: String,
-    canonical: String,
+/// A page's title, search snippet and canonical address.
+pub struct Meta {
+    pub title: String,
+    pub description: String,
+    pub canonical: String,
 }
 
 const TITLE_NAME_MAX: usize = 40;
@@ -72,7 +73,7 @@ fn args<'a>(pairs: impl IntoIterator<Item = (&'a str, FluentValue<'a>)>) -> Flue
     pairs.into_iter().collect()
 }
 
-fn engine_meta(p: &EnginePage, texts: &Texts) -> Result<Meta, I18nError> {
+pub fn engine_meta(p: &EnginePage, texts: &Texts) -> Result<Meta, I18nError> {
     let n = p.engine.name.as_str();
     let midi = with_midi(n);
     let title = if n.chars().count() <= TITLE_NAME_MAX {
@@ -124,9 +125,9 @@ fn pair_summary(texts: &Texts, src: &str, tgt: &str, tally: Tally) -> Result<Str
     )
 }
 
-fn pair_args<'a>(p: &'a PairPage, midi: &'a str) -> FluentArgs<'a> {
+fn pair_args(p: &PairPage) -> FluentArgs<'_> {
     args([
-        ("sourceMidi", midi.into()),
+        ("sourceMidi", with_midi(&p.src.name).into()),
         ("source", p.src.name.as_str().into()),
         ("target", p.tgt.name.as_str().into()),
         ("exact", p.tally.exact.into()),
@@ -136,19 +137,15 @@ fn pair_args<'a>(p: &'a PairPage, midi: &'a str) -> FluentArgs<'a> {
 }
 
 fn pair_heading(p: &PairPage, texts: &Texts) -> Result<String, I18nError> {
-    texts.format(
-        MessageId::MapsPairHeading,
-        pair_args(p, &with_midi(&p.src.name)),
-    )
+    texts.format(MessageId::MapsPairHeading, pair_args(p))
 }
 
-fn pair_meta(p: &PairPage, texts: &Texts) -> Result<Meta, I18nError> {
-    let midi = with_midi(&p.src.name);
+pub fn pair_meta(p: &PairPage, texts: &Texts) -> Result<Meta, I18nError> {
     Ok(Meta {
-        title: texts.format(MessageId::MapsPairTitle, pair_args(p, &midi))?,
+        title: texts.format(MessageId::MapsPairTitle, pair_args(p))?,
         description: fit(
-            &texts.format(MessageId::MapsPairDescription, pair_args(p, &midi))?,
-            &[texts.format(MessageId::MapsPairDescriptionShort, pair_args(p, &midi))?],
+            &texts.format(MessageId::MapsPairDescription, pair_args(p))?,
+            &[texts.format(MessageId::MapsPairDescriptionShort, pair_args(p))?],
             &[texts.get(Plain::MapsPairDescriptionMore).to_owned()],
             DESCRIPTION_MAX,
         ),
@@ -156,7 +153,7 @@ fn pair_meta(p: &PairPage, texts: &Texts) -> Result<Meta, I18nError> {
     })
 }
 
-fn index_meta(p: &IndexPage, texts: &Texts) -> Result<Meta, I18nError> {
+pub fn index_meta(p: &IndexPage, texts: &Texts) -> Result<Meta, I18nError> {
     let count = || args([("count", p.all.len().into())]);
     Ok(Meta {
         title: texts.format(MessageId::MapsIndexTitle, count())?,
@@ -170,7 +167,7 @@ fn index_meta(p: &IndexPage, texts: &Texts) -> Result<Meta, I18nError> {
     })
 }
 
-fn drum_maps_meta(p: &IndexPage, texts: &Texts) -> Result<Meta, I18nError> {
+pub fn drum_maps_meta(p: &IndexPage, texts: &Texts) -> Result<Meta, I18nError> {
     let count = || args([("count", p.all.len().into())]);
     Ok(Meta {
         title: texts.format(MessageId::DrumMapsTitle, count())?,
@@ -196,6 +193,14 @@ fn daw_steps<'a>(texts: &Texts<'a>) -> Vec<(Daw, &'a str)> {
             (daw, texts.get(how))
         })
         .collect()
+}
+
+pub fn section_meta(k: SectionKey, texts: &Texts) -> Meta {
+    content_meta(
+        texts.get(k.title()).to_owned(),
+        texts.get(k.description()).to_owned(),
+        &href(NavTarget::Section(k), texts.locale, texts.docs),
+    )
 }
 
 fn content_meta(title: String, description: String, path: &LocalPath) -> Meta {
@@ -234,14 +239,15 @@ impl std::fmt::Display for PageKind {
     }
 }
 
-struct Texts<'a> {
-    messages: &'a Messages,
-    docs: &'a Docs,
-    locale: Locale,
+/// The site's messages and documents in one locale.
+pub struct Texts<'a> {
+    pub messages: &'a Messages,
+    pub docs: &'a Docs,
+    pub locale: Locale,
 }
 
 impl<'a> Texts<'a> {
-    fn get(&self, id: Plain) -> &'a str {
+    pub fn get(&self, id: Plain) -> &'a str {
         self.messages.get(self.locale, id)
     }
 
@@ -617,11 +623,7 @@ fn render_sections(
         out.push((
             path.file(),
             ContentHtml {
-                meta: content_meta(
-                    texts.get(k.title()).to_owned(),
-                    texts.get(k.description()).to_owned(),
-                    &path,
-                ),
+                meta: section_meta(k, texts),
                 frame: Frame::new(
                     manifest,
                     texts,
@@ -1360,7 +1362,12 @@ mod tests {
                 checked += 1;
             }
         }
-        assert_eq!(checked, 86 * 2 + 368 + 312);
+        let site = Site::build(&maps).unwrap();
+        let unpaired = site.pairs.iter().filter(|p| p.reverse.is_none()).count();
+        assert_eq!(
+            checked,
+            site.engines.len() * 2 + site.pairs.len() + unpaired
+        );
     }
 
     fn structured_data(html: &str) -> &str {

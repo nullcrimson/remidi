@@ -31,11 +31,12 @@ pub const MAJORS: [(&str, &str); 8] = [
 ];
 
 /// The engines every other engine gets a pair page to.
-pub const TARGETS: [&str; 4] = [
+pub const TARGETS: [&str; 5] = [
     "ezdrummer",
     "superior_drummer3",
     "general_midi",
     "ggd_invasion",
+    "guitar_pro",
 ];
 
 pub const EXCLUDED_IDS: [&str; 1] = ["midiremap_standard"];

@@ -1,6 +1,7 @@
 mod content;
 mod ftl_vars;
 mod i18n;
+mod llms;
 mod manifest;
 mod pages;
 #[cfg(test)]
@@ -21,6 +22,7 @@ use midiremap_core::{Catalog, MapError};
 
 use crate::{
     i18n::{Docs, I18nError, Locale, Messages},
+    llms::LlmsError,
     manifest::{AppBuild, ManifestError},
     pages::{BuildError, Site},
     render::RenderError,
@@ -50,6 +52,8 @@ pub enum SiteError {
     Render(#[from] RenderError),
     #[error(transparent)]
     I18n(#[from] I18nError),
+    #[error(transparent)]
+    Llms(#[from] LlmsError),
     #[error("cannot write {path}: {source}")]
     Write {
         path: PathBuf,
@@ -93,6 +97,10 @@ fn run(out_dir: &Path) -> Result<usize, SiteError> {
     write(out_dir.join("filter.js"), FILTER_JS)?;
     write(out_dir.join("sitemap.xml"), &sitemap::sitemap(&site, &docs))?;
     write(out_dir.join("robots.txt"), &sitemap::robots())?;
+    write(
+        out_dir.join("llms.txt"),
+        &llms::llms_txt(&site, &messages, &docs)?,
+    )?;
     Ok(written)
 }
 
@@ -101,7 +109,7 @@ fn main() -> ExitCode {
     match run(&out_dir) {
         Ok(pages) => {
             println!(
-                "wrote {pages} static pages and {} converter pages in {} languages, sitemap and robots.txt to {}",
+                "wrote {pages} static pages and {} converter pages in {} languages, sitemap, robots.txt and llms.txt to {}",
                 Locale::ALL.len(),
                 Locale::ALL.len(),
                 out_dir.display()
