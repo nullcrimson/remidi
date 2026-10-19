@@ -1,4 +1,6 @@
 mod content;
+#[cfg(test)]
+mod fixtures;
 mod ftl_vars;
 mod i18n;
 mod llms;

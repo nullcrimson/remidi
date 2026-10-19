@@ -46,7 +46,7 @@ wasm target included), the nightly named in `nightly-toolchain` for `rustfmt`, N
 ```bash
 cargo +"$(cat nightly-toolchain)" fmt --all
 cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace           # the gate runs both per configuration: see scripts/gate.sh
+cargo test --workspace           # the gate runs both per configuration: see xtask/src/step.rs
 
 cd app
 npm ci
@@ -59,11 +59,12 @@ npm run e2e          # browser tests of every user story against app/dist, deskt
 npm run size         # size budgets for app/dist/assets
 
 cd ..
-bash scripts/gate.sh # every check in one run; logs in target/gate/
-bash scripts/gate.sh rust        # or one group (rust, app, dist) or single steps (fmt, vitest, build-site, ...)
+cargo xtask gate                 # every check in one run; logs and timings.json in target/gate/
+cargo xtask gate rust            # or one group (rust, app, dist) or single steps (fmt, vitest, build-site, ...)
+cargo xtask gate --quick         # local fast check: changed unit tests, changed browser test files (desktop), no size budgets
 ```
 
-Every push to `master` and every pull request runs the same `scripts/gate.sh` checks in CI;
+Every push to `master` and every pull request runs the same `cargo xtask gate` checks in CI;
 a push deploys only when all pass. A separate workflow audits dependencies, and a daily job
 fuzzes the converter (see ARCHITECTURE.md).
 

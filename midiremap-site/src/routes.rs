@@ -235,23 +235,23 @@ mod tests {
     fn every_locale_links_nav_and_footer_to_the_recorded_addresses() {
         let recorded: Value =
             serde_json::from_str(include_str!("../tests/golden/nav-links.json")).unwrap();
-        assert_eq!(nav_links(&Docs::load().unwrap()), recorded);
+        assert_eq!(nav_links(crate::fixtures::docs()), recorded);
     }
 
     #[test]
     fn a_translated_section_switches_to_its_translation() {
-        let docs = Docs::load().unwrap();
+        let docs = crate::fixtures::docs();
         assert_eq!(
-            page_in(&Page::Section(SectionKey::Faq), Locale::Pl, &docs).to_string(),
+            page_in(&Page::Section(SectionKey::Faq), Locale::Pl, docs).to_string(),
             "/pl/faq/"
         );
     }
 
     #[test]
     fn a_translated_section_switches_back_to_english() {
-        let docs = Docs::load().unwrap();
+        let docs = crate::fixtures::docs();
         assert_eq!(
-            page_in(&Page::Section(SectionKey::Faq), Locale::En, &docs).to_string(),
+            page_in(&Page::Section(SectionKey::Faq), Locale::En, docs).to_string(),
             "/faq/"
         );
     }
@@ -274,46 +274,46 @@ mod tests {
 
     #[test]
     fn a_document_link_to_a_note_map_points_at_the_page_in_the_readers_language() {
-        let docs = Docs::load().unwrap();
+        let docs = crate::fixtures::docs();
         assert_eq!(
-            local_href("/engines/", Locale::Pl, &docs).to_string(),
+            local_href("/engines/", Locale::Pl, docs).to_string(),
             "/pl/engines/"
         );
     }
 
     #[test]
     fn a_document_link_to_a_section_points_at_the_page_in_the_readers_language() {
-        let docs = Docs::load().unwrap();
+        let docs = crate::fixtures::docs();
         assert_eq!(
-            local_href("/faq/", Locale::Pl, &docs).to_string(),
+            local_href("/faq/", Locale::Pl, docs).to_string(),
             "/pl/faq/"
         );
     }
 
     #[test]
     fn a_document_link_for_an_english_reader_stays_unprefixed() {
-        let docs = Docs::load().unwrap();
+        let docs = crate::fixtures::docs();
         assert_eq!(
-            local_href("/engines/", Locale::En, &docs).to_string(),
+            local_href("/engines/", Locale::En, docs).to_string(),
             "/engines/"
         );
     }
 
     #[test]
     fn a_note_map_page_switches_to_the_same_page_in_another_locale() {
-        let docs = Docs::load().unwrap();
+        let docs = crate::fixtures::docs();
         let page = Page::Everywhere(SitePath::new("/engines/ezdrummer/"));
         assert_eq!(
-            page_in(&page, Locale::Pl, &docs).to_string(),
+            page_in(&page, Locale::Pl, docs).to_string(),
             "/pl/engines/ezdrummer/"
         );
     }
 
     #[test]
     fn a_note_map_page_lists_every_locale_and_the_default() {
-        let docs = Docs::load().unwrap();
+        let docs = crate::fixtures::docs();
         assert_eq!(
-            alternates(&Page::Everywhere(NOTE_MAPS), &docs).len(),
+            alternates(&Page::Everywhere(NOTE_MAPS), docs).len(),
             Locale::ALL.len() + 1
         );
     }
@@ -326,7 +326,7 @@ mod tests {
     }
 
     fn faq_versions() -> Vec<(&'static str, String)> {
-        versions(&Page::Section(SectionKey::Faq), &Docs::load().unwrap())
+        versions(&Page::Section(SectionKey::Faq), crate::fixtures::docs())
     }
 
     fn version(tag: &'static str, path: &str) -> (&'static str, String) {

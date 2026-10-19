@@ -35,15 +35,23 @@ Deploy the static contents of `app/dist/` to any static host.
 ```bash
 npm run test     # Vitest; needs npm run build:wasm once (the contract test loads the real module)
 npm run e2e      # Playwright against vite preview of dist; run npm run build:site first
-npm run size     # size budgets for dist/assets (wasm, JS, CSS gzipped; latin fonts; largest locale chunk)
-../scripts/gate.sh  # every check: Rust and app checks side by side, then build:site, size, e2e (logs in target/gate/)
-../scripts/gate.sh app   # one group (rust; app = eslint, tsc, vitest; dist = size, e2e) or single steps; CI runs the same groups
+npm run size     # size budgets for dist (wasm, JS, CSS gzipped; latin fonts; largest locale chunk; a static page's script)
+cargo xtask gate      # every check; each step starts when what it needs is done (logs and timings.json in target/gate/)
+cargo xtask gate app  # one group (rust; app = eslint, tsc, vitest; dist = size, e2e) or single steps; CI runs the same groups
+cargo xtask gate --quick  # local only: vitest --changed, changed e2e files on desktop (builds only then), wasm with thin LTO, no size
 ```
 
 Outside CI the unit tests use half the machine's cores and the browser tests a quarter
 (`maxWorkers` in `vite.config.ts`, `workers` in `playwright.config.ts`). Measured on 16 cores
 with other programs running: the defaults (15 and 8 workers) were slower and let single tests
 stall past their time limits; 8 and 4 were faster and kept every test well inside them.
+`cargo xtask gate` runs the app's steps as their `npm run` scripts without the pre-hooks, adding
+only its own flags. It runs the browser tests at half the cores (`E2E_WORKERS=50%`; locally the
+config defaults to a quarter): there they run alone, and 8 workers took them from 280 s to 189 s
+(2026-10-19). It gives the unit tests every core (`VITEST_WORKERS=100%`) when it runs them
+without the Rust checks beside them (`cargo xtask gate vitest` or `app`). The static pages'
+layout checks run all on the phone (tagged `@phone`, which the desktop project leaves out) and
+one per locale on the desktop, which keeps their header and nav covered there.
 
 `build:wasm` skips wasm-bindgen and wasm-opt when the compiled module, the tool versions and
 the script are unchanged (`src/wasm/.stamp`). `build:site` runs the site generator as a

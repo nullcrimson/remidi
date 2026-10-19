@@ -67,7 +67,7 @@ pub fn robots() -> String {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
+    use std::{collections::HashSet, sync::LazyLock};
 
     use midiremap_core::Catalog;
 
@@ -87,11 +87,10 @@ mod tests {
         assert!(r.contains("Sitemap: https://drumverter.com/sitemap.xml"));
     }
 
-    fn sitemap_xml() -> String {
-        sitemap(
-            &Site::build(&Catalog::builtin().unwrap()).unwrap(),
-            &Docs::load().unwrap(),
-        )
+    fn sitemap_xml() -> &'static str {
+        static XML: LazyLock<String> =
+            LazyLock::new(|| sitemap(crate::fixtures::site(), crate::fixtures::docs()));
+        &XML
     }
 
     fn locations<'a>(doc: &'a roxmltree::Document) -> Vec<&'a str> {
@@ -105,11 +104,11 @@ mod tests {
     fn lists_as_many_addresses_as_there_are_pages() {
         let catalog = Catalog::builtin().unwrap();
         let xml = sitemap_xml();
-        let doc = roxmltree::Document::parse(&xml).unwrap();
+        let doc = roxmltree::Document::parse(xml).unwrap();
         let locs: Vec<&str> = locations(&doc);
         let engines = catalog.ids().count() - EXCLUDED_IDS.len();
         let pairs = MAJORS.len() * (MAJORS.len() - 1) + (engines - MAJORS.len()) * TARGETS.len();
-        let docs = Docs::load().unwrap();
+        let docs = crate::fixtures::docs();
         let sections: usize = Locale::ALL
             .iter()
             .map(|&l| SectionKey::ALL.iter().filter(|&&k| docs.has(l, k)).count())
@@ -123,7 +122,7 @@ mod tests {
     #[test]
     fn lists_the_drum_maps_page_in_every_locale() {
         let xml = sitemap_xml();
-        let doc = roxmltree::Document::parse(&xml).unwrap();
+        let doc = roxmltree::Document::parse(xml).unwrap();
         let locs = locations(&doc);
         for &l in Locale::ALL {
             let url = DRUM_MAPS.in_locale(l).url();
@@ -144,7 +143,7 @@ mod tests {
     #[test]
     fn lists_the_english_faq() {
         let xml = sitemap_xml();
-        let doc = roxmltree::Document::parse(&xml).unwrap();
+        let doc = roxmltree::Document::parse(xml).unwrap();
         let locs: Vec<&str> = locations(&doc);
         assert!(locs.contains(&"https://drumverter.com/faq/"));
     }
@@ -152,7 +151,7 @@ mod tests {
     #[test]
     fn lists_no_page_twice() {
         let xml = sitemap_xml();
-        let doc = roxmltree::Document::parse(&xml).unwrap();
+        let doc = roxmltree::Document::parse(xml).unwrap();
         let locs: Vec<&str> = locations(&doc);
         assert_eq!(locs.iter().collect::<HashSet<_>>().len(), locs.len());
     }
@@ -160,7 +159,7 @@ mod tests {
     #[test]
     fn lists_every_page_on_the_canonical_origin() {
         let xml = sitemap_xml();
-        let doc = roxmltree::Document::parse(&xml).unwrap();
+        let doc = roxmltree::Document::parse(xml).unwrap();
         let locs: Vec<&str> = locations(&doc);
         assert!(locs
             .iter()
@@ -194,7 +193,7 @@ mod tests {
     }
 
     fn all_urls() -> Vec<(String, Vec<(String, String)>)> {
-        urls(&sitemap_xml())
+        urls(sitemap_xml())
     }
 
     #[test]

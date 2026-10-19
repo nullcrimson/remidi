@@ -89,16 +89,11 @@ fn section(heading: &str, entries: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use midiremap_core::Catalog;
-
     use super::*;
-
-    fn site() -> Site {
-        Site::build(&Catalog::builtin().unwrap()).unwrap()
-    }
+    use crate::fixtures::site;
 
     fn text() -> String {
-        llms_txt(&site(), &Messages::load().unwrap(), &Docs::load().unwrap()).unwrap()
+        llms_txt(site(), crate::fixtures::messages(), crate::fixtures::docs()).unwrap()
     }
 
     fn links(text: &str) -> Vec<&str> {

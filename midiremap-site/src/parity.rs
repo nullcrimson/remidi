@@ -42,7 +42,7 @@ fn reworded_text_keeps_the_shape() {
 
 #[test]
 fn every_locale_matches_english() {
-    let docs = Docs::load().unwrap();
+    let docs = crate::fixtures::docs();
     for &l in Locale::ALL {
         for &k in SectionKey::ALL {
             if let Some(b) = docs.blocks(l, k) {
@@ -60,7 +60,7 @@ fn every_locale_matches_english() {
 
 #[test]
 fn english_has_every_section() {
-    let docs = Docs::load().unwrap();
+    let docs = crate::fixtures::docs();
     for &k in SectionKey::ALL {
         assert!(docs.has(Locale::En, k), "{}", k.key());
     }
@@ -68,7 +68,7 @@ fn english_has_every_section() {
 
 #[test]
 fn every_locale_translates_the_guide() {
-    let docs = Docs::load().unwrap();
+    let docs = crate::fixtures::docs();
     for &l in Locale::ALL {
         assert!(docs.has(l, SectionKey::Guide), "{}", l.code());
     }
@@ -76,7 +76,7 @@ fn every_locale_translates_the_guide() {
 
 #[test]
 fn every_locale_translates_the_faq() {
-    let docs = Docs::load().unwrap();
+    let docs = crate::fixtures::docs();
     for &l in Locale::ALL {
         assert!(docs.has(l, SectionKey::Faq), "{}", l.code());
     }

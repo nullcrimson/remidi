@@ -1,4 +1,5 @@
 use midiremap_core::{Canon, Catalog, EngineMap, Mapping, MissingDrums, Note};
+use rayon::prelude::*;
 
 fn k(s: &str) -> Canon {
     s.parse().unwrap()
@@ -172,48 +173,60 @@ fn first_agreed(tgt: &EngineMap, canon: Canon) -> Option<Note> {
     agreed(canon).iter().find_map(|s| tgt.encode(k(s)))
 }
 
+/// A pair of engines and the drums the source plays that the target lacks.
+struct Pair<'a> {
+    src: &'a EngineMap,
+    tgt: &'a EngineMap,
+    missing: Vec<Canon>,
+}
+
+impl<'a> Pair<'a> {
+    fn new(src: &'a EngineMap, tgt: &'a EngineMap) -> Self {
+        let missing = Canon::all()
+            .iter()
+            .copied()
+            .filter(|&c| src.encode(c).is_some() && tgt.encode(c).is_none())
+            .collect();
+        Self { src, tgt, missing }
+    }
+
+    fn failures(&self) -> impl Iterator<Item = String> + '_ {
+        let Self { src, tgt, .. } = *self;
+        let near = Mapping::new(src, tgt, &Default::default(), MissingDrums::Nearest);
+        let drop = Mapping::new(src, tgt, &Default::default(), MissingDrums::Drop);
+        self.missing.iter().flat_map(move |&canon| {
+            let want = first_agreed(tgt, canon);
+            let dropped = drop.resolve_canon(canon).note();
+            let nearest = near.resolve_canon(canon).note();
+            let pair = format!("{} -> {}: {canon}", src.id(), tgt.id());
+            let drop_failure = (dropped != want)
+                .then(|| format!("{pair} (drop) played {dropped:?}, agreed {want:?}"));
+            let nearest_failure = match (want, nearest) {
+                (Some(_), n) if n != want => {
+                    Some(format!("{pair} (nearest) played {n:?}, agreed {want:?}"))
+                }
+                (None, Some(n)) => {
+                    let landed = tgt.decode(n).unwrap();
+                    (canon.same_drum(landed) || !may_cross(canon, landed))
+                        .then(|| format!("{pair} (nearest) crossed to {landed}"))
+                }
+                _ => None,
+            };
+            drop_failure.into_iter().chain(nearest_failure)
+        })
+    }
+}
+
 #[test]
 fn every_builtin_pair_plays_the_agreed_stand_in_or_drops() {
     let catalog = Catalog::builtin().unwrap();
     let engines: Vec<&EngineMap> = catalog.engines().collect();
-    let mut checked = 0u32;
-    let mut failures = Vec::new();
-    for src in &engines {
-        let sources: Vec<Canon> = Canon::all()
-            .iter()
-            .copied()
-            .filter(|&c| src.encode(c).is_some())
-            .collect();
-        for tgt in &engines {
-            let near = Mapping::new(src, tgt, &Default::default(), MissingDrums::Nearest);
-            let drop = Mapping::new(src, tgt, &Default::default(), MissingDrums::Drop);
-            for &canon in &sources {
-                if tgt.encode(canon).is_some() {
-                    continue;
-                }
-                checked += 1;
-                let want = first_agreed(tgt, canon);
-                let dropped = drop.resolve_canon(canon).note();
-                let nearest = near.resolve_canon(canon).note();
-                let pair = format!("{} -> {}: {canon}", src.id(), tgt.id());
-                if dropped != want {
-                    failures.push(format!("{pair} (drop) played {dropped:?}, agreed {want:?}"));
-                }
-                match (want, nearest) {
-                    (Some(_), n) if n != want => {
-                        failures.push(format!("{pair} (nearest) played {n:?}, agreed {want:?}"))
-                    }
-                    (None, Some(n)) => {
-                        let landed = tgt.decode(n).unwrap();
-                        if canon.same_drum(landed) || !may_cross(canon, landed) {
-                            failures.push(format!("{pair} (nearest) crossed to {landed}"));
-                        }
-                    }
-                    _ => {}
-                }
-            }
-        }
-    }
+    let pairs: Vec<Pair> = engines
+        .iter()
+        .flat_map(|&src| engines.iter().map(move |&tgt| Pair::new(src, tgt)))
+        .collect();
+    let checked: usize = pairs.iter().map(|p| p.missing.len()).sum();
+    let failures: Vec<String> = pairs.par_iter().flat_map_iter(Pair::failures).collect();
     assert!(checked > 10_000, "checked only {checked}");
     assert!(
         failures.is_empty(),

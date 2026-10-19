@@ -1,11 +1,11 @@
 import js from '@eslint/js';
 import stylistic from '@stylistic/eslint-plugin';
 import globals from 'globals';
-import i18next from 'eslint-plugin-i18next';
 import betterTailwind from 'eslint-plugin-better-tailwindcss';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
+import { literalStringRule } from './eslint.literals.ts';
 
 export default tseslint.config(
   { ignores: ['dist', 'coverage', 'src/wasm', 'src/generated', 'playwright-report', 'test-results'] },
@@ -33,21 +33,16 @@ export default tseslint.config(
       ecmaVersion: 2020,
       globals: globals.browser,
     },
-    plugins: { i18next },
     settings: {
       'better-tailwindcss': { entryPoint: 'src/index.css' },
     },
     rules: {
       'better-tailwindcss/no-unknown-classes': ['error', { ignore: ['mr-scroll'] }],
+      'better-tailwindcss/enforce-canonical-classes': process.env.CI ? 'warn' : 'off',
       'no-restricted-properties': ['error', { object: 'location', property: 'pathname', message: 'Read the locale from src/locale/locale.ts.' }],
-      'i18next/no-literal-string': ['error', {
-        mode: 'jsx-only',
-        'should-validate-template': true,
-        'jsx-attributes': { include: ['^aria-label$', '^title$', '^placeholder$', '^alt$', '^label$', '^heading$', '^hint$', '^tip$', '^tipTitle$', '^ariaLabel$', '^reason$', '^content$'] },
-        words: { exclude: ['[^A-Za-z]*', 'Drumverter', 'MIDI', '\\.mid'] },
-      }],
     },
   },
+  literalStringRule,
   {
     files: ['src/**/*.{ts,tsx}'],
     ignores: ['src/core/storage.ts'],

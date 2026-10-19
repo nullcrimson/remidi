@@ -26,7 +26,7 @@ jobs:
       - name: Cache cargo build
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Format, clippy and tests
-        run: bash scripts/gate.sh rust
+        run: cargo xtask gate rust
 
   app:
     runs-on: ubuntu-latest
@@ -35,7 +35,7 @@ jobs:
       - uses: ./.github/actions/app-with-wasm
 
       - name: Lint, type check and tests
-        run: bash scripts/gate.sh app
+        run: cargo xtask gate app
 
   build:
     runs-on: ubuntu-latest
@@ -51,15 +51,9 @@ jobs:
           key: site-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-site/**', 'engines/**', 'locales/**', 'content/**') }}
 
       - uses: ./.github/actions/app-with-wasm
-        with:
-          rust: ${{ steps.site.outputs.cache-hit != 'true' }}
-
-      - name: Generate i18n types
-        run: bash scripts/gate.sh gen-i18n
 
       - name: Build app
-        working-directory: app
-        run: npm run build --ignore-scripts
+        run: cargo xtask gate build-app
 
       - name: Build site generator
         if: steps.site.outputs.cache-hit != 'true'
@@ -89,7 +83,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Size budgets and browser tests
-        run: bash scripts/gate.sh dist
+        run: cargo xtask gate dist
 
       - name: Upload Playwright report
         if: failure()

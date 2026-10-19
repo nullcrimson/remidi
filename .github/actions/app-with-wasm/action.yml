@@ -1,10 +1,5 @@
 name: App with wasm
-description: Node, the app's dependencies and the wasm module, which is rebuilt only when its inputs changed
-
-inputs:
-  rust:
-    description: Install Rust even when the wasm build is restored from the cache
-    default: 'false'
+description: Rust (for cargo xtask), Node, the app's dependencies and the wasm module, which is rebuilt only when its inputs changed
 
 runs:
   using: composite
@@ -22,12 +17,10 @@ runs:
         key: wasm-binaryen${{ steps.binaryen.outputs.v }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-wasm/**', 'engines/**', 'app/scripts/build-wasm.mjs') }}
 
     - name: Install Rust (from rust-toolchain.toml)
-      if: steps.wasm.outputs.cache-hit != 'true' || inputs.rust == 'true'
       shell: bash
       run: rustup toolchain install
 
     - name: Cache cargo build
-      if: steps.wasm.outputs.cache-hit != 'true' || inputs.rust == 'true'
       uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
     - name: Read pinned wasm-bindgen version
@@ -60,4 +53,4 @@ runs:
     - name: Build wasm
       if: steps.wasm.outputs.cache-hit != 'true'
       shell: bash
-      run: bash scripts/gate.sh build-wasm
+      run: cargo xtask gate build-wasm

@@ -168,16 +168,11 @@ pub fn localize_shell(
 
 #[cfg(test)]
 mod tests {
-    use midiremap_core::Catalog;
-
     use super::*;
-    use crate::{
-        i18n::{Locale, Messages},
-        pages::Site,
-    };
+    use crate::i18n::Locale;
 
-    fn popular() -> Vec<PairLink> {
-        Site::build(&Catalog::builtin().unwrap()).unwrap().popular
+    fn popular() -> &'static [PairLink] {
+        &crate::fixtures::site().popular
     }
 
     const MARKED: &str = "<html lang=\"en\"><head><!--app-head--><title>Drumverter</title><!--/app-head--></head><body><div id=\"root\"><!--app-title--><!--/app-title--></div><!--app-noscript--><!--/app-noscript--></body></html>";
@@ -186,9 +181,9 @@ mod tests {
         localize_shell(
             MARKED,
             Locale::En,
-            &Messages::load().unwrap(),
-            &Docs::load().unwrap(),
-            &popular(),
+            crate::fixtures::messages(),
+            crate::fixtures::docs(),
+            popular(),
         )
         .unwrap()
     }
@@ -223,9 +218,8 @@ mod tests {
 
     #[test]
     fn the_polish_shell_names_the_site_at_its_root() {
-        let m = Messages::load().unwrap();
-        let pl =
-            localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap(), &popular()).unwrap();
+        let m = crate::fixtures::messages();
+        let pl = localize_shell(MARKED, Locale::Pl, m, crate::fixtures::docs(), popular()).unwrap();
         assert!(pl.contains(
             r#"{"@type":"WebSite","name":"Drumverter","url":"https://drumverter.com/"}"#
         ));
@@ -257,9 +251,8 @@ mod tests {
 
     #[test]
     fn the_english_shell_carries_a_heading_the_app_replaces_on_mount() {
-        let m = Messages::load().unwrap();
-        let en =
-            localize_shell(MARKED, Locale::En, &m, &Docs::load().unwrap(), &popular()).unwrap();
+        let m = crate::fixtures::messages();
+        let en = localize_shell(MARKED, Locale::En, m, crate::fixtures::docs(), popular()).unwrap();
         assert!(en.contains(r#"<div id="root"><!--app-title--><h1 class="sr-only">Drumverter — free drum MIDI remapper &#38; converter</h1><nav class="sr-only" aria-label="Popular conversions">"#));
         assert!(en.contains("</nav><!--/app-title--></div>"));
     }
@@ -282,18 +275,16 @@ mod tests {
 
     #[test]
     fn the_polish_shell_links_the_polish_conversions() {
-        let m = Messages::load().unwrap();
-        let pl =
-            localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap(), &popular()).unwrap();
+        let m = crate::fixtures::messages();
+        let pl = localize_shell(MARKED, Locale::Pl, m, crate::fixtures::docs(), popular()).unwrap();
         assert!(pl.contains(r#"<a href="/pl/convert/ggd-invasion-to-ezdrummer/">"#));
         assert!(pl.contains(r#"<a href="/pl/engines/">"#));
     }
 
     #[test]
     fn the_polish_shell_carries_a_heading_the_app_replaces_on_mount() {
-        let m = Messages::load().unwrap();
-        let pl =
-            localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap(), &popular()).unwrap();
+        let m = crate::fixtures::messages();
+        let pl = localize_shell(MARKED, Locale::Pl, m, crate::fixtures::docs(), popular()).unwrap();
         assert!(pl.contains(&format!(
             r#"<h1 class="sr-only">{}</h1>"#,
             m.get(Locale::Pl, Plain::ConverterTitle)
@@ -302,36 +293,33 @@ mod tests {
 
     #[test]
     fn localizing_twice_gives_the_same_page() {
-        let m = Messages::load().unwrap();
+        let m = crate::fixtures::messages();
         let once =
-            localize_shell(MARKED, Locale::En, &m, &Docs::load().unwrap(), &popular()).unwrap();
+            localize_shell(MARKED, Locale::En, m, crate::fixtures::docs(), popular()).unwrap();
         assert_eq!(
-            localize_shell(&once, Locale::En, &m, &Docs::load().unwrap(), &popular()).unwrap(),
+            localize_shell(&once, Locale::En, m, crate::fixtures::docs(), popular()).unwrap(),
             once
         );
     }
 
     #[test]
     fn the_polish_shell_declares_polish() {
-        let m = Messages::load().unwrap();
-        let pl =
-            localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap(), &popular()).unwrap();
+        let m = crate::fixtures::messages();
+        let pl = localize_shell(MARKED, Locale::Pl, m, crate::fixtures::docs(), popular()).unwrap();
         assert!(pl.contains(r#"<html lang="pl">"#));
     }
 
     #[test]
     fn the_polish_shell_has_its_canonical() {
-        let m = Messages::load().unwrap();
-        let pl =
-            localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap(), &popular()).unwrap();
+        let m = crate::fixtures::messages();
+        let pl = localize_shell(MARKED, Locale::Pl, m, crate::fixtures::docs(), popular()).unwrap();
         assert!(pl.contains(r#"<link rel="canonical" href="https://drumverter.com/pl/" />"#));
     }
 
     #[test]
     fn the_polish_shell_has_its_title() {
-        let m = Messages::load().unwrap();
-        let pl =
-            localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap(), &popular()).unwrap();
+        let m = crate::fixtures::messages();
+        let pl = localize_shell(MARKED, Locale::Pl, m, crate::fixtures::docs(), popular()).unwrap();
         assert!(pl.contains(&format!(
             "<title>{}</title>",
             m.get(Locale::Pl, Plain::ConverterTitle)
@@ -355,9 +343,8 @@ mod tests {
 
     #[test]
     fn the_polish_shell_carries_the_polish_load_failure_notice() {
-        let m = Messages::load().unwrap();
-        let pl =
-            localize_shell(MARKED, Locale::Pl, &m, &Docs::load().unwrap(), &popular()).unwrap();
+        let m = crate::fixtures::messages();
+        let pl = localize_shell(MARKED, Locale::Pl, m, crate::fixtures::docs(), popular()).unwrap();
         assert!(pl.contains(m.get(Locale::Pl, Plain::LoadFailed)));
     }
 
@@ -366,9 +353,9 @@ mod tests {
         assert!(localize_shell(
             "<html></html>",
             Locale::En,
-            &Messages::load().unwrap(),
-            &Docs::load().unwrap(),
-            &popular()
+            crate::fixtures::messages(),
+            crate::fixtures::docs(),
+            popular()
         )
         .is_err());
     }

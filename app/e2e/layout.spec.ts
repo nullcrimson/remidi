@@ -1,18 +1,8 @@
-import type { Page } from '@playwright/test';
 import { addFiles, expect, kickAndChina, test } from './fixtures';
-import { brokenNav, clipped, overflowing } from './layout';
-import { messages, pseudoFtl } from './messages';
+import { clipped, EVERY_VIEWPORT_PAGE, fits, LOCALES, PHONE_PAGES } from './layout';
+import { messages, PSEUDO, pseudoFtl } from './messages';
 
-const LOCALES = ['en-XA', 'es', 'pt', 'de', 'ja', 'fr', 'ru', 'pl', 'it', 'zh', 'ko'];
-const STATIC = ['engines/', 'engines/ezdrummer/', 'convert/ggd-invasion-to-ezdrummer/', 'how-it-works/', 'faq/', 'terms/', 'thanks/'];
-
-const prefix = (code: string) => (code === 'en-XA' ? 'pl' : code);
-
-async function fits(page: Page, state: string) {
-  expect(await overflowing(page), `${state}: page scrolls sideways`).toBe(false);
-  expect(await clipped(page), `${state}: clipped text`).toEqual([]);
-  expect(await brokenNav(page), `${state}: nav label on two lines`).toEqual([]);
-}
+const prefix = (code: string) => (code === PSEUDO ? 'pl' : code);
 
 test('the probe flags text cut off by its box', async ({ page }) => {
   await page.goto('/');
@@ -31,7 +21,7 @@ test('the probe flags text cut off by its box', async ({ page }) => {
 for (const code of LOCALES) {
   test.describe(code, () => {
     test.beforeEach(async ({ page }) => {
-      if (code === 'en-XA') {
+      if (code === PSEUDO) {
         await page.route('**/assets/locale-pl-messages-*.js', (r) => r.fulfill({ contentType: 'text/javascript', body: `export default ${JSON.stringify(pseudoFtl())};` }));
       }
     });
@@ -61,9 +51,13 @@ for (const code of LOCALES) {
       }
     });
 
-    if (code !== 'en-XA') {
-      for (const path of STATIC) {
-        test(`/${code}/${path} fits`, async ({ page }) => {
+    if (code !== PSEUDO) {
+      test(`/${code}/${EVERY_VIEWPORT_PAGE} fits`, async ({ page }) => {
+        await page.goto(`/${code}/${EVERY_VIEWPORT_PAGE}`);
+        await fits(page, EVERY_VIEWPORT_PAGE);
+      });
+      for (const path of PHONE_PAGES) {
+        test(`/${code}/${path} fits a phone`, { tag: '@phone' }, async ({ page }) => {
           await page.goto(`/${code}/${path}`);
           await fits(page, path);
         });

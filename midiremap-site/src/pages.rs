@@ -522,21 +522,13 @@ impl Site {
 }
 #[cfg(test)]
 mod tests {
-    use std::{
-        collections::{HashMap, HashSet},
-        sync::LazyLock,
-    };
+    use std::collections::{HashMap, HashSet};
 
     use midiremap_core::{convert, ChannelScope};
     use midiremap_testkit::{drums, hit_keys, off, on};
 
     use super::*;
-
-    fn site() -> &'static Site {
-        static SITE: LazyLock<Site> =
-            LazyLock::new(|| Site::build(&Catalog::builtin().unwrap()).unwrap());
-        &SITE
-    }
+    use crate::fixtures::site;
 
     fn hub_engines() -> usize {
         MAJORS.len()
@@ -1016,13 +1008,14 @@ mod tests {
         let by_id: HashMap<&str, &EngineMap> = maps.engines().map(|m| (m.id(), m)).collect();
         for p in &site().pairs {
             let (src, tgt) = (by_id[p.src.id.as_str()], by_id[p.tgt.id.as_str()]);
+            let mapping = Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest);
             for row in &p.rows {
                 let out = convert(
                     &drums(&[
                         (10, on(row.source.note.get())),
                         (10, off(row.source.note.get())),
                     ]),
-                    &Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest),
+                    &mapping,
                     ChannelScope::Auto,
                 )
                 .unwrap();

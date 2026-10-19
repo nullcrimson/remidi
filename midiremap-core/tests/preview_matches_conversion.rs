@@ -5,6 +5,7 @@ use midiremap_core::{
 };
 use midiremap_testkit::{drums, events, off, on};
 use midly::MidiMessage;
+use rayon::prelude::*;
 
 const LEAD: u32 = 10;
 const TAIL: u32 = 5;
@@ -73,7 +74,8 @@ fn assert_preview_matches_conversion(ov_json: &str, missing: MissingDrums) {
     let maps = Catalog::builtin().unwrap();
     let ov: Overrides = serde_json::from_str(ov_json).unwrap();
     let midi = every_note_smf();
-    for src_id in maps.ids() {
+    let ids: Vec<&str> = maps.ids().collect();
+    ids.par_iter().for_each(|&src_id| {
         let src = maps.get(src_id).unwrap();
         for tgt_id in maps.ids() {
             let tgt = maps.get(tgt_id).unwrap();
@@ -89,7 +91,7 @@ fn assert_preview_matches_conversion(ov_json: &str, missing: MissingDrums) {
                 "{src_id} -> {tgt_id} ({missing}): preview must equal conversion"
             );
         }
-    }
+    });
 }
 
 #[test]

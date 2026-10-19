@@ -18,9 +18,12 @@ export function pseudoFtl(): string {
   return new FluentSerializer().serialize(new Pseudo().visit(resource) as Resource);
 }
 
-/** Formats a message of `code` (or the pseudo-locale `en-XA`), for accessible names in tests. */
+/** The pseudo-locale: English messages with every text widened and accented. */
+export const PSEUDO = 'en-XA';
+
+/** Formats a message of `code` (or the pseudo-locale), for accessible names in tests. */
 export function messages(code: string) {
-  const bundle = new FluentBundle(code === 'en-XA' ? 'en' : code, { useIsolating: false });
-  bundle.addResource(new FluentResource(code === 'en-XA' ? pseudoFtl() : ftl(code)));
+  const bundle = new FluentBundle(code === PSEUDO ? 'en' : code, { useIsolating: false });
+  bundle.addResource(new FluentResource(code === PSEUDO ? pseudoFtl() : ftl(code)));
   return (id: string, args?: Record<string, FluentVariable>) => bundle.formatPattern(bundle.getMessage(id)!.value!, args);
 }

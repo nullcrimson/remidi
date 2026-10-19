@@ -325,8 +325,7 @@ mod tests {
         let mut args = FluentArgs::new();
         args.set("engine", "EZdrummer 3");
         assert_eq!(
-            Messages::load()
-                .unwrap()
+            crate::fixtures::messages()
                 .format(Locale::En, MessageId::MapsConvertTo, &args)
                 .unwrap(),
             "Convert to EZdrummer 3"
@@ -338,9 +337,7 @@ mod tests {
         let mut args = FluentArgs::new();
         args.set("engin", "EZdrummer 3");
         assert!(matches!(
-            Messages::load()
-                .unwrap()
-                .format(Locale::En, MessageId::MapsConvertTo, &args),
+            crate::fixtures::messages().format(Locale::En, MessageId::MapsConvertTo, &args),
             Err(I18nError::Formatting { .. })
         ));
     }
@@ -348,7 +345,7 @@ mod tests {
     #[test]
     fn a_message_formatted_without_its_argument_is_an_error() {
         assert!(matches!(
-            Messages::load().unwrap().format(
+            crate::fixtures::messages().format(
                 Locale::En,
                 MessageId::MapsConvertTo,
                 &FluentArgs::new()

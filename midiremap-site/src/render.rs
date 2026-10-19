@@ -648,7 +648,6 @@ mod tests {
     use midiremap_core::Catalog;
 
     use super::*;
-    use crate::pages::Site;
 
     const ORIGIN: &str = "https://drumverter.com";
 
@@ -697,15 +696,9 @@ mod tests {
 
     fn rendered() -> &'static [(String, String)] {
         static RENDERED: LazyLock<Vec<(String, String)>> = LazyLock::new(|| {
-            let messages = Messages::load().unwrap();
-            let docs = Docs::load().unwrap();
-            render_site(
-                &Site::build(&Catalog::builtin().unwrap()).unwrap(),
-                &manifest(),
-                &messages,
-                &docs,
-            )
-            .unwrap()
+            let messages = crate::fixtures::messages();
+            let docs = crate::fixtures::docs();
+            render_site(crate::fixtures::site(), &manifest(), messages, docs).unwrap()
         });
         &RENDERED
     }
@@ -904,7 +897,7 @@ mod tests {
 
     #[test]
     fn every_page_labels_its_navigation_landmarks() {
-        let messages = Messages::load().unwrap();
+        let messages = crate::fixtures::messages();
         for (path, html) in rendered() {
             let (locale, _) = locale_and_rest(path);
             let aria = |nav| format!(r#"<nav aria-label="{}""#, messages.get(locale, nav));
@@ -915,7 +908,7 @@ mod tests {
 
     #[test]
     fn header_marks_the_current_section() {
-        let messages = Messages::load().unwrap();
+        let messages = crate::fixtures::messages();
         for (path, html) in rendered() {
             let (locale, rest) = locale_and_rest(path);
             let expected: Vec<&str> =
@@ -1180,18 +1173,18 @@ mod tests {
     }
 
     fn in_locale<R>(locale: Locale, f: impl FnOnce(&Texts) -> R) -> R {
-        let messages = Messages::load().unwrap();
-        let docs = Docs::load().unwrap();
+        let messages = crate::fixtures::messages();
+        let docs = crate::fixtures::docs();
         f(&Texts {
-            messages: &messages,
-            docs: &docs,
+            messages,
+            docs,
             locale,
         })
     }
 
     #[test]
     fn engine_titles_lead_with_the_keyword() {
-        let site = Site::build(&Catalog::builtin().unwrap()).unwrap();
+        let site = crate::fixtures::site();
         for p in &site.engines {
             let title = in_locale(Locale::En, |t| engine_meta(p, t).unwrap().title);
             let head: String = title.chars().take(60).collect();
@@ -1201,7 +1194,7 @@ mod tests {
 
     #[test]
     fn descriptions_end_on_a_whole_sentence() {
-        let site = Site::build(&Catalog::builtin().unwrap()).unwrap();
+        let site = crate::fixtures::site();
         for &l in Locale::ALL {
             in_locale(l, |t| {
                 let descriptions = site
@@ -1264,8 +1257,7 @@ mod tests {
         known.extend(manifest().locale_script.preload);
         known.extend(STATIC_ASSETS.iter().map(|s| s.to_string()));
         known.extend(
-            Site::build(&Catalog::builtin().unwrap())
-                .unwrap()
+            crate::fixtures::site()
                 .drum_map_files
                 .iter()
                 .map(|(path, _)| path.to_string()),
@@ -1362,7 +1354,7 @@ mod tests {
                 checked += 1;
             }
         }
-        let site = Site::build(&maps).unwrap();
+        let site = crate::fixtures::site();
         let unpaired = site.pairs.iter().filter(|p| p.reverse.is_none()).count();
         assert_eq!(
             checked,
@@ -1396,7 +1388,7 @@ mod tests {
 
     #[test]
     fn engine_descriptions_fit() {
-        let site = Site::build(&Catalog::builtin().unwrap()).unwrap();
+        let site = crate::fixtures::site();
         in_locale(Locale::En, |t| {
             assert!(site
                 .engines
@@ -1407,7 +1399,7 @@ mod tests {
 
     #[test]
     fn pair_descriptions_fit() {
-        let site = Site::build(&Catalog::builtin().unwrap()).unwrap();
+        let site = crate::fixtures::site();
         in_locale(Locale::En, |t| {
             let long: Vec<String> = site
                 .pairs
@@ -1421,7 +1413,7 @@ mod tests {
 
     #[test]
     fn the_index_description_fits() {
-        let site = Site::build(&Catalog::builtin().unwrap()).unwrap();
+        let site = crate::fixtures::site();
         in_locale(Locale::En, |t| {
             assert!(description_fits(
                 index_meta(&site.index, t).unwrap().description
@@ -1438,7 +1430,7 @@ mod tests {
     #[test]
     fn the_polish_faq_has_a_polish_heading() {
         let html = page("pl/faq/index.html");
-        let messages = Messages::load().unwrap();
+        let messages = crate::fixtures::messages();
         let heading = messages.get(Locale::Pl, SectionKey::Faq.heading());
         assert_ne!(heading, messages.get(Locale::En, SectionKey::Faq.heading()));
         assert!(html.contains(&format!(">{heading}<")));
@@ -1491,8 +1483,7 @@ mod tests {
     fn polish(id: MessageId, arg: (&str, &str)) -> String {
         let mut args = FluentArgs::new();
         args.set(arg.0, arg.1);
-        Messages::load()
-            .unwrap()
+        crate::fixtures::messages()
             .format(Locale::Pl, id, &args)
             .unwrap()
     }
@@ -1570,7 +1561,7 @@ mod tests {
     #[test]
     fn the_drum_maps_page_offers_every_engine_in_every_format() {
         let html = page("drum-maps/index.html");
-        let site = Site::build(&Catalog::builtin().unwrap()).unwrap();
+        let site = crate::fixtures::site();
         assert_eq!(
             html.matches(r#"data-umami-event="drum-map-downloaded""#)
                 .count(),
@@ -1641,7 +1632,7 @@ mod tests {
 
     #[test]
     fn the_polish_note_map_index_names_the_remaining_engines_in_polish() {
-        let messages = Messages::load().unwrap();
+        let messages = crate::fixtures::messages();
         let html = page("pl/engines/index.html");
         assert!(html.contains(messages.get(Locale::Pl, Plain::MapsMoreEngines)));
         assert!(!html.contains(messages.get(Locale::En, Plain::MapsMoreEngines)));
@@ -1718,7 +1709,7 @@ mod tests {
 
     #[test]
     fn english_section_descriptions_fit() {
-        let messages = Messages::load().unwrap();
+        let messages = crate::fixtures::messages();
         for &k in SectionKey::ALL {
             assert!(
                 messages.get(Locale::En, k.description()).chars().count() <= DESCRIPTION_MAX,

@@ -725,14 +725,24 @@ Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props;
 - **Concrete types, no single-implementation traits.** One conversion entry point
   (`convert`), one catalog type, one mapping type.
 - **Standard crates over hand-rolled** parsing, error handling, and serialization.
-- **One gate.** `scripts/gate.sh` runs every check. It owns the Rust checks and their
-  flags: fmt (on the nightly named in `nightly-toolchain`), clippy (`-D warnings`) and
-  tests, both `--locked`. Clippy and the tests run once over the crates as they ship
-  (the workspace without `midiremap-wasm`, so core is built without `ts`, as the CLI and
-  the site generator link it) and once for `midiremap-wasm` (core with `ts`). The app's checks are `app/package.json`'s scripts, which own
-  their flags and generate the i18n types first: eslint, tsc and vitest, then the site
-  build, size budgets and Playwright. The script takes groups (`rust`, `app`, `dist`) or
-  single steps as arguments. Each CI job runs one
+- **One gate.** `cargo xtask gate` (the `xtask` crate) runs every check and owns every
+  check's flags: fmt (on the nightly named in `nightly-toolchain`), clippy (`-D warnings`)
+  and tests, both `--locked`, run once over the crates as they ship (the workspace without
+  `midiremap-wasm`, so core is built without `ts`, as the CLI and the site generator link
+  it) and once for `midiremap-wasm` (core with `ts`), the two at the same time, the second
+  in its own target directory (`target/browser`); tests skip doctests (there are none);
+  the i18n types, the wasm build,
+  eslint, tsc, vitest, the app build, the site build, size budgets and Playwright, which it
+  calls directly rather than through npm scripts. The steps are an enum that names what
+  each one needs; a step starts as soon as those have passed, one cargo step and one Node
+  step at a time, the longest chain to the browser tests first, and a step whose need
+  failed is skipped. It takes groups (`rust`, `app`, `dist`) or single steps as arguments;
+  a partial run adds the i18n types when a chosen step needs them and takes the builds as
+  done. Each run writes a log per step and `timings.json` to `target/gate/`. `cargo xtask
+  gate --quick` is a local shortcut, never CI: every step but the size budgets, the unit
+  tests of changed files (`vitest --changed`), the changed browser test files on the
+  desktop only (and the app and site builds only when there are any), and the wasm module
+  with thin LTO, which is larger than the shipped one. Each CI job runs one
   group (`rust`, `app`, and `dist` after the build), on every push to `master` and every
   pull request, and a push deploys only when all pass; CI differs only in how it builds (the
   wasm module from a cache, the site generator as a cached release binary). Both jobs that
@@ -773,8 +783,8 @@ Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props;
   `test/siteEvents.test.ts` reads the templates and scripts and fails on an event or
   property the map does not have.
 - **Budgets and audits.** `npm run size` fails the build when gzipped wasm, JS or CSS, or
-  the latin font files, or the largest locale chunk, grow past `scripts/check-size.ts`'s
-  budgets. `audit.yml` runs `cargo deny` (advisories, licences, sources; `deny.toml`) and
+  the latin font files, or the largest locale chunk, or the script a static page loads, grow
+  past `scripts/check-size.ts`'s budgets. `audit.yml` runs `cargo deny` (advisories, licences, sources; `deny.toml`) and
   `npm audit` on every push to `master`, every pull request and weekly; Dependabot proposes updates; every action is pinned to a commit.
 - **Changed pages get a new date and an IndexNow ping; others keep theirs.**
   `scripts/indexnow.ts` hashes each sitemap page (asset file names blanked), compares

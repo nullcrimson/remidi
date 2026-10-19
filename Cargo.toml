@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["midiremap-core", "midiremap-cli", "midiremap-wasm", "midiremap-site", "midiremap-testkit"]
+members = ["midiremap-core", "midiremap-cli", "midiremap-wasm", "midiremap-site", "midiremap-testkit", "xtask"]
 
 [profile.wasm]
 inherits = "release"
@@ -8,4 +8,40 @@ lto = true
 codegen-units = 1
 
 [profile.dev.package.midiremap-core]
+opt-level = 2
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package.midiremap-site]
+opt-level = 2
+
+[profile.dev.package.midiremap-testkit]
+opt-level = 2
+
+[profile.dev.package.askama]
+opt-level = 2
+
+[profile.dev.package.fluent-bundle]
+opt-level = 2
+
+[profile.dev.package.fluent-syntax]
+opt-level = 2
+
+[profile.dev.package.intl-memoizer]
+opt-level = 2
+
+[profile.dev.package.serde_json]
+opt-level = 2
+
+[profile.dev.package.midly]
+opt-level = 2
+
+[profile.dev.package.quick-xml]
+opt-level = 2
+
+[profile.dev.package.roxmltree]
+opt-level = 2
+
+[profile.dev.package.memchr]
 opt-level = 2

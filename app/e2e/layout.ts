@@ -1,7 +1,10 @@
 import type { Page } from '@playwright/test';
+import { LOCALE_CODES } from '../src/generated/localeCodes';
+import { expect } from './fixtures';
+import { PSEUDO } from './messages';
 
 /** Whether the page scrolls sideways. */
-export const overflowing = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
+const overflowing = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
 
 /** Text cut off by its box: clipped elements and input placeholders wider than their field. */
 export const clipped = (page: Page) => page.evaluate(() => {
@@ -28,8 +31,27 @@ export const clipped = (page: Page) => page.evaluate(() => {
 });
 
 /** Main-nav labels broken across lines. */
-export const brokenNav = (page: Page) => page.evaluate(() =>
+const brokenNav = (page: Page) => page.evaluate(() =>
   [...document.querySelectorAll<HTMLElement>('header nav > ul > li > a')]
     .filter((a) => a.getClientRects().length > 1 || a.getBoundingClientRect().height > parseFloat(getComputedStyle(a).lineHeight) * 1.5)
     .map((a) => a.textContent?.trim() ?? ''),
 );
+
+/** The shipped locales besides English, which the pseudo-locale stands in for. */
+export const SHIPPED = LOCALE_CODES.filter((code) => code !== 'en');
+
+/** The locales the layout tests check: the shipped ones and the pseudo-locale. */
+export const LOCALES = [PSEUDO, ...SHIPPED];
+
+/** The static page checked at every viewport: its header and nav are the static pages' own. */
+export const EVERY_VIEWPORT_PAGE = 'engines/';
+
+/** The other static pages, one of each kind, checked on the phone, where text runs out of room first. */
+export const PHONE_PAGES = ['engines/ezdrummer/', 'convert/ggd-invasion-to-ezdrummer/', 'how-it-works/', 'faq/', 'terms/', 'thanks/'];
+
+/** Fails when the page scrolls sideways, clips text or breaks a nav label over two lines. */
+export async function fits(page: Page, state: string) {
+  expect(await overflowing(page), `${state}: page scrolls sideways`).toBe(false);
+  expect(await clipped(page), `${state}: clipped text`).toEqual([]);
+  expect(await brokenNav(page), `${state}: nav label on two lines`).toEqual([]);
+}
