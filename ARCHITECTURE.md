@@ -729,16 +729,25 @@ Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props;
   check's flags: fmt (on the nightly named in `nightly-toolchain`), clippy (`-D warnings`)
   and tests, both `--locked`, run once over the crates as they ship (the workspace without
   `midiremap-wasm`, so core is built without `ts`, as the CLI and the site generator link
-  it) and once for `midiremap-wasm` (core with `ts`), the two at the same time, the second
-  in its own target directory (`target/browser`); tests skip doctests (there are none);
+  it) and once for `midiremap-wasm` (core with `ts`), the two at the same time, each cargo
+  pass in a target directory of its own (`target/clippy`, `target/clippy-browser`,
+  `target/browser`; the shipped tests share `target/` with the wasm build); tests skip
+  doctests (there are none);
   the i18n types, the wasm build,
-  eslint, tsc, vitest, the app build, the site build, size budgets and Playwright, which it
-  calls directly rather than through npm scripts. The steps are an enum that names what
-  each one needs; a step starts as soon as those have passed, one cargo step and one Node
-  step at a time, the longest chain to the browser tests first, and a step whose need
-  failed is skipped. It takes groups (`rust`, `app`, `dist`) or single steps as arguments;
-  a partial run adds the i18n types when a chosen step needs them and takes the builds as
-  done. Each run writes a log per step and `timings.json` to `target/gate/`. `cargo xtask
+  eslint, tsc, vitest, the app build, the site build, size budgets and Playwright, the app's
+  through their npm scripts without the pre-hooks. The site generator compiles at the start
+  in its own target directory (`target/site`), and the site build runs that binary, so the
+  chain to the browser tests never waits for cargo's lock behind clippy or the tests. The
+  steps are an enum that names what each one needs and which build directories it builds
+  into; a step starts as soon as those needs have passed, and the only thing it waits for
+  beyond them is a build directory a running step holds, which cargo would lock anyway
+  (the longer chain to the browser tests first). Nothing else caps the CPU: every ready
+  step runs at once, the unit tests take every core and the browser tests three quarters
+  (at every core, beside the Rust checks, page loads ran past their 30 s limit). A step whose need failed is
+  skipped. It takes groups (`rust`, `app`, `dist`) or single steps as
+  arguments; a partial run adds the i18n types and the site generator when a chosen step
+  needs them and takes the other builds as done. Each run writes a log per step and
+  `timings.json` (each step's start and duration) to `target/gate/`. `cargo xtask
   gate --quick` is a local shortcut, never CI: every step but the size budgets, the unit
   tests of changed files (`vitest --changed`), the changed browser test files on the
   desktop only (and the app and site builds only when there are any), and the wasm module

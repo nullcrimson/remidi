@@ -46,10 +46,10 @@ Outside CI the unit tests use half the machine's cores and the browser tests a q
 with other programs running: the defaults (15 and 8 workers) were slower and let single tests
 stall past their time limits; 8 and 4 were faster and kept every test well inside them.
 `cargo xtask gate` runs the app's steps as their `npm run` scripts without the pre-hooks, adding
-only its own flags. It runs the browser tests at half the cores (`E2E_WORKERS=50%`; locally the
-config defaults to a quarter): there they run alone, and 8 workers took them from 280 s to 189 s
-(2026-10-19). It gives the unit tests every core (`VITEST_WORKERS=100%`) when it runs them
-without the Rust checks beside them (`cargo xtask gate vitest` or `app`). The static pages'
+only its own flags. Beside everything else it runs, it gives the unit tests every core
+(`VITEST_WORKERS=100%`) and the browser tests three quarters (`E2E_WORKERS=75%`): at every core
+three page loads ran past their 30 s limit and the run took 173 s, against 148 s at half
+(2026-10-19). Run directly, the configs keep the limits above. The static pages'
 layout checks run all on the phone (tagged `@phone`, which the desktop project leaves out) and
 one per locale on the desktop, which keeps their header and nav covered there.
 

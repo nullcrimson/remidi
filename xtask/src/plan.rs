@@ -2,7 +2,7 @@ use std::{collections::BTreeSet, str::FromStr};
 
 use strum::VariantArray;
 
-use crate::step::{Group, Lane, Step};
+use crate::step::{Group, Step};
 
 /// A name on the command line: a group of steps or one step.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -52,13 +52,6 @@ pub enum Mode {
     Quick,
 }
 
-/// Whether the Node steps have the machine to themselves or share it with Rust checks.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Machine {
-    Alone,
-    Shared,
-}
-
 /// The steps one gate run executes, and how.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Plan {
@@ -78,7 +71,12 @@ impl Plan {
                 mode: Mode::Full,
             },
             Selection::Quick(browser) => {
-                let builds = [Step::BuildApp, Step::BuildSite, Step::E2e];
+                let builds = [
+                    Step::BuildApp,
+                    Step::CompileSite,
+                    Step::BuildSite,
+                    Step::E2e,
+                ];
                 Self {
                     steps: Step::VARIANTS
                         .iter()
@@ -118,16 +116,6 @@ impl Plan {
 
     pub fn mode(&self) -> Mode {
         self.mode
-    }
-
-    pub fn machine(&self) -> Machine {
-        let rust = self.steps.iter().any(|s| s.checks_rust());
-        let node = self.steps.iter().any(|s| s.lane() == Lane::Node);
-        if rust && node {
-            Machine::Shared
-        } else {
-            Machine::Alone
-        }
     }
 
     /// Whether `step` waits for `need` in this run: only when `need` runs too, since a
@@ -203,10 +191,10 @@ mod tests {
     }
 
     #[test]
-    fn unit_tests_share_the_machine_only_beside_rust_checks() {
-        assert_eq!(Plan::new(&Selection::Whole).machine(), Machine::Shared);
-        assert_eq!(partial(&["rust", "app"]).machine(), Machine::Shared);
-        assert_eq!(partial(&["app"]).machine(), Machine::Alone);
-        assert_eq!(partial(&["vitest", "build-wasm"]).machine(), Machine::Alone);
+    fn building_the_site_brings_its_generator() {
+        assert_eq!(
+            names(&partial(&["build-site"])),
+            ["compile-site", "build-site"]
+        );
     }
 }

@@ -149,11 +149,15 @@ impl Gate {
     fn report(&self, step: Step, outcome: Outcome) {
         let name = step.name();
         match outcome {
-            Outcome::Passed(d) => println!("ok      {name} {}s", d.as_secs()),
-            Outcome::Failed(d) => {
+            Outcome::Passed(span) => println!("ok      {name} {}s", span.took.as_secs()),
+            Outcome::Failed(span) => {
                 let log = self.log(step);
                 let shown = log.strip_prefix(&self.root).unwrap_or(&log);
-                println!("FAILED  {name} {}s  {}", d.as_secs(), shown.display());
+                println!(
+                    "FAILED  {name} {}s  {}",
+                    span.took.as_secs(),
+                    shown.display()
+                );
                 if self.host == Host::Ci {
                     match fs::read_to_string(&log) {
                         Ok(text) => print!("{text}"),
@@ -182,12 +186,17 @@ impl Gate {
         let steps: Vec<serde_json::Value> = outcomes
             .iter()
             .map(|(s, o)| {
-                let (result, secs) = match o {
-                    Outcome::Passed(d) => ("ok", d.as_secs_f64()),
-                    Outcome::Failed(d) => ("failed", d.as_secs_f64()),
-                    Outcome::Skipped(_) => ("skipped", 0.0),
+                let (result, span) = match o {
+                    Outcome::Passed(span) => ("ok", Some(span)),
+                    Outcome::Failed(span) => ("failed", Some(span)),
+                    Outcome::Skipped(_) => ("skipped", None),
                 };
-                serde_json::json!({ "step": s.name(), "result": result, "secs": secs })
+                serde_json::json!({
+                    "step": s.name(),
+                    "result": result,
+                    "start": span.map(|t| t.start.as_secs_f64()),
+                    "secs": span.map(|t| t.took.as_secs_f64()),
+                })
             })
             .collect();
         let json = serde_json::json!({ "steps": steps, "total": total.as_secs_f64() });

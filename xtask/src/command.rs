@@ -1,24 +1,23 @@
-use std::{path::Path, process::Command};
+use std::{env::consts::EXE_SUFFIX, path::Path, process::Command};
 
 use crate::{
-    plan::{Machine, Mode, Plan},
-    step::Step,
+    plan::{Mode, Plan},
+    step::{Step, TargetDir},
 };
 
 const SHIPPED: [&str; 3] = ["--workspace", "--exclude", "midiremap-wasm"];
 const BROWSER: [&str; 2] = ["-p", "midiremap-wasm"];
-const BROWSER_TARGET: &str = "target/browser";
+const SITE: &str = "midiremap-site";
 const NPM: &str = if cfg!(windows) { "npm.cmd" } else { "npm" };
 const COUNTS: [&str; 4] = ["passed", "failed", "flaky", "skipped"];
 
 /// The app directory, relative to the repository root.
 pub const APP: &str = "app";
 
-/// What the commands depend on besides the step: the pinned nightly for rustfmt, whether
-/// the Node steps share the machine with Rust checks, and how thorough the run is.
+/// What the commands depend on besides the step: the pinned nightly for rustfmt and how
+/// thorough the run is.
 pub struct Context {
     pub nightly: String,
-    pub machine: Machine,
     pub mode: Mode,
 }
 
@@ -26,17 +25,24 @@ impl Context {
     pub fn new(nightly: String, plan: &Plan) -> Self {
         Self {
             nightly,
-            machine: plan.machine(),
             mode: plan.mode(),
         }
     }
+}
+
+/// What an invocation starts: a tool found on the path, or a program the gate built, by
+/// its path from the repository root.
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum Program {
+    Tool(&'static str),
+    Built(String),
 }
 
 /// One program a step runs.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Invocation {
     in_app: bool,
-    program: &'static str,
+    program: Program,
     args: Vec<String>,
     env: Vec<(&'static str, &'static str)>,
     target_dir: Option<&'static str>,
@@ -46,7 +52,7 @@ impl Invocation {
     fn cargo(args: &[&str]) -> Self {
         Self {
             in_app: false,
-            program: "cargo",
+            program: Program::Tool("cargo"),
             args: args.iter().map(|&a| a.to_owned()).collect(),
             env: Vec::new(),
             target_dir: None,
@@ -63,7 +69,7 @@ impl Invocation {
         }
         Self {
             in_app: true,
-            program: NPM,
+            program: Program::Tool(NPM),
             ..Self::cargo(&args)
         }
     }
@@ -73,15 +79,32 @@ impl Invocation {
         self
     }
 
-    pub fn program(&self) -> &'static str {
-        self.program
+    /// The site generator that `Step::CompileSite` built, run on the app's build.
+    fn site() -> Self {
+        Self {
+            in_app: true,
+            program: Program::Built(site_program()),
+            args: vec!["dist".to_owned()],
+            env: Vec::new(),
+            target_dir: None,
+        }
+    }
+
+    pub fn program(&self) -> &str {
+        match &self.program {
+            Program::Tool(name) => name,
+            Program::Built(path) => path,
+        }
     }
 
     /// The process to start, from the repository `root`; a target directory of its own
     /// becomes `CARGO_TARGET_DIR`, so the command neither waits for nor invalidates the main
     /// one.
     pub fn command(&self, root: &Path) -> Command {
-        let mut command = Command::new(self.program);
+        let mut command = match &self.program {
+            Program::Tool(name) => Command::new(name),
+            Program::Built(path) => Command::new(root.join(path)),
+        };
         command
             .args(&self.args)
             .current_dir(if self.in_app {
@@ -105,23 +128,37 @@ pub enum Run {
     AtOnce(Vec<Invocation>),
 }
 
-fn both_passes(command: &str, tail: &[&str]) -> Run {
-    let pass = |crates: &[&str], target_dir| {
+/// The site generator `Step::CompileSite` builds, from the repository root.
+fn site_program() -> String {
+    let dir = TargetDir::Site
+        .path()
+        .expect("the site generator has a directory of its own");
+    format!("{dir}/debug/{SITE}{EXE_SUFFIX}")
+}
+
+/// A cargo command in `step`'s build directory: its only one, or for a two-pass step, the
+/// directory of the pass.
+fn cargo_in(step: Step, pass: usize, args: &[&str]) -> Invocation {
+    Invocation {
+        target_dir: step.target_dirs()[pass].path(),
+        ..Invocation::cargo(args)
+    }
+}
+
+/// `command` over the shipped crates and over the browser crate, at once.
+fn both_passes(step: Step, command: &str, tail: &[&str]) -> Run {
+    let pass = |i, crates: &[&str]| {
         let args: Vec<&str> = std::iter::once(command)
             .chain(crates.iter().copied())
             .chain(tail.iter().copied())
             .collect();
-        Invocation {
-            target_dir,
-            ..Invocation::cargo(&args)
-        }
+        cargo_in(step, i, &args)
     };
-    Run::AtOnce(vec![
-        pass(&SHIPPED, None),
-        pass(&BROWSER, Some(BROWSER_TARGET)),
-    ])
+    Run::AtOnce(vec![pass(0, &SHIPPED), pass(1, &BROWSER)])
 }
 
+/// The programs `step` runs. The unit tests take every core, the browser tests three
+/// quarters: at every core their page loads ran past the time limit.
 pub fn run(step: Step, cx: &Context) -> Run {
     let one = |inv| Run::InTurn(vec![inv]);
     let quick = cx.mode == Mode::Quick;
@@ -139,10 +176,11 @@ pub fn run(step: Step, cx: &Context) -> Run {
             ]))
         }
         Step::Clippy => both_passes(
+            step,
             "clippy",
             &["--all-targets", "--locked", "--", "-D", "warnings"],
         ),
-        Step::CargoTest => both_passes("test", &["--locked", "--lib", "--bins", "--tests"]),
+        Step::CargoTest => both_passes(step, "test", &["--locked", "--lib", "--bins", "--tests"]),
         Step::GenI18n => one(Invocation::npm("gen:i18n", &[])),
         Step::BuildWasm => {
             let build = Invocation::npm("build:wasm", &[]);
@@ -178,14 +216,11 @@ pub fn run(step: Step, cx: &Context) -> Run {
             } else {
                 &[]
             };
-            let tests = Invocation::npm("test", flags);
-            one(match cx.machine {
-                Machine::Alone => tests.with_env("VITEST_WORKERS", "100%"),
-                Machine::Shared => tests,
-            })
+            one(Invocation::npm("test", flags).with_env("VITEST_WORKERS", "100%"))
         }
         Step::BuildApp => one(Invocation::npm("build:app", &[])),
-        Step::BuildSite => one(Invocation::npm("site", &[])),
+        Step::CompileSite => one(cargo_in(step, 0, &["build", "-p", SITE, "--locked"])),
+        Step::BuildSite => one(Invocation::site()),
         Step::Size => one(Invocation::npm("size", &[])),
         Step::E2e => {
             let flags: &[&str] = if quick {
@@ -193,7 +228,7 @@ pub fn run(step: Step, cx: &Context) -> Run {
             } else {
                 &[]
             };
-            one(Invocation::npm("e2e", flags).with_env("E2E_WORKERS", "50%"))
+            one(Invocation::npm("e2e", flags).with_env("E2E_WORKERS", "75%"))
         }
     }
 }
@@ -243,6 +278,7 @@ pub fn summary(step: Step, log: &str) -> Vec<String> {
         | Step::Clippy
         | Step::GenI18n
         | Step::BuildWasm
+        | Step::CompileSite
         | Step::Eslint
         | Step::Tsc
         | Step::BuildApp
@@ -256,20 +292,19 @@ mod tests {
 
     use super::*;
 
-    fn cx(machine: Machine, mode: Mode) -> Context {
+    fn cx(mode: Mode) -> Context {
         Context {
             nightly: "nightly-2026-05-03".to_owned(),
-            machine,
             mode,
         }
     }
 
     fn full() -> Context {
-        cx(Machine::Shared, Mode::Full)
+        cx(Mode::Full)
     }
 
     fn quick() -> Context {
-        cx(Machine::Shared, Mode::Quick)
+        cx(Mode::Quick)
     }
 
     fn root() -> PathBuf {
@@ -313,24 +348,31 @@ mod tests {
         assert!(matches!(run(Step::Eslint, &full()), Run::InTurn(_)));
     }
 
-    #[test]
-    fn the_browser_clippy_pass_builds_in_its_own_target_directory() {
-        let passes = commands(Step::Clippy, &full());
-        assert_eq!(env(&passes[0], "CARGO_TARGET_DIR"), None);
-        assert_eq!(
-            env(&passes[1], "CARGO_TARGET_DIR"),
-            Some(root().join(BROWSER_TARGET).to_string_lossy().into_owned())
-        );
+    fn target_dir(c: &Command) -> Option<String> {
+        env(c, "CARGO_TARGET_DIR")
+    }
+
+    fn under_root(dir: TargetDir) -> Option<String> {
+        dir.path()
+            .map(|p| root().join(p).to_string_lossy().into_owned())
     }
 
     #[test]
-    fn the_browser_test_pass_builds_in_its_own_target_directory() {
+    fn clippy_builds_in_directories_of_its_own() {
+        let passes = commands(Step::Clippy, &full());
+        assert_eq!(target_dir(&passes[0]), under_root(TargetDir::Clippy));
+        assert_eq!(target_dir(&passes[1]), under_root(TargetDir::ClippyBrowser));
+    }
+
+    #[test]
+    fn the_shipped_tests_build_in_the_main_directory() {
+        assert_eq!(target_dir(&commands(Step::CargoTest, &full())[0]), None);
+    }
+
+    #[test]
+    fn the_browser_tests_build_in_a_directory_of_their_own() {
         let passes = commands(Step::CargoTest, &full());
-        assert_eq!(env(&passes[0], "CARGO_TARGET_DIR"), None);
-        assert_eq!(
-            env(&passes[1], "CARGO_TARGET_DIR"),
-            Some(root().join(BROWSER_TARGET).to_string_lossy().into_owned())
-        );
+        assert_eq!(target_dir(&passes[1]), under_root(TargetDir::Browser));
     }
 
     #[test]
@@ -369,19 +411,31 @@ mod tests {
     }
 
     #[test]
-    fn unit_tests_take_every_core_only_when_alone() {
-        let alone = &commands(Step::Vitest, &cx(Machine::Alone, Mode::Full))[0];
-        let shared = &commands(Step::Vitest, &full())[0];
-        assert_eq!(env(alone, "VITEST_WORKERS").as_deref(), Some("100%"));
-        assert_eq!(env(shared, "VITEST_WORKERS"), None);
+    fn unit_tests_take_every_core() {
+        let tests = &commands(Step::Vitest, &full())[0];
+        assert_eq!(env(tests, "VITEST_WORKERS").as_deref(), Some("100%"));
     }
 
     #[test]
-    fn browser_tests_take_half_the_cores() {
-        assert_eq!(
-            env(&commands(Step::E2e, &full())[0], "E2E_WORKERS").as_deref(),
-            Some("50%")
-        );
+    fn browser_tests_take_three_quarters_of_the_cores() {
+        let tests = &commands(Step::E2e, &full())[0];
+        assert_eq!(env(tests, "E2E_WORKERS").as_deref(), Some("75%"));
+    }
+
+    #[test]
+    fn the_site_generator_compiles_in_its_own_target_directory() {
+        let compile = &commands(Step::CompileSite, &full())[0];
+        assert_eq!(args(compile), ["build", "-p", SITE, "--locked"]);
+        assert_eq!(target_dir(compile), under_root(TargetDir::Site));
+    }
+
+    #[test]
+    fn the_site_builds_with_the_compiled_generator_into_the_app_build() {
+        let site = &commands(Step::BuildSite, &full())[0];
+        let program = root().join(format!("target/site/debug/{SITE}{EXE_SUFFIX}"));
+        assert_eq!(site.get_program(), program.as_os_str());
+        assert_eq!(site.get_current_dir(), Some(root().join(APP).as_path()));
+        assert_eq!(args(site), ["dist"]);
     }
 
     #[test]

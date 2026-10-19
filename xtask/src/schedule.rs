@@ -7,13 +7,20 @@ use std::{
 
 use crate::{
     plan::Plan,
-    step::{Lane, Step},
+    step::{Step, TargetDir},
 };
+
+/// When a step ran, measured from the start of the gate.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Span {
+    pub start: Duration,
+    pub took: Duration,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Outcome {
-    Passed(Duration),
-    Failed(Duration),
+    Passed(Span),
+    Failed(Span),
     /// Not run because a step it waits for did not pass.
     Skipped(Step),
 }
@@ -29,13 +36,6 @@ enum State {
     Waiting,
     Running,
     Done(Outcome),
-}
-
-fn capacity(lane: Lane) -> usize {
-    match lane {
-        Lane::Cargo | Lane::Node => 1,
-        Lane::Free => usize::MAX,
-    }
 }
 
 /// Where every step of a plan stands; deciding what runs next takes no threads.
@@ -66,6 +66,14 @@ impl<'p> Schedule<'p> {
             })
     }
 
+    fn locked(&self) -> Vec<TargetDir> {
+        self.states
+            .iter()
+            .filter(|(_, st)| **st == State::Running)
+            .flat_map(|(s, _)| s.target_dirs().iter().copied())
+            .collect()
+    }
+
     /// Skips every waiting step that waits for a step that did not pass, down the whole
     /// chain, and returns them in the order they were skipped.
     pub fn skip_blocked(&mut self) -> Vec<(Step, Outcome)> {
@@ -88,8 +96,8 @@ impl<'p> Schedule<'p> {
         }
     }
 
-    /// Marks running, and returns, the ready steps their lanes have room for, the
-    /// highest-priority step first.
+    /// Marks running, and returns, every ready step whose build directories no running step
+    /// holds, highest priority first where two want the same one.
     pub fn start_ready(&mut self) -> Vec<Step> {
         let mut ready: Vec<Step> = self
             .states
@@ -98,14 +106,11 @@ impl<'p> Schedule<'p> {
             .filter(|&s| self.ready(s))
             .collect();
         ready.sort_by_key(|s| s.priority());
+        let mut locked = self.locked();
         let mut started = Vec::new();
         for step in ready {
-            let busy = self
-                .states
-                .iter()
-                .filter(|(&s, st)| **st == State::Running && s.lane() == step.lane())
-                .count();
-            if busy < capacity(step.lane()) {
+            if step.target_dirs().iter().all(|d| !locked.contains(d)) {
+                locked.extend(step.target_dirs());
                 self.states.insert(step, State::Running);
                 started.push(step);
             }
@@ -143,6 +148,7 @@ pub fn run_plan(
     run: impl Fn(Step) -> bool + Sync,
     mut done: impl FnMut(Step, Outcome),
 ) -> BTreeMap<Step, Outcome> {
+    let origin = Instant::now();
     let mut schedule = Schedule::new(plan);
     let (tx, rx) = mpsc::channel::<(Step, Outcome)>();
     thread::scope(|scope| loop {
@@ -153,11 +159,16 @@ pub fn run_plan(
             let tx = tx.clone();
             let run = &run;
             scope.spawn(move || {
-                let start = Instant::now();
-                let outcome = if run(step) {
-                    Outcome::Passed(start.elapsed())
+                let start = origin.elapsed();
+                let passed = run(step);
+                let span = Span {
+                    start,
+                    took: origin.elapsed() - start,
+                };
+                let outcome = if passed {
+                    Outcome::Passed(span)
                 } else {
-                    Outcome::Failed(start.elapsed())
+                    Outcome::Failed(span)
                 };
                 tx.send((step, outcome)).ok();
             });
@@ -197,6 +208,10 @@ mod tests {
         ))
     }
 
+    fn passed() -> Outcome {
+        Outcome::Passed(Span::default())
+    }
+
     /// Plays `plan` without threads: steps end in the order they started, the ones in
     /// `fails` failing.
     fn play(plan: &Plan, fails: &[Step]) -> (Vec<Event>, BTreeMap<Step, Outcome>) {
@@ -214,9 +229,9 @@ mod tests {
             };
             events.push(Event::End(step));
             let outcome = if fails.contains(&step) {
-                Outcome::Failed(Duration::ZERO)
+                Outcome::Failed(Span::default())
             } else {
-                Outcome::Passed(Duration::ZERO)
+                passed()
             };
             schedule.finish(step, outcome);
         }
@@ -227,16 +242,13 @@ mod tests {
         events.iter().position(|&x| x == e).unwrap()
     }
 
-    fn never_overlaps(events: &[Event], lane: Lane) -> bool {
-        let mut running = 0;
-        events.iter().all(|e| {
-            match e {
-                Event::Start(s) if s.lane() == lane => running += 1,
-                Event::End(s) if s.lane() == lane => running -= 1,
-                Event::Start(_) | Event::End(_) => {}
-            }
-            running <= 1
-        })
+    fn overlap(events: &[Event], a: Step, b: Step) -> bool {
+        at(events, Event::Start(a)) < at(events, Event::End(b))
+            && at(events, Event::Start(b)) < at(events, Event::End(a))
+    }
+
+    fn started(schedule: &mut Schedule) -> Vec<Step> {
+        schedule.start_ready()
     }
 
     #[test]
@@ -258,31 +270,53 @@ mod tests {
     }
 
     #[test]
-    fn cargo_steps_never_overlap() {
-        assert!(never_overlaps(&play(&whole(), &[]).0, Lane::Cargo));
+    fn steps_sharing_a_build_directory_take_turns() {
+        let (events, _) = play(&whole(), &[]);
+        assert!(!overlap(&events, Step::BuildWasm, Step::CargoTest));
     }
 
     #[test]
-    fn node_steps_never_overlap() {
-        assert!(never_overlaps(&play(&whole(), &[]).0, Lane::Node));
+    fn steps_in_different_build_directories_run_at_once() {
+        let (events, _) = play(&whole(), &[]);
+        assert!(overlap(&events, Step::Clippy, Step::BuildWasm));
+        assert!(overlap(&events, Step::CompileSite, Step::BuildWasm));
     }
 
     #[test]
-    fn the_wasm_build_takes_the_cargo_lane_before_the_rust_checks() {
+    fn every_step_with_no_needs_starts_at_once_but_the_one_behind_the_wasm_build() {
         let plan = whole();
-        let first = Schedule::new(&plan).start_ready();
-        assert!(first.contains(&Step::BuildWasm));
-        assert!(!first.contains(&Step::Clippy));
-        assert!(!first.contains(&Step::CargoTest));
+        let first = started(&mut Schedule::new(&plan));
+        assert_eq!(
+            first,
+            [
+                Step::BuildWasm,
+                Step::CompileSite,
+                Step::GenI18n,
+                Step::Clippy,
+                Step::Fmt
+            ]
+        );
+    }
+
+    #[test]
+    fn the_site_builds_while_the_rust_tests_run() {
+        let plan = partial(&[Step::CargoTest, Step::BuildApp, Step::BuildSite]);
+        let mut schedule = Schedule::new(&plan);
+        assert!(started(&mut schedule).contains(&Step::CargoTest));
+        schedule.finish(Step::GenI18n, passed());
+        assert_eq!(started(&mut schedule), [Step::BuildApp]);
+        schedule.finish(Step::CompileSite, passed());
+        schedule.finish(Step::BuildApp, passed());
+        assert_eq!(started(&mut schedule), [Step::BuildSite]);
     }
 
     #[test]
     fn eslint_starts_while_the_wasm_build_runs() {
         let plan = whole();
         let mut schedule = Schedule::new(&plan);
-        schedule.start_ready();
-        schedule.finish(Step::GenI18n, Outcome::Passed(Duration::ZERO));
-        assert!(schedule.start_ready().contains(&Step::Eslint));
+        started(&mut schedule);
+        schedule.finish(Step::GenI18n, passed());
+        assert!(started(&mut schedule).contains(&Step::Eslint));
         assert!(schedule.is_running());
     }
 
@@ -320,5 +354,25 @@ mod tests {
         assert_eq!(outcomes.len(), Step::VARIANTS.len());
         heard.sort();
         assert_eq!(heard, Step::VARIANTS);
+    }
+
+    #[test]
+    fn run_plan_times_each_step_from_the_start_of_the_gate() {
+        let plan = partial(&[Step::BuildWasm, Step::BuildApp]);
+        let outcomes = run_plan(
+            &plan,
+            |_| {
+                thread::sleep(Duration::from_millis(20));
+                true
+            },
+            |_, _| {},
+        );
+        let span = |s| match outcomes[&s] {
+            Outcome::Passed(span) => span,
+            o => panic!("{o:?}"),
+        };
+        assert!(
+            span(Step::BuildApp).start >= span(Step::BuildWasm).start + span(Step::BuildWasm).took
+        );
     }
 }

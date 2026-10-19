@@ -1,4 +1,5 @@
-/// One check of the gate: what it needs, what it holds while it runs and how soon it goes.
+/// One check of the gate: what it needs, which build directories it locks and how soon it
+/// goes.
 #[derive(
     Clone,
     Copy,
@@ -19,6 +20,7 @@ pub enum Step {
     CargoTest,
     GenI18n,
     BuildWasm,
+    CompileSite,
     Eslint,
     Tsc,
     Vitest,
@@ -28,13 +30,29 @@ pub enum Step {
     E2e,
 }
 
-/// What a step holds while it runs: cargo's build directory, the CPU the Node tools
-/// share, or nothing worth queueing for.
+/// A cargo build directory. Cargo locks one while it builds into it, so steps that share
+/// one take turns; steps in different ones run at once.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Lane {
-    Cargo,
-    Node,
-    Free,
+pub enum TargetDir {
+    /// `target/`, or `CARGO_TARGET_DIR` when set: the wasm build and the shipped tests.
+    Main,
+    Browser,
+    Clippy,
+    ClippyBrowser,
+    Site,
+}
+
+impl TargetDir {
+    /// The directory from the repository root; `None` for the main one, which cargo picks.
+    pub fn path(self) -> Option<&'static str> {
+        match self {
+            TargetDir::Main => None,
+            TargetDir::Browser => Some("target/browser"),
+            TargetDir::Clippy => Some("target/clippy"),
+            TargetDir::ClippyBrowser => Some("target/clippy-browser"),
+            TargetDir::Site => Some("target/site"),
+        }
+    }
 }
 
 #[derive(
@@ -69,50 +87,64 @@ impl Step {
     /// The steps whose output this one reads.
     pub fn needs(self) -> &'static [Step] {
         match self {
-            Step::Fmt | Step::Clippy | Step::CargoTest | Step::GenI18n | Step::BuildWasm => &[],
+            Step::Fmt
+            | Step::Clippy
+            | Step::CargoTest
+            | Step::GenI18n
+            | Step::BuildWasm
+            | Step::CompileSite => &[],
             Step::Eslint => &[Step::GenI18n],
             Step::Tsc | Step::Vitest | Step::BuildApp => &[Step::GenI18n, Step::BuildWasm],
-            Step::BuildSite => &[Step::BuildApp],
+            Step::BuildSite => &[Step::BuildApp, Step::CompileSite],
             Step::Size | Step::E2e => &[Step::BuildSite],
         }
     }
 
     /// Whether a partial run adds this step whenever a chosen step needs it: true for the
-    /// generated i18n types, which take a fraction of a second; the builds a partial run
+    /// generated i18n types, which take a fraction of a second, and the site generator,
+    /// which cargo leaves as it is when nothing changed; the other builds a partial run
     /// takes as done.
     pub fn implied(self) -> bool {
-        matches!(self, Step::GenI18n)
+        matches!(self, Step::GenI18n | Step::CompileSite)
     }
 
-    /// Whether the step loads the machine with Rust checks beside the Node steps.
-    pub fn checks_rust(self) -> bool {
-        matches!(self, Step::Clippy | Step::CargoTest)
-    }
-
-    pub fn lane(self) -> Lane {
+    /// The cargo build directories the step builds into: for the two cargo passes, the
+    /// shipped crates' first and the browser crate's second.
+    pub fn target_dirs(self) -> &'static [TargetDir] {
         match self {
-            Step::Clippy | Step::CargoTest | Step::BuildWasm | Step::BuildSite => Lane::Cargo,
-            Step::Eslint | Step::Tsc | Step::Vitest | Step::BuildApp | Step::E2e => Lane::Node,
-            Step::Fmt | Step::GenI18n | Step::Size => Lane::Free,
+            Step::Clippy => &[TargetDir::Clippy, TargetDir::ClippyBrowser],
+            Step::CargoTest => &[TargetDir::Main, TargetDir::Browser],
+            Step::BuildWasm => &[TargetDir::Main],
+            Step::CompileSite => &[TargetDir::Site],
+            Step::Fmt
+            | Step::GenI18n
+            | Step::Eslint
+            | Step::Tsc
+            | Step::Vitest
+            | Step::BuildApp
+            | Step::BuildSite
+            | Step::Size
+            | Step::E2e => &[],
         }
     }
 
-    /// Which ready step takes a free lane first: the longest chain to the end of the gate
-    /// (wasm, app build, site build, browser tests) goes first.
+    /// Which ready step takes a build directory another ready step wants first: the longest
+    /// chain to the end of the gate (wasm, app build, site build, browser tests) goes first.
     pub fn priority(self) -> u8 {
         match self {
             Step::BuildWasm => 0,
-            Step::GenI18n => 1,
-            Step::BuildApp => 2,
-            Step::BuildSite => 3,
-            Step::E2e => 4,
-            Step::Eslint => 5,
-            Step::Tsc => 6,
-            Step::Vitest => 7,
-            Step::Clippy => 8,
-            Step::CargoTest => 9,
-            Step::Fmt => 10,
-            Step::Size => 11,
+            Step::CompileSite => 1,
+            Step::GenI18n => 2,
+            Step::BuildApp => 3,
+            Step::BuildSite => 4,
+            Step::E2e => 5,
+            Step::Eslint => 6,
+            Step::Tsc => 7,
+            Step::Vitest => 8,
+            Step::Clippy => 9,
+            Step::CargoTest => 10,
+            Step::Fmt => 11,
+            Step::Size => 12,
         }
     }
 }
@@ -134,6 +166,7 @@ mod tests {
                 "cargo-test",
                 "gen-i18n",
                 "build-wasm",
+                "compile-site",
                 "eslint",
                 "tsc",
                 "vitest",
