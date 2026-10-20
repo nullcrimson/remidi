@@ -9,8 +9,10 @@ const file = (path: string) => join(dirname(fileURLToPath(import.meta.url)), '..
 
 function entries(code: string): Map<string, string> {
   const serializer = new FluentSerializer();
-  const resource = new FluentParser({ withSpans: false }).parse(readFileSync(file(`${code}/app.ftl`), 'utf8'));
-  return new Map(resource.body.filter((e): e is Message => e instanceof Message).map((m) => [m.id.name, serializer.serializeEntry(m)]));
+  const parser = new FluentParser({ withSpans: false });
+  return new Map(['app.ftl', 'site.ftl'].flatMap((name) => parser.parse(readFileSync(file(`${code}/${name}`), 'utf8')).body
+    .filter((e): e is Message => e instanceof Message)
+    .map((m) => [m.id.name, serializer.serializeEntry(m)] as const)));
 }
 
 function allowed(code: string): string[] {

@@ -4,31 +4,19 @@ nav-note-maps = Mapas de notas
 nav-drum-maps = Mapas de bateria
 section-guide-label = Como usar
 section-guide-heading = Como converter MIDI de bateria
-section-guide-title = Como converter MIDI de bateria entre plugins | Drumverter
-section-guide-description = Converta MIDI de bateria entre GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums e mais de 80 plugins em três passos, grátis e no navegador.
 section-faq-label = FAQ
 section-faq-heading = Perguntas frequentes
-section-faq-title = FAQ do conversor de MIDI de bateria | Drumverter
-section-faq-description = Respostas sobre o Drumverter: preço, privacidade, convenções de oitava (C-1 ou C-2), conversão em lote e o que acontece com peças sem equivalente.
 section-issue-label = Relatar um problema
 section-issue-heading = Relatar um problema
-section-issue-title = Relatar um problema | Drumverter
-section-issue-description = Achou um mapeamento de bateria errado ou quer um plugin novo no Drumverter? Avise pelo GitHub ou por e-mail.
 section-contact-label = Contato
 section-contact-heading = Contato
-section-contact-title = Contato | Drumverter
-section-contact-description = Dúvidas, sugestões ou pedidos de plugins para o Drumverter, o conversor de MIDI de bateria grátis no navegador.
 section-terms-label = Termos
 section-terms-heading = Termos de uso
-section-terms-title = Termos de uso | Drumverter
-section-terms-description = Termos de uso do Drumverter, o conversor de MIDI de bateria grátis no navegador: fornecido no estado em que se encontra, arquivos nunca enviados, estatísticas anônimas sem cookies.
 skip-to-content = Pular para o conteúdo
 nav-main = Principal
 nav-site = Site
 lang-menu-label = Idioma
 lang-load-failed = Não foi possível carregar o idioma { $language }. Verifique sua conexão com a internet e tente de novo.
-lang-offer = Esta página também está em português →
-open-converter = Abrir o conversor →
 error-unknown-engine = Plugin de { $role ->
     [source] origem
    *[target] destino
@@ -300,10 +288,6 @@ tip-link = Me pague um café
 tip-ask = Faço o Drumverter sozinho, no meu tempo livre. Se ele poupou seu trabalho de remapear tudo à mão, um café ajuda a mantê-lo grátis e sem anúncios.
 tip-amounts = Apoie o projeto
 tip-other = Outro valor
-thanks-title = Obrigado | Drumverter
-thanks-description = Obrigado por apoiar o Drumverter, o conversor gratuito de MIDI de bateria.
-thanks-heading = Obrigado!
-thanks-body = Seu café ajuda a manter o Drumverter grátis e sem anúncios. A Stripe envia o recibo para o seu e-mail.
 done-view-report = Ver relatório →
 done-convert-more = Nova conversão
 done-report-mapping = Mapeamento errado? Me avise
@@ -330,113 +314,5 @@ report-clean = Conversão sem perdas
 report-clean-detail = — todas as peças foram mapeadas direto para { $target }.
 report-heading = Relatório de conversão
 converter-title = Drumverter — conversor e remapeador de MIDI de bateria grátis
-converter-description = Conversor de MIDI de bateria grátis: remapeie MIDI de bateria entre GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums, General MIDI e Guitar Pro no navegador.
-converter-og-description = Converta MIDI de bateria entre GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums e mais de 80 plugins. Grátis, no navegador.
-converter-image-alt = Drumverter — conversor e remapeador de MIDI de bateria
-converter-twitter-description = Remapeador de MIDI de bateria grátis no navegador — remapeie MIDI de bateria entre os mapas de notas de plugins de bateria.
-converter-app-description = Ferramenta grátis no navegador que remapeia MIDI de bateria entre os mapas de notas de plugins de bateria.
-converter-noscript = O Drumverter é um remapeador de MIDI de bateria grátis. Ele converte um arquivo MIDI de bateria feito para o mapa de notas de um plugin de bateria no mapa de outro — por exemplo, de GetGood Drums para EZdrummer, Superior Drummer, Addictive Drums, General MIDI ou Guitar Pro — e, quando falta uma peça no destino, usa a mais parecida que ele tiver. Tudo roda no seu navegador; ative o JavaScript para usar o conversor.
-load-failed = Não foi possível carregar o Drumverter. Verifique sua conexão com a internet e recarregue a página.
-load-failed-reload = Recarregar
-maps-breadcrumb = Trilha de navegação
-maps-index-title = Mapas de notas MIDI de bateria de { $count } plugins | Drumverter
-maps-index-description = Mapas de notas MIDI de bateria de { $count } plugins, além de tabelas de conversão entre GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums e outros.
-maps-index-heading = Mapas de notas MIDI de bateria
-maps-index-intro = Mapas de notas de { $count } plugins de bateria e tabelas de conversão entre os mais populares — os mesmos dados de mapeamento que o conversor do Drumverter usa.
 maps-popular = Conversões populares
-maps-more-engines = Mais plugins
-maps-matrix-corner = DE ↓ PARA →
 maps-pair-link = { $source } para { $target }
-maps-matrix-hint = Cada seta abre a tabela de conversão do plugin da linha para o plugin da coluna.
-maps-all-engines = Todos os { $count } plugins
-maps-filter-engines-label = Filtrar plugins
-maps-filter-engines-placeholder = Filtrar plugins…
-maps-no-engines = Nenhum plugin encontrado
-maps-engine-title = { $engineMidi }: mapa de notas e mapeamento de bateria | Drumverter
-maps-engine-title-long-name = Mapa de notas MIDI: { $engine } | Drumverter
-maps-engine-description = { $engine }: mapa de notas MIDI de bateria com todas as { $total } notas e os nomes das peças nas convenções de oitava C-1 e C-2.
-maps-engine-description-short = { $engine }: mapa de notas MIDI de bateria com nomes de notas em C-1 e C-2.
-maps-engine-description-more = Converta { $engineMidi } para qualquer plugin, grátis.
-maps-engine-heading = Mapa de notas MIDI de bateria: { $engine }
-maps-engine-intro = { $engine }: todas as notas MIDI reconhecidas — { $total } no total — agrupadas por peça. Os nomes das notas podem seguir qualquer uma das convenções de oitava: C-1 (Reaper, Logic, Ableton, Guitar Pro) ou C-2 (Studio One, Cubase, FL Studio).
-maps-convert-to = Converter para { $engine }
-maps-convert-from = Converter de { $engine }
-maps-filter-drums-label = Filtrar peças
-maps-filter-drums-placeholder = Filtrar por peça ou nota…
-maps-octave-naming = Nomes das oitavas
-maps-column-note = Nota
-maps-column-drum = Peça
-maps-conversion-tables = Tabelas de conversão
-maps-pair-heading = Converter { $sourceMidi } para { $target }
-maps-pair-title = Converter { $sourceMidi } para { $target } | Drumverter
-maps-pair-description = Converta MIDI de bateria de { $source } para { $target }: { $exact } { $exact ->
-    [0] notas mapeadas
-    [one] nota mapeada
-   *[other] notas mapeadas
-} exatamente, { $approximated } { $approximated ->
-    [0] substituídas
-    [one] substituída
-   *[other] substituídas
-} e { $dropped } { $dropped ->
-    [0] removidas
-    [one] removida
-   *[other] removidas
-}.
-maps-pair-description-more = Conversor grátis no navegador.
-maps-pair-description-short = Converta MIDI de bateria de { $source } para { $target }.
-maps-pair-summary = Das { $total } notas de { $source }, { $exact } { $exact ->
-    [0] são mapeadas
-    [one] é mapeada
-   *[other] são mapeadas
-} exatamente para { $target }, { $approximated } { $approximated ->
-    [0] são substituídas
-    [one] é substituída
-   *[other] são substituídas
-} pela peça disponível mais parecida e { $dropped } { $dropped ->
-    [0] não têm
-    [one] não tem
-   *[other] não têm
-} equivalente.
-maps-pair-convert = Converter { $source } → { $target }
-maps-reverse = ⇄ Inverter direção
-maps-exact-count = { $count ->
-    [0] { $count } exatas
-    [one] { $count } exata
-   *[other] { $count } exatas
-}
-maps-approximated-count = { $count ->
-    [one] { $count } substituída
-   *[other] { $count } substituídas
-}
-maps-dropped-count = { $count ->
-    [one] { $count } removida
-   *[other] { $count } removidas
-}
-maps-rows = Linhas
-maps-rows-changes = Alteradas { $count }
-maps-column-engine-note = Nota ({ $engine })
-maps-column-engine-drum = Peça ({ $engine })
-maps-column-to = para
-maps-column-result = Resultado
-maps-no-equivalent = sem equivalente
-maps-status-exact = exata
-maps-status-approximated = substituída
-maps-status-dropped = removida
-maps-more-from = Outras conversões de { $engine }
-maps-full-maps = Mapas de notas completos:
-maps-index-drum-maps = Mapas de bateria para a sua DAW de cada plugin: Cubase, Reaper e Studio One
-maps-engine-description-drum-maps = Mapas de bateria grátis para Cubase, Reaper e Studio One.
-maps-daw-heading = Mapas de bateria para a sua DAW
-maps-daw-intro = Carregue um destes arquivos na sua DAW para ver os nomes das peças de { $engine } nas teclas do piano roll.
-maps-daw-how = Como carregar um mapa de bateria no Reaper, Cubase ou Studio One
-drum-maps-title = Mapas de bateria para Cubase, Reaper e Studio One: { $count } plugins | Drumverter
-drum-maps-description = Mapas de bateria grátis de { $count } plugins: drum maps do Cubase (.drm), nomes de notas do Reaper (.txt) e pitch lists do Studio One (.pitchlist).
-drum-maps-heading = Mapas de bateria para a sua DAW
-drum-maps-intro = Mapas de bateria grátis de { $count } plugins, feitos com os mesmos mapas de notas que o conversor usa. Cada arquivo dá nome a todas as notas que o plugin toca, então o piano roll mostra nomes das peças em vez de números de nota. Os arquivos usam números de nota MIDI, então funcionam com qualquer convenção de oitava.
-drum-maps-how-heading = Como carregar um mapa de bateria
-drum-maps-reaper = No editor MIDI, escolha File → Note/CC names → Load note/CC names from file e selecione o arquivo .txt.
-drum-maps-cubase = Abra MIDI → Drum Map Setup, clique em Load e selecione o arquivo .drm. Depois escolha o mapa no campo Drum Map do Inspector da faixa.
-drum-maps-studio-one = Na janela Edit, clique no ícone da chave inglesa para mostrar os nomes das notas e arraste o arquivo .pitchlist sobre eles. Salve-o pelo menu Pitch Names para usar de novo.
-drum-maps-other = Logic Pro, Ableton Live, FL Studio e Bitwig Studio não carregam arquivos de nomes de notas. Use o mapa de notas do plugin para achar cada peça, ou converta seu MIDI para o plugin que você usa.
-drum-maps-list-heading = Mapas de bateria dos { $count } plugins
-drum-maps-download-label = Mapa de bateria de { $engine } para { $daw }

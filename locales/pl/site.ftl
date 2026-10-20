@@ -1,0 +1,123 @@
+section-guide-title = Jak konwertować MIDI perkusji między wtyczkami | Drumverter
+section-guide-description = Konwertuj MIDI perkusji między GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums i 80+ wtyczkami w trzech krokach, za darmo, w przeglądarce.
+section-faq-title = FAQ konwertera MIDI perkusji | Drumverter
+section-faq-description = Drumverter w pytaniach: koszt, prywatność, oktawy (C-1 czy C-2), konwersja wielu plików i co się dzieje z instrumentami bez odpowiednika.
+section-issue-title = Zgłoś problem | Drumverter
+section-issue-description = Błędne mapowanie instrumentu lub brak wtyczki w aplikacji Drumverter? Zgłoś to na GitHubie lub e-mailem.
+section-contact-title = Kontakt | Drumverter
+section-contact-description = Pytania, uwagi i prośby o nowe wtyczki — Drumverter, darmowy konwerter MIDI perkusji w przeglądarce.
+section-terms-title = Warunki korzystania | Drumverter
+section-terms-description = Warunki korzystania z aplikacji Drumverter: bez gwarancji, pliki nigdy nie są wysyłane, anonimowe statystyki bez plików cookie.
+lang-offer = Ta strona jest też po polsku →
+open-converter = Otwórz konwerter →
+thanks-title = Dziękuję | Drumverter
+thanks-description = Dziękuję za wsparcie aplikacji Drumverter — darmowego konwertera MIDI perkusji.
+thanks-heading = Dziękuję!
+thanks-body = Dzięki kawie aplikacja Drumverter pozostaje darmowa i bez reklam. Potwierdzenie płatności Stripe wyśle e-mailem.
+converter-description = Darmowy konwerter MIDI perkusji: mapuj MIDI między GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums, General MIDI i Guitar Pro w przeglądarce.
+converter-og-description = Konwertuj MIDI perkusji między GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums i ponad 80 innymi wtyczkami. Za darmo, w przeglądarce.
+converter-image-alt = Drumverter — konwerter i remapper MIDI perkusji
+converter-twitter-description = Darmowy remapper MIDI perkusji w przeglądarce — przenosi MIDI perkusji między układami nut wtyczek perkusyjnych.
+converter-app-description = Darmowe narzędzie w przeglądarce, które przenosi MIDI perkusji między układami nut wtyczek perkusyjnych.
+converter-noscript = Drumverter to darmowy remapper MIDI perkusji. Przenosi plik MIDI perkusji napisany dla układu nut jednej wtyczki perkusyjnej na układ innej — na przykład z GetGood Drums na EZdrummer, Superior Drummer, Addictive Drums, General MIDI lub Guitar Pro. Gdy wtyczce docelowej brakuje instrumentu, wybiera najbardziej podobny. Wszystko dzieje się w przeglądarce; włącz JavaScript, aby użyć konwertera.
+load-failed = Nie udało się wczytać aplikacji Drumverter. Sprawdź połączenie z internetem i odśwież stronę.
+load-failed-reload = Odśwież
+maps-breadcrumb = Ścieżka nawigacyjna
+maps-index-title = { $count ->
+    [one] Mapa nut MIDI perkusji dla { $count } wtyczki | Drumverter
+   *[other] Mapy nut MIDI perkusji dla { $count } wtyczek | Drumverter
+}
+maps-index-description = { $count ->
+    [one] Mapy nut MIDI perkusji dla { $count } wtyczki, plus tabele konwersji między GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums i innymi.
+   *[other] Mapy nut MIDI perkusji dla { $count } wtyczek, plus tabele konwersji między GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums i innymi.
+}
+maps-index-heading = Mapy nut MIDI perkusji
+maps-index-intro = { $count ->
+    [one] Mapa nut dla { $count } wtyczki perkusyjnej i tabele konwersji między najpopularniejszymi z nich — te same dane, na których działa konwerter Drumverter.
+   *[other] Mapy nut dla { $count } wtyczek perkusyjnych i tabele konwersji między najpopularniejszymi z nich — te same dane, na których działa konwerter Drumverter.
+}
+maps-more-engines = Pozostałe wtyczki
+maps-matrix-corner = ŹRÓDŁO ↓ CEL →
+maps-matrix-hint = Każda strzałka otwiera tabelę konwersji z wtyczki w wierszu na wtyczkę w kolumnie.
+maps-all-engines = { $count ->
+    [one] Wszystkie { $count } wtyczka
+    [few] Wszystkie { $count } wtyczki
+   *[many] Wszystkie { $count } wtyczek
+}
+maps-filter-engines-label = Filtruj wtyczki
+maps-filter-engines-placeholder = Filtruj wtyczki…
+maps-no-engines = Żadna wtyczka nie pasuje
+maps-engine-title = { $engineMidi }: mapa nut i instrumentów | Drumverter
+maps-engine-title-long-name = Mapa nut MIDI: { $engine } | Drumverter
+maps-engine-description = { $total ->
+    [one] { $engine }: mapa nut MIDI perkusji z { $total } nutą i nazwami instrumentów w C-1 i C-2.
+   *[other] { $engine }: mapa nut MIDI perkusji z { $total } nutami i nazwami instrumentów w C-1 i C-2.
+}
+maps-engine-description-short = { $engine }: mapa nut MIDI perkusji z nazwami w C-1 i C-2.
+maps-engine-description-more = Konwertuj { $engineMidi } na dowolną wtyczkę za darmo.
+maps-engine-heading = Mapa nut MIDI perkusji { $engine }
+maps-engine-intro = { $total ->
+    [one] Nuta MIDI, na którą reaguje { $engine }, pogrupowana według instrumentu — { $total } nuta w sumie. Nazwy nut są zgodne z konwencją oktaw: C-1 (Reaper, Logic, Ableton, Guitar Pro) albo C-2 (Studio One, Cubase, FL Studio).
+    [few] Wszystkie nuty MIDI, na które reaguje { $engine }, pogrupowane według instrumentu — { $total } nuty w sumie. Nazwy nut są zgodne z konwencją oktaw: C-1 (Reaper, Logic, Ableton, Guitar Pro) albo C-2 (Studio One, Cubase, FL Studio).
+   *[many] Wszystkie nuty MIDI, na które reaguje { $engine }, pogrupowane według instrumentu — { $total } nut w sumie. Nazwy nut są zgodne z konwencją oktaw: C-1 (Reaper, Logic, Ableton, Guitar Pro) albo C-2 (Studio One, Cubase, FL Studio).
+}
+maps-convert-to = Konwertuj na { $engine }
+maps-convert-from = Konwertuj z { $engine }
+maps-filter-drums-label = Filtruj instrumenty
+maps-filter-drums-placeholder = Szukaj instrumentu lub nuty…
+maps-octave-naming = Nazwy oktaw
+maps-column-note = Nuta
+maps-column-drum = Instrument
+maps-conversion-tables = Tabele konwersji
+maps-pair-heading = Konwertuj { $sourceMidi } na { $target }
+maps-pair-title = Konwertuj { $sourceMidi } na { $target } | Drumverter
+maps-pair-description = Konwertuj MIDI { $source } na { $target }. Dokładne: { $exact }, zastąpione: { $approximated }, usunięte: { $dropped }.
+maps-pair-description-more = Darmowy konwerter w przeglądarce.
+maps-pair-description-short = Konwertuj MIDI { $source } na { $target }.
+maps-pair-summary = Z { $total } nut { $source }: { $exact } zmapowano dokładnie na { $target }, { $approximated } zastąpiono najbardziej podobnym dostępnym instrumentem, a dla { $dropped } nie ma odpowiednika.
+maps-pair-convert = Konwertuj { $source } → { $target }
+maps-reverse = ⇄ Odwróć kierunek
+maps-exact-count = dokładne: { $count }
+maps-approximated-count = zastąpione: { $count }
+maps-dropped-count = usunięte: { $count }
+maps-rows = Wiersze
+maps-rows-changes = Zmienione { $count }
+maps-column-engine-note = Nuta { $engine }
+maps-column-engine-drum = Instrument { $engine }
+maps-column-to = na
+maps-column-result = Wynik
+maps-no-equivalent = brak odpowiednika
+maps-status-exact = dokładny
+maps-status-approximated = zastąpiony
+maps-status-dropped = usunięty
+maps-more-from = Więcej z { $engine }
+maps-full-maps = Pełne mapy nut:
+maps-index-drum-maps = Mapy perkusji do DAW dla każdej wtyczki: Cubase, Reaper i Studio One
+maps-engine-description-drum-maps = Darmowe mapy perkusji do Cubase, Reapera i Studio One.
+maps-daw-heading = Mapy perkusji do DAW
+maps-daw-intro = Wczytaj jeden z tych plików do DAW, a na klawiszach piano rolla zobaczysz nazwy instrumentów { $engine }.
+maps-daw-how = Jak wczytać mapę perkusji w Reaperze, Cubase lub Studio One
+drum-maps-title = { $count ->
+    [one] Mapy perkusji do Cubase, Reapera i Studio One: { $count } wtyczka | Drumverter
+    [few] Mapy perkusji do Cubase, Reapera i Studio One: { $count } wtyczki | Drumverter
+   *[many] Mapy perkusji do Cubase, Reapera i Studio One: { $count } wtyczek | Drumverter
+}
+drum-maps-description = { $count ->
+    [one] Darmowe mapy perkusji dla { $count } wtyczki: drum mapy Cubase (.drm), nazwy nut Reapera (.txt) i pitch listy Studio One (.pitchlist).
+   *[other] Darmowe mapy perkusji dla { $count } wtyczek: drum mapy Cubase (.drm), nazwy nut Reapera (.txt) i pitch listy Studio One (.pitchlist).
+}
+drum-maps-heading = Mapy perkusji do DAW
+drum-maps-intro = { $count ->
+    [one] Darmowe mapy perkusji dla { $count } wtyczki, zrobione z tych samych map nut, których używa konwerter. Każdy plik nazywa wszystkie nuty, które gra wtyczka, więc piano roll pokazuje nazwy instrumentów zamiast numerów nut. Pliki używają numerów nut MIDI, więc działają z oboma konwencjami oktaw.
+   *[other] Darmowe mapy perkusji dla { $count } wtyczek, zrobione z tych samych map nut, których używa konwerter. Każdy plik nazywa wszystkie nuty, które gra wtyczka, więc piano roll pokazuje nazwy instrumentów zamiast numerów nut. Pliki używają numerów nut MIDI, więc działają z oboma konwencjami oktaw.
+}
+drum-maps-how-heading = Jak wczytać mapę perkusji
+drum-maps-reaper = W edytorze MIDI wybierz File → Note/CC names → Load note/CC names from file i wskaż plik .txt.
+drum-maps-cubase = Otwórz MIDI → Drum Map Setup, kliknij Load i wskaż plik .drm. Potem wybierz mapę w polu Drum Map w Inspectorze ścieżki.
+drum-maps-studio-one = W widoku Edit kliknij ikonę klucza, żeby pokazać nazwy nut, i przeciągnij na nie plik .pitchlist. Zapisz go z menu Pitch Names, żeby używać go ponownie.
+drum-maps-other = Logic Pro, Ableton Live, FL Studio i Bitwig Studio nie wczytują plików z nazwami nut. Znajdź instrument na mapie nut wtyczki albo przekonwertuj MIDI na wtyczkę, której używasz.
+drum-maps-list-heading = { $count ->
+    [one] Mapy perkusji { $count } wtyczki
+   *[other] Mapy perkusji wszystkich { $count } wtyczek
+}
+drum-maps-download-label = Mapa perkusji { $engine } do { $daw }

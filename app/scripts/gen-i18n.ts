@@ -77,8 +77,8 @@ ${ids.map((id) => `  '${id}': { ${s.args[id].map((v) => `${v}: FluentVariable`).
 }
 export type Message = { [K in MessageId]: { id: K } & (keyof ArgsOf[K] extends never ? { args?: undefined } : { args: ArgsOf[K] }) }[MessageId];
 export const SECTION_MESSAGES = {
-${keys.map((k) => `  ${k}: { label: 'section-${k}-label', heading: 'section-${k}-heading', description: 'section-${k}-description' },`).join('\n')}
-} as const satisfies Record<SectionKey, { label: MessageId; heading: MessageId; description: MessageId }>;
+${keys.map((k) => `  ${k}: { label: 'section-${k}-label', heading: 'section-${k}-heading' },`).join('\n')}
+} as const satisfies Record<SectionKey, { label: MessageId; heading: MessageId }>;
 `;
   const css = s.locales.filter((l) => l.fonts).map((l) => `:lang(${l.langTag}) {\n  --font-sans: ${l.fonts};\n  --font-display: var(--font-sans);\n  --font-mono: 'IBM Plex Mono', ${l.fonts};\n}\n`).join('');
   return { ts, codes, css };

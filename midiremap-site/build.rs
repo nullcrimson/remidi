@@ -10,6 +10,30 @@ use std::{
 use heck::{ToSnakeCase, ToUpperCamelCase};
 use serde::Deserialize;
 
+#[derive(Copy, Clone, Debug)]
+enum FtlFile {
+    App,
+    Site,
+}
+
+impl FtlFile {
+    const ALL: [Self; 2] = [Self::App, Self::Site];
+
+    fn variant(self) -> String {
+        format!("{self:?}")
+    }
+
+    fn stem(self) -> String {
+        self.variant().to_snake_case()
+    }
+}
+
+struct Message<'a> {
+    id: &'a str,
+    vars: Vec<&'a str>,
+    file: FtlFile,
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct LocaleEntry {
@@ -137,6 +161,36 @@ fn plain_texts(plain: &[&str]) -> String {
     out + &table("PlainTexts", "", "Plain", "String", &keys)
 }
 
+fn ftl_files() -> String {
+    let variants: Vec<String> = FtlFile::ALL.iter().map(|f| f.variant()).collect();
+    let mut out =
+        "/// One of a locale's message files; each message lives in the file English gives it.\n"
+            .to_owned();
+    out += &enumeration("FtlFile", &variants);
+    out += "impl FtlFile {\n";
+    out += &all(&variants);
+    out += &matcher("stem", "&'static str", &FtlFile::ALL, |f| {
+        (f.variant(), format!("{:?}", f.stem()))
+    });
+    out += "}\n";
+    out += "impl ::std::fmt::Display for FtlFile {\n    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {\n        write!(f, \"{}.ftl\", self.stem())\n    }\n}\n";
+    out
+}
+
+fn locale_ftl(locales: &[LocaleEntry]) -> String {
+    let arms = list(locales.iter().flat_map(|l| {
+        FtlFile::ALL.map(|file| {
+            format!(
+                "(Self::{}, FtlFile::{}) => {}",
+                l.code.to_upper_camel_case(),
+                file.variant(),
+                source(&format!("locales/{}/{}.ftl", l.code, file.stem()))
+            )
+        })
+    }));
+    format!("    pub fn ftl(self, file: FtlFile) -> &'static str {{ match (self, file) {{ {arms} }} }}\n")
+}
+
 fn main() {
     let root = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("..");
     let locales: Vec<LocaleEntry> =
@@ -144,19 +198,41 @@ fn main() {
     let structure: Structure =
         serde_json::from_str(&read(&root.join("content/structure.json"))).unwrap();
     let tip: Tip = serde_json::from_str(&read(&root.join("content/tip.json"))).unwrap();
-    let en = read(&root.join("locales/en/app.ftl"));
-    let messages: Vec<(&str, Vec<&str>)> = ftl_vars::message_vars(&en)
-        .unwrap_or_else(|e| panic!("en/app.ftl: {e:?}"))
+    let en: Vec<(FtlFile, String)> = FtlFile::ALL
         .into_iter()
-        .map(|(id, vars)| (id, vars.into_iter().collect()))
+        .map(|file| {
+            (
+                file,
+                read(&root.join(format!("locales/en/{}.ftl", file.stem()))),
+            )
+        })
         .collect();
+    let messages: Vec<Message> = en
+        .iter()
+        .flat_map(|&(file, ref ftl)| {
+            ftl_vars::message_vars(ftl)
+                .unwrap_or_else(|e| panic!("en/{}.ftl: {e:?}", file.stem()))
+                .into_iter()
+                .map(move |(id, vars)| Message {
+                    id,
+                    vars: vars.into_iter().collect(),
+                    file,
+                })
+        })
+        .collect();
+    let mut ids = BTreeSet::new();
+    for m in &messages {
+        assert!(ids.insert(m.id), "locales/en: '{}' is defined twice", m.id);
+    }
     let plain: Vec<&str> = messages
         .iter()
-        .filter(|(_, v)| v.is_empty())
-        .map(|(id, _)| *id)
+        .filter(|m| m.vars.is_empty())
+        .map(|m| m.id)
         .collect();
     for l in &locales {
-        read(&root.join(format!("locales/{}/app.ftl", l.code)));
+        for file in FtlFile::ALL {
+            read(&root.join(format!("locales/{}/{}.ftl", l.code, file.stem())));
+        }
         read(&root.join(format!("locales/{}/docs.json", l.code)));
     }
     let keys: BTreeSet<&str> = structure.sections.iter().map(|s| s.key.as_str()).collect();
@@ -180,12 +256,7 @@ fn main() {
         &locales,
         field(|l| &l.native_name),
     );
-    out += &matcher("ftl", "&'static str", &locales, |l| {
-        (
-            l.code.to_upper_camel_case(),
-            source(&format!("locales/{}/app.ftl", l.code)),
-        )
-    });
+    out += &locale_ftl(&locales);
     out += &matcher("docs", "&'static str", &locales, |l| {
         (
             l.code.to_upper_camel_case(),
@@ -214,7 +285,7 @@ fn main() {
             let id = format!("section-{}-{part}", s.key);
             assert!(
                 plain.contains(&id.as_str()),
-                "en/app.ftl: '{id}' must have no variables"
+                "locales/en: '{id}' must have no variables"
             );
             (
                 s.key.to_upper_camel_case(),
@@ -255,18 +326,25 @@ fn main() {
 
     let message_variants: Vec<String> = messages
         .iter()
-        .map(|(id, _)| id.to_upper_camel_case())
+        .map(|m| m.id.to_upper_camel_case())
         .collect();
     out += &enumeration("MessageId", &message_variants);
     out += "impl MessageId {\n";
     out += &all(&message_variants);
-    out += &matcher("id", "&'static str", &messages, |(id, _)| {
-        (id.to_upper_camel_case(), format!("{id:?}"))
+    out += &matcher("id", "&'static str", &messages, |m| {
+        (m.id.to_upper_camel_case(), format!("{:?}", m.id))
     });
-    out += &matcher("vars", "&'static [&'static str]", &messages, |(id, v)| {
-        (id.to_upper_camel_case(), format!("&{v:?}"))
+    out += &matcher("vars", "&'static [&'static str]", &messages, |m| {
+        (m.id.to_upper_camel_case(), format!("&{:?}", m.vars))
+    });
+    out += &matcher("file", "FtlFile", &messages, |m| {
+        (
+            m.id.to_upper_camel_case(),
+            format!("FtlFile::{}", m.file.variant()),
+        )
     });
     out += "}\n";
+    out += &ftl_files();
     out += &plain_texts(&plain);
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());

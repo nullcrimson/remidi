@@ -9,41 +9,56 @@ include!(concat!(env!("OUT_DIR"), "/i18n.rs"));
 
 #[derive(thiserror::Error, Debug)]
 pub enum I18nError {
-    #[error("locales/{locale}/app.ftl: {errors:?}")]
+    #[error("locales/{locale}/{file}: {errors:?}")]
     FtlSyntax {
         locale: &'static str,
+        file: FtlFile,
         errors: Vec<ParserError>,
     },
-    #[error("locales/{locale}/app.ftl: {source}")]
+    #[error("locales/{locale}: {source}")]
     LanguageTag {
         locale: &'static str,
         source: Box<dyn std::error::Error + Send + Sync>,
     },
-    #[error("locales/{locale}/app.ftl: {errors:?}")]
+    #[error("locales/{locale}/{file}: {errors:?}")]
     FtlDuplicates {
         locale: &'static str,
+        file: FtlFile,
         errors: Vec<FluentError>,
     },
-    #[error("locales/{locale}/app.ftl: missing '{id}'")]
+    #[error("locales/{locale}: '{id}' is in both {first} and {second}")]
+    DuplicateMessage {
+        locale: &'static str,
+        id: String,
+        first: FtlFile,
+        second: FtlFile,
+    },
+    #[error("locales/{locale}/{file}: missing '{id}'")]
     MissingMessage {
         locale: &'static str,
+        file: FtlFile,
         id: &'static str,
     },
-    #[error("locales/{locale}/app.ftl: '{id}' uses {found:?}, English uses {expected:?}")]
+    #[error("locales/{locale}/{file}: '{id}' uses {found:?}, English uses {expected:?}")]
     VariablesDiffer {
         locale: &'static str,
+        file: FtlFile,
         id: &'static str,
         found: BTreeSet<String>,
         expected: BTreeSet<&'static str>,
     },
-    #[error("locales/{locale}/app.ftl: '{id}' is not an English message")]
-    ExtraMessage { locale: &'static str, id: String },
-    #[error("locales/{locale}/app.ftl: '{id}' has no value")]
+    #[error("locales/{locale}/{file}: '{id}' is not an English message of this file")]
+    ExtraMessage {
+        locale: &'static str,
+        file: FtlFile,
+        id: String,
+    },
+    #[error("locales/{locale}: '{id}' has no value")]
     NoValue {
         locale: &'static str,
         id: &'static str,
     },
-    #[error("locales/{locale}/app.ftl: '{id}': {errors:?}")]
+    #[error("locales/{locale}: '{id}': {errors:?}")]
     Formatting {
         locale: &'static str,
         id: &'static str,
@@ -63,25 +78,28 @@ struct Translation {
     bundle: FluentBundle<FluentResource>,
 }
 
-/// Every locale's UI messages, checked against English's ids and variables; the ones
-/// without variables are kept formatted.
+/// Every locale's UI messages, from each of its [`FtlFile`]s, checked against
+/// English's ids, files and variables; the ones without variables are kept formatted.
 pub struct Messages(PerLocale<Translation>);
 
-fn matches_english(locale: Locale, ftl: &str) -> Result<(), I18nError> {
-    let locale = locale.code();
-    let mut found: HashMap<&str, BTreeSet<&str>> = ftl_vars::message_vars(ftl)
-        .map_err(|errors| I18nError::FtlSyntax { locale, errors })?
-        .into_iter()
-        .collect();
-    for &id in MessageId::ALL {
+type FoundVars<'a> = HashMap<&'a str, BTreeSet<&'a str>>;
+
+fn file_matches_english(
+    locale: &'static str,
+    file: FtlFile,
+    mut found: FoundVars,
+) -> Result<(), I18nError> {
+    for &id in MessageId::ALL.iter().filter(|id| id.file() == file) {
         let vars = found.remove(id.id()).ok_or(I18nError::MissingMessage {
             locale,
+            file,
             id: id.id(),
         })?;
         let expected: BTreeSet<&'static str> = id.vars().iter().copied().collect();
         if vars != expected {
             return Err(I18nError::VariablesDiffer {
                 locale,
+                file,
                 id: id.id(),
                 found: vars.into_iter().map(str::to_owned).collect(),
                 expected,
@@ -91,19 +109,48 @@ fn matches_english(locale: Locale, ftl: &str) -> Result<(), I18nError> {
     match found.keys().next() {
         Some(extra) => Err(I18nError::ExtraMessage {
             locale,
+            file,
             id: (*extra).to_owned(),
         }),
         None => Ok(()),
     }
 }
 
-fn bundle(locale: Locale, ftl: &str) -> Result<FluentBundle<FluentResource>, I18nError> {
+fn matches_english<'a>(locale: Locale, ftl: impl Fn(FtlFile) -> &'a str) -> Result<(), I18nError> {
+    let locale = locale.code();
+    let mut owner: HashMap<&str, FtlFile> = HashMap::new();
+    let mut found = Vec::new();
+    for &file in FtlFile::ALL {
+        let vars: FoundVars = ftl_vars::message_vars(ftl(file))
+            .map_err(|errors| I18nError::FtlSyntax {
+                locale,
+                file,
+                errors,
+            })?
+            .into_iter()
+            .collect();
+        for &id in vars.keys() {
+            if let Some(first) = owner.insert(id, file) {
+                return Err(I18nError::DuplicateMessage {
+                    locale,
+                    id: id.to_owned(),
+                    first,
+                    second: file,
+                });
+            }
+        }
+        found.push((file, vars));
+    }
+    found
+        .into_iter()
+        .try_for_each(|(file, vars)| file_matches_english(locale, file, vars))
+}
+
+fn bundle<'a>(
+    locale: Locale,
+    ftl: impl Fn(FtlFile) -> &'a str,
+) -> Result<FluentBundle<FluentResource>, I18nError> {
     let code = locale.code();
-    let res =
-        FluentResource::try_new(ftl.to_owned()).map_err(|(_, errors)| I18nError::FtlSyntax {
-            locale: code,
-            errors,
-        })?;
     let tag = locale
         .lang_tag()
         .parse()
@@ -113,12 +160,22 @@ fn bundle(locale: Locale, ftl: &str) -> Result<FluentBundle<FluentResource>, I18
         })?;
     let mut bundle = FluentBundle::new_concurrent(vec![tag]);
     bundle.set_use_isolating(false);
-    bundle
-        .add_resource(res)
-        .map_err(|errors| I18nError::FtlDuplicates {
-            locale: code,
-            errors,
+    for &file in FtlFile::ALL {
+        let res = FluentResource::try_new(ftl(file).to_owned()).map_err(|(_, errors)| {
+            I18nError::FtlSyntax {
+                locale: code,
+                file,
+                errors,
+            }
         })?;
+        bundle
+            .add_resource(res)
+            .map_err(|errors| I18nError::FtlDuplicates {
+                locale: code,
+                file,
+                errors,
+            })?;
+    }
     Ok(bundle)
 }
 
@@ -148,7 +205,10 @@ fn placeholder_args<'a>(vars: &[&'a str]) -> FluentArgs<'a> {
 }
 
 impl Messages {
-    fn check(locale: Locale, ftl: &str) -> Result<Translation, I18nError> {
+    fn check<'a>(
+        locale: Locale,
+        ftl: impl Fn(FtlFile) -> &'a str + Copy,
+    ) -> Result<Translation, I18nError> {
         matches_english(locale, ftl)?;
         let bundle = bundle(locale, ftl)?;
         for &id in MessageId::ALL.iter().filter(|id| !id.vars().is_empty()) {
@@ -159,7 +219,7 @@ impl Messages {
     }
 
     pub fn load() -> Result<Self, I18nError> {
-        PerLocale::try_new(|l| Self::check(l, l.ftl())).map(Self)
+        PerLocale::try_new(|l| Self::check(l, |file| l.ftl(file))).map(Self)
     }
 
     pub fn get(&self, locale: Locale, id: Plain) -> &str {
@@ -247,9 +307,20 @@ mod tests {
         assert_eq!(prefixes.len(), Locale::ALL.len());
     }
 
+    fn english(file: FtlFile) -> &'static str {
+        Locale::En.ftl(file)
+    }
+
+    fn english_with<'a>(changed: FtlFile, text: &'a str) -> impl Fn(FtlFile) -> &'a str + Copy {
+        move |file| if file == changed { text } else { english(file) }
+    }
+
+    fn english_with_app<'a>(app: &'a str) -> impl Fn(FtlFile) -> &'a str + Copy {
+        english_with(FtlFile::App, app)
+    }
+
     fn with_edit_more(replacement: &str) -> String {
-        Locale::En
-            .ftl()
+        english(FtlFile::App)
             .lines()
             .map(|l| {
                 if l.starts_with("edit-more =") {
@@ -270,19 +341,58 @@ mod tests {
     }
 
     #[test]
+    fn english_loads_from_both_files() {
+        assert!(Messages::check(Locale::En, english).is_ok());
+    }
+
+    #[test]
     fn load_rejects_missing_ids() {
         assert!(matches!(
-            Messages::check(Locale::En, "nav-converter = x\n").err(),
-            Some(I18nError::MissingMessage { .. })
+            Messages::check(Locale::En, english_with_app("nav-converter = x\n")).err(),
+            Some(I18nError::MissingMessage {
+                file: FtlFile::App,
+                ..
+            })
         ));
     }
 
     #[test]
     fn load_rejects_an_extra_id() {
-        let extra = format!("{}\nnot-in-english = x\n", Locale::En.ftl());
+        let extra = format!("{}\nnot-in-english = x\n", english(FtlFile::App));
         assert!(matches!(
-            Messages::check(Locale::En, &extra).err(),
+            Messages::check(Locale::En, english_with_app(&extra)).err(),
             Some(I18nError::ExtraMessage { .. })
+        ));
+    }
+
+    #[test]
+    fn load_rejects_a_message_in_both_files() {
+        let site = format!("{}nav-converter = x\n", english(FtlFile::Site));
+        let both = english_with(FtlFile::Site, &site);
+        assert!(matches!(
+            Messages::check(Locale::En, both).err(),
+            Some(I18nError::DuplicateMessage {
+                id,
+                first: FtlFile::App,
+                second: FtlFile::Site,
+                ..
+            }) if id == "nav-converter"
+        ));
+    }
+
+    #[test]
+    fn load_rejects_a_site_message_in_app_ftl() {
+        let app = format!("{}{}", english(FtlFile::App), english(FtlFile::Site));
+        let moved = |file| match file {
+            FtlFile::App => app.as_str(),
+            FtlFile::Site => "",
+        };
+        assert!(matches!(
+            Messages::check(Locale::En, moved).err(),
+            Some(I18nError::ExtraMessage {
+                file: FtlFile::App,
+                ..
+            })
         ));
     }
 
@@ -290,7 +400,7 @@ mod tests {
     fn load_rejects_a_renamed_variable() {
         let renamed = with_edit_more("edit-more = +{ $renamed } more");
         assert!(matches!(
-            Messages::check(Locale::En, &renamed).err(),
+            Messages::check(Locale::En, english_with_app(&renamed)).err(),
             Some(I18nError::VariablesDiffer { .. })
         ));
     }
@@ -299,16 +409,20 @@ mod tests {
     fn load_rejects_a_dropped_variable() {
         let dropped = with_edit_more("edit-more = more");
         assert!(matches!(
-            Messages::check(Locale::En, &dropped).err(),
+            Messages::check(Locale::En, english_with_app(&dropped)).err(),
             Some(I18nError::VariablesDiffer { .. })
         ));
     }
 
     #[test]
     fn load_rejects_a_malformed_resource() {
+        let malformed = english_with(FtlFile::Site, "maps-breadcrumb = { \n");
         assert!(matches!(
-            Messages::check(Locale::En, "nav-converter = { \n").err(),
-            Some(I18nError::FtlSyntax { .. })
+            Messages::check(Locale::En, malformed).err(),
+            Some(I18nError::FtlSyntax {
+                file: FtlFile::Site,
+                ..
+            })
         ));
     }
 

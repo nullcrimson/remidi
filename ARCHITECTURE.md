@@ -590,7 +590,7 @@ also feed the app's modals; their FAQPage / HowTo schema is written on `/faq/` a
 the built `index.html` (`<!--app-head-->`, `<!--app-noscript-->`, `<!--app-title-->`) get
 the title, descriptions, social cards, the SoftwareApplication block, the no-script text,
 the hidden load-failure notice and a visually hidden `<h1>` inside `#root` (for crawlers
-that run no script; React replaces it on mount) from `app.ftl`; the markers stay, so a second run rewrites the
+that run no script; React replaces it on mount) from the locale's messages; the markers stay, so a second run rewrites the
 same regions. On every page the skip link, header and footer links sit in
 `data-nosnippet` blocks, so search results quote the page, not its chrome. Besides the
 stylesheet, each page takes what the app's build writes to `dist/site.json` (emitted by a
@@ -625,8 +625,13 @@ Sources, one owner per text:
 - `locales/locales.json` — the 11 locales in menu order (code, URL prefix, language tag,
   native name, system fonts): en, es, pt (`pt-BR`), de, ja, fr, ru, pl, it, zh
   (`zh-Hans`), ko. ja, zh and ko use system font stacks.
-- `locales/<code>/app.ftl` — every UI message, in [Fluent](https://projectfluent.org/)
-  syntax; `en` is the reference. `locales/GLOSSARY.md` holds the shared rules (what is
+- `locales/<code>/app.ftl` — every message the converter app shows, in
+  [Fluent](https://projectfluent.org/) syntax; `en` is the reference. The app bundles it
+  and the site reads it too.
+- `locales/<code>/site.ftl` — the messages only the site generator reads (page titles and
+  descriptions, the note-map, conversion and drum-map pages, the converter shell's head,
+  no-script text and load-failure notice, the thanks page), kept out of the app's bundle.
+  A message lives in one of the two files, the one English puts it in. `locales/GLOSSARY.md` holds the shared rules (what is
   never translated, tone); `locales/<code>/GLOSSARY.md` each language's terms;
   `locales/<code>/same-as-english.txt` the messages meant to read exactly as in English.
 - `content/structure.json` — the route paths (`routes`: the converter's `/` and the note
@@ -639,7 +644,7 @@ Sources, one owner per text:
   Every locale has every section; a locale without one would link to the English page.
 
 Generated, never committed: `midiremap-site/build.rs` (with `fluent-syntax`) writes
-`Locale`, `SectionKey` and `MessageId` (with each message's variables) into `OUT_DIR/i18n.rs`, and
+`Locale`, `SectionKey` and `MessageId` (with each message's variables and file) into `OUT_DIR/i18n.rs`, and
 `NavTarget`, `NAV`/`FOOTER` and the two route paths (`CONVERTER`, `NOTE_MAPS`) into `OUT_DIR/routes.rs`, which
 `src/routes.rs` includes beside `SitePath` / `LocalPath` (an address before and after a locale prefix),
 `href` and `label`; `npm run gen:i18n` (`app/scripts/gen-i18n.ts`, with
@@ -647,8 +652,8 @@ Generated, never committed: `midiremap-site/build.rs` (with `fluent-syntax`) wri
 `localeCodes.ts` (all the static pages' script loads of the table), plus
 `lang.css` (`:lang()` rules setting the sans, display and mono stacks) and `TRANSLATED_SECTIONS` (the keys of each
 locale's documents). A nav target naming an unknown section fails both
-generators; a section missing its label, heading or description message fails `tsc`,
-and one missing any of its four (those and the title) fails the site crate's build.
+generators; a section missing its label or heading message fails `tsc`,
+and one missing any of its four (those, the title and the description) fails the site crate's build.
 
 Runtime: a `Translator` (`src/locale/i18n.ts`) holds a locale, its `t(message)` and its
 documents. `t` formats a `Message` — `{ id }`, or `{ id, args }` with exactly the variables
@@ -676,8 +681,9 @@ Library code returns
 (`WasmError` or `wasmUnavailable`); `toAppError` is the one conversion from anything
 caught, and `ErrorText` shows the translated line with the untranslated `detail`.
 
-The site formats with `fluent-bundle`: `Messages::load` proves every locale's `app.ftl`
-has every English id with exactly its variables; `href(target, locale, docs)` links a
+The site formats with `fluent-bundle` over both files: `Messages::load` proves every
+locale's `app.ftl` and `site.ftl` hold every English id, each in the file English puts it
+in, with exactly its variables, and no id in both; `href(target, locale, docs)` links a
 section to the locale's page, or to the English page when the locale lacks it;
 `local_href` points a document's internal link at the same page in the reader's
 language. `Messages::format` fills a message's variables (Fluent plurals included) for

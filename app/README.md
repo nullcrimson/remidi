@@ -163,7 +163,8 @@ on a phone and click elsewhere.
   `<html lang>`; `localePath`, `converterPath`), `localeContext.ts` (`useT()`),
   LocaleProvider, `languageChoice.ts`, `language.ts`, `detect.ts`, `startLocale.ts`, and the static pages' script, `staticPages.ts` with its entry
   `staticPagesEntry.ts`. Every text
-  comes from `../locales/<code>/app.ftl` through `useT()`.
+  comes from `../locales/<code>/app.ftl` through `useT()`; the static pages' own messages sit
+  in `site.ftl`, which the app never loads.
 - `src/site/` — page chrome and addresses: `site.ts` (`href`, `localHref`, `targetLabel`), PageFrame (Page, Card), SiteHeader (brand + Converter · How
   to use · Note maps · FAQ), SiteFooter (section links that open modals, rendered by
   ContentBlocks from `../locales/<code>/docs.json`, the same source the static site pages
