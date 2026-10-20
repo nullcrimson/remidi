@@ -6,8 +6,8 @@ use midiremap_core::Daw;
 
 use crate::{
     content::{
-        breadcrumb_schema, converter_steps, faq_schema, how_to_schema, Block, ContentPage,
-        ConverterStep, StepState,
+        breadcrumb_schema, converter_steps, faq_schema, how_to_schema, step_states, Block,
+        ContentPage, ConverterStep, StepState,
     },
     i18n::{Docs, I18nError, Locale, MessageId, Messages, Plain, SectionKey, TIP_HREF},
     manifest::{AnalyticsScript, LocaleScript, SiteManifest},
@@ -519,6 +519,7 @@ struct DrumMapsHtml<'a> {
     texts: &'a Texts<'a>,
     page: &'a IndexPage,
     steps: Vec<(Daw, &'a str)>,
+    states: [StepState; 3],
 }
 
 #[derive(Template)]
@@ -636,6 +637,7 @@ fn render_note_maps(
             texts,
             page: &site.index,
             steps: daw_steps(texts),
+            states: step_states([false; 3]),
         }
         .render()?,
     ));
@@ -727,6 +729,7 @@ mod tests {
     use midiremap_core::Catalog;
 
     use super::*;
+    use crate::pages::MAJORS;
 
     const ORIGIN: &str = "https://drumverter.com";
 
@@ -1907,10 +1910,79 @@ mod tests {
         assert_eq!(
             html.matches(r#"data-umami-event="drum-map-downloaded""#)
                 .count(),
-            site.drum_map_files.len()
+            site.drum_map_files.len() + site.index.majors.len() * Daw::ALL.len()
         );
         assert!(download_wrapper(html, "/drum-maps/files/ssd5.drm")
             .contains(r#"data-umami-event-page="drum-maps""#));
+    }
+
+    #[test]
+    fn every_daw_has_a_picker_rule_in_the_stylesheet() {
+        let css = stylesheet();
+        for daw in Daw::ALL {
+            let key = daw.key();
+            assert!(
+                css.contains(&format!(
+                    ":root:has(#daw-{key}:checked) [data-daw]:not([data-daw='{key}'])"
+                )),
+                "{key}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_drum_maps_page_picks_reaper_until_another_daw_is_picked() {
+        let html = page("drum-maps/index.html");
+        for daw in Daw::ALL {
+            let radio = format!(r#"id="daw-{}""#, daw.key());
+            let tag = html
+                .split(&radio)
+                .nth(1)
+                .unwrap()
+                .split('>')
+                .next()
+                .unwrap();
+            assert_eq!(
+                tag.contains(" checked"),
+                daw == Daw::Reaper,
+                "{}",
+                daw.key()
+            );
+            assert!(html.contains(&format!(r#"<div data-daw="{}""#, daw.key())));
+        }
+        assert_eq!(badges(html), ["current", "later", "later"]);
+    }
+
+    #[test]
+    fn every_drum_map_download_names_its_daw() {
+        for (path, html) in rendered() {
+            for (at, _) in html.match_indices(r#"data-umami-event="drum-map-downloaded""#) {
+                let start = html[..at].rfind("<span ").unwrap();
+                let tag = &html[start..at + html[at..].find('>').unwrap()];
+                let daw = tag
+                    .split(r#"data-umami-event-daw=""#)
+                    .nth(1)
+                    .and_then(|rest| rest.split('"').next())
+                    .unwrap();
+                assert!(tag.contains(&format!(r#"data-daw="{daw}""#)), "{path}");
+            }
+        }
+    }
+
+    #[test]
+    fn the_drum_maps_page_lists_the_hub_engines_first() {
+        let html = page("drum-maps/index.html");
+        let groups: Vec<&str> = html.split("<li data-group>").skip(1).collect();
+        assert_eq!(groups.len(), 2);
+        assert!(groups[0].contains(">Most used</h3>"));
+        let first: Vec<&str> = groups[0]
+            .split(r#"<li data-q=""#)
+            .skip(1)
+            .filter_map(|row| row.split(r#"href="/engines/"#).nth(1))
+            .filter_map(|rest| rest.split('/').next())
+            .collect();
+        let majors: Vec<String> = MAJORS.iter().map(|(id, _)| id.replace('_', "-")).collect();
+        assert_eq!(first, majors);
     }
 
     #[test]

@@ -152,6 +152,8 @@ drum-maps-intro = { $count ->
     [one] Drum maps gratuites pour { $count } plugin de batterie, tirées des mêmes mappings que le convertisseur. Chaque fichier nomme toutes les notes que joue le plugin : le piano roll affiche les noms des éléments au lieu des numéros de note. Les fichiers utilisent les numéros de note MIDI et fonctionnent donc avec les deux conventions d’octave.
    *[other] Drum maps gratuites pour { $count } plugins de batterie, tirées des mêmes mappings que le convertisseur. Chaque fichier nomme toutes les notes que joue le plugin : le piano roll affiche les noms des éléments au lieu des numéros de note. Les fichiers utilisent les numéros de note MIDI et fonctionnent donc avec les deux conventions d’octave.
 }
+drum-maps-pick-daw = Votre DAW
+drum-maps-most-used = Les plus utilisés
 drum-maps-how-heading = Charger une drum map
 drum-maps-reaper = Dans l’éditeur MIDI, choisissez File → Note/CC names → Load note/CC names from file, puis le fichier .txt.
 drum-maps-cubase = Ouvrez MIDI → Configuration des Drum Maps (Drum Map Setup), cliquez sur Charger et choisissez le fichier .drm. Sélectionnez ensuite la map dans le champ Drum Map de l’Inspecteur de la piste.

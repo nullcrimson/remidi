@@ -125,6 +125,8 @@ drum-maps-intro = { $count ->
     [one] Darmowe mapy perkusji dla { $count } wtyczki, zrobione z tych samych map nut, których używa konwerter. Każdy plik nazywa wszystkie nuty, które gra wtyczka, więc piano roll pokazuje nazwy instrumentów zamiast numerów nut. Pliki używają numerów nut MIDI, więc działają z oboma konwencjami oktaw.
    *[other] Darmowe mapy perkusji dla { $count } wtyczek, zrobione z tych samych map nut, których używa konwerter. Każdy plik nazywa wszystkie nuty, które gra wtyczka, więc piano roll pokazuje nazwy instrumentów zamiast numerów nut. Pliki używają numerów nut MIDI, więc działają z oboma konwencjami oktaw.
 }
+drum-maps-pick-daw = Twój DAW
+drum-maps-most-used = Najczęściej używane
 drum-maps-how-heading = Jak wczytać mapę perkusji
 drum-maps-reaper = W edytorze MIDI wybierz File → Note/CC names → Load note/CC names from file i wskaż plik .txt.
 drum-maps-cubase = Otwórz MIDI → Drum Map Setup, kliknij Load i wskaż plik .drm. Potem wybierz mapę w polu Drum Map w Inspectorze ścieżki.

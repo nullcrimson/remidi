@@ -420,6 +420,8 @@ pub struct VendorGroup {
 }
 
 pub struct IndexPage {
+    /// The popular engines, in `MAJORS` order.
+    pub majors: Vec<EngineLink>,
     pub columns: Vec<&'static str>,
     pub matrix: Vec<MatrixRow>,
     pub vendors: Vec<VendorGroup>,
@@ -670,6 +672,7 @@ impl Site {
             .collect();
         let (vendors, more) = vendor_groups(&maps);
         let index = IndexPage {
+            majors: majors.iter().map(|m| EngineLink::of(m)).collect(),
             columns: MAJORS.iter().map(|(_, abbr)| *abbr).collect(),
             matrix: majors
                 .iter()

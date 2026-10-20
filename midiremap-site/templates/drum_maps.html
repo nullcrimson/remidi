@@ -1,5 +1,14 @@
 {% extends "base.html" %}
 {% import "macros.html" as macros %}
+{% macro engine_downloads(heading, engines) %}<li data-group>
+      <h3 class="pt-4 pb-1.5 font-mono text-caption tracking-[0.14em] text-t5 uppercase">{{ heading }}</h3>
+      <ul class="flex flex-col">
+        {% for e in engines -%}
+<li data-q="{{ e.search() }}" class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5 border-t border-white/5 py-2"><a href="{{ texts.path(e.href()) }}" class="text-ui text-t2 transition-colors hover:text-accent">{{ e.name }}</a><span class="link-chips">{% for d in e.drum_maps() %}{% call macros::drum_map_download(e, d) %}{% endcall %}{% endfor %}</span></li>
+{% endfor -%}
+      </ul>
+    </li>{% endmacro %}
+{% macro step_heading(number, state, text) %}<div class="flex items-center gap-2.5"><span class="step-badge" data-state="{{ state.key() }}" aria-hidden="true">{{ number }}</span><h2 class="font-display text-title font-semibold text-t1">{{ text }}</h2></div>{% endmacro %}
 {% block content %}
 <div class="flex flex-col gap-2.5">
   <h1 class="font-display text-display/tight font-bold text-t1">{{ texts.get(Plain::DrumMapsHeading) }}</h1>
@@ -7,10 +16,17 @@
 </div>
 
 <section class="flex flex-col gap-3">
-  <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::DrumMapsHowHeading) }}</h2>
+  {% call step_heading(1, states[0], texts.get(Plain::DrumMapsPickDaw)) %}{% endcall %}
+  <div role="radiogroup" aria-label="{{ texts.get(Plain::DrumMapsPickDaw) }}" class="inline-flex flex-wrap gap-1">
+    {% for (daw, _) in steps %}{% let id = format!("daw-{}", daw.key()) %}{% call macros::chip("daw", id, *daw == Daw::Reaper, daw.name()) %}{% endcall %}{% endfor %}
+  </div>
+</section>
+
+<section class="flex flex-col gap-3">
+  {% call step_heading(2, states[1], texts.get(Plain::DrumMapsHowHeading)) %}{% endcall %}
   <dl class="flex flex-col gap-3">
     {% for (daw, how) in steps %}
-    <div class="flex flex-col gap-1">
+    <div data-daw="{{ daw.key() }}" class="flex flex-col gap-1">
       <dt class="font-display text-body font-semibold text-t1">{{ daw.name() }} <span class="font-mono text-caption font-normal text-t5">.{{ daw.extension() }}</span></dt>
       <dd class="text-ui/relaxed text-t3">{{ how }}</dd>
     </div>
@@ -20,7 +36,7 @@
 </section>
 
 <section class="flex flex-col gap-3">
-  <h2 class="font-display text-title font-semibold text-t1">{{ texts.count(MessageId::DrumMapsListHeading, page.all.len())? }}</h2>
+  {% call step_heading(3, states[2], texts.count(MessageId::DrumMapsListHeading, page.all.len())?) %}{% endcall %}
   <input
     type="search"
     hidden
@@ -31,13 +47,8 @@
     class="rounded-chip border border-field-border bg-field px-2 py-1.25 font-mono text-body text-t2 transition-colors outline-none placeholder:text-t5 focus:border-accent/40 sm:text-label pointer-coarse:py-2.5"
   />
   <ul id="drum-maps" class="flex flex-col">
-    <li data-group>
-      <ul class="flex flex-col">
-        {% for e in page.all -%}
-<li data-q="{{ e.search() }}" class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5 border-t border-white/5 py-2"><a href="{{ texts.path(e.href()) }}" class="text-ui text-t2 transition-colors hover:text-accent">{{ e.name }}</a><span class="link-chips">{% for d in e.drum_maps() %}{% call macros::drum_map_download(e, d) %}{% endcall %}{% endfor %}</span></li>
-{% endfor -%}
-      </ul>
-    </li>
+    {% call engine_downloads(texts.get(Plain::DrumMapsMostUsed), &page.majors) %}{% endcall %}
+    {% call engine_downloads(texts.count(MessageId::MapsAllEngines, page.all.len())?, &page.all) %}{% endcall %}
   </ul>
   <p id="drum-maps-empty" hidden class="font-mono text-label text-t5">{{ texts.get(Plain::MapsNoEngines) }}</p>
 </section>

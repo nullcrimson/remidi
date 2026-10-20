@@ -425,6 +425,9 @@ body {
   display: inline;
 }
 
-:root:has(#show-changes:checked) [data-outcome='exact'] {
+:root:has(#show-changes:checked) [data-outcome='exact'],
+:root:has(#daw-reaper:checked) [data-daw]:not([data-daw='reaper']),
+:root:has(#daw-cubase:checked) [data-daw]:not([data-daw='cubase']),
+:root:has(#daw-studio-one:checked) [data-daw]:not([data-daw='studio-one']) {
   display: none;
 }
