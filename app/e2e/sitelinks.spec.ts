@@ -71,10 +71,33 @@ test('an FAQ answer links the conversion table it talks about', async ({ page })
   await expect(page).toHaveURL('/convert/ggd-invasion-to-ezdrummer/');
 });
 
-test('the guide ends on a button that opens the converter', async ({ page }) => {
-  await page.goto('/how-it-works/');
-  await expect(page.getByRole('heading', { name: 'Ready to convert?' })).toBeVisible();
-  await press(page.getByRole('main').getByRole('link', { name: 'Open the converter', exact: true }));
+for (const [doc, path] of [['guide', '/how-it-works/'], ['FAQ', '/faq/']]) {
+  test(`the ${doc} ends on a button that opens the converter`, async ({ page }) => {
+    await page.goto(path);
+    await expect(page.getByRole('heading', { name: 'Ready to convert?' })).toBeVisible();
+    await press(page.getByRole('main').getByRole('link', { name: 'Open the converter', exact: true }));
+    await expect(page).toHaveURL('/');
+    await expect(page.getByRole('button', { name: 'Choose files' })).toBeVisible();
+  });
+}
+
+test('the header button opens the converter from a note map', async ({ page }) => {
+  await page.goto('/engines/ezdrummer/');
+  await press(page.getByRole('banner').getByRole('link', { name: 'Open the converter', exact: true }));
   await expect(page).toHaveURL('/');
   await expect(page.getByRole('button', { name: 'Choose files' })).toBeVisible();
+});
+
+test('the main nav links the drum maps from the converter and marks the page open', async ({ page }) => {
+  await page.goto('/');
+  await press(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Drum maps', exact: true }));
+  await expect(page).toHaveURL('/drum-maps/');
+  await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Drum maps', exact: true }))
+    .toHaveAttribute('aria-current', 'page');
+});
+
+test('an engine page links the conversion tables into it', async ({ page }) => {
+  await page.goto('/engines/ezdrummer/');
+  await press(page.getByRole('list', { name: 'To EZdrummer 3 from' }).getByRole('link', { name: 'GetGood Drums Invasion', exact: true }));
+  await expect(page).toHaveURL('/convert/ggd-invasion-to-ezdrummer/');
 });

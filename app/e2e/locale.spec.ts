@@ -215,3 +215,11 @@ test.describe('after choosing Polski', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
   });
 });
+
+test('a German page calls the note maps Notenbelegungen in its nav', async ({ page }) => {
+  await page.goto('/de/drum-maps/');
+  const nav = page.getByRole('navigation', { name: 'Hauptnavigation' });
+  await expect(nav.getByRole('link', { name: 'DAW-Drum-Maps', exact: true })).toHaveAttribute('aria-current', 'page');
+  await nav.getByRole('link', { name: 'Notenbelegungen', exact: true }).click();
+  await expect(page).toHaveURL('/de/engines/');
+});

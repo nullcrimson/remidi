@@ -2,17 +2,18 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import type { Download, Page } from '@playwright/test';
 import { expect, test } from './fixtures';
+import { press } from './steps';
 
 const golden = (extension: string) =>
   readFile(fileURLToPath(new URL(`../../midiremap-core/tests/golden/ggd_invasion.${extension}`, import.meta.url)), 'utf8');
 
 async function downloadOf(page: Page, name: string): Promise<Download> {
   const download = page.waitForEvent('download');
-  await page.getByRole('link', { name, exact: true }).first().click();
+  await press(page.getByRole('link', { name, exact: true }).first());
   return download;
 }
 
-const pickDaw = (page: Page, daw: string) => page.getByRole('radiogroup', { name: 'Your DAW' }).getByText(daw, { exact: true }).click();
+const pickDaw = (page: Page, daw: string) => press(page.getByRole('radiogroup', { name: 'Your DAW' }).getByText(daw, { exact: true }));
 
 const textOf = async (download: Download) => readFile((await download.path()), 'utf8');
 
@@ -40,7 +41,7 @@ test('the drum maps page downloads a Cubase drum map', async ({ page }) => {
 
 test('an engine page links the guide to loading drum maps', async ({ page }) => {
   await page.goto('/engines/ggd-invasion/');
-  await page.getByRole('link', { name: 'How to load a drum map in Reaper, Cubase or Studio One' }).click();
+  await press(page.getByRole('link', { name: 'How to load a drum map in Reaper, Cubase or Studio One' }));
   await expect(page).toHaveURL('/drum-maps/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('DAW drum maps');
 });
@@ -68,6 +69,16 @@ test('the drum maps page shows only the picked DAW’s files and how to load the
 
 test('the footer links the drum maps page', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('navigation', { name: 'Site' }).getByRole('link', { name: 'Drum maps' }).click();
+  await press(page.getByRole('navigation', { name: 'Site' }).getByRole('link', { name: 'Drum maps' }));
   await expect(page).toHaveURL('/drum-maps/');
+});
+
+test('the drum maps page offers a GetGood Drums mapping variant’s files beside its kit', async ({ page }) => {
+  await page.goto('/drum-maps/');
+  const invasion = page.locator('#drum-maps li[data-q]').filter({ has: page.getByRole('link', { name: 'GetGood Drums Invasion', exact: true }) });
+  await expect(invasion.getByRole('link', { name: "Mapping 'GGD'", exact: true })).toHaveAttribute('href', '/engines/ggd-invasion-ggd/');
+
+  const download = page.waitForEvent('download');
+  await press(invasion.getByRole('link', { name: "GGD Invasion (Mapping 'GGD') drum map for Reaper", exact: true }));
+  expect((await download).suggestedFilename()).toBe("GGD Invasion (Mapping 'GGD') (Drumverter).txt");
 });

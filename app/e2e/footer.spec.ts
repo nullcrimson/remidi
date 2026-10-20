@@ -45,3 +45,20 @@ test('Escape closes the FAQ dialog', async ({ page }) => {
   await page.keyboard.press('Escape');
   await expect(faq).toBeHidden();
 });
+
+test('How to use walks through the converter’s three steps', async ({ page }) => {
+  await page.goto('/');
+  await press(footerLink(page, 'How to use'));
+  const steps = page.getByRole('dialog', { name: 'How to convert drum MIDI' }).getByRole('listitem');
+  await expect(steps.first()).toContainText('Your drum file');
+  await expect(steps.nth(1)).toContainText('From one drum layout to another');
+  await expect(steps.nth(2)).toContainText('Convert');
+});
+
+test('an FAQ answer links the conversion table it talks about', async ({ page }) => {
+  await page.goto('/');
+  await press(footerLink(page, 'FAQ'));
+  const faq = page.getByRole('dialog', { name: 'Frequently asked questions' });
+  await press(faq.getByRole('link', { name: 'See where each GetGood Drums Invasion note lands in EZdrummer 3', exact: true }));
+  await expect(page).toHaveURL('/convert/ggd-invasion-to-ezdrummer/');
+});
