@@ -2,8 +2,8 @@ import type { ReactNode } from 'react';
 import { textAction, type TextTone } from './styles';
 
 type Props = { tone?: TextTone; children: ReactNode } & (
-  | { href: string; download?: string; onClick?: () => void; disabled?: never; describedBy?: never }
-  | { href?: never; download?: never; onClick: () => void; disabled?: boolean; describedBy?: string }
+  | { href: string; download?: string; onClick?: () => void; disabled?: never }
+  | { href?: never; download?: never; onClick: () => void; disabled?: boolean }
 );
 
 export function TextButton({ tone, children, ...rest }: Props) {
@@ -19,7 +19,6 @@ export function TextButton({ tone, children, ...rest }: Props) {
       type="button"
       onClick={rest.onClick}
       disabled={rest.disabled}
-      aria-describedby={rest.describedBy}
       className={textAction(tone)}
     >
       {children}
