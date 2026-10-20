@@ -11,11 +11,11 @@ test('the converter ships a heading for crawlers and keeps one after the app loa
   }
 });
 
-test('the converter ships its popular conversion links for crawlers and shows them after the app loads', async ({ page, request }) => {
+test('the converter ships its popular conversion links for crawlers and keeps them in the page after the app loads', async ({ page, request }) => {
   const link = 'a[href="/convert/ggd-invasion-to-ezdrummer/"]';
   expect(await (await request.get('/')).text()).toContain(`<a href="/convert/ggd-invasion-to-ezdrummer/">`);
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Choose files' })).toBeVisible();
   await expect(page.locator('nav.sr-only')).toHaveCount(0);
-  await expect(page.locator(link)).toBeVisible();
+  await expect(page.locator(link)).toBeAttached();
 });

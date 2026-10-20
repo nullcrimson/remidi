@@ -6,14 +6,16 @@ import { SiteHeader } from './SiteHeader';
 
 const MAIN_ID = 'main';
 
-/** The page column with the skip link, the site header and the footer. */
+/** The page column with the skip link, the site header, the footer and what comes `after` it. */
 export function Page({
   wide = false,
   onSkip,
+  after,
   children,
 }: {
   wide?: boolean;
   onSkip: () => void;
+  after?: ReactNode;
   children: ReactNode;
 }) {
   const t = useT();
@@ -48,6 +50,7 @@ export function Page({
         </div>
         {children}
         <SiteFooter />
+        {after}
       </div>
     </div>
   );

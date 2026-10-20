@@ -1,19 +1,30 @@
 import { POPULAR } from '../generated/i18n';
 import { localePath } from '../locale/locale';
 import { useLocale } from '../locale/localeContext';
-import { href, pairPath } from './site';
+import { pairPath } from './site';
 import type { Engine } from '../core/midiremap';
 
 const HEADING_ID = 'popular-conversions';
 
-const LINK = `
-  inline-flex rounded-chip border border-white/12 px-2.5 py-1 text-ui text-t2
-  transition-colors
-  hover:border-accent/40 hover:text-t1
-  pointer-coarse:py-3
+const ITEM = `
+  inline-flex items-center
+  not-last:after:mx-2.5 not-last:after:content-['·']
 `;
 
-/** Links to the popular conversion tables and the note maps, once the engines are known. */
+const SUMMARY = `
+  inline-flex cursor-pointer list-none items-center gap-1.5 text-caption font-medium
+  tracking-wider text-t4 uppercase transition-colors
+  tap
+  hover:text-t2
+  [&::-webkit-details-marker]:hidden
+`;
+
+const LINK = `
+  tap transition-colors
+  hover:text-t2
+`;
+
+/** Links to the popular conversion tables, once the engines are known. */
 export function PopularConversions({ engines }: { engines: readonly Engine[] }) {
   const { t, locale } = useLocale().translator;
   const names = new Map<string, string>(engines.map((e) => [e.id, e.name]));
@@ -26,27 +37,33 @@ export function PopularConversions({ engines }: { engines: readonly Engine[] }) 
   });
   if (links.length === 0) return null;
   return (
-    <nav aria-labelledby={HEADING_ID} className="flex flex-col gap-3 px-1">
-      <h2
-        id={HEADING_ID}
-        className="font-display text-title font-semibold text-t1"
-      >
-        {t({ id: 'maps-popular' })}
-      </h2>
-      <ul className="flex flex-wrap gap-2">
-        {links.map((l) => (
-          <li key={l.href}>
-            <a href={l.href} className={LINK}>
-              {t({ id: 'maps-pair-link', args: { source: l.source, target: l.target } })}
-            </a>
-          </li>
-        ))}
-        <li>
-          <a href={href({ route: 'noteMaps' }, locale)} className={LINK}>
-            {t({ id: 'nav-note-maps' })}
-          </a>
-        </li>
-      </ul>
+    <nav aria-labelledby={HEADING_ID} className="px-1 text-center">
+      <details className="group">
+        <summary className={SUMMARY}>
+          <span id={HEADING_ID}>{t({ id: 'maps-popular' })}</span>
+          <span
+            aria-hidden
+            className="
+              transition-transform
+              group-open:rotate-90
+            "
+          >›
+          </span>
+        </summary>
+        <ul className="
+          mx-auto mt-2 flex max-w-3xl flex-wrap justify-center gap-y-1
+          text-label text-t4
+        "
+        >
+          {links.map((l) => (
+            <li key={l.href} className={ITEM}>
+              <a href={l.href} className={LINK}>
+                {t({ id: 'maps-pair-link', args: { source: l.source, target: l.target } })}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </details>
     </nav>
   );
 }

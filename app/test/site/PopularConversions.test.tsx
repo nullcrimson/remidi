@@ -12,20 +12,21 @@ const ENGINES = [...new Set(POPULAR.flat())].map(named);
 const links = () => within(screen.getByRole('navigation', { name: 'Popular conversions' })).getAllByRole('link');
 
 describe('PopularConversions', () => {
-  it('links every popular conversion table, then the note maps', () => {
+  it('links every popular conversion table in order', () => {
     render(<PopularConversions engines={ENGINES} />);
     const all = links();
-    expect(all).toHaveLength(POPULAR.length + 1);
+    expect(all).toHaveLength(POPULAR.length);
     expect([all[0].textContent, all[0].getAttribute('href')]).toEqual([
       'Name of ggd_invasion to Name of ezdrummer',
       '/convert/ggd-invasion-to-ezdrummer/',
     ]);
-    expect([all[all.length - 1].textContent, all[all.length - 1].getAttribute('href')]).toEqual(['Note maps', '/engines/']);
   });
 
-  it('heads the links', () => {
-    render(<PopularConversions engines={ENGINES} />);
-    expect(screen.getByRole('heading', { name: 'Popular conversions' })).toBeInTheDocument();
+  it('folds the links under a closed summary', () => {
+    const { container } = render(<PopularConversions engines={ENGINES} />);
+    const details = container.querySelector('details');
+    expect(details?.open).toBe(false);
+    expect(details?.querySelector('summary')).toHaveTextContent('Popular conversions');
   });
 
   it('skips a conversion whose engine is not loaded', () => {
@@ -47,7 +48,6 @@ describe('PopularConversions', () => {
     );
     const nav = screen.getByRole('navigation', { name: pl.t({ id: 'maps-popular' }) });
     const hrefs = within(nav).getAllByRole('link').map((l) => l.getAttribute('href'));
-    expect(hrefs[0]).toBe('/pl/convert/ggd-invasion-to-ezdrummer/');
-    expect(hrefs[hrefs.length - 1]).toBe('/pl/engines/');
+    expect(hrefs.every((h) => h?.startsWith('/pl/convert/'))).toBe(true);
   });
 });

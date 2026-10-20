@@ -104,7 +104,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
   }
 
   return (
-    <Page wide onSkip={() => request('main')}>
+    <Page wide onSkip={() => request('main')} after={<PopularConversions engines={remapper.engines} />}>
       <Card mainRef={focus.ref('main')}>
         <CardDropzone onFiles={dropFiles}>
           <div className="
@@ -216,8 +216,6 @@ export default function App({ runtime }: { runtime: Runtime }) {
           </div>
         </CardDropzone>
       </Card>
-
-      <PopularConversions engines={remapper.engines} />
 
       {names && (
         <ReportModal

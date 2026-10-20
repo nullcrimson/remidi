@@ -30,9 +30,10 @@ test('a conversion table opens the converter with both of its engines', async ({
   await expect(page.getByRole('button', { name: /^\d+ of \d+ drums remapped$/ })).toBeVisible();
 });
 
-test('the converter links a popular conversion table', async ({ page }) => {
+test('the converter links a popular conversion table behind a fold', async ({ page }) => {
   await page.goto('/');
   const popular = page.getByRole('navigation', { name: 'Popular conversions' });
+  await press(popular.locator('summary'));
   await press(popular.getByRole('link', { name: 'GetGood Drums Invasion to EZdrummer 3', exact: true }));
   await expect(page).toHaveURL('/convert/ggd-invasion-to-ezdrummer/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Convert GetGood Drums Invasion MIDI to EZdrummer 3');
