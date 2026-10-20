@@ -138,7 +138,7 @@ export default defineConfig({
         extends: true,
         test: {
           name: 'dom',
-          environment: 'jsdom',
+          environment: 'happy-dom',
           setupFiles: ['./test/setup.ts', './test/setup.dom.ts'],
           include: ['test/**/*.test.tsx', 'test/**/*.dom.test.ts'],
         },

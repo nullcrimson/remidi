@@ -46,7 +46,7 @@ describe('the events of the note editor', () => {
   it('reports the counts of an editing session when it closes', async () => {
     await openEditorOnKick();
     await userEvent.click(chips()[1]);
-    await userEvent.click(screen.getByRole('button', { name: 'Crash 1C#3' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Crash 1 ?C#3$/ }));
     await userEvent.click(chips()[2]);
     await userEvent.click(screen.getByRole('button', { name: 'E1' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reset Kick' }));
@@ -82,7 +82,7 @@ describe('the events of the note editor', () => {
   it('sends editor-reset when Reset all is pressed', async () => {
     await openEditorOnKick();
     await userEvent.click(chips()[1]);
-    await userEvent.click(screen.getByRole('button', { name: 'Crash 1C#3' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Crash 1 ?C#3$/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Reset all' }));
     expect(umami).toHaveBeenCalledWith('editor-reset');
   });

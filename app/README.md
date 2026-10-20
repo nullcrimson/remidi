@@ -104,7 +104,7 @@ on a phone and click elsewhere.
   `convert/converter`. `test/wasm.contract.test.ts` loads the real module and checks its
   shapes and errors, and that the stub returns the same fields and real drum keys.
 - Tests run as two Vitest projects (`vite.config.ts`): `*.test.tsx` and `*.dom.test.ts` get
-  a jsdom page and `test/setup.dom.ts`; every other `*.test.ts` runs in plain Node, which
+  a happy-dom page and `test/setup.dom.ts` (which hides closed popovers, as a browser does); every other `*.test.ts` runs in plain Node, which
   starts faster. A test of code that reads `document` or `window` and has no JSX is named
   `*.dom.test.ts`; in Node it fails on the missing global.
 - The `App.stats.*` tests check the analytics events, one test per event and trigger: `fakeUmami()` in `test/umami.ts` installs a fake `window.umami` and returns its `track`, and each test checks `toHaveBeenCalledWith(name, props)`; `test/eventSteps.tsx` holds the app steps they share. `test/siteEvents.test.ts` checks that the events the templates and static scripts name are in the event map, and `test/siteFilter.dom.test.ts` runs `midiremap-site/static/filter.js` over a fixture (a fresh module per test, through `vi.resetModules()`). `converted`, `file-failed` and `convert-failed` are sent by `run` in `convert/useRemapper.ts` (tested in `test/convert/useRemapper.stats.test.tsx` and `App.stats.convert`); `load-failed` with kind `locale` is sent by `main.tsx` and covered by `e2e/locale.spec.ts`.

@@ -10,3 +10,7 @@ HTMLElement.prototype.hidePopover ??= function hidePopover() {};
 Element.prototype.scrollIntoView ??= function scrollIntoView() {};
 
 globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
+
+const closedPopovers = document.createElement('style');
+closedPopovers.textContent = '[popover]:not(:popover-open) { display: none; }';
+document.head.append(closedPopovers);
