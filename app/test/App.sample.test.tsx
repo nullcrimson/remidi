@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import * as stub from './stubs/wasm';
-import { addMidi, pickEngines, startApp } from './eventSteps';
+import { addMidi, pickEngines, pickFrom, startApp } from './eventSteps';
 
 const sampleButton = () => screen.queryByRole('button', { name: 'Try it with a sample groove' });
 
@@ -15,7 +15,7 @@ describe('the sample groove', () => {
 
   it('adds a sample built for the FROM engine as a file, without converting while TO is not chosen', async () => {
     await startApp();
-    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
+    await pickFrom('GGD Invasion');
     await userEvent.click(sampleButton()!);
     expect(stub.sample_file).toHaveBeenCalledWith('ggd_invasion');
     expect(screen.getByRole('button', { name: 'Remove sample-GGD.mid' })).toBeInTheDocument();

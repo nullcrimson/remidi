@@ -1,9 +1,9 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { Engine, SourceFits } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
-import { addMidi, pickEngines, startApp } from './eventSteps';
+import { addMidi, openPicker, pickEngines, pickFrom, pickTo, startApp } from './eventSteps';
 import { typed } from './typed';
 import { fakeUmami } from './umami';
 
@@ -12,26 +12,28 @@ describe('the events of setting up a conversion', () => {
 
   it('sends engine-picked from the FROM list', async () => {
     await startApp();
-    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
+    await pickFrom('GGD Invasion');
     expect(umami).toHaveBeenCalledWith('engine-picked', { side: 'from', id: 'ggd_invasion', via: 'list' });
   });
 
   it('sends engine-picked from the TO list', async () => {
     await startApp();
-    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await pickTo('EZdrummer');
     expect(umami).toHaveBeenCalledWith('engine-picked', { side: 'to', id: 'ezdrummer', via: 'list' });
   });
 
   it('sends engine-picked with via filter for an engine picked after typing in the filter', async () => {
     await startApp();
-    await userEvent.type(screen.getByRole('combobox', { name: 'Filter TO engines' }), 'ez{Enter}');
+    const picker = await openPicker('TO');
+    await userEvent.type(within(picker).getByRole('combobox', { name: 'Filter TO engines' }), 'ez{Enter}');
     expect(umami).toHaveBeenCalledWith('engine-picked', { side: 'to', id: 'ezdrummer', via: 'filter' });
   });
 
   it('sends engine-picked with via favorite for a starred engine', async () => {
     await startApp();
-    await userEvent.click(screen.getAllByTestId('star-ezdrummer')[1]);
-    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    const picker = await openPicker('TO');
+    await userEvent.click(within(picker).getByTestId('star-ezdrummer'));
+    await userEvent.click(within(picker).getByRole('option', { name: 'EZdrummer' }));
     expect(umami).toHaveBeenCalledWith('engine-picked', { side: 'to', id: 'ezdrummer', via: 'favorite' });
   });
 
@@ -44,14 +46,16 @@ describe('the events of setting up a conversion', () => {
 
   it('sends engine-starred with on true when a star is set', async () => {
     await startApp();
-    await userEvent.click(screen.getAllByTestId('star-ezdrummer')[0]);
+    await openPicker('FROM');
+    await userEvent.click(screen.getByTestId('star-ezdrummer'));
     expect(umami).toHaveBeenCalledWith('engine-starred', { id: 'ezdrummer', on: true });
   });
 
   it('sends engine-starred with on false when a star is cleared', async () => {
     await startApp();
-    await userEvent.click(screen.getAllByTestId('star-ezdrummer')[0]);
-    await userEvent.click(screen.getAllByTestId('star-ezdrummer')[0]);
+    await openPicker('FROM');
+    await userEvent.click(screen.getByTestId('star-ezdrummer'));
+    await userEvent.click(screen.getByTestId('star-ezdrummer'));
     expect(umami).toHaveBeenLastCalledWith('engine-starred', { id: 'ezdrummer', on: false });
   });
 
@@ -131,7 +135,7 @@ describe('the events of setting up a conversion', () => {
 
   it('sends sample-used and midi-added via sample for a sample added with only FROM chosen', async () => {
     await startApp();
-    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
+    await pickFrom('GGD Invasion');
     await userEvent.click(screen.getByRole('button', { name: 'Try it with a sample groove' }));
     expect(umami).toHaveBeenCalledWith('sample-used', { converted: false });
     expect(umami).toHaveBeenCalledWith('midi-added', { files: 1, via: 'sample', unreadable: 0 });

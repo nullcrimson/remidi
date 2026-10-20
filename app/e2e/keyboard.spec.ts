@@ -1,5 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import { addFiles, DRUMS, expect, midFile, openPair, test } from './fixtures';
+import { engineCard, engineSide } from './steps';
 
 const groove = () => midFile('groove.mid', [{ channel: DRUMS, key: 24 }]);
 
@@ -19,15 +20,17 @@ test('walks from page load to a converted file by keyboard', async ({ page }) =>
   await expect(page.getByRole('main')).toBeFocused();
 
   await addFiles(page, groove());
-  const from = page.getByRole('combobox', { name: 'Filter FROM engines' });
-  await expect(from).toBeFocused();
+  await expect(engineCard(page, 'FROM')).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('combobox', { name: 'Filter FROM engines' })).toBeFocused();
   await page.keyboard.type('Invasion');
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('group', { name: 'FROM engine' }).getByTestId('chosen-engine'))
-    .toHaveText(/Invasion/);
+  await expect(engineSide(page, 'FROM').getByTestId('chosen-engine')).toHaveText(/Invasion/);
+  await expect(engineCard(page, 'FROM')).toBeFocused();
 
-  const to = page.getByRole('combobox', { name: 'Filter TO engines' });
-  await tabTo(page, to);
+  await tabTo(page, engineCard(page, 'TO'));
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('combobox', { name: 'Filter TO engines' })).toBeFocused();
   await page.keyboard.type('General MIDI');
   await page.keyboard.press('Enter');
   await expect(page.getByRole('group', { name: 'TO engine' }).getByTestId('chosen-engine'))
@@ -43,10 +46,10 @@ test('walks from page load to a converted file by keyboard', async ({ page }) =>
   await expect(page.locator('button:has(+ [data-testid=file-input])')).toBeFocused();
 });
 
-test('focus moves to the TO engine filter when files arrive and TO is missing', async ({ page }) => {
+test('focus moves to the TO engine card when files arrive and TO is missing', async ({ page }) => {
   await page.goto('/?from=ggd_invasion');
   await addFiles(page, groove());
-  await expect(page.getByRole('combobox', { name: 'Filter TO engines' })).toBeFocused();
+  await expect(engineCard(page, 'TO')).toBeFocused();
 });
 
 test('focus moves to Convert when files arrive and both engines are chosen', async ({ page }) => {

@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { addFiles, DRUMS, expect, midFile, openPair, test } from './fixtures';
+import { engineCard, enginePicker } from './steps';
 
 const MIN = 44;
 const BLACK_KEY_MIN = 24;
@@ -32,6 +33,12 @@ test('every control is big enough to tap', async ({ page }) => {
   await openPair(page);
   await addFiles(page, midFile('groove.mid', [{ channel: DRUMS, key: 24 }]));
   expect(await smallTargets(page)).toEqual([]);
+
+  await engineCard(page, 'TO').tap();
+  await expect(enginePicker(page, 'TO')).toBeVisible();
+  expect(await smallTargets(page)).toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(enginePicker(page, 'TO')).toBeHidden();
 
   await page.getByRole('button', { name: /Edit individual notes/ }).tap();
   await expect(page.getByRole('heading', { name: 'Edit notes' })).toBeVisible();

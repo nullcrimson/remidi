@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -7,9 +7,12 @@ import { RUNTIME } from './runtime';
 import type { RemapOutput, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
+import { pickFrom, pickTo } from './eventSteps';
 
 const fromBox = () => screen.getByRole('combobox', { name: 'Filter FROM engines' });
 const toBox = () => screen.getByRole('combobox', { name: 'Filter TO engines' });
+const card = (side: 'FROM' | 'TO') =>
+  within(screen.getByRole('group', { name: `${side} engine` })).getByRole('button', { name: new RegExp(`^${side}`) });
 const convertButton = () => screen.getByRole('button', { name: 'Convert' });
 
 async function addFile() {
@@ -54,37 +57,42 @@ describe('keyboard use', () => {
     await tab();
     expect(document.activeElement).toHaveTextContent(/Drop one or more \.mid files/);
     await addFile();
+    await waitFor(() => expect(card('FROM')).toHaveFocus());
+    await userEvent.keyboard('{Enter}');
     await waitFor(() => expect(fromBox()).toHaveFocus());
     await userEvent.keyboard('ggd{Enter}');
+    await waitFor(() => expect(card('FROM')).toHaveFocus());
     await tab();
     expect(screen.getByRole('button', { name: 'Swap FROM and TO' })).toHaveFocus();
     await tab();
-    expect(toBox()).toHaveFocus();
+    expect(card('TO')).toHaveFocus();
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(toBox()).toHaveFocus());
     await userEvent.keyboard('ez{Enter}');
     while (document.activeElement !== convertButton() && tabs < 20) await tab();
     expect(convertButton()).toHaveFocus();
     expect(tabs).toBeLessThan(12);
   });
 
-  it('moves focus to the TO engine box after a file is added with only FROM chosen', async () => {
+  it('moves focus to the TO engine card after a file is added with only FROM chosen', async () => {
     await start();
-    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
+    await pickFrom('GGD Invasion');
     await addFile();
-    await waitFor(() => expect(toBox()).toHaveFocus());
+    await waitFor(() => expect(card('TO')).toHaveFocus());
   });
 
   it('moves focus to Convert after a file is added with both engines chosen', async () => {
     await start();
-    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
-    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await pickFrom('GGD Invasion');
+    await pickTo('EZdrummer');
     await addFile();
     await waitFor(() => expect(convertButton()).toHaveFocus());
   });
 
   it('moves focus to Convert after the file is removed and added again', async () => {
     await start();
-    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
-    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await pickFrom('GGD Invasion');
+    await pickTo('EZdrummer');
     await addFile();
     await userEvent.click(await screen.findByRole('button', { name: 'Remove groove.mid' }));
     await addFile();
@@ -93,8 +101,8 @@ describe('keyboard use', () => {
 
   async function convertToResult() {
     await start();
-    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
-    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await pickFrom('GGD Invasion');
+    await pickTo('EZdrummer');
     await addFile();
     await waitFor(() => expect(convertButton()).toBeEnabled());
     await userEvent.click(convertButton());
@@ -114,8 +122,8 @@ describe('keyboard use', () => {
 
   async function openEditor() {
     await start();
-    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
-    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await pickFrom('GGD Invasion');
+    await pickTo('EZdrummer');
     await userEvent.click(screen.getByRole('button', { name: /Edit individual notes/ }));
   }
 

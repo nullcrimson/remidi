@@ -1,5 +1,4 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from '../src/App';
@@ -7,6 +6,7 @@ import { RUNTIME } from './runtime';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
 import type { VoiceRow } from '../src/core/midiremap';
+import { pickFrom, pickTo } from './eventSteps';
 
 describe('App convert view', () => {
   beforeEach(() => {
@@ -25,8 +25,8 @@ describe('App convert view', () => {
     expect(editButton()).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Convert' })).toBeDisabled();
 
-    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
-    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await pickFrom('GGD Invasion');
+    await pickTo('EZdrummer');
 
     expect(editButton()).toBeEnabled();
   });

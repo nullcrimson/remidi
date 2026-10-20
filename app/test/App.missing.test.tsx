@@ -7,6 +7,7 @@ import { RUNTIME } from './runtime';
 import type { Drum, MissingDrums, RemapOutput, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
+import { pickFrom, pickTo } from './eventSteps';
 
 function remapFor(missing: MissingDrums | null | undefined) {
   return typed<RemapOutput>({
@@ -24,8 +25,8 @@ function remapFor(missing: MissingDrums | null | undefined) {
 async function convertOneFile() {
   render(<App runtime={RUNTIME} />);
   await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
-  await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
-  await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+  await pickFrom('GGD Invasion');
+  await pickTo('EZdrummer');
   await userEvent.upload(screen.getAllByTestId('file-input')[0], new File([new Uint8Array([1])], 'groove.mid'));
   await userEvent.click(await screen.findByRole('button', { name: 'Convert' }));
   await screen.findByRole('button', { name: /View report/i });
@@ -62,8 +63,8 @@ describe('App missing drums', () => {
   it('counts the drums played on another drum once the pair is chosen', async () => {
     render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
-    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
-    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await pickFrom('GGD Invasion');
+    await pickTo('EZdrummer');
     expect(screen.getByText('1 drum played on another drum')).toBeInTheDocument();
   });
 
@@ -71,8 +72,8 @@ describe('App missing drums', () => {
     render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
     const group = screen.getByRole('radiogroup', { name: 'Missing drums' });
-    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
-    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await pickFrom('GGD Invasion');
+    await pickTo('EZdrummer');
     await userEvent.click(within(group).getByText('Drop'));
     expect(screen.getByText('1 drum dropped')).toBeInTheDocument();
   });

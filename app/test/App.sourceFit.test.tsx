@@ -83,7 +83,7 @@ describe('the closer sources notice', () => {
 
   it('makes a chosen suggestion the source', async () => {
     await chooseRockFundamentals();
-    expect(screen.getAllByRole('option', { name: 'GGD Rock Fundamentals' })[0]).toHaveAttribute('aria-selected', 'true');
+    expect(within(screen.getByRole('group', { name: 'FROM engine' })).getByTestId('chosen-engine')).toHaveTextContent('GGD Rock Fundamentals');
   });
 
   it('ranks again for the new source', async () => {

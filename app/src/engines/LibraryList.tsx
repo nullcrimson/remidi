@@ -8,7 +8,6 @@ import { reveal } from '../ui/reveal';
 import { useFilter } from '../ui/useFilter';
 import { useTruncationTooltip } from '../ui/useTruncationTooltip';
 import { FilterInput } from '../ui/FilterInput';
-import { MonoLabel } from '../ui/MonoLabel';
 import { rowState, type RowState } from '../ui/styles';
 
 const PAGE = 8;
@@ -53,7 +52,6 @@ export function LibraryList({
     = enabled.find((e) => e.id === activeId)
       ?? (followSelection ? enabled.find((e) => e.id === value) : undefined)
       ?? enabled[0];
-  const chosen = engines.find((e) => e.id === value);
 
   useEffect(() => {
     const list = listRef.current;
@@ -168,21 +166,7 @@ export function LibraryList({
   const grouped = starred.length > 0 && rest.length > 0;
 
   return (
-    <div role="group" aria-label={t({ id: 'library-group', args: { side: label } })}>
-      <div className="mb-3 flex min-w-0 items-baseline gap-2">
-        <MonoLabel>{label}</MonoLabel>
-        {chosen && (
-          <>
-            <span aria-hidden="true" className="text-caption text-decor">·</span>
-            <span
-              data-testid="chosen-engine"
-              className="min-w-0 truncate text-label text-t2"
-            >
-              {chosen.name}
-            </span>
-          </>
-        )}
-      </div>
+    <div>
       <FilterInput
         value={q}
         onChange={(v) => {
@@ -212,7 +196,9 @@ export function LibraryList({
         role="listbox"
         tabIndex={-1}
         aria-label={t({ id: 'library-list', args: { side: label } })}
-        className="mr-scroll relative flex max-h-60 flex-col"
+        className="
+          mr-scroll relative mt-2 flex max-h-[min(24rem,55vh)] flex-col
+        "
       >
         {grouped
           ? (

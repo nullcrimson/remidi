@@ -7,6 +7,7 @@ import type { VocabularyDrum, VoiceRow } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
 import { storedName } from '../src/core/storage';
+import { pickFrom, pickTo } from './eventSteps';
 
 const MAPPINGS_KEY = storedName('mappings');
 const SESSION_KEY = storedName('session');
@@ -28,8 +29,8 @@ describe('App edit view', () => {
   it('keeps the edit view when a file is dropped on it', async () => {
     render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
-    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
-    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await pickFrom('GGD Invasion');
+    await pickTo('EZdrummer');
     await userEvent.click(screen.getByRole('button', { name: /Edit individual notes/ }));
     expect(screen.getByText('Edit notes')).toBeInTheDocument();
     const drop = new Event('drop', { cancelable: true });
@@ -94,8 +95,8 @@ describe('App edit view', () => {
     );
     render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
-    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
-    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await pickFrom('GGD Invasion');
+    await pickTo('EZdrummer');
     await userEvent.click(screen.getByText(/Edit individual notes/));
     expect(screen.getByRole('button', { name: 'Save as preset' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Update preset' })).not.toBeInTheDocument();
@@ -104,8 +105,8 @@ describe('App edit view', () => {
   it('says in the edit view that a preset saved from the editor will be gone on reload', async () => {
     render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
-    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
-    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await pickFrom('GGD Invasion');
+    await pickTo('EZdrummer');
     await userEvent.click(screen.getByText(/Edit individual notes/));
     const set = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
       throw new DOMException('full', 'QuotaExceededError');
@@ -124,8 +125,8 @@ describe('App edit view', () => {
   it('shows no edited chip for the default mapping', async () => {
     render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
-    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
-    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await pickFrom('GGD Invasion');
+    await pickTo('EZdrummer');
     expect(screen.getByText(/drums remapped/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /edited — review changes/ })).not.toBeInTheDocument();
   });
@@ -193,8 +194,8 @@ describe('App edit view', () => {
   it('navigates to edit', async () => {
     render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
-    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
-    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await pickFrom('GGD Invasion');
+    await pickTo('EZdrummer');
     await userEvent.click(screen.getByText(/Edit individual notes/));
     expect(screen.getByText('Edit notes')).toBeInTheDocument();
     expect(screen.getAllByText('Kick')).toHaveLength(2);
@@ -204,8 +205,8 @@ describe('App edit view', () => {
   it('navigates back from edit', async () => {
     render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
-    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
-    await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+    await pickFrom('GGD Invasion');
+    await pickTo('EZdrummer');
     await userEvent.click(screen.getByText(/Edit individual notes/));
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());

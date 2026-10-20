@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import App from '../src/App';
@@ -47,9 +47,26 @@ export async function startApp(): Promise<void> {
   await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
 }
 
+/** Opens the engine picker of one side from its card. */
+export async function openPicker(side: 'FROM' | 'TO'): Promise<HTMLElement> {
+  const group = screen.getByRole('group', { name: `${side} engine` });
+  await userEvent.click(within(group).getByRole('button', { name: new RegExp(`^${side}`) }));
+  return screen.findByRole('dialog', { name: `Choose the ${side} engine` });
+}
+
+/** Opens the picker of one side and picks the engine called `name` in it. */
+export async function pickEngine(side: 'FROM' | 'TO', name: string): Promise<void> {
+  const picker = await openPicker(side);
+  await userEvent.click(within(picker).getByRole('option', { name }));
+}
+
+export const pickFrom = (name: string) => pickEngine('FROM', name);
+
+export const pickTo = (name: string) => pickEngine('TO', name);
+
 export async function pickEngines(): Promise<void> {
-  await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
-  await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+  await pickFrom('GGD Invasion');
+  await pickTo('EZdrummer');
 }
 
 export async function addMidi(...names: string[]): Promise<void> {

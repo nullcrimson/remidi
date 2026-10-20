@@ -7,6 +7,7 @@ import { RUNTIME } from './runtime';
 import type { RemapOutput, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
+import { pickFrom, pickTo } from './eventSteps';
 
 function reportWith(untouched: number, converted = 10) {
   return typed<RemapOutput>({
@@ -18,8 +19,8 @@ function reportWith(untouched: number, converted = 10) {
 async function pickEnginesAndFile() {
   render(<App runtime={RUNTIME} />);
   await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
-  await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
-  await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+  await pickFrom('GGD Invasion');
+  await pickTo('EZdrummer');
   const input = screen.getAllByTestId('file-input')[0];
   await userEvent.upload(input, new File([new Uint8Array([1])], 'groove.mid'));
   await waitFor(() =>

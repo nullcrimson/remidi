@@ -17,6 +17,24 @@ export const noteButtons = (page: Page, drum: string) => drumRow(page, drum).loc
 
 export const targetNote = (page: Page, drum: string) => noteButtons(page, drum).nth(1);
 
+/** One side of the conversion: its card, its favourites and, once open, its picker. */
+export const engineSide = (page: Page, side: 'FROM' | 'TO') => page.getByRole('group', { name: `${side} engine` });
+
+export const engineCard = (page: Page, side: 'FROM' | 'TO') =>
+  engineSide(page, side).getByRole('button', { name: new RegExp(`^${side}`) });
+
+export const enginePicker = (page: Page, side: 'FROM' | 'TO') =>
+  page.getByRole('dialog', { name: `Choose the ${side} engine` });
+
+/** Opens a side's picker from its card, filters it and picks `engine`. */
+export async function pickEngine(page: Page, side: 'FROM' | 'TO', filter: string, engine: string) {
+  await press(engineCard(page, side));
+  const picker = enginePicker(page, side);
+  await picker.getByRole('combobox', { name: `Filter ${side} engines` }).fill(filter);
+  await press(picker.getByRole('option', { name: engine, exact: true }));
+  await expect(picker).toBeHidden();
+}
+
 export const saved = (page: Page) => page.getByRole('group', { name: 'Saved mappings' });
 
 /** The main button of the saved GGD Invasion → EZdrummer preset called `name`. */

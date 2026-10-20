@@ -1,12 +1,11 @@
 import { useT } from '../locale/localeContext';
 import { track } from '../core/stats';
 import type { FocusRef } from '../ui/useFocusIntent';
-import { useFavorites } from './useFavorites';
 import type { Engine, EngineId } from '../core/midiremap';
 import { IconButton } from '../ui/IconButton';
-import { LibraryList } from './LibraryList';
+import { EngineSide } from './EngineSide';
 
-/** The FROM and TO engine lists side by side, with the swap button between them. */
+/** The FROM and TO engine cards side by side, with the swap button between them. */
 export function EngineColumns({
   engines,
   src,
@@ -27,32 +26,29 @@ export function EngineColumns({
   toRef: FocusRef;
 }) {
   const t = useT();
-  const favFrom = useFavorites('from');
-  const favTo = useFavorites('to');
   const swap = () => {
     track('engines-swapped');
     onSwap();
   };
   return (
     <div className="
-      grid grid-cols-1 gap-3
-      sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-4
+      grid grid-cols-1 gap-2
+      sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-start sm:gap-4
     "
     >
-      <LibraryList
+      <EngineSide
         side="from"
         label={t({ id: 'engine-from' })}
         value={src}
         disabledId={tgt}
         engines={engines}
+        next={src === null}
         onChange={onChooseSrc}
-        favorites={favFrom.favorites}
-        onToggleFavorite={favFrom.toggleFavorite}
-        filterRef={fromRef}
+        cardRef={fromRef}
       />
       <div className="
         flex justify-center
-        sm:pt-8
+        sm:pt-4
       "
       >
         <IconButton label={t({ id: 'engine-swap' })} disabled={src === null && tgt === null} onClick={swap}>
@@ -64,16 +60,15 @@ export function EngineColumns({
           </span>
         </IconButton>
       </div>
-      <LibraryList
+      <EngineSide
         side="to"
         label={t({ id: 'engine-to' })}
         value={tgt}
         disabledId={src}
         engines={engines}
+        next={src !== null && tgt === null}
         onChange={onChooseTgt}
-        favorites={favTo.favorites}
-        onToggleFavorite={favTo.toggleFavorite}
-        filterRef={toRef}
+        cardRef={toRef}
       />
     </div>
   );

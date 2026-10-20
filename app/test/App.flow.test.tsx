@@ -8,6 +8,7 @@ import { recordDownloads } from './downloads';
 import type { RemapOutput, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
+import { pickFrom, pickTo } from './eventSteps';
 
 async function start() {
   render(<App runtime={RUNTIME} />);
@@ -15,8 +16,8 @@ async function start() {
 }
 
 async function pickEngines() {
-  await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
-  await userEvent.click(screen.getAllByRole('option', { name: 'EZdrummer' })[1]);
+  await pickFrom('GGD Invasion');
+  await pickTo('EZdrummer');
 }
 
 async function upload(...names: string[]) {
