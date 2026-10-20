@@ -122,7 +122,7 @@ pub fn sample_file(engine: &EngineMap) -> Result<Vec<u8>, CodecError> {
 mod tests {
     use std::collections::BTreeSet;
 
-    use midiremap_testkit::{events, hit_keys, DRUMS};
+    use midiremap_testkit::{engine_json, events, hit_keys, DRUMS};
 
     use super::*;
     use crate::{
@@ -134,15 +134,7 @@ mod tests {
     const HITS_PER_GROOVE: u32 = 1 + 6 + 4 + 15;
 
     fn engine(notes: &[(u8, &str)]) -> EngineMap {
-        let entries: Vec<String> = notes
-            .iter()
-            .map(|(note, canon)| format!(r#"{{"note":{note},"canon":"{canon}"}}"#))
-            .collect();
-        EngineMap::from_json(&format!(
-            r#"{{"id":"kit","name":"Kit","notes":[{}]}}"#,
-            entries.join(",")
-        ))
-        .unwrap()
+        EngineMap::from_json(&engine_json("kit", notes).to_string()).unwrap()
     }
 
     #[test]

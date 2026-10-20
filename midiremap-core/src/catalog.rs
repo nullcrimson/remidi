@@ -104,6 +104,8 @@ impl Catalog {
 
 #[cfg(test)]
 mod tests {
+    use midiremap_testkit::engine_json;
+
     use super::*;
     use crate::{
         canon::{idx, Canon, HatOpen, HatZone, KickKind, SnareArtic},
@@ -320,18 +322,12 @@ mod tests {
     }
 
     fn kit(id: &str, variant_of: Option<&str>) -> EngineMap {
-        let (name, variant) = variant_of
-            .map(|of| {
-                (
-                    format!("{id} (Mapping '{id}')"),
-                    format!(r#","variant":{{"of":"{of}"}}"#),
-                )
-            })
-            .unwrap_or_else(|| (id.to_owned(), String::new()));
-        EngineMap::from_json(&format!(
-            r#"{{"id":"{id}","name":"{name}"{variant},"notes":[{{"note":36,"canon":"kick.main","primary":true}}]}}"#
-        ))
-        .unwrap()
+        let mut json = engine_json(id, &[(36, "kick.main")]);
+        if let Some(of) = variant_of {
+            json["name"] = format!("{id} (Mapping '{id}')").into();
+            json["variant"] = serde_json::json!({ "of": of });
+        }
+        EngineMap::from_json(&json.to_string()).unwrap()
     }
 
     #[test]

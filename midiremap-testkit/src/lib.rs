@@ -1,5 +1,5 @@
-//! Builds and reads small Standard MIDI Files for tests. Channels are numbered `1..=16`
-//! as people count them.
+//! Builds and reads small Standard MIDI Files for tests, and the engine maps they play
+//! on. Channels are numbered `1..=16` as people count them.
 
 use midly::{
     num::{u15, u28, u4, u7},
@@ -139,6 +139,16 @@ pub fn hit_keys(bytes: &[u8]) -> Vec<u8> {
         .collect()
 }
 
+/// An engine map as `EngineMap::from_json` reads it, named by its id, playing each
+/// `(note, drum key)` pair; set more fields on the value before reading it.
+pub fn engine_json(id: &str, notes: &[(u8, &str)]) -> serde_json::Value {
+    let notes: Vec<serde_json::Value> = notes
+        .iter()
+        .map(|&(note, canon)| serde_json::json!({ "note": note, "canon": canon }))
+        .collect();
+    serde_json::json!({ "id": id, "name": id, "notes": notes })
+}
+
 fn parse(bytes: &[u8]) -> Smf<'_> {
     Smf::parse(bytes).expect("a test file must parse")
 }
@@ -191,6 +201,18 @@ mod tests {
             (0, on(38)),
         ]);
         assert_eq!(hit_keys(&bytes), vec![36, 38]);
+    }
+
+    #[test]
+    fn an_engine_is_named_by_its_id_and_plays_its_notes() {
+        assert_eq!(
+            engine_json("kit", &[(36, "kick.main")]),
+            serde_json::json!({
+                "id": "kit",
+                "name": "kit",
+                "notes": [{ "note": 36, "canon": "kick.main" }],
+            })
+        );
     }
 
     #[test]

@@ -116,7 +116,7 @@ pub fn source_fits<'a>(catalog: &'a Catalog, hits: &NoteHits) -> SourceFits<'a> 
 
 #[cfg(test)]
 mod tests {
-    use midiremap_testkit::{drums, off, on, silent_on, tracks, DRUMS};
+    use midiremap_testkit::{drums, engine_json, off, on, silent_on, tracks, DRUMS};
 
     use super::*;
     use crate::{
@@ -181,16 +181,8 @@ mod tests {
 
     fn engine(id: &str, notes: &[u8]) -> EngineMap {
         let canons = ["kick.main", "snare1.hit", "hat.closed"];
-        let entries: Vec<String> = notes
-            .iter()
-            .zip(canons)
-            .map(|(note, canon)| format!(r#"{{"note":{note},"canon":"{canon}"}}"#))
-            .collect();
-        EngineMap::from_json(&format!(
-            r#"{{"id":"{id}","name":"{id}","notes":[{}]}}"#,
-            entries.join(",")
-        ))
-        .unwrap()
+        let notes: Vec<(u8, &str)> = notes.iter().copied().zip(canons).collect();
+        EngineMap::from_json(&engine_json(id, &notes).to_string()).unwrap()
     }
 
     fn ranked(catalog: &Catalog, midi: &[u8]) -> (u32, Vec<(String, u32)>) {

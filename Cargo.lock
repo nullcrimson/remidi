@@ -602,6 +602,7 @@ name = "midiremap-testkit"
 version = "0.1.0"
 dependencies = [
  "midly",
+ "serde_json",
 ]
 
 [[package]]

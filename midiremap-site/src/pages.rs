@@ -749,7 +749,7 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use midiremap_core::{convert, ChannelScope};
-    use midiremap_testkit::{drums, hit_keys, off, on};
+    use midiremap_testkit::{drums, engine_json, hit_keys, off, on};
 
     use super::*;
     use crate::fixtures::site;
@@ -1485,16 +1485,9 @@ mod tests {
     }
 
     fn core_kit() -> EngineMap {
-        let notes: Vec<String> = Canon::CORE_KIT
-            .iter()
-            .enumerate()
-            .map(|(note, key)| format!(r#"{{"note":{note},"canon":"{key}","primary":true}}"#))
-            .collect();
-        EngineMap::from_json(&format!(
-            r#"{{"id":"core","name":"Core","notes":[{}]}}"#,
-            notes.join(",")
-        ))
-        .unwrap()
+        let keys = Canon::CORE_KIT.map(|canon| canon.to_string());
+        let notes: Vec<(u8, &str)> = (0..).zip(keys.iter().map(String::as_str)).collect();
+        EngineMap::from_json(&engine_json("core", &notes).to_string()).unwrap()
     }
 
     #[test]
@@ -1543,10 +1536,9 @@ mod tests {
     #[test]
     fn engines_with_equal_names_sort_by_id() {
         let map = |id: &str| {
-            EngineMap::from_json(&format!(
-                r#"{{"id":"{id}","name":"Same","notes":[{{"note":36,"canon":"kick.main","primary":true}}]}}"#
-            ))
-            .unwrap()
+            let mut json = engine_json(id, &[(36, "kick.main")]);
+            json["name"] = "Same".into();
+            EngineMap::from_json(&json.to_string()).unwrap()
         };
         let (b, a) = (map("b"), map("a"));
         let mut maps = vec![&b, &a];
