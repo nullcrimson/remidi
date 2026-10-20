@@ -17,8 +17,8 @@ export function EngineColumns({
   toRef,
 }: {
   engines: Engine[];
-  src: string | null;
-  tgt: string | null;
+  src: EngineId | null;
+  tgt: EngineId | null;
   onChooseSrc: (id: EngineId) => void;
   onChooseTgt: (id: EngineId) => void;
   onSwap: () => void;

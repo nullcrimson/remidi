@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EngineSide } from '../../src/engines/EngineSide';
 import { storedName } from '../../src/core/storage';
 import type { Engine } from '../../src/core/midiremap';
-import { typed } from '../typed';
+import { engineId, typed } from '../typed';
 
 const engines = typed<Engine[]>([
   { id: 'addictive', name: 'Addictive Drums 2', fullName: 'Addictive Drums 2' },
@@ -17,8 +17,8 @@ function side(value: string | null, onChange = vi.fn()) {
     <EngineSide
       side="to"
       label="TO"
-      value={value}
-      disabledId="ggd_invasion"
+      value={value === null ? null : engineId(value)}
+      disabledId={engineId('ggd_invasion')}
       engines={engines}
       next={value === null}
       onChange={onChange}

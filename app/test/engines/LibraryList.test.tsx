@@ -5,7 +5,7 @@ import { LibraryList } from '../../src/engines/LibraryList';
 import { loadTranslator } from '../../src/locale/i18n';
 import { LocaleContext } from '../../src/locale/localeContext';
 import type { Engine } from '../../src/core/midiremap';
-import { typed } from '../typed';
+import { engineId, typed } from '../typed';
 
 const engines = typed<Engine[]>([
   { id: 'addictive', name: 'Addictive Drums 2', fullName: 'Addictive Drums 2' },
@@ -22,7 +22,7 @@ const active = () => {
 
 describe('LibraryList', () => {
   it('is one combobox over a listbox of options', () => {
-    render(<LibraryList side="from" label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />);
+    render(<LibraryList side="from" label="FROM" value={engineId('ggd_invasion')} engines={engines} onChange={() => {}} {...noFav} />);
     const box = combobox();
     const list = screen.getByRole('listbox', { name: 'FROM engines' });
     expect(box).toHaveAttribute('aria-controls', list.id);
@@ -36,27 +36,27 @@ describe('LibraryList', () => {
   });
 
   it('starts on the chosen engine', async () => {
-    render(<LibraryList side="from" label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />);
+    render(<LibraryList side="from" label="FROM" value={engineId('ggd_invasion')} engines={engines} onChange={() => {}} {...noFav} />);
     await userEvent.click(combobox());
     expect(active()).toBe('GGD Invasion');
   });
 
   it('moves down with the arrow key', async () => {
-    render(<LibraryList side="from" label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />);
+    render(<LibraryList side="from" label="FROM" value={engineId('ggd_invasion')} engines={engines} onChange={() => {}} {...noFav} />);
     await userEvent.click(combobox());
     await userEvent.keyboard('{ArrowDown}');
     expect(active()).toBe('EZdrummer');
   });
 
   it('stops at the last engine', async () => {
-    render(<LibraryList side="from" label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />);
+    render(<LibraryList side="from" label="FROM" value={engineId('ggd_invasion')} engines={engines} onChange={() => {}} {...noFav} />);
     await userEvent.click(combobox());
     await userEvent.keyboard('{ArrowDown}{ArrowDown}');
     expect(active()).toBe('EZdrummer');
   });
 
   it('moves up with the arrow key', async () => {
-    render(<LibraryList side="from" label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />);
+    render(<LibraryList side="from" label="FROM" value={engineId('ggd_invasion')} engines={engines} onChange={() => {}} {...noFav} />);
     await userEvent.click(combobox());
     await userEvent.keyboard('{ArrowDown}');
     await userEvent.keyboard('{ArrowUp}{ArrowUp}');
@@ -65,7 +65,7 @@ describe('LibraryList', () => {
 
   it('picks the active engine with Enter', async () => {
     const onChange = vi.fn();
-    render(<LibraryList side="from" label="FROM" value="ggd_invasion" engines={engines} onChange={onChange} {...noFav} />);
+    render(<LibraryList side="from" label="FROM" value={engineId('ggd_invasion')} engines={engines} onChange={onChange} {...noFav} />);
     await userEvent.click(combobox());
     await userEvent.keyboard('{ArrowUp}');
     await userEvent.keyboard('{Enter}');
@@ -79,8 +79,8 @@ describe('LibraryList', () => {
         <LibraryList
           side="from"
           label="FROM"
-          value="addictive"
-          disabledId="ggd_invasion"
+          value={engineId('addictive')}
+          disabledId={engineId('ggd_invasion')}
           engines={engines}
           onChange={onChange}
           {...noFav}
@@ -110,7 +110,7 @@ describe('LibraryList', () => {
   });
 
   it('makes the first match active while typing', async () => {
-    render(<LibraryList side="from" label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />);
+    render(<LibraryList side="from" label="FROM" value={engineId('ggd_invasion')} engines={engines} onChange={() => {}} {...noFav} />);
     await userEvent.type(combobox(), 'ez');
     expect(screen.queryByRole('option', { name: 'GGD Invasion' })).toBeNull();
     expect(active()).toBe('EZdrummer');
@@ -118,20 +118,20 @@ describe('LibraryList', () => {
 
   it('picks the first match with Enter', async () => {
     const onChange = vi.fn();
-    render(<LibraryList side="from" label="FROM" value="ggd_invasion" engines={engines} onChange={onChange} {...noFav} />);
+    render(<LibraryList side="from" label="FROM" value={engineId('ggd_invasion')} engines={engines} onChange={onChange} {...noFav} />);
     await userEvent.type(combobox(), 'ez');
     await userEvent.keyboard('{Enter}');
     expect(onChange).toHaveBeenCalledWith('ezdrummer');
   });
 
   it('filters case-insensitively', async () => {
-    render(<LibraryList side="from" label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />);
+    render(<LibraryList side="from" label="FROM" value={engineId('ggd_invasion')} engines={engines} onChange={() => {}} {...noFav} />);
     await userEvent.type(combobox(), 'INV');
     expect(screen.getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['GGD Invasion']);
   });
 
   it('says when nothing matches', async () => {
-    render(<LibraryList side="from" label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />);
+    render(<LibraryList side="from" label="FROM" value={engineId('ggd_invasion')} engines={engines} onChange={() => {}} {...noFav} />);
     await userEvent.type(combobox(), 'INVzzz');
     expect(screen.getByText('no matches')).toBeInTheDocument();
     expect(screen.queryAllByRole('option')).toHaveLength(0);
@@ -139,7 +139,7 @@ describe('LibraryList', () => {
   });
 
   it('clears the filter on Escape while keeping focus', async () => {
-    render(<LibraryList side="from" label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />);
+    render(<LibraryList side="from" label="FROM" value={engineId('ggd_invasion')} engines={engines} onChange={() => {}} {...noFav} />);
     await userEvent.type(combobox(), 'inv');
     await userEvent.keyboard('{Escape}');
     expect(combobox()).toHaveValue('');
@@ -148,7 +148,7 @@ describe('LibraryList', () => {
   });
 
   it('clears the filter with the clear button', async () => {
-    render(<LibraryList side="from" label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />);
+    render(<LibraryList side="from" label="FROM" value={engineId('ggd_invasion')} engines={engines} onChange={() => {}} {...noFav} />);
     await userEvent.type(combobox(), 'inv');
     await userEvent.click(screen.getByRole('button', { name: 'Clear filter' }));
     expect(screen.getAllByRole('option')).toHaveLength(3);
@@ -156,7 +156,7 @@ describe('LibraryList', () => {
 
   it('picks an engine with a click', async () => {
     const onChange = vi.fn();
-    render(<LibraryList side="from" label="FROM" value="ggd_invasion" engines={engines} onChange={onChange} {...noFav} />);
+    render(<LibraryList side="from" label="FROM" value={engineId('ggd_invasion')} engines={engines} onChange={onChange} {...noFav} />);
     await userEvent.click(screen.getByRole('option', { name: 'EZdrummer' }));
     expect(onChange).toHaveBeenCalledWith('ezdrummer');
   });
@@ -177,7 +177,7 @@ describe('LibraryList', () => {
 
   it('does not change selection when filtering hides it', async () => {
     const onChange = vi.fn();
-    render(<LibraryList side="from" label="FROM" value="ezdrummer" engines={engines} onChange={onChange} {...noFav} />);
+    render(<LibraryList side="from" label="FROM" value={engineId('ezdrummer')} engines={engines} onChange={onChange} {...noFav} />);
     await userEvent.type(combobox(), 'invasion');
     expect(onChange).not.toHaveBeenCalled();
   });
@@ -189,7 +189,7 @@ describe('LibraryList', () => {
       <LibraryList
         side="from"
         label="FROM"
-        value="ggd_invasion"
+        value={engineId('ggd_invasion')}
         engines={engines}
         onChange={onChange}
         favorites={new Set()}
@@ -230,7 +230,7 @@ describe('LibraryList', () => {
       <LibraryList
         side="from"
         label="FROM"
-        value="ggd_invasion"
+        value={engineId('ggd_invasion')}
         engines={engines}
         onChange={() => {}}
         favorites={new Set(['ezdrummer'])}
@@ -245,7 +245,7 @@ describe('LibraryList', () => {
 
   it('uses no groups when none are starred', () => {
     render(
-      <LibraryList side="from" label="FROM" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />,
+      <LibraryList side="from" label="FROM" value={engineId('ggd_invasion')} engines={engines} onChange={() => {}} {...noFav} />,
     );
     expect(screen.queryByRole('group', { name: 'Favourites' })).toBeNull();
   });
@@ -255,7 +255,7 @@ describe('LibraryList', () => {
       <LibraryList
         side="from"
         label="FROM"
-        value="ggd_invasion"
+        value={engineId('ggd_invasion')}
         engines={engines}
         onChange={() => {}}
         favorites={new Set(['ggd_invasion', 'ezdrummer', 'addictive'])}
@@ -277,11 +277,11 @@ describe('LibraryList', () => {
     Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => 240 });
     try {
       const { rerender } = render(
-        <LibraryList side="from" label="FROM" value="" engines={engines} onChange={() => {}} {...noFav} />,
+        <LibraryList side="from" label="FROM" value={null} engines={engines} onChange={() => {}} {...noFav} />,
       );
       const list = screen.getByRole('listbox');
       expect(list.scrollTop).toBe(0);
-      rerender(<LibraryList side="from" label="FROM" value="ezdrummer" engines={engines} onChange={() => {}} {...noFav} />);
+      rerender(<LibraryList side="from" label="FROM" value={engineId('ezdrummer')} engines={engines} onChange={() => {}} {...noFav} />);
       expect(list.scrollTop).toBe(495);
     } finally {
       props.forEach((p, i) => {
@@ -298,7 +298,7 @@ describe('LibraryList in another language', () => {
     const pl = await loadTranslator('pl');
     render(
       <LocaleContext.Provider value={{ translator: pl, switchTo: () => undefined, failed: null }}>
-        <LibraryList side="from" label="ŹRÓDŁO" value="ggd_invasion" engines={engines} onChange={() => {}} {...noFav} />
+        <LibraryList side="from" label="ŹRÓDŁO" value={engineId('ggd_invasion')} engines={engines} onChange={() => {}} {...noFav} />
       </LocaleContext.Provider>,
     );
     expect(screen.getByRole('combobox')).toHaveAttribute('placeholder', pl.t({ id: 'library-filter-placeholder' }));

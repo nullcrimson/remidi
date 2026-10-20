@@ -26,10 +26,10 @@ export function LibraryList({
   filterRef?: FocusRef;
   side: StatEvents['engine-picked']['side'];
   label: string;
-  value: string | null;
+  value: EngineId | null;
   engines: Engine[];
   onChange: (id: EngineId) => void;
-  disabledId?: string | null;
+  disabledId?: EngineId | null;
   favorites: Set<string>;
   onToggleFavorite: (id: string) => void;
 }) {
@@ -42,7 +42,7 @@ export function LibraryList({
   const hintId = `${baseId}-hint`;
   const optionId = (id: string) => `${baseId}-opt-${id}`;
   const [focused, setFocused] = useState(false);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<EngineId | null>(null);
   const [followSelection, setFollowSelection] = useState(true);
 
   const starred = filtered.filter((e) => favorites.has(e.id));

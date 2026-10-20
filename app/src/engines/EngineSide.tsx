@@ -16,8 +16,8 @@ import { useFavorites } from './useFavorites';
 export function EngineSide({ side, label, value, disabledId, engines, next, onChange, cardRef }: {
   side: StatEvents['engine-picked']['side'];
   label: string;
-  value: string | null;
-  disabledId: string | null;
+  value: EngineId | null;
+  disabledId: EngineId | null;
   engines: Engine[];
   next: boolean;
   onChange: (id: EngineId) => void;
