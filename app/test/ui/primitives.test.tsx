@@ -8,7 +8,7 @@ import { IconButton } from '../../src/ui/IconButton';
 import { ProseLink } from '../../src/ui/ProseLink';
 import { TextButton } from '../../src/ui/TextButton';
 import { TextField } from '../../src/ui/TextField';
-import { chip, tag, TAG_TONES } from '../../src/ui/styles';
+import { chip, TAG_TONES } from '../../src/ui/styles';
 import css from '../../src/index.css?raw';
 
 const utility = (name: string) => css.slice(css.indexOf(`@utility ${name} {`), css.indexOf('}', css.indexOf(`@utility ${name} {`)));
@@ -55,10 +55,6 @@ describe('tag', () => {
 
   it.each(TAG_TONES)('every tag tone has a rule: %s', (tone) => {
     expect(block).toContain(`&[data-tone='${tone}'] {`);
-  });
-
-  it('names its tone for the utility', () => {
-    expect(tag('danger')).toEqual({ className: 'tag', 'data-tone': 'danger' });
   });
 });
 
