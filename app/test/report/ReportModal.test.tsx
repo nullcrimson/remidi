@@ -154,6 +154,7 @@ describe('ReportModal', () => {
     show(lossy);
     const approx = screen.getAllByText(/^Approximated/)[0];
     expect(approx).toHaveClass('text-t1');
+    expect(approx.className).not.toMatch(/\btext-star/);
   });
 
   it('explains the approximated group', () => {
