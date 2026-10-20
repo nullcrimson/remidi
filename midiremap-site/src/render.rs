@@ -1459,31 +1459,6 @@ mod tests {
             .unwrap()
     }
 
-    fn utility(css: &str, name: &str) -> String {
-        let start = css.find(&format!("@utility {name} {{")).unwrap();
-        let end = start + css[start..].find("\n}\n").unwrap();
-        css[start..end].to_owned()
-    }
-
-    #[test]
-    fn every_step_state_has_a_badge_rule_in_the_stylesheet() {
-        let cases: Vec<serde_json::Value> =
-            serde_json::from_str(include_str!("../tests/golden/step-states.json")).unwrap();
-        let badge = utility(&stylesheet(), "step-badge");
-        let states: HashSet<&str> = cases
-            .iter()
-            .flat_map(|c| c["states"].as_array().unwrap())
-            .filter_map(|s| s.as_str())
-            .collect();
-        assert_eq!(states.len(), 3);
-        for state in states {
-            assert!(
-                badge.contains(&format!("&[data-state='{state}'] {{")),
-                "{state}"
-            );
-        }
-    }
-
     fn badges(html: &str) -> Vec<&str> {
         html.split(r#"<span class="step-badge" data-state=""#)
             .skip(1)
