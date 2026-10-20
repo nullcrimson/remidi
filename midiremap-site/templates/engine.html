@@ -26,7 +26,7 @@
 <section class="flex flex-col gap-3">
   <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::MapsCoreHeading) }}</h2>
   <p class="text-ui/relaxed text-t4">{{ texts.get(Plain::MapsCoreHint) }}</p>
-  <ul class="core-notes">{% for c in page.core %}<li><span>{{ c.drum }}</span> {% call macros::note_label(c) %}{% endcall %}</li>{% endfor %}</ul>
+  <ul class="core-notes">{% for c in page.core %}<li><span>{{ c.drum() }}</span> {% call macros::note_label(c) %}{% endcall %}</li>{% endfor %}</ul>
 </section>
 {% endif %}
 
@@ -57,7 +57,7 @@
 <thead class="sr-only"><tr><th scope="col">{{ texts.get(Plain::MapsColumnNote) }}</th><th scope="col">{{ texts.get(Plain::MapsColumnDrum) }}</th></tr></thead>
 <tbody>
 {% for r in g.rows -%}
-<tr data-q="{{ r.cell.search() }}"{% if r.role == NoteRole::Extra %} data-extra{% endif %}><td>{% call macros::note_label(r.cell) %}{% endcall %}</td><td>{{ r.cell.drum }}</td></tr>
+<tr data-q="{{ r.cell.search() }}"{% if r.role == NoteRole::Extra %} data-extra{% endif %}><td>{% call macros::note_label(r.cell) %}{% endcall %}</td><td>{{ r.cell.drum() }}</td></tr>
 {% endfor -%}
 </tbody>
 </table>

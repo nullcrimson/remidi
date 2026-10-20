@@ -1,8 +1,8 @@
-use std::borrow::Borrow;
+use std::{borrow::Borrow, collections::BTreeSet};
 
 use askama::Template;
 use fluent_bundle::{FluentArgs, FluentValue};
-use midiremap_core::Daw;
+use midiremap_core::{Canon, Daw};
 
 use crate::{
     content::{
@@ -78,6 +78,14 @@ fn with_midi(name: &str) -> String {
     } else {
         format!("{name} MIDI")
     }
+}
+
+fn drum_list(drums: &BTreeSet<Canon>) -> String {
+    drums
+        .iter()
+        .map(|drum| drum.label())
+        .collect::<Vec<_>>()
+        .join(LIST_SEPARATOR)
 }
 
 fn args<'a>(pairs: impl IntoIterator<Item = (&'a str, FluentValue<'a>)>) -> FluentArgs<'a> {
@@ -320,19 +328,19 @@ impl<'a> Texts<'a> {
         )
     }
 
-    fn plays(&self, sources: &[String]) -> Result<String, I18nError> {
+    fn plays(&self, sources: &BTreeSet<Canon>) -> Result<String, I18nError> {
         self.format(
             MessageId::MapsChangesPlays,
-            args([("sources", sources.join(LIST_SEPARATOR).into())]),
+            args([("sources", drum_list(sources).into())]),
         )
     }
 
-    fn no_drum_for(&self, target: &str, sources: &[String]) -> Result<String, I18nError> {
+    fn no_drum_for(&self, target: &str, sources: &BTreeSet<Canon>) -> Result<String, I18nError> {
         self.format(
             MessageId::MapsChangesDropped,
             args([
                 ("target", target.into()),
-                ("sources", sources.join(LIST_SEPARATOR).into()),
+                ("sources", drum_list(sources).into()),
             ]),
         )
     }

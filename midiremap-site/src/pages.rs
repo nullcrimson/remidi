@@ -1,6 +1,6 @@
 use std::{
     cmp::Reverse,
-    collections::{BTreeMap, HashSet},
+    collections::{BTreeMap, BTreeSet, HashSet},
 };
 
 use midiremap_core::{
@@ -144,10 +144,15 @@ impl PairLink {
 #[derive(Clone)]
 pub struct NoteCell {
     pub note: Note,
-    pub drum: String,
+    pub canon: Canon,
 }
 
 impl NoteCell {
+    /// The name of the drum the note plays.
+    pub fn drum(&self) -> String {
+        self.canon.label()
+    }
+
     pub fn name_c1(&self) -> String {
         self.note.name(OctaveBase::C1)
     }
@@ -163,7 +168,7 @@ impl NoteCell {
             self.note,
             self.name_c1(),
             self.name_c2(),
-            self.drum
+            self.drum()
         )
         .to_lowercase()
     }
@@ -256,45 +261,60 @@ impl FamilyGroup<PairRow> {
 /// A target drum that plays source drums it has no exact equivalent for.
 pub struct Merge {
     pub target: NoteCell,
-    /// The source drums it plays, each once.
-    pub sources: Vec<String>,
+    /// The source drums it plays.
+    pub sources: BTreeSet<Canon>,
 }
 
 /// What a conversion does to the drums that do not land on their exact equivalent.
 pub struct Changes {
     /// The approximated drums by the target note that plays them, the busiest note first.
     pub merges: Vec<Merge>,
-    /// The source drums the target has no drum for, each once.
-    pub dropped: Vec<String>,
+    /// The source drums the target has no drum for.
+    pub dropped: BTreeSet<Canon>,
 }
 
-fn push_new(list: &mut Vec<String>, drum: &str) {
-    if !list.iter().any(|d| d == drum) {
-        list.push(drum.to_owned());
+/// Each approximated source drum with the target note that plays it.
+fn approximated<'a>(
+    rows: impl IntoIterator<Item = &'a PairRow>,
+) -> impl Iterator<Item = (&'a NoteCell, Canon)> {
+    rows.into_iter().filter_map(|row| match &row.landing {
+        Landing::Approximated(target) => Some((target, row.source.canon)),
+        Landing::Exact(_) | Landing::Dropped => None,
+    })
+}
+
+/// The approximated drums gathered by the target note that plays them, in note order.
+fn merges_by_target<'a>(rows: impl IntoIterator<Item = &'a PairRow>) -> Vec<Merge> {
+    let mut by_note: BTreeMap<Note, Merge> = BTreeMap::new();
+    for (target, source) in approximated(rows) {
+        by_note
+            .entry(target.note)
+            .or_insert_with(|| Merge {
+                target: target.clone(),
+                sources: BTreeSet::new(),
+            })
+            .sources
+            .insert(source);
     }
+    by_note.into_values().collect()
+}
+
+/// The source drums that land nowhere.
+fn dropped<'a>(rows: impl IntoIterator<Item = &'a PairRow>) -> BTreeSet<Canon> {
+    rows.into_iter()
+        .filter(|row| matches!(row.landing, Landing::Dropped))
+        .map(|row| row.source.canon)
+        .collect()
 }
 
 impl Changes {
-    fn of<'a>(rows: impl IntoIterator<Item = &'a PairRow>) -> Self {
-        let mut merges: Vec<Merge> = Vec::new();
-        let mut dropped = Vec::new();
-        for row in rows {
-            match &row.landing {
-                Landing::Approximated(target) => {
-                    match merges.iter_mut().find(|m| m.target.note == target.note) {
-                        Some(merge) => push_new(&mut merge.sources, &row.source.drum),
-                        None => merges.push(Merge {
-                            target: target.clone(),
-                            sources: vec![row.source.drum.clone()],
-                        }),
-                    }
-                }
-                Landing::Dropped => push_new(&mut dropped, &row.source.drum),
-                Landing::Exact(_) => {}
-            }
+    fn of<'a>(rows: impl IntoIterator<Item = &'a PairRow> + Clone) -> Self {
+        let mut merges = merges_by_target(rows.clone());
+        merges.sort_by_key(|m| Reverse(m.sources.len()));
+        Self {
+            merges,
+            dropped: dropped(rows),
         }
-        merges.sort_by_key(|m| (Reverse(m.sources.len()), m.target.note));
-        Self { merges, dropped }
     }
 }
 
@@ -519,10 +539,7 @@ fn lookup<'a>(catalog: &'a Catalog, id: &str) -> Result<&'a EngineMap, BuildErro
 }
 
 fn landing(resolution: CanonResolution) -> Landing {
-    let cell = |drum: Canon, note| NoteCell {
-        note,
-        drum: drum.label(),
-    };
+    let cell = |canon, note| NoteCell { note, canon };
     match resolution {
         CanonResolution::Direct { canon, note } => Landing::Exact(cell(canon, note)),
         CanonResolution::Fallback { stand_in, note, .. } => {
@@ -546,7 +563,7 @@ fn pair_rows(src: &EngineMap, tgt: &EngineMap) -> Vec<FamilyGroup<PairRow>> {
                 landing: landing(mapping.resolve_canon(d.canon)),
                 source: NoteCell {
                     note: d.note,
-                    drum: d.label,
+                    canon: d.canon,
                 },
             },
         )
@@ -586,7 +603,7 @@ fn engine_row(map: &EngineMap, d: Drum) -> (Family, EngineRow) {
         EngineRow {
             cell: NoteCell {
                 note: d.note,
-                drum: d.label,
+                canon: d.canon,
             },
             role,
         },
@@ -607,10 +624,7 @@ fn core_notes(map: &EngineMap) -> Vec<NoteCell> {
         .filter(|r| !r.moves_to_other_drum())
         .filter_map(|r| r.played())
         .filter(|&(_, note)| shown.insert(note))
-        .map(|(drum, note)| NoteCell {
-            note,
-            drum: drum.label(),
-        })
+        .map(|(canon, note)| NoteCell { note, canon })
         .collect()
 }
 
@@ -1023,14 +1037,14 @@ mod tests {
                     .changes
                     .merges
                     .iter()
-                    .filter(|m| m.sources.contains(&row.source.drum))
+                    .filter(|m| m.sources.contains(&row.source.canon))
                     .collect();
-                assert_eq!(holding.len(), 1, "{}: {}", p.slug, row.source.drum);
+                assert_eq!(holding.len(), 1, "{}: {}", p.slug, row.source.canon);
                 assert_eq!(holding[0].target.note, target.note, "{}", p.slug);
             }
-            let approximated: HashSet<&str> = rows(p)
+            let approximated: HashSet<Canon> = rows(p)
                 .filter(|r| matches!(r.landing, Landing::Approximated(_)))
-                .map(|r| r.source.drum.as_str())
+                .map(|r| r.source.canon)
                 .collect();
             let merged: usize = p.changes.merges.iter().map(|m| m.sources.len()).sum();
             assert_eq!(merged, approximated.len(), "{}", p.slug);
@@ -1053,30 +1067,18 @@ mod tests {
     #[test]
     fn ggd_invasion_to_ezdrummer_merges_five_cymbals_into_crash_1() {
         let busiest = &pair("ggd-invasion-to-ezdrummer").changes.merges[0];
-        assert_eq!(busiest.target.drum, "Crash 1");
+        assert_eq!(busiest.target.drum(), "Crash 1");
         assert_eq!(busiest.sources.len(), 5, "{:?}", busiest.sources);
     }
 
     #[test]
     fn dropped_lists_every_dropped_row() {
         for p in &site().pairs {
-            let dropped: Vec<&str> = rows(p)
+            let dropped: BTreeSet<Canon> = rows(p)
                 .filter(|r| matches!(r.landing, Landing::Dropped))
-                .map(|r| r.source.drum.as_str())
+                .map(|r| r.source.canon)
                 .collect();
-            assert!(
-                dropped
-                    .iter()
-                    .all(|d| p.changes.dropped.iter().any(|c| c == d)),
-                "{}",
-                p.slug
-            );
-            assert_eq!(
-                p.changes.dropped.len(),
-                dropped.iter().collect::<HashSet<_>>().len(),
-                "{}",
-                p.slug
-            );
+            assert_eq!(p.changes.dropped, dropped, "{}", p.slug);
         }
     }
 
@@ -1379,7 +1381,7 @@ mod tests {
     fn cell(note: u8) -> NoteCell {
         NoteCell {
             note: Note::new(note).unwrap(),
-            drum: String::new(),
+            canon: Canon::CORE_KIT[0],
         }
     }
 
@@ -1525,12 +1527,11 @@ mod tests {
 
     #[test]
     fn general_midi_core_starts_with_kick_36_snare_38() {
-        let first: Vec<(u8, &str)> = engine("general_midi").core[..2]
+        let first: Vec<u8> = engine("general_midi").core[..2]
             .iter()
-            .map(|c| (c.note.get(), c.drum.as_str()))
+            .map(|c| c.note.get())
             .collect();
-        assert_eq!(first[0].0, 36);
-        assert_eq!(first[1].0, 38);
+        assert_eq!(first, [36, 38]);
     }
 
     #[test]
