@@ -8,7 +8,7 @@ use crate::{
     content::{breadcrumb_schema, faq_schema, how_to_schema, Block, ContentPage},
     i18n::{Docs, I18nError, Locale, MessageId, Messages, Plain, SectionKey, TIP_HREF},
     manifest::{AnalyticsScript, LocaleScript, SiteManifest},
-    pages::{EnginePage, IndexPage, Landing, PairPage, PopularPair, Site, Tally},
+    pages::{EnginePage, IndexPage, Landing, NoteRole, PairPage, PopularPair, Site, Tally},
     routes::{
         alternates, home, href, label, local_href, og_image_url, page_in, Alternate, LocalPath,
         NavTarget, Page, SitePath, DRUM_MAPS, FOOTER, NAV, NOTE_MAPS, SITE_NAME, THANKS,
@@ -292,6 +292,10 @@ impl<'a> Texts<'a> {
 
     fn count(&self, id: MessageId, count: impl Borrow<usize>) -> Result<String, I18nError> {
         self.format(id, args([("count", (*count.borrow()).into())]))
+    }
+
+    fn total(&self, id: MessageId, total: impl Borrow<usize>) -> Result<String, I18nError> {
+        self.format(id, args([("total", (*total.borrow()).into())]))
     }
 
     fn pair(&self, id: MessageId, source: &str, target: &str) -> Result<String, I18nError> {
@@ -1971,6 +1975,65 @@ mod tests {
     fn the_note_map_filter_says_it_is_on_the_index() {
         let html = page("engines/index.html");
         assert!(filter_input(html, "engines").contains(r#"data-page="index""#));
+    }
+
+    fn local_anchors(html: &str) -> Vec<&str> {
+        html.split(r##"href="#"##)
+            .skip(1)
+            .filter_map(|rest| rest.split('"').next())
+            .filter(|id| *id != "main")
+            .collect()
+    }
+
+    #[test]
+    fn engine_pages_link_each_drum_group() {
+        let messages = crate::fixtures::messages();
+        let label = messages.get(Locale::En, Plain::MapsGroupsLabel);
+        for p in &crate::fixtures::site().engines {
+            let html = page(&p.engine.href().in_locale(Locale::En).file());
+            let nav = html
+                .split(&format!(r#"<nav aria-label="{label}""#))
+                .nth(1)
+                .and_then(|rest| rest.split("</nav>").next())
+                .unwrap();
+            let anchors: Vec<String> = p.groups.iter().map(|g| g.anchor()).collect();
+            assert_eq!(local_anchors(nav), anchors, "{}", p.engine.id);
+        }
+    }
+
+    #[test]
+    fn every_group_anchor_names_a_table_on_the_page() {
+        for (path, html) in rendered() {
+            for id in local_anchors(html) {
+                assert!(
+                    html.contains(&format!(r#"<table id="{id}""#)),
+                    "{path}: #{id}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn engine_pages_head_the_note_table() {
+        let html = page("engines/ezdrummer/index.html");
+        let total = crate::fixtures::site()
+            .engines
+            .iter()
+            .find(|p| p.engine.id == "ezdrummer")
+            .map(|p| p.total)
+            .unwrap();
+        let heading = html.find(&format!(">All {total} notes</h2>")).unwrap();
+        let table = html.find(r#"class="note-table""#).unwrap();
+        assert!(heading < table);
+    }
+
+    #[test]
+    fn engine_pages_dim_the_extra_notes() {
+        let html = page("engines/ezdrummer/index.html");
+        assert!(html.contains(r#"<tr data-q="35 "#));
+        let extra = html.split(r#"<tr data-q="35 "#).nth(1).unwrap();
+        assert!(extra.split('>').next().unwrap().ends_with(" data-extra"));
+        assert!(html.contains("Dimmed rows are extra notes"));
     }
 
     #[test]

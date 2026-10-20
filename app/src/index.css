@@ -168,7 +168,7 @@
 }
 
 @utility nav-cta {
-  @apply tap inline-flex items-center rounded-panel border border-star/50 px-3 py-1.5 font-display text-ui font-semibold text-star transition-colors hover:border-star hover:bg-star/8 sm:order-last pointer-coarse:min-h-11;
+  @apply tap inline-flex items-center rounded-panel border border-star/50 px-3 py-1.5 font-display text-ui font-semibold text-star transition-colors hover:border-star sm:order-last pointer-coarse:min-h-11;
 }
 
 @utility lang-trigger {
@@ -243,10 +243,20 @@
     }
   }
 
-  .note-table {
-    & tbody th {
-      @apply px-1 pt-4 pb-1.5 font-mono text-caption font-normal tracking-[0.14em] text-t5 uppercase;
+  .link-list {
+    @apply columns-2 gap-6 sm:columns-3;
+
+    & a {
+      @apply block py-0.5 text-ui text-t2 transition-colors hover:text-accent pointer-coarse:py-3;
     }
+  }
+
+  :is(.note-table caption, .pair-table th[scope='rowgroup']) {
+    @apply px-1 pt-4 pb-1.5 text-left font-mono text-caption font-normal tracking-[0.14em] text-t5 uppercase;
+  }
+
+  .note-table {
+    @apply mb-4 w-full scroll-mt-40 break-inside-avoid border-collapse;
 
     & [data-q] {
       @apply border-t border-white/5;
@@ -258,6 +268,10 @@
 
     & td:first-child {
       @apply w-32 px-1 font-mono text-label whitespace-nowrap text-t1;
+    }
+
+    & [data-extra] td {
+      @apply text-t5;
     }
   }
 

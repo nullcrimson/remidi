@@ -10,58 +10,68 @@
   <h1 class="font-display text-display/tight font-bold text-t1">{{ texts.engine(MessageId::MapsEngineHeading, page.engine.name.as_str())? }}</h1>
   <p class="text-body/relaxed text-t3">{{ intro }}</p>
 </div>
-<div class="flex flex-wrap items-center gap-3">
-  {% call macros::converter_link(None, Some(page.engine.id.as_str()), "inline-flex items-center justify-center rounded-panel bg-accent px-5 py-3 font-display text-body font-semibold text-ink transition hover:brightness-110 pointer-coarse:min-h-11", texts.engine(MessageId::MapsConvertTo, page.engine.name.as_str())?) %}{% endcall %}
-  {% call macros::converter_link(Some(page.engine.id.as_str()), None, "inline-flex items-center justify-center rounded-panel border border-accent/40 px-5 py-3 font-display text-body font-semibold text-accent transition hover:border-accent hover:bg-accent/8 pointer-coarse:min-h-11", texts.engine(MessageId::MapsConvertFrom, page.engine.name.as_str())?) %}{% endcall %}
+<div class="flex flex-col gap-5 sm:flex-row sm:items-start">
+  <div class="flex flex-wrap gap-3 sm:flex-col">
+    {% call macros::converter_link(None, Some(page.engine.id.as_str()), "inline-flex items-center justify-center rounded-panel bg-accent px-5 py-3 font-display text-body font-semibold text-ink transition hover:brightness-110 pointer-coarse:min-h-11", texts.engine(MessageId::MapsConvertTo, page.engine.name.as_str())?) %}{% endcall %}
+    {% call macros::converter_link(Some(page.engine.id.as_str()), None, "inline-flex items-center justify-center rounded-panel border border-accent/40 px-5 py-3 font-display text-body font-semibold text-accent transition hover:border-accent hover:bg-accent/8 pointer-coarse:min-h-11", texts.engine(MessageId::MapsConvertFrom, page.engine.name.as_str())?) %}{% endcall %}
+  </div>
+  <aside class="flex flex-col gap-3 rounded-panel border border-hairline p-4 sm:grow">
+    <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::MapsDawHeading) }}</h2>
+    <p class="text-ui/relaxed text-t3">{{ texts.engine(MessageId::MapsDawIntro, page.engine.name.as_str())? }}</p>
+    <ul class="link-chips">{% for d in page.engine.drum_maps() %}<li>{% call macros::drum_map_download(page.engine, d) %}{% endcall %}</li>{% endfor %}</ul>
+    <p class="text-label text-t5"><a href="{{ texts.path(DRUM_MAPS) }}" class="prose-link">{{ texts.get(Plain::MapsDawHow) }}</a></p>
+  </aside>
 </div>
 
-<div class="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
-  <input
-    type="search"
-    hidden
-    data-filter="drums"
-    data-page="{{ frame.kind }}"
-    aria-label="{{ texts.get(Plain::MapsFilterDrumsLabel) }}"
-    placeholder="{{ texts.get(Plain::MapsFilterDrumsPlaceholder) }}"
-    class="min-w-0 grow rounded-chip border border-field-border bg-field px-2 py-1.25 font-mono text-body text-t2 transition-colors outline-none placeholder:text-t5 focus:border-accent/40 sm:text-label pointer-coarse:py-2.5"
-  />
-  {% call macros::octave_choice("ml-auto inline-flex gap-1") %}{% endcall %}
+<div class="flex flex-col gap-2 border-t border-hairline pt-5">
+  <h2 class="font-display text-title font-semibold text-t1">{{ texts.total(MessageId::MapsAllNotes, page.total)? }}</h2>
+  {% if page.has_extra() %}<p class="text-ui/relaxed text-t4">{{ texts.get(Plain::MapsExtraHint) }}</p>{% endif %}
+</div>
+<div class="sticky top-0 z-10 -my-3 flex flex-col gap-3 bg-card py-3">
+  <nav aria-label="{{ texts.get(Plain::MapsGroupsLabel) }}" class="link-chips">{% for g in page.groups %}<a href="#{{ g.anchor() }}">{{ g.family }}<span class="font-mono text-caption text-t5">{{ g.rows.len() }}</span></a>{% endfor %}</nav>
+  <div class="flex flex-wrap items-center gap-3">
+    <input
+      type="search"
+      hidden
+      data-filter="drums"
+      data-page="{{ frame.kind }}"
+      aria-label="{{ texts.get(Plain::MapsFilterDrumsLabel) }}"
+      placeholder="{{ texts.get(Plain::MapsFilterDrumsPlaceholder) }}"
+      class="min-w-0 grow rounded-chip border border-field-border bg-field px-2 py-1.25 font-mono text-body text-t2 transition-colors outline-none placeholder:text-t5 focus:border-accent/40 sm:text-label pointer-coarse:py-2.5"
+    />
+    {% call macros::octave_choice("ml-auto inline-flex gap-1") %}{% endcall %}
+  </div>
 </div>
 
-<table id="drums" class="note-table -mt-3 w-full border-collapse text-left">
-  <thead class="sr-only">
-    <tr><th scope="col">{{ texts.get(Plain::MapsColumnNote) }}</th><th scope="col">{{ texts.get(Plain::MapsColumnDrum) }}</th></tr>
-  </thead>
-  {% for g in page.groups -%}
-<tbody data-group>
-<tr><th scope="rowgroup" colspan="2">{{ g.name }}</th></tr>
+<div id="drums" class="gap-8 sm:columns-2">
+{% for g in page.groups -%}
+<table id="{{ g.anchor() }}" data-group class="note-table">
+<caption>{{ g.family }} · {{ g.rows.len() }}</caption>
+<thead class="sr-only"><tr><th scope="col">{{ texts.get(Plain::MapsColumnNote) }}</th><th scope="col">{{ texts.get(Plain::MapsColumnDrum) }}</th></tr></thead>
+<tbody>
 {% for r in g.rows -%}
-<tr data-q="{{ r.search() }}"><td>{% call macros::note_label(r) %}{% endcall %}</td><td>{{ r.drum }}</td></tr>
+<tr data-q="{{ r.cell.search() }}"{% if r.role == NoteRole::Extra %} data-extra{% endif %}><td>{% call macros::note_label(r.cell) %}{% endcall %}</td><td>{{ r.cell.drum }}</td></tr>
 {% endfor -%}
 </tbody>
-{% endfor -%}
 </table>
+{% endfor -%}
+</div>
 <p id="drums-empty" hidden class="font-mono text-label text-t5">{{ texts.get(Plain::RowsNone) }}</p>
-
-<section class="flex flex-col gap-3 border-t border-hairline pt-5">
-  <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::MapsDawHeading) }}</h2>
-  <p class="text-ui/relaxed text-t3">{{ texts.engine(MessageId::MapsDawIntro, page.engine.name.as_str())? }}</p>
-  <ul class="link-chips">{% for d in page.engine.drum_maps() %}<li>{% call macros::drum_map_download(page.engine, d) %}{% endcall %}</li>{% endfor %}</ul>
-  <p class="text-label text-t5"><a href="{{ texts.path(DRUM_MAPS) }}" class="prose-link">{{ texts.get(Plain::MapsDawHow) }}</a></p>
-</section>
 
 {% if !page.pairs_from.is_empty() %}
 <div class="flex flex-col gap-3 border-t border-hairline pt-5">
   <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::MapsConversionTables) }}</h2>
-  <ul class="link-chips">
+  <h3 id="pairs-from" class="font-display text-body font-semibold text-t1">{{ texts.engine(MessageId::MapsPairsFrom, page.engine.name.as_str())? }}</h3>
+  <ul aria-labelledby="pairs-from" class="link-chips">
 {% for l in page.pairs_from -%}
-<li><a href="{{ texts.path(l.href()) }}">→ {{ l.tgt_name }}</a></li>
+<li><a href="{{ texts.path(l.href()) }}">{{ l.tgt_name }}</a></li>
 {% endfor -%}
 </ul>
   {% if !page.pairs_to.is_empty() -%}
-<ul class="link-chips">
+<h3 id="pairs-to" class="font-display text-body font-semibold text-t1">{{ texts.engine(MessageId::MapsPairsTo, page.engine.name.as_str())? }}</h3>
+<ul aria-labelledby="pairs-to" class="link-list">
 {% for l in page.pairs_to -%}
-<li><a href="{{ texts.path(l.href()) }}">{{ l.src_name }} →</a></li>
+<li><a href="{{ texts.path(l.href()) }}">{{ l.src_name }}</a></li>
 {% endfor -%}
 </ul>
   {%- endif %}

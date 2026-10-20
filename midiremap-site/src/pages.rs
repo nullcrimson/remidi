@@ -165,9 +165,48 @@ impl NoteCell {
     }
 }
 
-pub struct FamilyGroup {
-    pub name: &'static str,
-    pub rows: Vec<NoteCell>,
+/// Rows of one drum family, a table of its own on the page.
+pub struct FamilyGroup<R> {
+    pub family: Family,
+    pub rows: Vec<R>,
+}
+
+impl<R> FamilyGroup<R> {
+    /// The id of the group's table, which the page's jump links name.
+    pub fn anchor(&self) -> String {
+        format!("g-{}", self.family.label().to_lowercase())
+    }
+}
+
+/// Rows grouped by family, in `Family::ALL` order, with no empty group; rows keep their order.
+fn by_family<R>(rows: impl IntoIterator<Item = (Family, R)>) -> Vec<FamilyGroup<R>> {
+    let mut groups: Vec<FamilyGroup<R>> = Family::ALL
+        .iter()
+        .map(|&family| FamilyGroup {
+            family,
+            rows: Vec::new(),
+        })
+        .collect();
+    for (family, row) in rows {
+        if let Some(group) = groups.iter_mut().find(|g| g.family == family) {
+            group.rows.push(row);
+        }
+    }
+    groups.retain(|g| !g.rows.is_empty());
+    groups
+}
+
+/// Whether a note is the one the engine plays its drum on, or another note for the same drum.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NoteRole {
+    Main,
+    Extra,
+}
+
+/// A row of an engine page's note table.
+pub struct EngineRow {
+    pub cell: NoteCell,
+    pub role: NoteRole,
 }
 
 /// Where a source note lands on the target, as the core decides it.
@@ -245,9 +284,19 @@ impl Tally {
 pub struct EnginePage {
     pub engine: EngineLink,
     pub total: usize,
-    pub groups: Vec<FamilyGroup>,
+    pub groups: Vec<FamilyGroup<EngineRow>>,
     pub pairs_from: Vec<PairLink>,
     pub pairs_to: Vec<PairLink>,
+}
+
+impl EnginePage {
+    /// Whether any note plays a drum that already has its main note.
+    pub fn has_extra(&self) -> bool {
+        self.groups
+            .iter()
+            .flat_map(|g| &g.rows)
+            .any(|r| r.role == NoteRole::Extra)
+    }
 }
 
 pub struct PairPage {
@@ -388,24 +437,26 @@ fn pair_page(src: &EngineMap, tgt: &EngineMap, routes: &[Route]) -> PairPage {
     }
 }
 
-fn family_groups(map: &EngineMap) -> Vec<FamilyGroup> {
-    let notes = map.source_notes();
-    let row = |d: &Drum| NoteCell {
-        note: d.note,
-        drum: d.label.clone(),
+fn engine_row(map: &EngineMap, d: Drum) -> (Family, EngineRow) {
+    let role = if map.encode(d.canon) == Some(d.note) {
+        NoteRole::Main
+    } else {
+        NoteRole::Extra
     };
-    Family::ALL
-        .iter()
-        .map(|&family| FamilyGroup {
-            name: family.label(),
-            rows: notes
-                .iter()
-                .filter(|d| d.family == family)
-                .map(row)
-                .collect(),
-        })
-        .filter(|g| !g.rows.is_empty())
-        .collect()
+    (
+        d.family,
+        EngineRow {
+            cell: NoteCell {
+                note: d.note,
+                drum: d.label,
+            },
+            role,
+        },
+    )
+}
+
+fn family_groups(map: &EngineMap) -> Vec<FamilyGroup<EngineRow>> {
+    by_family(map.source_notes().into_iter().map(|d| engine_row(map, d)))
 }
 
 fn engine_page(map: &EngineMap, routes: &[Route]) -> EnginePage {
@@ -781,14 +832,70 @@ mod tests {
     #[test]
     fn engine_rows_are_grouped_by_family_in_app_order() {
         for p in &site().engines {
-            let names: Vec<&str> = p.groups.iter().map(|g| g.name).collect();
-            let order: Vec<&str> = Family::ALL
+            let families: Vec<Family> = p.groups.iter().map(|g| g.family).collect();
+            let order: Vec<Family> = Family::ALL
                 .iter()
-                .map(|f| f.label())
-                .filter(|f| names.contains(f))
+                .copied()
+                .filter(|f| families.contains(f))
                 .collect();
-            assert_eq!(names, order, "{}", p.engine.id);
+            assert_eq!(families, order, "{}", p.engine.id);
         }
+    }
+
+    #[test]
+    fn by_family_keeps_family_order_and_skips_empty_families() {
+        let groups = by_family([
+            (Family::Cymbals, 1),
+            (Family::Kick, 2),
+            (Family::Cymbals, 3),
+            (Family::Kick, 4),
+        ]);
+        let shape: Vec<(Family, Vec<i32>)> =
+            groups.into_iter().map(|g| (g.family, g.rows)).collect();
+        assert_eq!(
+            shape,
+            [(Family::Kick, vec![2, 4]), (Family::Cymbals, vec![1, 3])]
+        );
+    }
+
+    #[test]
+    fn a_group_anchor_is_its_family_in_lower_case() {
+        let group = FamilyGroup::<()> {
+            family: Family::HiHat,
+            rows: vec![],
+        };
+        assert_eq!(group.anchor(), "g-hi-hat");
+    }
+
+    #[test]
+    fn engine_rows_mark_exactly_one_main_note_per_drum() {
+        let maps = Catalog::builtin().unwrap();
+        for p in &site().engines {
+            let map = maps.get(&p.engine.id).unwrap();
+            let mut mains: HashMap<Canon, usize> = HashMap::new();
+            for r in p.groups.iter().flat_map(|g| &g.rows) {
+                let canon = map.decode(r.cell.note).unwrap();
+                *mains.entry(canon).or_default() += usize::from(r.role == NoteRole::Main);
+            }
+            assert!(mains.values().all(|&n| n == 1), "{}", p.engine.id);
+        }
+    }
+
+    fn role_of(page: &EnginePage, note: u8) -> NoteRole {
+        page.groups
+            .iter()
+            .flat_map(|g| &g.rows)
+            .find(|r| r.cell.note.get() == note)
+            .map(|r| r.role)
+            .unwrap()
+    }
+
+    #[test]
+    fn ezdrummer_marks_note_36_main_and_35_extra() {
+        let ezd = engine("ezdrummer");
+        assert_eq!(role_of(ezd, 36), NoteRole::Main);
+        assert_eq!(role_of(ezd, 35), NoteRole::Extra);
+        assert!(ezd.has_extra());
     }
 
     #[test]

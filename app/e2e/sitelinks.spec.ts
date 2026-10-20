@@ -41,7 +41,7 @@ test('the converter links a popular conversion table behind a fold', async ({ pa
 
 test('an engine without hub pairs links its conversion table to EZdrummer', async ({ page }) => {
   await page.goto('/engines/hertz/');
-  await press(page.getByRole('link', { name: '→ EZdrummer 3', exact: true }));
+  await press(page.getByRole('list', { name: 'From Hertz Drums to' }).getByRole('link', { name: 'EZdrummer 3', exact: true }));
   await expect(page).toHaveURL('/convert/hertz-to-ezdrummer/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Convert Hertz Drums MIDI to EZdrummer 3');
 });
