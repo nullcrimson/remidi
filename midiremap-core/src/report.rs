@@ -2,11 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
-use crate::{
-    canon::Canon,
-    note::Note,
-    translate::{CanonResolution, Resolution},
-};
+use crate::{canon::Canon, note::Note, resolution::CanonResolution, translate::Resolution};
 
 /// How a drum the target lacks was played: on which stand-in drum, on which note, how often.
 #[derive(Serialize, Debug, PartialEq, Eq)]

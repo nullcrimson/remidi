@@ -120,11 +120,8 @@ mod tests {
 
     use super::*;
     use crate::{
-        channel::Channel,
-        conversion::convert,
-        note::n,
-        overrides::Overrides,
-        translate::{Mapping, MissingDrums},
+        channel::Channel, conversion::convert, note::n, overrides::Overrides,
+        resolution::MissingDrums, translate::Mapping,
     };
 
     fn hits_of(midi: &[u8], scope: ChannelScope) -> Vec<(u8, u32)> {

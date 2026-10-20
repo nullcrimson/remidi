@@ -8,8 +8,9 @@ use crate::{
     midi::{is_hit, CodecError},
     note::Note,
     report::Report,
+    resolution::CanonResolution,
     table::NoteTable,
-    translate::{CanonResolution, Resolution, Unrecognized},
+    translate::{Resolution, Unrecognized},
 };
 
 #[derive(Default)]

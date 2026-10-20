@@ -34,7 +34,7 @@ impl NoteTable {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{catalog::Catalog, overrides::Overrides, translate::MissingDrums};
+    use crate::{catalog::Catalog, overrides::Overrides, resolution::MissingDrums};
 
     #[test]
     fn agrees_with_translate_for_every_note() {

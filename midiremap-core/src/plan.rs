@@ -7,8 +7,9 @@ use crate::{
     engine_map::EngineMap,
     note::Note,
     overrides::Overrides,
+    resolution::{CanonResolution, MissingDrums},
     table::NoteTable,
-    translate::{CanonResolution, Mapping, MissingDrums, Resolution},
+    translate::{Mapping, Resolution},
 };
 
 #[derive(Debug, PartialEq, Eq, Serialize)]

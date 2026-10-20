@@ -32,12 +32,8 @@ mod tests {
 
     use super::*;
     use crate::{
-        canon::Canon,
-        catalog::Catalog,
-        note::n,
-        overrides::Overrides,
-        report::FallbackTally,
-        translate::{MissingDrums, Unrecognized},
+        canon::Canon, catalog::Catalog, note::n, overrides::Overrides, report::FallbackTally,
+        resolution::MissingDrums, translate::Unrecognized,
     };
 
     fn convert_ids(mid: &[u8], src_id: &str, tgt_id: &str) -> Converted {
