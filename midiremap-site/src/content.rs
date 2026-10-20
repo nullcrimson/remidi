@@ -109,6 +109,13 @@ impl Block {
     }
 }
 
+/// How a document page ends: on a panel with the converter's button, or on a plain link to it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Closing {
+    Panel,
+    Link,
+}
+
 /// A guide, FAQ or legal page in one locale.
 pub struct ContentPage<'a> {
     pub heading: &'a str,

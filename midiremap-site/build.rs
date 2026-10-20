@@ -43,10 +43,18 @@ struct LocaleEntry {
     native_name: String,
 }
 
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "lowercase")]
+enum Closing {
+    Panel,
+    Link,
+}
+
 #[derive(Deserialize)]
 struct Section {
     key: String,
     slug: String,
+    closing: Closing,
 }
 
 #[derive(Deserialize)]
@@ -279,6 +287,12 @@ fn main() {
     });
     out += &matcher("slug", "&'static str", &structure.sections, |s| {
         (s.key.to_upper_camel_case(), format!("{:?}", s.slug))
+    });
+    out += &matcher("closing", "Closing", &structure.sections, |s| {
+        (
+            s.key.to_upper_camel_case(),
+            format!("Closing::{:?}", s.closing),
+        )
     });
     for part in ["label", "heading", "title", "description"] {
         out += &matcher(part, "Plain", &structure.sections, |s| {

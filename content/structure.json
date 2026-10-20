@@ -1,11 +1,11 @@
 {
   "routes": { "converter": "/", "noteMaps": "/engines/", "drumMaps": "/drum-maps/" },
   "sections": [
-    { "key": "guide", "slug": "how-it-works" },
-    { "key": "faq", "slug": "faq" },
-    { "key": "issue", "slug": "report-an-issue" },
-    { "key": "contact", "slug": "contact" },
-    { "key": "terms", "slug": "terms" }
+    { "key": "guide", "slug": "how-it-works", "closing": "panel" },
+    { "key": "faq", "slug": "faq", "closing": "panel" },
+    { "key": "issue", "slug": "report-an-issue", "closing": "link" },
+    { "key": "contact", "slug": "contact", "closing": "link" },
+    { "key": "terms", "slug": "terms", "closing": "link" }
   ],
   "nav": [{ "route": "converter" }, { "section": "guide" }, { "route": "noteMaps" }, { "route": "drumMaps" }, { "section": "faq" }],
   "footer": [{ "section": "guide" }, { "section": "faq" }, { "route": "noteMaps" }, { "route": "drumMaps" }, { "section": "issue" }, { "section": "contact" }, { "section": "terms" }],

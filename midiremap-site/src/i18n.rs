@@ -3,7 +3,10 @@ use std::collections::{BTreeSet, HashMap};
 use fluent_bundle::{concurrent::FluentBundle, FluentArgs, FluentError, FluentResource};
 use fluent_syntax::parser::ParserError;
 
-use crate::{content::Block, ftl_vars};
+use crate::{
+    content::{Block, Closing},
+    ftl_vars,
+};
 
 include!(concat!(env!("OUT_DIR"), "/i18n.rs"));
 

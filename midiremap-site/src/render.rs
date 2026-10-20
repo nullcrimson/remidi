@@ -5,7 +5,7 @@ use fluent_bundle::{FluentArgs, FluentValue};
 use midiremap_core::{Canon, Daw};
 
 use crate::{
-    content::{breadcrumb_schema, faq_schema, how_to_schema, Block, ContentPage},
+    content::{breadcrumb_schema, faq_schema, how_to_schema, Block, Closing, ContentPage},
     converter_step::{converter_steps, shown_steps, ConverterStep, ShownStep},
     i18n::{Docs, I18nError, Locale, MessageId, Messages, Plain, SectionKey, TIP_HREF},
     manifest::{AnalyticsScript, LocaleScript, SiteManifest},
@@ -509,21 +509,6 @@ fn section_schema(key: SectionKey, page: &ContentPage, texts: &Texts) -> Option<
     }
 }
 
-#[derive(Clone, Copy)]
-enum Closing {
-    Panel,
-    Link,
-}
-
-impl Closing {
-    fn of(key: SectionKey) -> Self {
-        match key {
-            SectionKey::Guide | SectionKey::Faq => Self::Panel,
-            SectionKey::Issue | SectionKey::Contact | SectionKey::Terms => Self::Link,
-        }
-    }
-}
-
 #[derive(Template)]
 #[template(path = "engine.html")]
 struct EngineHtml<'a> {
@@ -760,7 +745,7 @@ fn render_sections(
                 texts,
                 page: &page,
                 steps: converter_steps(&[]),
-                closing: Closing::of(k),
+                closing: k.closing(),
             }
             .render()?,
         ));
