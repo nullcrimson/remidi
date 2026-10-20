@@ -140,7 +140,7 @@ function GroupList({
 }
 
 function hasDetail(file: ReportFile): boolean {
-  return hasLoss(file.groups) || file.untouched > 0;
+  return hasLoss(file.groups) || file.totals.untouched > 0;
 }
 
 function Headline({ view, targetName }: { view: ReportView; targetName: string }) {
@@ -228,7 +228,7 @@ export function ReportModal({
             {detailFiles.map((f) => (
               <div key={f.name} className="flex flex-col gap-2">
                 <div className="font-mono text-label text-t2">{f.name}</div>
-                <GroupList groups={f.groups} untouched={f.untouched} names={names} unrecognized={unrecognized} fixes={fixes} />
+                <GroupList groups={f.groups} untouched={f.totals.untouched} names={names} unrecognized={unrecognized} fixes={fixes} />
               </div>
             ))}
           </div>

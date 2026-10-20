@@ -36,21 +36,22 @@ export interface ReportGroups {
   approximated: ApproximatedEntry[];
   unrecognized: UnrecognizedEntry[];
 }
-export interface ReportFile {
-  name: string;
-  groups: ReportGroups;
+/** How many notes each group holds, beside the notes left unchanged and those converted. */
+export interface ReportTotals {
+  dropped: number;
+  approximated: number;
+  unrecognized: number;
   untouched: number;
   converted: number;
 }
+export interface ReportFile {
+  name: string;
+  groups: ReportGroups;
+  totals: ReportTotals;
+}
 export interface ReportView {
   clean: boolean;
-  totals: {
-    dropped: number;
-    approximated: number;
-    unrecognized: number;
-    untouched: number;
-    converted: number;
-  };
+  totals: ReportTotals;
   groups: ReportGroups;
   files: ReportFile[];
 }
@@ -87,12 +88,22 @@ export function buildReport(
     ),
   });
 
-  const files: ReportFile[] = results.map((r) => ({
-    name: r.name,
-    groups: groupsOf(r.report),
-    untouched: r.report.untouched,
-    converted: r.report.converted,
-  }));
+  const sum = (entries: { count: number }[]) => entries.reduce((n, e) => n + e.count, 0);
+  const fileOf = ({ name, report }: FileResult): ReportFile => {
+    const groups = groupsOf(report);
+    return {
+      name,
+      groups,
+      totals: {
+        dropped: sum(groups.dropped),
+        approximated: sum(groups.approximated),
+        unrecognized: sum(groups.unrecognized),
+        untouched: report.untouched,
+        converted: report.converted,
+      },
+    };
+  };
+  const files = results.map(fileOf);
 
   const merge = <E extends ReportEntry>(acc: Map<string, E>, entries: E[]) => {
     for (const e of entries) {
@@ -117,13 +128,13 @@ export function buildReport(
     approximated: sortEntries([...apprAcc.values()]),
     unrecognized: sortEntries([...unrecAcc.values()]),
   };
-  const sum = (entries: { count: number }[]) => entries.reduce((n, e) => n + e.count, 0);
-  const totals = {
-    dropped: sum(groups.dropped),
-    approximated: sum(groups.approximated),
-    unrecognized: sum(groups.unrecognized),
-    untouched: files.reduce((n, f) => n + f.untouched, 0),
-    converted: results.reduce((n, r) => n + r.report.converted, 0),
+  const total = (key: keyof ReportTotals) => files.reduce((n, f) => n + f.totals[key], 0);
+  const totals: ReportTotals = {
+    dropped: total('dropped'),
+    approximated: total('approximated'),
+    unrecognized: total('unrecognized'),
+    untouched: total('untouched'),
+    converted: total('converted'),
   };
   const clean
     = totals.converted > 0

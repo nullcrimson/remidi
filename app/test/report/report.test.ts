@@ -57,7 +57,7 @@ describe('buildReport', () => {
 
   it('sums unchanged notes per file', () => {
     const view = withUnchanged();
-    expect(view.files.map((f) => f.untouched)).toEqual([168, 2]);
+    expect(view.files.map((f) => f.totals.untouched)).toEqual([168, 2]);
   });
 
   const lossy = () => buildReport(
@@ -117,9 +117,9 @@ describe('buildReport', () => {
     expect(view.groups.unrecognized[0].label).toMatch(/^[A-G]/);
   });
 
-  it('keeps the converted count of a file', () => {
+  it('totals the converted notes of each file and the notes of each of its groups', () => {
     const view = lossy();
-    expect(view.files[0].converted).toBe(10);
+    expect(view.files[0].totals).toEqual({ dropped: 4, approximated: 3, unrecognized: 1, untouched: 0, converted: 10 });
   });
 
   it('totals dropped, approximated and unrecognized notes', () => {

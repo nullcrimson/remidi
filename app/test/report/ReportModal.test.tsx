@@ -10,7 +10,11 @@ const clean: ReportView = {
   clean: true,
   totals: { dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 12 },
   groups: { dropped: [], approximated: [], unrecognized: [] },
-  files: [{ name: 'a.mid', groups: { dropped: [], approximated: [], unrecognized: [] }, untouched: 0, converted: 12 }],
+  files: [{
+    name: 'a.mid',
+    groups: { dropped: [], approximated: [], unrecognized: [] },
+    totals: { dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 12 },
+  }],
 };
 
 const lossy = typed<ReportView>({
@@ -25,8 +29,7 @@ const lossy = typed<ReportView>({
     {
       name: 'a.mid',
       groups: { dropped: [{ label: 'China 1', count: 4, canon: 'china.1.hit' }], approximated: [], unrecognized: [] },
-      untouched: 0,
-      converted: 6,
+      totals: { dropped: 4, approximated: 0, unrecognized: 0, untouched: 0, converted: 6 },
     },
     {
       name: 'b.mid',
@@ -35,8 +38,7 @@ const lossy = typed<ReportView>({
         approximated: [{ label: 'Ride Bell', sub: 'Ride', count: 3, canon: 'ride.1.bell' }],
         unrecognized: [],
       },
-      untouched: 0,
-      converted: 6,
+      totals: { dropped: 0, approximated: 3, unrecognized: 0, untouched: 0, converted: 6 },
     },
   ],
 });
@@ -45,8 +47,8 @@ const cleanWithUnchanged: ReportView = {
   ...clean,
   totals: { ...clean.totals, untouched: 170 },
   files: [
-    { name: 'a.mid', groups: clean.files[0].groups, untouched: 168, converted: 6 },
-    { name: 'b.mid', groups: clean.files[0].groups, untouched: 2, converted: 6 },
+    { name: 'a.mid', groups: clean.files[0].groups, totals: { ...clean.files[0].totals, untouched: 168, converted: 6 } },
+    { name: 'b.mid', groups: clean.files[0].groups, totals: { ...clean.files[0].totals, untouched: 2, converted: 6 } },
   ],
 };
 

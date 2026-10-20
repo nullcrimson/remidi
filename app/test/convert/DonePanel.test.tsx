@@ -127,12 +127,11 @@ describe('DonePanel', () => {
       results: [result('a-ezd.mid', 'blob:a'), result('b-ezd.mid', 'blob:b')],
       failures: [{ name: 'c.mid', error: { kind: 'badMidi', detail: 'invalid midi' } }],
       report: view({ approximated: 2 }, typed<ReportView['files']>([
-        { name: 'a-ezd.mid', groups: NONE, untouched: 0, converted: 10 },
+        { name: 'a-ezd.mid', groups: NONE, totals: { dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 10 } },
         {
           name: 'b-ezd.mid',
           groups: { ...NONE, approximated: [{ label: 'Ride Bell', sub: 'Ride', count: 2, canon: 'ride.1.bell' }] },
-          untouched: 0,
-          converted: 10,
+          totals: { dropped: 0, approximated: 2, unrecognized: 0, untouched: 0, converted: 10 },
         },
       ])),
     });

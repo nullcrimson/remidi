@@ -21,12 +21,12 @@ export function outcomeTags(view: ReportView, failed: number, t: Translate): { t
 /** One converted file's line in a batch: what it lost, or that it converted cleanly. */
 export function fileStatus(file: ReportFile | undefined, t: Translate): string {
   if (!file) return '';
-  if (file.converted === 0) return t({ id: 'done-tag-nothing' });
-  const sum = (entries: { count: number }[]) => entries.reduce((n, e) => n + e.count, 0);
+  const { converted, approximated, dropped, unrecognized } = file.totals;
+  if (converted === 0) return t({ id: 'done-tag-nothing' });
   const parts = [
-    { count: sum(file.groups.approximated), id: 'done-file-approximated' },
-    { count: sum(file.groups.dropped), id: 'done-file-dropped' },
-    { count: sum(file.groups.unrecognized), id: 'done-file-unrecognized' },
+    { count: approximated, id: 'done-file-approximated' },
+    { count: dropped, id: 'done-file-dropped' },
+    { count: unrecognized, id: 'done-file-unrecognized' },
   ] as const;
   const lossy = parts.filter((p) => p.count > 0).map((p) => t({ id: p.id, args: { count: p.count } }));
   return lossy.length > 0 ? lossy.join(' · ') : t({ id: 'done-file-clean' });
