@@ -111,9 +111,11 @@ test('the engine list shows an engine’s other mappings beside it', async ({ pa
   await expect(page).toHaveURL('/engines/ggd-invasion-ggd/');
 });
 
-test('a drum group link jumps to its table and stays in reach while the page scrolls', async ({ page }) => {
+const drumGroups = (page: Page) => page.getByRole('navigation', { name: 'Drum groups' });
+
+test('a drum group link jumps to its table below the jump links', async ({ page }) => {
   await page.goto('/engines/ezdrummer/');
-  const groups = page.getByRole('navigation', { name: 'Drum groups' });
+  const groups = drumGroups(page);
   const bar = groups.locator('..');
   const cymbals = page.getByRole('table', { name: /^Cymbals/ });
 
@@ -125,10 +127,15 @@ test('a drum group link jumps to its table and stays in reach while the page scr
     const caption = (await cymbals.locator('caption').boundingBox())!;
     return caption.y >= barBox.y + barBox.height - 1;
   }, { message: 'the caption sits below the jump links' }).toBe(true);
+});
 
+test('the drum group links stay in reach while the page scrolls', async ({ page }) => {
+  await page.goto('/engines/ezdrummer/');
+  const groups = drumGroups(page);
+  await groups.scrollIntoViewIfNeeded();
   await page.evaluate(() => window.scrollBy(0, innerHeight));
   await expect(groups).toBeInViewport();
-  expect(Math.round((await bar.boundingBox())!.y)).toBe(0);
+  expect(Math.round((await groups.locator('..').boundingBox())!.y)).toBe(0);
 });
 
 const coreNotes = (page: Page) => page.locator('section')
@@ -141,9 +148,12 @@ test('an engine page opens on the main note of each most used drum', async ({ pa
   await expect(notes).toHaveCount(16);
   await expect(notes.first()).toHaveText('Kick 36 · C2', { useInnerText: true });
   await expect(notes.nth(1)).toHaveText('Snare 38 · D2', { useInnerText: true });
+});
 
+test('the octave naming renames the notes of the most used drums', async ({ page }) => {
+  await page.goto('/engines/ezdrummer/');
   await press(page.getByRole('radiogroup', { name: 'Octave naming' }).getByText('C-2'));
-  await expect(notes.first()).toHaveText('Kick 36 · C1', { useInnerText: true });
+  await expect(coreNotes(page).first()).toHaveText('Kick 36 · C1', { useInnerText: true });
 });
 
 const brightness = (row: Locator) => row.locator('td').first().evaluate((td) =>
