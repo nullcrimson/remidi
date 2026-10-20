@@ -204,6 +204,26 @@ fn build_all() -> Vec<Canon> {
 static ALL: LazyLock<Vec<Canon>> = LazyLock::new(build_all);
 
 impl Canon {
+    /// The drums a groove uses most, in kit order.
+    pub const CORE_KIT: [Canon; 16] = [
+        Canon::Kick(KickKind::Main),
+        Canon::Snare(Idx::FIRST, SnareArtic::Hit),
+        Canon::Snare(Idx::FIRST, SnareArtic::Sidestick),
+        Canon::Snare(Idx::FIRST, SnareArtic::Rimshot),
+        Canon::Hat(HatOpen::Closed, HatZone::Plain),
+        Canon::Hat(HatOpen::Pedal, HatZone::Plain),
+        Canon::Hat(HatOpen::Open(Idx::FIRST), HatZone::Plain),
+        Canon::Tom(TomPos::Rack(Idx::FIRST), TomArtic::Hit),
+        Canon::Tom(TomPos::Rack(idx(2)), TomArtic::Hit),
+        Canon::Tom(TomPos::Rack(idx(3)), TomArtic::Hit),
+        Canon::Tom(TomPos::Floor(Idx::FIRST), TomArtic::Hit),
+        Canon::Tom(TomPos::Floor(idx(2)), TomArtic::Hit),
+        Canon::Cymbal(CymSlot::Crash(Idx::FIRST), CymArtic::Hit),
+        Canon::Cymbal(CymSlot::Crash(idx(2)), CymArtic::Hit),
+        Canon::Ride(Idx::FIRST, RideArtic::Bow),
+        Canon::Ride(Idx::FIRST, RideArtic::Bell),
+    ];
+
     /// Every canonical slot, in declaration order.
     pub fn all() -> &'static [Canon] {
         &ALL
@@ -236,9 +256,8 @@ impl Canon {
     }
 }
 
-#[cfg(test)]
 pub(crate) const fn idx<const MAX: u8>(n: u8) -> Idx<MAX> {
-    Idx::new(n).expect("test index in range")
+    Idx::new(n).expect("a constant index is in range")
 }
 
 #[cfg(test)]

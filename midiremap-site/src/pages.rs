@@ -19,8 +19,6 @@ pub enum BuildError {
     SlugCollision(String),
     #[error("popular conversion without a pair page: {0}")]
     NoPairPage(String),
-    #[error("unknown drum key: {0}")]
-    UnknownCanon(String),
 }
 
 /// The popular engines that get pair pages, with their column label in the index matrix.
@@ -45,36 +43,6 @@ pub const TARGETS: [&str; 5] = [
 ];
 
 pub const EXCLUDED_IDS: [&str; 1] = ["midiremap_standard"];
-
-/// The drums an engine page shows first, in kit order: the ones a groove uses most.
-const CORE_DRUMS: [&str; 16] = [
-    "kick.main",
-    "snare1.hit",
-    "snare1.sidestick",
-    "snare1.rimshot",
-    "hat.closed",
-    "hat.pedal",
-    "hat.open1",
-    "tom.rack1.hit",
-    "tom.rack2.hit",
-    "tom.rack3.hit",
-    "tom.floor1.hit",
-    "tom.floor2.hit",
-    "crash.1.hit",
-    "crash.2.hit",
-    "ride.1",
-    "ride.1.bell",
-];
-
-fn core_drums() -> Result<Vec<Canon>, BuildError> {
-    CORE_DRUMS
-        .iter()
-        .map(|key| {
-            key.parse()
-                .map_err(|_| BuildError::UnknownCanon((*key).to_owned()))
-        })
-        .collect()
-}
 
 /// A conversion with its own pair page: source, then target.
 type Route<'a> = (&'a EngineMap, &'a EngineMap);
@@ -631,9 +599,10 @@ fn family_groups(map: &EngineMap) -> Vec<FamilyGroup<EngineRow>> {
 
 /// The notes the converter writes for the core drums on this engine, each note once; a
 /// drum the engine plays only on another drum is left out.
-fn core_notes(map: &EngineMap, core: &[Canon]) -> Vec<NoteCell> {
+fn core_notes(map: &EngineMap) -> Vec<NoteCell> {
     let mut shown = HashSet::new();
-    core.iter()
+    Canon::CORE_KIT
+        .iter()
         .map(|&canon| map.resolve(canon, MissingDrums::default()))
         .filter(|r| !r.moves_to_other_drum())
         .filter_map(|r| r.played())
@@ -645,7 +614,7 @@ fn core_notes(map: &EngineMap, core: &[Canon]) -> Vec<NoteCell> {
         .collect()
 }
 
-fn engine_page(map: &EngineMap, routes: &[Route], core: &[Canon]) -> EnginePage {
+fn engine_page(map: &EngineMap, routes: &[Route]) -> EnginePage {
     let links = |touches: &dyn Fn(&Route) -> bool| -> Vec<PairLink> {
         routes
             .iter()
@@ -656,7 +625,7 @@ fn engine_page(map: &EngineMap, routes: &[Route], core: &[Canon]) -> EnginePage 
     EnginePage {
         engine: EngineLink::of(map),
         total: map.source_notes().len(),
-        core: core_notes(map, core),
+        core: core_notes(map),
         groups: family_groups(map),
         pairs_from: links(&|(s, _)| s.id() == map.id()),
         pairs_to: links(&|(_, t)| t.id() == map.id()),
@@ -737,11 +706,7 @@ impl Site {
             .flat_map(|&s| targets.iter().map(move |&t| (s, t)));
         let routes: Vec<Route> = hub_routes.chain(wide_routes).collect();
 
-        let core = core_drums()?;
-        let engines = maps
-            .iter()
-            .map(|m| engine_page(m, &routes, &core))
-            .collect();
+        let engines = maps.iter().map(|m| engine_page(m, &routes)).collect();
         let drum_map_files = maps
             .iter()
             .flat_map(|m| {
@@ -1519,13 +1484,8 @@ mod tests {
         hit_keys(&out.bytes).first().copied()
     }
 
-    #[test]
-    fn every_core_drum_key_parses() {
-        assert_eq!(core_drums().unwrap().len(), CORE_DRUMS.len());
-    }
-
     fn core_kit() -> EngineMap {
-        let notes: Vec<String> = CORE_DRUMS
+        let notes: Vec<String> = Canon::CORE_KIT
             .iter()
             .enumerate()
             .map(|(note, key)| format!(r#"{{"note":{note},"canon":"{key}","primary":true}}"#))
@@ -1541,12 +1501,11 @@ mod tests {
     fn core_notes_agree_with_the_converter() {
         let maps = Catalog::builtin().unwrap();
         let kit = core_kit();
-        let core = core_drums().unwrap();
         for p in &site().engines {
             let map = maps.get(&p.engine.id).unwrap();
             let mapping = default_mapping(&kit, map);
             let shown: HashSet<u8> = p.core.iter().map(|c| c.note.get()).collect();
-            for &canon in &core {
+            for canon in Canon::CORE_KIT {
                 let resolved = map.resolve(canon, MissingDrums::default());
                 let Some(note) = resolved.note().filter(|_| !resolved.moves_to_other_drum()) else {
                     continue;
