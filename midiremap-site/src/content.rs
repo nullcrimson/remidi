@@ -1,6 +1,8 @@
 use serde::Deserialize;
 use serde_json::json;
 
+use crate::i18n::Plain;
+
 #[derive(Deserialize)]
 #[serde(untagged)]
 pub enum Inline {
@@ -76,6 +78,76 @@ impl Block {
             Block::Note(_) => "note".to_owned(),
         }
     }
+}
+
+/// A step of the converter, in the order the converter shows them.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ConverterStep {
+    File,
+    Engines,
+    Convert,
+}
+
+impl ConverterStep {
+    pub const ALL: [Self; 3] = [Self::File, Self::Engines, Self::Convert];
+
+    /// The step's title, the converter's own.
+    pub fn title(self) -> Plain {
+        match self {
+            Self::File => Plain::StepFile,
+            Self::Engines => Plain::StepEngines,
+            Self::Convert => Plain::StepConvert,
+        }
+    }
+
+    /// The number its badge shows: its place in `ALL`, from 1.
+    pub fn number(self) -> usize {
+        match self {
+            Self::File => 1,
+            Self::Engines => 2,
+            Self::Convert => 3,
+        }
+    }
+}
+
+/// Where a step stands: finished, the one to do now, or one that waits for an earlier step.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StepState {
+    Done,
+    Current,
+    Later,
+}
+
+impl StepState {
+    /// The name the stylesheet dresses its badge by, the converter's own.
+    pub fn key(self) -> &'static str {
+        match self {
+            Self::Done => "done",
+            Self::Current => "current",
+            Self::Later => "later",
+        }
+    }
+}
+
+/// The states of the converter's steps: each one done when its own work is, the first undone
+/// one current, as the converter decides them.
+pub fn step_states(done: [bool; 3]) -> [StepState; 3] {
+    let current = done.iter().position(|d| !d);
+    std::array::from_fn(|i| {
+        if done[i] {
+            StepState::Done
+        } else if current == Some(i) {
+            StepState::Current
+        } else {
+            StepState::Later
+        }
+    })
+}
+
+/// The converter's steps with their states.
+pub fn converter_steps(done: [bool; 3]) -> [(ConverterStep, StepState); 3] {
+    let states = step_states(done);
+    std::array::from_fn(|i| (ConverterStep::ALL[i], states[i]))
 }
 
 /// A guide, FAQ or legal page in one locale.
@@ -180,6 +252,34 @@ mod tests {
         assert_eq!(how["name"], "Heading");
         assert_eq!(how["step"][0]["name"], "Add files");
         assert_eq!(how["step"][0]["text"], "Drop them.");
+    }
+
+    #[test]
+    fn converter_steps_are_numbered_in_order() {
+        let numbers: Vec<usize> = ConverterStep::ALL.iter().map(|s| s.number()).collect();
+        assert_eq!(numbers, [1, 2, 3]);
+    }
+
+    #[derive(Deserialize)]
+    struct RecordedStates {
+        done: [bool; 3],
+        states: [String; 3],
+    }
+
+    #[test]
+    fn step_states_match_the_recorded_cases() {
+        let cases: Vec<RecordedStates> =
+            serde_json::from_str(include_str!("../tests/golden/step-states.json")).unwrap();
+        assert!(!cases.is_empty());
+        for case in cases {
+            let keys = step_states(case.done).map(StepState::key);
+            assert_eq!(
+                keys,
+                case.states.each_ref().map(String::as_str),
+                "{:?}",
+                case.done
+            );
+        }
     }
 
     #[test]

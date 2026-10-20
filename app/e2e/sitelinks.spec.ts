@@ -53,3 +53,18 @@ test('a conversion table without a page the other way reverses in the converter'
   await expect(chosen(page, 'FROM')).toHaveText('EZdrummer 3');
   await expect(chosen(page, 'TO')).toHaveText('Hertz Drums');
 });
+
+test('a conversion table shows the converter steps with the engines already picked', async ({ page }) => {
+  await page.goto('/convert/ggd-invasion-to-ezdrummer/');
+  const steps = page.getByRole('list', { name: 'Convert in three steps' }).getByRole('listitem');
+  await expect(steps).toHaveCount(3);
+  await expect(steps.nth(1)).toContainText('From one drum layout to another · done');
+  await expect(steps.nth(1)).toContainText('GetGood Drums Invasion → EZdrummer 3');
+});
+
+test('a conversion table keeps its convert button in reach on a phone', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'on a wide screen the button stays at the top of the page');
+  await page.goto('/convert/ggd-invasion-to-ezdrummer/');
+  await page.getByRole('heading', { name: 'More from GetGood Drums Invasion' }).scrollIntoViewIfNeeded();
+  await expect(page.getByRole('link', { name: 'Convert GetGood Drums Invasion → EZdrummer 3', exact: true })).toBeInViewport();
+});

@@ -102,6 +102,7 @@ maps-pair-summary = Sur { $total } { $total ->
    *[other] n’ont
 } pas d’équivalent.
 maps-pair-convert = Convertir { $source } → { $target }
+maps-steps-label = Convertir en trois étapes
 maps-reverse = ⇄ Inverser le sens
 maps-exact-count = { $count ->
     [one] { $count } exacte

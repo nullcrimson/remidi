@@ -234,7 +234,31 @@
   }
 }
 
+@utility step-badge {
+  @apply flex size-6 shrink-0 items-center justify-center rounded-full font-display text-label font-semibold;
+
+  &[data-state='current'] {
+    @apply bg-accent text-ink;
+  }
+
+  &[data-state='done'] {
+    @apply bg-accent/16 text-accent;
+  }
+
+  &[data-state='later'] {
+    @apply border border-accent/50 text-accent;
+  }
+}
+
 @layer utilities {
+  .step-list {
+    @apply grid gap-3 sm:grid-cols-3;
+
+    & li {
+      @apply flex flex-wrap items-center gap-x-2.5 gap-y-1 font-display font-semibold text-t1;
+    }
+  }
+
   .link-chips {
     @apply flex flex-wrap gap-2;
 
@@ -288,8 +312,6 @@
   }
 
   .merge-list {
-    @apply grid gap-x-7 sm:grid-cols-2;
-
     & li {
       @apply border-t border-white/5 py-2 text-ui text-t1;
     }

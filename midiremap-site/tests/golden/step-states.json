@@ -1,0 +1,7 @@
+[
+  { "done": [false, false, false], "states": ["current", "later", "later"] },
+  { "done": [false, true, false], "states": ["current", "done", "later"] },
+  { "done": [true, true, false], "states": ["done", "done", "current"] },
+  { "done": [true, false, true], "states": ["done", "current", "done"] },
+  { "done": [true, true, true], "states": ["done", "done", "done"] }
+]

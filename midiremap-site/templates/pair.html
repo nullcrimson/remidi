@@ -10,13 +10,14 @@
   <h1 class="font-display text-display/tight font-bold text-t1">{{ heading }}</h1>
   <p class="text-body/relaxed text-t3">{{ summary }}</p>
 </div>
-<div class="flex flex-wrap items-center gap-x-5 gap-y-3">
+<ol class="step-list" aria-label="{{ texts.get(Plain::MapsStepsLabel) }}">
+{% for (step, state) in steps -%}
+<li><span class="step-badge" data-state="{{ state.key() }}" aria-hidden="true">{% if *state == StepState::Done %}✓{% else %}{{ step.number() }}{% endif %}</span>{{ texts.get(step.title()) }}{% if *state == StepState::Done %}<span class="sr-only"> · {{ texts.get(Plain::StepDone) }}</span>{% endif %}
+{%- if *step == ConverterStep::Engines %}<span class="basis-full font-sans text-ui font-normal text-t3">{{ page.src.name }} → {{ page.tgt.name }} · {% if let Some(reverse) = page.reverse %}<a href="{{ texts.path(reverse.href()) }}" class="prose-link whitespace-nowrap">{{ texts.get(Plain::MapsReverse) }}</a>{% else %}{% call macros::converter_link(Some(page.tgt.id.as_str()), Some(page.src.id.as_str()), "prose-link whitespace-nowrap", texts.get(Plain::MapsReverse)) %}{% endcall %}{% endif %}</span>{% endif %}</li>
+{% endfor -%}
+</ol>
+<div class="sticky top-0 z-10 -my-3 bg-card py-3 sm:static">
   {% call macros::converter_link(Some(page.src.id.as_str()), Some(page.tgt.id.as_str()), "inline-flex items-center justify-center rounded-panel bg-accent px-5 py-3 font-display text-body font-semibold text-ink transition hover:brightness-110 pointer-coarse:min-h-11", texts.pair(MessageId::MapsPairConvert, page.src.name.as_str(), page.tgt.name.as_str())?) %}{% endcall %}
-  {% if let Some(reverse) = page.reverse %}
-  <a href="{{ texts.path(reverse.href()) }}" class="prose-link text-ui">{{ texts.get(Plain::MapsReverse) }}</a>
-  {% else %}
-  {% call macros::converter_link(Some(page.tgt.id.as_str()), Some(page.src.id.as_str()), "prose-link text-ui", texts.get(Plain::MapsReverse)) %}{% endcall %}
-  {% endif %}
 </div>
 
 <div class="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">

@@ -3,12 +3,6 @@ import { useT } from '../locale/localeContext';
 import { CheckIcon } from '../ui/CheckIcon';
 import type { StepState } from './stepState';
 
-const BADGE: Record<StepState, string> = {
-  done: 'bg-accent/16 text-accent',
-  current: 'bg-accent text-ink',
-  later: 'border border-accent/50 text-accent',
-};
-
 /** One numbered step of the converter: its heading, a badge that turns into a check once done, and its controls. */
 export function Step({ number, title, state, children }: {
   number: number;
@@ -25,14 +19,7 @@ export function Step({ number, title, state, children }: {
       className="flex flex-col gap-3.5"
     >
       <div className="flex items-center gap-2.5">
-        <span
-          aria-hidden="true"
-          className={`
-            flex size-6 shrink-0 items-center justify-center rounded-full
-            font-display text-label font-semibold
-            ${BADGE[state]}
-          `}
-        >
+        <span aria-hidden="true" className="step-badge" data-state={state}>
           {state === 'done' ? <CheckIcon /> : number}
         </span>
         <h2

@@ -72,6 +72,7 @@ maps-pair-summary = De las { $total } notas de { $source }, { $exact } { $exact 
    *[other] no tienen
 } equivalente.
 maps-pair-convert = Convertir { $source } → { $target }
+maps-steps-label = Convertir en tres pasos
 maps-reverse = ⇄ Invertir dirección
 maps-exact-count = { $count ->
     [one] { $count } exacta

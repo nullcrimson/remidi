@@ -71,6 +71,7 @@ maps-pair-summary = { $source } 노트 { $total }개 중 { $exact ->
    *[other] { $dropped }개는
 } 대응하는 악기가 없습니다.
 maps-pair-convert = { $source } → { $target } 변환
+maps-steps-label = 세 단계로 변환
 maps-reverse = ⇄ 방향 바꾸기
 maps-exact-count = 일치 { $count }
 maps-approximated-count = 대체 { $count }

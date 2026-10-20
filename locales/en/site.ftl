@@ -75,6 +75,7 @@ maps-pair-summary = Of { $total } { $source } notes, { $exact } { $exact ->
    *[other] have
 } no equivalent.
 maps-pair-convert = Convert { $source } → { $target }
+maps-steps-label = Convert in three steps
 maps-reverse = ⇄ Reverse direction
 maps-exact-count = { $count } exact
 maps-approximated-count = { $count } approximated

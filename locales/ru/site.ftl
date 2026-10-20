@@ -93,6 +93,7 @@ maps-pair-summary = Из { $total } { $total ->
    *[other] ноты
 } плагина { $source }: { $exact } — точно в { $target }, { $approximated } — заменены самым похожим инструментом, { $dropped } — без аналога.
 maps-pair-convert = Конвертировать { $source } → { $target }
+maps-steps-label = Конвертация в три шага
 maps-reverse = ⇄ В обратную сторону
 maps-exact-count = точно: { $count }
 maps-approximated-count = заменено: { $count }

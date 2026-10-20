@@ -71,6 +71,7 @@ maps-pair-summary = { $source }の全{ $total }個のノートのうち、{ $exa
    *[other] { $dropped }個
 }は対応するパーツがありません。
 maps-pair-convert = 変換：{ $source } → { $target }
+maps-steps-label = 3ステップで変換
 maps-reverse = ⇄ 逆方向
 maps-exact-count = 一致 { $count }
 maps-approximated-count = 置き換え { $count }

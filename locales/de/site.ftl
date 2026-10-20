@@ -78,6 +78,7 @@ maps-pair-summary = Von { $total } { $total ->
    *[other] haben
 } keine Entsprechung.
 maps-pair-convert = { $source } → { $target } konvertieren
+maps-steps-label = In drei Schritten konvertieren
 maps-reverse = ⇄ Richtung umkehren
 maps-exact-count = { $count } exakt
 maps-approximated-count = { $count } ersetzt

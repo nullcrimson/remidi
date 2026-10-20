@@ -5,7 +5,10 @@ use fluent_bundle::{FluentArgs, FluentValue};
 use midiremap_core::Daw;
 
 use crate::{
-    content::{breadcrumb_schema, faq_schema, how_to_schema, Block, ContentPage},
+    content::{
+        breadcrumb_schema, converter_steps, faq_schema, how_to_schema, Block, ContentPage,
+        ConverterStep, StepState,
+    },
     i18n::{Docs, I18nError, Locale, MessageId, Messages, Plain, SectionKey, TIP_HREF},
     manifest::{AnalyticsScript, LocaleScript, SiteManifest},
     pages::{EnginePage, IndexPage, Landing, NoteRole, PairPage, PopularPair, Site, Tally},
@@ -478,6 +481,7 @@ struct PairHtml<'a> {
     texts: &'a Texts<'a>,
     heading: String,
     summary: String,
+    steps: [(ConverterStep, StepState); 3],
     page: &'a PairPage,
 }
 
@@ -650,6 +654,7 @@ fn render_note_maps(
                 texts,
                 heading: pair_heading(p, texts)?,
                 summary: pair_summary(texts, &p.src.name, &p.tgt.name, p.tally)?,
+                steps: converter_steps([false, true, false]),
                 page: p,
             }
             .render()?,
@@ -1303,6 +1308,73 @@ mod tests {
                 );
             }
         }
+    }
+
+    fn stylesheet() -> String {
+        std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../app/src/index.css"))
+            .unwrap()
+    }
+
+    fn utility(css: &str, name: &str) -> String {
+        let start = css.find(&format!("@utility {name} {{")).unwrap();
+        let end = start + css[start..].find("\n}\n").unwrap();
+        css[start..end].to_owned()
+    }
+
+    #[test]
+    fn every_step_state_has_a_badge_rule_in_the_stylesheet() {
+        let cases: Vec<serde_json::Value> =
+            serde_json::from_str(include_str!("../tests/golden/step-states.json")).unwrap();
+        let badge = utility(&stylesheet(), "step-badge");
+        let states: HashSet<&str> = cases
+            .iter()
+            .flat_map(|c| c["states"].as_array().unwrap())
+            .filter_map(|s| s.as_str())
+            .collect();
+        assert_eq!(states.len(), 3);
+        for state in states {
+            assert!(
+                badge.contains(&format!("&[data-state='{state}'] {{")),
+                "{state}"
+            );
+        }
+    }
+
+    fn badges(html: &str) -> Vec<&str> {
+        html.split(r#"<span class="step-badge" data-state=""#)
+            .skip(1)
+            .filter_map(|rest| rest.split('"').next())
+            .collect()
+    }
+
+    #[test]
+    fn pair_pages_mark_the_engine_step_done() {
+        for p in &crate::fixtures::site().pairs {
+            let html = page(&p.href().in_locale(Locale::En).file());
+            assert_eq!(badges(html), ["current", "done", "later"], "{}", p.slug);
+            let steps = html.split(r#"<ol class="step-list""#).nth(1).unwrap();
+            let engines = steps.split("<li>").nth(2).unwrap();
+            assert!(
+                engines.contains(
+                    "From one drum layout to another<span class=\"sr-only\"> · done</span>"
+                ),
+                "{}",
+                p.slug
+            );
+        }
+    }
+
+    #[test]
+    fn pair_pages_keep_the_converter_in_reach_on_a_phone() {
+        let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
+        let row = html
+            .split(r#"<div class="sticky top-0 z-10 -my-3 bg-card py-3 sm:static">"#)
+            .nth(1)
+            .and_then(|rest| rest.split("</div>").next())
+            .unwrap();
+        let cta = anchor_to(row, "/#from=addictive_drums2&amp;to=ezdrummer");
+        assert!(opened_converter(cta));
+        assert_eq!(html.matches("sticky top-0").count(), 1);
     }
 
     #[test]

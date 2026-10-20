@@ -83,6 +83,7 @@ maps-pair-description-more = Darmowy konwerter w przeglądarce.
 maps-pair-description-short = Konwertuj MIDI { $source } na { $target }.
 maps-pair-summary = Z { $total } nut { $source }: { $exact } zmapowano dokładnie na { $target }, { $approximated } zastąpiono najbardziej podobnym dostępnym instrumentem, a dla { $dropped } nie ma odpowiednika.
 maps-pair-convert = Konwertuj { $source } → { $target }
+maps-steps-label = Konwersja w trzech krokach
 maps-reverse = ⇄ Odwróć kierunek
 maps-exact-count = dokładne: { $count }
 maps-approximated-count = zastąpione: { $count }

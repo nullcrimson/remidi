@@ -71,6 +71,7 @@ maps-pair-summary = 在 { $source } 的 { $total } 个音符中，{ $exact } 个
    *[other] 没有对应鼓件
 }。
 maps-pair-convert = 转换 { $source } → { $target }
+maps-steps-label = 三步完成转换
 maps-reverse = ⇄ 反向转换
 maps-exact-count = 精确 { $count }
 maps-approximated-count = 替换 { $count }
