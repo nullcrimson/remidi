@@ -2,7 +2,7 @@ import docs from '../../../locales/en/docs.json';
 import type { MessageId, SectionKey } from '../generated/i18n';
 
 export type Inline = string | { text: string; href: string };
-interface Step {
+interface Note {
   title: string;
   body: string;
 }
@@ -23,7 +23,7 @@ export type Block
     | { list: Inline[][] }
     | { faq: Qa[] }
     | { h: string }
-    | { note: Step };
+    | { note: Note };
 
 export type Docs = Partial<Record<SectionKey, Block[]>>;
 
