@@ -1004,6 +1004,12 @@ mod tests {
                 .filter(|f| families.contains(f))
                 .collect();
             assert_eq!(families, order, "{}", p.slug);
+        }
+    }
+
+    #[test]
+    fn pair_groups_are_never_empty() {
+        for p in &site().pairs {
             assert!(p.groups.iter().all(|g| !g.rows.is_empty()), "{}", p.slug);
         }
     }
@@ -1128,7 +1134,11 @@ mod tests {
         let ezd = engine("ezdrummer");
         assert_eq!(role_of(ezd, 36), NoteRole::Main);
         assert_eq!(role_of(ezd, 35), NoteRole::Extra);
-        assert!(ezd.has_extra());
+    }
+
+    #[test]
+    fn ezdrummer_says_it_has_extra_notes() {
+        assert!(engine("ezdrummer").has_extra());
     }
 
     #[test]
@@ -1251,12 +1261,20 @@ mod tests {
     }
 
     #[test]
+    fn index_majors_keep_the_majors_order() {
+        let ids: Vec<&str> = site()
+            .index
+            .majors
+            .iter()
+            .map(|m| m.link.id.as_str())
+            .collect();
+        assert_eq!(ids, MAJORS.map(|(id, _)| id));
+    }
+
+    #[test]
     fn index_majors_count_their_engines_notes() {
         let maps = Catalog::builtin().unwrap();
-        let majors = &site().index.majors;
-        let ids: Vec<&str> = majors.iter().map(|m| m.link.id.as_str()).collect();
-        assert_eq!(ids, MAJORS.map(|(id, _)| id));
-        for m in majors {
+        for m in &site().index.majors {
             assert_eq!(m.notes, maps.get(&m.link.id).unwrap().source_notes().len());
         }
     }
@@ -1283,17 +1301,30 @@ mod tests {
     #[test]
     fn listed_engines_nest_every_variant_under_its_base() {
         let maps = Catalog::builtin().unwrap();
-        let listed = &site().index.listed;
-        for e in listed {
+        for e in &site().index.listed {
             let map = maps.get(&e.link.id).unwrap();
             assert!(maps.base_of(map).is_none(), "{}", e.link.id);
             for v in &e.variants {
                 let variant = maps.get(&v.link.id).unwrap();
                 assert_eq!(maps.base_of(variant).map(EngineMap::id), Some(map.id()));
-                assert_eq!(Some(v.label.as_str()), variant.variant_label());
             }
         }
-        let ids: HashSet<&str> = listed
+    }
+
+    #[test]
+    fn listed_variants_carry_their_mapping_labels() {
+        let maps = Catalog::builtin().unwrap();
+        for v in site().index.listed.iter().flat_map(|e| &e.variants) {
+            let variant = maps.get(&v.link.id).unwrap();
+            assert_eq!(Some(v.label.as_str()), variant.variant_label());
+        }
+    }
+
+    #[test]
+    fn listed_engines_and_their_variants_cover_every_engine() {
+        let ids: HashSet<&str> = site()
+            .index
+            .listed
             .iter()
             .flat_map(|e| std::iter::once(&e.link).chain(e.variants.iter().map(|v| &v.link)))
             .map(|l| l.id.as_str())
