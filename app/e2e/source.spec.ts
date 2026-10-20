@@ -9,6 +9,16 @@ const kickAndStray = () => midFile('stray.mid', [
   { channel: DRUMS, key: STRAY, gap: 48 },
 ]);
 
+/**
+ * Adds the file and waits for the converter to count the note its source lacks: the count
+ * comes a moment later, from the worker, and moves the controls below it down.
+ */
+async function addStray(page: Page) {
+  await addFiles(page, kickAndStray());
+  await expect(page.getByRole('status').filter({ hasText: "1 of 2 notes in your file isn't in the GetGood Drums Invasion layout." }))
+    .toBeVisible();
+}
+
 const advanced = (page: Page) => page.getByRole('button', { name: 'Advanced — reassign source notes' });
 
 async function strayPlaysKick(page: Page) {
@@ -24,7 +34,7 @@ async function strayPlaysKick(page: Page) {
 
 test('a source note the FROM engine lacks plays a drum once assigned in Advanced', async ({ page }) => {
   await openPair(page);
-  await addFiles(page, kickAndStray());
+  await addStray(page);
   await openEditor(page);
   await expect(advanced(page)).toHaveAttribute('aria-expanded', 'false');
   await press(advanced(page));
@@ -37,7 +47,7 @@ test('a source note the FROM engine lacks plays a drum once assigned in Advanced
 
 test('a note the FROM engine lacks is counted as unrecognized and left out of the file', async ({ page }) => {
   await openPair(page);
-  await addFiles(page, kickAndStray());
+  await addStray(page);
   await convert(page);
   await expect(page.getByRole('listitem').filter({ hasText: /^1 unrecognized$/ })).toBeVisible();
   expect(hitKeys(await download(page))).toEqual([36]);
@@ -45,7 +55,7 @@ test('a note the FROM engine lacks is counted as unrecognized and left out of th
 
 test('Assign in the report opens the unrecognized note in Advanced', async ({ page }) => {
   await openPair(page);
-  await addFiles(page, kickAndStray());
+  await addStray(page);
   await convert(page);
 
   await press(page.getByRole('button', { name: /View report/ }));
@@ -59,7 +69,7 @@ test('Assign in the report opens the unrecognized note in Advanced', async ({ pa
 
 test('assigning the unrecognized note from the report fixes the file', async ({ page }) => {
   await openPair(page);
-  await addFiles(page, kickAndStray());
+  await addStray(page);
   await convert(page);
   await press(page.getByRole('button', { name: /View report/ }));
   const report = page.getByRole('dialog', { name: 'Conversion report' });

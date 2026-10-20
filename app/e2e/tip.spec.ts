@@ -1,27 +1,33 @@
 import type { Page } from '@playwright/test';
 import { addFiles, DRUMS, expect, midFile, openPair, test } from './fixtures';
-import { convert, download, press } from './steps';
+import { convert, press } from './steps';
 
 const kick = () => midFile('kick.mid', [{ channel: DRUMS, key: 24 }]);
 const tip = (page: Page) => page.getByRole('group', { name: 'Leave a tip' });
 const DAY = 24 * 60 * 60 * 1000;
 
-async function convertAndSave(page: Page, times = 1) {
+/** Saves the converted file once: the ask counts the press, so the saved bytes are left unread. */
+async function save(page: Page) {
+  const file = page.waitForEvent('download');
+  await press(page.getByRole('link', { name: /Download \.mid/ }));
+  await file;
+}
+
+async function convertAndSave(page: Page, times: number) {
+  await openPair(page);
   await addFiles(page, kick());
   await convert(page);
-  for (let i = 0; i < times; i += 1) await download(page);
+  for (let i = 0; i < times; i += 1) await save(page);
 }
 
 test('the tip ask waits for a third saved file', async ({ page }) => {
-  await openPair(page);
   await convertAndSave(page, 2);
   await expect(tip(page)).toHaveCount(0);
-  await download(page);
+  await save(page);
   await expect(tip(page)).toBeVisible();
 });
 
 test('the tip ask stays pinned to the top while the page scrolls', async ({ page }) => {
-  await openPair(page);
   await convertAndSave(page, 3);
   await tip(page).waitFor();
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
@@ -35,17 +41,14 @@ test('the tip ask stays pinned to the top while the page scrolls', async ({ page
 test('the tip ask comes at most once a day', async ({ page }) => {
   const start = new Date('2026-10-01T12:00:00Z');
   await page.clock.setSystemTime(start);
-  await openPair(page);
   await convertAndSave(page, 3);
   await press(tip(page).getByRole('button', { name: 'Close' }));
   await expect(tip(page)).toHaveCount(0);
 
-  await press(page.getByRole('button', { name: 'Convert more' }));
-  await convertAndSave(page);
+  await save(page);
   await expect(tip(page)).toHaveCount(0);
 
   await page.clock.setSystemTime(new Date(start.getTime() + DAY + 60_000));
-  await press(page.getByRole('button', { name: 'Convert more' }));
-  await convertAndSave(page);
+  await save(page);
   await expect(tip(page)).toBeVisible();
 });

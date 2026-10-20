@@ -14,6 +14,7 @@ async function tabTo(page: Page, target: Locator, most = 10) {
 
 test('walks from page load to a converted file by keyboard', async ({ page }) => {
   await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Choose files' })).toBeVisible();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
   await page.keyboard.press('Enter');
