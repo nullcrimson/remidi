@@ -1,12 +1,9 @@
 import { useT } from '../locale/localeContext';
-import { OCTAVE_NAME, type OctaveBase } from '../core/notes';
+import { octaveName, type OctaveBase } from '../core/notes';
 import { ChipRadioGroup } from '../ui/ChipRadioGroup';
 import { SettingRow } from './SettingRow';
 
-const OCTAVES: { value: OctaveBase; label: string }[] = [
-  { value: 'c1', label: OCTAVE_NAME.c1 },
-  { value: 'c2', label: OCTAVE_NAME.c2 },
-];
+const OCTAVES = (['c1', 'c2'] as const).map((value) => ({ value, label: octaveName(value) }));
 
 const DAWS: Record<OctaveBase, string> = {
   c1: 'Reaper · Logic · Ableton · Guitar Pro',

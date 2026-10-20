@@ -3,7 +3,7 @@ import { useT } from '../locale/localeContext';
 import { channelLabel } from '../core/channel';
 import type { ChannelScope, MissingDrums, Unrecognized } from '../core/midiremap';
 import { MISSING_LABEL } from '../core/missing';
-import { OCTAVE_NAME, type OctaveBase } from '../core/notes';
+import { octaveName, type OctaveBase } from '../core/notes';
 import { UNRECOGNIZED_LABEL } from '../core/unrecognized';
 
 /**
@@ -22,7 +22,7 @@ export function SettingsFold({ open, onToggle, oct, channel, missing, unrecogniz
 }) {
   const t = useT();
   const values = [
-    { label: t({ id: 'octave-label' }), value: OCTAVE_NAME[oct] },
+    { label: t({ id: 'octave-label' }), value: octaveName(oct) },
     { label: t({ id: 'channel-label' }), value: t(channelLabel(channel)) },
     { label: t({ id: 'missing-label' }), value: t(MISSING_LABEL[missing]) },
     { label: t({ id: 'unrecognized-label' }), value: t(UNRECOGNIZED_LABEL[unrecognized]) },

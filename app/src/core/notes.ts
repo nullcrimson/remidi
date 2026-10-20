@@ -7,8 +7,10 @@ const NAMING: NoteNamings = naming;
 const NOTE_COUNT = NAMING.c1.names.length;
 const SEMITONES = 12;
 
-/** The name of each octave convention: the octave MIDI note 0 sits in. */
-export const OCTAVE_NAME: Record<OctaveBase, string> = { c1: 'C-1', c2: 'C-2' };
+/** The name of an octave convention: the name it gives MIDI note 0. */
+export function octaveName(base: OctaveBase): string {
+  return NAMING[base].names[0];
+}
 
 /** The value as a `Note` when it is the number of a note the core names, else null. */
 export function parseNote(value: unknown): Note | null {
