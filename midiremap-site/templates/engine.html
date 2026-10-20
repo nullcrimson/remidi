@@ -12,7 +12,7 @@
 </div>
 <div class="flex flex-col gap-5 sm:flex-row sm:items-start">
   <div class="flex flex-wrap gap-3 sm:flex-col">
-    {% call macros::converter_link(None, Some(page.engine.id.as_str()), "inline-flex items-center justify-center rounded-panel bg-accent px-5 py-3 font-display text-body font-semibold text-ink transition hover:brightness-110 pointer-coarse:min-h-11", texts.engine(MessageId::MapsConvertTo, page.engine.name.as_str())?) %}{% endcall %}
+    {% call macros::converter_link(None, Some(page.engine.id.as_str()), "cta", texts.engine(MessageId::MapsConvertTo, page.engine.name.as_str())?) %}{% endcall %}
     {% call macros::converter_link(Some(page.engine.id.as_str()), None, "inline-flex items-center justify-center rounded-panel border border-accent/40 px-5 py-3 font-display text-body font-semibold text-accent transition hover:border-accent hover:bg-accent/8 pointer-coarse:min-h-11", texts.engine(MessageId::MapsConvertFrom, page.engine.name.as_str())?) %}{% endcall %}
   </div>
   <aside class="flex flex-col gap-3 rounded-panel border border-hairline p-4 sm:grow">

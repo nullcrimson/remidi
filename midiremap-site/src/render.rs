@@ -1253,7 +1253,7 @@ mod tests {
             let main = page(path).split("</main>").next().unwrap();
             let panel = main.rsplit(">Ready to convert?</h2>").next().unwrap();
             let tag = anchor_to(panel, "/");
-            assert!(tag.contains("bg-accent"), "{path}");
+            assert!(tag.contains(r#"class="cta""#), "{path}");
             assert!(opened_converter(tag), "{path}");
         }
     }
@@ -2398,7 +2398,7 @@ mod tests {
         let html = page("faq/index.html");
         let tag = anchors(html)
             .into_iter()
-            .find(|tag| tag.contains("bg-accent") && tag.contains(r#"href="/""#))
+            .find(|tag| tag.contains(r#"class="cta""#) && tag.contains(r#"href="/""#))
             .unwrap();
         assert!(tag.contains(r#"data-umami-event-page="doc""#));
     }

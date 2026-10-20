@@ -33,7 +33,7 @@
 {% when Closing::Panel %}
 <section class="flex flex-wrap items-center justify-between gap-4 rounded-panel bg-field p-5">
   <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::DocReadyHeading) }}</h2>
-  {% call macros::converter_link(None, None, "inline-flex items-center justify-center rounded-panel bg-accent px-5 py-3 font-display text-body font-semibold text-ink transition hover:brightness-110 pointer-coarse:min-h-11", frame.open_converter) %}{% endcall %}
+  {% call macros::converter_link(None, None, "cta", frame.open_converter) %}{% endcall %}
 </section>
 {% when Closing::Link %}
 <p class="text-ui">

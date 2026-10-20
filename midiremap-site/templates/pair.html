@@ -17,7 +17,7 @@
 {% endfor -%}
 </ol>
 <div class="sticky top-0 z-10 -my-3 bg-card py-3 sm:static">
-  {% call macros::converter_link(Some(page.src.id.as_str()), Some(page.tgt.id.as_str()), "inline-flex items-center justify-center rounded-panel bg-accent px-5 py-3 font-display text-body font-semibold text-ink transition hover:brightness-110 pointer-coarse:min-h-11", texts.pair(MessageId::MapsPairConvert, page.src.name.as_str(), page.tgt.name.as_str())?) %}{% endcall %}
+  {% call macros::converter_link(Some(page.src.id.as_str()), Some(page.tgt.id.as_str()), "cta", texts.pair(MessageId::MapsPairConvert, page.src.name.as_str(), page.tgt.name.as_str())?) %}{% endcall %}
 </div>
 
 <div class="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
