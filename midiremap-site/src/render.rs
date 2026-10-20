@@ -8,20 +8,27 @@ use crate::{
     content::{breadcrumb_schema, faq_schema, how_to_schema, Block, ContentPage},
     i18n::{Docs, I18nError, Locale, MessageId, Messages, Plain, SectionKey, TIP_HREF},
     manifest::{AnalyticsScript, LocaleScript, SiteManifest},
-    pages::{EnginePage, IndexPage, Landing, PairPage, Site, Tally},
+    pages::{EnginePage, IndexPage, Landing, PairPage, PopularPair, Site, Tally},
     routes::{
         alternates, home, href, label, local_href, og_image_url, page_in, Alternate, LocalPath,
-        NavTarget, Page, SitePath, DRUM_MAPS, FOOTER, NAV, NOTE_MAPS, THANKS,
+        NavTarget, Page, SitePath, DRUM_MAPS, FOOTER, NAV, NOTE_MAPS, SITE_NAME, THANKS,
     },
 };
 
 const DESCRIPTION_MAX: usize = 155;
 
-/// A page's title, search snippet and canonical address.
+/// A page's name, search snippet and canonical address.
 pub struct Meta {
-    pub title: String,
+    pub name: String,
     pub description: String,
     pub canonical: String,
+}
+
+impl Meta {
+    /// The page's title: its name and the site's.
+    pub fn title(&self) -> String {
+        format!("{} | {SITE_NAME}", self.name)
+    }
 }
 
 const TITLE_NAME_MAX: usize = 40;
@@ -76,7 +83,7 @@ fn args<'a>(pairs: impl IntoIterator<Item = (&'a str, FluentValue<'a>)>) -> Flue
 pub fn engine_meta(p: &EnginePage, texts: &Texts) -> Result<Meta, I18nError> {
     let n = p.engine.name.as_str();
     let midi = with_midi(n);
-    let title = if n.chars().count() <= TITLE_NAME_MAX {
+    let name = if n.chars().count() <= TITLE_NAME_MAX {
         texts.format(
             MessageId::MapsEngineTitle,
             args([("engineMidi", midi.as_str().into())]),
@@ -88,7 +95,7 @@ pub fn engine_meta(p: &EnginePage, texts: &Texts) -> Result<Meta, I18nError> {
         )?
     };
     Ok(Meta {
-        title,
+        name,
         description: fit(
             &texts.format(
                 MessageId::MapsEngineDescription,
@@ -125,38 +132,62 @@ fn pair_summary(texts: &Texts, src: &str, tgt: &str, tally: Tally) -> Result<Str
     )
 }
 
-fn pair_args(p: &PairPage) -> FluentArgs<'_> {
+fn pair_args<'a>(src: &'a str, tgt: &'a str, tally: Tally) -> FluentArgs<'a> {
     args([
-        ("sourceMidi", with_midi(&p.src.name).into()),
-        ("source", p.src.name.as_str().into()),
-        ("target", p.tgt.name.as_str().into()),
-        ("exact", p.tally.exact.into()),
-        ("approximated", p.tally.approximated.into()),
-        ("dropped", p.tally.dropped.into()),
+        ("sourceMidi", with_midi(src).into()),
+        ("source", src.into()),
+        ("target", tgt.into()),
+        ("exact", tally.exact.into()),
+        ("approximated", tally.approximated.into()),
+        ("dropped", tally.dropped.into()),
     ])
 }
 
 fn pair_heading(p: &PairPage, texts: &Texts) -> Result<String, I18nError> {
-    texts.format(MessageId::MapsPairHeading, pair_args(p))
+    texts.format(
+        MessageId::MapsPairHeading,
+        pair_args(&p.src.name, &p.tgt.name, p.tally),
+    )
 }
 
-pub fn pair_meta(p: &PairPage, texts: &Texts) -> Result<Meta, I18nError> {
+fn conversion_meta(
+    src: &str,
+    tgt: &str,
+    tally: Tally,
+    path: SitePath,
+    texts: &Texts,
+) -> Result<Meta, I18nError> {
+    let format = |id| texts.format(id, pair_args(src, tgt, tally));
     Ok(Meta {
-        title: texts.format(MessageId::MapsPairTitle, pair_args(p))?,
+        name: format(MessageId::MapsPairTitle)?,
         description: fit(
-            &texts.format(MessageId::MapsPairDescription, pair_args(p))?,
-            &[texts.format(MessageId::MapsPairDescriptionShort, pair_args(p))?],
+            &format(MessageId::MapsPairDescription)?,
+            &[format(MessageId::MapsPairDescriptionShort)?],
             &[texts.get(Plain::MapsPairDescriptionMore).to_owned()],
             DESCRIPTION_MAX,
         ),
-        canonical: p.href().in_locale(texts.locale).url(),
+        canonical: path.in_locale(texts.locale).url(),
     })
+}
+
+pub fn pair_meta(p: &PairPage, texts: &Texts) -> Result<Meta, I18nError> {
+    conversion_meta(&p.src.name, &p.tgt.name, p.tally, p.href(), texts)
+}
+
+pub fn popular_meta(p: &PopularPair, texts: &Texts) -> Result<Meta, I18nError> {
+    conversion_meta(
+        &p.link.src_name,
+        &p.link.tgt_name,
+        p.tally,
+        p.link.href(),
+        texts,
+    )
 }
 
 pub fn index_meta(p: &IndexPage, texts: &Texts) -> Result<Meta, I18nError> {
     let count = || args([("count", p.all.len().into())]);
     Ok(Meta {
-        title: texts.format(MessageId::MapsIndexTitle, count())?,
+        name: texts.format(MessageId::MapsIndexTitle, count())?,
         description: fit(
             &texts.format(MessageId::MapsIndexDescription, count())?,
             &[],
@@ -170,7 +201,7 @@ pub fn index_meta(p: &IndexPage, texts: &Texts) -> Result<Meta, I18nError> {
 pub fn drum_maps_meta(p: &IndexPage, texts: &Texts) -> Result<Meta, I18nError> {
     let count = || args([("count", p.all.len().into())]);
     Ok(Meta {
-        title: texts.format(MessageId::DrumMapsTitle, count())?,
+        name: texts.format(MessageId::DrumMapsTitle, count())?,
         description: fit(
             &texts.format(MessageId::DrumMapsDescription, count())?,
             &[],
@@ -203,9 +234,9 @@ pub fn section_meta(k: SectionKey, texts: &Texts) -> Meta {
     )
 }
 
-fn content_meta(title: String, description: String, path: &LocalPath) -> Meta {
+fn content_meta(name: String, description: String, path: &LocalPath) -> Meta {
     Meta {
-        title,
+        name,
         description,
         canonical: path.url(),
     }
@@ -1186,7 +1217,7 @@ mod tests {
     fn engine_titles_lead_with_the_keyword() {
         let site = crate::fixtures::site();
         for p in &site.engines {
-            let title = in_locale(Locale::En, |t| engine_meta(p, t).unwrap().title);
+            let title = in_locale(Locale::En, |t| engine_meta(p, t).unwrap().title());
             let head: String = title.chars().take(60).collect();
             assert!(head.contains("MIDI Note Map"), "{title}");
         }

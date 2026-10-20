@@ -1,45 +1,22 @@
 use crate::{
     i18n::{Docs, I18nError, Locale, Messages, Plain, SectionKey},
     pages::Site,
-    render::{drum_maps_meta, engine_meta, index_meta, pair_meta, section_meta, Meta, Texts},
-    routes::home,
+    render::{drum_maps_meta, engine_meta, index_meta, popular_meta, section_meta, Meta, Texts},
+    routes::{home, SITE_NAME},
 };
-
-const SITE_NAME: &str = "Drumverter";
-const TITLE_SEPARATOR: &str = " | ";
-
-/// What stops `/llms.txt` from being written.
-#[derive(thiserror::Error, Debug)]
-pub enum LlmsError {
-    #[error(transparent)]
-    Message(#[from] I18nError),
-    #[error("page title does not end in \"{TITLE_SEPARATOR}{SITE_NAME}\": {0}")]
-    Unbranded(String),
-}
-
-fn page_name(title: &str) -> Result<&str, LlmsError> {
-    title
-        .strip_suffix(SITE_NAME)
-        .and_then(|t| t.strip_suffix(TITLE_SEPARATOR))
-        .ok_or_else(|| LlmsError::Unbranded(title.to_owned()))
-}
 
 fn line(name: &str, url: &str, description: &str) -> String {
     format!("- [{name}]({url}): {description}\n")
 }
 
-fn entry(meta: Result<Meta, I18nError>) -> Result<String, LlmsError> {
+fn entry(meta: Result<Meta, I18nError>) -> Result<String, I18nError> {
     let meta = meta?;
-    Ok(line(
-        page_name(&meta.title)?,
-        &meta.canonical,
-        &meta.description,
-    ))
+    Ok(line(&meta.name, &meta.canonical, &meta.description))
 }
 
 /// `/llms.txt` (llmstxt.org): what Drumverter is and where its English pages are, for
 /// language models that answer with links.
-pub fn llms_txt(site: &Site, messages: &Messages, docs: &Docs) -> Result<String, LlmsError> {
+pub fn llms_txt(site: &Site, messages: &Messages, docs: &Docs) -> Result<String, I18nError> {
     let texts = Texts {
         messages,
         docs,
@@ -53,8 +30,7 @@ pub fn llms_txt(site: &Site, messages: &Messages, docs: &Docs) -> Result<String,
     let popular = site
         .popular
         .iter()
-        .filter_map(|link| site.pairs.iter().find(|p| p.slug == link.slug))
-        .map(|p| entry(pair_meta(p, &texts)))
+        .map(|p| entry(popular_meta(p, &texts)))
         .collect::<Result<String, _>>()?;
     let engines = site
         .engines
@@ -128,11 +104,11 @@ mod tests {
     fn links_every_popular_conversion() {
         let t = text();
         let urls = links(&t);
-        for l in &site().popular {
+        for p in &site().popular {
             assert!(
-                urls.contains(&l.href().in_locale(Locale::En).url().as_str()),
+                urls.contains(&p.link.href().in_locale(Locale::En).url().as_str()),
                 "{}",
-                l.slug
+                p.link.slug
             );
         }
     }
@@ -158,6 +134,6 @@ mod tests {
 
     #[test]
     fn names_pages_without_the_brand_suffix() {
-        assert!(!text().contains(&format!("{TITLE_SEPARATOR}{SITE_NAME}")));
+        assert!(!text().contains(&format!("| {SITE_NAME}")));
     }
 }

@@ -1,16 +1,16 @@
-section-guide-title = Convertir du MIDI batterie d’un plugin à l’autre | Drumverter
+section-guide-title = Convertir du MIDI batterie d’un plugin à l’autre
 section-guide-description = Convertissez du MIDI batterie entre GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums et plus de 80 plugins en trois étapes, gratuitement, dans votre navigateur.
-section-faq-title = FAQ du convertisseur de MIDI batterie | Drumverter
+section-faq-title = FAQ du convertisseur de MIDI batterie
 section-faq-description = Tout sur Drumverter : prix, confidentialité, C-1 ou C-2, plusieurs fichiers à la fois et ce que deviennent les éléments absents du plugin cible.
-section-issue-title = Signaler un problème | Drumverter
+section-issue-title = Signaler un problème
 section-issue-description = Un élément mal mappé, ou un plugin qui manque dans Drumverter ? Signalez-le via le formulaire, sur GitHub ou par e-mail.
-section-contact-title = Contact | Drumverter
+section-contact-title = Contact
 section-contact-description = Questions, suggestions ou demandes de plugins pour Drumverter, le convertisseur de MIDI batterie gratuit qui fonctionne dans le navigateur.
-section-terms-title = Conditions d’utilisation | Drumverter
+section-terms-title = Conditions d’utilisation
 section-terms-description = Conditions d’utilisation de Drumverter, le convertisseur de MIDI batterie gratuit dans le navigateur : fourni tel quel, fichiers jamais envoyés, statistiques anonymes sans cookies.
 lang-offer = Cette page existe en français →
 open-converter = Ouvrir le convertisseur →
-thanks-title = Merci | Drumverter
+thanks-title = Merci
 thanks-description = Merci de soutenir Drumverter, le convertisseur de MIDI batterie gratuit.
 thanks-heading = Merci !
 thanks-body = Grâce à votre café, Drumverter reste gratuit et sans pub. Stripe vous envoie le reçu par e-mail.
@@ -24,8 +24,8 @@ load-failed = Impossible de charger Drumverter. Vérifiez votre connexion Intern
 load-failed-reload = Actualiser
 maps-breadcrumb = Fil d’Ariane
 maps-index-title = { $count ->
-    [one] Mapping MIDI batterie de { $count } plugin | Drumverter
-   *[other] Mappings MIDI batterie de { $count } plugins | Drumverter
+    [one] Mapping MIDI batterie de { $count } plugin
+   *[other] Mappings MIDI batterie de { $count } plugins
 }
 maps-index-description = { $count ->
     [one] Mapping MIDI batterie de { $count } plugin, et tables de conversion entre GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums et d’autres.
@@ -46,8 +46,8 @@ maps-all-engines = { $count ->
 maps-filter-engines-label = Filtrer les plugins
 maps-filter-engines-placeholder = Filtrer les plugins…
 maps-no-engines = Aucun plugin ne correspond
-maps-engine-title = { $engineMidi } : mapping des notes de batterie | Drumverter
-maps-engine-title-long-name = Mapping MIDI : { $engine } | Drumverter
+maps-engine-title = { $engineMidi } : mapping des notes de batterie
+maps-engine-title-long-name = Mapping MIDI : { $engine }
 maps-engine-description = { $engine } : mapping MIDI batterie complet, { $total ->
     [one] { $total } note avec le nom de l’élément
    *[other] { $total } notes avec le nom des éléments
@@ -68,7 +68,7 @@ maps-column-note = Note
 maps-column-drum = Élément
 maps-conversion-tables = Tables de conversion
 maps-pair-heading = Convertir des fichiers { $sourceMidi } vers { $target }
-maps-pair-title = Convertir des fichiers { $sourceMidi } vers { $target } | Drumverter
+maps-pair-title = Convertir des fichiers { $sourceMidi } vers { $target }
 maps-pair-description = Convertir du MIDI batterie { $source } vers { $target } : { $exact } { $exact ->
     [one] note exacte
    *[other] notes exactes
@@ -126,8 +126,8 @@ maps-daw-heading = Drum maps pour votre DAW
 maps-daw-intro = Chargez l’un de ces fichiers dans votre DAW pour voir sur les touches du piano roll les noms des éléments ({ $engine }).
 maps-daw-how = Charger une drum map dans Reaper, Cubase ou Studio One
 drum-maps-title = { $count ->
-    [one] Drum maps pour Cubase, Reaper et Studio One : { $count } plugin | Drumverter
-   *[other] Drum maps pour Cubase, Reaper et Studio One : { $count } plugins | Drumverter
+    [one] Drum maps pour Cubase, Reaper et Studio One : { $count } plugin
+   *[other] Drum maps pour Cubase, Reaper et Studio One : { $count } plugins
 }
 drum-maps-description = { $count ->
     [one] Drum maps gratuites pour { $count } plugin : drum maps Cubase (.drm), noms de notes Reaper (.txt) et pitch lists Studio One (.pitchlist).

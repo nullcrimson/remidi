@@ -1,16 +1,16 @@
-section-guide-title = Как конвертировать MIDI ударных между плагинами | Drumverter
+section-guide-title = Как конвертировать MIDI ударных между плагинами
 section-guide-description = Конвертируйте MIDI ударных между GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums и ещё более чем 80 плагинами в три шага — бесплатно, прямо в браузере.
-section-faq-title = Вопросы о конвертере MIDI плагинов для барабанов | Drumverter
+section-faq-title = Вопросы о конвертере MIDI плагинов для барабанов
 section-faq-description = Ответы на частые вопросы: сколько стоит Drumverter, загружаются ли куда-то файлы, C-1 или C-2, можно ли конвертировать несколько файлов сразу и что будет, если в плагине нет нужного барабана.
-section-issue-title = Сообщить о проблеме | Drumverter
+section-issue-title = Сообщить о проблеме
 section-issue-description = Неправильная нота или в списке нет нужного плагина? Напишите через форму, на GitHub или на почту.
-section-contact-title = Контакты | Drumverter
+section-contact-title = Контакты
 section-contact-description = Вопросы, отзывы и пожелания по новым плагинам — пишите автору Drumverter, бесплатного конвертера MIDI плагинов для барабанов.
-section-terms-title = Условия использования | Drumverter
+section-terms-title = Условия использования
 section-terms-description = Условия использования Drumverter — бесплатного конвертера MIDI плагинов для барабанов: всё «как есть», файлы никуда не загружаются, анонимная статистика без cookie.
 lang-offer = Эта страница есть на русском →
 open-converter = Открыть конвертер →
-thanks-title = Спасибо | Drumverter
+thanks-title = Спасибо
 thanks-description = Спасибо за поддержку Drumverter — бесплатного конвертера MIDI плагинов для барабанов.
 thanks-heading = Спасибо!
 thanks-body = Ваш кофе помогает Drumverter оставаться бесплатным и без рекламы. Чек придёт на почту от Stripe.
@@ -24,10 +24,10 @@ load-failed = Не удалось загрузить Drumverter. Проверь�
 load-failed-reload = Обновить
 maps-breadcrumb = Навигационная цепочка
 maps-index-title = { $count ->
-    [one] Маппинги нот MIDI ударных для { $count } плагина | Drumverter
-    [few] Маппинги нот MIDI ударных для { $count } плагинов | Drumverter
-    [many] Маппинги нот MIDI ударных для { $count } плагинов | Drumverter
-   *[other] Маппинги нот MIDI ударных для { $count } плагина | Drumverter
+    [one] Маппинги нот MIDI ударных для { $count } плагина
+    [few] Маппинги нот MIDI ударных для { $count } плагинов
+    [many] Маппинги нот MIDI ударных для { $count } плагинов
+   *[other] Маппинги нот MIDI ударных для { $count } плагина
 }
 maps-index-description = { $count ->
     [one] Маппинги нот MIDI ударных для { $count } плагина и таблицы конвертации между GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums и другими.
@@ -49,8 +49,8 @@ maps-all-engines = Все плагины ({ $count })
 maps-filter-engines-label = Фильтр плагинов
 maps-filter-engines-placeholder = Фильтр…
 maps-no-engines = Ничего не найдено
-maps-engine-title = { $engineMidi }: маппинг нот ударных | Drumverter
-maps-engine-title-long-name = Маппинг нот MIDI: { $engine } | Drumverter
+maps-engine-title = { $engineMidi }: маппинг нот ударных
+maps-engine-title-long-name = Маппинг нот MIDI: { $engine }
 maps-engine-description = { $total ->
     [one] { $engine }: маппинг нот MIDI ударных — всего { $total } нота с названиями инструментов, в нотации C-1 и C-2.
     [few] { $engine }: маппинг нот MIDI ударных — всего { $total } ноты с названиями инструментов, в нотации C-1 и C-2.
@@ -75,7 +75,7 @@ maps-column-note = Нота
 maps-column-drum = Инструмент
 maps-conversion-tables = Таблицы конвертации
 maps-pair-heading = Конвертация { $sourceMidi } в { $target }
-maps-pair-title = Конвертация { $sourceMidi } в { $target } | Drumverter
+maps-pair-title = Конвертация { $sourceMidi } в { $target }
 maps-pair-description = Конвертация MIDI ударных из { $source } в { $target }: точно — { $exact }, заменено — { $approximated }, убрано — { $dropped }.
 maps-pair-description-more = Бесплатный конвертер прямо в браузере.
 maps-pair-description-short = Конвертация MIDI ударных из { $source } в { $target }.
@@ -108,10 +108,10 @@ maps-daw-heading = Драм-карты для DAW
 maps-daw-intro = Загрузите один из этих файлов в DAW, чтобы видеть названия барабанов { $engine } на клавишах пиано-ролла.
 maps-daw-how = Как загрузить драм-карту в Reaper, Cubase или Studio One
 drum-maps-title = { $count ->
-    [one] Драм-карты для Cubase, Reaper и Studio One: { $count } плагин | Drumverter
-    [few] Драм-карты для Cubase, Reaper и Studio One: { $count } плагина | Drumverter
-    [many] Драм-карты для Cubase, Reaper и Studio One: { $count } плагинов | Drumverter
-   *[other] Драм-карты для Cubase, Reaper и Studio One: { $count } плагина | Drumverter
+    [one] Драм-карты для Cubase, Reaper и Studio One: { $count } плагин
+    [few] Драм-карты для Cubase, Reaper и Studio One: { $count } плагина
+    [many] Драм-карты для Cubase, Reaper и Studio One: { $count } плагинов
+   *[other] Драм-карты для Cubase, Reaper и Studio One: { $count } плагина
 }
 drum-maps-description = { $count ->
     [one] Бесплатные драм-карты для { $count } плагина ударных: drum maps для Cubase (.drm), имена нот для Reaper (.txt) и pitch lists для Studio One (.pitchlist).

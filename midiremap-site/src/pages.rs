@@ -5,7 +5,7 @@ use midiremap_core::{
     OctaveBase, Overrides,
 };
 
-use crate::routes::{drum_map_href, engine_href, pair_href, SitePath, POPULAR};
+use crate::routes::{drum_map_href, engine_href, pair_href, SitePath, POPULAR, SITE_NAME};
 
 /// What stops the site's pages from being planned.
 #[derive(thiserror::Error, Debug)]
@@ -81,7 +81,7 @@ impl EngineLink {
                 daw,
                 href: drum_map_href(&self.slug, daw),
                 file_name: format!(
-                    "{} (Drumverter).{}",
+                    "{} ({SITE_NAME}).{}",
                     safe_file_name(&self.name),
                     daw.extension()
                 ),
@@ -300,12 +300,21 @@ pub struct Site {
     pub engines: Vec<EnginePage>,
     pub pairs: Vec<PairPage>,
     /// The conversions the converter's page links, in `content/structure.json` order.
-    pub popular: Vec<PairLink>,
+    pub popular: Vec<PopularPair>,
     /// Every engine's drum map in every DAW's format, by address.
     pub drum_map_files: Vec<(SitePath, String)>,
 }
 
-fn popular_links(pairs: &[PairPage], wanted: &[(&str, &str)]) -> Result<Vec<PairLink>, BuildError> {
+/// A conversion the converter's page links: the link to its pair page and that page's tally.
+pub struct PopularPair {
+    pub link: PairLink,
+    pub tally: Tally,
+}
+
+fn popular_pairs(
+    pairs: &[PairPage],
+    wanted: &[(&str, &str)],
+) -> Result<Vec<PopularPair>, BuildError> {
     wanted
         .iter()
         .map(|&(src, tgt)| {
@@ -313,7 +322,10 @@ fn popular_links(pairs: &[PairPage], wanted: &[(&str, &str)]) -> Result<Vec<Pair
             pairs
                 .iter()
                 .find(|p| p.slug == slug)
-                .map(PairPage::link)
+                .map(|p| PopularPair {
+                    link: p.link(),
+                    tally: p.tally,
+                })
                 .ok_or(BuildError::NoPairPage(slug))
         })
         .collect()
@@ -514,7 +526,7 @@ impl Site {
         Ok(Site {
             index,
             engines,
-            popular: popular_links(&pairs, POPULAR)?,
+            popular: popular_pairs(&pairs, POPULAR)?,
             pairs,
             drum_map_files,
         })
@@ -601,7 +613,10 @@ mod tests {
         let s = site();
         let slugs: HashSet<_> = s.pairs.iter().map(|p| p.slug.as_str()).collect();
         assert_eq!(s.popular.len(), POPULAR.len());
-        assert!(s.popular.iter().all(|l| slugs.contains(l.slug.as_str())));
+        assert!(s
+            .popular
+            .iter()
+            .all(|p| slugs.contains(p.link.slug.as_str())));
     }
 
     #[test]
@@ -611,14 +626,14 @@ mod tests {
         let hrefs: Vec<String> = site()
             .popular
             .iter()
-            .map(|l| l.href().to_string())
+            .map(|p| p.link.href().to_string())
             .collect();
         assert_eq!(hrefs, recorded);
     }
 
     #[test]
     fn popular_conversions_keep_their_listed_order() {
-        let first = &site().popular[0];
+        let first = &site().popular[0].link;
         let (src, tgt) = POPULAR[0];
         assert_eq!(first.slug, pair_slug(src, tgt));
     }
@@ -627,7 +642,7 @@ mod tests {
     fn a_popular_conversion_without_a_pair_page_is_an_error() {
         let s = site();
         assert!(matches!(
-            popular_links(&s.pairs, &[("ugritone", "bfd3")]),
+            popular_pairs(&s.pairs, &[("ugritone", "bfd3")]),
             Err(BuildError::NoPairPage(_))
         ));
     }

@@ -24,18 +24,17 @@ use midiremap_core::{Catalog, MapError};
 
 use crate::{
     i18n::{Docs, I18nError, Locale, Messages},
-    llms::LlmsError,
     manifest::{AppBuild, ManifestError},
     pages::{BuildError, Site},
     render::RenderError,
-    routes::home,
+    routes::{home, SITE_NAME},
     shell::ShellError,
 };
 
 const FILTER_JS: &str = include_str!("../static/filter.js");
 
 #[derive(Parser)]
-#[command(about = "Generate Drumverter's static engine and conversion pages")]
+#[command(about = format!("Generate {SITE_NAME}'s static engine and conversion pages"))]
 struct Args {
     out_dir: PathBuf,
 }
@@ -54,8 +53,6 @@ pub enum SiteError {
     Render(#[from] RenderError),
     #[error(transparent)]
     I18n(#[from] I18nError),
-    #[error(transparent)]
-    Llms(#[from] LlmsError),
     #[error("cannot write {path}: {source}")]
     Write {
         path: PathBuf,

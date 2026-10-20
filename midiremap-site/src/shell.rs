@@ -5,9 +5,10 @@ use serde_json::json;
 use crate::{
     content::script_json,
     i18n::{Docs, I18nError, Locale, MessageId, Messages, Plain},
-    pages::PairLink,
+    pages::PopularPair,
     routes::{
         alternates, home, logo_url, og_image_url, Alternate, LocalPath, CONVERTER_PAGE, NOTE_MAPS,
+        SITE_NAME,
     },
 };
 
@@ -45,14 +46,14 @@ struct AppTitle<'a> {
 fn popular_links(
     locale: Locale,
     m: &Messages,
-    popular: &[PairLink],
+    popular: &[PopularPair],
 ) -> Result<Vec<ShellLink>, I18nError> {
-    let pairs = popular.iter().map(|p| {
+    let pairs = popular.iter().map(|PopularPair { link, .. }| {
         let mut args = FluentArgs::new();
-        args.set("source", p.src_name.as_str());
-        args.set("target", p.tgt_name.as_str());
+        args.set("source", link.src_name.as_str());
+        args.set("target", link.tgt_name.as_str());
         Ok(ShellLink {
-            href: p.href().in_locale(locale),
+            href: link.href().in_locale(locale),
             label: m.format(locale, MessageId::MapsPairLink, &args)?,
         })
     });
@@ -105,7 +106,7 @@ pub fn localize_shell(
     locale: Locale,
     m: &Messages,
     docs: &Docs,
-    popular: &[PairLink],
+    popular: &[PopularPair],
 ) -> Result<String, ShellError> {
     let get = |id| m.get(locale, id);
     let canonical = home(locale).url();
@@ -123,17 +124,17 @@ pub fn localize_shell(
             "@graph": [
                 {
                     "@type": "SoftwareApplication",
-                    "name": "Drumverter",
+                    "name": SITE_NAME,
                     "description": get(Plain::ConverterAppDescription),
                     "url": canonical,
                     "applicationCategory": "MultimediaApplication",
                     "operatingSystem": "Web",
                     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
                 },
-                { "@type": "WebSite", "name": "Drumverter", "url": site_root },
+                { "@type": "WebSite", "name": SITE_NAME, "url": site_root },
                 {
                     "@type": "Organization",
-                    "name": "Drumverter",
+                    "name": SITE_NAME,
                     "url": site_root,
                     "logo": logo_url(),
                 },
@@ -171,7 +172,7 @@ mod tests {
     use super::*;
     use crate::i18n::Locale;
 
-    fn popular() -> &'static [PairLink] {
+    fn popular() -> &'static [PopularPair] {
         &crate::fixtures::site().popular
     }
 

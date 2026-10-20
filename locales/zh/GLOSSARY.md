@@ -48,7 +48,7 @@
 - Register: plain and friendly, how one musician explains it to another — 点一下, 不用注册, 换成, 里 rather than 中 in casual lines — no officialese (达上限, 可将…, 以…替代). Errors say what happened (无法读取此文件，它似乎不是 MIDI 文件); limits are said plainly (最多只能保存 20 个预设, not 数量已达上限).
 - Punctuation: full-width ，。：；？（）“” in Chinese sentences, including around file extensions in parentheses (（.json）). Mid-sentence em dashes are rewritten with ，or ：; a leading “— ” that continues a bold lead-in (report lines) is kept as in English. Ellipsis in placeholders is the single …, in running text ……. Arrows and symbols (→, ←, ↓, ⇄, ·, +) are kept where English has them.
 - Spacing: one half-width space between Chinese and any Latin word, number, note name or placeable (鼓 MIDI, 通道 10, 另有 { $count } 项, { $engine } 音符), as Apple and Microsoft mainland UIs do. No space next to full-width punctuation, and none between a placeable that always holds Chinese text and Chinese ({ $side }鼓音源).
-- Page titles keep “ | Drumverter”; the brand title uses a colon: Drumverter：….
+- Page titles leave out “ | Drumverter”: the site adds it; the brand title uses a colon: Drumverter：….
 
 ## English kept
 

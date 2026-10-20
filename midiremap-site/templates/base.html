@@ -4,15 +4,15 @@
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="{{ frame.csp }}" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ meta.title }}</title>
+    <title>{{ meta.title() }}</title>
     <meta name="description" content="{{ meta.description }}" />
     <link rel="canonical" href="{{ meta.canonical }}" />
     {% block robots %}{% endblock %}
     {% for a in frame.alternates %}<link rel="alternate" hreflang="{{ a.tag }}" href="{{ a.url() }}" />
     {% endfor %}    {% include "icons.html" %}
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Drumverter" />
-    <meta property="og:title" content="{{ meta.title }}" />
+    <meta property="og:site_name" content="{{ crate::routes::SITE_NAME }}" />
+    <meta property="og:title" content="{{ meta.title() }}" />
     <meta property="og:description" content="{{ meta.description }}" />
     <meta property="og:url" content="{{ meta.canonical }}" />
     <meta property="og:image" content="{{ frame.og_image }}" />
@@ -37,7 +37,7 @@
             data-umami-event="converter-opened"
             data-umami-event-page="{{ frame.kind }}"
             class="tap brand-mark hover:text-t1"
-          >Drumverter</a>
+          >{{ crate::routes::SITE_NAME }}</a>
           <nav aria-label="{{ frame.nav_main }}">
             <ul class="flex flex-wrap gap-x-5 gap-y-1 text-ui">
               {% for n in frame.nav %}

@@ -1,16 +1,16 @@
-section-guide-title = Jak konwertować MIDI perkusji między wtyczkami | Drumverter
+section-guide-title = Jak konwertować MIDI perkusji między wtyczkami
 section-guide-description = Konwertuj MIDI perkusji między GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums i 80+ wtyczkami w trzech krokach, za darmo, w przeglądarce.
-section-faq-title = FAQ konwertera MIDI perkusji | Drumverter
+section-faq-title = FAQ konwertera MIDI perkusji
 section-faq-description = Drumverter w pytaniach: koszt, prywatność, oktawy (C-1 czy C-2), konwersja wielu plików i co się dzieje z instrumentami bez odpowiednika.
-section-issue-title = Zgłoś problem | Drumverter
+section-issue-title = Zgłoś problem
 section-issue-description = Błędne mapowanie instrumentu lub brak wtyczki w aplikacji Drumverter? Zgłoś to na GitHubie lub e-mailem.
-section-contact-title = Kontakt | Drumverter
+section-contact-title = Kontakt
 section-contact-description = Pytania, uwagi i prośby o nowe wtyczki — Drumverter, darmowy konwerter MIDI perkusji w przeglądarce.
-section-terms-title = Warunki korzystania | Drumverter
+section-terms-title = Warunki korzystania
 section-terms-description = Warunki korzystania z aplikacji Drumverter: bez gwarancji, pliki nigdy nie są wysyłane, anonimowe statystyki bez plików cookie.
 lang-offer = Ta strona jest też po polsku →
 open-converter = Otwórz konwerter →
-thanks-title = Dziękuję | Drumverter
+thanks-title = Dziękuję
 thanks-description = Dziękuję za wsparcie aplikacji Drumverter — darmowego konwertera MIDI perkusji.
 thanks-heading = Dziękuję!
 thanks-body = Dzięki kawie aplikacja Drumverter pozostaje darmowa i bez reklam. Potwierdzenie płatności Stripe wyśle e-mailem.
@@ -24,8 +24,8 @@ load-failed = Nie udało się wczytać aplikacji Drumverter. Sprawdź połączen
 load-failed-reload = Odśwież
 maps-breadcrumb = Ścieżka nawigacyjna
 maps-index-title = { $count ->
-    [one] Mapa nut MIDI perkusji dla { $count } wtyczki | Drumverter
-   *[other] Mapy nut MIDI perkusji dla { $count } wtyczek | Drumverter
+    [one] Mapa nut MIDI perkusji dla { $count } wtyczki
+   *[other] Mapy nut MIDI perkusji dla { $count } wtyczek
 }
 maps-index-description = { $count ->
     [one] Mapy nut MIDI perkusji dla { $count } wtyczki, plus tabele konwersji między GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums i innymi.
@@ -47,8 +47,8 @@ maps-all-engines = { $count ->
 maps-filter-engines-label = Filtruj wtyczki
 maps-filter-engines-placeholder = Filtruj wtyczki…
 maps-no-engines = Żadna wtyczka nie pasuje
-maps-engine-title = { $engineMidi }: mapa nut i instrumentów | Drumverter
-maps-engine-title-long-name = Mapa nut MIDI: { $engine } | Drumverter
+maps-engine-title = { $engineMidi }: mapa nut i instrumentów
+maps-engine-title-long-name = Mapa nut MIDI: { $engine }
 maps-engine-description = { $total ->
     [one] { $engine }: mapa nut MIDI perkusji z { $total } nutą i nazwami instrumentów w C-1 i C-2.
    *[other] { $engine }: mapa nut MIDI perkusji z { $total } nutami i nazwami instrumentów w C-1 i C-2.
@@ -70,7 +70,7 @@ maps-column-note = Nuta
 maps-column-drum = Instrument
 maps-conversion-tables = Tabele konwersji
 maps-pair-heading = Konwertuj { $sourceMidi } na { $target }
-maps-pair-title = Konwertuj { $sourceMidi } na { $target } | Drumverter
+maps-pair-title = Konwertuj { $sourceMidi } na { $target }
 maps-pair-description = Konwertuj MIDI { $source } na { $target }. Dokładne: { $exact }, zastąpione: { $approximated }, usunięte: { $dropped }.
 maps-pair-description-more = Darmowy konwerter w przeglądarce.
 maps-pair-description-short = Konwertuj MIDI { $source } na { $target }.
@@ -98,9 +98,9 @@ maps-daw-heading = Mapy perkusji do DAW
 maps-daw-intro = Wczytaj jeden z tych plików do DAW, a na klawiszach piano rolla zobaczysz nazwy instrumentów { $engine }.
 maps-daw-how = Jak wczytać mapę perkusji w Reaperze, Cubase lub Studio One
 drum-maps-title = { $count ->
-    [one] Mapy perkusji do Cubase, Reapera i Studio One: { $count } wtyczka | Drumverter
-    [few] Mapy perkusji do Cubase, Reapera i Studio One: { $count } wtyczki | Drumverter
-   *[many] Mapy perkusji do Cubase, Reapera i Studio One: { $count } wtyczek | Drumverter
+    [one] Mapy perkusji do Cubase, Reapera i Studio One: { $count } wtyczka
+    [few] Mapy perkusji do Cubase, Reapera i Studio One: { $count } wtyczki
+   *[many] Mapy perkusji do Cubase, Reapera i Studio One: { $count } wtyczek
 }
 drum-maps-description = { $count ->
     [one] Darmowe mapy perkusji dla { $count } wtyczki: drum mapy Cubase (.drm), nazwy nut Reapera (.txt) i pitch listy Studio One (.pitchlist).

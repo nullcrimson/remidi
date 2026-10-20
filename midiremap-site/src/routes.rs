@@ -8,6 +8,9 @@ include!(concat!(env!("OUT_DIR"), "/routes.rs"));
 
 const ORIGIN: &str = "https://drumverter.com";
 
+/// The site's name, as page titles, social cards, schema and `/llms.txt` carry it.
+pub const SITE_NAME: &str = "Drumverter";
+
 /// Where Stripe sends a visitor back after a tip.
 pub const THANKS: SitePath = SitePath::fixed("/thanks/");
 
