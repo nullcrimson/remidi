@@ -292,7 +292,7 @@
   }
 
   .note-table {
-    @apply mb-4 w-full scroll-mt-40 break-inside-avoid border-collapse;
+    @apply mb-4 w-full scroll-mt-80 break-inside-avoid border-collapse sm:scroll-mt-40;
 
     & [data-q] {
       @apply border-t border-white/5;
