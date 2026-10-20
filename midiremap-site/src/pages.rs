@@ -349,13 +349,15 @@ impl Tally {
     }
 
     /// The share of the notes that land exactly, in whole percent; 0 when there are none.
-    pub fn exact_percent(&self) -> u8 {
-        let total = self.total();
-        if total == 0 {
-            return 0;
-        }
-        u8::try_from((self.exact * 200 + total) / (2 * total)).unwrap_or(100)
+    pub fn exact_percent(&self) -> usize {
+        rounded_percent(self.exact, self.total()).unwrap_or(0)
     }
+}
+
+/// `part` of `whole` in whole percent, a half rounded up; `None` when `whole` is 0.
+fn rounded_percent(part: usize, whole: usize) -> Option<usize> {
+    const PERCENT: usize = 100;
+    (2 * part * PERCENT + whole).checked_div(2 * whole)
 }
 
 pub struct EnginePage {
@@ -1241,21 +1243,32 @@ mod tests {
         }
     }
 
+    fn share(exact: usize, approximated: usize, dropped: usize) -> usize {
+        Tally {
+            exact,
+            approximated,
+            dropped,
+        }
+        .exact_percent()
+    }
+
     #[test]
-    fn exact_percent_rounds_and_never_divides_by_zero() {
-        let share = |exact, approximated, dropped| {
-            Tally {
-                exact,
-                approximated,
-                dropped,
-            }
-            .exact_percent()
-        };
+    fn a_pair_without_notes_maps_no_share_exactly() {
         assert_eq!(share(0, 0, 0), 0);
-        assert_eq!(share(1, 2, 0), 33);
-        assert_eq!(share(2, 1, 0), 67);
-        assert_eq!(share(1, 1, 0), 50);
+    }
+
+    #[test]
+    fn exact_percent_rounds_to_the_nearest_whole_percent() {
+        assert_eq!((share(1, 2, 0), share(2, 1, 0)), (33, 67));
+    }
+
+    #[test]
+    fn exact_percent_rounds_a_half_up() {
         assert_eq!(share(1, 0, 199), 1);
+    }
+
+    #[test]
+    fn exact_percent_of_all_exact_notes_is_a_hundred() {
         assert_eq!(share(5, 0, 0), 100);
     }
 
