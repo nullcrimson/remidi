@@ -189,7 +189,7 @@ on a phone and click elsewhere.
 - **Convert**: three numbered steps, each badge turning into a check once done. 1. Your
   drum file: drop `.mid` files, or try a sample groove built for the FROM layout. 2. From one
   drum layout to another: a FROM and a TO card (⇄ swaps), each opening a searchable picker
-  (a bottom sheet on phones) with up to three favourites under the card to pick in one
+  (a bottom sheet on phones) with its favourites under the card to pick in one
   press; the drum summary follows. 3. Convert: the settings folded under one line that
   names their values (octave naming, drum channel, missing drums (Nearest plays a drum the target lacks on the closest
   one, Drop leaves it out) and unknown notes (Remove leaves out a note the source layout

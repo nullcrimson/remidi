@@ -9,10 +9,8 @@ import { EnginePicker } from './EnginePicker';
 import { LibraryList } from './LibraryList';
 import { useFavorites } from './useFavorites';
 
-const QUICK_FAVOURITES = 3;
-
 /**
- * One side of the conversion: its card, a few of its favourites to pick in one press,
+ * One side of the conversion: its card, its favourites to pick in one press,
  * and the picker the card opens with every engine.
  */
 export function EngineSide({ side, label, value, disabledId, engines, next, onChange, cardRef }: {
@@ -30,9 +28,7 @@ export function EngineSide({ side, label, value, disabledId, engines, next, onCh
   const [open, setOpen] = useState(false);
   const filter = useRef<HTMLElement | null>(null);
   const chosen = engines.find((e) => e.id === value)?.name ?? null;
-  const quick = engines
-    .filter((e) => favorites.has(e.id) && e.id !== value && e.id !== disabledId)
-    .slice(0, QUICK_FAVOURITES);
+  const quick = engines.filter((e) => favorites.has(e.id) && e.id !== value && e.id !== disabledId);
   return (
     <div
       role="group"

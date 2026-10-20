@@ -71,6 +71,29 @@ describe('EngineSide', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it('offers every favourite as a one-press pick', () => {
+    localStorage.setItem(storedName('favorites:to'), JSON.stringify(['addictive', 'ezdrummer', 'extra_one', 'extra_two']));
+    render(
+      <EngineSide
+        side="to"
+        label="TO"
+        value={null}
+        disabledId={null}
+        engines={[
+          ...engines,
+          ...typed<Engine[]>([
+            { id: 'extra_one', name: 'Extra One', fullName: 'Extra One' },
+            { id: 'extra_two', name: 'Extra Two', fullName: 'Extra Two' },
+          ]),
+        ]}
+        next
+        onChange={() => {}}
+        cardRef={() => {}}
+      />,
+    );
+    expect(within(screen.getByRole('list', { name: 'Favourites' })).getAllByRole('button')).toHaveLength(4);
+  });
+
   it('offers the favourites as one-press picks, leaving out the chosen and the other side’s engine', async () => {
     localStorage.setItem(storedName('favorites:to'), JSON.stringify(['ezdrummer', 'addictive', 'ggd_invasion']));
     const onChange = side('ezdrummer');
