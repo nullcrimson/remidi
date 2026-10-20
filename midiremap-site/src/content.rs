@@ -33,7 +33,7 @@ impl Inline {
 }
 
 #[derive(Deserialize)]
-pub struct Step {
+pub struct Note {
     pub title: String,
     pub body: String,
 }
@@ -72,7 +72,7 @@ pub enum Block {
     List(Vec<Vec<Inline>>),
     Faq(Vec<Qa>),
     H(String),
-    Note(Step),
+    Note(Note),
 }
 
 #[cfg(test)]
