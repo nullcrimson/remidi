@@ -1,8 +1,9 @@
 import { expect, openPair, test } from './fixtures';
-import { leaveEditor, openEditor, press, retarget, targetNote } from './steps';
+import { leaveEditor, openEditor, openSettings, press, retarget, targetNote } from './steps';
 
 test('the last engines, settings and unsaved edits come back on a fresh visit', async ({ page }) => {
   await openPair(page);
+  await openSettings(page);
   await press(page.getByRole('radiogroup', { name: 'Octaves start at' }).getByText('C-2'));
   await page.getByRole('combobox', { name: 'Drum channel' }).selectOption('All channels');
   await press(page.getByRole('radiogroup', { name: 'Missing drums' }).getByText('Drop', { exact: true }));
@@ -15,6 +16,7 @@ test('the last engines, settings and unsaved edits come back on a fresh visit', 
     .toHaveText('GetGood Drums Invasion');
   await expect(page.getByRole('group', { name: 'TO engine' }).getByTestId('chosen-engine'))
     .toHaveText('EZdrummer 3');
+  await openSettings(page);
   await expect(page.getByRole('radio', { name: 'C-2' })).toBeChecked();
   await expect(page.getByRole('combobox', { name: 'Drum channel' })).toHaveValue('all');
   await expect(page.getByRole('radio', { name: 'Drop' })).toBeChecked();
@@ -36,9 +38,11 @@ test('a link with engines wins over the remembered ones', async ({ page }) => {
 
 test('a link with engines keeps the remembered settings', async ({ page }) => {
   await openPair(page);
+  await openSettings(page);
   await press(page.getByRole('radiogroup', { name: 'Octaves start at' }).getByText('C-2'));
   await expect(page.getByRole('radio', { name: 'C-2' })).toBeChecked();
 
   await page.goto('/?from=ezdrummer&to=general_midi');
+  await openSettings(page);
   await expect(page.getByRole('radio', { name: 'C-2' })).toBeChecked();
 });

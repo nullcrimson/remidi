@@ -69,13 +69,18 @@ export async function pickEngines(): Promise<void> {
   await pickTo('EZdrummer');
 }
 
+/** Unfolds the conversion settings. */
+export async function openSettings(): Promise<void> {
+  await userEvent.click(screen.getByText('Settings', { selector: 'summary span' }));
+}
+
 export async function addMidi(...names: string[]): Promise<void> {
   const files = names.map((name) => new File([new Uint8Array([1])], name));
   await userEvent.upload(screen.getAllByTestId('file-input')[0], files);
 }
 
 export async function convert(): Promise<void> {
-  await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
+  await userEvent.click(screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ }));
   await screen.findByRole('button', { name: /View report/i });
 }
 

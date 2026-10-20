@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { WasmCallError } from '../src/core/errors';
 import * as stub from './stubs/wasm';
-import { addMidi, convert, MY_KIT, openEditor, pickEngines, startApp, storePresets } from './eventSteps';
+import { MY_KIT, addMidi, convert, openEditor, openSettings, pickEngines, startApp, storePresets } from './eventSteps';
 import { fakeUmami } from './umami';
 
 const chips = () => screen.getAllByRole('button', { expanded: false, name: /^[A-G]/ });
@@ -106,6 +106,7 @@ describe('the events of the note editor', () => {
   it('sends editor-opened from missing for the missing-drums link', async () => {
     await startApp();
     await pickEngines();
+    await openSettings();
     await userEvent.hover(screen.getByRole('button', { name: '1 drum played on another drum' }));
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Change in note editor →' }));
     expect(umami).toHaveBeenCalledWith('editor-opened', { show: 'issues', from: 'missing' });

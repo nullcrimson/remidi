@@ -32,7 +32,7 @@ describe('the events of converting', () => {
     await startApp();
     await pickEngines();
     await addMidi('a.mid', 'b.mid');
-    await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ }));
     await screen.findByRole('alert');
     expect(umami.mock.calls.filter(([name]) => name === 'file-failed')).toEqual([['file-failed', { kind: 'badMidi', files: 2 }]]);
   });
@@ -48,7 +48,7 @@ describe('the events of converting', () => {
     await startApp();
     await pickEngines();
     await addMidi('a.mid', 'b.mid');
-    await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ }));
     await screen.findByRole('alert');
     expect(umami).toHaveBeenCalledWith('file-failed', { kind: 'badMidi', files: 1 });
     expect(umami).toHaveBeenCalledWith('file-failed', { kind: 'internal', files: 1 });

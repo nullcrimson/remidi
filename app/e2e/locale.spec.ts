@@ -1,4 +1,5 @@
 import { addFiles, DRUMS, expect, midFile, openPair, test } from './fixtures';
+import { openSettings } from './steps';
 
 test('/pl/ renders Polish with lang="pl"', async ({ page }) => {
   await page.goto('/pl/');
@@ -121,10 +122,12 @@ test('switching language on the converter keeps a loaded file', async ({ page })
 
 test('switching language on the converter keeps its settings', async ({ page }) => {
   await openPair(page);
+  await openSettings(page);
   await page.getByText('C-2', { exact: true }).click();
   await page.getByRole('button', { name: 'Language' }).click();
   await page.locator('#language-menu').getByRole('link', { name: 'Polski' }).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
+  await openSettings(page);
   await expect(page.getByRole('radio', { name: 'C-2' })).toBeChecked();
 });
 

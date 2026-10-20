@@ -36,10 +36,15 @@ for (const code of LOCALES) {
       await page.keyboard.press('Escape');
       await addFiles(page, kickAndChina());
       await fits(page, 'file loaded');
+      await page.getByRole('group', { name: m('library-group', { side: m('engine-to') }) }).getByRole('button').first().click();
+      await fits(page, 'engine picker');
+      await page.keyboard.press('Escape');
+      await page.getByTestId('settings-fold').locator('summary').click();
+      await fits(page, 'settings open');
       await page.getByRole('button', { name: m('summary-edit') }).click();
       await fits(page, 'edit view');
       await page.getByRole('button', { name: m('edit-back') }).click();
-      await page.getByRole('button', { name: m('convert-button'), exact: true }).click();
+      await page.getByRole('button', { name: m('convert-button-ready', { count: 1, target: 'EZdrummer 3' }), exact: true }).click();
       await fits(page, 'done');
       await page.getByRole('button', { name: m('done-view-report') }).click();
       await fits(page, 'report');

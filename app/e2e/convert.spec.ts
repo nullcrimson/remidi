@@ -40,7 +40,7 @@ test('one saved file does not ask for a tip', async ({ page }) => {
 async function hoverDisabledConvert(page: Page) {
   await openPair(page);
   await expect(page.getByRole('button', { name: /Edit individual notes/ })).toBeVisible();
-  const convert = page.getByRole('button', { name: 'Convert', exact: true });
+  const convert = page.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ });
   await convert.evaluate((el) => el.scrollIntoView({ block: 'center' }));
   const box = (await convert.boundingBox())!;
   await page.mouse.move(box.x + 40, box.y + box.height / 2);

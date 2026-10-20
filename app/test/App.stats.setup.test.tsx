@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { Engine, SourceFits } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
-import { addMidi, openPicker, pickEngines, pickFrom, pickTo, startApp } from './eventSteps';
+import { addMidi, openPicker, openSettings, pickEngines, pickFrom, pickTo, startApp } from './eventSteps';
 import { typed } from './typed';
 import { fakeUmami } from './umami';
 
@@ -75,18 +75,21 @@ describe('the events of setting up a conversion', () => {
 
   it('sends setting-changed for the octave convention', async () => {
     await startApp();
+    await openSettings();
     await userEvent.click(screen.getByRole('radio', { name: 'C-2' }));
     expect(umami).toHaveBeenCalledWith('setting-changed', { setting: 'octave', value: 'c2' });
   });
 
   it('sends setting-changed with value one for a single drum channel', async () => {
     await startApp();
+    await openSettings();
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Drum channel' }), '10');
     expect(umami).toHaveBeenCalledWith('setting-changed', { setting: 'channel', value: 'one' });
   });
 
   it('sends setting-changed with value all for every channel', async () => {
     await startApp();
+    await openSettings();
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Drum channel' }), 'all');
     expect(umami).toHaveBeenCalledWith('setting-changed', { setting: 'channel', value: 'all' });
   });
@@ -99,6 +102,7 @@ describe('the events of setting up a conversion', () => {
 
   it('sends setting-changed for the unrecognized-notes setting', async () => {
     await startApp();
+    await openSettings();
     await userEvent.click(screen.getByRole('radio', { name: 'Keep as they are' }));
     expect(umami).toHaveBeenCalledWith('setting-changed', { setting: 'unrecognized', value: 'keep' });
   });

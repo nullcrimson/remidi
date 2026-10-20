@@ -35,6 +35,15 @@ export async function pickEngine(page: Page, side: 'FROM' | 'TO', filter: string
   await expect(picker).toBeHidden();
 }
 
+/** Unfolds the conversion settings, in any language. */
+export async function openSettings(page: Page) {
+  const fold = page.getByTestId('settings-fold');
+  await expect(async () => {
+    if (await fold.getAttribute('open') === null) await press(fold.locator('summary'));
+    await expect(fold).toHaveAttribute('open', '', { timeout: 1000 });
+  }).toPass();
+}
+
 export const saved = (page: Page) => page.getByRole('group', { name: 'Saved mappings' });
 
 /** The main button of the saved GGD Invasion → EZdrummer preset called `name`. */
@@ -61,7 +70,7 @@ export async function retarget(page: Page, drum: string, note: string) {
 }
 
 export async function convert(page: Page, files = 1) {
-  await press(page.getByRole('button', { name: 'Convert', exact: true }));
+  await press(page.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ }));
   await expect(page.getByRole('heading', { name: new RegExp(`^${files} files? converted`) })).toBeVisible();
 }
 

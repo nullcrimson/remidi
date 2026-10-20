@@ -115,6 +115,11 @@ dropzone-heading = .MID ABLEGEN
 dropzone-presets = oder ein exportiertes Preset (.json)
 convert-running = wird konvertiert
 convert-button = Konvertieren
+convert-button-ready = { $count ->
+    [one] 1 Datei
+   *[other] { $count } Dateien
+} für { $target } konvertieren
+settings-heading = Einstellungen
 engine-from = VON
 engine-to = NACH
 engine-swap = VON und NACH tauschen

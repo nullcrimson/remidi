@@ -131,6 +131,13 @@ dropzone-heading = ПЕРЕТАЩИТЕ .MID
 dropzone-presets = или экспортированный пресет (.json)
 convert-running = конвертируем
 convert-button = Конвертировать
+convert-button-ready = { $count ->
+    [one] Конвертировать { $count } файл
+    [few] Конвертировать { $count } файла
+    [many] Конвертировать { $count } файлов
+   *[other] Конвертировать { $count } файла
+} для { $target }
+settings-heading = Настройки
 engine-from = ИЗ
 engine-to = В
 engine-swap = Поменять местами

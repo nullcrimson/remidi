@@ -13,7 +13,7 @@ const fromBox = () => screen.getByRole('combobox', { name: 'Filter FROM engines'
 const toBox = () => screen.getByRole('combobox', { name: 'Filter TO engines' });
 const card = (side: 'FROM' | 'TO') =>
   within(screen.getByRole('group', { name: `${side} engine` })).getByRole('button', { name: new RegExp(`^${side}`) });
-const convertButton = () => screen.getByRole('button', { name: 'Convert' });
+const convertButton = () => screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ });
 
 async function addFile() {
   const input = screen.getAllByTestId('file-input')[0] as HTMLInputElement;

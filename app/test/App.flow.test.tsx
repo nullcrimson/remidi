@@ -29,7 +29,7 @@ async function convertAndOpenReport() {
   await start();
   await pickEngines();
   await upload('groove.mid');
-  await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
+  await userEvent.click(screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ }));
   await userEvent.click(await screen.findByRole('button', { name: /View report/i }));
   return screen.findByRole('dialog', { name: 'Conversion report' });
 }
@@ -122,7 +122,7 @@ describe('App convert flow', () => {
     await start();
     await pickEngines();
     await upload('groove.mid');
-    await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ }));
     expect(await screen.findByText('1 file converted → EZdrummer')).toBeInTheDocument();
     expect(downloads()).toEqual([]);
     const download = screen.getByRole('link', { name: '↓ Download .mid' });
@@ -134,11 +134,11 @@ describe('App convert flow', () => {
     await start();
     await pickEngines();
     await upload('groove.mid');
-    await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ }));
     await screen.findByText('1 file converted → EZdrummer');
     await userEvent.click(screen.getByRole('button', { name: 'Convert more' }));
     expect(screen.queryByText('groove.mid')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Convert' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ })).toBeDisabled();
     expect(within(screen.getByRole('group', { name: 'FROM engine' })).getByTestId('chosen-engine')).toHaveTextContent(
       'GGD Invasion',
     );

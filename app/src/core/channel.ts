@@ -22,6 +22,18 @@ export const CHANNELS: { value: ChannelScope; label: Message }[] = [
   })),
 ];
 
+/** The name a channel scope goes by in the picker and the settings summary. */
+export function channelLabel(channel: ChannelScope): Message {
+  switch (channel) {
+    case 'auto':
+      return NAMED.auto;
+    case 'all':
+      return NAMED.all;
+    default:
+      return { id: 'channel-number', args: { channel } };
+  }
+}
+
 export function channelHint(channel: ChannelScope): Message {
   switch (channel) {
     case 'auto':

@@ -124,6 +124,11 @@ dropzone-heading = TRASCINA .MID
 dropzone-presets = o un preset esportato (.json)
 convert-running = conversione
 convert-button = Converti
+convert-button-ready = { $count ->
+    [one] Converti 1 file
+   *[other] Converti { $count } file
+} per { $target }
+settings-heading = Impostazioni
 engine-from = DA
 engine-to = A
 engine-swap = Inverti origine e destinazione

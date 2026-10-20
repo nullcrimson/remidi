@@ -9,7 +9,7 @@ import { engineId } from '../typed';
 const named = (id: string) => ({ id: engineId(id), name: `Name of ${id}`, fullName: `Name of ${id}` });
 const ENGINES = [...new Set(POPULAR.flat())].map(named);
 
-const links = () => within(screen.getByRole('navigation', { name: 'Popular conversions' })).getAllByRole('link');
+const links = () => within(screen.getByRole('navigation', { name: 'Popular conversions' })).getAllByRole('link', { hidden: true });
 
 describe('PopularConversions', () => {
   it('links every popular conversion table in order', () => {
@@ -47,7 +47,7 @@ describe('PopularConversions', () => {
       </LocaleContext.Provider>,
     );
     const nav = screen.getByRole('navigation', { name: pl.t({ id: 'maps-popular' }) });
-    const hrefs = within(nav).getAllByRole('link').map((l) => l.getAttribute('href'));
+    const hrefs = within(nav).getAllByRole('link', { hidden: true }).map((l) => l.getAttribute('href'));
     expect(hrefs.every((h) => h?.startsWith('/pl/convert/'))).toBe(true);
   });
 });

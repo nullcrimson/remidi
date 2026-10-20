@@ -115,6 +115,11 @@ dropzone-heading = DROP .MID
 dropzone-presets = or an exported preset (.json)
 convert-running = remapping
 convert-button = Convert
+convert-button-ready = { $count ->
+    [one] Convert 1 file
+   *[other] Convert { $count } files
+} to { $target }
+settings-heading = Settings
 engine-from = FROM
 engine-to = TO
 engine-swap = Swap FROM and TO

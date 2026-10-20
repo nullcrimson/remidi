@@ -1,5 +1,5 @@
 import { addFiles, DRUMS, expect, hitKeys, midFile, openPair, test } from './fixtures';
-import { convert, download, drumRow, noteButtons, openEditor, press, retarget, targetNote } from './steps';
+import { convert, download, drumRow, noteButtons, openEditor, openSettings, press, retarget, targetNote } from './steps';
 
 const kickFile = () => midFile('kick.mid', [{ channel: DRUMS, key: 24 }]);
 
@@ -130,6 +130,7 @@ test('octave naming renames the notes in the editor', async ({ page }) => {
   await expect(noteButtons(page, 'Kick')).toHaveText(['C1', 'C2']);
   await page.getByRole('button', { name: '← Back' }).click();
 
+  await openSettings(page);
   await page.getByRole('radiogroup', { name: 'Octaves start at' }).getByText('C-2').click();
   await expect(page.getByRole('radio', { name: 'C-2' })).toBeChecked();
   await expect(page.getByText('Studio One · Cubase · FL Studio')).toBeVisible();
@@ -140,6 +141,7 @@ test('octave naming renames the notes in the editor', async ({ page }) => {
 test('octave naming does not change the notes in the file', async ({ page }) => {
   await openPair(page);
   await addFiles(page, kickFile());
+  await openSettings(page);
   await page.getByRole('radiogroup', { name: 'Octaves start at' }).getByText('C-2').click();
   await page.getByText('Studio One · Cubase · FL Studio').waitFor();
 

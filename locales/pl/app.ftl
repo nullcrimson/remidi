@@ -123,6 +123,12 @@ dropzone-heading = UPUŚĆ .MID
 dropzone-presets = lub wyeksportowany preset (.json)
 convert-running = mapowanie
 convert-button = Konwertuj
+convert-button-ready = { $count ->
+    [one] Konwertuj 1 plik
+    [few] Konwertuj { $count } pliki
+   *[many] Konwertuj { $count } plików
+} dla { $target }
+settings-heading = Ustawienia
 engine-from = ŹRÓDŁO
 engine-to = CEL
 engine-swap = Zamień źródło i cel

@@ -7,7 +7,7 @@ import { RUNTIME } from './runtime';
 import type { Drum, MissingDrums, RemapOutput, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
-import { pickFrom, pickTo } from './eventSteps';
+import { openSettings, pickFrom, pickTo } from './eventSteps';
 
 function remapFor(missing: MissingDrums | null | undefined) {
   return typed<RemapOutput>({
@@ -28,7 +28,7 @@ async function convertOneFile() {
   await pickFrom('GGD Invasion');
   await pickTo('EZdrummer');
   await userEvent.upload(screen.getAllByTestId('file-input')[0], new File([new Uint8Array([1])], 'groove.mid'));
-  await userEvent.click(await screen.findByRole('button', { name: 'Convert' }));
+  await userEvent.click(await screen.findByRole('button', { name: /^Convert( \d+ files? to .+)?$/ }));
   await screen.findByRole('button', { name: /View report/i });
 }
 
@@ -55,6 +55,7 @@ describe('App missing drums', () => {
   it('starts on Nearest with its hint', async () => {
     render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
+    await openSettings();
     const group = screen.getByRole('radiogroup', { name: 'Missing drums' });
     expect(within(group).getByRole('radio', { name: 'Nearest' })).toBeChecked();
     expect(screen.getByText('play on the closest drum')).toBeInTheDocument();
@@ -71,6 +72,7 @@ describe('App missing drums', () => {
   it('counts the dropped drums once Drop is chosen', async () => {
     render(<App runtime={RUNTIME} />);
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
+    await openSettings();
     const group = screen.getByRole('radiogroup', { name: 'Missing drums' });
     await pickFrom('GGD Invasion');
     await pickTo('EZdrummer');
@@ -84,6 +86,7 @@ describe('App missing drums', () => {
     await waitFor(() => expect(stub.remap).toHaveBeenCalledTimes(2));
     expect(vi.mocked(stub.remap).mock.lastCall?.[5]).toBe('drop');
     await waitFor(() => expect(screen.getByText('3 dropped', { selector: 'li' })).toBeInTheDocument());
+    await openSettings();
     expect(screen.getByRole('radio', { name: 'Drop' })).toBeChecked();
     expect(screen.queryByRole('button', { name: DROP_LINK })).not.toBeInTheDocument();
   });

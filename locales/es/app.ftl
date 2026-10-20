@@ -121,6 +121,11 @@ dropzone-heading = SUELTA .MID
 dropzone-presets = o un preset exportado (.json)
 convert-running = convirtiendo
 convert-button = Convertir
+convert-button-ready = { $count ->
+    [one] Convertir 1 archivo
+   *[other] Convertir { $count } archivos
+} a { $target }
+settings-heading = Ajustes
 engine-from = ORIGEN
 engine-to = DESTINO
 engine-swap = Intercambiar origen y destino

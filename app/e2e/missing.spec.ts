@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { addFiles, expect, hitKeys, kickAndChina, openPair, test } from './fixtures';
-import { convert, download as downloadFile } from './steps';
+import { convert, download as downloadFile, openSettings } from './steps';
 
 const moved = /^\d+ drums? played on another drum$/;
 
@@ -9,6 +9,7 @@ const download = async (page: Page) => hitKeys(await downloadFile(page));
 test('leaving missing drums out changes the hint', async ({ page }) => {
   await openPair(page);
   await addFiles(page, kickAndChina());
+  await openSettings(page);
   await expect(page.getByRole('button', { name: moved })).toBeVisible();
 
   await page.getByRole('radiogroup', { name: 'Missing drums' }).getByText('Drop', { exact: true }).click();
@@ -20,6 +21,7 @@ test('leaving missing drums out changes the hint', async ({ page }) => {
 test('leaving missing drums out changes the converted file', async ({ page }) => {
   await openPair(page);
   await addFiles(page, kickAndChina());
+  await openSettings(page);
   await page.getByRole('radiogroup', { name: 'Missing drums' }).getByText('Drop', { exact: true }).click();
   await page.getByRole('radio', { name: 'Drop' }).waitFor();
 
@@ -39,6 +41,7 @@ test('the report drops missing drums and converts again', async ({ page }) => {
   const report = page.getByRole('dialog', { name: 'Conversion report' });
   await report.getByRole('button', { name: 'Drop missing drums & convert again' }).click();
   await expect(report).toBeHidden();
+  await openSettings(page);
   await expect(page.getByRole('radio', { name: 'Drop' })).toBeChecked();
   await expect(page.getByRole('button', { name: 'Drop missing drums & convert again' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: /1 file converted/ })).toBeVisible();
@@ -82,6 +85,7 @@ test('the remapped count opens the editor on the issues', async ({ page }) => {
 
 test('the missing drums hint lists the drums played elsewhere', async ({ page }) => {
   await openPair(page);
+  await openSettings(page);
   const detail = page.getByRole('dialog');
   await movedHint(page).click();
   await expect(detail.getByText('Played on another drum')).toBeVisible();
@@ -90,6 +94,7 @@ test('the missing drums hint lists the drums played elsewhere', async ({ page })
 
 test('the missing drums hint opens the editor on the issues', async ({ page }) => {
   await openPair(page);
+  await openSettings(page);
   const detail = page.getByRole('dialog');
   await movedHint(page).click();
   await detail.waitFor();

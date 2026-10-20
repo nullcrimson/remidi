@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { addFiles, DRUMS, expect, hitsOf, midFile, openPair, test } from './fixtures';
-import { convert, download } from './steps';
+import { convert, download, openSettings } from './steps';
 
 const KICK = 24;
 const EZ_KICK = 36;
@@ -15,6 +15,7 @@ const band = () => midFile(
 async function loadBand(page: Page, channel?: string) {
   await openPair(page);
   await addFiles(page, band());
+  await openSettings(page);
   const select = page.getByRole('combobox', { name: 'Drum channel' });
   if (channel) await select.selectOption(channel);
   return select;

@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import { CardDropzone } from './convert/CardDropzone';
 import { CloserSourcesNotice } from './convert/CloserSourcesNotice';
-import { ConvertButton } from './convert/ConvertButton';
-import { DonePanel } from './convert/DonePanel';
 import { EditView } from './editor/EditView';
 import { EngineColumns } from './engines/EngineColumns';
 import { FileChips } from './convert/FileChips';
 import { Intro } from './convert/Intro';
 import { Card, Page } from './site/PageFrame';
 import { PopularConversions } from './site/PopularConversions';
-import { PlanControls } from './convert/PlanControls';
+import { PlanSettings, PlanSummary } from './convert/PlanControls';
+import { ConvertOutcome } from './convert/ConvertOutcome';
 import { ReportModal } from './report/ReportModal';
 import { SavedMappingChips } from './presets/SavedMappingChips';
 import { UnsavedNotice } from './presets/UnsavedNotice';
@@ -26,11 +25,9 @@ import { usePresetActions } from './presets/usePresetActions';
 import { useRemapper } from './convert/useRemapper';
 import { useSampleFile } from './convert/useSampleFile';
 import { useSavedMappings } from './presets/useSavedMappings';
-import { convertBlocker } from './convert/blocker';
 import { namesOf } from './core/enginePair';
 import { downloadPreset } from './presets/presetFile';
 import { ErrorText } from './ui/ErrorText';
-import { Rich } from './ui/Rich';
 import { useT } from './locale/localeContext';
 import type { NoticeLine } from './core/notice';
 import type { Runtime } from './convert/runtime';
@@ -44,6 +41,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
   const [notice, setNotice] = useState<NoticeLine[] | null>(null);
   const saved = useSavedMappings();
   const [reportOpen, setReportOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const presets = usePresetActions(
     {
       ...remapper,
@@ -74,7 +72,6 @@ export default function App({ runtime }: { runtime: Runtime }) {
   const names = pair && namesOf(remapper.engines, pair);
   const converted = conv.kind === 'done' && conv.results.length > 0;
   const steps = stepStates([remapper.files.length > 0, pair !== null, converted]);
-  const blocker = convertBlocker({ files: remapper.files.length, pair: remapper.pair });
   const { open: openEditor, close: closeEditor } = useEditorSession(remapper, request);
 
   if (view.kind === 'edit') {
@@ -167,56 +164,39 @@ export default function App({ runtime }: { runtime: Runtime }) {
                     onExport={downloadPreset}
                     onDelete={saved.remove}
                   />
-                </Step>
 
-                <Step number={3} title={t({ id: 'step-convert' })} state={steps[2]}>
-                  <PlanControls
+                  <PlanSummary
                     remapper={remapper}
                     editor={editor}
                     edited={edited}
-                    channelRef={focus.ref('channel')}
                     editRef={focus.ref('editLink')}
                     onOpenEditor={openEditor}
                   />
+                </Step>
 
-                  {converted
-                    ? (
-                        <DonePanel
-                          results={conv.results}
-                          failures={conv.failures}
-                          view={reportView}
-                          pair={conv.pair}
-                          names={namesOf(remapper.engines, conv.pair)}
-                          unrecognized={remapper.unrecognized}
-                          onViewReport={() => setReportOpen(true)}
-                          onPickSource={() => request('from')}
-                          onDropMissing={dropMissing}
-                          editedDrums={edited.count}
-                          onConvertMore={() => {
-                            remapper.clearFiles();
-                            request('filePicker');
-                          }}
-                        />
-                      )
-                    : (
-                        <ConvertButton
-                          ref={focus.ref('convert')}
-                          conv={conv}
-                          blockedBy={blocker && { reason: t(blocker.reason), quiet: blocker.quiet }}
-                          onConvert={() => void remapper.convert()}
-                        />
-                      )}
+                <Step number={3} title={t({ id: 'step-convert' })} state={steps[2]}>
+                  <PlanSettings
+                    remapper={remapper}
+                    editor={editor}
+                    open={settingsOpen}
+                    onToggle={setSettingsOpen}
+                    channelRef={focus.ref('channel')}
+                    onOpenEditor={openEditor}
+                  />
 
-                  {conv.kind === 'error' && (
-                    <p
-                      role="alert"
-                      className="
-                        rounded-chip bg-danger/10 p-3 text-ui text-danger
-                      "
-                    >
-                      <Rich id="convert-error" slots={{ error: <ErrorText error={conv.error} /> }} />
-                    </p>
-                  )}
+                  <ConvertOutcome
+                    remapper={remapper}
+                    reportView={reportView}
+                    editedDrums={edited.count}
+                    convertRef={focus.ref('convert')}
+                    onViewReport={() => setReportOpen(true)}
+                    onPickSource={() => request('from')}
+                    onDropMissing={dropMissing}
+                    onConvertMore={() => {
+                      remapper.clearFiles();
+                      request('filePicker');
+                    }}
+                  />
                 </Step>
               </>
             )}
@@ -236,7 +216,10 @@ export default function App({ runtime }: { runtime: Runtime }) {
             editor.openPick(canon);
           }}
           onAssignSource={(note) => openEditor('report', 'all', note)}
-          onChannel={() => request('channel')}
+          onChannel={() => {
+            setSettingsOpen(true);
+            request('channel');
+          }}
           onDropMissing={dropMissing}
         />
       )}

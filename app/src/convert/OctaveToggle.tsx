@@ -1,11 +1,11 @@
 import { useT } from '../locale/localeContext';
-import type { OctaveBase } from '../core/notes';
+import { OCTAVE_NAME, type OctaveBase } from '../core/notes';
 import { ChipRadioGroup } from '../ui/ChipRadioGroup';
 import { SettingRow } from './SettingRow';
 
 const OCTAVES: { value: OctaveBase; label: string }[] = [
-  { value: 'c1', label: 'C-1' },
-  { value: 'c2', label: 'C-2' },
+  { value: 'c1', label: OCTAVE_NAME.c1 },
+  { value: 'c2', label: OCTAVE_NAME.c2 },
 ];
 
 const DAWS: Record<OctaveBase, string> = {

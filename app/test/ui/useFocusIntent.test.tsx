@@ -70,7 +70,7 @@ describe('useFocusIntent', () => {
 
   it('focuses the same target again on a second request', async () => {
     render(<Screen />);
-    const convert = screen.getByRole('button', { name: 'Convert' });
+    const convert = screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ });
     act(() => convert.click());
     await waitFor(() => expect(convert).toHaveFocus());
     act(() => convert.blur());

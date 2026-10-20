@@ -8,11 +8,13 @@ import { FollowTip } from './FollowTip';
 export function ConvertButton({
   ref,
   conv,
+  ready,
   blockedBy,
   onConvert,
 }: {
   ref?: FocusRef;
   conv: Conv;
+  ready?: { files: number; target: string } | null;
   blockedBy: Blocker<string> | null;
   onConvert: () => void;
 }) {
@@ -44,7 +46,9 @@ export function ConvertButton({
         quietReason={blockedBy?.quiet}
         onClick={onConvert}
       >
-        {t({ id: 'convert-button' })}
+        {ready && blockedBy === null
+          ? t({ id: 'convert-button-ready', args: { count: ready.files, target: ready.target } })
+          : t({ id: 'convert-button' })}
       </Button>
     </FollowTip>
   );

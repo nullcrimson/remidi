@@ -7,7 +7,7 @@ import { RUNTIME } from './runtime';
 import type { RemapOutput, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
-import { pickFrom, pickTo } from './eventSteps';
+import { openSettings, pickFrom, pickTo } from './eventSteps';
 
 function reportWith(untouched: number, converted = 10) {
   return typed<RemapOutput>({
@@ -24,13 +24,13 @@ async function pickEnginesAndFile() {
   const input = screen.getAllByTestId('file-input')[0];
   await userEvent.upload(input, new File([new Uint8Array([1])], 'groove.mid'));
   await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Convert' })).toBeEnabled(),
+    expect(screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ })).toBeEnabled(),
   );
 }
 
 async function convertOneFile() {
   await pickEnginesAndFile();
-  await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
+  await userEvent.click(screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ }));
   await waitFor(() =>
     expect(screen.getByRole('button', { name: /View report/i })).toBeInTheDocument(),
   );
@@ -94,8 +94,9 @@ describe('App loss report', () => {
 
   it('converts with the drum channel picked under the octave toggle', async () => {
     await pickEnginesAndFile();
+    await openSettings();
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Drum channel' }), '10');
-    await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ }));
     await waitFor(() => expect(stub.remap).toHaveBeenCalled());
     expect(vi.mocked(stub.remap).mock.calls[0][4]).toBe('10');
   });

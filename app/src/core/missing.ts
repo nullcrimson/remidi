@@ -3,9 +3,15 @@ import type { Canon, Drum, MissingDrums, VoiceRow } from './midiremap';
 import type { OctaveBase } from './notes';
 import { isPlayed, movesToOtherDrum, playedOn, type PlayedOn } from './outcome';
 
+/** The name of each missing-drums choice. */
+export const MISSING_LABEL: Record<MissingDrums, Message> = {
+  nearest: { id: 'missing-nearest' },
+  drop: { id: 'missing-drop' },
+};
+
 export const MISSING_OPTIONS: { value: MissingDrums; label: Message }[] = [
-  { value: 'nearest', label: { id: 'missing-nearest' } },
-  { value: 'drop', label: { id: 'missing-drop' } },
+  { value: 'nearest', label: MISSING_LABEL.nearest },
+  { value: 'drop', label: MISSING_LABEL.drop },
 ];
 
 const swaps = (rows: VoiceRow[]) => rows.filter((r) => movesToOtherDrum(r.outcome) && isPlayed(r));

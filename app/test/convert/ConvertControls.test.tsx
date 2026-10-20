@@ -21,7 +21,7 @@ describe('SummaryRow', () => {
 describe('ConvertButton', () => {
   const blocked = (reason: string, quiet = false) => {
     render(<ConvertButton conv={{ kind: 'idle' }} blockedBy={{ reason, quiet }} onConvert={() => {}} />);
-    return screen.getByRole('button', { name: 'Convert' });
+    return screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ });
   };
   const move = (el: Element, clientX: number, clientY: number, pointerType = 'mouse') =>
     fireEvent.pointerMove(el, { pointerType, clientX, clientY });
@@ -77,7 +77,7 @@ describe('ConvertButton', () => {
 
   it('shows no tip while convert can run', () => {
     render(<ConvertButton conv={{ kind: 'idle' }} blockedBy={null} onConvert={() => {}} />);
-    move(screen.getByRole('button', { name: 'Convert' }), 100, 50);
+    move(screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ }), 100, 50);
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
@@ -93,7 +93,7 @@ describe('ConvertButton', () => {
         onConvert={() => {}}
       />,
     );
-    expect(screen.getByRole('button', { name: 'Convert' })).toHaveClass('bg-accent', 'w-full');
+    expect(screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ })).toHaveClass('bg-accent', 'w-full');
   });
 
   it('fires convert when enabled', async () => {
@@ -105,7 +105,7 @@ describe('ConvertButton', () => {
         onConvert={onConvert}
       />,
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ }));
     expect(onConvert).toHaveBeenCalledOnce();
   });
 
@@ -118,6 +118,6 @@ describe('ConvertButton', () => {
       />,
     );
     expect(screen.getByText(/remapping/i)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Convert' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Convert( \d+ files? to .+)?$/ })).toBeNull();
   });
 });

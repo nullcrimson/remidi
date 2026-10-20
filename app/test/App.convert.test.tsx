@@ -23,7 +23,7 @@ describe('App convert view', () => {
 
     const editButton = () => screen.queryByRole('button', { name: /Edit individual notes/i });
     expect(editButton()).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Convert' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ })).toBeDisabled();
 
     await pickFrom('GGD Invasion');
     await pickTo('EZdrummer');
