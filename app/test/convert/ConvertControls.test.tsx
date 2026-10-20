@@ -19,8 +19,9 @@ describe('SummaryRow', () => {
 });
 
 describe('ConvertButton', () => {
+  const READY = { kind: 'ready', files: 1, target: 'EZdrummer 3' } as const;
   const blocked = (reason: string, quiet = false) => {
-    render(<ConvertButton conv={{ kind: 'idle' }} blockedBy={{ reason, quiet }} onConvert={() => {}} />);
+    render(<ConvertButton conv={{ kind: 'idle' }} state={{ kind: 'blocked', reason, quiet }} onConvert={() => {}} />);
     return screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ });
   };
   const move = (el: Element, clientX: number, clientY: number, pointerType = 'mouse') =>
@@ -76,7 +77,7 @@ describe('ConvertButton', () => {
   });
 
   it('shows no tip while convert can run', () => {
-    render(<ConvertButton conv={{ kind: 'idle' }} blockedBy={null} onConvert={() => {}} />);
+    render(<ConvertButton conv={{ kind: 'idle' }} state={READY} onConvert={() => {}} />);
     move(screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ }), 100, 50);
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
@@ -89,7 +90,7 @@ describe('ConvertButton', () => {
     render(
       <ConvertButton
         conv={{ kind: 'idle' }}
-        blockedBy={null}
+        state={READY}
         onConvert={() => {}}
       />,
     );
@@ -101,7 +102,7 @@ describe('ConvertButton', () => {
     render(
       <ConvertButton
         conv={{ kind: 'idle' }}
-        blockedBy={null}
+        state={READY}
         onConvert={onConvert}
       />,
     );
@@ -113,7 +114,7 @@ describe('ConvertButton', () => {
     render(
       <ConvertButton
         conv={{ kind: 'running' }}
-        blockedBy={null}
+        state={READY}
         onConvert={() => {}}
       />,
     );

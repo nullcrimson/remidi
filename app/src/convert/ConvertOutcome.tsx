@@ -4,7 +4,7 @@ import type { ReportView } from '../report/report';
 import { ErrorText } from '../ui/ErrorText';
 import type { FocusRef } from '../ui/useFocusIntent';
 import { Rich } from '../ui/Rich';
-import { convertBlocker } from './blocker';
+import { convertReadiness } from './blocker';
 import { ConvertButton } from './ConvertButton';
 import { DonePanel } from './DonePanel';
 import type { Remapper } from './useRemapper';
@@ -49,14 +49,15 @@ export function ConvertOutcome({
       />
     );
   }
-  const blocker = convertBlocker({ files: remapper.files.length, pair });
+  const readiness = convertReadiness({ files: remapper.files.length, pair });
   return (
     <>
       <ConvertButton
         ref={convertRef}
         conv={conv}
-        ready={pair && { files: remapper.files.length, target: namesOf(remapper.engines, pair).target }}
-        blockedBy={blocker && { reason: t(blocker.reason), quiet: blocker.quiet }}
+        state={readiness.kind === 'ready'
+          ? { kind: 'ready', files: readiness.files, target: namesOf(remapper.engines, readiness.pair).target }
+          : { kind: 'blocked', reason: t(readiness.reason), quiet: readiness.quiet }}
         onConvert={() => void remapper.convert()}
       />
       {conv.kind === 'error' && (

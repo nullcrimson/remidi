@@ -5,17 +5,20 @@ import type { Blocker } from './blocker';
 import { Button } from '../ui/Button';
 import { FollowTip } from './FollowTip';
 
+/** What Convert offers: why it cannot run, or how many files it converts to which engine. */
+export type ConvertState
+  = | ({ kind: 'blocked' } & Blocker<string>)
+    | { kind: 'ready'; files: number; target: string };
+
 export function ConvertButton({
   ref,
   conv,
-  ready,
-  blockedBy,
+  state,
   onConvert,
 }: {
   ref?: FocusRef;
   conv: Conv;
-  ready?: { files: number; target: string } | null;
-  blockedBy: Blocker<string> | null;
+  state: ConvertState;
   onConvert: () => void;
 }) {
   const t = useT();
@@ -35,19 +38,20 @@ export function ConvertButton({
       </div>
     );
   }
+  const blocker = state.kind === 'blocked' ? state : null;
   return (
-    <FollowTip text={blockedBy?.reason ?? null}>
+    <FollowTip text={blocker?.reason ?? null}>
       <Button
         ref={ref}
         variant="primary"
         size="lg"
-        disabled={blockedBy !== null}
-        reason={blockedBy?.reason}
-        quietReason={blockedBy?.quiet}
+        disabled={blocker !== null}
+        reason={blocker?.reason}
+        quietReason={blocker?.quiet}
         onClick={onConvert}
       >
-        {ready && blockedBy === null
-          ? t({ id: 'convert-button-ready', args: { count: ready.files, target: ready.target } })
+        {state.kind === 'ready'
+          ? t({ id: 'convert-button-ready', args: { count: state.files, target: state.target } })
           : t({ id: 'convert-button' })}
       </Button>
     </FollowTip>

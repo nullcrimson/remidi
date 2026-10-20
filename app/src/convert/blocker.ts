@@ -8,10 +8,15 @@ export interface Blocker<R = Message> {
   quiet: boolean;
 }
 
-/** What keeps Convert from running, or `null` when it can run. */
-export function convertBlocker({ files, pair }: { files: number; pair: EnginePair | null }): Blocker | null {
-  if (files === 0 && pair === null) return { reason: { id: 'blocker-files-and-engines' }, quiet: false };
-  if (files === 0) return { reason: { id: 'blocker-files' }, quiet: true };
-  if (pair === null) return { reason: { id: 'blocker-engines' }, quiet: false };
-  return null;
+/** Whether Convert can run: what keeps it from running, or the files and the pair it converts. */
+export type Readiness
+  = | ({ kind: 'blocked' } & Blocker)
+    | { kind: 'ready'; files: number; pair: EnginePair };
+
+/** Whether Convert can run with `files` files and the engines picked. */
+export function convertReadiness({ files, pair }: { files: number; pair: EnginePair | null }): Readiness {
+  if (files === 0 && pair === null) return { kind: 'blocked', reason: { id: 'blocker-files-and-engines' }, quiet: false };
+  if (files === 0) return { kind: 'blocked', reason: { id: 'blocker-files' }, quiet: true };
+  if (pair === null) return { kind: 'blocked', reason: { id: 'blocker-engines' }, quiet: false };
+  return { kind: 'ready', files, pair };
 }
