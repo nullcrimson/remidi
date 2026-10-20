@@ -289,6 +289,21 @@ tip-other = Autre montant
 done-view-report = Voir le rapport →
 done-convert-more = Nouvelle conversion
 done-report-mapping = Mapping erroné ? Signalez-le
+done-removed = { $count ->
+    [one] { $count } note de votre fichier est absente du mapping { $source } : elle a donc été supprimée. Mauvais plugin source ?
+   *[other] { $count } notes de votre fichier sont absentes du mapping { $source } : elles ont donc été supprimées. Mauvais plugin source ?
+}
+done-pick-source = Choisir une autre source
+done-assign-notes = Attribuer les notes
+source-fit-missing = { $missing ->
+    [one] { $missing } note sur { $hits } de votre fichier est absente du mapping { $source }.
+   *[other] { $missing } notes sur { $hits } de votre fichier sont absentes du mapping { $source }.
+} Plus proches : { $engines }
+source-fit-all = { $engine } (toutes les notes)
+source-fit-some = { $engine } ({ $count ->
+    [one] { $count } note
+   *[other] { $count } notes
+})
 drop-missing =Supprimer les éléments manquants et reconvertir
 report-dropped = Supprimés
 report-approximated = Remplacés

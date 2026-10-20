@@ -5,6 +5,7 @@ import { useRemapper } from '../../src/convert/useRemapper';
 import { WasmCallError } from '../../src/core/errors';
 import { RUNTIME } from '../runtime';
 import { fakeUmami } from '../umami';
+import { engineId } from '../typed';
 
 const FILE = { name: 'a.mid', bytes: new Uint8Array([1]) };
 
@@ -12,11 +13,11 @@ describe('useRemapper events', () => {
   const umami = fakeUmami();
 
   const convertRejecting = async (reason: unknown) => {
-    const converter: Converter = { convert: vi.fn().mockRejectedValue(reason) };
+    const converter: Converter = { convert: vi.fn().mockRejectedValue(reason), fits: async () => ({ hits: 0, ranked: [] }) };
     const { result } = renderHook(() => useRemapper({ ...RUNTIME, converter }));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
-    act(() => result.current.chooseSrc('ggd_invasion'));
-    act(() => result.current.chooseTgt('ezdrummer'));
+    act(() => result.current.chooseSrc(engineId('ggd_invasion')));
+    act(() => result.current.chooseTgt(engineId('ezdrummer')));
     act(() => result.current.addFiles([FILE]));
     await act(() => result.current.convert());
   };
@@ -32,11 +33,14 @@ describe('useRemapper events', () => {
   });
 
   it('sends nothing about a conversion for a run that was stopped', async () => {
-    const converter: Converter = { convert: (_files, _pair, _ov, _channel, _missing, signal) => new Promise((_resolve, reject) => signal?.addEventListener('abort', () => reject(signal.reason))) };
+    const converter: Converter = {
+      convert: (_files, _pair, _ov, _channel, _missing, signal) => new Promise((_resolve, reject) => signal?.addEventListener('abort', () => reject(signal.reason))),
+      fits: async () => ({ hits: 0, ranked: [] }),
+    };
     const { result } = renderHook(() => useRemapper({ ...RUNTIME, converter }));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
-    act(() => result.current.chooseSrc('ggd_invasion'));
-    act(() => result.current.chooseTgt('ezdrummer'));
+    act(() => result.current.chooseSrc(engineId('ggd_invasion')));
+    act(() => result.current.chooseTgt(engineId('ezdrummer')));
     act(() => result.current.addFiles([FILE]));
     let run: Promise<void> = Promise.resolve();
     act(() => {

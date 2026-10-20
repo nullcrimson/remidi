@@ -77,6 +77,7 @@ conversion   ── convert(bytes, &Mapping, ChannelScope) → bytes + report
 note        ── Note (0..=127), OctaveBase, note names
 non_blank   ── NonBlank: a string that is not blank
 catalog     ── Catalog: builtin presets (embedded) + user maps
+fit         ── note_hits / source_fits: how well each engine's layout covers a file's hits
 plan        ── per-drum rows from the Mapping the converter uses (for UI display), no MIDI
 preset      ── the preset file the app exports and the CLI reads
 ```
@@ -393,6 +394,10 @@ error and 2 on a usage error.
   `label` and its canon's `family`; the app reads it through `core/outcome.ts` (`playedNote`, `movesToOtherDrum`, `isPlayed`, `leadNote`).
 - `engine_catalog() → [{ id, name, fullName }]` — `name` is the display name,
   `fullName` the catalog name.
+- `source_fits(mids, channel?) → { hits, ranked: [{ engine, recognized }] }` — every engine fitted to
+  the hits of all `mids` that a conversion with `channel` reads (core `note_hits`, summed,
+  then `source_fits`: a hit is recognized when the engine's map decodes its note), best
+  first, ties in catalog order; a file that does not parse is left out.
 - `family_order() → Family[]` — drum families in display order; `note_naming() →
   Record<OctaveBase, { names, octaves }>` — the 128 note names and octave numbers per
   convention, called by the app's build, not by the app.
@@ -469,10 +474,13 @@ test in that file fails on any import outside it.
   the stubbed module, or one whose `load` is pending or fails.
 - **Conversion off the main thread.** `converter.ts` sends each batch to one module
   Web Worker. The worker entry (`convertWorker.ts`) only wires `self.onmessage` to
-  `answerRequest` in `batch.ts`, which holds the request and reply types and the shared
-  `runBatch`, so the reply logic is tested without a worker; converted bytes come back
+  `answerRequest` in `workerProtocol.ts`, which holds the request and reply types and answers
+  with the shared `runBatch` of `batch.ts`, so the reply logic is tested without a worker; converted bytes come back
   as transferred buffers, so the
-  page and the spinner stay responsive. The worker loads its own copy of the WASM; the
+  page and the spinner stay responsive. The same worker fits the added files to every engine's
+  layout (`Converter.fits`, a `FitRequest`; `useSourceFits` asks again when the files or the
+  channel change and ignores a stale answer), which `CloserSourcesNotice` under the engine
+  pickers reads to suggest a source that recognizes more of the file's notes. The worker loads its own copy of the WASM; the
   main thread's copy serves the catalog, `plan` and preset import. The worker's state
   is one value (`unstarted`, `running`, `unavailable`). A worker that dies after it has
   answered a batch is replaced and the batches it left go to the new one; a worker that
@@ -768,7 +776,7 @@ Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props;
   and Umami (`data-domains` keeps local and test runs out). The CSP allows only them,
   `'self'` and `'wasm-unsafe-eval'`, and the e2e suite aborts their requests and fails on
   any other.
-- **Analytics are anonymous, closed and typed.** Umami counts the 37 events of
+- **Analytics are anonymous, closed and typed.** Umami counts the events of
   `StatEvents` (`core/umami.ts`: each event name with exactly its properties, so a wrong
   name, a missing or extra property or a value outside its set does not compile) and page
   views, nothing else. What is sent: event names, engine ids, locale codes, error kinds,

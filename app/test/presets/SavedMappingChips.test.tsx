@@ -3,12 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { SavedMappingChips } from '../../src/presets/SavedMappingChips';
 import type { SavedMapping } from '../../src/presets/mappings';
-import { presetName, typed } from '../typed';
+import type { Engine } from '../../src/core/midiremap';
+import { engineId, presetName, typed } from '../typed';
 
-const engines = [
+const engines = typed<Engine[]>([
   { id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GGD Invasion' },
   { id: 'ezdrummer', name: 'EZdrummer', fullName: 'EZdrummer' },
-];
+]);
 
 const mapping = typed<SavedMapping>({
   id: 'p1',
@@ -60,7 +61,7 @@ describe('SavedMappingChips', () => {
   });
 
   it('disables the body of a stale mapping whose engine is gone', () => {
-    render(<SavedMappingChips {...makeProps({ mappings: [{ ...mapping, tgt: 'removed_engine' }] })} />);
+    render(<SavedMappingChips {...makeProps({ mappings: [{ ...mapping, tgt: engineId('removed_engine') }] })} />);
     expect(screen.getByRole('button', { name: /^My kit/ })).toBeDisabled();
   });
 });

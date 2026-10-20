@@ -5,6 +5,12 @@ import type { MissingDrums } from './midiremap';
 /** The kinds of error the events name: the app's own. */
 export type ErrorKind = AppError['kind'];
 
+/** The places of the engines the converter suggests as the source, best first. */
+export const SUGGESTION_RANKS = [1, 2, 3] as const;
+
+/** One suggestion's place. */
+export type SuggestionRank = (typeof SUGGESTION_RANKS)[number];
+
 /** What each event carries, by name: the one list of what the app and the static pages send. */
 export interface StatEvents {
   'converter-opened': { page: 'index' | 'engine' | 'pair' | 'doc'; from?: string; to?: string };
@@ -46,6 +52,9 @@ export interface StatEvents {
   'report-opened': undefined;
   'report-fix-used': { fix: 'pick-target' | 'assign' | 'channel-hint' };
   'missing-dropped': { where: 'done' | 'report' };
+  'done-wrong-source': undefined;
+  'done-assign-unrecognized': undefined;
+  'source-suggestion-used': { rank: SuggestionRank };
   'mapping-reported': undefined;
   'editor-closed': {
     how: 'done' | 'back' | 'history';

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSavedMappings } from '../../src/presets/useSavedMappings';
 import { MAPPINGS_CAP, parseMappings } from '../../src/presets/mappings';
 import type { StoredEdits } from '../../src/core/overrides';
-import { presetName, typed } from '../typed';
+import { engineId, presetName, typed } from '../typed';
 import { storedName } from '../../src/core/storage';
 
 const MAPPINGS_KEY = storedName('mappings');
@@ -11,8 +11,8 @@ const QUARANTINE_KEY = storedName('quarantine');
 
 const base = {
   name: presetName('GGD→EZ'),
-  src: 'ggd_invasion',
-  tgt: 'ezdrummer',
+  src: engineId('ggd_invasion'),
+  tgt: engineId('ezdrummer'),
   edits: typed<StoredEdits['edits']>({ 'kick.main': 36 }),
   srcEdits: { 60: 'china.1.hit' },
 };

@@ -1,9 +1,9 @@
-import { answerRequest, type BatchRequest } from './batch';
+import { answerRequest, transferred, type WorkerRequest } from './workerProtocol';
 import { moduleLoader } from '../core/midiremap';
 
 const load = moduleLoader();
 
-self.onmessage = async (e: MessageEvent<BatchRequest>) => {
+self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   const reply = await answerRequest(load, e.data);
-  self.postMessage(reply, { transfer: 'result' in reply ? reply.result.ok.map((c) => c.bytes.buffer) : [] });
+  self.postMessage(reply, { transfer: transferred(reply) });
 };

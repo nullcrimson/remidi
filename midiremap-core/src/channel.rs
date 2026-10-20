@@ -1,6 +1,9 @@
 use std::{fmt, str::FromStr};
 
-use midly::{num::u4, Smf, Track, TrackEventKind};
+use midly::{
+    num::{u4, u7},
+    MidiMessage, Smf, Track, TrackEventKind,
+};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::{idx::Idx, midi::is_hit};
@@ -133,6 +136,23 @@ impl ChannelScope {
                     .collect()
             }
         }
+    }
+
+    /// The key of every hit in `smf` that a conversion with this scope rewrites, track by
+    /// track.
+    pub(crate) fn hit_keys<'a>(self, smf: &'a Smf<'a>) -> impl Iterator<Item = u7> + 'a {
+        smf.tracks
+            .iter()
+            .zip(self.resolve(smf))
+            .flat_map(|(track, filter)| {
+                track.iter().filter_map(move |ev| match ev.kind {
+                    TrackEventKind::Midi {
+                        channel,
+                        message: message @ MidiMessage::NoteOn { key, .. },
+                    } if filter.accepts(Channel::of(channel)) && is_hit(&message) => Some(key),
+                    _ => None,
+                })
+            })
     }
 }
 

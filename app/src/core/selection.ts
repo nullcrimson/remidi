@@ -1,4 +1,4 @@
-import type { ChannelScope, MissingDrums } from './midiremap';
+import type { ChannelScope, EngineId, MissingDrums } from './midiremap';
 import type { KnownEdits } from './overrides';
 
 /**
@@ -7,14 +7,14 @@ import type { KnownEdits } from './overrides';
  * each decides what it means for its own state.
  */
 export type SelectionEvent
-  = | { type: 'chooseSrc'; id: string }
-    | { type: 'chooseTgt'; id: string }
+  = | { type: 'chooseSrc'; id: EngineId }
+    | { type: 'chooseTgt'; id: EngineId }
     | { type: 'swap' }
-    | { type: 'preselect'; src: string | null; tgt: string | null }
+    | { type: 'preselect'; src: EngineId | null; tgt: EngineId | null }
     | {
       type: 'loadMapping';
-      src: string;
-      tgt: string;
+      src: EngineId;
+      tgt: EngineId;
       presetId: string | null;
       known: KnownEdits;
     }

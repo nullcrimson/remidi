@@ -1,5 +1,6 @@
 import { CHANNELS } from '../core/channel';
-import type { ChannelScope, MissingDrums } from '../core/midiremap';
+import { parseEngineId } from '../core/enginePair';
+import type { ChannelScope, EngineId, MissingDrums } from '../core/midiremap';
 import { MISSING_OPTIONS } from '../core/missing';
 import type { OctaveBase } from '../core/notes';
 import { readStored, removeStored, writeStored } from '../core/storage';
@@ -12,8 +13,8 @@ const SESSION_VERSION = 1;
  * chosen is `null`; it is stored as the empty string, as earlier versions wrote it.
  */
 export interface Session extends StoredEdits {
-  src: string | null;
-  tgt: string | null;
+  src: EngineId | null;
+  tgt: EngineId | null;
   oct: OctaveBase;
   channel: ChannelScope;
   missing: MissingDrums;
@@ -47,15 +48,13 @@ function stored(): Record<string, unknown> | null {
 const missingOf = (value: unknown): MissingDrums =>
   MISSING_OPTIONS.find((o) => o.value === value)?.value ?? EMPTY_SESSION.missing;
 
-const engine = (value: unknown) => (typeof value === 'string' && value !== '' ? value : null);
-
 export function loadSession(): Session {
   const v = stored();
   const legacyMissing = missingOf(readStored('missing'));
   if (!v) return { ...EMPTY_SESSION, missing: legacyMissing };
   return {
-    src: engine(v.src),
-    tgt: engine(v.tgt),
+    src: parseEngineId(v.src),
+    tgt: parseEngineId(v.tgt),
     oct: v.oct === 'c1' || v.oct === 'c2' ? v.oct : EMPTY_SESSION.oct,
     channel: CHANNELS.find((c) => c.value === v.channel)?.value ?? EMPTY_SESSION.channel,
     missing: missingOf(v.missing),

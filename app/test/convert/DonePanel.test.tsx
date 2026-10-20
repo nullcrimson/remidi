@@ -7,7 +7,7 @@ import { recordDownloads } from '../downloads';
 import type { FailedFile } from '../../src/convert/batch';
 import type { FileResult } from '../../src/core/files';
 import type { ReportGroups, ReportView } from '../../src/report/report';
-import { typed } from '../typed';
+import { enginePair, typed } from '../typed';
 import { storedName } from '../../src/core/storage';
 
 const TIP_KEY = storedName('tip');
@@ -37,6 +37,7 @@ function renderPanel({
   failures = [] as FailedFile[],
   report = view(),
   onViewReport = vi.fn(),
+  onPickSource = vi.fn(),
   onConvertMore = vi.fn(),
   onDropMissing = undefined as (() => void) | undefined,
   editedDrums = 0,
@@ -46,15 +47,16 @@ function renderPanel({
       results={results}
       failures={failures}
       view={report}
-      pair={{ src: 'ggd_invasion', tgt: 'ezdrummer' }}
-      targetName="Toontrack EZdrummer 3"
+      pair={enginePair('ggd_invasion', 'ezdrummer')}
+      names={{ source: 'GGD Invasion', target: 'Toontrack EZdrummer 3' }}
       onViewReport={onViewReport}
+      onPickSource={onPickSource}
       onConvertMore={onConvertMore}
       onDropMissing={onDropMissing}
       editedDrums={editedDrums}
     />,
   );
-  return { onViewReport, onConvertMore };
+  return { onViewReport, onPickSource, onConvertMore };
 }
 
 describe('DonePanel', () => {
@@ -313,6 +315,50 @@ describe('DonePanel', () => {
       renderPanel();
       expect(downloads()).toEqual([]);
       expect(screen.queryByRole('button', { name: /\.zip/ })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('removed notes', () => {
+    it('says plainly how many notes the source layout did not have and that they were removed', () => {
+      renderPanel({ report: view({ unrecognized: 7 }) });
+      expect(
+        screen.getByText("7 notes in your file aren't in the GGD Invasion layout, so they were removed. Wrong source?"),
+      ).toBeInTheDocument();
+    });
+
+    it('says it of a single note', () => {
+      renderPanel({ report: view({ unrecognized: 1 }) });
+      expect(
+        screen.getByText("1 note in your file isn't in the GGD Invasion layout, so it was removed. Wrong source?"),
+      ).toBeInTheDocument();
+    });
+
+    it('keeps the neutral tag beside the sentence', () => {
+      renderPanel({ report: view({ unrecognized: 7 }) });
+      expect(screen.getByText('7 unrecognized')).toBeInTheDocument();
+    });
+
+    it('says nothing when every note was recognized', () => {
+      renderPanel({ report: view({ dropped: 2 }) });
+      expect(screen.queryByText(/were removed/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Pick another source' })).not.toBeInTheDocument();
+    });
+
+    it('is a sentence, not an alert', () => {
+      renderPanel({ report: view({ unrecognized: 7 }) });
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('offers to pick another source', async () => {
+      const { onPickSource } = renderPanel({ report: view({ unrecognized: 7 }) });
+      await userEvent.click(screen.getByRole('button', { name: 'Pick another source' }));
+      expect(onPickSource).toHaveBeenCalledOnce();
+    });
+
+    it('offers to assign the notes in the report', async () => {
+      const { onViewReport } = renderPanel({ report: view({ unrecognized: 7 }) });
+      await userEvent.click(screen.getByRole('button', { name: 'Assign the notes' }));
+      expect(onViewReport).toHaveBeenCalledOnce();
     });
   });
 });

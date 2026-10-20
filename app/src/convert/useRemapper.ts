@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { vocabularyOf } from '../core/canon';
-import type { ChannelScope, Engine, Midiremap, MissingDrums, Note } from '../core/midiremap';
+import type { ChannelScope, Engine, EngineId, Midiremap, MissingDrums, Note } from '../core/midiremap';
 import type { OctaveBase } from '../core/notes';
 import { pairOf, type EnginePair } from '../core/enginePair';
 import { kindCounts } from '../core/errors';
@@ -12,6 +12,7 @@ import type { Runtime } from './runtime';
 import type { SelectionEvent } from '../core/selection';
 import { loadSession, saveSession, type Session } from './session';
 import { useConverter } from './useConverter';
+import { useSourceFits } from './useSourceFits';
 import type { EditFilter } from '../editor/editFilter';
 import { useEditor } from '../editor/useEditor';
 import { useEngineCatalog } from '../engines/useEngineCatalog';
@@ -29,8 +30,8 @@ export type View
 const CONVERT: View = { kind: 'convert' };
 
 interface Selection {
-  src: string | null;
-  tgt: string | null;
+  src: EngineId | null;
+  tgt: EngineId | null;
   oct: OctaveBase;
   channel: ChannelScope;
   missing: MissingDrums;
@@ -117,6 +118,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
   const settingsKey = useMemo(() => keyFor(missing), [keyFor, missing]);
   const converter = useConverter(batches, pair, settingsKey);
   const { onSelection: converterSees, convert: runConvert } = converter;
+  const fits = useSourceFits(batches, converter.files, channel);
 
   const emit = useCallback(
     (event: SelectionEvent) => {
@@ -127,8 +129,8 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     [editorSees, converterSees],
   );
 
-  const chooseSrc = useCallback((id: string) => emit({ type: 'chooseSrc', id }), [emit]);
-  const chooseTgt = useCallback((id: string) => emit({ type: 'chooseTgt', id }), [emit]);
+  const chooseSrc = useCallback((id: EngineId) => emit({ type: 'chooseSrc', id }), [emit]);
+  const chooseTgt = useCallback((id: EngineId) => emit({ type: 'chooseTgt', id }), [emit]);
   const swap = useCallback(() => emit({ type: 'swap' }), [emit]);
   const setChannel = useCallback((c: ChannelScope) => emit({ type: 'setChannel', channel: c }), [emit]);
   const setMissing = useCallback((m: MissingDrums) => emit({ type: 'setMissing', missing: m }), [emit]);
@@ -147,7 +149,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     restore.current = (list, loaded) => {
       const known = new Set(list.map((e) => e.id));
       const picked = preselection(window.location, list);
-      const keep = (id: string | null) => (id !== null && known.has(id) ? id : null);
+      const keep = (id: EngineId | null) => (id !== null && known.has(id) ? id : null);
       let nextSrc = picked?.src ?? keep(session.src);
       let nextTgt = picked?.tgt ?? keep(session.tgt);
       if (nextSrc === nextTgt) {
@@ -169,7 +171,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
   }, [catalog.status, session, src, tgt, oct, channel, missing, presetId, edits, srcEdits]);
 
   const loadMapping = useCallback(
-    (m: { id?: string; src: string; tgt: string } & StoredEdits): number => {
+    (m: { id?: string; src: EngineId; tgt: EngineId } & StoredEdits): number => {
       const kept = knownEdits(m, vocabulary);
       emit({
         type: 'loadMapping',
@@ -217,6 +219,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     missing,
     presetId,
     files: converter.files,
+    fits,
     skipped: converter.skipped,
     view,
     conv: converter.conv,

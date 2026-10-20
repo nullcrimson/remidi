@@ -5,7 +5,7 @@ import { RUNTIME } from '../runtime';
 import type { VoiceRow } from '../../src/core/midiremap';
 import type { StoredEdits } from '../../src/core/overrides';
 import * as stub from '../stubs/wasm';
-import { canon, note, typed } from '../typed';
+import { canon, engineId, enginePair, note, typed } from '../typed';
 import { shownTgtPick } from '../picks';
 
 beforeEach(() => {
@@ -22,8 +22,8 @@ describe('useRemapper loadMapping', () => {
 
     act(() =>
       result.current.loadMapping({
-        src: 'ggd_invasion',
-        tgt: 'ezdrummer',
+        src: engineId('ggd_invasion'),
+        tgt: engineId('ezdrummer'),
         edits: typed<StoredEdits['edits']>({ 'kick.main': 40 }),
         srcEdits: {},
       }),
@@ -39,8 +39,8 @@ describe('useRemapper loadMapping', () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
 
-    act(() => result.current.chooseSrc('ggd_invasion'));
-    act(() => result.current.chooseTgt('ezdrummer'));
+    act(() => result.current.chooseSrc(engineId('ggd_invasion')));
+    act(() => result.current.chooseTgt(engineId('ezdrummer')));
     act(() => result.current.editor.openPick(canon('kick.main')));
     act(() => result.current.editor.chooseNote(shownTgtPick(result.current.editor), note(45)));
     act(() => result.current.openEditor('all', null));
@@ -52,7 +52,7 @@ describe('useRemapper loadMapping', () => {
     expect(result.current.editor.edits).toEqual({ 'kick.main': 45 });
 
     act(() =>
-      result.current.loadMapping({ src: 'ezdrummer', tgt: 'ggd_invasion', edits: typed<StoredEdits['edits']>({ 'snare1.hit': 38 }), srcEdits: {} }),
+      result.current.loadMapping({ src: engineId('ezdrummer'), tgt: engineId('ggd_invasion'), edits: typed<StoredEdits['edits']>({ 'snare1.hit': 38 }), srcEdits: {} }),
     );
 
     expect(result.current.src).toBe('ezdrummer');
@@ -64,7 +64,7 @@ describe('useRemapper loadMapping', () => {
     const result = await loadOverEditedEditor();
 
     act(() =>
-      result.current.loadMapping({ src: 'ezdrummer', tgt: 'ggd_invasion', edits: typed<StoredEdits['edits']>({ 'snare1.hit': 38 }), srcEdits: {} }),
+      result.current.loadMapping({ src: engineId('ezdrummer'), tgt: engineId('ggd_invasion'), edits: typed<StoredEdits['edits']>({ 'snare1.hit': 38 }), srcEdits: {} }),
     );
 
     expect(result.current.view).toEqual({ kind: 'convert' });
@@ -76,8 +76,8 @@ describe('useRemapper editor view', () => {
   async function withBothEngines() {
     const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
-    act(() => result.current.chooseSrc('ggd_invasion'));
-    act(() => result.current.chooseTgt('ezdrummer'));
+    act(() => result.current.chooseSrc(engineId('ggd_invasion')));
+    act(() => result.current.chooseTgt(engineId('ezdrummer')));
     return result;
   }
 
@@ -86,7 +86,7 @@ describe('useRemapper editor view', () => {
     act(() => result.current.openEditor('issues', note(26)));
     expect(result.current.view).toEqual({
       kind: 'edit',
-      pair: { src: 'ggd_invasion', tgt: 'ezdrummer' },
+      pair: enginePair('ggd_invasion', 'ezdrummer'),
       show: 'issues',
       assignNote: note(26),
     });
@@ -102,7 +102,7 @@ describe('useRemapper editor view', () => {
   it('does not open the editor before both engines are chosen', async () => {
     const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
-    act(() => result.current.chooseSrc('ggd_invasion'));
+    act(() => result.current.chooseSrc(engineId('ggd_invasion')));
     act(() => result.current.openEditor('all', null));
     expect(result.current.view).toEqual({ kind: 'convert' });
   });
@@ -110,7 +110,7 @@ describe('useRemapper editor view', () => {
   it('keeps the pair the editor shows current when an engine changes', async () => {
     const result = await withBothEngines();
     act(() => result.current.openEditor('all', null));
-    act(() => result.current.chooseTgt('ggd_invasion'));
-    expect(result.current.view).toMatchObject({ kind: 'edit', pair: { src: 'ggd_invasion', tgt: 'ggd_invasion' } });
+    act(() => result.current.chooseTgt(engineId('ggd_invasion')));
+    expect(result.current.view).toMatchObject({ kind: 'edit', pair: enginePair('ggd_invasion', 'ggd_invasion') });
   });
 });

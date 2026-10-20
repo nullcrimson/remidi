@@ -8,7 +8,7 @@ import type { SavedMapping } from '../../src/presets/mappings';
 import type { Canon, Drum, VocabularyDrum, VoiceRow } from '../../src/core/midiremap';
 import type { Edits } from '../../src/core/overrides';
 import { family_order } from '../stubs/wasm';
-import { presetName, typed } from '../typed';
+import { enginePair, presetName, typed } from '../typed';
 
 const editor = typed<Editor>({
   rows: [{ canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } }],
@@ -44,7 +44,7 @@ const editor = typed<Editor>({
 
 const props = {
   editor,
-  pair: { src: 'ggd_invasion', tgt: 'ezdrummer' },
+  pair: enginePair('ggd_invasion', 'ezdrummer'),
   srcName: 'GGD Invasion',
   tgtName: 'EZdrummer 3',
   oct: 'c1' as const,

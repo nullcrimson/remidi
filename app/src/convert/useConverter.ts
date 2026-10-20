@@ -85,7 +85,7 @@ function reducer(state: State, action: Action): State {
  * A run still converting is stopped through its abort signal when another starts, when
  * the files or the selection change, and when the screen goes away.
  */
-export function useConverter(converter: Converter, pair: EnginePair | null, settingsKey: string) {
+export function useConverter(converter: Pick<Converter, 'convert'>, pair: EnginePair | null, settingsKey: string) {
   const [{ files, skipped, conv: stored }, dispatch] = useReducer(reducer, INITIAL);
   const conv: Conv = stored.kind !== 'idle' && stored.key !== settingsKey ? IDLE : stored;
   const running = useRef<AbortController | null>(null);

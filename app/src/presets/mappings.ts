@@ -1,4 +1,5 @@
-import type { PresetName } from '../core/midiremap';
+import { parseEngineId } from '../core/enginePair';
+import type { EngineId, PresetName } from '../core/midiremap';
 import { parseEdits, parseSrcEdits, type StoredEdits } from '../core/overrides';
 import { readStoredStrict, writeStored } from '../core/storage';
 
@@ -24,8 +25,8 @@ export function uniqueName(name: PresetName, taken: PresetName[]): PresetName {
 export interface SavedMapping extends StoredEdits {
   id: string;
   name: PresetName;
-  src: string;
-  tgt: string;
+  src: EngineId;
+  tgt: EngineId;
   updatedAt: number;
 }
 
@@ -36,20 +37,21 @@ function parseOne(value: unknown): SavedMapping | null {
   const v = value as Record<string, unknown>;
   if (
     typeof v.id !== 'string'
-    || typeof v.src !== 'string'
-    || typeof v.tgt !== 'string'
     || typeof v.updatedAt !== 'number'
     || !Number.isFinite(v.updatedAt)
   ) {
     return null;
   }
+  const src = parseEngineId(v.src);
+  const tgt = parseEngineId(v.tgt);
+  if (src === null || tgt === null) return null;
   const name = typeof v.name === 'string' ? parsePresetName(v.name) : null;
   if (!name) return null;
   const edits = parseEdits(v.edits);
   if (!edits) return null;
   const srcEdits = parseSrcEdits(v.srcEdits);
   if (!srcEdits) return null;
-  return { id: v.id, name, src: v.src, tgt: v.tgt, edits, srcEdits, updatedAt: v.updatedAt };
+  return { id: v.id, name, src, tgt, edits, srcEdits, updatedAt: v.updatedAt };
 }
 
 const STORE_VERSION = 1;

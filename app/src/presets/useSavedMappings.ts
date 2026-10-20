@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type SetStateAction } from 'react';
-import type { PresetName } from '../core/midiremap';
+import type { EngineId, PresetName } from '../core/midiremap';
 import type { StoredEdits } from '../core/overrides';
 import { track } from '../core/stats';
 import { onStoredChange, readStored, readStoredStrict, writeStored } from '../core/storage';
@@ -20,7 +20,7 @@ export interface SavedMappings {
    * Stores a new preset and returns its id, or null at the cap. `stored` is told, once the
    * browser has been written to, whether it kept the change.
    */
-  save: (input: { name: PresetName; src: string; tgt: string } & StoredEdits, stored?: Stored) => string | null;
+  save: (input: { name: PresetName; src: EngineId; tgt: EngineId } & StoredEdits, stored?: Stored) => string | null;
   update: (id: string, patch: { name?: PresetName } & Partial<StoredEdits>, stored?: Stored) => void;
   rename: (id: string, name: PresetName) => void;
   remove: (id: string) => void;

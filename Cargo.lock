@@ -569,6 +569,7 @@ version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
  "midiremap-core",
+ "midiremap-testkit",
  "serde",
  "serde_bytes",
  "serde_json",

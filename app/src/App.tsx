@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CardDropzone } from './convert/CardDropzone';
+import { CloserSourcesNotice } from './convert/CloserSourcesNotice';
 import { ConvertButton } from './convert/ConvertButton';
 import { DonePanel } from './convert/DonePanel';
 import { EditView } from './editor/EditView';
@@ -145,6 +146,8 @@ export default function App({ runtime }: { runtime: Runtime }) {
                   toRef={focus.ref('to')}
                 />
 
+                <CloserSourcesNotice remapper={remapper} />
+
                 {notice && <StatusNotice lines={notice} onDismiss={() => setNotice(null)} />}
 
                 {saved.unsaved && <UnsavedNotice />}
@@ -178,8 +181,9 @@ export default function App({ runtime }: { runtime: Runtime }) {
                         failures={conv.failures}
                         view={reportView}
                         pair={conv.pair}
-                        targetName={namesOf(remapper.engines, conv.pair).target}
+                        names={namesOf(remapper.engines, conv.pair)}
                         onViewReport={() => setReportOpen(true)}
+                        onPickSource={() => request('from')}
                         onDropMissing={dropMissing}
                         editedDrums={edited.count}
                         onConvertMore={() => {

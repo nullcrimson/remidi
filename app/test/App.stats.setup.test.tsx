@@ -1,7 +1,10 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import type { Engine, SourceFits } from '../src/core/midiremap';
+import * as stub from './stubs/wasm';
 import { addMidi, pickEngines, startApp } from './eventSteps';
+import { typed } from './typed';
 import { fakeUmami } from './umami';
 
 describe('the events of setting up a conversion', () => {
@@ -118,5 +121,23 @@ describe('the events of setting up a conversion', () => {
     umami.mockClear();
     await userEvent.upload(screen.getAllByTestId('file-input')[0], [unreadable, new File([new Uint8Array([1])], 'fill.mid')]);
     expect(umami).toHaveBeenCalledWith('midi-added', { files: 1, via: 'picker', unreadable: 1 });
+  });
+
+  it('sends source-suggestion-used with the place of the suggestion chosen', async () => {
+    vi.mocked(stub.engine_catalog).mockReturnValue(typed<Engine[]>([
+      { id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GetGood Drums Invasion' },
+      { id: 'ezdrummer', name: 'EZdrummer', fullName: 'Toontrack EZdrummer 3' },
+      { id: 'ggd_mm', name: 'GGD Modern & Massive', fullName: 'GetGood Drums Modern & Massive' },
+      { id: 'ggd_rock', name: 'GGD Rock Fundamentals', fullName: 'GetGood Drums Rock Fundamentals' },
+    ]));
+    vi.mocked(stub.source_fits).mockReturnValue(typed<SourceFits>({
+      hits: 10,
+      ranked: [{ engine: 'ggd_mm', recognized: 10 }, { engine: 'ggd_rock', recognized: 9 }, { engine: 'ggd_invasion', recognized: 5 }],
+    }));
+    await startApp();
+    await pickEngines();
+    await addMidi('groove.mid');
+    await userEvent.click(await screen.findByRole('button', { name: 'GGD Rock Fundamentals (9 notes)' }));
+    expect(umami).toHaveBeenCalledWith('source-suggestion-used', { rank: 2 });
   });
 });

@@ -16,7 +16,7 @@ const LINK = `
 /** Links to the popular conversion tables and the note maps, once the engines are known. */
 export function PopularConversions({ engines }: { engines: readonly Engine[] }) {
   const { t, locale } = useLocale().translator;
-  const names = new Map(engines.map((e) => [e.id, e.name]));
+  const names = new Map<string, string>(engines.map((e) => [e.id, e.name]));
   const links = POPULAR.flatMap(([src, tgt]) => {
     const source = names.get(src);
     const target = names.get(tgt);

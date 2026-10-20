@@ -291,6 +291,21 @@ tip-other = Outro valor
 done-view-report = Ver relatório →
 done-convert-more = Nova conversão
 done-report-mapping = Mapeamento errado? Me avise
+done-removed = { $count ->
+    [one] { $count } nota do seu arquivo não está no mapa de { $source }, então foi removida. Origem errada?
+   *[other] { $count } notas do seu arquivo não estão no mapa de { $source }, então foram removidas. Origem errada?
+}
+done-pick-source = Escolher outra origem
+done-assign-notes = Atribuir as notas
+source-fit-missing = { $missing ->
+    [one] { $missing } de { $hits } notas do seu arquivo não está no mapa de { $source }.
+   *[other] { $missing } de { $hits } notas do seu arquivo não estão no mapa de { $source }.
+} Combinam melhor: { $engines }
+source-fit-all = { $engine } (todas as notas)
+source-fit-some = { $engine } ({ $count ->
+    [one] { $count } nota
+   *[other] { $count } notas
+})
 drop-missing = Remover as peças que faltam e converter de novo
 report-dropped = Removidas
 report-approximated = Substituídas

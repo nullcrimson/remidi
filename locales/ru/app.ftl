@@ -303,6 +303,22 @@ tip-other = Другая сумма
 done-view-report = Посмотреть отчёт →
 done-convert-more = Конвертировать ещё
 done-report-mapping = Неправильная нота? Сообщить
+done-removed = { $count ->
+    [one] { $count } нота из вашего файла отсутствует в маппинге { $source }, поэтому она удалена. Не тот источник?
+    [few] { $count } ноты из вашего файла отсутствуют в маппинге { $source }, поэтому они удалены. Не тот источник?
+    [many] { $count } нот из вашего файла отсутствуют в маппинге { $source }, поэтому они удалены. Не тот источник?
+   *[other] { $count } ноты из вашего файла отсутствуют в маппинге { $source }, поэтому они удалены. Не тот источник?
+}
+done-pick-source = Выбрать другой источник
+done-assign-notes = Назначить ноты
+source-fit-missing = Нет в маппинге { $source }: { $missing } из { $hits } нот вашего файла. Подходят лучше: { $engines }
+source-fit-all = { $engine } (все ноты)
+source-fit-some = { $engine } ({ $count ->
+    [one] { $count } нота
+    [few] { $count } ноты
+    [many] { $count } нот
+   *[other] { $count } ноты
+})
 drop-missing = Убрать недостающие инструменты и конвертировать заново
 report-dropped = Убрано
 report-approximated = Заменено

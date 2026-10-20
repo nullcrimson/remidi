@@ -268,6 +268,21 @@ tip-other = Other amount
 done-view-report = View report →
 done-convert-more = Convert more
 done-report-mapping = Wrong mapping? Report it
+done-removed = { $count ->
+    [one] { $count } note in your file isn't in the { $source } layout, so it was removed. Wrong source?
+   *[other] { $count } notes in your file aren't in the { $source } layout, so they were removed. Wrong source?
+}
+done-pick-source = Pick another source
+done-assign-notes = Assign the notes
+source-fit-missing = { $missing ->
+    [one] { $missing } of { $hits } notes in your file isn't in the { $source } layout.
+   *[other] { $missing } of { $hits } notes in your file aren't in the { $source } layout.
+} Closer fits: { $engines }
+source-fit-all = { $engine } (all notes)
+source-fit-some = { $engine } ({ $count ->
+    [one] { $count } note
+   *[other] { $count } notes
+})
 drop-missing = Drop missing drums & convert again
 report-dropped = Dropped
 report-approximated = Approximated

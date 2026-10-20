@@ -132,7 +132,7 @@ on a phone and click elsewhere.
 - `src/convert/` — the converter screen: `useRemapper.ts` (screen state, Convert + Edit, the `View`: the editor's pair and arguments, only ever on show with both engines chosen; every
   selection change is one `SelectionEvent`), `runtime.ts` (`Runtime { load, converter }`, made
   once in `main.tsx` and handed to `App`; tests hand in `test/runtime.ts`), `converter.ts`,
-  `convertWorker.ts`, `batch.ts` (conversion in a module Web Worker with its own WASM instance;
+  `convertWorker.ts`, `workerProtocol.ts`, `batch.ts` (conversion in a module Web Worker with its own WASM instance;
   a worker that dies after answering is replaced, one that cannot start or dies before
   answering leaves conversion to the main thread, a batch is stopped through its
   `AbortSignal`), `useConverter.ts` (its `Conv` `done` arm carries the pair it converted with), `useFileIntake.ts`, `useDropGuard.ts`, `session.ts` (the setup a reload brings back: engines, settings, unsaved

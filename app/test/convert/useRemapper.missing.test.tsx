@@ -5,7 +5,7 @@ import { RUNTIME } from '../runtime';
 import type { Report } from '../../src/core/midiremap';
 import { loadSession } from '../../src/convert/session';
 import * as stub from '../stubs/wasm';
-import { typed } from '../typed';
+import { engineId, typed } from '../typed';
 import { storedName } from '../../src/core/storage';
 
 const MISSING_KEY = storedName('missing');
@@ -15,8 +15,8 @@ const REPORT = typed<Report>({ unmappedSource: {}, fallbackUsed: {}, dropped: {}
 async function ready() {
   const hook = renderHook(() => useRemapper(RUNTIME));
   await waitFor(() => expect(hook.result.current.catalog.status).toBe('ready'));
-  act(() => hook.result.current.chooseSrc('ggd_invasion'));
-  act(() => hook.result.current.chooseTgt('ezdrummer'));
+  act(() => hook.result.current.chooseSrc(engineId('ggd_invasion')));
+  act(() => hook.result.current.chooseTgt(engineId('ezdrummer')));
   act(() => hook.result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
   return hook.result;
 }

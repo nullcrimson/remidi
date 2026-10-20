@@ -2,10 +2,10 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useRemapper } from '../../src/convert/useRemapper';
 import { RUNTIME } from '../runtime';
-import type { VocabularyDrum } from '../../src/core/midiremap';
+import type { Engine, VocabularyDrum } from '../../src/core/midiremap';
 import { loadSession, saveSession, type Session } from '../../src/convert/session';
 import * as stub from '../stubs/wasm';
-import { typed } from '../typed';
+import { engineId, typed } from '../typed';
 
 const STORED = typed<Session>({
   src: 'ggd_invasion',
@@ -27,11 +27,11 @@ async function mount() {
 describe('useRemapper session memory', () => {
   beforeEach(() => {
     localStorage.clear();
-    vi.mocked(stub.engine_catalog).mockReturnValue([
+    vi.mocked(stub.engine_catalog).mockReturnValue(typed<Engine[]>([
       { id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GetGood Drums Invasion' },
       { id: 'ezdrummer', name: 'EZdrummer', fullName: 'Toontrack EZdrummer 3' },
       { id: 'general_midi', name: 'General MIDI', fullName: 'General MIDI' },
-    ]);
+    ]));
     vi.mocked(stub.engine_drums).mockReturnValue([]);
     vi.mocked(stub.engine_notes).mockReturnValue([]);
     vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
@@ -52,8 +52,8 @@ describe('useRemapper session memory', () => {
 
   it('remembers each change', async () => {
     const result = await mount();
-    act(() => result.current.chooseSrc('ggd_invasion'));
-    act(() => result.current.chooseTgt('general_midi'));
+    act(() => result.current.chooseSrc(engineId('ggd_invasion')));
+    act(() => result.current.chooseTgt(engineId('general_midi')));
     act(() => result.current.setOct('c2'));
     act(() => result.current.setChannel('all'));
     act(() => result.current.setMissing('drop'));
@@ -61,7 +61,7 @@ describe('useRemapper session memory', () => {
   });
 
   it('drops an engine this version no longer has, with its edits', async () => {
-    saveSession({ ...STORED, tgt: 'gone_engine' });
+    saveSession({ ...STORED, tgt: engineId('gone_engine') });
     const result = await mount();
     await waitFor(() => expect(result.current.tgt).toBeNull());
     expect(result.current.src).toBe('ggd_invasion');

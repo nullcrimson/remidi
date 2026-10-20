@@ -4,7 +4,7 @@ import { useRemapper } from '../../src/convert/useRemapper';
 import { RUNTIME } from '../runtime';
 import type { Overrides, VoiceRow } from '../../src/core/midiremap';
 import * as stub from '../stubs/wasm';
-import { canon, note, typed } from '../typed';
+import { canon, engineId, note, typed } from '../typed';
 import { shownSrcPick } from '../picks';
 
 const DEFAULTS: Record<number, string> = { 24: 'kick.main', 26: 'snare1.hit' };
@@ -35,8 +35,8 @@ beforeEach(() => {
 async function ready() {
   const hook = renderHook(() => useRemapper(RUNTIME));
   await waitFor(() => expect(hook.result.current.catalog.status).toBe('ready'));
-  act(() => hook.result.current.chooseSrc('ggd_invasion'));
-  act(() => hook.result.current.chooseTgt('ezdrummer'));
+  act(() => hook.result.current.chooseSrc(engineId('ggd_invasion')));
+  act(() => hook.result.current.chooseTgt(engineId('ezdrummer')));
   return hook.result;
 }
 

@@ -4,8 +4,9 @@ import { PopularConversions } from '../../src/site/PopularConversions';
 import { loadTranslator } from '../../src/locale/i18n';
 import { LocaleContext } from '../../src/locale/localeContext';
 import { POPULAR } from '../../src/generated/i18n';
+import { engineId } from '../typed';
 
-const named = (id: string) => ({ id, name: `Name of ${id}`, fullName: `Name of ${id}` });
+const named = (id: string) => ({ id: engineId(id), name: `Name of ${id}`, fullName: `Name of ${id}` });
 const ENGINES = [...new Set(POPULAR.flat())].map(named);
 
 const links = () => within(screen.getByRole('navigation', { name: 'Popular conversions' })).getAllByRole('link');

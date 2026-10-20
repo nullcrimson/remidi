@@ -1,8 +1,8 @@
-import type { Engine } from '../core/midiremap';
+import type { Engine, EngineId } from '../core/midiremap';
 
 interface Preselection {
-  src?: string;
-  tgt?: string;
+  src?: EngineId;
+  tgt?: EngineId;
 }
 
 /** The part of a page address that can name engines to preselect. */
@@ -18,10 +18,9 @@ function params({ search, hash }: Address): URLSearchParams {
 
 export function preselection(address: Address, engines: Engine[]): Preselection | null {
   const given = params(address);
-  const known = new Set(engines.map((e) => e.id));
-  const pick = (key: string): string | undefined => {
+  const pick = (key: string): EngineId | undefined => {
     const value = given.get(key);
-    return value !== null && known.has(value) ? value : undefined;
+    return engines.find((e) => e.id === value)?.id;
   };
   const src = pick('from');
   const picked = pick('to');

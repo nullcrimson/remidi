@@ -1,11 +1,21 @@
+import type { EngineId } from './midiremap';
+
 /** Both engines of a conversion: the one whose drum notes are read and the one they are written for. */
 export interface EnginePair {
-  src: string;
-  tgt: string;
+  src: EngineId;
+  tgt: EngineId;
+}
+
+/**
+ * The one reader of a stored engine id: `value` as an id when it is a non-empty string,
+ * otherwise null. The catalog may no longer know it.
+ */
+export function parseEngineId(value: unknown): EngineId | null {
+  return typeof value === 'string' && value !== '' ? (value as EngineId) : null;
 }
 
 /** The pair when both engines are chosen, otherwise `null`. */
-export function pairOf(src: string | null, tgt: string | null): EnginePair | null {
+export function pairOf(src: EngineId | null, tgt: EngineId | null): EnginePair | null {
   return src !== null && tgt !== null ? { src, tgt } : null;
 }
 
@@ -15,8 +25,12 @@ export interface EngineNames {
   target: string;
 }
 
+/** An engine's display name; an engine the list lacks is named by its id. */
+export function engineName(engines: { id: EngineId; name: string }[], id: EngineId): string {
+  return engines.find((e) => e.id === id)?.name ?? id;
+}
+
 /** The display names of a pair's engines; an engine the list lacks is named by its id. */
-export function namesOf(engines: { id: string; name: string }[], { src, tgt }: EnginePair): EngineNames {
-  const nameOf = (id: string) => engines.find((e) => e.id === id)?.name ?? id;
-  return { source: nameOf(src), target: nameOf(tgt) };
+export function namesOf(engines: { id: EngineId; name: string }[], { src, tgt }: EnginePair): EngineNames {
+  return { source: engineName(engines, src), target: engineName(engines, tgt) };
 }

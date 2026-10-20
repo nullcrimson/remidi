@@ -4,12 +4,14 @@ import { describe, expect, it, vi } from 'vitest';
 import { LibraryList } from '../../src/engines/LibraryList';
 import { loadTranslator } from '../../src/locale/i18n';
 import { LocaleContext } from '../../src/locale/localeContext';
+import type { Engine } from '../../src/core/midiremap';
+import { typed } from '../typed';
 
-const engines = [
+const engines = typed<Engine[]>([
   { id: 'addictive', name: 'Addictive Drums 2', fullName: 'Addictive Drums 2' },
   { id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GGD Invasion' },
   { id: 'ezdrummer', name: 'EZdrummer', fullName: 'EZdrummer' },
-];
+]);
 const noFav = { favorites: new Set<string>(), onToggleFavorite: () => {} };
 
 const combobox = () => screen.getByRole('combobox', { name: 'Filter FROM engines' });
@@ -160,14 +162,14 @@ describe('LibraryList', () => {
   });
 
   it('matches the full engine name while showing the short one', async () => {
-    const named = [...engines, { id: 'sd3', name: 'Superior Drummer 3', fullName: 'Toontrack Superior Drummer 3' }];
+    const named = [...engines, ...typed<Engine[]>([{ id: 'sd3', name: 'Superior Drummer 3', fullName: 'Toontrack Superior Drummer 3' }])];
     render(<LibraryList side="from" label="FROM" value={null} engines={named} onChange={() => {}} {...noFav} />);
     await userEvent.type(combobox(), 'toontrack');
     expect(screen.getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Superior Drummer 3']);
   });
 
   it('shows the full engine name on hover when it differs', async () => {
-    const named = [{ id: 'sd3', name: 'Superior Drummer 3', fullName: 'Toontrack Superior Drummer 3' }];
+    const named = typed<Engine[]>([{ id: 'sd3', name: 'Superior Drummer 3', fullName: 'Toontrack Superior Drummer 3' }]);
     render(<LibraryList side="from" label="FROM" value={null} engines={named} onChange={() => {}} {...noFav} />);
     await userEvent.hover(screen.getByText('Superior Drummer 3'));
     expect(screen.getByRole('tooltip')).toHaveTextContent('Toontrack Superior Drummer 3');

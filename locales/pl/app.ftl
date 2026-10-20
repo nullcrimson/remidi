@@ -285,6 +285,19 @@ tip-other = Inna kwota
 done-view-report = Zobacz raport →
 done-convert-more = Nowa konwersja
 done-report-mapping = Błędne mapowanie? Zgłoś
+done-removed = { $count ->
+    [one] W mapie { $source } brakuje { $count } nuty z pliku, więc ją usunięto. Złe źródło?
+   *[other] W mapie { $source } brakuje { $count } nut z pliku, więc je usunięto. Złe źródło?
+}
+done-pick-source = Wybierz inne źródło
+done-assign-notes = Przypisz nuty
+source-fit-missing = W mapie { $source } brakuje { $missing } z { $hits } nut z pliku. Lepiej pasują: { $engines }
+source-fit-all = { $engine } (wszystkie nuty)
+source-fit-some = { $engine } ({ $count ->
+    [one] { $count } nuta
+    [few] { $count } nuty
+   *[many] { $count } nut
+})
 drop-missing = Usuń brakujące instrumenty i konwertuj ponownie
 report-dropped = Usunięte
 report-approximated = Zastąpione

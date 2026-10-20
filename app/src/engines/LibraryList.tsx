@@ -1,7 +1,7 @@
 import { useT } from '../locale/localeContext';
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import type { FocusRef } from '../ui/useFocusIntent';
-import type { Engine } from '../core/midiremap';
+import type { Engine, EngineId } from '../core/midiremap';
 import { track } from '../core/stats';
 import type { StatEvents } from '../core/umami';
 import { reveal } from '../ui/reveal';
@@ -29,7 +29,7 @@ export function LibraryList({
   label: string;
   value: string | null;
   engines: Engine[];
-  onChange: (id: string) => void;
+  onChange: (id: EngineId) => void;
   disabledId?: string | null;
   favorites: Set<string>;
   onToggleFavorite: (id: string) => void;
@@ -69,7 +69,7 @@ export function LibraryList({
     if (row) reveal(list, row);
   }, [activeKey, baseId]);
 
-  const pick = (id: string) => {
+  const pick = (id: EngineId) => {
     track('engine-picked', { side, id, via: q !== '' ? 'filter' : favorites.has(id) ? 'favorite' : 'list' });
     onChange(id);
     setQ('');

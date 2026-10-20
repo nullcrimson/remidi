@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { preselection } from '../../src/convert/preselect';
+import type { Engine } from '../../src/core/midiremap';
+import { typed } from '../typed';
 
-const ENGINES = [
+const ENGINES = typed<Engine[]>([
   { id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GGD Invasion' },
   { id: 'ezdrummer', name: 'EZdrummer', fullName: 'EZdrummer' },
-];
+]);
 
 const query = (search: string) => ({ search, hash: '' });
 const fragment = (hash: string) => ({ search: '', hash });

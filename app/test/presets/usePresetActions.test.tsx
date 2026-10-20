@@ -5,7 +5,7 @@ import type { SavedMappings } from '../../src/presets/useSavedMappings';
 import type { SavedMapping } from '../../src/presets/mappings';
 import { ENGLISH } from '../../src/locale/i18n';
 import type { NoticeLine } from '../../src/core/notice';
-import { presetName, typed } from '../typed';
+import { enginePair, presetName, typed } from '../typed';
 
 const { t } = ENGLISH;
 
@@ -44,7 +44,7 @@ function arrange(skipped = 0, mappings = [kit]) {
 describe('usePresetActions', () => {
   it('saves the open pair and its edits as a new preset', () => {
     const { actions, saved } = arrange();
-    actions.save({ src: 'ggd_invasion', tgt: 'ezdrummer' }, presetName('Mine'));
+    actions.save(enginePair('ggd_invasion', 'ezdrummer'), presetName('Mine'));
     expect(saved.save).toHaveBeenCalledWith({
       name: 'Mine',
       src: 'ggd_invasion',
@@ -56,7 +56,7 @@ describe('usePresetActions', () => {
 
   it('marks a newly saved preset open', () => {
     const { actions, setup } = arrange();
-    actions.save({ src: 'ggd_invasion', tgt: 'ezdrummer' }, presetName('Mine'));
+    actions.save(enginePair('ggd_invasion', 'ezdrummer'), presetName('Mine'));
     expect(setup.setPreset).toHaveBeenCalledWith('new-id');
   });
 

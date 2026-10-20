@@ -130,6 +130,17 @@ describe('real WASM module', () => {
     });
   });
 
+  it('fits every engine to the hits of the files, best first', () => {
+    const { hits, ranked } = real.source_fits([MIDI, CHINA_MIDI], 'auto');
+    expect(ranked).toHaveLength(real.engine_catalog().length);
+    expect([hits, ranked.find((f) => f.engine === 'ggd_invasion')]).toEqual([3, { engine: 'ggd_invasion', recognized: 3 }]);
+    expect(ranked.map((f) => f.recognized)).toEqual(ranked.map((f) => f.recognized).sort((a, b) => b - a));
+  });
+
+  it('leaves a file that does not parse out of a fit', () => {
+    expect(real.source_fits([MIDI, new Uint8Array([1, 2])], 'auto').hits).toBe(2);
+  });
+
   it('lists the drum families in display order', () => {
     expect(real.family_order()).toEqual(['Kick', 'Snare', 'Toms', 'Hi-Hat', 'Cymbals', 'Percussion', 'Aux']);
   });

@@ -4,18 +4,19 @@ import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 import { SavedMappingChips } from '../../src/presets/SavedMappingChips';
 import type { SavedMapping } from '../../src/presets/mappings';
-import { presetName } from '../typed';
+import type { Engine } from '../../src/core/midiremap';
+import { engineId, presetName, typed } from '../typed';
 
-const engines = [
+const engines = typed<Engine[]>([
   { id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GGD Invasion' },
   { id: 'ezdrummer', name: 'EZdrummer', fullName: 'EZdrummer' },
-];
+]);
 
 const preset = (id: string, name: string): SavedMapping => ({
   id,
   name: presetName(name),
-  src: 'ggd_invasion',
-  tgt: 'ezdrummer',
+  src: engineId('ggd_invasion'),
+  tgt: engineId('ezdrummer'),
   edits: {},
   srcEdits: {},
   updatedAt: 1,

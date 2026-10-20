@@ -74,6 +74,26 @@ describe('the events of the report', () => {
     expect(umami).toHaveBeenCalledWith('missing-dropped', { where: 'done' });
   });
 
+  it('sends done-wrong-source when Pick another source is pressed on the done panel', async () => {
+    vi.mocked(stub.remap).mockReturnValue(reportOf({ unmappedSource: { 51: 2 } }));
+    await startApp();
+    await pickEngines();
+    await addMidi('groove.mid');
+    await convert();
+    await userEvent.click(screen.getByRole('button', { name: 'Pick another source' }));
+    expect(umami).toHaveBeenCalledWith('done-wrong-source');
+  });
+
+  it('sends done-assign-unrecognized when Assign the notes is pressed on the done panel', async () => {
+    vi.mocked(stub.remap).mockReturnValue(reportOf({ unmappedSource: { 51: 2 } }));
+    await startApp();
+    await pickEngines();
+    await addMidi('groove.mid');
+    await convert();
+    await userEvent.click(screen.getByRole('button', { name: 'Assign the notes' }));
+    expect(umami).toHaveBeenCalledWith('done-assign-unrecognized');
+  });
+
   it('sends mapping-reported when the wrong-mapping link is followed', async () => {
     await startApp();
     await pickEngines();

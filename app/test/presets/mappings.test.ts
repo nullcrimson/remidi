@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { presetName, typed } from '../typed';
+import { engineId, presetName, typed } from '../typed';
 import { parseMappings, parsePresetName, quarantine, readStore, serializeMappings, sortByRecent, uniqueName, type SavedMapping } from '../../src/presets/mappings';
 import { readStored, storedName } from '../../src/core/storage';
 
@@ -18,8 +18,8 @@ describe('parseMappings', () => {
     const pairOnly: SavedMapping = {
       id: 'p',
       name: presetName('GGD→EZD'),
-      src: 'ggd_invasion',
-      tgt: 'ezdrummer',
+      src: engineId('ggd_invasion'),
+      tgt: engineId('ezdrummer'),
       edits: {},
       srcEdits: {},
       updatedAt: 1,

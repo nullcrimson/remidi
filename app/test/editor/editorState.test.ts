@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { editorReducer, EDITOR_START, type EditorState, type Pick } from '../../src/editor/editorState';
 import { knownEdits } from '../../src/core/overrides';
 import type { SelectionEvent } from '../../src/core/selection';
-import { canon, note, typed } from '../typed';
+import { canon, engineId, note, typed } from '../typed';
 
 const edited = typed<EditorState>({
   edits: { 'kick.main': 35 },
@@ -12,12 +12,12 @@ const edited = typed<EditorState>({
 
 describe('editorReducer and selection events', () => {
   it('drops every edit when the FROM engine is chosen (chooseSrc)', () => {
-    const event: SelectionEvent = { type: 'chooseSrc', id: 'ezdrummer' };
+    const event: SelectionEvent = { type: 'chooseSrc', id: engineId('ezdrummer') };
     expect(editorReducer(edited, event)).toEqual(EDITOR_START);
   });
 
   it('drops every edit when the TO engine is chosen (chooseTgt)', () => {
-    const event: SelectionEvent = { type: 'chooseTgt', id: 'ezdrummer' };
+    const event: SelectionEvent = { type: 'chooseTgt', id: engineId('ezdrummer') };
     expect(editorReducer(edited, event)).toEqual(EDITOR_START);
   });
 
@@ -27,15 +27,15 @@ describe('editorReducer and selection events', () => {
   });
 
   it('drops every edit when a pair is preselected (preselect)', () => {
-    const event: SelectionEvent = { type: 'preselect', src: 'a', tgt: 'b' };
+    const event: SelectionEvent = { type: 'preselect', src: engineId('a'), tgt: engineId('b') };
     expect(editorReducer(edited, event)).toEqual(EDITOR_START);
   });
 
   it('takes a loaded mapping’s edits and closes any picker', () => {
     const next = editorReducer(edited, {
       type: 'loadMapping',
-      src: 'a',
-      tgt: 'b',
+      src: engineId('a'),
+      tgt: engineId('b'),
       presetId: 'p1',
       known: knownEdits(
         { edits: { 'snare1.hit': note(40) }, srcEdits: {} },

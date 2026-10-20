@@ -5,10 +5,10 @@ import { presetName, typed } from '../typed';
 const init = vi.fn<() => Promise<unknown>>(async () => ({}));
 export default init;
 
-export const engine_catalog = vi.fn<typeof Wasm.engine_catalog>(() => [
+export const engine_catalog = vi.fn<typeof Wasm.engine_catalog>(() => typed<Wasm.Engine[]>([
   { id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GetGood Drums Invasion' },
   { id: 'ezdrummer', name: 'EZdrummer', fullName: 'Toontrack EZdrummer 3' },
-]);
+]));
 
 const unknownEngine = (role: Wasm.Role, id: string): Wasm.WasmError => ({
   kind: 'unknownEngine',
@@ -83,3 +83,5 @@ export const remap = vi.fn<typeof Wasm.remap>(() => ({
     converted: 40,
   }),
 }));
+
+export const source_fits = vi.fn<typeof Wasm.source_fits>(() => ({ hits: 0, ranked: [] }));

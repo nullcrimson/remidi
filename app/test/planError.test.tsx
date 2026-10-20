@@ -8,7 +8,7 @@ import { RUNTIME } from './runtime';
 import type { StoredEdits } from '../src/core/overrides';
 import type { Overrides, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
-import { typed } from './typed';
+import { engineId, typed } from './typed';
 import { storedName } from '../src/core/storage';
 
 const MAPPINGS_KEY = storedName('mappings');
@@ -23,8 +23,8 @@ function planThatRejectsBogus(_s: string, _t: string, ov?: Overrides | null) {
 const PRESET = {
   id: 'p1',
   name: 'Old preset',
-  src: 'ggd_invasion',
-  tgt: 'ezdrummer',
+  src: engineId('ggd_invasion'),
+  tgt: engineId('ezdrummer'),
   edits: typed<StoredEdits['edits']>({ 'bogus.canon': 40 }),
   srcEdits: {},
   updatedAt: 1,

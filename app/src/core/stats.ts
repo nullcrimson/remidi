@@ -1,5 +1,7 @@
 import { send, type AppEvent, type StatArgs } from './umami';
 
+export { SUGGESTION_RANKS, type SuggestionRank } from './umami';
+
 /** 1 is the funnel, 2 is feature use, 3 is fine detail. */
 export type Tier = 1 | 2 | 3;
 
@@ -18,6 +20,9 @@ const TIER_OF = {
   'report-opened': 2,
   'report-fix-used': 2,
   'missing-dropped': 2,
+  'done-wrong-source': 2,
+  'done-assign-unrecognized': 2,
+  'source-suggestion-used': 2,
   'mapping-reported': 2,
   'editor-opened': 2,
   'editor-closed': 2,

@@ -1,11 +1,12 @@
 use std::{collections::BTreeMap, error::Error};
 
 use midiremap_core::{
-    convert, parse_preset, plan as core_plan, Canon, Catalog, ChannelScope, Drum, EngineMap,
-    Family, LoadedPreset, Mapping, MissingDrums, Note, OctaveBase, Overrides, Report, SkippedEdit,
-    VoicePlan,
+    convert, note_hits, parse_preset, plan as core_plan, source_fits as core_source_fits, Canon,
+    Catalog, ChannelScope, Drum, EngineMap, Family, LoadedPreset, Mapping, MissingDrums, Note,
+    NoteHits, OctaveBase, Overrides, Report, SkippedEdit, VoicePlan,
 };
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_bytes::ByteBuf;
 use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 
@@ -180,6 +181,17 @@ pub fn plan(
     to_js_all(&voice_rows(catalog()?, src_id, tgt_id, &ov, missing)?)
 }
 
+/// An engine's id, as the catalog names it.
+#[derive(Serialize, Tsify, Debug, PartialEq, Eq)]
+#[tsify(type = r#"string & { readonly __brand: "EngineId" }"#)]
+pub struct EngineId(String);
+
+impl EngineId {
+    fn of(engine: &EngineMap) -> Self {
+        Self(engine.id().to_owned())
+    }
+}
+
 /// A preset's name: text that is not blank, its spacing kept.
 #[derive(Serialize, Tsify, Debug, PartialEq, Eq)]
 #[tsify(type = r#"string & { readonly __brand: "PresetName" }"#)]
@@ -192,8 +204,8 @@ pub struct PresetName(String);
 #[tsify(missing_as_null, hashmap_as_object)]
 pub struct PresetView {
     name: PresetName,
-    src: String,
-    tgt: String,
+    src: EngineId,
+    tgt: EngineId,
     edits: BTreeMap<Canon, Note>,
     #[serde(serialize_with = "Note::text_keys")]
     src_edits: BTreeMap<Note, Option<Canon>>,
@@ -206,7 +218,7 @@ fn preset_view(json: &str, catalog: &Catalog) -> Result<PresetView, WasmError> {
     let engine = |id: &str, role| {
         catalog
             .canonical_id(id)
-            .map(str::to_owned)
+            .map(|id| EngineId(id.to_owned()))
             .ok_or_else(|| WasmError::UnknownEngine {
                 role,
                 id: id.to_owned(),
@@ -317,7 +329,7 @@ pub fn note_naming() -> Result<Ts<NoteNamings>, WasmError> {
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null, hashmap_as_object)]
 pub struct Engine {
-    id: String,
+    id: EngineId,
     name: String,
     full_name: String,
 }
@@ -326,7 +338,7 @@ fn engines(catalog: &Catalog) -> Vec<Engine> {
     catalog
         .engines()
         .map(|m| Engine {
-            id: m.id().to_owned(),
+            id: EngineId::of(m),
             name: m.display_name().to_owned(),
             full_name: m.name().to_owned(),
         })
@@ -338,28 +350,83 @@ pub fn engine_catalog() -> Result<Vec<Ts<Engine>>, WasmError> {
     to_js_all(&engines(catalog()?))
 }
 
+/// The bytes of the files a fit is computed over.
+#[derive(Deserialize, Tsify)]
+#[serde(transparent)]
+#[tsify(type = "Uint8Array[]")]
+pub struct MidiFiles(Vec<ByteBuf>);
+
+/// How many of the files' hits one engine's layout recognizes.
+#[derive(Serialize, Tsify, Debug, PartialEq, Eq)]
+#[tsify(missing_as_null, hashmap_as_object)]
+pub struct SourceFit {
+    engine: EngineId,
+    recognized: u32,
+}
+
+/// Every engine fitted to the files' hits, best first; none recognizes more than `hits`.
+#[derive(Serialize, Tsify, Debug, PartialEq, Eq)]
+#[tsify(missing_as_null, hashmap_as_object)]
+pub struct SourceFits {
+    hits: u32,
+    ranked: Vec<SourceFit>,
+}
+
+fn fits_of(catalog: &Catalog, mids: &[ByteBuf], scope: ChannelScope) -> SourceFits {
+    let hits: NoteHits = mids
+        .iter()
+        .filter_map(|mid| note_hits(mid, scope).ok())
+        .sum();
+    let fits = core_source_fits(catalog, &hits);
+    SourceFits {
+        hits: fits.hits(),
+        ranked: fits
+            .ranked()
+            .iter()
+            .map(|fit| SourceFit {
+                engine: EngineId::of(fit.engine()),
+                recognized: fit.recognized(),
+            })
+            .collect(),
+    }
+}
+
+/// Every engine fitted to the hits of all `mids` that a conversion with `channel` reads,
+/// best first. A file that does not parse is left out: converting it says why.
+#[wasm_bindgen]
+pub fn source_fits(
+    mids: Ts<MidiFiles>,
+    channel: Option<Ts<ChannelScope>>,
+) -> Result<Ts<SourceFits>, WasmError> {
+    let MidiFiles(mids) = mids.to_rust()?;
+    let scope = from_js(channel, |detail| WasmError::Internal { detail })?;
+    Ok(fits_of(catalog()?, &mids, scope).into_ts()?)
+}
+
 #[cfg(test)]
 mod tests {
+    use midiremap_testkit::{drums, on};
+
     use super::*;
 
     #[test]
     fn catalog_names_engines_by_display_name() {
         let engines = engines(&Catalog::builtin().unwrap());
-        let ezd = engines.iter().find(|e| e.id == "ezdrummer").unwrap();
+        let ezd = engines.iter().find(|e| e.id.0 == "ezdrummer").unwrap();
         assert_eq!(ezd.name, "EZdrummer 3");
     }
 
     #[test]
     fn catalog_keeps_the_full_name() {
         let engines = engines(&Catalog::builtin().unwrap());
-        let ezd = engines.iter().find(|e| e.id == "ezdrummer").unwrap();
+        let ezd = engines.iter().find(|e| e.id.0 == "ezdrummer").unwrap();
         assert_eq!(ezd.full_name, "Toontrack EZdrummer 3");
     }
 
     #[test]
     fn catalog_gives_an_engine_without_a_short_name_the_same_name_and_full_name() {
         let engines = engines(&Catalog::builtin().unwrap());
-        let hertz = engines.iter().find(|e| e.id == "hertz").unwrap();
+        let hertz = engines.iter().find(|e| e.id.0 == "hertz").unwrap();
         assert_eq!(hertz.name, hertz.full_name);
     }
 
@@ -380,13 +447,13 @@ mod tests {
     #[test]
     fn preset_view_resolves_a_source_alias() {
         let view = view_through_an_alias_with_a_bogus_edit();
-        assert_eq!(view.src, "custom");
+        assert_eq!(view.src, EngineId("custom".into()));
     }
 
     #[test]
     fn preset_view_keeps_the_target_engine() {
         let view = view_through_an_alias_with_a_bogus_edit();
-        assert_eq!(view.tgt, "ezdrummer");
+        assert_eq!(view.tgt, EngineId("ezdrummer".into()));
     }
 
     #[test]
@@ -585,6 +652,30 @@ mod tests {
             let json = serde_json::to_value(row).unwrap();
             assert_eq!(json["family"], serde_json::json!(row.plan.canon.family()));
         }
+    }
+
+    fn ggd_fit(mids: &[&[u8]]) -> (u32, u32) {
+        let mids: Vec<ByteBuf> = mids.iter().map(|mid| ByteBuf::from(*mid)).collect();
+        let fits = fits_of(&Catalog::builtin().unwrap(), &mids, ChannelScope::Auto);
+        let ggd = fits
+            .ranked
+            .iter()
+            .find(|fit| fit.engine.0 == "ggd_invasion")
+            .unwrap();
+        (ggd.recognized, fits.hits)
+    }
+
+    #[test]
+    fn source_fits_sum_the_hits_of_every_file() {
+        let one = drums(&[(0, on(24)), (0, on(99))]);
+        let two = drums(&[(0, on(26))]);
+        assert_eq!(ggd_fit(&[&one, &two]), (2, 3));
+    }
+
+    #[test]
+    fn source_fits_leave_out_a_file_that_does_not_parse() {
+        let good = drums(&[(0, on(24))]);
+        assert_eq!(ggd_fit(&[&good, b"garbage"]).1, 1);
     }
 
     #[test]

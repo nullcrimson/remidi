@@ -1,9 +1,9 @@
 import type { Translate } from '../locale/i18n';
-import { useLocale } from '../locale/localeContext';
+import { useLocale, useT } from '../locale/localeContext';
 import { useEffect, useRef, useState } from 'react';
 import { saveBlob } from '../core/download';
 import { engineCode } from '../core/engineCode';
-import type { EnginePair } from '../core/enginePair';
+import type { EngineNames, EnginePair } from '../core/enginePair';
 import { reportLink } from '../report/reportLink';
 import type { FailedFile } from './batch';
 import type { FileResult } from '../core/files';
@@ -46,13 +46,44 @@ function fileStatus(file: ReportFile | undefined, t: Translate): string {
   return lossy.length > 0 ? lossy.join(' · ') : t({ id: 'done-file-clean' });
 }
 
+function RemovedNotes({ count, source, onPickSource, onAssign }: {
+  count: number;
+  source: string;
+  onPickSource: () => void;
+  onAssign: () => void;
+}) {
+  const t = useT();
+  return (
+    <div className="flex flex-col gap-1.5 text-ui text-t3">
+      <p>{t({ id: 'done-removed', args: { count, source } })}</p>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <TextButton
+          onClick={() => {
+            track('done-wrong-source');
+            onPickSource();
+          }}
+        >{t({ id: 'done-pick-source' })}
+        </TextButton>
+        <TextButton
+          onClick={() => {
+            track('done-assign-unrecognized');
+            onAssign();
+          }}
+        >{t({ id: 'done-assign-notes' })}
+        </TextButton>
+      </div>
+    </div>
+  );
+}
+
 export function DonePanel({
   results,
   failures,
   view,
   pair,
-  targetName,
+  names,
   onViewReport,
+  onPickSource,
   onConvertMore,
   onDropMissing,
   editedDrums = 0,
@@ -61,8 +92,9 @@ export function DonePanel({
   failures: FailedFile[];
   view: ReportView;
   pair: EnginePair;
-  targetName: string;
+  names: EngineNames;
   onViewReport: () => void;
+  onPickSource: () => void;
   onConvertMore: () => void;
   onDropMissing?: () => void;
   editedDrums?: number;
@@ -93,7 +125,7 @@ export function DonePanel({
           tabIndex={-1}
           className="text-body font-semibold text-t1 outline-none"
         >
-          {t({ id: 'done-heading', args: { count: results.length, target: targetName } })}
+          {t({ id: 'done-heading', args: { count: results.length, target: names.target } })}
           {editedDrums > 0 && (
             <span className="font-normal text-t4">
               {' · '}
@@ -106,6 +138,14 @@ export function DonePanel({
             <li key={item.text} className={tag(item.tone)}>{item.text}</li>
           ))}
         </ul>
+        {view.totals.unrecognized > 0 && (
+          <RemovedNotes
+            count={view.totals.unrecognized}
+            source={names.source}
+            onPickSource={onPickSource}
+            onAssign={onViewReport}
+          />
+        )}
       </div>
 
       {single

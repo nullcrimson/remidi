@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { answerRequest, runBatch, type BatchRequest } from '../../src/convert/batch';
+import { runBatch } from '../../src/convert/batch';
 import { WasmCallError } from '../../src/core/errors';
-import { moduleLoader, type Overrides, type RemapOutput } from '../../src/core/midiremap';
-import { typed } from '../typed';
+import type { Overrides, RemapOutput } from '../../src/core/midiremap';
+import { enginePair, typed } from '../typed';
 
 const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 };
 
@@ -18,7 +18,7 @@ describe('runBatch', () => {
         { name: 'broken.mid', bytes: new Uint8Array([0]) },
         { name: 'b.mid', bytes: new Uint8Array([5]) },
       ],
-      { src: 'ggd_invasion', tgt: 'ezdrummer' },
+      enginePair('ggd_invasion', 'ezdrummer'),
       undefined,
       'auto',
       'nearest',
@@ -34,30 +34,10 @@ describe('runBatch', () => {
   it('passes engines, overrides, channel and missing drums through to remap', () => {
     const calls: unknown[][] = [];
     const ov = typed<Overrides>({ tgt: [{ canon: 'kick.main', note: 35 }], src: [] });
-    runBatch([{ name: 'a.mid', bytes: new Uint8Array([1]) }], { src: 's', tgt: 't' }, ov, '10', 'drop', (...args) => {
+    runBatch([{ name: 'a.mid', bytes: new Uint8Array([1]) }], enginePair('s', 't'), ov, '10', 'drop', (...args) => {
       calls.push(args.slice(1));
       return { bytes: new Uint8Array(), report: REPORT };
     });
-    expect(calls).toEqual([[{ src: 's', tgt: 't' }, ov, '10', 'drop']]);
-  });
-});
-
-const REQUEST: BatchRequest = {
-  id: 7,
-  files: [{ name: 'a.mid', bytes: new Uint8Array([1]) }],
-  pair: { src: 'ggd_invasion', tgt: 'ezdrummer' },
-  channel: 'auto',
-  missing: 'nearest',
-};
-
-describe('answerRequest', () => {
-  it('replies with the batch result', async () => {
-    const reply = await answerRequest(moduleLoader(), REQUEST);
-    expect(reply).toMatchObject({ id: 7, result: { ok: [{ name: 'a.mid' }], failed: [] } });
-  });
-
-  it('replies with the error when the converter cannot load', async () => {
-    const reply = await answerRequest(() => Promise.reject(new Error('wasm fetch failed')), REQUEST);
-    expect(reply).toEqual({ id: 7, error: { kind: 'internal', detail: 'wasm fetch failed' } });
+    expect(calls).toEqual([[enginePair('s', 't'), ov, '10', 'drop']]);
   });
 });

@@ -292,6 +292,21 @@ tip-other = Altro importo
 done-view-report = Vedi report →
 done-convert-more = Converti altri
 done-report-mapping = Mappatura sbagliata? Segnalala
+done-removed = { $count ->
+    [one] { $count } nota del tuo file non è nella mappatura di { $source }, quindi è stata rimossa. Origine sbagliata?
+   *[other] { $count } note del tuo file non sono nella mappatura di { $source }, quindi sono state rimosse. Origine sbagliata?
+}
+done-pick-source = Scegli un'altra origine
+done-assign-notes = Assegna le note
+source-fit-missing = { $missing ->
+    [one] { $missing } nota su { $hits } del tuo file non è nella mappatura di { $source }.
+   *[other] { $missing } note su { $hits } del tuo file non sono nella mappatura di { $source }.
+} Più adatti: { $engines }
+source-fit-all = { $engine } (tutte le note)
+source-fit-some = { $engine } ({ $count ->
+    [one] { $count } nota
+   *[other] { $count } note
+})
 drop-missing = Rimuovi gli strumenti mancanti e riconverti
 report-dropped = Rimosse
 report-approximated = Sostituite

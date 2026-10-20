@@ -1,14 +1,14 @@
 import { saveBlob } from '../core/download';
 import type { StoredEdits } from '../core/overrides';
-import type { PresetName } from '../core/midiremap';
+import type { EngineId, PresetName } from '../core/midiremap';
 
 const PRESET_FORMAT = 'drumverter-preset';
 const PRESET_VERSION = 1;
 
 export interface PresetContent extends StoredEdits {
   name: PresetName;
-  src: string;
-  tgt: string;
+  src: EngineId;
+  tgt: EngineId;
 }
 
 export function toPresetFile(p: PresetContent): string {

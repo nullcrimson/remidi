@@ -2,7 +2,7 @@ import { useT } from '../locale/localeContext';
 import { track } from '../core/stats';
 import type { FocusRef } from '../ui/useFocusIntent';
 import { useFavorites } from './useFavorites';
-import type { Engine } from '../core/midiremap';
+import type { Engine, EngineId } from '../core/midiremap';
 import { IconButton } from '../ui/IconButton';
 import { LibraryList } from './LibraryList';
 
@@ -20,8 +20,8 @@ export function EngineColumns({
   engines: Engine[];
   src: string | null;
   tgt: string | null;
-  onChooseSrc: (id: string) => void;
-  onChooseTgt: (id: string) => void;
+  onChooseSrc: (id: EngineId) => void;
+  onChooseTgt: (id: EngineId) => void;
   onSwap: () => void;
   fromRef: FocusRef;
   toRef: FocusRef;

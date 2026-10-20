@@ -1,9 +1,10 @@
-import { convertRequest, type BatchReply, type BatchRequest, type BatchResult } from './batch';
+import type { BatchResult } from './batch';
+import { answerHere, type Answer, type WorkerReply, type WorkerRequest } from './workerProtocol';
 import type { EnginePair } from '../core/enginePair';
 import type { LoadedFile } from '../core/files';
-import type { ChannelScope, LoadMidiremap, MissingDrums, Overrides } from '../core/midiremap';
+import type { ChannelScope, LoadMidiremap, MissingDrums, Overrides, SourceFits } from '../core/midiremap';
 
-/** Converts a batch of files, off the main thread where it can. */
+/** Converts a batch of files, and fits files to every engine's layout, off the main thread where it can. */
 export interface Converter {
   /** Rejects with `signal.reason` when `signal` aborts before the batch is delivered. */
   convert(
@@ -14,6 +15,8 @@ export interface Converter {
     missing: MissingDrums,
     signal?: AbortSignal,
   ): Promise<BatchResult>;
+  /** Every engine fitted to the hits of `files` a conversion with `channel` reads, best first. */
+  fits(files: LoadedFile[], channel: ChannelScope): Promise<SourceFits>;
 }
 
 type MakeWorker = () => Worker;
@@ -24,10 +27,12 @@ type WorkerState
     | { kind: 'unavailable' };
 
 interface Pending {
-  request: BatchRequest;
-  resolve: (result: BatchResult) => void;
+  request: WorkerRequest;
+  resolve: (answer: Answer) => void;
   reject: (error: unknown) => void;
 }
+
+type AnswerTo<K extends WorkerRequest['kind']> = Extract<Answer, { kind: K }>;
 
 function moduleWorker(): Worker {
   return new Worker(new URL('./convertWorker.ts', import.meta.url), { type: 'module' });
@@ -35,7 +40,8 @@ function moduleWorker(): Worker {
 
 /**
  * Converts batches in a Web Worker so the page stays responsive, on the module `load`
- * yields when it has to use the main thread.
+ * yields when it has to use the main thread. Fits go the same way, as batches that are
+ * never stopped.
  *
  * A worker that dies after it has answered a batch is replaced, and the batches it left
  * go to the new worker. One that dies before answering anything, or cannot be created,
@@ -73,14 +79,14 @@ export function createConverter(load: LoadMidiremap, makeWorker: MakeWorker = mo
     const died = () => {
       if (state === running) retire(running.answered ? { kind: 'unstarted' } : { kind: 'unavailable' });
     };
-    worker.onmessage = (e: MessageEvent<BatchReply>) => {
+    worker.onmessage = (e: MessageEvent<WorkerReply>) => {
       running.answered = true;
       const reply = e.data;
       const p = pending.get(reply.id);
       pending.delete(reply.id);
       if (!p) return;
       if ('error' in reply) p.reject(reply.error);
-      else p.resolve(reply.result);
+      else p.resolve(reply.answer);
     };
     worker.onerror = died;
     worker.onmessageerror = died;
@@ -91,31 +97,46 @@ export function createConverter(load: LoadMidiremap, makeWorker: MakeWorker = mo
   function submit(p: Pending) {
     const worker = connect();
     if (!worker) {
-      void convertRequest(load, p.request).then(p.resolve, p.reject);
+      void answerHere(load, p.request).then(p.resolve, p.reject);
       return;
     }
     pending.set(p.request.id, p);
     worker.postMessage(p.request);
   }
 
-  return {
-    convert(files, pair, ov, channel, missing, signal) {
-      const request: BatchRequest = { id: nextId++, files, pair, ov, channel, missing };
-      return new Promise((resolve, reject) => {
-        if (signal?.aborted) {
+  function ask<K extends WorkerRequest['kind']>(
+    request: Extract<WorkerRequest, { kind: K }>,
+    signal?: AbortSignal,
+  ): Promise<AnswerTo<K>> {
+    return new Promise((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(signal.reason);
+        return;
+      }
+      signal?.addEventListener(
+        'abort',
+        () => {
           reject(signal.reason);
-          return;
-        }
-        signal?.addEventListener(
-          'abort',
-          () => {
-            reject(signal.reason);
-            if (pending.delete(request.id)) retire({ kind: 'unstarted' });
-          },
-          { once: true },
-        );
-        submit({ request, resolve, reject });
-      });
+          if (pending.delete(request.id)) retire({ kind: 'unstarted' });
+        },
+        { once: true },
+      );
+      const answered = (answer: Answer) => {
+        if (answer.kind === request.kind) resolve(answer as AnswerTo<K>);
+        else reject(new Error(`a ${request.kind} request was answered as ${answer.kind}`));
+      };
+      submit({ request, resolve: answered, reject });
+    });
+  }
+
+  return {
+    async convert(files, pair, ov, channel, missing, signal) {
+      const answer = await ask({ kind: 'convert', id: nextId++, files, pair, ov, channel, missing }, signal);
+      return answer.result;
+    },
+    async fits(files, channel) {
+      const answer = await ask({ kind: 'fit', id: nextId++, files, channel });
+      return answer.fits;
     },
   };
 }

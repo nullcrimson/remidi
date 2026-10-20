@@ -268,6 +268,21 @@ tip-other = Anderer Betrag
 done-view-report = Bericht anzeigen →
 done-convert-more = Weitere konvertieren
 done-report-mapping = Falsche Zuordnung? Melden
+done-removed = { $count ->
+    [one] { $count } Note Ihrer Datei ist nicht in der Notenbelegung von { $source } und wurde deshalb entfernt. Falsche Quelle?
+   *[other] { $count } Noten Ihrer Datei sind nicht in der Notenbelegung von { $source } und wurden deshalb entfernt. Falsche Quelle?
+}
+done-pick-source = Andere Quelle wählen
+done-assign-notes = Noten zuweisen
+source-fit-missing = { $missing ->
+    [one] { $missing } von { $hits } Noten Ihrer Datei ist nicht in der Notenbelegung von { $source }.
+   *[other] { $missing } von { $hits } Noten Ihrer Datei sind nicht in der Notenbelegung von { $source }.
+} Passen besser: { $engines }
+source-fit-all = { $engine } (alle Noten)
+source-fit-some = { $engine } ({ $count ->
+    [one] { $count } Note
+   *[other] { $count } Noten
+})
 drop-missing = Fehlende entfernen & neu konvertieren
 report-dropped = Entfernt
 report-approximated = Ersetzt
