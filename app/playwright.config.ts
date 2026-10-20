@@ -11,7 +11,7 @@ export default defineConfig({
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: `http://localhost:${PORT}`,
-    trace: 'retain-on-failure',
+    trace: process.env.CI ? 'on-first-retry' : 'off',
   },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] }, testIgnore: /touch\.spec/, grepInvert: /@phone/ },

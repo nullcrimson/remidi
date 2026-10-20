@@ -752,12 +752,26 @@ Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props;
   through their npm scripts without the pre-hooks. The site generator compiles at the start
   in its own target directory (`target/site`), and the site build runs that binary, so the
   chain to the browser tests never waits for cargo's lock behind clippy or the tests. The
-  steps are an enum that names what each one needs and which build directories it builds
-  into; a step starts as soon as those needs have passed, and the only thing it waits for
-  beyond them is a build directory a running step holds, which cargo would lock anyway
-  (the longer chain to the browser tests first). Nothing else caps the CPU: every ready
-  step runs at once, the unit tests take every core and the browser tests three quarters
-  (at every core, beside the Rust checks, page loads ran past their 30 s limit). A step whose need failed is
+  steps are an enum that names what each one needs, what it holds while it runs and how
+  urgent it is. A step holds its cargo build directories, which cargo would lock anyway;
+  the unit and the browser tests both hold the test workers, since each spreads over most
+  of the cores and gigabytes of memory, so they take turns. A step starts as soon as its
+  needs have passed and no running step holds what it holds (the longer chain to the
+  browser tests first). The chain to the browser tests (the i18n types, the wasm build, the
+  site generator, the app and site builds, the unit tests just before them, the browser
+  tests) runs at normal priority, every other step below normal (the Windows process class,
+  `nice` elsewhere, inherited by cargo's and npm's children), so the Rust checks, eslint and
+  tsc take only the CPU that chain leaves. The unit tests take every core and the browser
+  tests three quarters. A check keeps its pass: its fingerprint hashes the toolchains
+  (rustc, node, the nightly), its source files (what `git ls-files` lists under its paths,
+  untracked ones included) and the build outputs it reads (`app/src/generated`,
+  `app/src/wasm`, `app/dist`), and a check whose fingerprint passed before reports `cached`
+  instead of running (`target/gate/passes.json`). The builds always run, since the checks
+  after them read what they write. `--fresh` runs every check and keeps the new passes; the
+  quick gate reads the kept passes and keeps none; CI neither reads nor keeps them. On 16
+  threads (2026-10-20) the whole gate took 105 s with every check run and 23 s with every
+  check cached, against 243 s before passes were kept, the steps ranked and the unit tests
+  moved to happy-dom. A step whose need failed is
   skipped. It takes groups (`rust`, `app`, `dist`) or single steps as
   arguments; a partial run adds the i18n types and the site generator when a chosen step
   needs them and takes the other builds as done. Each run writes a log per step and

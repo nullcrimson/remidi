@@ -1,4 +1,5 @@
 mod command;
+mod memo;
 mod plan;
 mod schedule;
 mod step;
@@ -9,6 +10,7 @@ use std::{
     io,
     path::{Path, PathBuf},
     process::{Command, ExitCode, Stdio},
+    sync::Mutex,
     thread,
     time::{Duration, Instant},
 };
@@ -18,8 +20,9 @@ use clap::{Parser, Subcommand};
 
 use crate::{
     command::{Context, Invocation, Run, APP},
-    plan::{BrowserTests, Plan, Selection, Target},
-    schedule::{run_plan, Outcome},
+    memo::{Passes, Policy},
+    plan::{BrowserTests, Mode, Plan, Selection, Target},
+    schedule::{run_plan, Outcome, Verdict},
     step::Step,
 };
 
@@ -39,6 +42,9 @@ enum Task {
         /// only, wasm with thin LTO, no size budgets. CI runs the full gate.
         #[arg(long, conflicts_with = "targets")]
         quick: bool,
+        /// Runs every check, even one that passed before with nothing it reads changed.
+        #[arg(long, conflicts_with = "quick")]
+        fresh: bool,
     },
 }
 
@@ -62,10 +68,30 @@ struct Gate {
     logs: PathBuf,
     host: Host,
     cx: Context,
+    policy: Policy,
+    toolchains: String,
+    passes: Mutex<Passes>,
+}
+
+/// The versions of the tools the checks run, which a kept pass depends on.
+fn toolchains(root: &Path, nightly: &str) -> Result<String> {
+    let mut versions = vec![nightly.to_owned()];
+    for (program, args) in [("rustc", ["-vV"]), ("node", ["--version"])] {
+        let out = Command::new(program)
+            .args(args)
+            .current_dir(root)
+            .output()
+            .with_context(|| format!("cannot run {program}"))?;
+        if !out.status.success() {
+            bail!("{program} {} failed", args.join(" "));
+        }
+        versions.push(String::from_utf8_lossy(&out.stdout).trim().to_owned());
+    }
+    Ok(versions.join("\n"))
 }
 
 impl Gate {
-    fn new(plan: &Plan) -> Result<Self> {
+    fn new(plan: &Plan, fresh: bool) -> Result<Self> {
         let root = root();
         let logs = root.join("target").join("gate");
         fs::create_dir_all(&logs).with_context(|| format!("cannot create {}", logs.display()))?;
@@ -78,12 +104,51 @@ impl Gate {
         } else {
             Host::Local
         };
+        let policy = match (host, plan.mode(), fresh) {
+            (Host::Ci, _, _) => Policy::Off,
+            (Host::Local, Mode::Quick, _) => Policy::ReadOnly,
+            (Host::Local, Mode::Full, true) => Policy::Fresh,
+            (Host::Local, Mode::Full, false) => Policy::Reuse,
+        };
         Ok(Self {
+            toolchains: toolchains(&root, &nightly)?,
+            passes: Mutex::new(Passes::load(logs.join("passes.json"))),
+            policy,
+            cx: Context::new(nightly, plan),
             root,
             logs,
             host,
-            cx: Context::new(nightly, plan),
         })
+    }
+
+    /// Runs `step`, or for a check that passed before with everything it reads unchanged,
+    /// finds it cached; keeps the check's result for the next run as the policy allows.
+    fn verdict(&self, step: Step) -> Result<Verdict> {
+        let ran = |passed| {
+            if passed {
+                Verdict::Passed
+            } else {
+                Verdict::Failed
+            }
+        };
+        let reads = match step.reads() {
+            Some(reads) if self.policy != Policy::Off => reads,
+            _ => return Ok(ran(self.run(step)?)),
+        };
+        let fingerprint = memo::fingerprint(&self.root, step, &reads, &self.toolchains)?;
+        let passes = || {
+            self.passes
+                .lock()
+                .expect("no thread panics holding the passes")
+        };
+        if self.policy.reads() && passes().has(step, &fingerprint) {
+            return Ok(Verdict::Cached);
+        }
+        let passed = self.run(step)?;
+        if self.policy.writes() {
+            passes().record(step, &fingerprint, passed)?;
+        }
+        Ok(ran(passed))
     }
 
     fn log(&self, step: Step) -> PathBuf {
@@ -165,13 +230,17 @@ impl Gate {
                     }
                 }
             }
+            Outcome::Cached(_) => println!("cached  {name}"),
             Outcome::Skipped(need) => println!("skipped {name}  (needs {})", need.name()),
         }
     }
 
-    /// The closing summary: the counts each passed step's log reports.
+    /// The closing summary: the counts the log of each step that ran and passed reports.
     fn summarize(&self, outcomes: &BTreeMap<Step, Outcome>) -> Result<()> {
-        for (&step, _) in outcomes.iter().filter(|(_, o)| o.passed()) {
+        for (&step, _) in outcomes
+            .iter()
+            .filter(|(_, o)| matches!(o, Outcome::Passed(_)))
+        {
             let log = self.log(step);
             let text = fs::read_to_string(&log)
                 .with_context(|| format!("cannot read {}", log.display()))?;
@@ -189,6 +258,7 @@ impl Gate {
                 let (result, span) = match o {
                     Outcome::Passed(span) => ("ok", Some(span)),
                     Outcome::Failed(span) => ("failed", Some(span)),
+                    Outcome::Cached(span) => ("cached", Some(span)),
                     Outcome::Skipped(_) => ("skipped", None),
                 };
                 serde_json::json!({
@@ -224,16 +294,16 @@ fn browser_tests(root: &Path) -> Result<BrowserTests> {
     })
 }
 
-fn gate(selection: &Selection) -> Result<ExitCode> {
+fn gate(selection: &Selection, fresh: bool) -> Result<ExitCode> {
     let plan = Plan::new(selection);
-    let gate = Gate::new(&plan)?;
+    let gate = Gate::new(&plan, fresh)?;
     let start = Instant::now();
     let outcomes = run_plan(
         &plan,
         |step| {
-            gate.run(step).unwrap_or_else(|e| {
+            gate.verdict(step).unwrap_or_else(|e| {
                 eprintln!("{}: {e:#}", step.name());
-                false
+                Verdict::Failed
             })
         },
         |step, outcome| gate.report(step, outcome),
@@ -252,8 +322,8 @@ fn gate(selection: &Selection) -> Result<ExitCode> {
 
 fn main() -> Result<ExitCode> {
     match Cli::parse().task {
-        Task::Gate { quick: true, .. } => gate(&Selection::Quick(browser_tests(&root())?)),
-        Task::Gate { targets, .. } if targets.is_empty() => gate(&Selection::Whole),
-        Task::Gate { targets, .. } => gate(&Selection::Partial(targets)),
+        Task::Gate { quick: true, .. } => gate(&Selection::Quick(browser_tests(&root())?), false),
+        Task::Gate { targets, fresh, .. } if targets.is_empty() => gate(&Selection::Whole, fresh),
+        Task::Gate { targets, fresh, .. } => gate(&Selection::Partial(targets), fresh),
     }
 }

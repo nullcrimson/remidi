@@ -2,7 +2,7 @@ use std::{env::consts::EXE_SUFFIX, path::Path, process::Command};
 
 use crate::{
     plan::{Mode, Plan},
-    step::{Step, TargetDir},
+    step::{Step, TargetDir, Urgency},
 };
 
 const SHIPPED: [&str; 3] = ["--workspace", "--exclude", "midiremap-wasm"];
@@ -46,6 +46,7 @@ pub struct Invocation {
     args: Vec<String>,
     env: Vec<(&'static str, &'static str)>,
     target_dir: Option<&'static str>,
+    urgency: Urgency,
 }
 
 impl Invocation {
@@ -56,6 +57,7 @@ impl Invocation {
             args: args.iter().map(|&a| a.to_owned()).collect(),
             env: Vec::new(),
             target_dir: None,
+            urgency: Urgency::Chain,
         }
     }
 
@@ -87,6 +89,7 @@ impl Invocation {
             args: vec!["dist".to_owned()],
             env: Vec::new(),
             target_dir: None,
+            urgency: Urgency::Chain,
         }
     }
 
@@ -105,6 +108,9 @@ impl Invocation {
             Program::Tool(name) => Command::new(name),
             Program::Built(path) => Command::new(root.join(path)),
         };
+        if self.urgency == Urgency::Background {
+            lower_priority(&mut command);
+        }
         command
             .args(&self.args)
             .current_dir(if self.in_app {
@@ -117,6 +123,28 @@ impl Invocation {
             command.env("CARGO_TARGET_DIR", root.join(dir));
         }
         command
+    }
+}
+
+/// Starts `command` below normal priority; its children inherit it.
+#[cfg(windows)]
+fn lower_priority(command: &mut Command) {
+    use std::os::windows::process::CommandExt;
+    const BELOW_NORMAL_PRIORITY_CLASS: u32 = 0x0000_4000;
+    command.creation_flags(BELOW_NORMAL_PRIORITY_CLASS);
+}
+
+/// Starts `command` below normal priority; its children inherit it.
+#[cfg(unix)]
+fn lower_priority(command: &mut Command) {
+    use std::os::unix::process::CommandExt;
+    // SAFETY: the closure runs in the forked child before exec and calls only `nice`, which
+    // is async-signal-safe; it touches no memory shared with the parent.
+    unsafe {
+        command.pre_exec(|| {
+            libc::nice(10);
+            Ok(())
+        });
     }
 }
 
@@ -157,9 +185,29 @@ fn both_passes(step: Step, command: &str, tail: &[&str]) -> Run {
     Run::AtOnce(vec![pass(0, &SHIPPED), pass(1, &BROWSER)])
 }
 
+impl Run {
+    fn at(self, urgency: Urgency) -> Self {
+        let set = |invocations: Vec<Invocation>| {
+            invocations
+                .into_iter()
+                .map(|inv| Invocation { urgency, ..inv })
+                .collect()
+        };
+        match self {
+            Run::InTurn(i) => Run::InTurn(set(i)),
+            Run::AtOnce(i) => Run::AtOnce(set(i)),
+        }
+    }
+}
+
+/// The programs `step` runs, at the step's urgency.
+pub fn run(step: Step, cx: &Context) -> Run {
+    programs(step, cx).at(step.urgency())
+}
+
 /// The programs `step` runs. The unit tests take every core, the browser tests three
 /// quarters: at every core their page loads ran past the time limit.
-pub fn run(step: Step, cx: &Context) -> Run {
+fn programs(step: Step, cx: &Context) -> Run {
     let one = |inv| Run::InTurn(vec![inv]);
     let quick = cx.mode == Mode::Quick;
     match step {
@@ -339,6 +387,18 @@ mod tests {
             ["test", "--workspace", "--exclude", "midiremap-wasm"]
         );
         assert_eq!(args(&passes[1])[..3], ["test", "-p", "midiremap-wasm"]);
+    }
+
+    #[test]
+    fn the_steps_off_the_chain_to_the_browser_tests_run_below_normal_priority() {
+        let urgencies = |step| match run(step, &full()) {
+            Run::InTurn(i) | Run::AtOnce(i) => i.iter().map(|inv| inv.urgency).collect::<Vec<_>>(),
+        };
+        assert_eq!(
+            urgencies(Step::CargoTest),
+            [Urgency::Background, Urgency::Background]
+        );
+        assert_eq!(urgencies(Step::E2e), [Urgency::Chain]);
     }
 
     #[test]

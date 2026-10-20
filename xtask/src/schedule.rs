@@ -7,7 +7,7 @@ use std::{
 
 use crate::{
     plan::Plan,
-    step::{Step, TargetDir},
+    step::{Hold, Step},
 };
 
 /// When a step ran, measured from the start of the gate.
@@ -17,17 +17,27 @@ pub struct Span {
     pub took: Duration,
 }
 
+/// How a step that started ended.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Verdict {
+    Passed,
+    Failed,
+    /// Passed before with everything it reads unchanged, so not run again.
+    Cached,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Outcome {
     Passed(Span),
     Failed(Span),
+    Cached(Span),
     /// Not run because a step it waits for did not pass.
     Skipped(Step),
 }
 
 impl Outcome {
     pub fn passed(self) -> bool {
-        matches!(self, Outcome::Passed(_))
+        matches!(self, Outcome::Passed(_) | Outcome::Cached(_))
     }
 }
 
@@ -62,15 +72,15 @@ impl<'p> Schedule<'p> {
         self.states[&step] == State::Waiting
             && step.needs().iter().all(|&n| {
                 !self.plan.waits_for(step, n)
-                    || matches!(self.states[&n], State::Done(Outcome::Passed(_)))
+                    || matches!(self.states[&n], State::Done(o) if o.passed())
             })
     }
 
-    fn locked(&self) -> Vec<TargetDir> {
+    fn held(&self) -> Vec<Hold> {
         self.states
             .iter()
             .filter(|(_, st)| **st == State::Running)
-            .flat_map(|(s, _)| s.target_dirs().iter().copied())
+            .flat_map(|(s, _)| s.holds())
             .collect()
     }
 
@@ -96,8 +106,8 @@ impl<'p> Schedule<'p> {
         }
     }
 
-    /// Marks running, and returns, every ready step whose build directories no running step
-    /// holds, highest priority first where two want the same one.
+    /// Marks running, and returns, every ready step whose holds no running step has,
+    /// highest priority first where two want the same one.
     pub fn start_ready(&mut self) -> Vec<Step> {
         let mut ready: Vec<Step> = self
             .states
@@ -106,11 +116,11 @@ impl<'p> Schedule<'p> {
             .filter(|&s| self.ready(s))
             .collect();
         ready.sort_by_key(|s| s.priority());
-        let mut locked = self.locked();
+        let mut held = self.held();
         let mut started = Vec::new();
         for step in ready {
-            if step.target_dirs().iter().all(|d| !locked.contains(d)) {
-                locked.extend(step.target_dirs());
+            if step.holds().all(|h| !held.contains(&h)) {
+                held.extend(step.holds());
                 self.states.insert(step, State::Running);
                 started.push(step);
             }
@@ -141,11 +151,11 @@ impl<'p> Schedule<'p> {
     }
 }
 
-/// Runs every step of `plan` on its own thread as the schedule allows. `run` reports
-/// whether a step passed; `done` hears each outcome as it happens.
+/// Runs every step of `plan` on its own thread as the schedule allows. `run` gives a step's
+/// verdict; `done` hears each outcome as it happens.
 pub fn run_plan(
     plan: &Plan,
-    run: impl Fn(Step) -> bool + Sync,
+    run: impl Fn(Step) -> Verdict + Sync,
     mut done: impl FnMut(Step, Outcome),
 ) -> BTreeMap<Step, Outcome> {
     let origin = Instant::now();
@@ -160,15 +170,15 @@ pub fn run_plan(
             let run = &run;
             scope.spawn(move || {
                 let start = origin.elapsed();
-                let passed = run(step);
+                let verdict = run(step);
                 let span = Span {
                     start,
                     took: origin.elapsed() - start,
                 };
-                let outcome = if passed {
-                    Outcome::Passed(span)
-                } else {
-                    Outcome::Failed(span)
+                let outcome = match verdict {
+                    Verdict::Passed => Outcome::Passed(span),
+                    Verdict::Failed => Outcome::Failed(span),
+                    Verdict::Cached => Outcome::Cached(span),
                 };
                 tx.send((step, outcome)).ok();
             });
@@ -276,6 +286,12 @@ mod tests {
     }
 
     #[test]
+    fn the_unit_and_browser_tests_take_turns() {
+        let (events, _) = play(&whole(), &[]);
+        assert!(!overlap(&events, Step::Vitest, Step::E2e));
+    }
+
+    #[test]
     fn steps_in_different_build_directories_run_at_once() {
         let (events, _) = play(&whole(), &[]);
         assert!(overlap(&events, Step::Clippy, Step::BuildWasm));
@@ -321,6 +337,15 @@ mod tests {
     }
 
     #[test]
+    fn a_cached_step_lets_the_steps_after_it_start() {
+        let plan = partial(&[Step::GenI18n, Step::Eslint]);
+        let mut schedule = Schedule::new(&plan);
+        assert_eq!(started(&mut schedule), [Step::GenI18n]);
+        schedule.finish(Step::GenI18n, Outcome::Cached(Span::default()));
+        assert_eq!(started(&mut schedule), [Step::Eslint]);
+    }
+
+    #[test]
     fn a_failed_build_skips_the_whole_chain_below_it() {
         let plan = partial(&[Step::BuildWasm, Step::BuildApp, Step::BuildSite]);
         let (_, outcomes) = play(&plan, &[Step::BuildWasm]);
@@ -350,7 +375,7 @@ mod tests {
     #[test]
     fn run_plan_runs_every_step_on_threads_and_reports_each_once() {
         let mut heard = Vec::new();
-        let outcomes = run_plan(&whole(), |_| true, |s, _| heard.push(s));
+        let outcomes = run_plan(&whole(), |_| Verdict::Passed, |s, _| heard.push(s));
         assert_eq!(outcomes.len(), Step::VARIANTS.len());
         heard.sort();
         assert_eq!(heard, Step::VARIANTS);
@@ -363,7 +388,7 @@ mod tests {
             &plan,
             |_| {
                 thread::sleep(Duration::from_millis(20));
-                true
+                Verdict::Passed
             },
             |_, _| {},
         );

@@ -36,7 +36,8 @@ Deploy the static contents of `app/dist/` to any static host.
 npm run test     # Vitest; needs npm run build:wasm once (the contract test loads the real module)
 npm run e2e      # Playwright against vite preview of dist; run npm run build:site first
 npm run size     # size budgets for dist (wasm, JS, CSS gzipped; latin fonts; largest locale chunk; a static page's script)
-cargo xtask gate      # every check; each step starts when what it needs is done (logs and timings.json in target/gate/)
+cargo xtask gate      # every check; a check that passed with nothing it reads changed shows cached (logs and timings.json in target/gate/)
+cargo xtask gate --fresh  # every check run again, cached or not
 cargo xtask gate app  # one group (rust; app = eslint, tsc, vitest; dist = size, e2e) or single steps; CI runs the same groups
 cargo xtask gate --quick  # local only: vitest --changed, changed e2e files on desktop (builds only then), wasm with thin LTO, no size
 ```
@@ -46,10 +47,12 @@ Outside CI the unit tests use half the machine's cores and the browser tests a q
 with other programs running: the defaults (15 and 8 workers) were slower and let single tests
 stall past their time limits; 8 and 4 were faster and kept every test well inside them.
 `cargo xtask gate` runs the app's steps as their `npm run` scripts without the pre-hooks, adding
-only its own flags. Beside everything else it runs, it gives the unit tests every core
-(`VITEST_WORKERS=100%`) and the browser tests three quarters (`E2E_WORKERS=75%`): at every core
-three page loads ran past their 30 s limit and the run took 173 s, against 148 s at half
-(2026-10-19). Run directly, the configs keep the limits above. The static pages'
+only its own flags. It gives the unit tests every core (`VITEST_WORKERS=100%`) and then the
+browser tests three quarters (`E2E_WORKERS=75%`), one after the other, with the Rust checks,
+eslint and tsc below normal priority beside them. Run directly, the configs keep the limits
+above. Outside CI Playwright records no trace (tracing every test cost a third of the run:
+151 s against 103 s, 2026-10-20); CI records one on a test's first retry, and
+`npx playwright test <spec> --trace on` records one locally. The static pages'
 layout checks run all on the phone (tagged `@phone`, which the desktop project leaves out) and
 one per locale on the desktop, which keeps their header and nav covered there.
 

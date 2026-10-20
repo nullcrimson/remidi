@@ -55,6 +55,64 @@ impl TargetDir {
     }
 }
 
+/// What only one running step can have, so steps that want the same one take turns.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Hold {
+    /// A cargo build directory, which cargo locks while it builds into it.
+    Dir(TargetDir),
+    /// The test workers: the unit tests and the browser tests each spread over most of the
+    /// cores and several gigabytes of memory.
+    TestWorkers,
+}
+
+/// How the operating system schedules a step's processes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Urgency {
+    /// On the chain to the browser tests, the longest in the gate, or the unit tests, which
+    /// run just before them: normal priority.
+    Chain,
+    /// Every other step: below normal priority, so it takes only the CPU the chain leaves.
+    Background,
+}
+
+/// What a check reads: source files, as git pathspecs from the repository root, and the
+/// outputs of the builds it needs, which git ignores.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Reads {
+    pub sources: &'static [&'static str],
+    pub built: &'static [&'static str],
+}
+
+const RUST: &[&str] = &[
+    "Cargo.toml",
+    "Cargo.lock",
+    "rust-toolchain.toml",
+    "nightly-toolchain",
+    "rustfmt.toml",
+    ".cargo",
+    "midiremap-cli",
+    "midiremap-core",
+    "midiremap-site",
+    "midiremap-testkit",
+    "midiremap-wasm",
+    "xtask",
+    "engines",
+    "locales",
+    "content",
+];
+
+const RUST_CHECK: Reads = Reads {
+    sources: RUST,
+    built: &[],
+};
+
+const APP_CHECK: Reads = Reads {
+    sources: &["app", "locales", "content", ".nvmrc"],
+    built: &["app/src/generated", "app/src/wasm"],
+};
+
+const DIST: &[&str] = &["app/dist"];
+
 #[derive(
     Clone, Copy, Debug, PartialEq, Eq, strum::EnumString, strum::IntoStaticStr, strum::VariantArray,
 )]
@@ -100,6 +158,56 @@ impl Step {
         }
     }
 
+    pub fn urgency(self) -> Urgency {
+        match self {
+            Step::GenI18n
+            | Step::BuildWasm
+            | Step::CompileSite
+            | Step::BuildApp
+            | Step::BuildSite
+            | Step::Vitest
+            | Step::E2e => Urgency::Chain,
+            Step::Fmt | Step::Clippy | Step::CargoTest | Step::Eslint | Step::Tsc | Step::Size => {
+                Urgency::Background
+            }
+        }
+    }
+
+    /// What the step reads, for a check; `None` for a build, which always runs, since the
+    /// checks after it read what it writes.
+    pub fn reads(self) -> Option<Reads> {
+        match self {
+            Step::Fmt | Step::Clippy | Step::CargoTest => Some(RUST_CHECK),
+            Step::Eslint | Step::Tsc | Step::Vitest => Some(APP_CHECK),
+            Step::Size => Some(Reads {
+                sources: &[
+                    "app/scripts",
+                    "app/package.json",
+                    "app/package-lock.json",
+                    ".nvmrc",
+                ],
+                built: DIST,
+            }),
+            Step::E2e => Some(Reads {
+                sources: &[
+                    "app/e2e",
+                    "app/playwright.config.ts",
+                    "app/vite.config.ts",
+                    "app/scripts",
+                    "app/package.json",
+                    "app/package-lock.json",
+                    ".nvmrc",
+                ],
+                built: DIST,
+            }),
+            Step::GenI18n
+            | Step::BuildWasm
+            | Step::CompileSite
+            | Step::BuildApp
+            | Step::BuildSite => None,
+        }
+    }
+
     /// Whether a partial run adds this step whenever a chosen step needs it: true for the
     /// generated i18n types, which take a fraction of a second, and the site generator,
     /// which cargo leaves as it is when nothing changed; the other builds a partial run
@@ -128,7 +236,18 @@ impl Step {
         }
     }
 
-    /// Which ready step takes a build directory another ready step wants first: the longest
+    /// What the step holds while it runs: its build directories, and for the unit and the
+    /// browser tests the test workers.
+    pub fn holds(self) -> impl Iterator<Item = Hold> {
+        let workers = matches!(self, Step::Vitest | Step::E2e).then_some(Hold::TestWorkers);
+        self.target_dirs()
+            .iter()
+            .copied()
+            .map(Hold::Dir)
+            .chain(workers)
+    }
+
+    /// Which ready step takes a hold another ready step wants first: the longest
     /// chain to the end of the gate (wasm, app build, site build, browser tests) goes first.
     pub fn priority(self) -> u8 {
         match self {

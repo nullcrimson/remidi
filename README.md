@@ -60,6 +60,7 @@ npm run size         # size budgets for app/dist/assets
 
 cd ..
 cargo xtask gate                 # every check in one run; logs and timings.json in target/gate/
+cargo xtask gate --fresh         # every check run again, even those that passed with nothing they read changed
 cargo xtask gate rust            # or one group (rust, app, dist) or single steps (fmt, vitest, build-site, ...)
 cargo xtask gate --quick         # local fast check: changed unit tests, changed browser test files (desktop), no size budgets
 ```
