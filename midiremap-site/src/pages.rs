@@ -435,21 +435,18 @@ pub struct Site {
     pub engines: Vec<EnginePage>,
     pub pairs: Vec<PairPage>,
     /// The conversions the converter's page links, in `content/structure.json` order.
-    pub popular: Vec<PopularPair>,
+    pub popular: Vec<PairSummary>,
     /// Every engine's drum map in every DAW's format, by address.
     pub drum_map_files: Vec<(SitePath, String)>,
 }
 
-/// A conversion the converter's page links: the link to its pair page and that page's tally.
-pub struct PopularPair {
+/// A conversion with a pair page: the link to that page and its tally.
+pub struct PairSummary {
     pub link: PairLink,
     pub tally: Tally,
 }
 
-fn popular_pairs(
-    pairs: &[PairPage],
-    wanted: &[(&str, &str)],
-) -> Result<Vec<PopularPair>, BuildError> {
+fn summaries(pairs: &[PairPage], wanted: &[(&str, &str)]) -> Result<Vec<PairSummary>, BuildError> {
     wanted
         .iter()
         .map(|&(src, tgt)| {
@@ -457,7 +454,7 @@ fn popular_pairs(
             pairs
                 .iter()
                 .find(|p| p.slug == slug)
-                .map(|p| PopularPair {
+                .map(|p| PairSummary {
                     link: p.link(),
                     tally: p.tally,
                 })
@@ -691,7 +688,7 @@ impl Site {
         Ok(Site {
             index,
             engines,
-            popular: popular_pairs(&pairs, POPULAR)?,
+            popular: summaries(&pairs, POPULAR)?,
             pairs,
             drum_map_files,
         })
@@ -807,7 +804,7 @@ mod tests {
     fn a_popular_conversion_without_a_pair_page_is_an_error() {
         let s = site();
         assert!(matches!(
-            popular_pairs(&s.pairs, &[("ugritone", "bfd3")]),
+            summaries(&s.pairs, &[("ugritone", "bfd3")]),
             Err(BuildError::NoPairPage(_))
         ));
     }

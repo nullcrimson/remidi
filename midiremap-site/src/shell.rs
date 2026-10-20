@@ -5,7 +5,7 @@ use serde_json::json;
 use crate::{
     content::script_json,
     i18n::{Docs, I18nError, Locale, MessageId, Messages, Plain},
-    pages::PopularPair,
+    pages::PairSummary,
     routes::{
         alternates, home, logo_url, og_image_url, Alternate, LocalPath, CONVERTER_PAGE, NOTE_MAPS,
         SITE_NAME,
@@ -46,9 +46,9 @@ struct AppTitle<'a> {
 fn popular_links(
     locale: Locale,
     m: &Messages,
-    popular: &[PopularPair],
+    popular: &[PairSummary],
 ) -> Result<Vec<ShellLink>, I18nError> {
-    let pairs = popular.iter().map(|PopularPair { link, .. }| {
+    let pairs = popular.iter().map(|PairSummary { link, .. }| {
         let mut args = FluentArgs::new();
         args.set("source", link.src_name.as_str());
         args.set("target", link.tgt_name.as_str());
@@ -106,7 +106,7 @@ pub fn localize_shell(
     locale: Locale,
     m: &Messages,
     docs: &Docs,
-    popular: &[PopularPair],
+    popular: &[PairSummary],
 ) -> Result<String, ShellError> {
     let get = |id| m.get(locale, id);
     let canonical = home(locale).url();
@@ -172,7 +172,7 @@ mod tests {
     use super::*;
     use crate::i18n::Locale;
 
-    fn popular() -> &'static [PopularPair] {
+    fn popular() -> &'static [PairSummary] {
         &crate::fixtures::site().popular
     }
 

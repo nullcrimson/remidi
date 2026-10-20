@@ -1,7 +1,7 @@
 use crate::{
     i18n::{Docs, I18nError, Locale, Messages, Plain, SectionKey},
     pages::Site,
-    render::{drum_maps_meta, engine_meta, index_meta, popular_meta, section_meta, Meta, Texts},
+    render::{drum_maps_meta, engine_meta, index_meta, section_meta, summary_meta, Meta, Texts},
     routes::{home, SITE_NAME},
 };
 
@@ -30,7 +30,7 @@ pub fn llms_txt(site: &Site, messages: &Messages, docs: &Docs) -> Result<String,
     let popular = site
         .popular
         .iter()
-        .map(|p| entry(popular_meta(p, &texts)))
+        .map(|p| entry(summary_meta(p, &texts)))
         .collect::<Result<String, _>>()?;
     let engines = site
         .engines

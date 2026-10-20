@@ -11,7 +11,7 @@ use crate::{
     },
     i18n::{Docs, I18nError, Locale, MessageId, Messages, Plain, SectionKey, TIP_HREF},
     manifest::{AnalyticsScript, LocaleScript, SiteManifest},
-    pages::{EnginePage, IndexPage, Landing, NoteRole, PairPage, PopularPair, Site, Tally},
+    pages::{EnginePage, IndexPage, Landing, NoteRole, PairPage, PairSummary, Site, Tally},
     routes::{
         alternates, home, href, label, local_href, og_image_url, page_in, Alternate, LocalPath,
         NavTarget, Page, SitePath, DRUM_MAPS, FOOTER, NAV, NOTE_MAPS, SITE_NAME, THANKS,
@@ -178,7 +178,7 @@ pub fn pair_meta(p: &PairPage, texts: &Texts) -> Result<Meta, I18nError> {
     conversion_meta(&p.src.name, &p.tgt.name, p.tally, p.href(), texts)
 }
 
-pub fn popular_meta(p: &PopularPair, texts: &Texts) -> Result<Meta, I18nError> {
+pub fn summary_meta(p: &PairSummary, texts: &Texts) -> Result<Meta, I18nError> {
     conversion_meta(
         &p.link.src_name,
         &p.link.tgt_name,
