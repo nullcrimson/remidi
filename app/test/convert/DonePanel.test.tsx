@@ -90,14 +90,14 @@ describe('DonePanel', () => {
 
   it('says how many drums were edited in the heading', () => {
     renderPanel({ editedDrums: 3 });
-    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(
+    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent(
       '1 file converted → Toontrack EZdrummer 3 · 3 drums edited',
     );
   });
 
   it('says one drum was edited', () => {
     renderPanel({ editedDrums: 1 });
-    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('· 1 drum edited');
+    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('· 1 drum edited');
   });
 
   it('tags each outcome, approximated in gold', () => {

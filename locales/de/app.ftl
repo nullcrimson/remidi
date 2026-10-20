@@ -288,6 +288,7 @@ tip-amounts = Drumverter unterstützen
 tip-other = Anderer Betrag
 done-view-report = Bericht anzeigen →
 done-convert-more = Weitere konvertieren
+done-convert-more-hint = Nächste Datei? Plugins und Einstellungen bleiben, wie sie sind.
 done-report-mapping = Falsche Zuordnung? Melden
 done-removed = { $count ->
     [one] { $count } Note Ihrer Datei ist nicht in der Notenbelegung von { $source } und wurde deshalb entfernt. Falsche Quelle?

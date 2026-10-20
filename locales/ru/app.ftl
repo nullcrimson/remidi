@@ -325,6 +325,7 @@ tip-amounts = Поддержать автора
 tip-other = Другая сумма
 done-view-report = Посмотреть отчёт →
 done-convert-more = Конвертировать ещё
+done-convert-more-hint = Следующий файл? Плагины и настройки останутся прежними.
 done-report-mapping = Неправильная нота? Сообщить
 done-removed = { $count ->
     [one] { $count } нота из вашего файла отсутствует в маппинге { $source }, поэтому она удалена. Не тот источник?

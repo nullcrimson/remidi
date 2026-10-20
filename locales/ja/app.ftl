@@ -268,6 +268,7 @@ tip-amounts = 開発者を応援
 tip-other = 金額を指定
 done-view-report = レポートを表示 →
 done-convert-more = 続けて変換
+done-convert-more-hint = 次のファイルも変換できます。ドラム音源と設定はそのままです。
 done-report-mapping = 割り当ての間違いを報告
 done-removed = ファイル内の{ $count }個のノートは{ $source }のノート配置にないため、削除しました。変換元が違いますか？
 done-kept = ファイル内の{ $count }個のノートは{ $source }のノート配置にないため、そのまま残しました。変換元が違いますか？

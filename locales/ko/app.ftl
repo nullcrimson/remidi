@@ -267,6 +267,7 @@ tip-amounts = 개발자 후원하기
 tip-other = 다른 금액
 done-view-report = 보고서 보기 →
 done-convert-more = 다른 파일 변환
+done-convert-more-hint = 다음 파일도 변환할 수 있습니다. 음원과 설정은 그대로 유지됩니다.
 done-report-mapping = 매핑이 잘못됐나요? 알려 주세요
 done-removed = 파일의 노트 { $count }개가 { $source } 노트 맵에 없어 제거되었습니다. 원본을 잘못 고르셨나요?
 done-kept = 파일의 노트 { $count }개가 { $source } 노트 맵에 없어 그대로 두었습니다. 원본을 잘못 고르셨나요?

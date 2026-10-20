@@ -269,6 +269,7 @@ tip-amounts = 支持作者
 tip-other = 其他金额
 done-view-report = 查看报告 →
 done-convert-more = 继续转换
+done-convert-more-hint = 还有下一个文件？鼓音源和设置保持不变。
 done-report-mapping = 映射有误？反馈问题
 done-removed = 文件中有 { $count } 个音符不在 { $source } 映射表中，已被删除。来源选错了？
 done-kept = 文件中有 { $count } 个音符不在 { $source } 映射表中，已原样保留。来源选错了？

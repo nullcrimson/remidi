@@ -288,6 +288,7 @@ tip-amounts = Leave a tip
 tip-other = Other amount
 done-view-report = View report →
 done-convert-more = Convert more
+done-convert-more-hint = Next file? The engines and settings stay as they are.
 done-report-mapping = Wrong mapping? Report it
 done-removed = { $count ->
     [one] { $count } note in your file isn't in the { $source } layout, so it was removed. Wrong source?

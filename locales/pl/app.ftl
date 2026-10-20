@@ -306,6 +306,7 @@ tip-amounts = Wesprzyj projekt
 tip-other = Inna kwota
 done-view-report = Zobacz raport →
 done-convert-more = Nowa konwersja
+done-convert-more-hint = Kolejny plik? Wtyczki i ustawienia zostają bez zmian.
 done-report-mapping = Błędne mapowanie? Zgłoś
 done-removed = { $count ->
     [one] W mapie { $source } brakuje { $count } nuty z pliku, więc ją usunięto. Złe źródło?

@@ -303,6 +303,7 @@ tip-amounts = Apoya el proyecto
 tip-other = Otra cantidad
 done-view-report = Ver informe →
 done-convert-more = Nueva conversión
+done-convert-more-hint = ¿Otro archivo? Los plugins y los ajustes se mantienen.
 done-report-mapping = ¿Mapeo incorrecto? Avísame
 done-removed = { $count ->
     [one] { $count } nota de tu archivo no está en el mapa de { $source }, así que se quitó. ¿Origen equivocado?

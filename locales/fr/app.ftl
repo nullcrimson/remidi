@@ -309,6 +309,7 @@ tip-amounts = Soutenir Drumverter
 tip-other = Autre montant
 done-view-report = Voir le rapport →
 done-convert-more = Nouvelle conversion
+done-convert-more-hint = Un autre fichier ? Les plugins et les réglages restent tels quels.
 done-report-mapping = Mapping erroné ? Signalez-le
 done-removed = { $count ->
     [one] { $count } note de votre fichier est absente du mapping { $source } : elle a donc été supprimée. Mauvais plugin source ?
