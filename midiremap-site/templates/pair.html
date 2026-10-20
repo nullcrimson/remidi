@@ -20,9 +20,9 @@
 </div>
 
 <div class="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
-  <span class="rounded-chip border border-white/12 px-2 py-0.5 font-mono text-label text-t3">{{ texts.count(MessageId::MapsExactCount, page.tally.exact)? }}</span>
-  {% if page.tally.approximated > 0 %}<span class="rounded-chip border border-star/40 px-2 py-0.5 font-mono text-label text-star">{{ texts.count(MessageId::MapsApproximatedCount, page.tally.approximated)? }}</span>{% endif %}
-  {% if page.tally.dropped > 0 %}<span class="rounded-chip border border-danger/40 px-2 py-0.5 font-mono text-label text-danger">{{ texts.count(MessageId::MapsDroppedCount, page.tally.dropped)? }}</span>{% endif %}
+  <span class="tag" data-tone="neutral">{{ texts.count(MessageId::MapsExactCount, page.tally.exact)? }}</span>
+  {% if page.tally.approximated > 0 %}<span class="tag" data-tone="gold">{{ texts.count(MessageId::MapsApproximatedCount, page.tally.approximated)? }}</span>{% endif %}
+  {% if page.tally.dropped > 0 %}<span class="tag" data-tone="danger">{{ texts.count(MessageId::MapsDroppedCount, page.tally.dropped)? }}</span>{% endif %}
   <span aria-hidden="true" class="basis-full sm:basis-0 sm:grow"></span>
   {% if page.tally.changes() > 0 %}
   <div role="radiogroup" aria-label="{{ texts.get(Plain::MapsRows) }}" class="inline-flex gap-1">

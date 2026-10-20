@@ -99,7 +99,7 @@ export function DonePanel({
           </h3>
           <ul className="flex flex-wrap justify-center gap-1.5">
             {outcomeTags(view, failures.length, t).map((item) => (
-              <li key={item.text} className={tag(item.tone)}>{item.text}</li>
+              <li key={item.text} {...tag(item.tone)}>{item.text}</li>
             ))}
           </ul>
           {view.totals.unrecognized > 0 && (

@@ -20,6 +20,7 @@ function accessibleName(count: number, preset: PresetMatch, t: Translate): strin
 
 export function EditedChip({ count, lines, preset, onReview }: EditedState) {
   const t = useT();
+  const gold = tag('gold');
   return (
     <Tooltip
       content={(
@@ -35,11 +36,12 @@ export function EditedChip({ count, lines, preset, onReview }: EditedState) {
         type="button"
         onClick={onReview}
         aria-label={accessibleName(count, preset, t)}
+        {...gold}
         className={`
           tap inline-flex max-w-full min-w-0 cursor-pointer items-center gap-1
           transition-colors
           hover:bg-accent/10
-          ${tag('gold')}
+          ${gold.className}
         `}
       >
         <span aria-hidden="true">✎</span>

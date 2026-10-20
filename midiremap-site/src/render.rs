@@ -1179,6 +1179,28 @@ mod tests {
     }
 
     #[test]
+    fn pair_counts_use_the_tag_utility() {
+        for p in &crate::fixtures::site().pairs {
+            let html = page(&p.href().in_locale(Locale::En).file());
+            let shown =
+                1 + usize::from(p.tally.approximated > 0) + usize::from(p.tally.dropped > 0);
+            let tags: Vec<&str> = html
+                .split(r#"<span class="tag" data-tone=""#)
+                .skip(1)
+                .filter_map(|rest| rest.split('"').next())
+                .collect();
+            assert_eq!(tags.len(), shown, "{}", p.slug);
+            assert_eq!(tags[0], "neutral", "{}", p.slug);
+            assert!(
+                tags.iter()
+                    .all(|t| ["neutral", "gold", "danger"].contains(t)),
+                "{}",
+                p.slug
+            );
+        }
+    }
+
+    #[test]
     fn index_matrix_names_the_pair_links_from_general_midi() {
         let html = page("engines/index.html");
         assert_eq!(html.matches(r#"aria-label="General MIDI to "#).count(), 7);

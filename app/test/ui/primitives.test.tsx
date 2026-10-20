@@ -8,7 +8,7 @@ import { IconButton } from '../../src/ui/IconButton';
 import { ProseLink } from '../../src/ui/ProseLink';
 import { TextButton } from '../../src/ui/TextButton';
 import { TextField } from '../../src/ui/TextField';
-import { chip } from '../../src/ui/styles';
+import { chip, tag, TAG_TONES } from '../../src/ui/styles';
 import css from '../../src/index.css?raw';
 
 const utility = (name: string) => css.slice(css.indexOf(`@utility ${name} {`), css.indexOf('}', css.indexOf(`@utility ${name} {`)));
@@ -46,6 +46,19 @@ describe('chip', () => {
 
   it('sizes the medium chip', () => {
     expect(chip('off', 'md')).toContain('text-ui');
+  });
+});
+
+describe('tag', () => {
+  const start = css.indexOf('@utility tag {');
+  const block = css.slice(start, css.indexOf('\n}\n', start));
+
+  it.each(TAG_TONES)('every tag tone has a rule: %s', (tone) => {
+    expect(block).toContain(`&[data-tone='${tone}'] {`);
+  });
+
+  it('names its tone for the utility', () => {
+    expect(tag('danger')).toEqual({ className: 'tag', 'data-tone': 'danger' });
   });
 });
 

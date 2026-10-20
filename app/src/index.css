@@ -214,6 +214,22 @@
   @apply font-display text-brand font-semibold tracking-[0.02em] text-t2 [text-shadow:0_0_12px_rgba(236,232,224,0.3)];
 }
 
+@utility tag {
+  @apply rounded-chip border px-2 py-0.5 font-mono text-label;
+
+  &[data-tone='neutral'] {
+    @apply border-white/12 text-t3;
+  }
+
+  &[data-tone='gold'] {
+    @apply border-star/40 text-star;
+  }
+
+  &[data-tone='danger'] {
+    @apply border-danger/40 text-danger;
+  }
+}
+
 @layer utilities {
   .link-chips {
     @apply flex flex-wrap gap-2;

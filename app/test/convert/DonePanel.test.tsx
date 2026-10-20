@@ -103,8 +103,8 @@ describe('DonePanel', () => {
   it('tags each outcome, approximated in gold', () => {
     renderPanel({ report: view({ approximated: 3, dropped: 2, unrecognized: 51, untouched: 168 }) });
     expect(screen.getByText('45 notes converted')).toBeInTheDocument();
-    expect(screen.getByText('3 approximated')).toHaveClass('text-star');
-    expect(screen.getByText('2 dropped')).toHaveClass('text-danger');
+    expect(screen.getByText('3 approximated')).toHaveAttribute('data-tone', 'gold');
+    expect(screen.getByText('2 dropped')).toHaveAttribute('data-tone', 'danger');
     expect(screen.getByText('51 unrecognized')).toBeInTheDocument();
     expect(screen.getByText('168 on other channels unchanged')).toBeInTheDocument();
   });
@@ -117,7 +117,7 @@ describe('DonePanel', () => {
 
   it('says when nothing was converted', () => {
     renderPanel({ report: view({ converted: 0, untouched: 1188 }) });
-    expect(screen.getByText('nothing converted')).toHaveClass('text-danger');
+    expect(screen.getByText('nothing converted')).toHaveAttribute('data-tone', 'danger');
     expect(screen.queryByText(/notes converted/)).not.toBeInTheDocument();
   });
 
@@ -139,7 +139,7 @@ describe('DonePanel', () => {
   it('names a batch result and counts its failures', () => {
     renderFailingBatch();
     expect(screen.getByText('2 files converted → Toontrack EZdrummer 3')).toBeInTheDocument();
-    expect(screen.getByText('1 failed')).toHaveClass('text-danger');
+    expect(screen.getByText('1 failed')).toHaveAttribute('data-tone', 'danger');
   });
 
   it('offers a zip of a batch', () => {

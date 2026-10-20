@@ -48,17 +48,14 @@ export function tip(): string {
   return TIP_LOOK;
 }
 
-export type TagTone = 'neutral' | 'gold' | 'danger';
+/** The tones of the `tag` utility in `index.css`, which has one rule per tone. */
+export const TAG_TONES = ['neutral', 'gold', 'danger'] as const;
 
-const TAG_TONE: Record<TagTone, string> = {
-  neutral: 'border-white/12 text-t3',
-  gold: 'border-star/40 text-star',
-  danger: 'border-danger/40 text-danger',
-};
+export type TagTone = typeof TAG_TONES[number];
 
-/** Classes for a read-only outcome tag: counts on the done card and per file. */
-export function tag(tone: TagTone): string {
-  return `rounded-chip border px-2 py-0.5 font-mono text-label ${TAG_TONE[tone]}`;
+/** Props for an outcome tag, the `tag` utility the static pages wear too: counts on the done card and per file. */
+export function tag(tone: TagTone): { className: string; 'data-tone': TagTone } {
+  return { className: 'tag', 'data-tone': tone };
 }
 
 export type LabelTone = 'faint' | 'muted' | 'strong' | 'gold' | 'danger';
