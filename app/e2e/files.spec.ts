@@ -82,6 +82,11 @@ test('the sample groove waits for a FROM engine and says so', async ({ page }) =
 
   await pickEngine(page, 'FROM', 'invasion', 'GetGood Drums Invasion');
   await expect(sample(page)).toBeEnabled();
+});
+
+test('the sample groove adds its file and moves on to the TO engine', async ({ page }) => {
+  await page.goto('/');
+  await pickEngine(page, 'FROM', 'invasion', 'GetGood Drums Invasion');
   await press(sample(page));
   await expect(page.getByText('sample-GGD.mid', { exact: true })).toBeVisible();
   await expect(engineCard(page, 'TO')).toBeFocused();
