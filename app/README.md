@@ -141,10 +141,13 @@ on a phone and click elsewhere.
   answering leaves conversion to the main thread, a batch is stopped through its
   `AbortSignal`), `useConverter.ts` (its `Conv` `done` arm carries the pair it converted with), `useFileIntake.ts`, `useDropGuard.ts`, `session.ts` (the setup a reload brings back: engines, settings, unsaved
   edits; `EMPTY_SESSION` states the starting settings), `preselect.ts` (the engines a link names), `planBreakdown.ts`
-  (the groups behind the "N of M drums remapped" pop-up), and FileChips/CardDropzone,
-  OctaveToggle, ChannelSelect, MissingDrumsSetting, UnrecognizedSetting, ConvertSettings, PlanControls, SummaryRow,
-  ConvertButton (FollowTip: the reason beside the mouse), DonePanel, InfoPopover (the
-  hover/click breakdowns).
+  (the groups behind the "N of M drums remapped" pop-up), `stepState.ts` (which step is done,
+  current or waiting), and Step (a numbered step), FileChips/CardDropzone,
+  OctaveToggle, ChannelSelect, MissingDrumsSetting, UnrecognizedSetting, ConvertSettings,
+  SettingsFold (the settings under one line naming their values), PlanControls (PlanSettings,
+  PlanSummary), SummaryRow, ConvertOutcome (Convert or the result), ConvertButton (FollowTip:
+  the reason beside the mouse), DonePanel (the result card, with `doneSummary.ts` and
+  UnrecognizedNotes), InfoPopover (the hover/click breakdowns).
 - `src/editor/` — the note editor: EditView (with EditFilters, FamilyRows, EditFooter,
   SavePreset, PlanErrorNotice, `rowGrid.ts`), VoiceRow, NotePicker, SourceEditor, PianoKeyboard, PickerShell, PickerHeader (a picker's title line; CanonPicker uses it bare, the note pickers add the note name as its child), KeyboardPane (the octave tabs over the piano, shared by both note pickers)
   (+ `overlayAnchor`, on Floating UI), `useEditor.ts`, `editorState.ts` (the reducer: edits and one `overlay`, a target pick, a source pick or a notice),
@@ -154,7 +157,10 @@ on a phone and click elsewhere.
   drums differ from the default mapping, their preview lines, and whether they match the open
   preset), `editorTally.ts` (what one editing session did, for the `editor-closed` event: picks on the piano and in the drum list, filter use, row resets), `useEditorHistory.ts` (opening the editor adds a history entry, so the browser's
   Back closes it instead of leaving the converter; a Forward onto it without both engines steps back).
-- `src/engines/` — LibraryList, EngineColumns, `useEngineCatalog.ts`, `useFavorites.ts`.
+- `src/engines/` — EngineColumns (the two sides and the swap), EngineSide (a side's card,
+  quick favourites and picker), EngineCard, EnginePicker (the dialog: sheet on phones),
+  LibraryList (the filter combobox over the engine listbox), `useEngineCatalog.ts`,
+  `useFavorites.ts`.
 - `src/presets/` — stored presets: `mappings.ts` (`PresetName`, generated from Rust, and its one parser `parsePresetName`: not blank, spacing kept, the UI trims typed text first; `uniqueName`; versioned; unreadable entries, a blank name among them, and an unreadable quarantine are kept in `midiremap:quarantine`, written, never read), `presetFile.ts`
   (`<name>-drumverter.json` export), `presetImport.ts` (any `.json` file imports),
   `useSavedMappings.ts` (its `unsaved` flag is drawn by `UnsavedNotice` in the convert view and the editor footer), `usePresetActions.ts`, SavedMappingChip(s).
@@ -180,11 +186,16 @@ on a phone and click elsewhere.
 
 ## Views
 
-- **Convert**: drop `.mid` files, pick From/To engines (⇄ swaps), set octave naming,
-  drum channel, missing drums (Nearest plays a drum the target lacks on the closest
+- **Convert**: three numbered steps, each badge turning into a check once done. 1. Your
+  drum file: drop `.mid` files, or try a sample groove built for the FROM layout. 2. From one
+  drum layout to another: a FROM and a TO card (⇄ swaps), each opening a searchable picker
+  (a bottom sheet on phones) with up to three favourites under the card to pick in one
+  press; the drum summary follows. 3. Convert: the settings folded under one line that
+  names their values (octave naming, drum channel, missing drums (Nearest plays a drum the target lacks on the closest
   one, Drop leaves it out) and unknown notes (Remove leaves out a note the source layout
   does not know, Keep as they are writes it out unchanged; the done panel and the report
-  say which), all remembered in the browser, convert. A single file downloads
+  say which), all remembered in the browser, then Convert, which names its file count and
+  target; the result card puts the download first. A single file downloads
   straight away; a batch offers a zip. A reload brings back the engines, settings and
   unsaved note edits. Hovering (or tapping) the dotted "N of M drums remapped" and
   missing-drums counts lists what happens to each drum, with a link into the editor; a
@@ -204,8 +215,9 @@ on a phone and click elsewhere.
 
 ## Keyboard
 
-- Each engine picker is one Tab stop: type to filter, ↑/↓ (PgUp/PgDn) to move, Enter to pick,
-  Ctrl/⌘+Enter to add or remove a favourite, Escape to clear the filter.
+- Each engine card is one Tab stop; Enter opens its picker with the filter focused: type to
+  filter, ↑/↓ (PgUp/PgDn) to move, Enter to pick, Ctrl/⌘+Enter to add or remove a favourite,
+  Escape to close. Focus goes back to the card.
 - Focus follows the task: after adding files it moves to the next missing step, after
   converting to the result, and back to where you were after leaving the editor or a menu.
 
