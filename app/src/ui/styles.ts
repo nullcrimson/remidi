@@ -79,12 +79,16 @@ export function labelText(tone: LabelTone): string {
 export type TextTone = 'default' | 'danger' | 'link';
 
 const TEXT_TONE: Record<TextTone, string> = {
-  default: 'text-t2 hover:text-accent disabled:hover:text-t2',
+  default: `
+    text-star/85 decoration-star/40 underline-offset-4
+    hover:text-star hover:underline
+    disabled:hover:text-star/85 disabled:hover:no-underline
+  `,
   danger: 'text-t4 hover:text-danger',
   link: 'prose-link',
 };
 
-/** In-app action link: quiet text that lights up to the accent; `link` marks one that takes you elsewhere. */
+/** In-app action link: gold text, the one colour of every action, underlined on hover; `link` marks one that takes you elsewhere. */
 export function textAction(tone: TextTone = 'default'): string {
   return `
     tap inline-flex items-center gap-1.5 text-ui transition-colors

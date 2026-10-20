@@ -144,12 +144,12 @@ describe('Button', () => {
 });
 
 describe('TextButton', () => {
-  it('is a button', async () => {
+  it('is a gold action button', async () => {
     const onClick = vi.fn();
     render(<TextButton onClick={onClick}>View report →</TextButton>);
     await userEvent.click(screen.getByRole('button', { name: 'View report →' }));
     expect(onClick).toHaveBeenCalledOnce();
-    expect(screen.getByRole('button', { name: 'View report →' })).toHaveClass('text-t2');
+    expect(screen.getByRole('button', { name: 'View report →' })).toHaveClass('text-star/85', 'hover:underline');
   });
 
   it('is a link when given href', () => {
@@ -166,7 +166,7 @@ describe('TextButton', () => {
     render(<TextButton tone="link" onClick={() => {}}>Change in note editor →</TextButton>);
     const button = screen.getByRole('button', { name: 'Change in note editor →' });
     expect(button).toHaveClass('prose-link');
-    expect(button).not.toHaveClass('text-t2');
+    expect(button).not.toHaveClass('text-star/85');
   });
 });
 
