@@ -78,13 +78,18 @@ note-map and document pages from the last `npm run build:site` in `dist/`.
 `e2e/layout.spec.ts` checks every locale, and a pseudo-locale served in place of the Polish messages, for sideways scrolling and cut-off text on desktop and phone.
 
 `e2e/` holds the browser tests (Chromium desktop and Pixel 7), one or more per user
-story, all through the real WASM with downloaded files read back: adding, dropping and
-removing files; picking, swapping and starring engines; the drum channel, octave and
-missing-drums settings; the note editor (targets, filters, search, reset, Advanced source
-notes, Back); presets (save, update, rename, duplicate, delete, export, import into a
-fresh browser); the breakdown pop-ups and the edited chip; single and zip downloads, the
-report and its fixes; what a reload brings back; the note-map pages' converter links; the
-footer dialogs; keyboard walk and focus; tap sizes; languages; and the crawler heading.
+story, all through the real WASM with downloaded files read back: the three steps and
+their checks; adding, dropping and removing files, and the sample groove; picking,
+swapping and starring engines, the picker sheet and the favourite chips; the folded drum
+channel, octave and missing-drums settings; the note editor (targets, filters, search,
+reset, Advanced source notes, Back); presets (save, update, rename, duplicate, delete,
+export, import into a fresh browser); the breakdown pop-ups and the edited chip; the
+named Convert, the result card, single and zip downloads, the report and its fixes; what
+a reload brings back; the static pages (header button and nav, engine pages' jump links
+and notes, pair summaries and steps, the index's filter and matrix, the drum maps' DAW
+picker and files) and their converter links; the footer dialogs; keyboard walk and focus;
+tap sizes; languages; and the crawler heading. The static-page specs (`site`,
+`sitelinks`, `drumMaps`) run on the phone too.
 `e2e/fixtures.ts` writes the MIDI files with `midi-file` and fails any test whose page
 logs an error or reaches another origin; `e2e/steps.ts` holds the shared steps, which tap
 on a phone and click elsewhere.
