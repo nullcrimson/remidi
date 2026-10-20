@@ -1,7 +1,7 @@
 id = "ggd_modernmassive_ggd"
 name = "GGD Modern & Massive (Mapping 'GGD')"
 vendor = "GetGood Drums"
-variant = { of = "ggd_modernmassive", label = "Mapping 'GGD'" }
+variant = { of = "ggd_modernmassive" }
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.hit", primary = true },

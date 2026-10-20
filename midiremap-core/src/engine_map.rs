@@ -33,10 +33,18 @@ struct RawMap {
     notes: Vec<RawEntry>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct RawVariant {
     of: String,
-    label: NonBlank,
+}
+
+/// What makes an engine another mapping of a base engine: the base's id and how the mapping
+/// differs, such as `Mapping 'GM'`.
+#[derive(Debug)]
+struct Variant {
+    of: String,
+    label: String,
 }
 
 /// One engine's note layout: which drum each note plays, and which note plays each drum.
@@ -47,7 +55,7 @@ pub struct EngineMap {
     short_name: Option<NonBlank>,
     vendor: Option<NonBlank>,
     aliases: Vec<String>,
-    variant: Option<RawVariant>,
+    variant: Option<Variant>,
     to_canon: HashMap<Note, Canon>,
     from_canon: HashMap<Canon, Note>,
 }
@@ -167,9 +175,33 @@ pub enum MapError {
     UnknownVariantBase { variant: String, of: String },
     #[error("{0} is a variant of an engine that is itself a variant")]
     VariantOfVariant(String),
+    #[error("{0} is a variant, but its name ends on no label in parentheses")]
+    UnlabelledVariant(String),
+}
+
+/// The text in the parentheses that end `name`, such as `Mapping 'GM'` in
+/// `GGD Invasion (Mapping 'GM')`.
+fn trailing_label(name: &str) -> Option<&str> {
+    name.strip_suffix(')')
+        .and_then(|rest| rest.rsplit_once('('))
+        .map(|(_, label)| label.trim())
+        .filter(|label| !label.is_empty())
+}
+
+fn variant(raw: Option<RawVariant>, id: &str, name: &str) -> Result<Option<Variant>, MapError> {
+    raw.map(|RawVariant { of }| {
+        trailing_label(name)
+            .map(|label| Variant {
+                of,
+                label: label.to_owned(),
+            })
+            .ok_or_else(|| MapError::UnlabelledVariant(id.to_owned()))
+    })
+    .transpose()
 }
 
 fn build(raw: RawMap) -> Result<EngineMap, MapError> {
+    let variant = variant(raw.variant, &raw.id, &raw.name)?;
     let mut to_canon = HashMap::new();
     let mut from_canon: HashMap<Canon, Note> = HashMap::new();
     let mut primaries: HashSet<Canon> = HashSet::new();
@@ -199,7 +231,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
         short_name: raw.short_name,
         vendor: raw.vendor,
         aliases: raw.aliases,
-        variant: raw.variant,
+        variant,
         to_canon,
         from_canon,
     })
@@ -391,6 +423,55 @@ mod tests {
             MapError::DuplicateNote { engine, note } if engine == "x" && *note == n(36)
         ));
         assert_eq!(err.to_string(), "engine x lists note 36 twice");
+    }
+
+    fn variant_named(name: &str) -> Result<EngineMap, MapError> {
+        from_toml(&format!(
+            r#"
+            id = "x_gm"
+            name = "{name}"
+            variant = {{ of = "x" }}
+            notes = [ {{ note = 36, canon = "kick.main", primary = true }} ]
+        "#
+        ))
+    }
+
+    #[test]
+    fn a_variants_label_is_the_parentheses_ending_its_name() {
+        let m = variant_named("Kit (Default) (Mapping 'GM')").unwrap();
+        assert_eq!(m.variant_label(), Some("Mapping 'GM'"));
+    }
+
+    #[test]
+    fn a_variant_whose_name_ends_on_no_parentheses_is_an_error() {
+        assert!(matches!(
+            variant_named("Kit GM"),
+            Err(MapError::UnlabelledVariant(id)) if id == "x_gm"
+        ));
+    }
+
+    #[test]
+    fn a_variant_whose_name_ends_on_empty_parentheses_is_an_error() {
+        assert!(matches!(
+            variant_named("Kit ( )"),
+            Err(MapError::UnlabelledVariant(_))
+        ));
+    }
+
+    #[test]
+    fn a_variant_may_not_state_its_label_apart_from_its_name() {
+        let bad = r#"
+            id = "x_gm"
+            name = "Kit (Mapping 'GM')"
+            variant = { of = "x", label = "Mapping 'GM'" }
+            notes = [ { note = 36, canon = "kick.main", primary = true } ]
+        "#;
+        assert!(matches!(from_toml(bad), Err(MapError::Parse(_))));
+    }
+
+    #[test]
+    fn an_engine_that_is_no_variant_has_no_label() {
+        assert_eq!(from_toml(SAMPLE).unwrap().variant_label(), None);
     }
 
     #[test]

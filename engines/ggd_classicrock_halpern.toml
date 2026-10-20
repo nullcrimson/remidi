@@ -1,7 +1,7 @@
 id = "ggd_classicrock_halpern"
 name = "GGD One Kit Wonder: Classic Rock (Mapping 'Halpern')"
 vendor = "GetGood Drums"
-variant = { of = "ggd_classicrock", label = "Mapping 'Halpern'" }
+variant = { of = "ggd_classicrock" }
 notes = [
   { note = 24, canon = "kick.main", primary = true },
   { note = 26, canon = "snare1.hit", primary = true },

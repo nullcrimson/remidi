@@ -1,7 +1,7 @@
 id = "ggd_dryfunky_ggd"
 name = "GGD One Kit Wonder: Dry and Funky (Mapping 'GGD')"
 vendor = "GetGood Drums"
-variant = { of = "ggd_dryfunky", label = "Mapping 'GGD'" }
+variant = { of = "ggd_dryfunky" }
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.hit", primary = true },

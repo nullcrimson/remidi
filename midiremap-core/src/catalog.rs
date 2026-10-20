@@ -315,11 +315,16 @@ mod tests {
     }
 
     fn kit(id: &str, variant_of: Option<&str>) -> EngineMap {
-        let variant = variant_of
-            .map(|of| format!(r#","variant":{{"of":"{of}","label":"Mapping '{id}'"}}"#))
-            .unwrap_or_default();
+        let (name, variant) = variant_of
+            .map(|of| {
+                (
+                    format!("{id} (Mapping '{id}')"),
+                    format!(r#","variant":{{"of":"{of}"}}"#),
+                )
+            })
+            .unwrap_or_else(|| (id.to_owned(), String::new()));
         EngineMap::from_json(&format!(
-            r#"{{"id":"{id}","name":"{id}"{variant},"notes":[{{"note":36,"canon":"kick.main","primary":true}}]}}"#
+            r#"{{"id":"{id}","name":"{name}"{variant},"notes":[{{"note":36,"canon":"kick.main","primary":true}}]}}"#
         ))
         .unwrap()
     }
