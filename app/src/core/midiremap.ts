@@ -8,6 +8,7 @@ import type {
   PresetView,
   RemapOutput,
   SourceFits,
+  Unrecognized,
   VocabularyDrum,
   VoiceRow,
 } from '@wasm';
@@ -35,6 +36,7 @@ export type {
   Report,
   SourceFit,
   SourceFits,
+  Unrecognized,
   VocabularyDrum,
   VoiceRow,
 } from '@wasm';
@@ -54,6 +56,7 @@ export interface Midiremap {
     ov?: Overrides,
     channel?: ChannelScope,
     missing?: MissingDrums,
+    unrecognized?: Unrecognized,
   ): RemapOutput;
   /** Every engine fitted to the hits of `mids` a conversion with `channel` reads, best first; a file that does not parse is left out. */
   sourceFits(mids: Uint8Array[], channel?: ChannelScope): SourceFits;
@@ -81,7 +84,8 @@ function calls(m: WasmModule): Midiremap {
     familyOrder: () => call(() => m.family_order()),
     parsePresetFile: (json) => call(() => m.parse_preset_file(json)),
     plan: ({ src, tgt }, ov, missing) => call(() => m.plan(src, tgt, ov, missing)),
-    remap: (mid, { src, tgt }, ov, channel, missing) => call(() => m.remap(mid, src, tgt, ov, channel, missing)),
+    remap: (mid, { src, tgt }, ov, channel, missing, unrecognized) =>
+      call(() => m.remap(mid, src, tgt, ov, channel, missing, unrecognized)),
     sourceFits: (mids, channel) => call(() => m.source_fits(mids, channel)),
     sampleFile: (engine) => call(() => m.sample_file(engine)),
   };

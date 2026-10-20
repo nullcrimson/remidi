@@ -11,7 +11,7 @@ const FILE = { name: 'a.mid', bytes: new Uint8Array([1]) };
 function stoppable() {
   const signals: AbortSignal[] = [];
   const converter: Pick<Converter, 'convert'> = {
-    convert: (_files, _pair, _ov, _channel, _missing, signal) =>
+    convert: (_files, _pair, _ov, _channel, _missing, _unrecognized, signal) =>
       new Promise<BatchResult>((_resolve, reject) => {
         if (!signal) return;
         signals.push(signal);
@@ -26,7 +26,7 @@ function converting(converter: Pick<Converter, 'convert'>) {
   act(() => result.current.addFiles([FILE]));
   let run: Promise<unknown> = Promise.resolve();
   act(() => {
-    run = result.current.convert(OV, 'auto', 'nearest', 'k');
+    run = result.current.convert(OV, 'auto', 'nearest', 'remove', 'k');
   });
   return { result, run };
 }
@@ -38,7 +38,7 @@ describe('useConverter', () => {
     act(() => result.current.addFiles([FILE]));
     let out: unknown;
     await act(async () => {
-      out = await result.current.convert(OV, 'auto', 'nearest', 'k');
+      out = await result.current.convert(OV, 'auto', 'nearest', 'remove', 'k');
     });
     expect(out).toEqual({ kind: 'failed', error: { kind: 'internal', detail: 'wasm fetch failed' } });
     expect(result.current.conv).toMatchObject({ kind: 'error', error: { kind: 'internal', detail: 'wasm fetch failed' } });
@@ -50,7 +50,7 @@ describe('useConverter', () => {
     const { result } = renderHook(() => useConverter({ convert }, enginePair('ggd_invasion', 'ezdrummer'), 'k'));
     await act(async () => {
       result.current.addFiles([FILE]);
-      await result.current.convert(OV, 'auto', 'nearest', 'k', [FILE]);
+      await result.current.convert(OV, 'auto', 'nearest', 'remove', 'k', [FILE]);
     });
     expect(convert.mock.calls.map((call) => call[0])).toEqual([[FILE]]);
     expect(result.current.files).toEqual([FILE]);
@@ -60,7 +60,7 @@ describe('useConverter', () => {
     const { converter, signals } = stoppable();
     const { result } = converting(converter);
     act(() => {
-      void result.current.convert(OV, 'auto', 'nearest', 'k');
+      void result.current.convert(OV, 'auto', 'nearest', 'remove', 'k');
     });
     expect(signals.map((s) => s.aborted)).toEqual([true, false]);
   });
@@ -98,7 +98,7 @@ describe('useConverter', () => {
     const { result, unmount } = renderHook(() => useConverter(converter, enginePair('ggd_invasion', 'ezdrummer'), 'k'));
     act(() => result.current.addFiles([FILE]));
     act(() => {
-      void result.current.convert(OV, 'auto', 'nearest', 'k');
+      void result.current.convert(OV, 'auto', 'nearest', 'remove', 'k');
     });
     unmount();
     expect(signals[0].aborted).toBe(true);

@@ -27,6 +27,13 @@ const CHINA_MIDI = new Uint8Array([
   0x00, 0xff, 0x2f, 0x00,
 ]);
 
+const UNKNOWN_MIDI = new Uint8Array([
+  0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 0, 0x60,
+  0x4d, 0x54, 0x72, 0x6b, 0, 0, 0, 0x0c,
+  0x00, 0x99, 0x63, 0x64, 0x30, 0x89, 0x63, 0x00,
+  0x00, 0xff, 0x2f, 0x00,
+]);
+
 let real: Wasm;
 
 beforeAll(async () => {
@@ -114,6 +121,21 @@ describe('real WASM module', () => {
     expect(out.report.converted).toBe(2);
   });
 
+  it('keeps a note the source layout does not recognize when told to', () => {
+    const out = real.remap(UNKNOWN_MIDI, 'ggd_invasion', 'ezdrummer', undefined, undefined, undefined, 'keep');
+    expect(Array.from(out.bytes)).toEqual(Array.from(UNKNOWN_MIDI));
+  });
+
+  it('removes a note the source layout does not recognize by default', () => {
+    const out = real.remap(UNKNOWN_MIDI, 'ggd_invasion', 'ezdrummer');
+    expect(Array.from(out.bytes)).not.toEqual(Array.from(UNKNOWN_MIDI));
+  });
+
+  it('reports a kept note as unrecognized', () => {
+    const out = real.remap(UNKNOWN_MIDI, 'ggd_invasion', 'ezdrummer', undefined, undefined, undefined, 'keep');
+    expect(out.report.unmappedSource).toEqual({ 99: 1 });
+  });
+
   it('reports the stand-in a swapped drum played on', () => {
     const out = real.remap(CHINA_MIDI, 'ggd_invasion', 'ezdrummer');
     expect(out.report.fallbackUsed).toEqual({ 'china.1.hit': { standIn: 'crash.1.hit', note: 86, count: 1 } });
@@ -178,6 +200,10 @@ describe('real WASM module', () => {
 
   it('throws a typed error for a bad channel', () => {
     expect(kind(() => real.remap(MIDI, 'ggd_invasion', 'ezdrummer', undefined, '17' as never))).toBe('internal');
+  });
+
+  it('throws an internal error for an unrecognized-notes choice the app never sends', () => {
+    expect(kind(() => real.remap(MIDI, 'ggd_invasion', 'ezdrummer', undefined, undefined, undefined, 'maybe' as never))).toBe('internal');
   });
 
   it('throws a typed error for bad overrides', () => {

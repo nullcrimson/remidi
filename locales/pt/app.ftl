@@ -79,6 +79,13 @@ channel-tip = Auto converte todas as faixas que usam o canal 10 — o canal de b
 missing-label = Peças que faltam
 missing-tip-title = Quando falta uma peça no destino
 missing-tip = Substituir troca a peça pela mais parecida que o destino tem — um China vira crash, o Tom 4 vira Tom 3. Remover tira a peça do arquivo. Ghost notes, rimshots e outras formas de tocar uma peça que o destino tem sempre viram uma nota normal nessa peça.
+unrecognized-label = Notas não reconhecidas
+unrecognized-tip-title = Quando a origem não reconhece uma nota
+unrecognized-tip = Algumas notas do arquivo podem não estar no mapa do plugin de origem — por exemplo, uma parte escrita para outro kit. Remover tira essas notas do arquivo. Manter como estão deixa as notas no arquivo sem nenhuma mudança. O relatório mostra essas notas nos dois casos.
+unrecognized-remove = Remover
+unrecognized-keep = Manter como estão
+unrecognized-hint-remove = removidas do arquivo
+unrecognized-hint-keep = mantidas sem mudança
 edited-review = { $count ->
     [one] { $count } peça editada
    *[other] { $count } peças editadas
@@ -297,6 +304,10 @@ done-removed = { $count ->
     [one] { $count } nota do seu arquivo não está no mapa de { $source }, então foi removida. Origem errada?
    *[other] { $count } notas do seu arquivo não estão no mapa de { $source }, então foram removidas. Origem errada?
 }
+done-kept = { $count ->
+    [one] { $count } nota do seu arquivo não está no mapa de { $source }, então foi mantida sem mudança. Origem errada?
+   *[other] { $count } notas do seu arquivo não estão no mapa de { $source }, então foram mantidas sem mudança. Origem errada?
+}
 done-pick-source = Escolher outra origem
 done-assign-notes = Atribuir as notas
 source-fit-missing = { $missing ->
@@ -315,6 +326,7 @@ report-unrecognized = Não reconhecidas
 report-dropped-hint = { $target } não tem essa peça
 report-approximated-hint = trocadas pela peça mais parecida
 report-unrecognized-hint = fora do mapa de { $source } — removidas do arquivo
+report-unrecognized-hint-kept = fora do mapa de { $source } — mantidas sem mudança
 report-pick-target = Escolher destino →
 report-assign = Atribuir →
 report-across = { $summary } em { $count } arquivos

@@ -1,13 +1,14 @@
 import type { FocusRef } from '../ui/useFocusIntent';
-import type { ChannelScope, MissingDrums } from '../core/midiremap';
+import type { ChannelScope, MissingDrums, Unrecognized } from '../core/midiremap';
 import { track } from '../core/stats';
 import type { PlayedOn } from '../core/outcome';
 import type { OctaveBase } from '../core/notes';
 import { ChannelSelect } from './ChannelSelect';
 import { MissingDrumsSetting } from './MissingDrumsSetting';
 import { OctaveToggle } from './OctaveToggle';
+import { UnrecognizedSetting } from './UnrecognizedSetting';
 
-/** The octave convention, drum channel and missing-drums settings, side by side. */
+/** The octave convention, drum channel, missing-drums and unrecognized-notes settings, side by side. */
 export function ConvertSettings({
   oct,
   onOct,
@@ -19,6 +20,8 @@ export function ConvertSettings({
   missingSwaps,
   onMissingDetail,
   onMissing,
+  unrecognized,
+  onUnrecognized,
 }: {
   oct: OctaveBase;
   onOct: (oct: OctaveBase) => void;
@@ -30,12 +33,13 @@ export function ConvertSettings({
   missingSwaps?: PlayedOn[];
   onMissingDetail?: () => void;
   onMissing: (missing: MissingDrums) => void;
+  unrecognized: Unrecognized;
+  onUnrecognized: (unrecognized: Unrecognized) => void;
 }) {
   return (
     <div className="
       grid grid-cols-1 gap-5.5
       sm:grid-cols-2
-      lg:grid-cols-3
     "
     >
       <OctaveToggle
@@ -61,6 +65,13 @@ export function ConvertSettings({
         onChange={(value) => {
           track('setting-changed', { setting: 'missing', value });
           onMissing(value);
+        }}
+      />
+      <UnrecognizedSetting
+        value={unrecognized}
+        onChange={(value) => {
+          track('setting-changed', { setting: 'unrecognized', value });
+          onUnrecognized(value);
         }}
       />
     </div>

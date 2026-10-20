@@ -165,6 +165,42 @@ fn unknown_missing_value_is_rejected() {
     );
 }
 
+#[test]
+fn unrecognized_notes_are_removed_by_default() {
+    let (out, bytes) = convert_note("unrecognized_default", 99, &[]);
+    assert!(out.status.success());
+    assert!(hit_keys(&bytes).is_empty());
+}
+
+#[test]
+fn unrecognized_keep_writes_the_note_out_unchanged() {
+    let (out, bytes) = convert_note("unrecognized_keep", 99, &["--unrecognized", "keep"]);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(bytes, one_note_smf(99));
+}
+
+#[test]
+fn unrecognized_keep_still_reports_the_note() {
+    let (out, _) = convert_note("unrecognized_keep_report", 99, &["--unrecognized", "keep"]);
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains(r#""99": 1"#), "report: {err}");
+}
+
+#[test]
+fn unknown_unrecognized_value_is_rejected() {
+    let (out, _) = convert_note("unrecognized_bad", 99, &["--unrecognized", "maybe"]);
+    assert!(!out.status.success());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("remove") && err.contains("keep"),
+        "stderr: {err}"
+    );
+}
+
 const PRESET: &str = include_str!("../../midiremap-core/tests/golden/my-kit.drumverter.json");
 
 fn convert_with_preset(

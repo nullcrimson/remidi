@@ -93,6 +93,12 @@ describe('the events of setting up a conversion', () => {
     expect(umami).toHaveBeenCalledWith('setting-changed', { setting: 'missing', value: 'drop' });
   });
 
+  it('sends setting-changed for the unrecognized-notes setting', async () => {
+    await startApp();
+    await userEvent.click(screen.getByRole('radio', { name: 'Keep as they are' }));
+    expect(umami).toHaveBeenCalledWith('setting-changed', { setting: 'unrecognized', value: 'keep' });
+  });
+
   it('sends midi-added with via picker for files chosen in the file dialog', async () => {
     await startApp();
     await addMidi('groove.mid');

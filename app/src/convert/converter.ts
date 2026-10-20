@@ -2,7 +2,7 @@ import type { BatchResult } from './batch';
 import { answerHere, type Answer, type WorkerReply, type WorkerRequest } from './workerProtocol';
 import type { EnginePair } from '../core/enginePair';
 import type { LoadedFile } from '../core/files';
-import type { ChannelScope, LoadMidiremap, MissingDrums, Overrides, SourceFits } from '../core/midiremap';
+import type { ChannelScope, LoadMidiremap, MissingDrums, Overrides, SourceFits, Unrecognized } from '../core/midiremap';
 
 /** Converts a batch of files, and fits files to every engine's layout, off the main thread where it can. */
 export interface Converter {
@@ -13,6 +13,7 @@ export interface Converter {
     ov: Overrides | undefined,
     channel: ChannelScope,
     missing: MissingDrums,
+    unrecognized: Unrecognized,
     signal?: AbortSignal,
   ): Promise<BatchResult>;
   /** Every engine fitted to the hits of `files` a conversion with `channel` reads, best first. */
@@ -130,8 +131,8 @@ export function createConverter(load: LoadMidiremap, makeWorker: MakeWorker = mo
   }
 
   return {
-    async convert(files, pair, ov, channel, missing, signal) {
-      const answer = await ask({ kind: 'convert', id: nextId++, files, pair, ov, channel, missing }, signal);
+    async convert(files, pair, ov, channel, missing, unrecognized, signal) {
+      const answer = await ask({ kind: 'convert', id: nextId++, files, pair, ov, channel, missing, unrecognized }, signal);
       return answer.result;
     },
     async fits(files, channel) {

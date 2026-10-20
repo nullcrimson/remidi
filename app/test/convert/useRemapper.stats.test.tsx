@@ -34,7 +34,7 @@ describe('useRemapper events', () => {
 
   it('sends nothing about a conversion for a run that was stopped', async () => {
     const converter: Converter = {
-      convert: (_files, _pair, _ov, _channel, _missing, signal) => new Promise((_resolve, reject) => signal?.addEventListener('abort', () => reject(signal.reason))),
+      convert: (_files, _pair, _ov, _channel, _missing, _unrecognized, signal) => new Promise((_resolve, reject) => signal?.addEventListener('abort', () => reject(signal.reason))),
       fits: async () => ({ hits: 0, ranked: [] }),
     };
     const { result } = renderHook(() => useRemapper({ ...RUNTIME, converter }));

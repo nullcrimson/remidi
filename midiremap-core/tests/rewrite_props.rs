@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use midiremap_core::{convert, Catalog, Channel, ChannelScope, Mapping, MissingDrums, Overrides};
+use midiremap_core::{
+    convert, Catalog, Channel, ChannelScope, Mapping, MissingDrums, Overrides, Unrecognized,
+};
 use midiremap_testkit::{cc, choke, event, off, on, silent_on, smf, DRUMS};
 use midly::{
     num::{u14, u24, u28, u7},
@@ -138,10 +140,15 @@ struct Pair {
     src: &'static str,
     tgt: &'static str,
     missing: MissingDrums,
+    unrecognized: Unrecognized,
 }
 
 impl Pair {
     fn mapping(&self) -> Mapping {
+        self.mapping_with(self.unrecognized)
+    }
+
+    fn mapping_with(&self, unrecognized: Unrecognized) -> Mapping {
         let engine = |id| Catalog::shared().unwrap().get(id).unwrap();
         Mapping::new(
             engine(self.src),
@@ -149,17 +156,22 @@ impl Pair {
             &Overrides::default(),
             self.missing,
         )
+        .with_unrecognized(unrecognized)
     }
 }
 
 fn pair() -> impl Strategy<Value = Pair> {
     let ids: Vec<&'static str> = Catalog::shared().unwrap().ids().collect();
     let missing = prop_oneof![Just(MissingDrums::Nearest), Just(MissingDrums::Drop)];
-    (any::<Index>(), any::<Index>(), missing).prop_map(move |(src, tgt, missing)| Pair {
-        src: ids[src.index(ids.len())],
-        tgt: ids[tgt.index(ids.len())],
-        missing,
-    })
+    let unrecognized = prop_oneof![Just(Unrecognized::Remove), Just(Unrecognized::Keep)];
+    (any::<Index>(), any::<Index>(), missing, unrecognized).prop_map(
+        move |(src, tgt, missing, unrecognized)| Pair {
+            src: ids[src.index(ids.len())],
+            tgt: ids[tgt.index(ids.len())],
+            missing,
+            unrecognized,
+        },
+    )
 }
 
 fn absolute(bytes: &[u8]) -> Vec<Vec<(u64, TrackEventKind<'_>)>> {
@@ -291,6 +303,29 @@ proptest! {
     fn every_hit_is_counted_once(midi in file(), pair in pair(), scope in scope()) {
         let report = convert(&midi, &pair.mapping(), scope).unwrap().report;
         prop_assert_eq!(report.hits(), hits(&midi));
+    }
+
+    #[test]
+    fn keeping_unrecognized_notes_changes_no_count(
+        midi in file(),
+        pair in pair(),
+        scope in scope(),
+    ) {
+        let kept = convert(&midi, &pair.mapping_with(Unrecognized::Keep), scope).unwrap();
+        let removed = convert(&midi, &pair.mapping_with(Unrecognized::Remove), scope).unwrap();
+        prop_assert_eq!(kept.report, removed.report);
+    }
+
+    #[test]
+    fn keeping_unrecognized_notes_writes_each_of_their_hits(
+        midi in file(),
+        pair in pair(),
+        scope in scope(),
+    ) {
+        let out = convert(&midi, &pair.mapping_with(Unrecognized::Keep), scope).unwrap();
+        let unrecognized: u32 = out.report.unmapped_source().map(|(_, count)| count).sum();
+        let written = out.report.converted() + unrecognized + out.report.untouched();
+        prop_assert_eq!(hits(&out.bytes), written);
     }
 }
 

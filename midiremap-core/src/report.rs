@@ -23,7 +23,7 @@ pub struct FallbackTally {
 }
 
 /// What a conversion did with each note hit; only the converter tallies it.
-#[derive(Default, Serialize, Debug)]
+#[derive(Default, Serialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(
     feature = "ts",

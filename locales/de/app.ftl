@@ -79,6 +79,13 @@ channel-tip = Bei „Auto“ wird jede Spur auf Kanal 10 konvertiert – dem Dru
 missing-label = Fehlende Instrumente
 missing-tip-title = Wenn das Ziel-Plugin ein Instrument nicht hat
 missing-tip = „Ersetzen“ nimmt stattdessen das ähnlichste Instrument im Ziel-Plugin – etwa ein Crash statt eines China, Tom 3 statt Tom 4. „Entfernen“ lässt die Noten weg. Fehlt nur eine Spieltechnik wie Ghost Notes oder Rimshots, wird daraus immer ein normaler Schlag auf dasselbe Instrument.
+unrecognized-label = Unbekannte Noten
+unrecognized-tip-title = Wenn das Quell-Plugin eine Note nicht kennt
+unrecognized-tip = Manche Noten einer Datei stehen nicht in der Notenbelegung des Quell-Plugins – etwa ein Part, der für ein anderes Kit geschrieben wurde. „Entfernen“ lässt sie weg. „Unverändert lassen“ übernimmt sie so, wie sie sind, auf derselben Note. Der Bericht führt sie in beiden Fällen auf.
+unrecognized-remove = Entfernen
+unrecognized-keep = Unverändert lassen
+unrecognized-hint-remove = werden aus der Datei entfernt
+unrecognized-hint-keep = bleiben unverändert in der Datei
 edited-review = { $count ->
     [one] { $count } Instrument
    *[other] { $count } Instrumente
@@ -274,6 +281,10 @@ done-removed = { $count ->
     [one] { $count } Note Ihrer Datei ist nicht in der Notenbelegung von { $source } und wurde deshalb entfernt. Falsche Quelle?
    *[other] { $count } Noten Ihrer Datei sind nicht in der Notenbelegung von { $source } und wurden deshalb entfernt. Falsche Quelle?
 }
+done-kept = { $count ->
+    [one] { $count } Note Ihrer Datei ist nicht in der Notenbelegung von { $source } und wurde deshalb unverändert übernommen. Falsche Quelle?
+   *[other] { $count } Noten Ihrer Datei sind nicht in der Notenbelegung von { $source } und wurden deshalb unverändert übernommen. Falsche Quelle?
+}
 done-pick-source = Andere Quelle wählen
 done-assign-notes = Noten zuweisen
 source-fit-missing = { $missing ->
@@ -292,6 +303,7 @@ report-unrecognized = Unbekannt
 report-dropped-hint = { $target } hat dieses Instrument nicht
 report-approximated-hint = durch das ähnlichste Instrument ersetzt
 report-unrecognized-hint = nicht in der Notenbelegung von { $source } – aus der Datei entfernt
+report-unrecognized-hint-kept = nicht in der Notenbelegung von { $source } – unverändert in der Datei
 report-pick-target = Ziel wählen →
 report-assign = Zuweisen →
 report-across = { $summary } in { $count } Dateien

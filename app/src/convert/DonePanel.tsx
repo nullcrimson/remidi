@@ -1,9 +1,11 @@
+import type { MessageId } from '../generated/i18n';
 import type { Translate } from '../locale/i18n';
 import { useLocale, useT } from '../locale/localeContext';
 import { useEffect, useRef, useState } from 'react';
 import { saveBlob } from '../core/download';
 import { engineCode } from '../core/engineCode';
 import type { EngineNames, EnginePair } from '../core/enginePair';
+import type { Unrecognized } from '../core/midiremap';
 import { reportLink } from '../report/reportLink';
 import type { FailedFile } from './batch';
 import type { FileResult } from '../core/files';
@@ -46,16 +48,22 @@ function fileStatus(file: ReportFile | undefined, t: Translate): string {
   return lossy.length > 0 ? lossy.join(' · ') : t({ id: 'done-file-clean' });
 }
 
-function RemovedNotes({ count, source, onPickSource, onAssign }: {
+const UNRECOGNIZED_SENTENCE = {
+  remove: 'done-removed',
+  keep: 'done-kept',
+} as const satisfies Record<Unrecognized, MessageId>;
+
+function UnrecognizedNotes({ count, source, unrecognized, onPickSource, onAssign }: {
   count: number;
   source: string;
+  unrecognized: Unrecognized;
   onPickSource: () => void;
   onAssign: () => void;
 }) {
   const t = useT();
   return (
     <div className="flex flex-col gap-1.5 text-ui text-t3">
-      <p>{t({ id: 'done-removed', args: { count, source } })}</p>
+      <p>{t({ id: UNRECOGNIZED_SENTENCE[unrecognized], args: { count, source } })}</p>
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         <TextButton
           onClick={() => {
@@ -82,6 +90,7 @@ export function DonePanel({
   view,
   pair,
   names,
+  unrecognized,
   onViewReport,
   onPickSource,
   onConvertMore,
@@ -93,6 +102,7 @@ export function DonePanel({
   view: ReportView;
   pair: EnginePair;
   names: EngineNames;
+  unrecognized: Unrecognized;
   onViewReport: () => void;
   onPickSource: () => void;
   onConvertMore: () => void;
@@ -139,9 +149,10 @@ export function DonePanel({
           ))}
         </ul>
         {view.totals.unrecognized > 0 && (
-          <RemovedNotes
+          <UnrecognizedNotes
             count={view.totals.unrecognized}
             source={names.source}
+            unrecognized={unrecognized}
             onPickSource={onPickSource}
             onAssign={onViewReport}
           />

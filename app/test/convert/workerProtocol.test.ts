@@ -11,6 +11,7 @@ const REQUEST: BatchRequest = {
   pair: enginePair('ggd_invasion', 'ezdrummer'),
   channel: 'auto',
   missing: 'nearest',
+  unrecognized: 'remove',
 };
 
 describe('answerRequest', () => {

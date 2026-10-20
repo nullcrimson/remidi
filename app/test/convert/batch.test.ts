@@ -22,6 +22,7 @@ describe('runBatch', () => {
       undefined,
       'auto',
       'nearest',
+      'remove',
       remap,
     );
     expect(result.ok.map((c) => [c.name, Array.from(c.bytes)])).toEqual([
@@ -31,13 +32,13 @@ describe('runBatch', () => {
     expect(result.failed).toEqual([{ name: 'broken.mid', error: { kind: 'badMidi', detail: 'bad midi' } }]);
   });
 
-  it('passes engines, overrides, channel and missing drums through to remap', () => {
+  it('passes engines, overrides, channel, missing drums and unrecognized notes through to remap', () => {
     const calls: unknown[][] = [];
     const ov = typed<Overrides>({ tgt: [{ canon: 'kick.main', note: 35 }], src: [] });
-    runBatch([{ name: 'a.mid', bytes: new Uint8Array([1]) }], enginePair('s', 't'), ov, '10', 'drop', (...args) => {
+    runBatch([{ name: 'a.mid', bytes: new Uint8Array([1]) }], enginePair('s', 't'), ov, '10', 'drop', 'keep', (...args) => {
       calls.push(args.slice(1));
       return { bytes: new Uint8Array(), report: REPORT };
     });
-    expect(calls).toEqual([[enginePair('s', 't'), ov, '10', 'drop']]);
+    expect(calls).toEqual([[enginePair('s', 't'), ov, '10', 'drop', 'keep']]);
   });
 });

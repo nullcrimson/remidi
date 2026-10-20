@@ -1,7 +1,7 @@
 import { toAppError, type AppError } from '../core/errors';
 import type { EnginePair } from '../core/enginePair';
 import type { LoadedFile } from '../core/files';
-import type { ChannelScope, LoadMidiremap, MissingDrums, Overrides, SourceFits } from '../core/midiremap';
+import type { ChannelScope, LoadMidiremap, MissingDrums, Overrides, SourceFits, Unrecognized } from '../core/midiremap';
 import { runBatch, type BatchResult } from './batch';
 
 /** A batch as the converter hands it to its worker. */
@@ -13,6 +13,7 @@ export interface BatchRequest {
   ov?: Overrides;
   channel: ChannelScope;
   missing: MissingDrums;
+  unrecognized: Unrecognized;
 }
 
 /** Files whose hits the worker fits to every engine's layout. */
@@ -37,8 +38,8 @@ export async function answerHere(load: LoadMidiremap, request: WorkerRequest): P
   const core = await load();
   switch (request.kind) {
     case 'convert': {
-      const { files, pair, ov, channel, missing } = request;
-      return { kind: 'convert', result: runBatch(files, pair, ov, channel, missing, core.remap) };
+      const { files, pair, ov, channel, missing, unrecognized } = request;
+      return { kind: 'convert', result: runBatch(files, pair, ov, channel, missing, unrecognized, core.remap) };
     }
     case 'fit':
       return { kind: 'fit', fits: core.sourceFits(request.files.map((f) => f.bytes), request.channel) };

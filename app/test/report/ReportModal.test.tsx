@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import type { Unrecognized } from '../../src/core/midiremap';
 import { ReportModal } from '../../src/report/ReportModal';
 import type { ReportView } from '../../src/report/report';
 import { typed } from '../typed';
@@ -49,13 +50,14 @@ const cleanWithUnchanged: ReportView = {
   ],
 };
 
-function show(view: ReportView, onDropMissing?: () => void) {
+function show(view: ReportView, onDropMissing?: () => void, unrecognized: Unrecognized = 'remove') {
   const handlers = { onClose: vi.fn(), onPickTarget: vi.fn(), onAssignSource: vi.fn(), onChannel: vi.fn() };
   render(
     <ReportModal
       open
       view={view}
       names={{ source: 'GGD Invasion', target: 'EZdrummer' }}
+      unrecognized={unrecognized}
       onDropMissing={onDropMissing}
       {...handlers}
     />,
@@ -168,6 +170,13 @@ describe('ReportModal', () => {
     show(lossy);
     expect(screen.getAllByText(/^Unrecognized/)[0]).toHaveTextContent(
       'not in the GGD Invasion map — removed from the file',
+    );
+  });
+
+  it('explains the unrecognized group as kept when the notes were kept', () => {
+    show(lossy, undefined, 'keep');
+    expect(screen.getAllByText(/^Unrecognized/)[0]).toHaveTextContent(
+      'not in the GGD Invasion map — kept unchanged in the file',
     );
   });
 

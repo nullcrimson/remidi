@@ -91,6 +91,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case 'preselect':
     case 'setChannel':
     case 'setMissing':
+    case 'setUnrecognized':
       return changesPair(action) ? EDITOR_START : state;
     case 'loadMapping':
       return loaded(action.known.edits, action.known.srcEdits);

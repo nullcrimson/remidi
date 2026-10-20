@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand};
 use midiremap_core::{
-    convert, parse_preset, Catalog, ChannelScope, Mapping, MissingDrums, Overrides,
+    convert, parse_preset, Catalog, ChannelScope, Mapping, MissingDrums, Overrides, Unrecognized,
 };
 
 #[derive(Parser)]
@@ -48,6 +48,10 @@ struct ConvertArgs {
     /// another way of playing the same drum still stands in)
     #[arg(long, value_name = "MODE", default_value = "nearest")]
     missing: MissingDrums,
+    /// Notes the source layout does not recognize: remove (leave out) or keep (write out
+    /// unchanged); the report lists them either way
+    #[arg(long, value_name = "MODE", default_value = "remove")]
+    unrecognized: Unrecognized,
 }
 
 fn build_catalog(user_map: Option<PathBuf>) -> Result<Catalog> {
@@ -118,7 +122,7 @@ fn run_convert(a: ConvertArgs) -> Result<()> {
     };
     let out = convert(
         &mid,
-        &Mapping::new(src, tgt, &overrides, a.missing),
+        &Mapping::new(src, tgt, &overrides, a.missing).with_unrecognized(a.unrecognized),
         a.channel,
     )
     .context("remap failed")?;

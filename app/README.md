@@ -126,14 +126,15 @@ on a phone and click elsewhere.
   what presets and the session carry, drum keys as unchecked text; `knownEdits` is the one
   function that turns them into `KnownEdits`, leaving out drums this version does not know (the editor loads nothing else);
   `parseEdits`, `parseSrcEdits` and `sameEdits` read and compare them), `missing.ts` (the
-  missing-drums setting, Nearest / Drop, and its hint), `channel.ts`, `files.ts` (the accepted extensions, once: `ACCEPT_EXTENSIONS`, `splitFiles`, `withoutMidExtension`),
+  missing-drums setting, Nearest / Drop, and its hint), `unrecognized.ts` (the
+  unrecognized-notes setting, Remove / Keep as they are, and its hint), `channel.ts`, `files.ts` (the accepted extensions, once: `ACCEPT_EXTENSIONS`, `splitFiles`, `withoutMidExtension`),
   `selection.ts` (`SelectionEvent`, handed to each reducer), `notice.ts`, `download.ts` (`saveBlob`: save a file made in memory, free its address after ten seconds),
   `umami.ts` (the 37 analytics events, each with its exact properties, and `send`, the typed call into Umami: the only code that reads `window.umami`; the static pages' script uses it alone) and `stats.ts` (`track`, the app's call, accepting the events of `AppEvent` only: it sends one only when its tier is on, `ENABLED_TIERS`; the four events only static pages send, `StaticOnlyEvent`, have no tier), `storage.ts` (the only module that touches `localStorage`: the closed `StorageKey` set, `storedName` which
   puts `midiremap:` in front of it, and `readStored`, `readStoredStrict` (blocked or `{ value }`), `writeStored`, `removeStored`, `clearStored`, `onStoredChange` (the one `storage` event subscription); eslint
   rejects `localStorage` anywhere else in `src`), `contact.ts` (the issue and contact addresses), `engineCode.ts`
   (the three-letter badge of an engine id).
-- `src/convert/` — the converter screen: `useRemapper.ts` (screen state, Convert + Edit, the `View`: the editor's pair and arguments, only ever on show with both engines chosen; every
-  selection change is one `SelectionEvent`), `runtime.ts` (`Runtime { load, converter }`, made
+- `src/convert/` — the converter screen: `useRemapper.ts` (screen state, Convert + Edit; every
+  selection change is one `SelectionEvent`), `selectionState.ts` (its selection reducer and the `View`: the editor's pair and arguments, only ever on show with both engines chosen), `runtime.ts` (`Runtime { load, converter }`, made
   once in `main.tsx` and handed to `App`; tests hand in `test/runtime.ts`), `converter.ts`,
   `convertWorker.ts`, `workerProtocol.ts`, `batch.ts` (conversion in a module Web Worker with its own WASM instance;
   a worker that dies after answering is replaced, one that cannot start or dies before
@@ -141,7 +142,7 @@ on a phone and click elsewhere.
   `AbortSignal`), `useConverter.ts` (its `Conv` `done` arm carries the pair it converted with), `useFileIntake.ts`, `useDropGuard.ts`, `session.ts` (the setup a reload brings back: engines, settings, unsaved
   edits; `EMPTY_SESSION` states the starting settings), `preselect.ts` (the engines a link names), `planBreakdown.ts`
   (the groups behind the "N of M drums remapped" pop-up), and FileChips/CardDropzone,
-  OctaveToggle, ChannelSelect, MissingDrumsSetting, ConvertSettings, PlanControls, SummaryRow,
+  OctaveToggle, ChannelSelect, MissingDrumsSetting, UnrecognizedSetting, ConvertSettings, PlanControls, SummaryRow,
   ConvertButton (FollowTip: the reason beside the mouse), DonePanel, InfoPopover (the
   hover/click breakdowns).
 - `src/editor/` — the note editor: EditView (with EditFilters, FamilyRows, EditFooter,
@@ -180,8 +181,10 @@ on a phone and click elsewhere.
 ## Views
 
 - **Convert**: drop `.mid` files, pick From/To engines (⇄ swaps), set octave naming,
-  drum channel and missing drums (Nearest plays a drum the target lacks on the closest
-  one, Drop leaves it out; remembered in the browser), convert. A single file downloads
+  drum channel, missing drums (Nearest plays a drum the target lacks on the closest
+  one, Drop leaves it out) and unknown notes (Remove leaves out a note the source layout
+  does not know, Keep as they are writes it out unchanged; the done panel and the report
+  say which), all remembered in the browser, convert. A single file downloads
   straight away; a batch offers a zip. A reload brings back the engines, settings and
   unsaved note edits. Hovering (or tapping) the dotted "N of M drums remapped" and
   missing-drums counts lists what happens to each drum, with a link into the editor; a

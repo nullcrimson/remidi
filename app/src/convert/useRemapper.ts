@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { vocabularyOf } from '../core/canon';
-import type { ChannelScope, Engine, EngineId, Midiremap, MissingDrums, Note } from '../core/midiremap';
+import type { ChannelScope, Engine, EngineId, Midiremap, MissingDrums, Note, Unrecognized } from '../core/midiremap';
 import type { OctaveBase } from '../core/notes';
-import { pairOf, type EnginePair } from '../core/enginePair';
+import { pairOf } from '../core/enginePair';
 import { kindCounts } from '../core/errors';
 import { track } from '../core/stats';
 import { convertedProps } from '../report/report';
@@ -10,7 +10,8 @@ import { editCount, editsToOverrides, knownEdits, type StoredEdits } from '../co
 import { preselection } from './preselect';
 import type { Runtime } from './runtime';
 import type { SelectionEvent } from '../core/selection';
-import { loadSession, saveSession, type Session } from './session';
+import { loadSession, saveSession } from './session';
+import { selectionOf, selectionReducer } from './selectionState';
 import { useConverter } from './useConverter';
 import { useSourceFits } from './useSourceFits';
 import type { EditFilter } from '../editor/editFilter';
@@ -20,75 +21,7 @@ import { useEngineCatalog } from '../engines/useEngineCatalog';
 
 export type { Conv } from './useConverter';
 
-/**
- * The screen on show: the converter, or the note editor with the pair it edits and the
- * filter and source note it opens on. The editor is only ever on show with both engines chosen.
- */
-export type View
-  = | { kind: 'convert' }
-    | { kind: 'edit'; pair: EnginePair; show: EditFilter; assignNote: Note | null };
-
-const CONVERT: View = { kind: 'convert' };
-
-interface Selection {
-  src: EngineId | null;
-  tgt: EngineId | null;
-  oct: OctaveBase;
-  channel: ChannelScope;
-  missing: MissingDrums;
-  view: View;
-  presetId: string | null;
-}
-
-type SelectionAction
-  = | SelectionEvent
-    | { type: 'SET_OCT'; oct: OctaveBase }
-    | { type: 'OPEN_EDITOR'; show: EditFilter; assignNote: Note | null }
-    | { type: 'CLOSE_EDITOR' }
-    | { type: 'SET_PRESET'; presetId: string | null };
-
 const NO_ENGINES: Engine[] = [];
-
-function selectionOf(session: Session): Selection {
-  const { src, tgt, oct, channel, missing, presetId } = session;
-  return { src, tgt, oct, channel, missing, presetId, view: CONVERT };
-}
-
-function step(state: Selection, action: SelectionAction): Selection {
-  switch (action.type) {
-    case 'chooseSrc':
-      return { ...state, src: action.id, presetId: null };
-    case 'chooseTgt':
-      return { ...state, tgt: action.id, presetId: null };
-    case 'swap':
-      return { ...state, src: state.tgt, tgt: state.src, presetId: null };
-    case 'preselect':
-      return { ...state, src: action.src, tgt: action.tgt, presetId: null };
-    case 'loadMapping':
-      return { ...state, src: action.src, tgt: action.tgt, view: CONVERT, presetId: action.presetId };
-    case 'setChannel':
-      return { ...state, channel: action.channel };
-    case 'setMissing':
-      return { ...state, missing: action.missing };
-    case 'SET_OCT':
-      return { ...state, oct: action.oct };
-    case 'OPEN_EDITOR': {
-      const pair = pairOf(state.src, state.tgt);
-      return pair === null ? state : { ...state, view: { kind: 'edit', pair, show: action.show, assignNote: action.assignNote } };
-    }
-    case 'CLOSE_EDITOR':
-      return { ...state, view: CONVERT };
-    case 'SET_PRESET':
-      return { ...state, presetId: action.presetId };
-  }
-}
-
-function selectionReducer(state: Selection, action: SelectionAction): Selection {
-  const next = step(state, action);
-  if (next.view.kind !== 'edit' || (next.src === state.src && next.tgt === state.tgt)) return next;
-  const pair = pairOf(next.src, next.tgt);
-  return { ...next, view: pair === null ? CONVERT : { ...next.view, pair } };
-}
 
 /**
  * Screen state for the converter. The last setup (engines, settings, unsaved edits) is
@@ -100,7 +33,7 @@ function selectionReducer(state: Selection, action: SelectionAction): Selection 
  */
 export function useRemapper({ load, converter: batches }: Runtime) {
   const [session] = useState(loadSession);
-  const [{ src, tgt, oct, channel, missing, view, presetId }, dispatch] = useReducer(
+  const [{ src, tgt, oct, channel, missing, unrecognized, view, presetId }, dispatch] = useReducer(
     selectionReducer,
     session,
     selectionOf,
@@ -113,8 +46,8 @@ export function useRemapper({ load, converter: batches }: Runtime) {
   const { edits, srcEdits, vocabulary, load: loadEditor, onSelection: editorSees } = editor;
   const overrides = useMemo(() => editsToOverrides(edits, srcEdits), [edits, srcEdits]);
   const keyFor = useCallback(
-    (m: MissingDrums) => JSON.stringify({ pair, channel, missing: m, overrides }),
-    [pair, channel, overrides],
+    (m: MissingDrums) => JSON.stringify({ pair, channel, missing: m, unrecognized, overrides }),
+    [pair, channel, unrecognized, overrides],
   );
   const settingsKey = useMemo(() => keyFor(missing), [keyFor, missing]);
   const converter = useConverter(batches, pair, settingsKey);
@@ -135,6 +68,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
   const swap = useCallback(() => emit({ type: 'swap' }), [emit]);
   const setChannel = useCallback((c: ChannelScope) => emit({ type: 'setChannel', channel: c }), [emit]);
   const setMissing = useCallback((m: MissingDrums) => emit({ type: 'setMissing', missing: m }), [emit]);
+  const setUnrecognized = useCallback((u: Unrecognized) => emit({ type: 'setUnrecognized', unrecognized: u }), [emit]);
   const setOct = useCallback((o: OctaveBase) => dispatch({ type: 'SET_OCT', oct: o }), []);
   const openEditor = useCallback(
     (show: EditFilter, assignNote: Note | null) => dispatch({ type: 'OPEN_EDITOR', show, assignNote }),
@@ -168,8 +102,8 @@ export function useRemapper({ load, converter: batches }: Runtime) {
 
   useEffect(() => {
     const unsaved: StoredEdits = catalog.status === 'ready' ? { edits, srcEdits } : session;
-    saveSession({ src, tgt, oct, channel, missing, presetId, edits: unsaved.edits, srcEdits: unsaved.srcEdits });
-  }, [catalog.status, session, src, tgt, oct, channel, missing, presetId, edits, srcEdits]);
+    saveSession({ src, tgt, oct, channel, missing, unrecognized, presetId, edits: unsaved.edits, srcEdits: unsaved.srcEdits });
+  }, [catalog.status, session, src, tgt, oct, channel, missing, unrecognized, presetId, edits, srcEdits]);
 
   const loadMapping = useCallback(
     (m: { id?: string; src: EngineId; tgt: EngineId } & StoredEdits): number => {
@@ -188,7 +122,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
 
   const run = useCallback(
     async (m: MissingDrums, files?: LoadedFile[]) => {
-      const outcome = await runConvert(overrides, channel, m, keyFor(m), files);
+      const outcome = await runConvert(overrides, channel, m, unrecognized, keyFor(m), files);
       if (outcome === null || pair === null) return;
       if (outcome.kind === 'failed') {
         track('convert-failed', { from: pair.src, to: pair.tgt, kind: outcome.error.kind });
@@ -201,7 +135,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
         preset: presetId !== null,
       }));
     },
-    [runConvert, overrides, channel, keyFor, pair, edits, srcEdits, presetId],
+    [runConvert, overrides, channel, unrecognized, keyFor, pair, edits, srcEdits, presetId],
   );
   const convert = useCallback((files?: LoadedFile[]) => run(missing, files), [run, missing]);
   const dropMissingAndConvert = useCallback(() => {
@@ -218,6 +152,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     oct,
     channel,
     missing,
+    unrecognized,
     presetId,
     files: converter.files,
     fits,
@@ -233,6 +168,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     setOct,
     setChannel,
     setMissing,
+    setUnrecognized,
     addFiles: converter.addFiles,
     removeFile: converter.removeFile,
     clearFiles: converter.clearFiles,

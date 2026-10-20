@@ -3,7 +3,7 @@ import type { Converter } from './converter';
 import type { BatchResult, FailedFile } from './batch';
 import type { EnginePair } from '../core/enginePair';
 import { toAppError, type AppError } from '../core/errors';
-import type { ChannelScope, MissingDrums, Overrides } from '../core/midiremap';
+import type { ChannelScope, MissingDrums, Overrides, Unrecognized } from '../core/midiremap';
 import type { SelectionEvent } from '../core/selection';
 import { withoutMidExtension, type FileResult, type LoadedFile } from '../core/files';
 
@@ -62,6 +62,7 @@ function reducer(state: State, action: Action): State {
     case 'loadMapping':
     case 'setChannel':
     case 'setMissing':
+    case 'setUnrecognized':
       return { ...state, conv: { kind: 'idle' } };
     case 'CONVERT_START':
       return { ...state, conv: { kind: 'running', key: action.key } };
@@ -131,6 +132,7 @@ export function useConverter(converter: Pick<Converter, 'convert'>, pair: Engine
       ov: Overrides,
       channel: ChannelScope,
       missing: MissingDrums,
+      unrecognized: Unrecognized,
       key: string,
       toConvert: LoadedFile[] = files,
     ): Promise<ConvertOutcome | null> => {
@@ -141,7 +143,7 @@ export function useConverter(converter: Pick<Converter, 'convert'>, pair: Engine
       dispatch({ type: 'CONVERT_START', key });
       let batch: BatchResult;
       try {
-        batch = await converter.convert(toConvert, pair, ov, channel, missing, run.signal);
+        batch = await converter.convert(toConvert, pair, ov, channel, missing, unrecognized, run.signal);
       } catch (err) {
         if (run.signal.aborted) return null;
         const error = toAppError(err);

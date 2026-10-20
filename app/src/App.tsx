@@ -186,6 +186,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
                         view={reportView}
                         pair={conv.pair}
                         names={namesOf(remapper.engines, conv.pair)}
+                        unrecognized={remapper.unrecognized}
                         onViewReport={() => setReportOpen(true)}
                         onPickSource={() => request('from')}
                         onDropMissing={dropMissing}
@@ -227,6 +228,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
           onClose={() => setReportOpen(false)}
           view={reportView}
           names={names}
+          unrecognized={remapper.unrecognized}
           onPickTarget={(canon) => {
             openEditor('report');
             editor.openPick(canon);

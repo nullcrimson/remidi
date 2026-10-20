@@ -117,11 +117,63 @@ impl MissingDrumsParseError {
     }
 }
 
+/// What happens to a note the source layout does not recognize.
+#[derive(
+    Copy,
+    Clone,
+    Debug,
+    Default,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
+)]
+#[serde(rename_all = "lowercase")]
+#[strum(
+    serialize_all = "lowercase",
+    parse_err_ty = UnrecognizedParseError,
+    parse_err_fn = UnrecognizedParseError::of
+)]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
+pub enum Unrecognized {
+    /// Leave it out of the output.
+    #[default]
+    Remove,
+    /// Write it out as it is: the same note on the same channel, at the same time and velocity.
+    Keep,
+}
+
+impl Unrecognized {
+    pub(crate) fn keeps(self) -> bool {
+        match self {
+            Self::Remove => false,
+            Self::Keep => true,
+        }
+    }
+}
+
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
+#[error("unrecognized notes must be 'remove' or 'keep', not '{0}'")]
+pub struct UnrecognizedParseError(String);
+
+impl UnrecognizedParseError {
+    fn of(s: &str) -> Self {
+        Self(s.to_owned())
+    }
+}
+
 /// A source and a target engine with overrides applied: the hub-and-spoke pipeline for
 /// one conversion.
 pub struct Mapping {
     decode: Decoding,
     drums: HashMap<Canon, CanonResolution>,
+    unrecognized: Unrecognized,
 }
 
 type Decoding = HashMap<Note, Canon>;
@@ -141,7 +193,22 @@ impl Mapping {
                 .iter()
                 .map(|&canon| (canon, resolve(canon, &encode, missing)))
                 .collect(),
+            unrecognized: Unrecognized::default(),
         }
+    }
+
+    /// The same mapping, with `unrecognized` deciding what happens to the notes the source
+    /// layout does not recognize.
+    #[must_use]
+    pub fn with_unrecognized(self, unrecognized: Unrecognized) -> Self {
+        Self {
+            unrecognized,
+            ..self
+        }
+    }
+
+    pub(crate) fn unrecognized(&self) -> Unrecognized {
+        self.unrecognized
     }
 
     pub(crate) fn translate(&self, note: Note) -> Resolution {
@@ -560,6 +627,60 @@ notes = [ {} ]",
             err.contains("maybe") && err.contains("nearest") && err.contains("drop"),
             "{err}"
         );
+    }
+
+    #[test]
+    fn unrecognized_serializes_as_its_lowercase_name() {
+        assert_eq!(
+            serde_json::to_string(&Unrecognized::Keep).unwrap(),
+            r#""keep""#
+        );
+    }
+
+    #[test]
+    fn unrecognized_deserializes_from_its_lowercase_name() {
+        assert_eq!(
+            serde_json::from_str::<Unrecognized>(r#""remove""#).unwrap(),
+            Unrecognized::Remove
+        );
+    }
+
+    #[test]
+    fn remove_round_trips_through_its_name() {
+        let u = Unrecognized::Remove;
+        assert_eq!(u.to_string().parse::<Unrecognized>().unwrap(), u);
+    }
+
+    #[test]
+    fn keep_round_trips_through_its_name() {
+        let u = Unrecognized::Keep;
+        assert_eq!(u.to_string().parse::<Unrecognized>().unwrap(), u);
+    }
+
+    #[test]
+    fn an_unknown_unrecognized_value_names_the_choices() {
+        let err = "maybe".parse::<Unrecognized>().unwrap_err().to_string();
+        assert!(
+            err.contains("maybe") && err.contains("remove") && err.contains("keep"),
+            "{err}"
+        );
+    }
+
+    #[test]
+    fn a_mapping_removes_unrecognized_notes_unless_told_to_keep_them() {
+        assert_eq!(mapping().unrecognized(), Unrecognized::Remove);
+    }
+
+    #[test]
+    fn a_mapping_keeps_unrecognized_notes_when_told_to() {
+        let kept = mapping().with_unrecognized(Unrecognized::Keep);
+        assert_eq!(kept.unrecognized(), Unrecognized::Keep);
+    }
+
+    #[test]
+    fn keeping_unrecognized_notes_leaves_their_resolution_unmapped() {
+        let kept = mapping().with_unrecognized(Unrecognized::Keep);
+        assert_eq!(kept.translate(n(99)), Resolution::Unmapped);
     }
 
     #[test]

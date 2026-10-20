@@ -9,7 +9,7 @@ use crate::{
     note::Note,
     report::Report,
     table::NoteTable,
-    translate::{CanonResolution, Resolution},
+    translate::{CanonResolution, Resolution, Unrecognized},
 };
 
 #[derive(Default)]
@@ -32,8 +32,9 @@ impl DeltaFold {
     }
 }
 
-/// Rewrites every note event the scope accepts through `table`, removing dropped and
-/// unmapped notes (their deltas fold into the next kept event) and tallying `report`.
+/// Rewrites every note event the scope accepts through `table`, removing dropped notes and,
+/// unless the table keeps them unchanged, unmapped ones (a removed event's delta folds into
+/// the next kept event), and tallying `report`.
 pub(crate) fn rewrite(
     smf: &mut Smf,
     table: &NoteTable,
@@ -41,6 +42,7 @@ pub(crate) fn rewrite(
     report: &mut Report,
 ) -> Result<(), CodecError> {
     let filters = scope.resolve(smf);
+    let unrecognized = table.unrecognized();
     for (track, filter) in smf.tracks.iter_mut().zip(filters) {
         let events = std::mem::take(track);
         let mut out = Vec::with_capacity(events.len());
@@ -58,10 +60,10 @@ pub(crate) fn rewrite(
                             if hit {
                                 report.record(note, res);
                             }
-                            apply(res, key)
+                            apply(res, unrecognized, key)
                         }
                         MidiMessage::NoteOff { key, .. } | MidiMessage::Aftertouch { key, .. } => {
-                            apply(table.get(Note::from_key(*key)), key)
+                            apply(table.get(Note::from_key(*key)), unrecognized, key)
                         }
                         _ => true,
                     }
@@ -86,13 +88,14 @@ pub(crate) fn rewrite(
     Ok(())
 }
 
-fn apply(res: &Resolution, key: &mut u7) -> bool {
+fn apply(res: &Resolution, unrecognized: Unrecognized, key: &mut u7) -> bool {
     match res {
         Resolution::Resolved(CanonResolution::Direct { note, .. })
         | Resolution::Resolved(CanonResolution::Fallback { note, .. }) => {
             *key = note.key();
             true
         }
-        Resolution::Unmapped | Resolution::Resolved(CanonResolution::Dropped { .. }) => false,
+        Resolution::Unmapped => unrecognized.keeps(),
+        Resolution::Resolved(CanonResolution::Dropped { .. }) => false,
     }
 }

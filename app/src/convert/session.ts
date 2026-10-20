@@ -1,8 +1,9 @@
 import { CHANNELS } from '../core/channel';
 import { parseEngineId } from '../core/enginePair';
-import type { ChannelScope, EngineId, MissingDrums } from '../core/midiremap';
+import type { ChannelScope, EngineId, MissingDrums, Unrecognized } from '../core/midiremap';
 import { MISSING_OPTIONS } from '../core/missing';
 import type { OctaveBase } from '../core/notes';
+import { UNRECOGNIZED_OPTIONS } from '../core/unrecognized';
 import { readStored, removeStored, writeStored } from '../core/storage';
 import { parseEdits, parseSrcEdits, type StoredEdits } from '../core/overrides';
 
@@ -18,6 +19,7 @@ export interface Session extends StoredEdits {
   oct: OctaveBase;
   channel: ChannelScope;
   missing: MissingDrums;
+  unrecognized: Unrecognized;
   presetId: string | null;
 }
 
@@ -27,6 +29,7 @@ export const EMPTY_SESSION: Session = {
   oct: 'c1',
   channel: 'auto',
   missing: 'nearest',
+  unrecognized: 'remove',
   presetId: null,
   edits: {},
   srcEdits: {},
@@ -58,6 +61,7 @@ export function loadSession(): Session {
     oct: v.oct === 'c1' || v.oct === 'c2' ? v.oct : EMPTY_SESSION.oct,
     channel: CHANNELS.find((c) => c.value === v.channel)?.value ?? EMPTY_SESSION.channel,
     missing: missingOf(v.missing),
+    unrecognized: UNRECOGNIZED_OPTIONS.find((o) => o.value === v.unrecognized)?.value ?? EMPTY_SESSION.unrecognized,
     presetId: typeof v.presetId === 'string' ? v.presetId : EMPTY_SESSION.presetId,
     edits: parseEdits(v.edits) ?? EMPTY_SESSION.edits,
     srcEdits: parseSrcEdits(v.srcEdits) ?? EMPTY_SESSION.srcEdits,

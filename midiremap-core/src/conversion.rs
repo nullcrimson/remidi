@@ -32,8 +32,12 @@ mod tests {
 
     use super::*;
     use crate::{
-        canon::Canon, catalog::Catalog, note::n, overrides::Overrides, report::FallbackTally,
-        translate::MissingDrums,
+        canon::Canon,
+        catalog::Catalog,
+        note::n,
+        overrides::Overrides,
+        report::FallbackTally,
+        translate::{MissingDrums, Unrecognized},
     };
 
     fn convert_ids(mid: &[u8], src_id: &str, tgt_id: &str) -> Converted {
@@ -161,6 +165,64 @@ mod tests {
     #[test]
     fn unmapped_note_is_reported() {
         let out = convert_unmapped_note();
+        assert_eq!(
+            out.report.unmapped_source().collect::<Vec<_>>(),
+            [(n(99), 1)]
+        );
+    }
+
+    fn convert_unrecognized(mid: &[u8], unrecognized: Unrecognized) -> Converted {
+        let b = Catalog::builtin().unwrap();
+        let mapping = Mapping::new(
+            b.get("ggd_invasion").unwrap(),
+            b.get("ezdrummer").unwrap(),
+            &Overrides::default(),
+            MissingDrums::Nearest,
+        )
+        .with_unrecognized(unrecognized);
+        convert(mid, &mapping, ChannelScope::Auto).unwrap()
+    }
+
+    fn kick_and_unrecognized() -> Vec<u8> {
+        drums(&[(0, on(24)), (10, off(24)), (30, on(99)), (48, off(99))])
+    }
+
+    #[test]
+    fn keep_writes_a_file_of_unrecognized_notes_out_byte_for_byte() {
+        let mid = drums(&[(0, on(99)), (48, off(99)), (12, on(100)), (6, off(100))]);
+        let out = convert_unrecognized(&mid, Unrecognized::Keep);
+        assert_eq!(out.bytes, mid);
+    }
+
+    #[test]
+    fn keep_leaves_an_unrecognized_note_as_it_was_among_converted_ones() {
+        let out = convert_unrecognized(&kick_and_unrecognized(), Unrecognized::Keep);
+        let input = events(&kick_and_unrecognized(), 0);
+        assert_eq!(events(&out.bytes, 0)[2..], input[2..]);
+    }
+
+    #[test]
+    fn keep_still_converts_the_recognized_notes() {
+        let out = convert_unrecognized(&kick_and_unrecognized(), Unrecognized::Keep);
+        assert_eq!(hit_keys(&out.bytes), vec![36, 99]);
+    }
+
+    #[test]
+    fn remove_leaves_an_unrecognized_note_out() {
+        let out = convert_unrecognized(&kick_and_unrecognized(), Unrecognized::Remove);
+        assert_eq!(hit_keys(&out.bytes), vec![36]);
+    }
+
+    #[test]
+    fn keep_and_remove_report_the_same_counts() {
+        let kept = convert_unrecognized(&kick_and_unrecognized(), Unrecognized::Keep);
+        let removed = convert_unrecognized(&kick_and_unrecognized(), Unrecognized::Remove);
+        assert_eq!(kept.report, removed.report);
+    }
+
+    #[test]
+    fn keep_still_reports_the_kept_note_as_unrecognized() {
+        let out = convert_unrecognized(&kick_and_unrecognized(), Unrecognized::Keep);
         assert_eq!(
             out.report.unmapped_source().collect::<Vec<_>>(),
             [(n(99), 1)]

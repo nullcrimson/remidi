@@ -83,6 +83,13 @@ channel-tip = Auto konwertuje każdą ścieżkę na kanale 10 — kanale perkusj
 missing-label = Brakujące instrumenty
 missing-tip-title = Gdy wtyczce docelowej brakuje instrumentu
 missing-tip = Zastąp wstawia zamiast niego najbardziej podobny instrument wtyczki docelowej — China zamienia się w crash, Tom 4 w Tom 3. Usuń po prostu wyrzuca jego nuty z pliku. Ghost notes, rimshoty i inne warianty gry na instrumencie, który jest we wtyczce docelowej, zawsze zamieniają się w zwykłe uderzenie w ten instrument.
+unrecognized-label = Nierozpoznane nuty
+unrecognized-tip-title = Gdy wtyczka źródłowa nie zna nuty
+unrecognized-tip = Niektórych nut z pliku może nie być w mapie wtyczki źródłowej — na przykład partii napisanej dla innego zestawu. Usuń wyrzuca je z pliku. Zostaw bez zmian zapisuje je tak, jak są, na tej samej nucie. Raport pokazuje je w obu przypadkach.
+unrecognized-remove = Usuń
+unrecognized-keep = Zostaw bez zmian
+unrecognized-hint-remove = usuwane z pliku
+unrecognized-hint-keep = zostają bez zmian
 edited-review = { $count ->
     [one] { $count } instrument zmieniony
     [few] { $count } instrumenty zmienione
@@ -291,6 +298,10 @@ done-removed = { $count ->
     [one] W mapie { $source } brakuje { $count } nuty z pliku, więc ją usunięto. Złe źródło?
    *[other] W mapie { $source } brakuje { $count } nut z pliku, więc je usunięto. Złe źródło?
 }
+done-kept = { $count ->
+    [one] W mapie { $source } brakuje { $count } nuty z pliku, więc zostawiono ją bez zmian. Złe źródło?
+   *[other] W mapie { $source } brakuje { $count } nut z pliku, więc zostawiono je bez zmian. Złe źródło?
+}
 done-pick-source = Wybierz inne źródło
 done-assign-notes = Przypisz nuty
 source-fit-missing = W mapie { $source } brakuje { $missing } z { $hits } nut z pliku. Lepiej pasują: { $engines }
@@ -307,6 +318,7 @@ report-unrecognized = Nierozpoznane
 report-dropped-hint = { $target } nie ma takiego instrumentu
 report-approximated-hint = zastąpione podobnym instrumentem
 report-unrecognized-hint = brak w mapie { $source } — usunięte z pliku
+report-unrecognized-hint-kept = brak w mapie { $source } — zostawione bez zmian
 report-pick-target = Wybierz cel →
 report-assign = Przypisz →
 report-across = { $summary } w { $count ->

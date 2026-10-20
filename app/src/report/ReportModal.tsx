@@ -1,5 +1,6 @@
 import type { EngineNames } from '../core/enginePair';
-import type { Canon, Note } from '../core/midiremap';
+import type { Canon, Note, Unrecognized } from '../core/midiremap';
+import type { MessageId } from '../generated/i18n';
 import type { Translate } from '../locale/i18n';
 import { useT } from '../locale/localeContext';
 import { track } from '../core/stats';
@@ -81,15 +82,22 @@ function Group<E extends LineEntry>({
   );
 }
 
+const UNRECOGNIZED_HINT = {
+  remove: 'report-unrecognized-hint',
+  keep: 'report-unrecognized-hint-kept',
+} as const satisfies Record<Unrecognized, MessageId>;
+
 function GroupList({
   groups,
   untouched,
   names,
+  unrecognized,
   fixes,
 }: {
   groups: ReportGroups;
   untouched: number;
   names: EngineNames;
+  unrecognized: Unrecognized;
   fixes: ReportFixes;
 }) {
   const t = useT();
@@ -111,7 +119,7 @@ function GroupList({
       />
       <Group
         title={t({ id: 'report-unrecognized' })}
-        hint={t({ id: 'report-unrecognized-hint', args: { source: names.source } })}
+        hint={t({ id: UNRECOGNIZED_HINT[unrecognized], args: { source: names.source } })}
         color="muted"
         entries={groups.unrecognized}
         fixOf={(e) => ({ label: t({ id: 'report-assign' }), run: () => fixes.onAssignSource(e.note) })}
@@ -163,6 +171,7 @@ export function ReportModal({
   onClose,
   view,
   names,
+  unrecognized,
   onPickTarget,
   onAssignSource,
   onChannel,
@@ -172,6 +181,7 @@ export function ReportModal({
   onClose: () => void;
   view: ReportView;
   names: EngineNames;
+  unrecognized: Unrecognized;
   onDropMissing?: () => void;
 } & ReportFixes) {
   const t = useT();
@@ -198,7 +208,7 @@ export function ReportModal({
       <div className="flex flex-col gap-5">
         <Headline view={view} targetName={names.target} />
         {(hasLoss(view.groups) || view.totals.untouched > 0) && (
-          <GroupList groups={view.groups} untouched={view.totals.untouched} names={names} fixes={fixes} />
+          <GroupList groups={view.groups} untouched={view.totals.untouched} names={names} unrecognized={unrecognized} fixes={fixes} />
         )}
         {onDropMissing && (
           <div>
@@ -218,7 +228,7 @@ export function ReportModal({
             {detailFiles.map((f) => (
               <div key={f.name} className="flex flex-col gap-2">
                 <div className="font-mono text-label text-t2">{f.name}</div>
-                <GroupList groups={f.groups} untouched={f.untouched} names={names} fixes={fixes} />
+                <GroupList groups={f.groups} untouched={f.untouched} names={names} unrecognized={unrecognized} fixes={fixes} />
               </div>
             ))}
           </div>

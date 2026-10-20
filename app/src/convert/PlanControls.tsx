@@ -43,6 +43,8 @@ export function PlanControls({
         missingSwaps={swapList(editor.rows, editor.targetDrums, remapper.oct)}
         onMissingDetail={() => onOpenEditor('missing', 'issues')}
         onMissing={remapper.setMissing}
+        unrecognized={remapper.unrecognized}
+        onUnrecognized={remapper.setUnrecognized}
       />
 
       {pair !== null && editor.planError !== null && (

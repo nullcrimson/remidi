@@ -1,7 +1,7 @@
 import { toAppError, type AppError } from '../core/errors';
 import type { EnginePair } from '../core/enginePair';
 import type { LoadedFile } from '../core/files';
-import type { ChannelScope, Midiremap, MissingDrums, Overrides, Report } from '../core/midiremap';
+import type { ChannelScope, Midiremap, MissingDrums, Overrides, Report, Unrecognized } from '../core/midiremap';
 
 interface ConvertedFile {
   name: string;
@@ -26,13 +26,14 @@ export function runBatch(
   ov: Overrides | undefined,
   channel: ChannelScope,
   missing: MissingDrums,
+  unrecognized: Unrecognized,
   remap: Midiremap['remap'],
 ): BatchResult {
   const ok: ConvertedFile[] = [];
   const failed: FailedFile[] = [];
   for (const f of files) {
     try {
-      const { bytes, report } = remap(f.bytes, pair, ov, channel, missing);
+      const { bytes, report } = remap(f.bytes, pair, ov, channel, missing, unrecognized);
       ok.push({ name: f.name, bytes, report });
     } catch (e) {
       failed.push({ name: f.name, error: toAppError(e) });

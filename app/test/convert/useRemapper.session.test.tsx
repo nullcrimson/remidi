@@ -13,6 +13,7 @@ const STORED = typed<Session>({
   oct: 'c2',
   channel: '10',
   missing: 'drop',
+  unrecognized: 'keep',
   presetId: 'p1',
   edits: { 'kick.main': 35 },
   srcEdits: { 24: 'snare1.hit' },
@@ -45,7 +46,7 @@ describe('useRemapper session memory', () => {
   it('brings back the last setup and unsaved edits', async () => {
     saveSession(STORED);
     const result = await mount();
-    expect(result.current).toMatchObject({ src: 'ggd_invasion', tgt: 'ezdrummer', oct: 'c2', channel: '10', missing: 'drop', presetId: 'p1' });
+    expect(result.current).toMatchObject({ src: 'ggd_invasion', tgt: 'ezdrummer', oct: 'c2', channel: '10', missing: 'drop', unrecognized: 'keep', presetId: 'p1' });
     expect(result.current.editor.edits).toEqual({ 'kick.main': 35 });
     expect(result.current.editor.srcEdits).toEqual({ 24: 'snare1.hit' });
   });
@@ -57,7 +58,8 @@ describe('useRemapper session memory', () => {
     act(() => result.current.setOct('c2'));
     act(() => result.current.setChannel('all'));
     act(() => result.current.setMissing('drop'));
-    expect(loadSession()).toMatchObject({ src: 'ggd_invasion', tgt: 'general_midi', oct: 'c2', channel: 'all', missing: 'drop' });
+    act(() => result.current.setUnrecognized('keep'));
+    expect(loadSession()).toMatchObject({ src: 'ggd_invasion', tgt: 'general_midi', oct: 'c2', channel: 'all', missing: 'drop', unrecognized: 'keep' });
   });
 
   it('drops an engine this version no longer has, with its edits', async () => {

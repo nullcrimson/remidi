@@ -1,4 +1,4 @@
-import type { ChannelScope, EngineId, MissingDrums } from './midiremap';
+import type { ChannelScope, EngineId, MissingDrums, Unrecognized } from './midiremap';
 import type { KnownEdits } from './overrides';
 
 /**
@@ -19,7 +19,8 @@ export type SelectionEvent
       known: KnownEdits;
     }
     | { type: 'setChannel'; channel: ChannelScope }
-    | { type: 'setMissing'; missing: MissingDrums };
+    | { type: 'setMissing'; missing: MissingDrums }
+    | { type: 'setUnrecognized'; unrecognized: Unrecognized };
 
 /** Whether the event picks another engine pair, so edits made for the old one no longer apply. */
 export function changesPair(event: SelectionEvent): boolean {
@@ -32,6 +33,7 @@ export function changesPair(event: SelectionEvent): boolean {
       return true;
     case 'setChannel':
     case 'setMissing':
+    case 'setUnrecognized':
       return false;
   }
 }

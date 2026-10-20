@@ -1,6 +1,6 @@
 import type { Locale, RouteName, SectionKey } from '../generated/i18n';
 import type { AppError } from './errors';
-import type { MissingDrums } from './midiremap';
+import type { MissingDrums, Unrecognized } from './midiremap';
 
 /** The kinds of error the events name: the app's own. */
 export type ErrorKind = AppError['kind'];
@@ -25,7 +25,8 @@ export interface StatEvents {
   'setting-changed':
     | { setting: 'octave'; value: 'c1' | 'c2' }
     | { setting: 'channel'; value: 'auto' | 'all' | 'one' }
-    | { setting: 'missing'; value: MissingDrums };
+    | { setting: 'missing'; value: MissingDrums }
+    | { setting: 'unrecognized'; value: Unrecognized };
   'midi-added': { files: number; via: 'picker' | 'drop' | 'sample'; unreadable: number };
   'sample-used': { converted: boolean };
   'preset-imported': { files: number; skipped: number; failed: number };

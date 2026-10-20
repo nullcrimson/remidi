@@ -82,6 +82,13 @@ channel-tip = En mode « Auto », toutes les pistes sur le canal 10 (le cana
 missing-label = Éléments manquants
 missing-tip-title = Quand le plugin cible n’a pas l’élément
 missing-tip = « Remplacer » prend à la place l’élément le plus proche du plugin cible : une crash au lieu d’une China, le Tom 3 au lieu du Tom 4. « Supprimer » retire ses notes du fichier. S’il ne manque qu’un mode de jeu (ghost notes, rimshots…), la note devient toujours un coup simple sur le même élément.
+unrecognized-label = Notes non reconnues
+unrecognized-tip-title = Quand le plugin source ne reconnaît pas une note
+unrecognized-tip = Certaines notes d’un fichier peuvent être absentes du mapping du plugin source, par exemple une partie écrite pour un autre kit. « Supprimer » les retire du fichier. « Garder telles quelles » les écrit sans changement, sur la même note. Le rapport les liste dans les deux cas.
+unrecognized-remove = Supprimer
+unrecognized-keep = Garder telles quelles
+unrecognized-hint-remove = supprimées du fichier
+unrecognized-hint-keep = gardées inchangées
 edited-review = { $count ->
     [one] { $count } élément modifié
    *[other] { $count } éléments modifiés
@@ -295,6 +302,10 @@ done-removed = { $count ->
     [one] { $count } note de votre fichier est absente du mapping { $source } : elle a donc été supprimée. Mauvais plugin source ?
    *[other] { $count } notes de votre fichier sont absentes du mapping { $source } : elles ont donc été supprimées. Mauvais plugin source ?
 }
+done-kept = { $count ->
+    [one] { $count } note de votre fichier est absente du mapping { $source } : elle a donc été gardée telle quelle. Mauvais plugin source ?
+   *[other] { $count } notes de votre fichier sont absentes du mapping { $source } : elles ont donc été gardées telles quelles. Mauvais plugin source ?
+}
 done-pick-source = Choisir une autre source
 done-assign-notes = Attribuer les notes
 source-fit-missing = { $missing ->
@@ -313,6 +324,7 @@ report-unrecognized = Non reconnues
 report-dropped-hint = { $target } n’a pas cet élément
 report-approximated-hint = remplacés par l’élément le plus proche
 report-unrecognized-hint = notes absentes du mapping { $source } — supprimées du fichier
+report-unrecognized-hint-kept = notes absentes du mapping { $source } — gardées telles quelles
 report-pick-target = Choisir une cible →
 report-assign = Attribuer →
 report-across = { $summary } dans { $count } fichiers

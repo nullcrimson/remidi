@@ -12,6 +12,7 @@ const FULL = typed<Session>({
   oct: 'c2',
   channel: '10',
   missing: 'drop',
+  unrecognized: 'keep',
   presetId: 'p1',
   edits: { 'kick.main': 35 },
   srcEdits: { 24: 'snare1.hit', 60: null },
@@ -28,6 +29,7 @@ describe('session', () => {
       oct: 'c1',
       channel: 'auto',
       missing: 'nearest',
+      unrecognized: 'remove',
       presetId: null,
       edits: {},
       srcEdits: {},
@@ -47,9 +49,9 @@ describe('session', () => {
   it('falls back field by field when a value is damaged', () => {
     localStorage.setItem(
       SESSION_KEY,
-      JSON.stringify({ ...FULL, version: 1, oct: 'c9', channel: '42', missing: 'x', presetId: 3, edits: { 'kick.main': 500 } }),
+      JSON.stringify({ ...FULL, version: 1, oct: 'c9', channel: '42', missing: 'x', unrecognized: 'y', presetId: 3, edits: { 'kick.main': 500 } }),
     );
-    expect(loadSession()).toEqual({ ...FULL, oct: 'c1', channel: 'auto', missing: 'nearest', presetId: null, edits: {} });
+    expect(loadSession()).toEqual({ ...FULL, oct: 'c1', channel: 'auto', missing: 'nearest', unrecognized: 'remove', presetId: null, edits: {} });
   });
 
   it('reads a stored octave naming of c1 as c1', () => {
@@ -60,6 +62,12 @@ describe('session', () => {
   it('reads a stored missing-drums setting of nearest as nearest', () => {
     localStorage.setItem(SESSION_KEY, JSON.stringify({ ...FULL, version: 1, missing: 'nearest' }));
     expect(loadSession().missing).toBe('nearest');
+  });
+
+  it('removes unrecognized notes for a session saved before the setting existed', () => {
+    const { unrecognized: _, ...before } = FULL;
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ ...before, version: 1 }));
+    expect(loadSession().unrecognized).toBe('remove');
   });
 
   it('ignores an unreadable session', () => {

@@ -4,7 +4,7 @@ use midiremap_core::{
     convert, note_hits, parse_preset, plan as core_plan, sample_file as core_sample_file,
     source_fits as core_source_fits, Canon, Catalog, ChannelScope, Drum, EngineMap, Family,
     LoadedPreset, Mapping, MissingDrums, Note, NoteHits, OctaveBase, Overrides, Report,
-    SkippedEdit, VoicePlan,
+    SkippedEdit, Unrecognized, VoicePlan,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -100,18 +100,25 @@ pub struct RemapOutput {
     report: Report,
 }
 
+struct Settings {
+    scope: ChannelScope,
+    missing: MissingDrums,
+    unrecognized: Unrecognized,
+}
+
 fn convert_file(
     catalog: &Catalog,
     mid: &[u8],
     src_id: &str,
     tgt_id: &str,
     ov: &Overrides,
-    scope: ChannelScope,
-    missing: MissingDrums,
+    settings: &Settings,
 ) -> Result<RemapOutput, WasmError> {
     let src = engine(catalog, src_id, Role::Source)?;
     let tgt = engine(catalog, tgt_id, Role::Target)?;
-    let out = convert(mid, &Mapping::new(src, tgt, ov, missing), scope)
+    let mapping =
+        Mapping::new(src, tgt, ov, settings.missing).with_unrecognized(settings.unrecognized);
+    let out = convert(mid, &mapping, settings.scope)
         .map_err(|e| WasmError::BadMidi { detail: chain(&e) })?;
     Ok(RemapOutput {
         bytes: out.bytes,
@@ -127,11 +134,15 @@ pub fn remap(
     overrides: Option<Ts<Overrides>>,
     channel: Option<Ts<ChannelScope>>,
     missing: Option<Ts<MissingDrums>>,
+    unrecognized: Option<Ts<Unrecognized>>,
 ) -> Result<Ts<RemapOutput>, WasmError> {
     let ov = from_js(overrides, |detail| WasmError::BadOverrides { detail })?;
-    let scope = from_js(channel, |detail| WasmError::Internal { detail })?;
-    let missing = from_js(missing, |detail| WasmError::BadMissing { detail })?;
-    let out = convert_file(catalog()?, mid, src_id, tgt_id, &ov, scope, missing)?;
+    let settings = Settings {
+        scope: from_js(channel, |detail| WasmError::Internal { detail })?,
+        missing: from_js(missing, |detail| WasmError::BadMissing { detail })?,
+        unrecognized: from_js(unrecognized, |detail| WasmError::Internal { detail })?,
+    };
+    let out = convert_file(catalog()?, mid, src_id, tgt_id, &ov, &settings)?;
     Ok(out.into_ts()?)
 }
 
@@ -597,8 +608,11 @@ mod tests {
             "ggd_invasion",
             "ezdrummer",
             &Overrides::default(),
-            ChannelScope::Auto,
-            MissingDrums::Nearest,
+            &Settings {
+                scope: ChannelScope::Auto,
+                missing: MissingDrums::Nearest,
+                unrecognized: Unrecognized::Remove,
+            },
         )
         .err()
         .unwrap();
@@ -607,6 +621,49 @@ mod tests {
             WasmError::BadMidi {
                 detail: "MIDI parse error: invalid midi: not a midi file".to_owned()
             }
+        );
+    }
+
+    fn converted_unrecognized(unrecognized: Unrecognized) -> RemapOutput {
+        convert_file(
+            &Catalog::builtin().unwrap(),
+            &drums(&[(0, on(99))]),
+            "ggd_invasion",
+            "ezdrummer",
+            &Overrides::default(),
+            &Settings {
+                scope: ChannelScope::Auto,
+                missing: MissingDrums::Nearest,
+                unrecognized,
+            },
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn a_kept_unrecognized_note_is_written_out_unchanged() {
+        let out = converted_unrecognized(Unrecognized::Keep);
+        assert_eq!(out.bytes, drums(&[(0, on(99))]));
+    }
+
+    #[test]
+    fn a_removed_unrecognized_note_is_left_out() {
+        let out = converted_unrecognized(Unrecognized::Remove);
+        assert_ne!(out.bytes, drums(&[(0, on(99))]));
+    }
+
+    #[test]
+    fn a_kept_unrecognized_note_is_still_reported() {
+        let out = converted_unrecognized(Unrecognized::Keep);
+        assert_eq!(out.report.unmapped_source().count(), 1);
+    }
+
+    #[test]
+    fn the_typescript_unrecognized_lists_exactly_the_choices() {
+        let declared = <Unrecognized as Tsify>::DECL;
+        assert!(
+            declared.ends_with(r#"export type Unrecognized = "remove" | "keep";"#),
+            "{declared}"
         );
     }
 

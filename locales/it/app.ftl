@@ -82,6 +82,13 @@ channel-tip = Con Auto vengono convertite tutte le tracce sul canale 10 (il cana
 missing-label = Strumenti mancanti
 missing-tip-title = Se nel plugin di destinazione manca uno strumento
 missing-tip = “Sostituisci” usa al suo posto lo strumento più simile del plugin di destinazione: un crash al posto di un China, il Tom 3 al posto del Tom 4. “Rimuovi” toglie le sue note dal file. Se manca solo un'articolazione (ghost note, rimshot…), la nota diventa sempre un colpo normale sullo stesso strumento.
+unrecognized-label = Note non riconosciute
+unrecognized-tip-title = Se il plugin di origine non riconosce una nota
+unrecognized-tip = Alcune note di un file possono non essere nella mappatura del plugin di origine, per esempio una parte scritta per un altro kit. “Rimuovi” le toglie dal file. “Lascia invariate” le scrive senza modifiche, sulla stessa nota. Il report le elenca in entrambi i casi.
+unrecognized-remove = Rimuovi
+unrecognized-keep = Lascia invariate
+unrecognized-hint-remove = rimosse dal file
+unrecognized-hint-keep = lasciate invariate
 edited-review = { $count ->
     [one] { $count } strumento modificato
    *[other] { $count } strumenti modificati
@@ -298,6 +305,10 @@ done-removed = { $count ->
     [one] { $count } nota del tuo file non è nella mappatura di { $source }, quindi è stata rimossa. Origine sbagliata?
    *[other] { $count } note del tuo file non sono nella mappatura di { $source }, quindi sono state rimosse. Origine sbagliata?
 }
+done-kept = { $count ->
+    [one] { $count } nota del tuo file non è nella mappatura di { $source }, quindi è stata lasciata invariata. Origine sbagliata?
+   *[other] { $count } note del tuo file non sono nella mappatura di { $source }, quindi sono state lasciate invariate. Origine sbagliata?
+}
 done-pick-source = Scegli un'altra origine
 done-assign-notes = Assegna le note
 source-fit-missing = { $missing ->
@@ -316,6 +327,7 @@ report-unrecognized = Non riconosciute
 report-dropped-hint = { $target } non ha questo strumento
 report-approximated-hint = sostituite con lo strumento più simile
 report-unrecognized-hint = assenti nella mappa di { $source }: rimosse dal file
+report-unrecognized-hint-kept = assenti nella mappa di { $source }: lasciate invariate
 report-pick-target = Scegli destinazione →
 report-assign = Assegna →
 report-across = { $summary } in { $count } file

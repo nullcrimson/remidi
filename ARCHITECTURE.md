@@ -22,7 +22,9 @@ When the target engine cannot play a canon directly, a **fallback chain** walks
 toward a stroke it can play: first another stroke of the same drum (a rimshot becomes
 a plain hit: `snare1.rimshot → snare1.hit`), then a neighbouring drum. If the chain is exhausted, the
 hit is **dropped** and recorded in a loss report. A source note with no canonical
-meaning is **unmapped** and dropped.
+meaning is **unmapped**: removed, or written out unchanged when the **unrecognized notes**
+setting (`Unrecognized { Remove | Keep }`, default `Remove`) says `Keep`; the report lists
+it as unmapped either way.
 
 The **missing drums** setting (`MissingDrums`) decides how far the chain may reach:
 `Nearest` (the default) takes the first entry the target plays, which may be another
@@ -163,7 +165,10 @@ the rules allow.
   the note), and, from the target's encode table with the target edits applied, the
   outcome of every drum in the vocabulary. Nothing is resolved after construction:
   `resolve_canon(canon)` reads the compiled outcome, and `translate(note)` decodes the
-  note and reads the same outcome.
+  note and reads the same outcome. `with_unrecognized(Unrecognized)` sets, once, what the
+  conversion does with notes that do not decode (`Remove` unless set); the `NoteTable`
+  compiled from the mapping carries that choice to `rewrite`. It changes neither the
+  resolutions nor the report, only whether those notes are written.
 - A drum the target has plays on its own note. Otherwise the first drum of its fallback
   chain that the target has stands in; `Drop` walks the same chain filtered to
   `Canon::same_drum`, so both modes share one order. `moves_to_other_drum()` on the
@@ -222,7 +227,9 @@ the rules allow.
   table to the events each track's filter accepts:
   - Note-on/off and poly aftertouch keys are rewritten to the resolved target
     note, so cymbal chokes follow their cymbal.
-  - Unmapped / dropped notes (and their aftertouch) are removed; a removed event's
+  - Dropped notes (and their aftertouch) are removed, and so are unmapped ones unless
+    the table's `Unrecognized` is `Keep`, which writes them out unchanged (same key,
+    channel, velocity and tick); a removed event's
     delta is folded into the next kept event (`DeltaFold`) so timing does not shift.
     A folded gap past the `u28` maximum fails the conversion with
     `CodecError::DeltaOverflow` instead of moving later events.
@@ -236,10 +243,11 @@ the rules allow.
   paired. The only accepted loss is many-to-one collisions (e.g. L/R kick → one
   note).
 - `tests/rewrite_props.rs` (proptest) checks this on generated multi-track files, with
-  the built-in pair, missing setting and scope drawn at random: kept events keep their absolute tick
+  the built-in pair, missing setting, unrecognized setting and scope drawn at random: kept events keep their absolute tick
   and everything but the key, only note events are removed, notes stay paired per
   channel and key, and `converted + dropped + unmapped + untouched` equals the input's
-  note-ons.
+  note-ons; keeping unrecognized notes changes no count and writes
+  `converted + unmapped + untouched` note-ons.
 - `fuzz/` (cargo-fuzz, its own workspace) feeds `convert` arbitrary bytes: no panic,
   the output parses, and the counts add up. It runs daily in CI (`fuzz.yml`); locally,
   on Linux or WSL with a nightly toolchain:
@@ -369,7 +377,8 @@ stderr and exits non-zero):
 ```
 midiremap convert <input.mid> <src_id> <tgt_id> <output.mid>
                   [--user-map map.json] [--overrides edits.json] [--channel auto|all|1-16]
-                  [--missing nearest|drop] [--preset my-kit-drumverter.json]
+                  [--missing nearest|drop] [--unrecognized remove|keep]
+                  [--preset my-kit-drumverter.json]
 midiremap list [--user-map map.json]
 ```
 
@@ -378,7 +387,9 @@ stderr. `--overrides` takes note edits as
 `{"tgt":[{"canon","note"}],"src":[{"note","canon"}]}` (the `Overrides` shape);
 `--preset` takes a preset exported from the web app instead (its engines, resolved
 through aliases, must match the command's; skipped edits are printed). `--missing drop`
-leaves out drums the target lacks instead of playing them on the nearest drum. `list`
+leaves out drums the target lacks instead of playing them on the nearest drum.
+`--unrecognized keep` writes notes the source layout does not recognize out unchanged
+instead of removing them; the report lists them as `unmappedSource` either way. `list`
 prints available engine ids. `--overrides` and `--preset` exclude each other. The exit
 code is 0 when the file was written (even with dropped notes: read the report), 1 on any
 error and 2 on a usage error.
@@ -387,9 +398,12 @@ error and 2 on a usage error.
 
 `wasm-bindgen` exports for the browser app:
 
-- `remap(mid, src_id, tgt_id, overrides?, channel?, missing?) → RemapOutput { bytes, report }` —
+- `remap(mid, src_id, tgt_id, overrides?, channel?, missing?, unrecognized?) → RemapOutput { bytes, report }` —
   `overrides` is an `Overrides` object; `channel` is `auto` (the default), `all` or
-  `1`-`16`; `missing` is `nearest` (the default) or `drop`.
+  `1`-`16`; `missing` is `nearest` (the default) or `drop`; `unrecognized` is `remove`
+  (the default) or `keep`. Like `channel`, a value outside its set is `internal`: the app
+  only sends its own typed values. `plan` does not take it, since no plan row is an
+  unrecognized note.
 - `plan(src_id, tgt_id, overrides?, missing?) → VoiceRow[]` — a core `VoicePlan`
   (`canon, srcNotes, defaultTgtNote, outcome`, the outcome tagged by `status`) plus its
   `label` and its canon's `family`; the app reads it through `core/outcome.ts` (`playedNote`, `movesToOtherDrum`, `isPlayed`, `leadNote`).
@@ -504,8 +518,9 @@ test in that file fails on any import outside it.
 - **Screen state** (`convert/useRemapper.ts` and the hooks of each feature) — `useRemapper` is the facade the UI consumes. It composes
   `useEngineCatalog` (one `Catalog` union: loading, ready with the module and its engine list, or the error), `useConverter` (files → results),
   and `useEditor` (per-note edits, the live `plan` preview, and derived
-  counts) behind a stable return contract, plus a small selection reducer for
-  source/target/octave/channel/missing drums/view/open preset. An engine not chosen is `null`, and `useRemapper` derives
+  counts) behind a stable return contract, plus a small selection reducer
+  (`convert/selectionState.ts`) for
+  source/target/octave/channel/missing drums/unrecognized notes/view/open preset. An engine not chosen is `null`, and `useRemapper` derives
   the one `EnginePair` (`core/enginePair.ts`) once both are chosen; `plan`, `remap`, the converter and the
   editor take that pair, so they cannot be called without both. The `View` is `convert` or `edit` carrying the
   pair, the filter and the source note the editor opens on, so entering the editor states them and leaving drops them;
@@ -518,7 +533,7 @@ test in that file fails on any import outside it.
   family order come from `useEngineData`, and a lookup that fails there reaches the editor as the same error
   as a failed `plan`.
   - Every change to what is converted (pick FROM/TO, swap, a link's pair, load a
-    preset, channel, missing drums) is one `SelectionEvent` (`core/selection.ts`) that
+    preset, channel, missing drums, unrecognized notes) is one `SelectionEvent` (`core/selection.ts`) that
     `useRemapper` hands to the selection, editor and converter reducers alike; each
     decides what it means (the editor drops edits when the pair changes, the converter
     goes idle and stops a running batch through its abort signal).
@@ -560,7 +575,7 @@ test in that file fails on any import outside it.
     read from an empty one (`'blocked'` or `{ value }`), `readStored` treats both as null, and
     `onStoredChange(key, changed)` is the one `storage` event subscription.
   - The session (`midiremap:session`, versioned) keeps engines (the empty string for one not chosen), octave, channel,
-    missing drums, the open preset id and unsaved edits; `EMPTY_SESSION` is the one place the starting settings are stated; `useRemapper` restores it on
+    missing drums, unrecognized notes (a session saved before that setting reads as `remove`), the open preset id and unsaved edits; `EMPTY_SESSION` is the one place the starting settings are stated; `useRemapper` restores it on
     load and saves every change. When the catalog loads, a link's `?from/&to` pair
     wins (dropping edits made for another pair), unknown engines are cleared and
     unknown drums in restored edits are left out. Until it has loaded, the session's

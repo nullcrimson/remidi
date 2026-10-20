@@ -79,6 +79,13 @@ channel-tip = Auto converts every track that uses channel 10 — the General MID
 missing-label = Missing drums
 missing-tip-title = When the target lacks a drum
 missing-tip = Nearest plays it on the closest drum the target has — a China on a crash, Tom 4 on Tom 3. Drop leaves it out. Ghost notes, rimshots and other ways of playing a drum the target does have always fall back to a plain hit on that drum.
+unrecognized-label = Unknown notes
+unrecognized-tip-title = When the source doesn't know a note
+unrecognized-tip = Some notes in a file may not be in the source layout — a part written for another kit, say. Remove leaves them out of the file. Keep as they are writes them out unchanged, on the same note. The report lists them either way.
+unrecognized-remove = Remove
+unrecognized-keep = Keep as they are
+unrecognized-hint-remove = leave them out of the file
+unrecognized-hint-keep = write them out unchanged
 edited-review = { $count ->
     [one] { $count } drum
    *[other] { $count } drums
@@ -274,6 +281,10 @@ done-removed = { $count ->
     [one] { $count } note in your file isn't in the { $source } layout, so it was removed. Wrong source?
    *[other] { $count } notes in your file aren't in the { $source } layout, so they were removed. Wrong source?
 }
+done-kept = { $count ->
+    [one] { $count } note in your file isn't in the { $source } layout, so it was kept unchanged. Wrong source?
+   *[other] { $count } notes in your file aren't in the { $source } layout, so they were kept unchanged. Wrong source?
+}
 done-pick-source = Pick another source
 done-assign-notes = Assign the notes
 source-fit-missing = { $missing ->
@@ -292,6 +303,7 @@ report-unrecognized = Unrecognized
 report-dropped-hint = { $target } has no such drum
 report-approximated-hint = played on the nearest drum
 report-unrecognized-hint = not in the { $source } map — removed from the file
+report-unrecognized-hint-kept = not in the { $source } map — kept unchanged in the file
 report-pick-target = Pick a target →
 report-assign = Assign →
 report-across = { $summary } across { $count } files

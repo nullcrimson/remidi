@@ -6,6 +6,7 @@ import { DonePanel } from '../../src/convert/DonePanel';
 import { recordDownloads } from '../downloads';
 import type { FailedFile } from '../../src/convert/batch';
 import type { FileResult } from '../../src/core/files';
+import type { Unrecognized } from '../../src/core/midiremap';
 import type { ReportGroups, ReportView } from '../../src/report/report';
 import { enginePair, typed } from '../typed';
 import { storedName } from '../../src/core/storage';
@@ -41,6 +42,7 @@ function renderPanel({
   onConvertMore = vi.fn(),
   onDropMissing = undefined as (() => void) | undefined,
   editedDrums = 0,
+  unrecognized = 'remove' as Unrecognized,
 } = {}) {
   render(
     <DonePanel
@@ -49,6 +51,7 @@ function renderPanel({
       view={report}
       pair={enginePair('ggd_invasion', 'ezdrummer')}
       names={{ source: 'GGD Invasion', target: 'Toontrack EZdrummer 3' }}
+      unrecognized={unrecognized}
       onViewReport={onViewReport}
       onPickSource={onPickSource}
       onConvertMore={onConvertMore}
@@ -357,6 +360,46 @@ describe('DonePanel', () => {
 
     it('offers to assign the notes in the report', async () => {
       const { onViewReport } = renderPanel({ report: view({ unrecognized: 7 }) });
+      await userEvent.click(screen.getByRole('button', { name: 'Assign the notes' }));
+      expect(onViewReport).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe('kept notes', () => {
+    const kept = (count: number) => renderPanel({ report: view({ unrecognized: count }), unrecognized: 'keep' });
+
+    it('says the notes the source layout did not have were kept unchanged', () => {
+      kept(7);
+      expect(
+        screen.getByText("7 notes in your file aren't in the GGD Invasion layout, so they were kept unchanged. Wrong source?"),
+      ).toBeInTheDocument();
+    });
+
+    it('says it of a single note', () => {
+      kept(1);
+      expect(
+        screen.getByText("1 note in your file isn't in the GGD Invasion layout, so it was kept unchanged. Wrong source?"),
+      ).toBeInTheDocument();
+    });
+
+    it('does not say they were removed', () => {
+      kept(7);
+      expect(screen.queryByText(/removed/)).not.toBeInTheDocument();
+    });
+
+    it('still counts them as unrecognized', () => {
+      kept(7);
+      expect(screen.getByText('7 unrecognized')).toBeInTheDocument();
+    });
+
+    it('still offers to pick another source', async () => {
+      const { onPickSource } = kept(7);
+      await userEvent.click(screen.getByRole('button', { name: 'Pick another source' }));
+      expect(onPickSource).toHaveBeenCalledOnce();
+    });
+
+    it('still offers to assign the notes in the report', async () => {
+      const { onViewReport } = kept(7);
       await userEvent.click(screen.getByRole('button', { name: 'Assign the notes' }));
       expect(onViewReport).toHaveBeenCalledOnce();
     });

@@ -12,6 +12,8 @@ are never uploaded.
 - A drum the target lacks is played on the nearest one it has (a China on a crash), or
   left out if you choose **Drop**; a rimshot or flam still falls back to a plain hit on
   the same drum.
+- A note the source layout does not know is removed, or kept as it is if you choose
+  **Keep as they are** (for files partly written for another kit).
 - Hover the dotted counts to see what happens to every drum before converting; each
   conversion comes with a report of approximated, dropped and unrecognized notes, with
   links to fix them in the note editor.
@@ -74,12 +76,14 @@ fuzzes the converter (see ARCHITECTURE.md).
 ```bash
 cargo run -p midiremap-cli -- list
 cargo run -p midiremap-cli -- convert in.mid ggd_invasion ezdrummer out.mid \
-    [--channel auto|all|1-16] [--missing nearest|drop] \
+    [--channel auto|all|1-16] [--missing nearest|drop] [--unrecognized remove|keep] \
     [--preset my-kit-drumverter.json | --overrides edits.json] [--user-map map.json]
 ```
 
 `--preset` applies a preset exported from the app (⋯ → Export); `--overrides` takes raw
-note edits instead; `--user-map` adds your own engine map (JSON), also for `list`. The
+note edits instead; `--user-map` adds your own engine map (JSON), also for `list`;
+`--unrecognized keep` writes notes the source layout does not know out unchanged instead of
+removing them. The
 loss report is printed to stderr as JSON (`unmappedSource`, `fallbackUsed`, `dropped`,
 `untouched`, `converted`; each `fallbackUsed` entry names the `standIn` drum, its `note` and the `count`); the exit code is 0 whenever the file was written, so read the
 report to see what was lost.

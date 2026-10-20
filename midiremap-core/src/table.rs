@@ -1,22 +1,33 @@
 use crate::{
     note::Note,
-    translate::{Mapping, Resolution},
+    translate::{Mapping, Resolution, Unrecognized},
 };
 
-/// Every source note's resolution, compiled once per (source, target, overrides).
-pub(crate) struct NoteTable([Resolution; Note::COUNT]);
+/// Every source note's resolution, compiled once per (source, target, overrides), and
+/// what happens to the notes that resolve to nothing the source recognizes.
+pub(crate) struct NoteTable {
+    notes: [Resolution; Note::COUNT],
+    unrecognized: Unrecognized,
+}
 
 impl NoteTable {
     pub(crate) fn compile(mapping: &Mapping) -> Self {
-        Self(Note::ALL.map(|n| mapping.translate(n)))
+        Self {
+            notes: Note::ALL.map(|n| mapping.translate(n)),
+            unrecognized: mapping.unrecognized(),
+        }
     }
 
     pub(crate) fn get(&self, note: Note) -> &Resolution {
-        &self.0[note.index()]
+        &self.notes[note.index()]
     }
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = (Note, &Resolution)> {
-        Note::ALL.into_iter().zip(&self.0)
+        Note::ALL.into_iter().zip(&self.notes)
+    }
+
+    pub(crate) fn unrecognized(&self) -> Unrecognized {
+        self.unrecognized
     }
 }
 
@@ -61,6 +72,18 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn carries_the_mappings_choice_for_unrecognized_notes() {
+        let b = Catalog::builtin().unwrap();
+        let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
+        let mapping = Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest)
+            .with_unrecognized(Unrecognized::Keep);
+        assert_eq!(
+            NoteTable::compile(&mapping).unrecognized(),
+            Unrecognized::Keep
+        );
     }
 
     #[test]
