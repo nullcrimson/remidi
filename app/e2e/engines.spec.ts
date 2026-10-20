@@ -120,10 +120,20 @@ test('every starred engine waits under its card', async ({ page }) => {
   await expect(quick.filter({ hasText: 'General MIDI' })).toBeVisible();
 });
 
-test('a starred engine under its card is chosen in one press and leaves the others there', async ({ page }) => {
+test('a starred engine under its card is chosen in one press and stays there, marked as chosen', async ({ page }) => {
   const quick = await starFourTargets(page);
   await quick.filter({ hasText: 'Superior Drummer 3' }).click();
   await expect(chosenEngine(page, 'TO')).toHaveText('Superior Drummer 3');
-  await expect(quick).toHaveCount(3);
-  await expect(quick.filter({ hasText: 'Superior Drummer 3' })).toHaveCount(0);
+  await expect(quick).toHaveCount(4);
+  await expect(quick.filter({ hasText: 'Superior Drummer 3' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(quick.filter({ hasText: 'EZdrummer 3' })).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('choosing another starred engine moves the chosen mark to it', async ({ page }) => {
+  const quick = await starFourTargets(page);
+  await quick.filter({ hasText: 'Superior Drummer 3' }).click();
+  await quick.filter({ hasText: 'EZdrummer 3' }).click();
+  await expect(chosenEngine(page, 'TO')).toHaveText('EZdrummer 3');
+  await expect(quick.filter({ hasText: 'EZdrummer 3' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(quick.filter({ hasText: 'Superior Drummer 3' })).toHaveAttribute('aria-pressed', 'false');
 });

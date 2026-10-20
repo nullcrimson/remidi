@@ -34,6 +34,17 @@ export function rowState(state: RowState): string {
   return `${ROW_BASE} ${ROW_STATE[state]}`;
 }
 
+const PILL_STATE: Record<RowState, string> = {
+  selected: 'border-accent bg-accent/8 font-semibold text-t1',
+  idle: 'border-white/8 bg-white/3 text-t2 hover:border-star/40 hover:text-t1',
+  disabled: 'cursor-default border-white/8 text-t5 opacity-40',
+};
+
+/** Classes for the border, fill and colour of a pickable pill, in the states a list row has. */
+export function pillState(state: RowState): string {
+  return PILL_STATE[state];
+}
+
 /** The tip's width cap as a Tailwind class, the one place it is stated. */
 export const TIP_MAX_WIDTH_CLASS = 'max-w-70';
 

@@ -94,12 +94,35 @@ describe('EngineSide', () => {
     expect(within(screen.getByRole('list', { name: 'Favourites' })).getAllByRole('button')).toHaveLength(4);
   });
 
-  it('offers the favourites as one-press picks, leaving out the chosen and the other side’s engine', async () => {
+  const favourite = (name: string) =>
+    within(screen.getByRole('list', { name: 'Favourites' })).getByRole('button', { name });
+
+  it('picks an idle favourite in one press', async () => {
     localStorage.setItem(storedName('favorites:to'), JSON.stringify(['ezdrummer', 'addictive', 'ggd_invasion']));
     const onChange = side('ezdrummer');
-    const quick = screen.getByRole('list', { name: 'Favourites' });
-    expect(within(quick).getAllByRole('button').map((b) => b.textContent)).toEqual(['★Addictive Drums 2']);
-    await userEvent.click(within(quick).getByRole('button', { name: 'Addictive Drums 2' }));
+    await userEvent.click(favourite('Addictive Drums 2'));
     expect(onChange).toHaveBeenCalledWith('addictive');
+  });
+
+  it('keeps the chosen favourite in the list, marked as pressed', () => {
+    localStorage.setItem(storedName('favorites:to'), JSON.stringify(['ezdrummer', 'addictive']));
+    side('ezdrummer');
+    expect(favourite('EZdrummer')).toHaveAttribute('aria-pressed', 'true');
+    expect(favourite('Addictive Drums 2')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('does not pick the chosen favourite again', async () => {
+    localStorage.setItem(storedName('favorites:to'), JSON.stringify(['ezdrummer']));
+    const onChange = side('ezdrummer');
+    await userEvent.click(favourite('EZdrummer'));
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('dims the other side’s engine among the favourites and does not pick it', async () => {
+    localStorage.setItem(storedName('favorites:to'), JSON.stringify(['ggd_invasion']));
+    const onChange = side(null);
+    expect(favourite('GGD Invasion')).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(favourite('GGD Invasion'));
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
