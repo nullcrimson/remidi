@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -7,13 +7,10 @@ import { RUNTIME } from './runtime';
 import type { RemapOutput, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
-import { pickFrom, pickTo } from './eventSteps';
+import { convertButton, engineCard, pickFrom, pickTo } from './eventSteps';
 
 const fromBox = () => screen.getByRole('combobox', { name: 'Filter FROM engines' });
 const toBox = () => screen.getByRole('combobox', { name: 'Filter TO engines' });
-const card = (side: 'FROM' | 'TO') =>
-  within(screen.getByRole('group', { name: `${side} engine` })).getByRole('button', { name: new RegExp(`^${side}`) });
-const convertButton = () => screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ });
 
 async function addFile() {
   const input = screen.getAllByTestId('file-input')[0] as HTMLInputElement;
@@ -57,15 +54,15 @@ describe('keyboard use', () => {
     await tab();
     expect(document.activeElement).toHaveTextContent(/Drop one or more \.mid files/);
     await addFile();
-    await waitFor(() => expect(card('FROM')).toHaveFocus());
+    await waitFor(() => expect(engineCard('FROM')).toHaveFocus());
     await userEvent.keyboard('{Enter}');
     await waitFor(() => expect(fromBox()).toHaveFocus());
     await userEvent.keyboard('ggd{Enter}');
-    await waitFor(() => expect(card('FROM')).toHaveFocus());
+    await waitFor(() => expect(engineCard('FROM')).toHaveFocus());
     await tab();
     expect(screen.getByRole('button', { name: 'Swap FROM and TO' })).toHaveFocus();
     await tab();
-    expect(card('TO')).toHaveFocus();
+    expect(engineCard('TO')).toHaveFocus();
     await userEvent.keyboard('{Enter}');
     await waitFor(() => expect(toBox()).toHaveFocus());
     await userEvent.keyboard('ez{Enter}');
@@ -78,7 +75,7 @@ describe('keyboard use', () => {
     await start();
     await pickFrom('GGD Invasion');
     await addFile();
-    await waitFor(() => expect(card('TO')).toHaveFocus());
+    await waitFor(() => expect(engineCard('TO')).toHaveFocus());
   });
 
   it('moves focus to Convert after a file is added with both engines chosen', async () => {

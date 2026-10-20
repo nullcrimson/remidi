@@ -47,10 +47,16 @@ export async function startApp(): Promise<void> {
   await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
 }
 
+/** The card that opens one side's engine picker. */
+export const engineCard = (side: 'FROM' | 'TO'): HTMLElement =>
+  within(screen.getByRole('group', { name: `${side} engine` })).getByRole('button', { name: new RegExp(`^${side}`) });
+
+/** The Convert button, named for what it converts once it can run. */
+export const convertButton = (): HTMLElement => screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ });
+
 /** Opens the engine picker of one side from its card. */
 export async function openPicker(side: 'FROM' | 'TO'): Promise<HTMLElement> {
-  const group = screen.getByRole('group', { name: `${side} engine` });
-  await userEvent.click(within(group).getByRole('button', { name: new RegExp(`^${side}`) }));
+  await userEvent.click(engineCard(side));
   return screen.findByRole('dialog', { name: `Choose the ${side} engine` });
 }
 
@@ -80,7 +86,7 @@ export async function addMidi(...names: string[]): Promise<void> {
 }
 
 export async function convert(): Promise<void> {
-  await userEvent.click(screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ }));
+  await userEvent.click(convertButton());
   await screen.findByRole('button', { name: /View report/i });
 }
 
