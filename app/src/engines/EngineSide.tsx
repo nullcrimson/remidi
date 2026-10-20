@@ -4,8 +4,8 @@ import { track } from '../core/stats';
 import type { StatEvents } from '../core/umami';
 import type { Engine, EngineId } from '../core/midiremap';
 import type { FocusRef } from '../ui/useFocusIntent';
+import { Modal } from '../ui/Modal';
 import { EngineCard } from './EngineCard';
-import { EnginePicker } from './EnginePicker';
 import { LibraryList } from './LibraryList';
 import { useFavorites } from './useFavorites';
 
@@ -65,7 +65,9 @@ export function EngineSide({ side, label, value, disabledId, engines, next, onCh
         </ul>
       )}
       {open && (
-        <EnginePicker
+        <Modal
+          open
+          layout="sheet"
           heading={t({ id: 'engine-picker-heading', args: { side: label } })}
           initialFocus={filter}
           onClose={() => setOpen(false)}
@@ -86,7 +88,7 @@ export function EngineSide({ side, label, value, disabledId, engines, next, onCh
               filter.current = el;
             }}
           />
-        </EnginePicker>
+        </Modal>
       )}
     </div>
   );
