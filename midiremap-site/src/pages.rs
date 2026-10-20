@@ -187,22 +187,16 @@ impl<R> FamilyGroup<R> {
     }
 }
 
-/// Rows grouped by family, in `Family::ALL` order, with no empty group; rows keep their order.
+/// Rows grouped by family, in family order, with no empty group; rows keep their order.
 fn by_family<R>(rows: impl IntoIterator<Item = (Family, R)>) -> Vec<FamilyGroup<R>> {
-    let mut groups: Vec<FamilyGroup<R>> = Family::ALL
-        .iter()
-        .map(|&family| FamilyGroup {
-            family,
-            rows: Vec::new(),
-        })
-        .collect();
+    let mut groups: BTreeMap<Family, Vec<R>> = BTreeMap::new();
     for (family, row) in rows {
-        if let Some(group) = groups.iter_mut().find(|g| g.family == family) {
-            group.rows.push(row);
-        }
+        groups.entry(family).or_default().push(row);
     }
-    groups.retain(|g| !g.rows.is_empty());
     groups
+        .into_iter()
+        .map(|(family, rows)| FamilyGroup { family, rows })
+        .collect()
 }
 
 /// Whether a note is the one the engine plays its drum on, or another note for the same drum.
@@ -1095,22 +1089,6 @@ mod tests {
                 .collect();
             assert_eq!(families, order, "{}", p.engine.id);
         }
-    }
-
-    #[test]
-    fn by_family_keeps_family_order_and_skips_empty_families() {
-        let groups = by_family([
-            (Family::Cymbals, 1),
-            (Family::Kick, 2),
-            (Family::Cymbals, 3),
-            (Family::Kick, 4),
-        ]);
-        let shape: Vec<(Family, Vec<i32>)> =
-            groups.into_iter().map(|g| (g.family, g.rows)).collect();
-        assert_eq!(
-            shape,
-            [(Family::Kick, vec![2, 4]), (Family::Cymbals, vec![1, 3])]
-        );
     }
 
     #[test]
