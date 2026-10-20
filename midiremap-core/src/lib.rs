@@ -1,5 +1,6 @@
 #![warn(unreachable_pub)]
 
+mod ableton;
 mod canon;
 mod catalog;
 mod channel;
@@ -22,6 +23,7 @@ mod sample;
 mod table;
 mod translate;
 
+pub use ableton::{note_name_rack, remap_rack};
 pub use canon::{Canon, CanonParseError};
 pub use catalog::Catalog;
 pub use channel::{Channel, ChannelScope, ChannelScopeError};
