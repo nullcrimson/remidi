@@ -69,7 +69,7 @@ export function DonePanel({
       <div className="
         flex flex-col items-center gap-4 rounded-card border border-accent/20
         bg-accent/6 px-5 py-6 text-center
-        sm:px-8 sm:py-8
+        sm:p-8
       "
       >
         <span
