@@ -97,3 +97,23 @@ test('a favourite restored after a reload can be unstarred', async ({ page }) =>
   await picker.getByTestId('star-ezdrummer').click();
   await expect(picker.getByRole('group', { name: 'Favourites' })).toHaveCount(0);
 });
+
+test('every starred engine waits under its card and is chosen in one press', async ({ page }) => {
+  const starred = ['EZdrummer 3', 'Superior Drummer 3', 'Addictive Drums 2', 'General MIDI'];
+  await page.goto('/');
+  await engineCard(page, 'TO').click();
+  const picker = enginePicker(page, 'TO');
+  for (const id of ['ezdrummer', 'superior_drummer3', 'addictive_drums2', 'general_midi']) {
+    await picker.getByTestId(`star-${id}`).click();
+  }
+  await page.keyboard.press('Escape');
+
+  const quick = engineSide(page, 'TO').getByRole('list', { name: 'Favourites' }).getByRole('button');
+  await expect(quick).toHaveCount(starred.length);
+  for (const name of starred) await expect(quick.filter({ hasText: name })).toBeVisible();
+
+  await quick.filter({ hasText: 'Superior Drummer 3' }).click();
+  await expect(chosenEngine(page, 'TO')).toHaveText('Superior Drummer 3');
+  await expect(quick).toHaveCount(starred.length - 1);
+  await expect(quick.filter({ hasText: 'Superior Drummer 3' })).toHaveCount(0);
+});

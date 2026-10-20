@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { addFiles, expect, hitKeys, kickAndChina, openPair, test } from './fixtures';
-import { convert, download as downloadFile, openSettings } from './steps';
+import { convert, download as downloadFile, openSettings, press } from './steps';
 
 const moved = /^\d+ drums? played on another drum$/;
 
@@ -104,4 +104,18 @@ test('the missing drums hint opens the editor on the issues', async ({ page }) =
   await detail.getByRole('button', { name: 'Change in note editor →' }).click();
   await expect(page.getByRole('heading', { name: 'Edit notes' })).toBeVisible();
   await expect(page.getByRole('radio', { name: /^Issues [1-9]/ })).toBeChecked();
+});
+
+test('the folded settings name a changed value on their line', async ({ page }) => {
+  await openPair(page);
+  const fold = page.getByTestId('settings-fold');
+  const missing = page.getByRole('radiogroup', { name: 'Missing drums' });
+  await expect(missing).toBeHidden();
+  await expect(fold.locator('summary')).toContainText('Missing drums Nearest');
+
+  await openSettings(page);
+  await press(missing.getByText('Drop', { exact: true }));
+  await press(fold.locator('summary'));
+  await expect(missing).toBeHidden();
+  await expect(fold.locator('summary')).toContainText('Missing drums Drop');
 });

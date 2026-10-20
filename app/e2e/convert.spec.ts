@@ -68,3 +68,13 @@ test('downloads several converted files as one zip', async ({ page }) => {
   expect(Object.keys(zip)).toHaveLength(2);
   for (const bytes of Object.values(zip)) expect(hitKeys(bytes)).toEqual([36]);
 });
+
+test('Convert names how many files it converts and the engine they go to', async ({ page }) => {
+  await openPair(page);
+  await expect(page.getByRole('button', { name: 'Convert', exact: true })).toBeDisabled();
+
+  await addFiles(page, kick('one.mid'), kick('two.mid'));
+  await expect(page.getByRole('button', { name: 'Convert 2 files to EZdrummer 3', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: 'Remove one.mid' }).click();
+  await expect(page.getByRole('button', { name: 'Convert 1 file to EZdrummer 3', exact: true })).toBeEnabled();
+});

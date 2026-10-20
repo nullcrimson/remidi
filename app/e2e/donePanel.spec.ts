@@ -48,3 +48,18 @@ test('Wrong mapping? Report it opens the problem form told the engines and langu
   expect(await form.evaluate(() => window.opener)).toBeNull();
   await expect(page.getByRole('heading', { name: /1 file converted/ })).toBeVisible();
 });
+
+test('the done card offers the download first and the next file below it', async ({ page }) => {
+  await openPair(page);
+  await addFiles(page, midFile('kick.mid', [{ channel: DRUMS, key: 24 }]));
+  await convert(page);
+  const save = page.getByRole('link', { name: '↓ Download .mid' });
+  const more = page.getByRole('button', { name: 'Convert more' });
+
+  await expect(page.getByRole('heading', { name: /^1 file converted/ })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(save).toBeFocused();
+  const saveBox = (await save.boundingBox())!;
+  const moreBox = (await more.boundingBox())!;
+  expect(moreBox.y).toBeGreaterThan(saveBox.y + saveBox.height);
+});

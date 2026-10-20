@@ -72,3 +72,15 @@ test('a tap on the backdrop closes the note picker sheet', async ({ page }) => {
   await page.touchscreen.tap(20, 60);
   await expect(sheet).toBeHidden();
 });
+
+test('an engine picker opens as a sheet across the bottom of the screen', async ({ page }) => {
+  await page.goto('/');
+  await engineCard(page, 'TO').tap();
+  const sheet = enginePicker(page, 'TO');
+  await expect(sheet).toBeVisible();
+  const { width, height } = page.viewportSize()!;
+  await expect.poll(async () => {
+    const box = (await sheet.boundingBox())!;
+    return [Math.round(box.x), Math.round(box.width), Math.round(height - box.y - box.height)];
+  }).toEqual([0, width, 0]);
+});

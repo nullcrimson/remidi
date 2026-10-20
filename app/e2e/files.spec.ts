@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
-import { addFiles, DRUMS, expect, midFile, openPair, test } from './fixtures';
-import { chosenEngine } from './steps';
+import { addFiles, DRUMS, expect, hitKeys, midFile, openPair, test } from './fixtures';
+import { chosenEngine, download, engineCard, pickEngine, press } from './steps';
 
 const kick = (name: string) => midFile(name, [{ channel: DRUMS, key: 24 }]);
 
@@ -71,4 +71,25 @@ test('a file added after Convert more converts again', async ({ page }) => {
   await choose(page, kick('again.mid'));
   await page.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ }).click();
   await expect(done).toBeVisible();
+});
+
+const sample = (page: Page) => page.getByRole('button', { name: 'Try it with a sample groove' });
+
+test('the sample groove waits for a FROM engine and says so', async ({ page }) => {
+  await page.goto('/');
+  await expect(sample(page)).toBeDisabled();
+  await expect(sample(page)).toHaveAccessibleDescription('Pick a FROM engine first');
+
+  await pickEngine(page, 'FROM', 'invasion', 'GetGood Drums Invasion');
+  await expect(sample(page)).toBeEnabled();
+  await press(sample(page));
+  await expect(page.getByText('sample-GGD.mid', { exact: true })).toBeVisible();
+  await expect(engineCard(page, 'TO')).toBeFocused();
+});
+
+test('the sample groove converts at once when both engines are chosen', async ({ page }) => {
+  await openPair(page);
+  await press(sample(page));
+  await expect(page.getByRole('heading', { name: '1 file converted → EZdrummer 3' })).toBeVisible();
+  expect(hitKeys(await download(page)).length).toBeGreaterThan(0);
 });
