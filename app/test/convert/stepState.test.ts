@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { stepStates, type StepState } from '../../src/convert/stepState';
+import { CONVERTER_STEPS } from '../../src/locale/docs';
 import css from '../../src/index.css?raw';
 
 const CASES = JSON.parse(readFileSync(
@@ -14,7 +15,8 @@ const badge = css.slice(css.indexOf('@utility step-badge {'), css.indexOf('\n}\n
 
 describe('stepStates', () => {
   it.each(CASES)('decides $done as the pages do', ({ done, states }) => {
-    expect(stepStates(done)).toEqual(states);
+    const decided = stepStates({ file: done[0], engines: done[1], convert: done[2] });
+    expect(CONVERTER_STEPS.map(({ key }) => decided[key])).toEqual(states);
   });
 
   it.each([...new Set(CASES.flatMap((c) => c.states))])('dresses the %s badge from the stylesheet', (state) => {

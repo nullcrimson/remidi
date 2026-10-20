@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { CardDropzone } from './convert/CardDropzone';
 import { CloserSourcesNotice } from './convert/CloserSourcesNotice';
 import { EditView } from './editor/EditView';
@@ -15,6 +15,7 @@ import { UnsavedNotice } from './presets/UnsavedNotice';
 import { StatusNotice } from './ui/StatusNotice';
 import { Step } from './convert/Step';
 import { stepStates } from './convert/stepState';
+import { CONVERTER_STEPS, type ConverterStep } from './locale/docs';
 import { useDropGuard } from './convert/useDropGuard';
 import { useConversionReport } from './report/useConversionReport';
 import { useEditedSummary } from './editor/useEditedSummary';
@@ -71,7 +72,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
   const { view: reportView, dropMissing } = useConversionReport({ ...editor, ...remapper });
   const names = pair && namesOf(remapper.engines, pair);
   const converted = conv.kind === 'done' && conv.results.length > 0;
-  const steps = stepStates([remapper.files.length > 0, pair !== null, converted]);
+  const steps = stepStates({ file: remapper.files.length > 0, engines: pair !== null, convert: converted });
   const { open: openEditor, close: closeEditor } = useEditorSession(remapper, request);
 
   if (view.kind === 'edit') {
@@ -99,6 +100,88 @@ export default function App({ runtime }: { runtime: Runtime }) {
     );
   }
 
+  const stepBodies: Record<ConverterStep, ReactNode> = {
+    file: (
+      <FileChips
+        files={remapper.files}
+        failures={remapper.failures}
+        skipped={remapper.skipped}
+        onFiles={pickFiles}
+        onTrySample={trySample}
+        onRemove={remapper.removeFile}
+        onClear={remapper.clearFiles}
+        pickerRef={focus.ref('filePicker')}
+      />
+    ),
+    engines: (
+      <>
+        <EngineColumns
+          engines={remapper.engines}
+          src={remapper.src}
+          tgt={remapper.tgt}
+          onChooseSrc={remapper.chooseSrc}
+          onChooseTgt={remapper.chooseTgt}
+          onSwap={remapper.swap}
+          fromRef={focus.ref('from')}
+          toRef={focus.ref('to')}
+        />
+
+        <CloserSourcesNotice remapper={remapper} />
+
+        {notice && <StatusNotice lines={notice} onDismiss={() => setNotice(null)} />}
+
+        {saved.unsaved && <UnsavedNotice />}
+
+        <SavedMappingChips
+          onFocusFallback={() => request('from')}
+          mappings={saved.mappings}
+          engines={remapper.engines}
+          atCap={saved.atCap}
+          onLoad={presets.load}
+          onEdit={presets.edit}
+          onRename={saved.rename}
+          onDuplicate={presets.duplicate}
+          onExport={downloadPreset}
+          onDelete={saved.remove}
+        />
+
+        <PlanSummary
+          remapper={remapper}
+          editor={editor}
+          edited={edited}
+          editRef={focus.ref('editLink')}
+          onOpenEditor={openEditor}
+        />
+      </>
+    ),
+    convert: (
+      <>
+        <PlanSettings
+          remapper={remapper}
+          editor={editor}
+          open={settingsOpen}
+          onToggle={setSettingsOpen}
+          channelRef={focus.ref('channel')}
+          onOpenEditor={openEditor}
+        />
+
+        <ConvertOutcome
+          remapper={remapper}
+          reportView={reportView}
+          editedDrums={edited.count}
+          convertRef={focus.ref('convert')}
+          onViewReport={() => setReportOpen(true)}
+          onPickSource={() => request('from')}
+          onDropMissing={dropMissing}
+          onConvertMore={() => {
+            remapper.clearFiles();
+            request('filePicker');
+          }}
+        />
+      </>
+    ),
+  };
+
   return (
     <Page wide onSkip={() => request('main')} after={<PopularConversions engines={remapper.engines} />}>
       <Card mainRef={focus.ref('main')}>
@@ -119,87 +202,11 @@ export default function App({ runtime }: { runtime: Runtime }) {
               <p className="text-ui text-danger"><ErrorText error={remapper.catalog.error} /></p>
             )}
 
-            {remapper.catalog.status === 'ready' && (
-              <>
-                <Step number={1} title={t({ id: 'step-file' })} state={steps[0]}>
-                  <FileChips
-                    files={remapper.files}
-                    failures={remapper.failures}
-                    skipped={remapper.skipped}
-                    onFiles={pickFiles}
-                    onTrySample={trySample}
-                    onRemove={remapper.removeFile}
-                    onClear={remapper.clearFiles}
-                    pickerRef={focus.ref('filePicker')}
-                  />
-                </Step>
-
-                <Step number={2} title={t({ id: 'step-engines' })} state={steps[1]}>
-                  <EngineColumns
-                    engines={remapper.engines}
-                    src={remapper.src}
-                    tgt={remapper.tgt}
-                    onChooseSrc={remapper.chooseSrc}
-                    onChooseTgt={remapper.chooseTgt}
-                    onSwap={remapper.swap}
-                    fromRef={focus.ref('from')}
-                    toRef={focus.ref('to')}
-                  />
-
-                  <CloserSourcesNotice remapper={remapper} />
-
-                  {notice && <StatusNotice lines={notice} onDismiss={() => setNotice(null)} />}
-
-                  {saved.unsaved && <UnsavedNotice />}
-
-                  <SavedMappingChips
-                    onFocusFallback={() => request('from')}
-                    mappings={saved.mappings}
-                    engines={remapper.engines}
-                    atCap={saved.atCap}
-                    onLoad={presets.load}
-                    onEdit={presets.edit}
-                    onRename={saved.rename}
-                    onDuplicate={presets.duplicate}
-                    onExport={downloadPreset}
-                    onDelete={saved.remove}
-                  />
-
-                  <PlanSummary
-                    remapper={remapper}
-                    editor={editor}
-                    edited={edited}
-                    editRef={focus.ref('editLink')}
-                    onOpenEditor={openEditor}
-                  />
-                </Step>
-
-                <Step number={3} title={t({ id: 'step-convert' })} state={steps[2]}>
-                  <PlanSettings
-                    remapper={remapper}
-                    editor={editor}
-                    open={settingsOpen}
-                    onToggle={setSettingsOpen}
-                    channelRef={focus.ref('channel')}
-                    onOpenEditor={openEditor}
-                  />
-
-                  <ConvertOutcome
-                    remapper={remapper}
-                    reportView={reportView}
-                    editedDrums={edited.count}
-                    convertRef={focus.ref('convert')}
-                    onViewReport={() => setReportOpen(true)}
-                    onPickSource={() => request('from')}
-                    onDropMissing={dropMissing}
-                    onConvertMore={() => {
-                      remapper.clearFiles();
-                      request('filePicker');
-                    }}
-                  />
-                </Step>
-              </>
-            )}
+            {remapper.catalog.status === 'ready' && CONVERTER_STEPS.map(({ key, title }, i) => (
+              <Step key={key} number={i + 1} title={t({ id: title })} state={steps[key]}>
+                {stepBodies[key]}
+              </Step>
+            ))}
           </div>
         </CardDropzone>
       </Card>

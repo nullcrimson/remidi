@@ -1,18 +1,12 @@
 import { contactLink } from '../core/contact';
 import { track } from '../core/stats';
-import type { Block, ConverterStep, Inline } from '../locale/docs';
+import { CONVERTER_STEPS, type Block, type ConverterStep, type Inline } from '../locale/docs';
 import { localHref } from './site';
-import type { MessageId, SitePath } from '../generated/i18n';
+import type { SitePath } from '../generated/i18n';
 import { useLocale, useT } from '../locale/localeContext';
 import { ProseLink } from '../ui/ProseLink';
 
 const isSitePath = (href: string): href is SitePath => href.startsWith('/');
-
-const STEP_TITLES = {
-  file: 'step-file',
-  engines: 'step-engines',
-  convert: 'step-convert',
-} as const satisfies Record<ConverterStep, MessageId>;
 
 function ConverterSteps({ bodies }: { bodies: Record<ConverterStep, string> }) {
   const t = useT();
@@ -22,9 +16,9 @@ function ConverterSteps({ bodies }: { bodies: Record<ConverterStep, string> }) {
       marker:text-decor
     "
     >
-      {(Object.keys(STEP_TITLES) as ConverterStep[]).map((step) => (
-        <li key={step}>
-          <span className="block font-medium text-t2">{t({ id: STEP_TITLES[step] })}</span> {bodies[step]}
+      {CONVERTER_STEPS.map(({ key, title }) => (
+        <li key={key}>
+          <span className="block font-medium text-t2">{t({ id: title })}</span> {bodies[key]}
         </li>
       ))}
     </ol>
