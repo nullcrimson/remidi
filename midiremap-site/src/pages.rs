@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, HashSet};
+use std::{
+    cmp::Reverse,
+    collections::{BTreeMap, HashSet},
+};
 
 use midiremap_core::{
     Canon, CanonResolution, Catalog, Daw, Drum, EngineMap, Family, Mapping, MissingDrums, Note,
@@ -170,6 +173,7 @@ impl PairLink {
 }
 
 /// A drum on a note, as a table cell shows it.
+#[derive(Clone)]
 pub struct NoteCell {
     pub note: Note,
     pub drum: String,
@@ -272,13 +276,57 @@ pub struct PairRow {
     pub landing: Landing,
 }
 
-impl PairRow {
-    fn rank(&self) -> u8 {
-        match self.landing {
-            Landing::Dropped => 0,
-            Landing::Approximated(_) => 1,
-            Landing::Exact(_) => 2,
+impl FamilyGroup<PairRow> {
+    /// Whether every note of the group lands on its exact equivalent.
+    pub fn all_exact(&self) -> bool {
+        self.rows
+            .iter()
+            .all(|r| matches!(r.landing, Landing::Exact(_)))
+    }
+}
+
+/// A target drum that plays source drums it has no exact equivalent for.
+pub struct Merge {
+    pub target: NoteCell,
+    /// The source drums it plays, each once.
+    pub sources: Vec<String>,
+}
+
+/// What a conversion does to the drums that do not land on their exact equivalent.
+pub struct Changes {
+    /// The approximated drums by the target note that plays them, the busiest note first.
+    pub merges: Vec<Merge>,
+    /// The source drums the target has no drum for, each once.
+    pub dropped: Vec<String>,
+}
+
+fn push_new(list: &mut Vec<String>, drum: &str) {
+    if !list.iter().any(|d| d == drum) {
+        list.push(drum.to_owned());
+    }
+}
+
+impl Changes {
+    fn of<'a>(rows: impl IntoIterator<Item = &'a PairRow>) -> Self {
+        let mut merges: Vec<Merge> = Vec::new();
+        let mut dropped = Vec::new();
+        for row in rows {
+            match &row.landing {
+                Landing::Approximated(target) => {
+                    match merges.iter_mut().find(|m| m.target.note == target.note) {
+                        Some(merge) => push_new(&mut merge.sources, &row.source.drum),
+                        None => merges.push(Merge {
+                            target: target.clone(),
+                            sources: vec![row.source.drum.clone()],
+                        }),
+                    }
+                }
+                Landing::Dropped => push_new(&mut dropped, &row.source.drum),
+                Landing::Exact(_) => {}
+            }
         }
+        merges.sort_by_key(|m| (Reverse(m.sources.len()), m.target.note));
+        Self { merges, dropped }
     }
 }
 
@@ -291,8 +339,8 @@ pub struct Tally {
 }
 
 impl Tally {
-    fn of(rows: &[PairRow]) -> Self {
-        rows.iter().fold(Self::default(), |mut tally, row| {
+    fn of<'a>(rows: impl IntoIterator<Item = &'a PairRow>) -> Self {
+        rows.into_iter().fold(Self::default(), |mut tally, row| {
             match row.landing {
                 Landing::Exact(_) => tally.exact += 1,
                 Landing::Approximated(_) => tally.approximated += 1,
@@ -337,7 +385,9 @@ pub struct PairPage {
     pub slug: String,
     pub src: EngineLink,
     pub tgt: EngineLink,
-    pub rows: Vec<PairRow>,
+    /// The source notes by the family of their drum, each family in note order.
+    pub groups: Vec<FamilyGroup<PairRow>>,
+    pub changes: Changes,
     pub tally: Tally,
     /// The page for the other direction, when the site has one.
     pub reverse: Option<PairLink>,
@@ -439,31 +489,32 @@ fn default_mapping(src: &EngineMap, tgt: &EngineMap) -> Mapping {
     Mapping::new(src, tgt, &Overrides::default(), MissingDrums::default())
 }
 
-fn pair_rows(src: &EngineMap, tgt: &EngineMap) -> Vec<PairRow> {
+fn pair_rows(src: &EngineMap, tgt: &EngineMap) -> Vec<FamilyGroup<PairRow>> {
     let mapping = default_mapping(src, tgt);
-    let mut rows: Vec<PairRow> = src
-        .source_notes()
-        .into_iter()
-        .map(|d| PairRow {
-            landing: landing(mapping.resolve_canon(d.canon)),
-            source: NoteCell {
-                note: d.note,
-                drum: d.label,
+    by_family(src.source_notes().into_iter().map(|d| {
+        (
+            d.family,
+            PairRow {
+                landing: landing(mapping.resolve_canon(d.canon)),
+                source: NoteCell {
+                    note: d.note,
+                    drum: d.label,
+                },
             },
-        })
-        .collect();
-    rows.sort_by_key(|r| (r.rank(), r.source.note));
-    rows
+        )
+    }))
 }
 
 fn pair_page(src: &EngineMap, tgt: &EngineMap, routes: &[Route]) -> PairPage {
-    let rows = pair_rows(src, tgt);
+    let groups = pair_rows(src, tgt);
+    let rows = || groups.iter().flat_map(|g| &g.rows);
     PairPage {
         slug: pair_slug(src.id(), tgt.id()),
         src: EngineLink::of(src),
         tgt: EngineLink::of(tgt),
-        tally: Tally::of(&rows),
-        rows,
+        tally: Tally::of(rows()),
+        changes: Changes::of(rows()),
+        groups,
         reverse: routes
             .iter()
             .any(|(s, t)| s.id() == tgt.id() && t.id() == src.id())
@@ -875,17 +926,107 @@ mod tests {
         }
     }
 
+    fn pair(slug: &str) -> &'static PairPage {
+        site().pairs.iter().find(|p| p.slug == slug).unwrap()
+    }
+
+    fn rows(p: &PairPage) -> impl Iterator<Item = &PairRow> {
+        p.groups.iter().flat_map(|g| &g.rows)
+    }
+
     #[test]
-    fn pair_rows_put_changes_first() {
+    fn pair_groups_follow_family_order() {
         for p in &site().pairs {
-            let keys: Vec<(u8, u8)> = p
-                .rows
+            let families: Vec<Family> = p.groups.iter().map(|g| g.family).collect();
+            let order: Vec<Family> = Family::ALL
                 .iter()
-                .map(|r| (r.rank(), r.source.note.get()))
+                .copied()
+                .filter(|f| families.contains(f))
                 .collect();
-            let mut sorted = keys.clone();
-            sorted.sort_unstable();
-            assert_eq!(keys, sorted, "{}", p.slug);
+            assert_eq!(families, order, "{}", p.slug);
+            assert!(p.groups.iter().all(|g| !g.rows.is_empty()), "{}", p.slug);
+        }
+    }
+
+    #[test]
+    fn pair_rows_ascend_by_note_within_a_group() {
+        for p in &site().pairs {
+            for g in &p.groups {
+                assert!(
+                    g.rows.is_sorted_by_key(|r| r.source.note),
+                    "{}: {}",
+                    p.slug,
+                    g.family
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn merges_cover_every_approximated_row_once() {
+        for p in &site().pairs {
+            for row in rows(p) {
+                let Landing::Approximated(target) = &row.landing else {
+                    continue;
+                };
+                let holding: Vec<&Merge> = p
+                    .changes
+                    .merges
+                    .iter()
+                    .filter(|m| m.sources.contains(&row.source.drum))
+                    .collect();
+                assert_eq!(holding.len(), 1, "{}: {}", p.slug, row.source.drum);
+                assert_eq!(holding[0].target.note, target.note, "{}", p.slug);
+            }
+            let approximated: HashSet<&str> = rows(p)
+                .filter(|r| matches!(r.landing, Landing::Approximated(_)))
+                .map(|r| r.source.drum.as_str())
+                .collect();
+            let merged: usize = p.changes.merges.iter().map(|m| m.sources.len()).sum();
+            assert_eq!(merged, approximated.len(), "{}", p.slug);
+        }
+    }
+
+    #[test]
+    fn merges_put_the_busiest_target_first() {
+        for p in &site().pairs {
+            assert!(
+                p.changes
+                    .merges
+                    .is_sorted_by_key(|m| (Reverse(m.sources.len()), m.target.note)),
+                "{}",
+                p.slug
+            );
+        }
+    }
+
+    #[test]
+    fn ggd_invasion_to_ezdrummer_merges_five_cymbals_into_crash_1() {
+        let busiest = &pair("ggd-invasion-to-ezdrummer").changes.merges[0];
+        assert_eq!(busiest.target.drum, "Crash 1");
+        assert_eq!(busiest.sources.len(), 5, "{:?}", busiest.sources);
+    }
+
+    #[test]
+    fn dropped_lists_every_dropped_row() {
+        for p in &site().pairs {
+            let dropped: Vec<&str> = rows(p)
+                .filter(|r| matches!(r.landing, Landing::Dropped))
+                .map(|r| r.source.drum.as_str())
+                .collect();
+            assert!(
+                dropped
+                    .iter()
+                    .all(|d| p.changes.dropped.iter().any(|c| c == d)),
+                "{}",
+                p.slug
+            );
+            assert_eq!(
+                p.changes.dropped.len(),
+                dropped.iter().collect::<HashSet<_>>().len(),
+                "{}",
+                p.slug
+            );
         }
     }
 
@@ -1191,7 +1332,7 @@ mod tests {
         for p in &site().pairs {
             let (src, tgt) = (by_id[p.src.id.as_str()], by_id[p.tgt.id.as_str()]);
             let mapping = default_mapping(src, tgt);
-            for row in &p.rows {
+            for row in rows(p) {
                 assert_eq!(
                     written(row.source.note, &mapping),
                     row.landing.target().map(|t| t.note.get()),

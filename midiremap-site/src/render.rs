@@ -16,6 +16,7 @@ use crate::{
 };
 
 const DESCRIPTION_MAX: usize = 155;
+const LIST_SEPARATOR: &str = ", ";
 
 /// A page's name, search snippet and canonical address.
 pub struct Meta {
@@ -302,6 +303,23 @@ impl<'a> Texts<'a> {
         self.format(
             id,
             args([("source", source.into()), ("target", target.into())]),
+        )
+    }
+
+    fn plays(&self, sources: &[String]) -> Result<String, I18nError> {
+        self.format(
+            MessageId::MapsChangesPlays,
+            args([("sources", sources.join(LIST_SEPARATOR).into())]),
+        )
+    }
+
+    fn no_drum_for(&self, target: &str, sources: &[String]) -> Result<String, I18nError> {
+        self.format(
+            MessageId::MapsChangesDropped,
+            args([
+                ("target", target.into()),
+                ("sources", sources.join(LIST_SEPARATOR).into()),
+            ]),
         )
     }
 
@@ -1202,6 +1220,88 @@ mod tests {
                 p.slug
             );
             assert!(!html.contains(r#"data-tone="gold""#), "{}", p.slug);
+        }
+    }
+
+    #[test]
+    fn pair_pages_say_what_changes() {
+        let html = page("convert/ggd-invasion-to-ezdrummer/index.html");
+        let section = html
+            .split(">What changes</h2>")
+            .nth(1)
+            .and_then(|rest| rest.split("</section>").next())
+            .unwrap();
+        assert!(section.contains(r#"<ul class="merge-list">"#));
+        assert!(section.contains("<li><b>Crash 1</b> "));
+        assert!(section.contains(" <span>plays "));
+        assert!(section.contains(", "));
+        assert!(
+            html.find(">What changes</h2>").unwrap()
+                < html.find(">Every note, drum by drum</h2>").unwrap()
+        );
+    }
+
+    fn unescaped(html: &str) -> String {
+        [
+            ("&#38;", "&"),
+            ("&amp;", "&"),
+            ("&#39;", "'"),
+            ("&#34;", "\""),
+        ]
+        .iter()
+        .fold(html.to_owned(), |text, (entity, plain)| {
+            text.replace(entity, plain)
+        })
+    }
+
+    #[test]
+    fn a_pair_page_without_changes_says_every_note_lands_on_its_own_drum() {
+        for p in &crate::fixtures::site().pairs {
+            let html = unescaped(page(&p.href().in_locale(Locale::En).file()));
+            let none = format!(
+                "Every {} note lands on its own drum in {}.",
+                p.src.name, p.tgt.name
+            );
+            assert_eq!(html.contains(&none), p.tally.changes() == 0, "{}", p.slug);
+            assert_eq!(
+                html.contains(r#"<ul class="merge-list">"#),
+                p.tally.approximated > 0,
+                "{}",
+                p.slug
+            );
+            assert_eq!(
+                html.contains(&format!("{} has no drum for ", p.tgt.name)),
+                p.tally.dropped > 0,
+                "{}",
+                p.slug
+            );
+        }
+    }
+
+    #[test]
+    fn an_all_exact_group_hides_with_the_exact_rows() {
+        for p in &crate::fixtures::site().pairs {
+            let html = page(&p.href().in_locale(Locale::En).file());
+            let groups: Vec<(bool, &str)> = html
+                .split("<tbody")
+                .skip(1)
+                .map(|rest| {
+                    let (open, body) = rest.split_once('>').unwrap();
+                    (open == r#" data-outcome="exact""#, body)
+                })
+                .collect();
+            assert_eq!(groups.len(), p.groups.len(), "{}", p.slug);
+            for ((hidden, body), g) in groups.iter().zip(&p.groups) {
+                assert_eq!(*hidden, g.all_exact(), "{}: {}", p.slug, g.family);
+                assert!(
+                    body.starts_with(&format!(
+                        "\n<tr><th scope=\"rowgroup\" colspan=\"6\">{}</th></tr>",
+                        g.family
+                    )),
+                    "{}",
+                    p.slug
+                );
+            }
         }
     }
 

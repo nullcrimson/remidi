@@ -36,7 +36,7 @@ test('Escape clears the engine filter and brings the list back', async ({ page }
 
 test('a conversion table can show only the changes', async ({ page }) => {
   await page.goto('/convert/ggd-invasion-to-ezdrummer/');
-  const rows = page.locator('tbody tr');
+  const rows = page.locator('tbody tr[data-outcome]');
   const exact = page.locator('tbody tr[data-outcome=exact]');
 
   await expect(exact.first()).toBeVisible();
@@ -55,9 +55,20 @@ test('a conversion table shows every row again on All', async ({ page }) => {
   await expect(exact.first()).toBeVisible();
 });
 
+test('Changes hides a group with no change', async ({ page }) => {
+  await page.goto('/convert/addictive-drums2-to-ezdrummer/');
+  const kick = page.getByRole('rowheader', { name: 'Kick', exact: true });
+  const cymbals = page.getByRole('rowheader', { name: 'Cymbals', exact: true });
+
+  await expect(kick).toBeVisible();
+  await page.getByRole('radiogroup', { name: 'Rows' }).getByText('Changes').click();
+  await expect(kick).toBeHidden();
+  await expect(cymbals).toBeVisible();
+});
+
 test('a conversion table names notes in either octave naming', async ({ page }) => {
   await page.goto('/convert/ggd-invasion-to-ezdrummer/');
-  const rows = page.locator('tbody tr');
+  const rows = page.locator('tbody tr[data-outcome]');
   const firstNote = rows.first().locator('td').first();
 
   const c1 = firstNote.locator('[data-oct=c1]');

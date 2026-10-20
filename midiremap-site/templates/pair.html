@@ -33,6 +33,18 @@
   {% call macros::octave_choice("inline-flex gap-1") %}{% endcall %}
 </div>
 
+<section class="flex flex-col gap-3">
+  <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::MapsChangesHeading) }}</h2>
+  {% if page.tally.changes() == 0 %}<p class="text-ui/relaxed text-t3">{{ texts.pair(MessageId::MapsChangesNone, page.src.name.as_str(), page.tgt.name.as_str())? }}</p>{% endif %}
+  {% if !page.changes.merges.is_empty() %}<ul class="merge-list">
+{% for m in page.changes.merges -%}
+<li><b>{{ m.target.drum }}</b> {% call macros::note_label(m.target) %}{% endcall %} <span>{{ texts.plays(m.sources)? }}</span></li>
+{% endfor -%}
+</ul>{% endif %}
+  {% if !page.changes.dropped.is_empty() %}<p class="text-ui/relaxed text-t3">{{ texts.no_drum_for(page.tgt.name.as_str(), page.changes.dropped)? }}</p>{% endif %}
+</section>
+
+<h2 class="border-t border-hairline pt-5 font-display text-title font-semibold text-t1">{{ texts.get(Plain::MapsTableHeading) }}</h2>
 <table class="pair-table w-full border-collapse text-left">
   <thead class="hidden sm:table-header-group">
     <tr class="font-mono text-caption tracking-[0.1em] text-t5 uppercase">
@@ -44,11 +56,14 @@
       <th scope="col" class="pb-2 font-normal">{{ texts.get(Plain::MapsColumnResult) }}</th>
     </tr>
   </thead>
-  <tbody>
-{% for r in page.rows -%}
+{% for g in page.groups -%}
+<tbody{% if g.all_exact() %} data-outcome="exact"{% endif %}>
+<tr><th scope="rowgroup" colspan="6">{{ g.family }}</th></tr>
+{% for r in g.rows -%}
 <tr data-outcome="{{ r.landing.label() }}"><td>{% call macros::note_label(r.source) %}{% endcall %}</td><td>{{ r.source.drum }}</td><td aria-hidden="true">→</td>{% if let Some(t) = r.landing.target() %}<td>{% call macros::note_label(t) %}{% endcall %}</td><td>{{ t.drum }}</td>{% else %}<td>—</td><td>{{ texts.get(Plain::MapsNoEquivalent) }}</td>{% endif %}<td>{% match r.landing %}{% when Landing::Exact(_) %}{{ texts.get(Plain::MapsStatusExact) }}{% when Landing::Approximated(_) %}{{ texts.get(Plain::MapsStatusApproximated) }}{% when Landing::Dropped %}{{ texts.get(Plain::MapsStatusDropped) }}{% endmatch %}</td></tr>
 {% endfor -%}
 </tbody>
+{% endfor -%}
 </table>
 
 <div class="flex flex-col gap-3 border-t border-hairline pt-5">
