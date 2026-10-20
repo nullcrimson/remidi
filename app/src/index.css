@@ -5,6 +5,7 @@
 @import '@fontsource/ibm-plex-mono/600.css';
 @import './generated/lang.css';
 @source '../../midiremap-site/templates';
+@source not inline('container');
 
 @theme {
   --color-page: #0c0e11;
@@ -207,6 +208,72 @@
 
 @utility brand-mark {
   @apply font-display text-brand font-semibold tracking-[0.02em] text-t2 [text-shadow:0_0_12px_rgba(236,232,224,0.3)];
+}
+
+@layer utilities {
+  .note-table {
+    & tbody th {
+      @apply px-1 pt-4 pb-1.5 font-mono text-caption font-normal tracking-[0.14em] text-t5 uppercase;
+    }
+
+    & [data-q] {
+      @apply border-t border-white/5;
+    }
+
+    & td {
+      @apply py-1.75 text-ui text-t3;
+    }
+
+    & td:first-child {
+      @apply w-32 px-1 font-mono text-label whitespace-nowrap text-t1;
+    }
+  }
+
+  .pair-table {
+    & tbody tr {
+      @apply grid grid-cols-[auto_auto_auto_minmax(0,1fr)_auto] items-baseline gap-x-2 gap-y-1 border-t border-white/5 px-1 py-2.5 sm:table-row;
+    }
+
+    & td {
+      @apply row-start-2 font-mono text-label sm:py-2 sm:pr-3;
+    }
+
+    & td:nth-child(1) {
+      @apply col-start-1 whitespace-nowrap text-t1 sm:pl-1;
+    }
+
+    & td:nth-child(2) {
+      @apply col-span-4 col-start-1 row-start-1 font-sans text-ui text-t2;
+    }
+
+    & td:nth-child(3) {
+      @apply col-start-2 text-t5;
+    }
+
+    & td:nth-child(4) {
+      @apply col-start-3 whitespace-nowrap text-t1;
+    }
+
+    & td:nth-child(5) {
+      @apply col-span-2 col-start-4 font-sans text-t3 sm:text-ui;
+    }
+
+    & td:nth-child(6) {
+      @apply col-start-5 row-start-1 justify-self-end text-t5 sm:pr-0;
+    }
+
+    & [data-outcome='approximated'] td:nth-child(6) {
+      @apply text-star;
+    }
+
+    & [data-outcome='dropped'] td:nth-child(5) {
+      @apply text-t5;
+    }
+
+    & [data-outcome='dropped'] td:is(:nth-child(4), :nth-child(6)) {
+      @apply whitespace-normal text-danger;
+    }
+  }
 }
 
 body {
