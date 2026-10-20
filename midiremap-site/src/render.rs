@@ -758,6 +758,7 @@ mod tests {
     use std::{collections::HashSet, sync::LazyLock};
 
     use midiremap_core::Catalog;
+    use scraper::{ElementRef, Html, Selector};
 
     use super::*;
     use crate::pages::MAJORS;
@@ -1165,38 +1166,53 @@ mod tests {
         assert!(faq.contains("Is Drumverter free?"));
     }
 
-    fn headings<'a>(html: &'a str, level: &str) -> Vec<&'a str> {
-        html.split(&format!("<{level} "))
-            .skip(1)
-            .filter_map(|rest| rest.split_once('>'))
-            .filter_map(|(_, rest)| rest.split(&format!("</{level}>")).next())
+    fn select<'a>(scope: ElementRef<'a>, css: &str) -> Vec<ElementRef<'a>> {
+        scope.select(&Selector::parse(css).unwrap()).collect()
+    }
+
+    fn text(element: ElementRef) -> String {
+        element.text().collect()
+    }
+
+    fn texts(html: &str, css: &str) -> Vec<String> {
+        select(Html::parse_document(html).root_element(), css)
+            .into_iter()
+            .map(text)
             .collect()
+    }
+
+    fn attrs(html: &str, css: &str, name: &str) -> Vec<String> {
+        select(Html::parse_document(html).root_element(), css)
+            .into_iter()
+            .filter_map(|e| e.value().attr(name).map(str::to_owned))
+            .collect()
+    }
+
+    fn page_text(html: &str) -> String {
+        text(Html::parse_document(html).root_element())
+    }
+
+    fn structured_data(html: &str) -> serde_json::Value {
+        let scripts = texts(html, r#"script[type="application/ld+json"]"#);
+        serde_json::from_str(&scripts[0]).unwrap()
     }
 
     #[test]
     fn the_faq_page_carries_structured_data() {
         for &l in Locale::ALL {
-            let html = page(&format!("{}faq/index.html", locale_dir(l)));
-            let schema: serde_json::Value = serde_json::from_str(
-                structured_data(html).trim_start_matches(r#"<script type="application/ld+json">"#),
-            )
-            .unwrap();
-            let names: Vec<String> = schema["mainEntity"]
+            let path = href(
+                NavTarget::Section(SectionKey::Faq),
+                l,
+                crate::fixtures::docs(),
+            );
+            let html = page(&path.file());
+            let names: Vec<String> = structured_data(html)["mainEntity"]
                 .as_array()
                 .unwrap()
                 .iter()
                 .map(|q| q["name"].as_str().unwrap().to_owned())
                 .collect();
-            let questions: Vec<String> = headings(html, "h3").into_iter().map(unescaped).collect();
-            assert_eq!(questions, names, "{}", l.code());
-        }
-    }
-
-    fn locale_dir(l: Locale) -> String {
-        if l.prefix().is_empty() {
-            String::new()
-        } else {
-            format!("{}/", l.prefix())
+            assert_eq!(texts(html, "main h3"), names, "{}", l.code());
         }
     }
 
@@ -1206,17 +1222,30 @@ mod tests {
         assert!(html.contains(r#"href="/convert/ggd-invasion-to-ezdrummer/" class="prose-link""#));
         assert!(html.contains(r#"href="/drum-maps/" class="prose-link""#));
         assert!(html.contains(r#"href="/report-an-issue/" class="prose-link""#));
+    }
+
+    #[test]
+    fn the_faq_heads_its_parts_and_its_closing() {
         assert_eq!(
-            headings(html, "h2"),
+            texts(page("faq/index.html"), "main h2"),
             ["Converting", "Privacy and cost", "Ready to convert?"]
         );
     }
 
     #[test]
-    fn the_guide_walks_through_the_converters_steps() {
-        let html = page("how-it-works/index.html");
-        assert_eq!(badges(html), ["current", "later", "later"]);
-        let titles: Vec<&str> = headings(html, "h2").into_iter().take(3).collect();
+    fn the_guide_shows_every_converter_step_still_to_do() {
+        assert_eq!(
+            badges(page("how-it-works/index.html")),
+            ["current", "later", "later"]
+        );
+    }
+
+    #[test]
+    fn the_guide_titles_its_steps_as_the_converter_does() {
+        let titles: Vec<String> = texts(page("how-it-works/index.html"), "main h2")
+            .into_iter()
+            .take(3)
+            .collect();
         assert_eq!(
             titles,
             [
@@ -1225,39 +1254,55 @@ mod tests {
                 "Convert"
             ]
         );
-        let schema: serde_json::Value = serde_json::from_str(
-            structured_data(html).trim_start_matches(r#"<script type="application/ld+json">"#),
-        )
-        .unwrap();
+    }
+
+    #[test]
+    fn the_guides_structured_data_names_the_converters_steps() {
+        let schema = structured_data(page("how-it-works/index.html"));
         assert_eq!(schema["step"][1]["name"], "From one drum layout to another");
     }
 
-    #[test]
-    fn the_guide_and_the_faq_end_on_the_converters_button() {
-        for path in ["how-it-works/index.html", "faq/index.html"] {
-            let main = page(path).split("</main>").next().unwrap();
-            let panel = main.rsplit(">Ready to convert?</h2>").next().unwrap();
-            let tag = anchor_to(panel, "/");
-            assert!(tag.contains(r#"class="cta""#), "{path}");
-            assert!(opened_converter(tag), "{path}");
-        }
+    fn ends_on_the_converters_button(path: &str) {
+        let main = page(path).split("</main>").next().unwrap();
+        let panel = main.rsplit(">Ready to convert?</h2>").next().unwrap();
+        let tag = anchor_to(panel, "/");
+        assert!(tag.contains(r#"class="cta""#), "{path}");
+        assert!(opened_converter(tag), "{path}");
     }
 
     #[test]
-    fn the_other_documents_end_on_a_link_to_the_converter() {
-        for path in [
-            "report-an-issue/index.html",
-            "contact/index.html",
-            "terms/index.html",
-        ] {
-            let html = page(path);
-            assert!(!html.contains(">Ready to convert?</h2>"), "{path}");
-            let main = html.split("<main").nth(1).unwrap();
-            assert!(
-                anchor_to(main, "/").contains("prose-link text-ui"),
-                "{path}"
-            );
-        }
+    fn the_guide_ends_on_the_converters_button() {
+        ends_on_the_converters_button("how-it-works/index.html");
+    }
+
+    #[test]
+    fn the_faq_ends_on_the_converters_button() {
+        ends_on_the_converters_button("faq/index.html");
+    }
+
+    fn ends_on_a_link_to_the_converter(path: &str) {
+        let html = page(path);
+        assert!(!html.contains(">Ready to convert?</h2>"), "{path}");
+        let main = html.split("<main").nth(1).unwrap();
+        assert!(
+            anchor_to(main, "/").contains("prose-link text-ui"),
+            "{path}"
+        );
+    }
+
+    #[test]
+    fn the_report_an_issue_page_ends_on_a_link_to_the_converter() {
+        ends_on_a_link_to_the_converter("report-an-issue/index.html");
+    }
+
+    #[test]
+    fn the_contact_page_ends_on_a_link_to_the_converter() {
+        ends_on_a_link_to_the_converter("contact/index.html");
+    }
+
+    #[test]
+    fn the_terms_end_on_a_link_to_the_converter() {
+        ends_on_a_link_to_the_converter("terms/index.html");
     }
 
     #[test]
@@ -1355,16 +1400,12 @@ mod tests {
             let html = page(&p.href().in_locale(Locale::En).file());
             let shown =
                 1 + usize::from(p.tally.approximated > 0) + usize::from(p.tally.dropped > 0);
-            let tags: Vec<&str> = html
-                .split(r#"<span class="tag" data-tone=""#)
-                .skip(1)
-                .filter_map(|rest| rest.split('"').next())
-                .collect();
+            let tags = attrs(html, "span.tag", "data-tone");
             assert_eq!(tags.len(), shown, "{}", p.slug);
             assert_eq!(tags[0], "neutral", "{}", p.slug);
             assert!(
                 tags.iter()
-                    .all(|t| ["neutral", "bright", "danger"].contains(t)),
+                    .all(|t| ["neutral", "bright", "danger"].contains(&t.as_str())),
                 "{}",
                 p.slug
             );
@@ -1390,36 +1431,43 @@ mod tests {
         );
     }
 
-    fn unescaped(html: &str) -> String {
-        [
-            ("&#38;", "&"),
-            ("&amp;", "&"),
-            ("&#39;", "'"),
-            ("&#34;", "\""),
-        ]
-        .iter()
-        .fold(html.to_owned(), |text, (entity, plain)| {
-            text.replace(entity, plain)
-        })
+    fn pair_page(p: &PairPage) -> &'static str {
+        page(&p.href().in_locale(Locale::En).file())
     }
 
     #[test]
     fn a_pair_page_without_changes_says_every_note_lands_on_its_own_drum() {
         for p in &crate::fixtures::site().pairs {
-            let html = unescaped(page(&p.href().in_locale(Locale::En).file()));
             let none = format!(
                 "Every {} note lands on its own drum in {}.",
                 p.src.name, p.tgt.name
             );
-            assert_eq!(html.contains(&none), p.tally.changes() == 0, "{}", p.slug);
             assert_eq!(
-                html.contains(r#"<ul class="merge-list">"#),
+                page_text(pair_page(p)).contains(&none),
+                p.tally.changes() == 0,
+                "{}",
+                p.slug
+            );
+        }
+    }
+
+    #[test]
+    fn a_pair_page_lists_merged_drums_only_when_it_approximates_some() {
+        for p in &crate::fixtures::site().pairs {
+            assert_eq!(
+                !texts(pair_page(p), "ul.merge-list").is_empty(),
                 p.tally.approximated > 0,
                 "{}",
                 p.slug
             );
+        }
+    }
+
+    #[test]
+    fn a_pair_page_names_the_drums_the_target_lacks_only_when_it_drops_some() {
+        for p in &crate::fixtures::site().pairs {
             assert_eq!(
-                html.contains(&format!("{} has no drum for ", p.tgt.name)),
+                page_text(pair_page(p)).contains(&format!("{} has no drum for ", p.tgt.name)),
                 p.tally.dropped > 0,
                 "{}",
                 p.slug
@@ -1459,11 +1507,8 @@ mod tests {
             .unwrap()
     }
 
-    fn badges(html: &str) -> Vec<&str> {
-        html.split(r#"<span class="step-badge" data-state=""#)
-            .skip(1)
-            .filter_map(|rest| rest.split('"').next())
-            .collect()
+    fn badges(html: &str) -> Vec<String> {
+        attrs(html, ".step-badge", "data-state")
     }
 
     #[test]
@@ -1788,16 +1833,11 @@ mod tests {
         );
     }
 
-    fn structured_data(html: &str) -> &str {
-        let start = html.find(r#"<script type="application/ld+json">"#).unwrap();
-        let end = start + html[start..].find("</script>").unwrap();
-        &html[start..end]
-    }
-
     #[test]
     fn names_are_escaped() {
         let mm = page("engines/ggd-modernmassive/index.html");
-        let markup = mm.replace(structured_data(mm), "");
+        let schema = texts(mm, r#"script[type="application/ld+json"]"#).concat();
+        let markup = mm.replace(&schema, "");
         assert!(markup.contains("Modern &amp; Massive") || markup.contains("Modern &#38; Massive"));
         assert!(!markup.contains("Modern & Massive"));
     }
@@ -2014,24 +2054,27 @@ mod tests {
     #[test]
     fn the_drum_maps_page_picks_reaper_until_another_daw_is_picked() {
         let html = page("drum-maps/index.html");
-        for daw in Daw::ALL {
-            let radio = format!(r#"id="daw-{}""#, daw.key());
-            let tag = html
-                .split(&radio)
-                .nth(1)
-                .unwrap()
-                .split('>')
-                .next()
-                .unwrap();
-            assert_eq!(
-                tag.contains(" checked"),
-                daw == Daw::Reaper,
-                "{}",
-                daw.key()
-            );
-            assert!(html.contains(&format!(r#"<div data-daw="{}""#, daw.key())));
-        }
-        assert_eq!(badges(html), ["current", "later", "later"]);
+        let checked: Vec<String> = attrs(html, r#"input[name="daw"][checked]"#, "id");
+        assert_eq!(checked, ["daw-reaper"]);
+    }
+
+    #[test]
+    fn the_drum_maps_page_explains_loading_in_every_daw() {
+        let explained = attrs(
+            page("drum-maps/index.html"),
+            "dl > div[data-daw]",
+            "data-daw",
+        );
+        let daws: Vec<&str> = Daw::ALL.iter().map(|daw| daw.key()).collect();
+        assert_eq!(explained, daws);
+    }
+
+    #[test]
+    fn the_drum_maps_page_shows_every_step_still_to_do() {
+        assert_eq!(
+            badges(page("drum-maps/index.html")),
+            ["current", "later", "later"]
+        );
     }
 
     #[test]
@@ -2050,40 +2093,54 @@ mod tests {
         }
     }
 
-    fn engine_hrefs(html: &str) -> Vec<&str> {
-        html.split(r#"href="/engines/"#)
-            .skip(1)
-            .filter_map(|rest| rest.split('"').next())
-            .filter(|slug| !slug.is_empty())
-            .collect()
-    }
-
-    #[test]
-    fn every_engine_is_listed_once_even_when_nested() {
-        let site = crate::fixtures::site();
-        let mut every: Vec<String> = site
+    fn every_engine_slug() -> Vec<String> {
+        let mut every: Vec<String> = crate::fixtures::site()
             .index
             .all
             .iter()
             .map(|e| format!("{}/", e.slug))
             .collect();
         every.sort();
-        let index = page("engines/index.html");
-        let between = |html: &'static str, start: &str, end: &str| -> &'static str {
-            let from = html.find(start).unwrap();
-            let to = from + html[from..].find(end).unwrap();
-            &html[from..to]
-        };
-        let engines = between(index, r#"<div id="engines""#, r#"<p id="engines-empty""#);
-        let drum_maps = page("drum-maps/index.html");
-        let groups = between(drum_maps, "<li data-group>", r#"<p id="drum-maps-empty""#);
-        let a_to_z = groups.split("<li data-group>").nth(2).unwrap();
-        for list in [engines, a_to_z] {
-            let mut listed: Vec<&str> = engine_hrefs(list);
-            listed.sort_unstable();
-            assert_eq!(listed, every);
-        }
-        assert!(engines.contains(r#"href="/engines/ggd-invasion-ggd/" class="text-t4"#));
+        every
+    }
+
+    fn engine_slugs_in(path: &str, list: &str) -> Vec<String> {
+        let html = Html::parse_document(page(path));
+        let lists = select(html.root_element(), list);
+        let mut slugs: Vec<String> = select(lists[0], r#"a[href^="/engines/"]"#)
+            .into_iter()
+            .filter_map(|a| a.value().attr("href")?.strip_prefix("/engines/"))
+            .filter(|slug| !slug.is_empty())
+            .map(str::to_owned)
+            .collect();
+        slugs.sort_unstable();
+        slugs
+    }
+
+    #[test]
+    fn the_note_map_index_lists_every_engine_once_even_when_nested() {
+        assert_eq!(
+            engine_slugs_in("engines/index.html", "#engines"),
+            every_engine_slug()
+        );
+    }
+
+    #[test]
+    fn the_drum_maps_a_to_z_lists_every_engine_once_even_when_nested() {
+        assert_eq!(
+            engine_slugs_in("drum-maps/index.html", "#drum-maps > li:nth-child(2)"),
+            every_engine_slug()
+        );
+    }
+
+    #[test]
+    fn a_nested_variant_link_is_dimmed() {
+        let classes = attrs(
+            page("engines/index.html"),
+            r#"#engines a[href="/engines/ggd-invasion-ggd/"]"#,
+            "class",
+        );
+        assert!(classes[0].split(' ').any(|c| c == "text-t4"), "{classes:?}");
     }
 
     #[test]
@@ -2408,12 +2465,6 @@ mod tests {
         assert!(checked > rendered().len());
     }
 
-    fn table_bodies(html: &str) -> impl Iterator<Item = &str> {
-        html.split("<tbody")
-            .skip(1)
-            .map(|rest| rest.split("</tbody>").next().unwrap())
-    }
-
     #[test]
     fn table_rows_are_one_unindented_line_each() {
         for (path, html) in rendered() {
@@ -2422,7 +2473,11 @@ mod tests {
             if !(engine_page || rest.starts_with("convert/")) {
                 continue;
             }
-            for body in table_bodies(html) {
+            for body in html
+                .split("<tbody")
+                .skip(1)
+                .filter_map(|rest| rest.split("</tbody>").next())
+            {
                 for line in body.lines().skip(1) {
                     assert!(line.starts_with('<'), "{path}: {line:?}");
                     if line.contains("<tr") {
@@ -2448,11 +2503,11 @@ mod tests {
         assert!(filter_input(html, "engines").contains(r#"data-page="index""#));
     }
 
-    fn local_anchors(html: &str) -> Vec<&str> {
-        html.split(r##"href="#"##)
-            .skip(1)
-            .filter_map(|rest| rest.split('"').next())
-            .filter(|id| *id != "main")
+    fn local_anchors(html: &str, scope: &str) -> Vec<String> {
+        attrs(html, &format!(r##"{scope} a[href^="#"]"##), "href")
+            .into_iter()
+            .filter_map(|href| href.strip_prefix('#').map(str::to_owned))
+            .filter(|id| id != "main")
             .collect()
     }
 
@@ -2462,24 +2517,23 @@ mod tests {
         let label = messages.get(Locale::En, Plain::MapsGroupsLabel);
         for p in &crate::fixtures::site().engines {
             let html = page(&p.engine.href().in_locale(Locale::En).file());
-            let nav = html
-                .split(&format!(r#"<nav aria-label="{label}""#))
-                .nth(1)
-                .and_then(|rest| rest.split("</nav>").next())
-                .unwrap();
             let anchors: Vec<String> = p.groups.iter().map(|g| g.anchor()).collect();
-            assert_eq!(local_anchors(nav), anchors, "{}", p.engine.id);
+            assert_eq!(
+                local_anchors(html, &format!(r#"nav[aria-label="{label}"]"#)),
+                anchors,
+                "{}",
+                p.engine.id
+            );
         }
     }
 
     #[test]
     fn every_group_anchor_names_a_table_on_the_page() {
-        for (path, html) in rendered() {
-            for id in local_anchors(html) {
-                assert!(
-                    html.contains(&format!(r#"<table id="{id}""#)),
-                    "{path}: #{id}"
-                );
+        for p in &crate::fixtures::site().engines {
+            let html = page(&p.engine.href().in_locale(Locale::En).file());
+            let tables = attrs(html, "table[id]", "id");
+            for id in local_anchors(html, "body") {
+                assert!(tables.contains(&id), "{}: #{id}", p.engine.id);
             }
         }
     }

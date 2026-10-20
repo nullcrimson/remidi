@@ -45,3 +45,27 @@ opt-level = 2
 
 [profile.dev.package.memchr]
 opt-level = 2
+
+[profile.dev.package.scraper]
+opt-level = 2
+
+[profile.dev.package.html5ever]
+opt-level = 2
+
+[profile.dev.package.markup5ever]
+opt-level = 2
+
+[profile.dev.package.selectors]
+opt-level = 2
+
+[profile.dev.package.tendril]
+opt-level = 2
+
+[profile.dev.package.string_cache]
+opt-level = 2
+
+[profile.dev.package.cssparser]
+opt-level = 2
+
+[profile.dev.package.ego-tree]
+opt-level = 2
