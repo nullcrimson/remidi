@@ -1,6 +1,6 @@
 import { useT } from '../locale/localeContext';
 import type { FocusRef } from '../ui/useFocusIntent';
-import { labelText } from '../ui/styles';
+import { MonoLabel } from '../ui/MonoLabel';
 
 function Chevron({ tone }: { tone: string }) {
   return (
@@ -57,12 +57,7 @@ export function EngineCard({ ref, label, chosen, next, onOpen }: {
       `}
     >
       <span className="flex min-w-0 flex-col gap-1">
-        <span className={`
-          font-mono text-caption tracking-[0.14em]
-          ${labelText('muted')}
-        `}
-        >{label}
-        </span>
+        <MonoLabel as="span" tone="muted">{label}</MonoLabel>
         {chosen === null
           ? <span className="text-body text-t3">{t({ id: 'engine-choose' })}</span>
           : (
