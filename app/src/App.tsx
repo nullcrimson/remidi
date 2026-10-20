@@ -8,7 +8,7 @@ import { Intro } from './convert/Intro';
 import { Card, Page } from './site/PageFrame';
 import { PopularConversions } from './site/PopularConversions';
 import { PlanSettings, PlanSummary } from './convert/PlanControls';
-import { ConvertOutcome } from './convert/ConvertOutcome';
+import { ConvertStepEnd } from './convert/ConvertStepEnd';
 import { ReportModal } from './report/ReportModal';
 import { SavedMappingChips } from './presets/SavedMappingChips';
 import { UnsavedNotice } from './presets/UnsavedNotice';
@@ -165,7 +165,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
           onOpenEditor={openEditor}
         />
 
-        <ConvertOutcome
+        <ConvertStepEnd
           remapper={remapper}
           reportView={reportView}
           editedDrums={edited.count}

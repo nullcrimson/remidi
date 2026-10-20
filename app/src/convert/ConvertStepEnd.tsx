@@ -11,7 +11,7 @@ import type { Remapper } from './useRemapper';
 import { isConverted } from './useConverter';
 
 /** The last step's end: the Convert button and what failed, or the converted files once they are ready. */
-export function ConvertOutcome({
+export function ConvertStepEnd({
   remapper,
   reportView,
   editedDrums,
