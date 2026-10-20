@@ -1,9 +1,10 @@
 use std::{collections::BTreeMap, error::Error};
 
 use midiremap_core::{
-    convert, note_hits, parse_preset, plan as core_plan, source_fits as core_source_fits, Canon,
-    Catalog, ChannelScope, Drum, EngineMap, Family, LoadedPreset, Mapping, MissingDrums, Note,
-    NoteHits, OctaveBase, Overrides, Report, SkippedEdit, VoicePlan,
+    convert, note_hits, parse_preset, plan as core_plan, sample_file as core_sample_file,
+    source_fits as core_source_fits, Canon, Catalog, ChannelScope, Drum, EngineMap, Family,
+    LoadedPreset, Mapping, MissingDrums, Note, NoteHits, OctaveBase, Overrides, Report,
+    SkippedEdit, VoicePlan,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -403,6 +404,18 @@ pub fn source_fits(
     Ok(fits_of(catalog()?, &mids, scope).into_ts()?)
 }
 
+fn sample_of(catalog: &Catalog, engine_id: &str) -> Result<Vec<u8>, WasmError> {
+    core_sample_file(engine(catalog, engine_id, Role::Source)?)
+        .map_err(|e| WasmError::Internal { detail: chain(&e) })
+}
+
+/// A two-bar groove of kick, snare, closed hi-hat and crash on the notes `engine` plays them
+/// on, for trying the converter without a file of one's own.
+#[wasm_bindgen]
+pub fn sample_file(engine: &str) -> Result<Vec<u8>, WasmError> {
+    sample_of(catalog()?, engine)
+}
+
 #[cfg(test)]
 mod tests {
     use midiremap_testkit::{drums, on};
@@ -676,6 +689,24 @@ mod tests {
     fn source_fits_leave_out_a_file_that_does_not_parse() {
         let good = drums(&[(0, on(24))]);
         assert_eq!(ggd_fit(&[&good, b"garbage"]).1, 1);
+    }
+
+    #[test]
+    fn a_sample_is_recognized_whole_by_the_engine_it_was_made_for() {
+        let sample = sample_of(&Catalog::builtin().unwrap(), "ggd_invasion").unwrap();
+        let (recognized, hits) = ggd_fit(&[&sample]);
+        assert!(hits > 0 && recognized == hits, "{recognized} of {hits}");
+    }
+
+    #[test]
+    fn a_sample_for_an_unknown_engine_names_it_as_the_source() {
+        assert_eq!(
+            sample_of(&Catalog::builtin().unwrap(), "gone").unwrap_err(),
+            WasmError::UnknownEngine {
+                role: Role::Source,
+                id: "gone".to_owned(),
+            }
+        );
     }
 
     #[test]

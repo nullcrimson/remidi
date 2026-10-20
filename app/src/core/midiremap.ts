@@ -57,6 +57,8 @@ export interface Midiremap {
   ): RemapOutput;
   /** Every engine fitted to the hits of `mids` a conversion with `channel` reads, best first; a file that does not parse is left out. */
   sourceFits(mids: Uint8Array[], channel?: ChannelScope): SourceFits;
+  /** A two-bar groove of kick, snare, closed hi-hat and crash on the notes `engine` plays them on. */
+  sampleFile(engine: string): Uint8Array;
 }
 
 /** Loads the converter module, or rejects with why it could not. */
@@ -81,6 +83,7 @@ function calls(m: WasmModule): Midiremap {
     plan: ({ src, tgt }, ov, missing) => call(() => m.plan(src, tgt, ov, missing)),
     remap: (mid, { src, tgt }, ov, channel, missing) => call(() => m.remap(mid, src, tgt, ov, channel, missing)),
     sourceFits: (mids, channel) => call(() => m.source_fits(mids, channel)),
+    sampleFile: (engine) => call(() => m.sample_file(engine)),
   };
 }
 

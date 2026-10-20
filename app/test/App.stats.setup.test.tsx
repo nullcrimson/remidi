@@ -123,6 +123,23 @@ describe('the events of setting up a conversion', () => {
     expect(umami).toHaveBeenCalledWith('midi-added', { files: 1, via: 'picker', unreadable: 1 });
   });
 
+  it('sends sample-used and midi-added via sample for a sample added with only FROM chosen', async () => {
+    await startApp();
+    await userEvent.click(screen.getAllByRole('option', { name: 'GGD Invasion' })[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'Try it with a sample groove' }));
+    expect(umami).toHaveBeenCalledWith('sample-used', { converted: false });
+    expect(umami).toHaveBeenCalledWith('midi-added', { files: 1, via: 'sample', unreadable: 0 });
+  });
+
+  it('sends sample-used with converted true and the conversion for a sample added with both engines chosen', async () => {
+    await startApp();
+    await pickEngines();
+    await userEvent.click(screen.getByRole('button', { name: 'Try it with a sample groove' }));
+    await screen.findByRole('button', { name: /View report/i });
+    expect(umami).toHaveBeenCalledWith('sample-used', { converted: true });
+    expect(umami).toHaveBeenCalledWith('converted', expect.objectContaining({ from: 'ggd_invasion', to: 'ezdrummer', files: 1 }));
+  });
+
   it('sends source-suggestion-used with the place of the suggestion chosen', async () => {
     vi.mocked(stub.engine_catalog).mockReturnValue(typed<Engine[]>([
       { id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GetGood Drums Invasion' },

@@ -10,6 +10,7 @@ const TIER_OF = {
   'engines-swapped': 2,
   'engine-starred': 2,
   'midi-added': 1,
+  'sample-used': 1,
   'file-removed': 2,
   'setting-changed': 2,
   converted: 1,

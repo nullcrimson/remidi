@@ -14,6 +14,7 @@ import { loadSession, saveSession, type Session } from './session';
 import { useConverter } from './useConverter';
 import { useSourceFits } from './useSourceFits';
 import type { EditFilter } from '../editor/editFilter';
+import type { LoadedFile } from '../core/files';
 import { useEditor } from '../editor/useEditor';
 import { useEngineCatalog } from '../engines/useEngineCatalog';
 
@@ -186,8 +187,8 @@ export function useRemapper({ load, converter: batches }: Runtime) {
   );
 
   const run = useCallback(
-    async (m: MissingDrums) => {
-      const outcome = await runConvert(overrides, channel, m, keyFor(m));
+    async (m: MissingDrums, files?: LoadedFile[]) => {
+      const outcome = await runConvert(overrides, channel, m, keyFor(m), files);
       if (outcome === null || pair === null) return;
       if (outcome.kind === 'failed') {
         track('convert-failed', { from: pair.src, to: pair.tgt, kind: outcome.error.kind });
@@ -202,7 +203,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     },
     [runConvert, overrides, channel, keyFor, pair, edits, srcEdits, presetId],
   );
-  const convert = useCallback(() => run(missing), [run, missing]);
+  const convert = useCallback((files?: LoadedFile[]) => run(missing, files), [run, missing]);
   const dropMissingAndConvert = useCallback(() => {
     emit({ type: 'setMissing', missing: 'drop' });
     return run('drop');

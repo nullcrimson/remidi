@@ -21,6 +21,7 @@ import { useFileIntake } from './convert/useFileIntake';
 import { useFocusIntent } from './ui/useFocusIntent';
 import { usePresetActions } from './presets/usePresetActions';
 import { useRemapper } from './convert/useRemapper';
+import { useSampleFile } from './convert/useSampleFile';
 import { useSavedMappings } from './presets/useSavedMappings';
 import { convertBlocker } from './convert/blocker';
 import { namesOf } from './core/enginePair';
@@ -73,6 +74,8 @@ export default function App({ runtime }: { runtime: Runtime }) {
   };
   const pickFiles = useFileIntake({ ...intake, via: 'picker' });
   const dropFiles = useFileIntake({ ...intake, via: 'drop' });
+  const core = remapper.catalog.status === 'ready' ? remapper.catalog.core : null;
+  const trySample = useSampleFile({ ...intake, core, convert: remapper.convert });
   const { view: reportView, dropMissing } = useConversionReport({ ...editor, ...remapper });
   const names = pair && namesOf(remapper.engines, pair);
   const blocker = convertBlocker({ files: remapper.files.length, pair: remapper.pair });
@@ -130,6 +133,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
                   failures={remapper.failures}
                   skipped={remapper.skipped}
                   onFiles={pickFiles}
+                  onTrySample={trySample}
                   onRemove={remapper.removeFile}
                   onClear={remapper.clearFiles}
                   pickerRef={focus.ref('filePicker')}

@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useT } from '../locale/localeContext';
 import type { FailedFile } from './batch';
 import type { LoadedFile, OnFiles } from '../core/files';
@@ -17,9 +18,11 @@ export function FileChips({
   onFiles,
   onRemove,
   onClear,
+  onTrySample,
   pickerRef,
 }: {
   pickerRef?: FocusRef;
+  onTrySample?: () => void;
   files: LoadedFile[];
   failures: FailedFile[];
   skipped?: string[];
@@ -28,6 +31,7 @@ export function FileChips({
   onClear: () => void;
 }) {
   const t = useT();
+  const sampleHint = useId();
   const skippedLine = skipped.length > 0 && (
     <p role="status" className="w-full text-label text-t4">
       {t({ id: 'files-skipped', args: { names: skipped.join(', ') } })}
@@ -62,6 +66,20 @@ export function FileChips({
             </span>
           </div>
         </FilePicker>
+        <div className="flex flex-wrap items-center gap-x-3">
+          <TextButton
+            onClick={() => onTrySample?.()}
+            disabled={onTrySample === undefined}
+            describedBy={onTrySample === undefined ? sampleHint : undefined}
+          >
+            {t({ id: 'files-sample' })}
+          </TextButton>
+          {onTrySample === undefined && (
+            <span id={sampleHint} className="text-label text-t5">
+              {t({ id: 'files-sample-needs-from' })}
+            </span>
+          )}
+        </div>
         <p className="text-label text-t5">
           {t({ id: 'files-presets' })}
         </p>

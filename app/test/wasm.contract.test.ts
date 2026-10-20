@@ -141,6 +141,16 @@ describe('real WASM module', () => {
     expect(real.source_fits([MIDI, new Uint8Array([1, 2])], 'auto').hits).toBe(2);
   });
 
+  it('builds a sample groove whose every hit the engine it was built for recognizes', () => {
+    const { hits, ranked } = real.source_fits([real.sample_file('ggd_invasion')], 'auto');
+    expect(hits).toBeGreaterThan(0);
+    expect(ranked.find((f) => f.engine === 'ggd_invasion')?.recognized).toBe(hits);
+  });
+
+  it('throws a typed error for a sample of an unknown engine', () => {
+    expect(thrown(() => real.sample_file('nope'))).toEqual({ kind: 'unknownEngine', role: 'source', id: 'nope' });
+  });
+
   it('lists the drum families in display order', () => {
     expect(real.family_order()).toEqual(['Kick', 'Snare', 'Toms', 'Hi-Hat', 'Cymbals', 'Percussion', 'Aux']);
   });
@@ -218,6 +228,15 @@ describe('test stub', () => {
     const [s, r] = [stub.remap(MIDI, 'ggd_invasion', 'ezdrummer'), real.remap(MIDI, 'ggd_invasion', 'ezdrummer')];
     expect(keys(s)).toEqual(keys(r));
     expect(keys(s.report)).toEqual(keys(r.report));
+  });
+
+  it('returns a sample as bytes, as the real module does', () => {
+    const [s, r] = [stub.sample_file('ggd_invasion'), real.sample_file('ggd_invasion')];
+    expect([s.constructor, Array.from(s.slice(0, 4))]).toEqual([r.constructor, Array.from(r.slice(0, 4))]);
+  });
+
+  it('throws the same error for a sample of an unknown engine as the real module', () => {
+    expect(thrown(() => stub.sample_file('nope'))).toEqual(thrown(() => real.sample_file('nope')));
   });
 
   it('uses only drum keys the real vocabulary has', () => {

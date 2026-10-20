@@ -81,7 +81,8 @@ function reducer(state: State, action: Action): State {
 /**
  * Files and their conversion. `settingsKey` identifies everything a result depends on
  * besides the files; a result made under another key reads as idle. Each run names the key
- * it converts under, so a run started together with a settings change is not stale.
+ * it converts under, so a run started together with a settings change is not stale; a run
+ * handed the files it converts is not stale when they were added in the same event.
  * A run still converting is stopped through its abort signal when another starts, when
  * the files or the selection change, and when the screen goes away.
  */
@@ -131,15 +132,16 @@ export function useConverter(converter: Pick<Converter, 'convert'>, pair: Engine
       channel: ChannelScope,
       missing: MissingDrums,
       key: string,
+      toConvert: LoadedFile[] = files,
     ): Promise<ConvertOutcome | null> => {
-      if (files.length === 0 || pair === null) return null;
+      if (toConvert.length === 0 || pair === null) return null;
       stop();
       const run = new AbortController();
       running.current = run;
       dispatch({ type: 'CONVERT_START', key });
       let batch: BatchResult;
       try {
-        batch = await converter.convert(files, pair, ov, channel, missing, run.signal);
+        batch = await converter.convert(toConvert, pair, ov, channel, missing, run.signal);
       } catch (err) {
         if (run.signal.aborted) return null;
         const error = toAppError(err);

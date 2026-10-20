@@ -26,6 +26,22 @@ describe('FileChips', () => {
     click.mockRestore();
   });
 
+  it('offers the sample groove, disabled with a hint saying to pick a FROM engine first', () => {
+    render(<FileChips files={[]} failures={[]} onFiles={() => {}} onRemove={() => {}} onClear={() => {}} />);
+    const sample = screen.getByRole('button', { name: 'Try it with a sample groove' });
+    expect(sample).toBeDisabled();
+    expect(sample).toHaveAccessibleDescription('Pick a FROM engine first');
+  });
+
+  it('adds the sample groove when it is offered and pressed', async () => {
+    const trySample = vi.fn();
+    render(<FileChips files={[]} failures={[]} onFiles={() => {}} onRemove={() => {}} onClear={() => {}} onTrySample={trySample} />);
+    const sample = screen.getByRole('button', { name: 'Try it with a sample groove' });
+    expect(sample).not.toHaveAccessibleDescription();
+    await userEvent.click(sample);
+    expect(trySample).toHaveBeenCalledOnce();
+  });
+
   it('keeps the preset line out of the way once files are added', () => {
     render(
       <FileChips

@@ -85,3 +85,10 @@ export const remap = vi.fn<typeof Wasm.remap>(() => ({
 }));
 
 export const source_fits = vi.fn<typeof Wasm.source_fits>(() => ({ hits: 0, ranked: [] }));
+
+export const SAMPLE_BYTES = new Uint8Array([77, 84, 104, 100, 0, 0, 0, 6]);
+
+export const sample_file = vi.fn<typeof Wasm.sample_file>((engine) => {
+  if (engine === 'nope') throw unknownEngine('source', engine);
+  return SAMPLE_BYTES;
+});

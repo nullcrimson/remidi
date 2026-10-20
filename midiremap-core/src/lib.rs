@@ -17,6 +17,7 @@ mod plan;
 mod preset;
 mod report;
 mod rewrite;
+mod sample;
 mod table;
 mod translate;
 
@@ -35,4 +36,5 @@ pub use overrides::Overrides;
 pub use plan::{plan, PlanOutcome, PlanStatus, VoicePlan};
 pub use preset::{parse_preset, LoadedPreset, PresetError, SavedPreset, SkippedEdit};
 pub use report::{FallbackTally, Report};
+pub use sample::sample_file;
 pub use translate::{CanonResolution, Mapping, MissingDrums, MissingDrumsParseError};

@@ -43,8 +43,8 @@ Five crates, a web app, and embedded engine presets:
 | `midiremap-testkit` | Test-only: builds and reads small SMFs (channels `1..=16`) for the other crates' tests; a key, channel or delta out of range panics. | `midly` |
 | `engines/*.toml` | Preset note↔canon maps; core's `build.rs` converts them to one embedded JSON table. | — |
 
-Inside `midiremap-core` only the `midi`, `channel` and `rewrite` modules, and `note`'s
-`u7` conversion, name `midly`, and nothing reads a file; the CLI, WASM, and app layers own
+Inside `midiremap-core` only the `midi`, `channel`, `rewrite` and `sample` modules, and
+`note`'s `u7` conversion, name `midly`, and nothing reads a file; the CLI, WASM, and app layers own
 all real-world I/O and presentation.
 
 ## Core modules (`midiremap-core/src`)
@@ -80,6 +80,7 @@ catalog     ── Catalog: builtin presets (embedded) + user maps
 fit         ── note_hits / source_fits: how well each engine's layout covers a file's hits
 plan        ── per-drum rows from the Mapping the converter uses (for UI display), no MIDI
 preset      ── the preset file the app exports and the CLI reads
+sample      ── sample_file: a two-bar groove on the notes one engine plays, written by midi
 ```
 
 Every concept is one concrete type or function; the core defines no traits.
@@ -398,6 +399,11 @@ error and 2 on a usage error.
   the hits of all `mids` that a conversion with `channel` reads (core `note_hits`, summed,
   then `source_fits`: a hit is recognized when the engine's map decodes its note), best
   first, ties in catalog order; a file that does not parse is left out.
+- `sample_file(engine) → Uint8Array` — a two-bar 4/4 groove at 120 bpm on channel 10 (core
+  `sample_file`): eighth notes on the closed hi-hat (the ride where an engine has none) over
+  kick and snare, a crash on the first beat, each drum on the engine's own note or its
+  nearest stand-in's (`Canon::fallback_chain`), so the engine recognizes every hit; an
+  unknown engine is an `unknownEngine` error with the role `source`.
 - `family_order() → Family[]` — drum families in display order; `note_naming() →
   Record<OctaveBase, { names, octaves }>` — the 128 note names and octave numbers per
   convention, called by the app's build, not by the app.
@@ -521,7 +527,12 @@ test in that file fails on any import outside it.
     starts empty, and when the module has loaded the session's stored edits go through
     `knownEdits` into it.
   - `usePresetActions` assembles preset payloads (save, update, duplicate, load, edit);
-    `useFileIntake` takes dropped files and presets; `useConversionReport` builds the
+    `useFileIntake` takes dropped files and presets; `useSampleFile` offers the sample
+    groove in the empty file area (disabled, with a hint, until FROM is chosen): it takes
+    the module's `sample_file` for FROM in as `sample-<engineCode>.mid` through the same
+    intake (`midi-added` with `via: 'sample'`) and, with TO chosen too, converts it at once
+    (`convert` takes the files when they were added in the same event; `sample-used` says
+    whether it did); `useConversionReport` builds the
     report and decides whether "drop missing drums" applies.
   - Focus after an action goes through `useFocusIntent`: a component registers a
     target with `ref(target)`, the action calls `request(target)`, and focus moves once

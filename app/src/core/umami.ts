@@ -26,7 +26,8 @@ export interface StatEvents {
     | { setting: 'octave'; value: 'c1' | 'c2' }
     | { setting: 'channel'; value: 'auto' | 'all' | 'one' }
     | { setting: 'missing'; value: MissingDrums };
-  'midi-added': { files: number; via: 'picker' | 'drop'; unreadable: number };
+  'midi-added': { files: number; via: 'picker' | 'drop' | 'sample'; unreadable: number };
+  'sample-used': { converted: boolean };
   'preset-imported': { files: number; skipped: number; failed: number };
   converted: {
     from: string;

@@ -29,6 +29,11 @@ impl Channel {
     pub(crate) fn of(wire: u4) -> Self {
         Self(ChannelIdx::new(wire.as_int() + 1).expect("a 4-bit channel is 1..=16"))
     }
+
+    /// The channel as a MIDI file stores it, counted from zero.
+    pub(crate) fn wire(self) -> u4 {
+        u4::new(self.0.offset())
+    }
 }
 
 impl fmt::Display for Channel {
@@ -236,5 +241,12 @@ mod tests {
         assert_eq!(Channel::of(u4::new(0)).get(), 1);
         assert_eq!(Channel::of(u4::new(9)), Channel::DRUMS);
         assert_eq!(Channel::of(u4::new(15)).get(), 16);
+    }
+
+    #[test]
+    fn every_channel_reads_back_from_the_wire() {
+        for channel in ChannelIdx::all().map(Channel) {
+            assert_eq!(Channel::of(channel.wire()), channel);
+        }
     }
 }

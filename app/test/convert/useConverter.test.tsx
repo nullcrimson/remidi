@@ -45,6 +45,17 @@ describe('useConverter', () => {
     expect(result.current.failures).toEqual([]);
   });
 
+  it('converts the files it is handed, added in the same event', async () => {
+    const convert = vi.fn<Converter['convert']>().mockResolvedValue({ ok: [], failed: [] });
+    const { result } = renderHook(() => useConverter({ convert }, enginePair('ggd_invasion', 'ezdrummer'), 'k'));
+    await act(async () => {
+      result.current.addFiles([FILE]);
+      await result.current.convert(OV, 'auto', 'nearest', 'k', [FILE]);
+    });
+    expect(convert.mock.calls.map((call) => call[0])).toEqual([[FILE]]);
+    expect(result.current.files).toEqual([FILE]);
+  });
+
   it('stops the running batch when another conversion starts', () => {
     const { converter, signals } = stoppable();
     const { result } = converting(converter);
