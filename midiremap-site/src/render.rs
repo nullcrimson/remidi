@@ -2028,6 +2028,15 @@ mod tests {
     }
 
     #[test]
+    fn engine_pages_show_the_core_notes_before_the_note_table() {
+        let html = page("engines/general-midi/index.html");
+        let core = html.find(">The notes you will use most</h2>").unwrap();
+        let list = &html[core..];
+        assert!(list.contains(r#"<ul class="core-notes"><li><span>Kick</span> 36 · "#));
+        assert!(core < html.find(r#"class="note-table""#).unwrap());
+    }
+
+    #[test]
     fn engine_pages_dim_the_extra_notes() {
         let html = page("engines/ezdrummer/index.html");
         assert!(html.contains(r#"<tr data-q="35 "#));

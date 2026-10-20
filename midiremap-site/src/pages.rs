@@ -16,6 +16,8 @@ pub enum BuildError {
     SlugCollision(String),
     #[error("popular conversion without a pair page: {0}")]
     NoPairPage(String),
+    #[error("unknown drum key: {0}")]
+    UnknownCanon(String),
 }
 
 /// The popular engines that get pair pages, with their column label in the index matrix.
@@ -40,6 +42,36 @@ pub const TARGETS: [&str; 5] = [
 ];
 
 pub const EXCLUDED_IDS: [&str; 1] = ["midiremap_standard"];
+
+/// The drums an engine page shows first, in kit order: the ones a groove uses most.
+const CORE_DRUMS: [&str; 16] = [
+    "kick.main",
+    "snare1.hit",
+    "snare1.sidestick",
+    "snare1.rimshot",
+    "hat.closed",
+    "hat.pedal",
+    "hat.open1",
+    "tom.rack1.hit",
+    "tom.rack2.hit",
+    "tom.rack3.hit",
+    "tom.floor1.hit",
+    "tom.floor2.hit",
+    "crash.1.hit",
+    "crash.2.hit",
+    "ride.1",
+    "ride.1.bell",
+];
+
+fn core_drums() -> Result<Vec<Canon>, BuildError> {
+    CORE_DRUMS
+        .iter()
+        .map(|key| {
+            key.parse()
+                .map_err(|_| BuildError::UnknownCanon((*key).to_owned()))
+        })
+        .collect()
+}
 
 /// A conversion with its own pair page: source, then target.
 type Route<'a> = (&'a EngineMap, &'a EngineMap);
@@ -284,6 +316,8 @@ impl Tally {
 pub struct EnginePage {
     pub engine: EngineLink,
     pub total: usize,
+    /// The notes of the drums a groove uses most, as the converter writes them.
+    pub core: Vec<NoteCell>,
     pub groups: Vec<FamilyGroup<EngineRow>>,
     pub pairs_from: Vec<PairLink>,
     pub pairs_to: Vec<PairLink>,
@@ -400,8 +434,13 @@ fn landing(resolution: CanonResolution) -> Landing {
     }
 }
 
+/// The conversion as the converter makes it before any edit or setting change.
+fn default_mapping(src: &EngineMap, tgt: &EngineMap) -> Mapping {
+    Mapping::new(src, tgt, &Overrides::default(), MissingDrums::default())
+}
+
 fn pair_rows(src: &EngineMap, tgt: &EngineMap) -> Vec<PairRow> {
-    let mapping = Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest);
+    let mapping = default_mapping(src, tgt);
     let mut rows: Vec<PairRow> = src
         .source_notes()
         .into_iter()
@@ -459,7 +498,23 @@ fn family_groups(map: &EngineMap) -> Vec<FamilyGroup<EngineRow>> {
     by_family(map.source_notes().into_iter().map(|d| engine_row(map, d)))
 }
 
-fn engine_page(map: &EngineMap, routes: &[Route]) -> EnginePage {
+/// The notes the converter writes for the core drums on this engine, each note once; a
+/// drum the engine plays only on another drum is left out.
+fn core_notes(map: &EngineMap, core: &[Canon]) -> Vec<NoteCell> {
+    let mut shown = HashSet::new();
+    core.iter()
+        .map(|&canon| map.resolve(canon, MissingDrums::default()))
+        .filter(|r| !r.moves_to_other_drum())
+        .filter_map(|r| r.played())
+        .filter(|&(_, note)| shown.insert(note))
+        .map(|(drum, note)| NoteCell {
+            note,
+            drum: drum.label(),
+        })
+        .collect()
+}
+
+fn engine_page(map: &EngineMap, routes: &[Route], core: &[Canon]) -> EnginePage {
     let links = |touches: &dyn Fn(&Route) -> bool| -> Vec<PairLink> {
         routes
             .iter()
@@ -470,6 +525,7 @@ fn engine_page(map: &EngineMap, routes: &[Route]) -> EnginePage {
     EnginePage {
         engine: EngineLink::of(map),
         total: map.source_notes().len(),
+        core: core_notes(map, core),
         groups: family_groups(map),
         pairs_from: links(&|(s, _)| s.id() == map.id()),
         pairs_to: links(&|(_, t)| t.id() == map.id()),
@@ -544,7 +600,11 @@ impl Site {
             .flat_map(|&s| targets.iter().map(move |&t| (s, t)));
         let routes: Vec<Route> = hub_routes.chain(wide_routes).collect();
 
-        let engines = maps.iter().map(|m| engine_page(m, &routes)).collect();
+        let core = core_drums()?;
+        let engines = maps
+            .iter()
+            .map(|m| engine_page(m, &routes, &core))
+            .collect();
         let drum_map_files = maps
             .iter()
             .flat_map(|m| {
@@ -1130,19 +1190,10 @@ mod tests {
         let by_id: HashMap<&str, &EngineMap> = maps.engines().map(|m| (m.id(), m)).collect();
         for p in &site().pairs {
             let (src, tgt) = (by_id[p.src.id.as_str()], by_id[p.tgt.id.as_str()]);
-            let mapping = Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest);
+            let mapping = default_mapping(src, tgt);
             for row in &p.rows {
-                let out = convert(
-                    &drums(&[
-                        (10, on(row.source.note.get())),
-                        (10, off(row.source.note.get())),
-                    ]),
-                    &mapping,
-                    ChannelScope::Auto,
-                )
-                .unwrap();
                 assert_eq!(
-                    hit_keys(&out.bytes).first().copied(),
+                    written(row.source.note, &mapping),
                     row.landing.target().map(|t| t.note.get()),
                     "{} note {}",
                     p.slug,
@@ -1150,6 +1201,78 @@ mod tests {
                 );
             }
         }
+    }
+
+    fn written(note: Note, mapping: &Mapping) -> Option<u8> {
+        let out = convert(
+            &drums(&[(10, on(note.get())), (10, off(note.get()))]),
+            mapping,
+            ChannelScope::Auto,
+        )
+        .unwrap();
+        hit_keys(&out.bytes).first().copied()
+    }
+
+    #[test]
+    fn every_core_drum_key_parses() {
+        assert_eq!(core_drums().unwrap().len(), CORE_DRUMS.len());
+    }
+
+    fn core_kit() -> EngineMap {
+        let notes: Vec<String> = CORE_DRUMS
+            .iter()
+            .enumerate()
+            .map(|(note, key)| format!(r#"{{"note":{note},"canon":"{key}","primary":true}}"#))
+            .collect();
+        EngineMap::from_json(&format!(
+            r#"{{"id":"core","name":"Core","notes":[{}]}}"#,
+            notes.join(",")
+        ))
+        .unwrap()
+    }
+
+    #[test]
+    fn core_notes_agree_with_the_converter() {
+        let maps = Catalog::builtin().unwrap();
+        let kit = core_kit();
+        let core = core_drums().unwrap();
+        for p in &site().engines {
+            let map = maps.get(&p.engine.id).unwrap();
+            let mapping = default_mapping(&kit, map);
+            let shown: HashSet<u8> = p.core.iter().map(|c| c.note.get()).collect();
+            for &canon in &core {
+                let resolved = map.resolve(canon, MissingDrums::default());
+                let Some(note) = resolved.note().filter(|_| !resolved.moves_to_other_drum()) else {
+                    continue;
+                };
+                let hit = kit.encode(canon).unwrap();
+                assert_eq!(
+                    written(hit, &mapping),
+                    Some(note.get()),
+                    "{}: {canon}",
+                    p.engine.id
+                );
+                assert!(shown.contains(&note.get()), "{}: {canon}", p.engine.id);
+            }
+        }
+    }
+
+    #[test]
+    fn core_notes_show_no_note_twice() {
+        for p in &site().engines {
+            let notes: HashSet<Note> = p.core.iter().map(|c| c.note).collect();
+            assert_eq!(notes.len(), p.core.len(), "{}", p.engine.id);
+        }
+    }
+
+    #[test]
+    fn general_midi_core_starts_with_kick_36_snare_38() {
+        let first: Vec<(u8, &str)> = engine("general_midi").core[..2]
+            .iter()
+            .map(|c| (c.note.get(), c.drum.as_str()))
+            .collect();
+        assert_eq!(first[0].0, 36);
+        assert_eq!(first[1].0, 38);
     }
 
     #[test]

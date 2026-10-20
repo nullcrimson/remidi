@@ -2,7 +2,13 @@ use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{canon::Canon, family::Family, non_blank::NonBlank, note::Note};
+use crate::{
+    canon::Canon,
+    family::Family,
+    non_blank::NonBlank,
+    note::Note,
+    resolution::{self, CanonResolution, MissingDrums},
+};
 
 #[derive(Deserialize)]
 struct RawEntry {
@@ -74,6 +80,11 @@ impl EngineMap {
     /// The note that plays a drum on this engine.
     pub fn encode(&self, canon: Canon) -> Option<Note> {
         self.from_canon.get(&canon).copied()
+    }
+
+    /// Where a drum lands on this engine with no edits: what the converter writes for it.
+    pub fn resolve(&self, canon: Canon, missing: MissingDrums) -> CanonResolution {
+        resolution::resolve(canon, &self.from_canon, missing)
     }
 
     pub(crate) fn decodings(&self) -> impl Iterator<Item = (Note, Canon)> + '_ {

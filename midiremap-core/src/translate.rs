@@ -368,6 +368,24 @@ notes = [ {} ]",
     }
 
     #[test]
+    fn an_engine_resolves_a_drum_as_a_mapping_without_overrides_does() {
+        let catalog = Catalog::builtin().unwrap();
+        for map in catalog.engines() {
+            for missing in [MissingDrums::Nearest, MissingDrums::Drop] {
+                let mapping = onto(map, missing);
+                for &canon in Canon::all() {
+                    assert_eq!(
+                        mapping.resolve_canon(canon),
+                        map.resolve(canon, missing),
+                        "{}: {canon}",
+                        map.id()
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
     fn a_target_edit_plays_its_note_under_drop() {
         let src = target(&[(60, "china.1.hit")]);
         let tgt = target(&[(49, "crash.1.hit")]);
