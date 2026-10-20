@@ -20,7 +20,7 @@ describe('FileChips', () => {
       <FileChips files={[]} failures={[]} onFiles={() => {}} onRemove={() => {}} onClear={() => {}} />,
     );
     const picker = screen.getByRole('button', { name: /Drop one or more \.mid files anywhere Choose files$/ });
-    expect(screen.getByText('Choose files')).toHaveClass('border-accent/40');
+    expect(screen.getByText('Choose files')).toHaveClass('border-accent/45');
     await userEvent.click(picker);
     expect(click).toHaveBeenCalledOnce();
     click.mockRestore();

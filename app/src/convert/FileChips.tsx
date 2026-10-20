@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useT } from '../locale/localeContext';
 import type { FailedFile } from './batch';
 import type { LoadedFile, OnFiles } from '../core/files';
@@ -5,11 +6,10 @@ import { track } from '../core/stats';
 import { errorTitle } from '../ui/errorTitle';
 import type { FocusRef } from '../ui/useFocusIntent';
 import { FilePicker } from './FilePicker';
-import { Button } from '../ui/Button';
 import { IconButton } from '../ui/IconButton';
 import { MidBadge } from './MidBadge';
 import { PlayIcon } from './PlayIcon';
-import { textAction } from '../ui/styles';
+import { UploadIcon } from './UploadIcon';
 import { TextButton } from '../ui/TextButton';
 
 export function FileChips({
@@ -32,6 +32,7 @@ export function FileChips({
   onClear: () => void;
 }) {
   const t = useT();
+  const sampleHint = useId();
   const skippedLine = skipped.length > 0 && (
     <p role="status" className="w-full text-label text-t4">
       {t({ id: 'files-skipped', args: { names: skipped.join(', ') } })}
@@ -39,43 +40,60 @@ export function FileChips({
   );
   if (files.length === 0) {
     return (
-      <div className="flex flex-col gap-2 border-b border-hairline pb-4.5">
-        <FilePicker ref={pickerRef} onFiles={onFiles}>
-          <div className="
-            group flex flex-wrap items-center gap-3 rounded-panel border
-            border-dashed border-white/15 px-4 py-3.5 transition-colors
-            hover:border-accent/60 hover:bg-accent/4
-            in-focus-visible:border-accent/60
-          "
-          >
-            <MidBadge />
-            <span className="flex-1 text-body text-t3">
-              {t({ id: 'files-drop' })}
-            </span>
-            {' '}
-            <span className="
-              inline-flex items-center justify-center rounded-chip border
-              border-accent/40 px-3 py-1.5 font-display text-ui font-semibold
-              text-accent transition
-              group-hover:border-accent group-hover:bg-accent/8
-              max-sm:w-full
-              pointer-coarse:min-h-11
+      <div className="flex flex-col gap-2">
+        <div className="
+          flex flex-col rounded-card border-[1.5px] border-dashed
+          border-accent/25 bg-inset transition-colors
+          has-[button:first-child:focus-visible]:border-accent/60
+          has-[button:first-child:hover]:border-accent/60
+        "
+        >
+          <FilePicker ref={pickerRef} onFiles={onFiles}>
+            <div className="
+              group flex flex-col items-center gap-3 px-5 pt-6 pb-4 text-center
             "
             >
-              {t({ id: 'files-choose' })}
-            </span>
+              <UploadIcon />
+              <span className="
+                flex flex-wrap items-center justify-center gap-x-3 gap-y-2
+                text-body text-t2
+              "
+              >
+                {t({ id: 'files-drop' })}
+                <span className="
+                  inline-flex items-center justify-center rounded-full border
+                  border-accent/45 px-4 py-1.5 font-display text-ui
+                  font-semibold text-accent transition
+                  group-hover:border-accent group-hover:bg-accent/8
+                  pointer-coarse:min-h-11
+                "
+                >
+                  {t({ id: 'files-choose' })}
+                </span>
+              </span>
+            </div>
+          </FilePicker>
+          <div className="
+            mx-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1
+            border-t border-hairline py-3 text-ui text-t4
+          "
+          >
+            <span>{t({ id: 'files-sample-lead' })}</span>
+            <TextButton
+              onClick={() => onTrySample?.()}
+              disabled={onTrySample === undefined}
+              describedBy={onTrySample === undefined ? sampleHint : undefined}
+            >
+              <PlayIcon />
+              {t({ id: 'files-sample' })}
+            </TextButton>
+            {onTrySample === undefined && (
+              <span id={sampleHint} className="w-full text-label text-t5">
+                {t({ id: 'files-sample-needs-from' })}
+              </span>
+            )}
           </div>
-        </FilePicker>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => onTrySample?.()}
-          disabled={onTrySample === undefined}
-          reason={t({ id: 'files-sample-needs-from' })}
-        >
-          <PlayIcon />
-          {t({ id: 'files-sample' })}
-        </Button>
+        </div>
         <p className="text-label text-t5">
           {t({ id: 'files-presets' })}
         </p>
@@ -85,10 +103,7 @@ export function FileChips({
   }
   const failed = new Map(failures.map((f) => [f.name, errorTitle(f.error, t)]));
   return (
-    <div className="
-      flex flex-wrap items-center gap-2 border-b border-hairline pb-4.5
-    "
-    >
+    <div className="flex flex-wrap items-center gap-2">
       {files.map((f) => {
         const error = failed.get(f.name);
         const bad = error !== undefined;
@@ -98,8 +113,8 @@ export function FileChips({
             data-state={bad ? 'failed' : 'ok'}
             title={error}
             className={`
-              flex max-w-full items-center gap-1.5 rounded-chip border py-1
-              pr-1.5 pl-2.5
+              flex max-w-full items-center gap-1.5 rounded-full border py-1
+              pr-1.5 pl-3
               ${
           bad
             ? 'border-danger/40 bg-danger/5'
@@ -124,10 +139,17 @@ export function FileChips({
           </div>
         );
       })}
-      <div className="flex w-full items-center justify-between pt-0.5">
-        <FilePicker onFiles={onFiles} fullWidth={false}>
-          <span className={textAction()}>{t({ id: 'files-add-more' })}</span>
-        </FilePicker>
+      <FilePicker onFiles={onFiles} fullWidth={false}>
+        <span className="
+          inline-flex items-center rounded-full border border-dashed
+          border-accent/35 px-3.5 py-1 text-ui text-star/85 transition-colors
+          hover:border-accent/70 hover:text-star
+          pointer-coarse:min-h-11
+        "
+        >{t({ id: 'files-add-more' })}
+        </span>
+      </FilePicker>
+      <div className="ml-auto">
         <TextButton
           tone="danger"
           onClick={() => {

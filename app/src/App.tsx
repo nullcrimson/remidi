@@ -6,6 +6,7 @@ import { DonePanel } from './convert/DonePanel';
 import { EditView } from './editor/EditView';
 import { EngineColumns } from './engines/EngineColumns';
 import { FileChips } from './convert/FileChips';
+import { Intro } from './convert/Intro';
 import { Card, Page } from './site/PageFrame';
 import { PopularConversions } from './site/PopularConversions';
 import { PlanControls } from './convert/PlanControls';
@@ -13,6 +14,8 @@ import { ReportModal } from './report/ReportModal';
 import { SavedMappingChips } from './presets/SavedMappingChips';
 import { UnsavedNotice } from './presets/UnsavedNotice';
 import { StatusNotice } from './ui/StatusNotice';
+import { Step } from './convert/Step';
+import { stepStates } from './convert/stepState';
 import { useDropGuard } from './convert/useDropGuard';
 import { useConversionReport } from './report/useConversionReport';
 import { useEditedSummary } from './editor/useEditedSummary';
@@ -31,15 +34,6 @@ import { Rich } from './ui/Rich';
 import { useT } from './locale/localeContext';
 import type { NoticeLine } from './core/notice';
 import type { Runtime } from './convert/runtime';
-
-function Intro() {
-  const t = useT();
-  return (
-    <p className="text-ui/relaxed text-t4">
-      {t({ id: 'app-intro' })}
-    </p>
-  );
-}
 
 export default function App({ runtime }: { runtime: Runtime }) {
   const t = useT();
@@ -78,6 +72,8 @@ export default function App({ runtime }: { runtime: Runtime }) {
   const trySample = useSampleFile({ ...intake, core, convert: remapper.convert });
   const { view: reportView, dropMissing } = useConversionReport({ ...editor, ...remapper });
   const names = pair && namesOf(remapper.engines, pair);
+  const converted = conv.kind === 'done' && conv.results.length > 0;
+  const steps = stepStates([remapper.files.length > 0, pair !== null, converted]);
   const blocker = convertBlocker({ files: remapper.files.length, pair: remapper.pair });
   const { open: openEditor, close: closeEditor } = useEditorSession(remapper, request);
 
@@ -128,94 +124,100 @@ export default function App({ runtime }: { runtime: Runtime }) {
 
             {remapper.catalog.status === 'ready' && (
               <>
-                <FileChips
-                  files={remapper.files}
-                  failures={remapper.failures}
-                  skipped={remapper.skipped}
-                  onFiles={pickFiles}
-                  onTrySample={trySample}
-                  onRemove={remapper.removeFile}
-                  onClear={remapper.clearFiles}
-                  pickerRef={focus.ref('filePicker')}
-                />
+                <Step number={1} title={t({ id: 'step-file' })} state={steps[0]}>
+                  <FileChips
+                    files={remapper.files}
+                    failures={remapper.failures}
+                    skipped={remapper.skipped}
+                    onFiles={pickFiles}
+                    onTrySample={trySample}
+                    onRemove={remapper.removeFile}
+                    onClear={remapper.clearFiles}
+                    pickerRef={focus.ref('filePicker')}
+                  />
+                </Step>
 
-                <EngineColumns
-                  engines={remapper.engines}
-                  src={remapper.src}
-                  tgt={remapper.tgt}
-                  onChooseSrc={remapper.chooseSrc}
-                  onChooseTgt={remapper.chooseTgt}
-                  onSwap={remapper.swap}
-                  fromRef={focus.ref('from')}
-                  toRef={focus.ref('to')}
-                />
+                <Step number={2} title={t({ id: 'step-engines' })} state={steps[1]}>
+                  <EngineColumns
+                    engines={remapper.engines}
+                    src={remapper.src}
+                    tgt={remapper.tgt}
+                    onChooseSrc={remapper.chooseSrc}
+                    onChooseTgt={remapper.chooseTgt}
+                    onSwap={remapper.swap}
+                    fromRef={focus.ref('from')}
+                    toRef={focus.ref('to')}
+                  />
 
-                <CloserSourcesNotice remapper={remapper} />
+                  <CloserSourcesNotice remapper={remapper} />
 
-                {notice && <StatusNotice lines={notice} onDismiss={() => setNotice(null)} />}
+                  {notice && <StatusNotice lines={notice} onDismiss={() => setNotice(null)} />}
 
-                {saved.unsaved && <UnsavedNotice />}
+                  {saved.unsaved && <UnsavedNotice />}
 
-                <SavedMappingChips
-                  onFocusFallback={() => request('from')}
-                  mappings={saved.mappings}
-                  engines={remapper.engines}
-                  atCap={saved.atCap}
-                  onLoad={presets.load}
-                  onEdit={presets.edit}
-                  onRename={saved.rename}
-                  onDuplicate={presets.duplicate}
-                  onExport={downloadPreset}
-                  onDelete={saved.remove}
-                />
+                  <SavedMappingChips
+                    onFocusFallback={() => request('from')}
+                    mappings={saved.mappings}
+                    engines={remapper.engines}
+                    atCap={saved.atCap}
+                    onLoad={presets.load}
+                    onEdit={presets.edit}
+                    onRename={saved.rename}
+                    onDuplicate={presets.duplicate}
+                    onExport={downloadPreset}
+                    onDelete={saved.remove}
+                  />
+                </Step>
 
-                <PlanControls
-                  remapper={remapper}
-                  editor={editor}
-                  edited={edited}
-                  channelRef={focus.ref('channel')}
-                  editRef={focus.ref('editLink')}
-                  onOpenEditor={openEditor}
-                />
+                <Step number={3} title={t({ id: 'step-convert' })} state={steps[2]}>
+                  <PlanControls
+                    remapper={remapper}
+                    editor={editor}
+                    edited={edited}
+                    channelRef={focus.ref('channel')}
+                    editRef={focus.ref('editLink')}
+                    onOpenEditor={openEditor}
+                  />
 
-                {conv.kind === 'done' && conv.results.length > 0
-                  ? (
-                      <DonePanel
-                        results={conv.results}
-                        failures={conv.failures}
-                        view={reportView}
-                        pair={conv.pair}
-                        names={namesOf(remapper.engines, conv.pair)}
-                        unrecognized={remapper.unrecognized}
-                        onViewReport={() => setReportOpen(true)}
-                        onPickSource={() => request('from')}
-                        onDropMissing={dropMissing}
-                        editedDrums={edited.count}
-                        onConvertMore={() => {
-                          remapper.clearFiles();
-                          request('filePicker');
-                        }}
-                      />
-                    )
-                  : (
-                      <ConvertButton
-                        ref={focus.ref('convert')}
-                        conv={conv}
-                        blockedBy={blocker && { reason: t(blocker.reason), quiet: blocker.quiet }}
-                        onConvert={() => void remapper.convert()}
-                      />
-                    )}
+                  {converted
+                    ? (
+                        <DonePanel
+                          results={conv.results}
+                          failures={conv.failures}
+                          view={reportView}
+                          pair={conv.pair}
+                          names={namesOf(remapper.engines, conv.pair)}
+                          unrecognized={remapper.unrecognized}
+                          onViewReport={() => setReportOpen(true)}
+                          onPickSource={() => request('from')}
+                          onDropMissing={dropMissing}
+                          editedDrums={edited.count}
+                          onConvertMore={() => {
+                            remapper.clearFiles();
+                            request('filePicker');
+                          }}
+                        />
+                      )
+                    : (
+                        <ConvertButton
+                          ref={focus.ref('convert')}
+                          conv={conv}
+                          blockedBy={blocker && { reason: t(blocker.reason), quiet: blocker.quiet }}
+                          onConvert={() => void remapper.convert()}
+                        />
+                      )}
 
-                {conv.kind === 'error' && (
-                  <p
-                    role="alert"
-                    className="
-                      rounded-chip bg-danger/10 p-3 text-ui text-danger
-                    "
-                  >
-                    <Rich id="convert-error" slots={{ error: <ErrorText error={conv.error} /> }} />
-                  </p>
-                )}
+                  {conv.kind === 'error' && (
+                    <p
+                      role="alert"
+                      className="
+                        rounded-chip bg-danger/10 p-3 text-ui text-danger
+                      "
+                    >
+                      <Rich id="convert-error" slots={{ error: <ErrorText error={conv.error} /> }} />
+                    </p>
+                  )}
+                </Step>
               </>
             )}
           </div>
