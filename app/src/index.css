@@ -221,6 +221,10 @@
     @apply border-white/12 text-t3;
   }
 
+  &[data-tone='bright'] {
+    @apply border-white/12 bg-white/8 text-t1;
+  }
+
   &[data-tone='gold'] {
     @apply border-star/40 text-star;
   }
@@ -291,7 +295,7 @@
     }
 
     & [data-outcome='approximated'] td:nth-child(6) {
-      @apply text-star;
+      @apply font-semibold text-t1;
     }
 
     & [data-outcome='dropped'] td:nth-child(5) {

@@ -49,7 +49,7 @@ export function tip(): string {
 }
 
 /** The tones of the `tag` utility in `index.css`, which has one rule per tone. */
-export const TAG_TONES = ['neutral', 'gold', 'danger'] as const;
+export const TAG_TONES = ['neutral', 'bright', 'gold', 'danger'] as const;
 
 export type TagTone = typeof TAG_TONES[number];
 
@@ -58,13 +58,13 @@ export function tag(tone: TagTone): { className: string; 'data-tone': TagTone } 
   return { className: 'tag', 'data-tone': tone };
 }
 
-export type LabelTone = 'faint' | 'muted' | 'strong' | 'gold' | 'danger';
+export type LabelTone = 'faint' | 'muted' | 'strong' | 'bright' | 'danger';
 
 const LABEL_TONE: Record<LabelTone, string> = {
   faint: 'text-t5',
   muted: 'text-t4',
   strong: 'text-t2',
-  gold: 'text-star',
+  bright: 'text-t1',
   danger: 'text-danger',
 };
 

@@ -21,7 +21,7 @@
 
 <div class="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
   <span class="tag" data-tone="neutral">{{ texts.count(MessageId::MapsExactCount, page.tally.exact)? }}</span>
-  {% if page.tally.approximated > 0 %}<span class="tag" data-tone="gold">{{ texts.count(MessageId::MapsApproximatedCount, page.tally.approximated)? }}</span>{% endif %}
+  {% if page.tally.approximated > 0 %}<span class="tag" data-tone="bright">{{ texts.count(MessageId::MapsApproximatedCount, page.tally.approximated)? }}</span>{% endif %}
   {% if page.tally.dropped > 0 %}<span class="tag" data-tone="danger">{{ texts.count(MessageId::MapsDroppedCount, page.tally.dropped)? }}</span>{% endif %}
   <span aria-hidden="true" class="basis-full sm:basis-0 sm:grow"></span>
   {% if page.tally.changes() > 0 %}

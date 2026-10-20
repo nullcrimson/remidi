@@ -148,10 +148,10 @@ describe('ReportModal', () => {
     expect(screen.queryByText('a.mid')).not.toBeInTheDocument();
   });
 
-  it('colours approximated notes gold', () => {
+  it('shows approximated notes bright, not gold', () => {
     show(lossy);
     const approx = screen.getAllByText(/^Approximated/)[0];
-    expect(approx).toHaveClass('text-star');
+    expect(approx).toHaveClass('text-t1');
   });
 
   it('explains the approximated group', () => {

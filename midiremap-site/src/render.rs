@@ -1193,10 +1193,11 @@ mod tests {
             assert_eq!(tags[0], "neutral", "{}", p.slug);
             assert!(
                 tags.iter()
-                    .all(|t| ["neutral", "gold", "danger"].contains(t)),
+                    .all(|t| ["neutral", "bright", "danger"].contains(t)),
                 "{}",
                 p.slug
             );
+            assert!(!html.contains(r#"data-tone="gold""#), "{}", p.slug);
         }
     }
 

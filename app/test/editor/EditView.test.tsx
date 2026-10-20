@@ -276,7 +276,7 @@ describe('EditView', () => {
     it('marks a fallback row with its approximate drum', () => {
       renderWithTargetDrums();
       expect(plays('Ride Bell')).toHaveTextContent('≈ Ride');
-      expect(plays('Ride Bell')).toHaveClass('text-star');
+      expect(plays('Ride Bell')).toHaveClass('text-t1');
     });
 
     it('names the stand-in the converter chose, then the stock drum on the note an edit gave it', () => {

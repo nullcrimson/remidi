@@ -154,7 +154,7 @@ describe('VoiceRow', () => {
     expect(container.firstElementChild).toHaveClass('opacity-60');
   });
 
-  const CHAIN = { text: '≈ Crash 2 → Ride', tone: 'gold' as const };
+  const CHAIN = { text: '≈ Crash 2 → Ride', tone: 'bright' as const };
 
   function plays(scrollWidth: number): HTMLElement {
     render(<VoiceRow row={kick} {...base} result={CHAIN} />);

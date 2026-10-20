@@ -113,7 +113,7 @@ function GroupList({
       <Group
         title={t({ id: 'report-approximated' })}
         hint={t({ id: 'report-approximated-hint' })}
-        color="gold"
+        color="bright"
         entries={groups.approximated}
         fixOf={() => undefined}
       />

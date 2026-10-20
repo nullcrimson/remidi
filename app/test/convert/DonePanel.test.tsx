@@ -100,10 +100,10 @@ describe('DonePanel', () => {
     expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('· 1 drum edited');
   });
 
-  it('tags each outcome, approximated in gold', () => {
+  it('tags each outcome, approximated bright', () => {
     renderPanel({ report: view({ approximated: 3, dropped: 2, unrecognized: 51, untouched: 168 }) });
     expect(screen.getByText('45 notes converted')).toBeInTheDocument();
-    expect(screen.getByText('3 approximated')).toHaveAttribute('data-tone', 'gold');
+    expect(screen.getByText('3 approximated')).toHaveAttribute('data-tone', 'bright');
     expect(screen.getByText('2 dropped')).toHaveAttribute('data-tone', 'danger');
     expect(screen.getByText('51 unrecognized')).toBeInTheDocument();
     expect(screen.getByText('168 on other channels unchanged')).toBeInTheDocument();

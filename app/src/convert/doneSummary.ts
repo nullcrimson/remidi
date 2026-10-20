@@ -10,7 +10,7 @@ export function outcomeTags(view: ReportView, failed: number, t: Translate): { t
       ? { text: t({ id: 'done-tag-converted', args: { count: converted } }), tone: 'neutral' }
       : { text: t({ id: 'done-tag-nothing' }), tone: 'danger' },
   ];
-  if (approximated > 0) tags.push({ text: t({ id: 'done-tag-approximated', args: { count: approximated } }), tone: 'gold' });
+  if (approximated > 0) tags.push({ text: t({ id: 'done-tag-approximated', args: { count: approximated } }), tone: 'bright' });
   if (dropped > 0) tags.push({ text: t({ id: 'done-tag-dropped', args: { count: dropped } }), tone: 'danger' });
   if (unrecognized > 0) tags.push({ text: t({ id: 'done-tag-unrecognized', args: { count: unrecognized } }), tone: 'neutral' });
   if (untouched > 0) tags.push({ text: t({ id: 'done-tag-untouched', args: { count: untouched } }), tone: 'neutral' });

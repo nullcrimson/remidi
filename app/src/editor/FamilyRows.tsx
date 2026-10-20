@@ -49,7 +49,7 @@ function playsOf(row: VoiceRowData, changed: boolean, { labels, oct, target, onR
           onGo: () => onReveal(canon),
         },
       };
-  return changed ? { text, tone: 'strong', ...why } : { text: `≈ ${text}`, tone: 'gold', ...why };
+  return changed ? { text, tone: 'strong', ...why } : { text: `≈ ${text}`, tone: 'bright', ...why };
 }
 
 function Header() {
