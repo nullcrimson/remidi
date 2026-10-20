@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { chosenEngine, engineCard, enginePicker, engineSide, pickEngine } from './steps';
 
@@ -98,22 +99,31 @@ test('a favourite restored after a reload can be unstarred', async ({ page }) =>
   await expect(picker.getByRole('group', { name: 'Favourites' })).toHaveCount(0);
 });
 
-test('every starred engine waits under its card and is chosen in one press', async ({ page }) => {
-  const starred = ['EZdrummer 3', 'Superior Drummer 3', 'Addictive Drums 2', 'General MIDI'];
+async function starFourTargets(page: Page) {
   await page.goto('/');
   await engineCard(page, 'TO').click();
   const picker = enginePicker(page, 'TO');
-  for (const id of ['ezdrummer', 'superior_drummer3', 'addictive_drums2', 'general_midi']) {
-    await picker.getByTestId(`star-${id}`).click();
-  }
+  await picker.getByTestId('star-ezdrummer').click();
+  await picker.getByTestId('star-superior_drummer3').click();
+  await picker.getByTestId('star-addictive_drums2').click();
+  await picker.getByTestId('star-general_midi').click();
   await page.keyboard.press('Escape');
+  return engineSide(page, 'TO').getByRole('list', { name: 'Favourites' }).getByRole('button');
+}
 
-  const quick = engineSide(page, 'TO').getByRole('list', { name: 'Favourites' }).getByRole('button');
-  await expect(quick).toHaveCount(starred.length);
-  for (const name of starred) await expect(quick.filter({ hasText: name })).toBeVisible();
+test('every starred engine waits under its card', async ({ page }) => {
+  const quick = await starFourTargets(page);
+  await expect(quick).toHaveCount(4);
+  await expect(quick.filter({ hasText: 'EZdrummer 3' })).toBeVisible();
+  await expect(quick.filter({ hasText: 'Superior Drummer 3' })).toBeVisible();
+  await expect(quick.filter({ hasText: 'Addictive Drums 2' })).toBeVisible();
+  await expect(quick.filter({ hasText: 'General MIDI' })).toBeVisible();
+});
 
+test('a starred engine under its card is chosen in one press and leaves the others there', async ({ page }) => {
+  const quick = await starFourTargets(page);
   await quick.filter({ hasText: 'Superior Drummer 3' }).click();
   await expect(chosenEngine(page, 'TO')).toHaveText('Superior Drummer 3');
-  await expect(quick).toHaveCount(starred.length - 1);
+  await expect(quick).toHaveCount(3);
   await expect(quick.filter({ hasText: 'Superior Drummer 3' })).toHaveCount(0);
 });
