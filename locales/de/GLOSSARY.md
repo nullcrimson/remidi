@@ -7,7 +7,7 @@
 | drum engine (EZdrummer, Superior Drummer…) | Plugin (das Plugin, die Plugins); "Drum-Plugin" where the kind needs saying (titles, headings). Never "Engine" or "Instrument" |
 | sample engine | Sample-Plugin |
 | drum (a kit piece, cymbals included) | Instrument (das Instrument, die Instrumente) |
-| note map | Notenbelegung; "Drum-Map" (the Cubase term) for the short nav label and alongside Notenbelegung in page titles |
+| note map | Notenbelegung (also the nav label: Notenbelegungen); "Drum-Map" (the Cubase term) only for DAW files, and alongside Notenbelegung in page titles |
 | mapping | Zuordnung (default mapping = Standardzuordnung) |
 | preset | Preset (das Preset, die Presets) — what Cubase, Ableton Live and FL Studio say in German; not "Voreinstellung" |
 | convert | konvertieren; Konvertierung |

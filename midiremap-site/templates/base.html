@@ -33,13 +33,12 @@
         >{{ frame.skip }}</a>
         <header class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 px-1">
           {% call macros::converter_link(None, None, "tap brand-mark hover:text-t1", crate::routes::SITE_NAME) %}{% endcall %}
-          <nav aria-label="{{ frame.nav_main }}">
+          {% call macros::converter_link(None, None, "nav-cta", frame.open_converter) %}{% endcall %}
+          <nav aria-label="{{ frame.nav_main }}" class="basis-full sm:ml-auto sm:basis-auto">
             <ul class="flex flex-wrap gap-x-5 gap-y-1 text-ui">
-              {% for n in frame.nav %}
-              <li>
-                {% if n.converter %}{% call macros::converter_link(None, None, "nav-link whitespace-nowrap", n.label) %}{% endcall %}{% else %}<a href="{{ n.href }}"{% if n.current %} aria-current="page"{% endif %} class="nav-link whitespace-nowrap">{{ n.label }}</a>{% endif %}
-              </li>
-              {% endfor %}
+              {% for n in frame.nav %}{% if !n.converter %}
+              <li><a href="{{ n.href }}"{% if n.current %} aria-current="page"{% endif %} class="nav-link whitespace-nowrap">{{ n.label }}</a></li>
+              {% endif %}{% endfor %}
               <li>{% include "lang_menu.html" %}</li>
             </ul>
           </nav>

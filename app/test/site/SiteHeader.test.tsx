@@ -16,6 +16,7 @@ describe('SiteHeader', () => {
       ['Converter', '/'],
       ['How to use', '/how-it-works/'],
       ['Note maps', '/engines/'],
+      ['Drum maps', '/drum-maps/'],
       ['FAQ', '/faq/'],
     ]);
   });

@@ -47,7 +47,7 @@ export const LOCALES = [PSEUDO, ...SHIPPED];
 export const EVERY_VIEWPORT_PAGE = 'engines/';
 
 /** The other static pages, one of each kind, checked on the phone, where text runs out of room first. */
-export const PHONE_PAGES = ['engines/ezdrummer/', 'convert/ggd-invasion-to-ezdrummer/', 'how-it-works/', 'faq/', 'terms/', 'thanks/'];
+export const PHONE_PAGES = ['engines/ezdrummer/', 'convert/ggd-invasion-to-ezdrummer/', 'drum-maps/', 'how-it-works/', 'faq/', 'terms/', 'thanks/'];
 
 /** Fails when the page scrolls sideways, clips text or breaks a nav label over two lines. */
 export async function fits(page: Page, state: string) {

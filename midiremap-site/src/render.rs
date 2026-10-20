@@ -949,6 +949,8 @@ mod tests {
                     vec![messages.get(locale, SectionKey::Faq.label())]
                 } else if rest == "how-it-works/index.html" {
                     vec![messages.get(locale, SectionKey::Guide.label())]
+                } else if rest == "drum-maps/index.html" {
+                    vec![messages.get(locale, Plain::NavDrumMaps)]
                 } else {
                     vec![]
                 };
@@ -1818,7 +1820,7 @@ mod tests {
         let html = page("engines/index.html");
         let tag = anchors(html)
             .into_iter()
-            .find(|tag| tag.contains("nav-link") && tag.contains(r#"href="/""#))
+            .find(|tag| tag.contains("nav-cta"))
             .unwrap();
         assert!(tag.contains(r#"data-umami-event-page="index""#));
     }
@@ -1828,7 +1830,7 @@ mod tests {
         let html = page("faq/index.html");
         let tag = anchors(html)
             .into_iter()
-            .find(|tag| tag.contains("nav-link") && tag.contains(r#"href="/""#))
+            .find(|tag| tag.contains("nav-cta"))
             .unwrap();
         assert!(opened_converter(tag));
     }

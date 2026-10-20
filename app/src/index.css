@@ -167,6 +167,10 @@
   @apply tap border-b border-transparent pb-0.5 text-t4 transition-colors hover:text-t1 aria-[current=page]:border-accent aria-[current=page]:text-t1;
 }
 
+@utility nav-cta {
+  @apply tap inline-flex items-center rounded-panel border border-star/50 px-3 py-1.5 font-display text-ui font-semibold text-star transition-colors hover:border-star hover:bg-star/8 sm:order-last pointer-coarse:min-h-11;
+}
+
 @utility lang-trigger {
   anchor-name: --language-trigger;
   @apply inline-flex items-center gap-1.5;

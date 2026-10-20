@@ -1,6 +1,6 @@
 brand-tagline = Drum-MIDI konvertieren & umbelegen
 nav-converter = Konverter
-nav-note-maps = Drum-Maps
+nav-note-maps = Notenbelegungen
 nav-drum-maps = DAW-Drum-Maps
 section-guide-label = Anleitung
 section-guide-heading = So konvertieren Sie Drum-MIDI

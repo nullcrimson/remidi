@@ -13,6 +13,7 @@
       "/de/",
       "/de/how-it-works/",
       "/de/engines/",
+      "/de/drum-maps/",
       "/de/faq/"
     ]
   },
@@ -30,6 +31,7 @@
       "/",
       "/how-it-works/",
       "/engines/",
+      "/drum-maps/",
       "/faq/"
     ]
   },
@@ -47,6 +49,7 @@
       "/es/",
       "/es/how-it-works/",
       "/es/engines/",
+      "/es/drum-maps/",
       "/es/faq/"
     ]
   },
@@ -64,6 +67,7 @@
       "/fr/",
       "/fr/how-it-works/",
       "/fr/engines/",
+      "/fr/drum-maps/",
       "/fr/faq/"
     ]
   },
@@ -81,6 +85,7 @@
       "/it/",
       "/it/how-it-works/",
       "/it/engines/",
+      "/it/drum-maps/",
       "/it/faq/"
     ]
   },
@@ -98,6 +103,7 @@
       "/ja/",
       "/ja/how-it-works/",
       "/ja/engines/",
+      "/ja/drum-maps/",
       "/ja/faq/"
     ]
   },
@@ -115,6 +121,7 @@
       "/ko/",
       "/ko/how-it-works/",
       "/ko/engines/",
+      "/ko/drum-maps/",
       "/ko/faq/"
     ]
   },
@@ -132,6 +139,7 @@
       "/pl/",
       "/pl/how-it-works/",
       "/pl/engines/",
+      "/pl/drum-maps/",
       "/pl/faq/"
     ]
   },
@@ -149,6 +157,7 @@
       "/pt/",
       "/pt/how-it-works/",
       "/pt/engines/",
+      "/pt/drum-maps/",
       "/pt/faq/"
     ]
   },
@@ -166,6 +175,7 @@
       "/ru/",
       "/ru/how-it-works/",
       "/ru/engines/",
+      "/ru/drum-maps/",
       "/ru/faq/"
     ]
   },
@@ -183,6 +193,7 @@
       "/zh/",
       "/zh/how-it-works/",
       "/zh/engines/",
+      "/zh/drum-maps/",
       "/zh/faq/"
     ]
   }
