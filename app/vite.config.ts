@@ -5,10 +5,10 @@ import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { builtFile } from './scripts/devStatic';
-import { localeChunkName } from './scripts/localeChunk';
-import { siteManifest, type AnalyticsScript } from './scripts/siteManifest';
-import { LOCALES } from './src/generated/i18n';
+import { builtFile } from './scripts/devStatic.ts';
+import { localeChunkName } from './scripts/localeChunk.ts';
+import { siteManifest, type AnalyticsScript } from './scripts/siteManifest.ts';
+import { LOCALES } from './src/generated/i18n.ts';
 
 const BEACON = 'https://static.cloudflareinsights.com';
 const BEACON_REPORTS = 'https://cloudflareinsights.com';

@@ -80,7 +80,7 @@ describe('gen-i18n', () => {
 
   it('hands the codes on from the locale table\'s module', () => {
     const out = withDocs();
-    expect(out.ts).toContain(`export { LOCALE_CODES, type Locale } from './localeCodes';`);
+    expect(out.ts).toContain(`export { LOCALE_CODES, type Locale } from './localeCodes.ts';`);
   });
 
   it('carries each locale\'s native name', () => {

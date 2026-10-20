@@ -50,9 +50,9 @@ export function generate(s: ReturnType<typeof parseSources>): { ts: string; code
   const codes = `export type Locale = ${union(s.locales.map((l) => l.code))};
 export const LOCALE_CODES: readonly Locale[] = ${JSON.stringify(s.locales.map((l) => l.code))};
 `;
-  const ts = `${header}import type { Locale } from './localeCodes';
+  const ts = `${header}import type { Locale } from './localeCodes.ts';
 
-export { LOCALE_CODES, type Locale } from './localeCodes';
+export { LOCALE_CODES, type Locale } from './localeCodes.ts';
 export const LOCALES: Record<Locale, { prefix: string; langTag: string; nativeName: string }> = ${JSON.stringify(Object.fromEntries(s.locales.map(({ code, prefix, langTag, nativeName }) => [code, { prefix, langTag, nativeName }])))};
 export function parseLocale(segment: string): Locale | undefined {
   return (Object.keys(LOCALES) as Locale[]).find((l) => LOCALES[l].prefix !== '' && LOCALES[l].prefix === segment);
