@@ -1,20 +1,11 @@
 {
   "guide": [
     {
-      "steps": [
-        {
-          "title": "Adicione seus arquivos.",
-          "body": "Solte arquivos .mid em qualquer lugar da página ou escolha-os."
-        },
-        {
-          "title": "Escolha dois plugins.",
-          "body": "DE é o plugin para o qual o arquivo foi feito; PARA é o destino."
-        },
-        {
-          "title": "Converta e baixe.",
-          "body": "Clique em “Converter” e baixe o resultado."
-        }
-      ]
+      "converter-steps": {
+        "file": "Solte um ou mais arquivos .mid no conversor, ou escolha-os. Nada é enviado.",
+        "engines": "Escolha em DE o plugin para o qual o arquivo foi escrito e em PARA o plugin que você toca.",
+        "convert": "Clique em “Converter” e baixe o arquivo, ou um único .zip se forem vários. O relatório lista cada nota que foi para uma peça parecida."
+      }
     },
     {
       "h": "Dicas"
@@ -39,35 +30,89 @@
   ],
   "faq": [
     {
+      "h": "Conversão"
+    },
+    {
       "faq": [
         {
-          "q": "O Drumverter é grátis?",
-          "a": "Sim. Ele funciona inteiro no seu navegador, sem conta e sem custo."
-        },
-        {
-          "q": "Meus arquivos MIDI são enviados para algum lugar?",
-          "a": "Não. A conversão acontece no seu próprio navegador; os arquivos nunca saem do seu dispositivo."
-        },
-        {
-          "q": "Onde meus presets ficam salvos?",
-          "a": "Só neste navegador, neste dispositivo: nunca são enviados, e limpar os dados do site apaga todos eles. Para levar um para outro navegador, escolha “Exportar” no menu do preset e solte o arquivo .json na página."
-        },
-        {
           "q": "Como eu converto MIDI do GetGood Drums para o EZdrummer?",
-          "a": "Adicione o .mid, escolha GetGood Drums como origem e EZdrummer como destino e baixe o arquivo remapeado."
-        },
-        {
-          "q": "Funciona com a minha DAW? E as oitavas, C-1 ou C-2?",
-          "a": "Funciona com as duas convenções de oitava mais comuns — alterne entre C-1 (Reaper, Logic, Ableton, Guitar Pro) e C-2 (Studio One, Cubase, FL Studio) para os nomes das notas baterem com os da sua DAW."
+          "a": [
+            "Adicione o .mid, escolha GetGood Drums como origem e EZdrummer como destino e baixe o arquivo remapeado. ",
+            {
+              "text": "Veja onde cai cada nota do GetGood Drums Invasion no EZdrummer 3",
+              "href": "/convert/ggd-invasion-to-ezdrummer/"
+            },
+            "."
+          ]
         },
         {
           "q": "Dá para converter vários arquivos de uma vez?",
-          "a": "Dá. Adicione vários arquivos .mid e baixe todos juntos em um único .zip."
+          "a": [
+            "Dá. Adicione vários arquivos .mid e baixe todos juntos em um único .zip."
+          ]
         },
         {
           "q": "E se uma peça não existir no plugin de destino?",
-          "a": "O Drumverter troca pela peça mais parecida que o plugin tiver, e o que não der para converter aparece no relatório."
+          "a": [
+            "O Drumverter troca pela peça mais parecida que o plugin tiver, e o que não der para converter aparece no relatório. Os ",
+            {
+              "text": "mapas de notas",
+              "href": "/engines/"
+            },
+            " mostram onde cada peça cai antes de converter."
+          ]
+        },
+        {
+          "q": "Funciona com a minha DAW? E as oitavas, C-1 ou C-2?",
+          "a": [
+            "Funciona com as duas convenções de oitava mais comuns — alterne entre C-1 (Reaper, Logic, Ableton, Guitar Pro) e C-2 (Studio One, Cubase, FL Studio) para os nomes das notas baterem com os da sua DAW. Reaper, Cubase e Studio One também carregam um ",
+            {
+              "text": "mapa de bateria",
+              "href": "/drum-maps/"
+            },
+            " que dá nome a cada nota."
+          ]
         }
+      ]
+    },
+    {
+      "h": "Privacidade e custo"
+    },
+    {
+      "faq": [
+        {
+          "q": "O Drumverter é grátis?",
+          "a": [
+            "Sim. Ele funciona inteiro no seu navegador, sem conta e sem custo."
+          ]
+        },
+        {
+          "q": "Meus arquivos MIDI são enviados para algum lugar?",
+          "a": [
+            "Não. A conversão acontece no seu próprio navegador; os arquivos nunca saem do seu dispositivo."
+          ]
+        },
+        {
+          "q": "Onde meus presets ficam salvos?",
+          "a": [
+            "Só neste navegador, neste dispositivo: nunca são enviados, e limpar os dados do site apaga todos eles. Para levar um para outro navegador, escolha “Exportar” no menu do preset e solte o arquivo .json na página."
+          ]
+        }
+      ]
+    },
+    {
+      "p": [
+        "Sua pergunta não está aqui? ",
+        {
+          "text": "Relate um problema",
+          "href": "/report-an-issue/"
+        },
+        " ou ",
+        {
+          "text": "fale comigo",
+          "href": "/contact/"
+        },
+        "."
       ]
     }
   ],

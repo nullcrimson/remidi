@@ -68,3 +68,17 @@ test('a conversion table keeps its convert button in reach on a phone', async ({
   await page.getByRole('heading', { name: 'More from GetGood Drums Invasion' }).scrollIntoViewIfNeeded();
   await expect(page.getByRole('link', { name: 'Convert GetGood Drums Invasion → EZdrummer 3', exact: true })).toBeInViewport();
 });
+
+test('an FAQ answer links the conversion table it talks about', async ({ page }) => {
+  await page.goto('/faq/');
+  await press(page.getByRole('main').getByRole('link', { name: 'See where each GetGood Drums Invasion note lands in EZdrummer 3', exact: true }));
+  await expect(page).toHaveURL('/convert/ggd-invasion-to-ezdrummer/');
+});
+
+test('the guide ends on a button that opens the converter', async ({ page }) => {
+  await page.goto('/how-it-works/');
+  await expect(page.getByRole('heading', { name: 'Ready to convert?' })).toBeVisible();
+  await press(page.getByRole('main').getByRole('link', { name: 'Open the converter', exact: true }));
+  await expect(page).toHaveURL('/');
+  await expect(page.getByRole('button', { name: 'Choose files' })).toBeVisible();
+});

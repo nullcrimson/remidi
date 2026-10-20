@@ -19,13 +19,23 @@ fn a_moved_link_changes_the_shape() {
 }
 
 #[test]
-fn a_dropped_step_changes_the_shape() {
+fn a_moved_answer_link_changes_the_shape() {
     assert_ne!(
         shape(&blocks(
-            r#"[{ "steps": [{ "title": "a", "body": "b" }, { "title": "c", "body": "d" }] }]"#
+            r#"[{ "faq": [{ "q": "a", "a": ["b", { "text": "c", "href": "/engines/" }] }, { "q": "d", "a": ["e"] }] }]"#
         )),
-        shape(&blocks(r#"[{ "steps": [{ "title": "a", "body": "b" }] }]"#)),
+        shape(&blocks(
+            r#"[{ "faq": [{ "q": "a", "a": ["b"] }, { "q": "d", "a": ["e", { "text": "c", "href": "/engines/" }] }] }]"#
+        )),
     );
+}
+
+#[test]
+fn a_missing_step_body_fails_to_parse() {
+    assert!(serde_json::from_str::<Vec<Block>>(
+        r#"[{ "converter-steps": { "file": "a", "engines": "b" } }]"#
+    )
+    .is_err());
 }
 
 #[test]

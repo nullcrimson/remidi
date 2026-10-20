@@ -455,11 +455,28 @@ impl<'a> Frame<'a> {
 
 const IN_NOTE_MAPS: Option<NavTarget> = Some(NavTarget::NoteMaps);
 
-fn section_schema(key: SectionKey, page: &ContentPage) -> Option<String> {
+fn section_schema(key: SectionKey, page: &ContentPage, texts: &Texts) -> Option<String> {
     match key {
         SectionKey::Faq => Some(faq_schema(page.blocks)),
-        SectionKey::Guide => Some(how_to_schema(page.heading, page.blocks)),
+        SectionKey::Guide => Some(how_to_schema(page.heading, page.blocks, |step| {
+            texts.get(step.title())
+        })),
         SectionKey::Issue | SectionKey::Contact | SectionKey::Terms => None,
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Closing {
+    Panel,
+    Link,
+}
+
+impl Closing {
+    fn of(key: SectionKey) -> Self {
+        match key {
+            SectionKey::Guide | SectionKey::Faq => Self::Panel,
+            SectionKey::Issue | SectionKey::Contact | SectionKey::Terms => Self::Link,
+        }
     }
 }
 
@@ -511,6 +528,8 @@ struct ContentHtml<'a> {
     frame: Frame<'a>,
     texts: &'a Texts<'a>,
     page: &'a ContentPage<'a>,
+    steps: [(ConverterStep, StepState); 3],
+    closing: Closing,
 }
 
 #[derive(Template)]
@@ -686,12 +705,14 @@ fn render_sections(
                     manifest,
                     texts,
                     Some(target),
-                    section_schema(k, &page),
+                    section_schema(k, &page, texts),
                     &Page::Section(k),
                     PageKind::Doc,
                 ),
                 texts,
                 page: &page,
+                steps: converter_steps([false; 3]),
+                closing: Closing::of(k),
             }
             .render()?,
         ));
@@ -1110,10 +1131,99 @@ mod tests {
         assert!(faq.contains("Is Drumverter free?"));
     }
 
+    fn headings<'a>(html: &'a str, level: &str) -> Vec<&'a str> {
+        html.split(&format!("<{level} "))
+            .skip(1)
+            .filter_map(|rest| rest.split_once('>'))
+            .filter_map(|(_, rest)| rest.split(&format!("</{level}>")).next())
+            .collect()
+    }
+
     #[test]
     fn the_faq_page_carries_structured_data() {
-        let faq = page("faq/index.html");
-        assert!(faq.contains(r#"<script type="application/ld+json">"#));
+        for &l in Locale::ALL {
+            let html = page(&format!("{}faq/index.html", locale_dir(l)));
+            let schema: serde_json::Value = serde_json::from_str(
+                structured_data(html).trim_start_matches(r#"<script type="application/ld+json">"#),
+            )
+            .unwrap();
+            let names: Vec<String> = schema["mainEntity"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|q| q["name"].as_str().unwrap().to_owned())
+                .collect();
+            let questions: Vec<String> = headings(html, "h3").into_iter().map(unescaped).collect();
+            assert_eq!(questions, names, "{}", l.code());
+        }
+    }
+
+    fn locale_dir(l: Locale) -> String {
+        if l.prefix().is_empty() {
+            String::new()
+        } else {
+            format!("{}/", l.prefix())
+        }
+    }
+
+    #[test]
+    fn the_faq_answers_link_a_conversion_table_and_the_drum_maps() {
+        let html = page("faq/index.html");
+        assert!(html.contains(r#"href="/convert/ggd-invasion-to-ezdrummer/" class="prose-link""#));
+        assert!(html.contains(r#"href="/drum-maps/" class="prose-link""#));
+        assert!(html.contains(r#"href="/report-an-issue/" class="prose-link""#));
+        assert_eq!(
+            headings(html, "h2"),
+            ["Converting", "Privacy and cost", "Ready to convert?"]
+        );
+    }
+
+    #[test]
+    fn the_guide_walks_through_the_converters_steps() {
+        let html = page("how-it-works/index.html");
+        assert_eq!(badges(html), ["current", "later", "later"]);
+        let titles: Vec<&str> = headings(html, "h2").into_iter().take(3).collect();
+        assert_eq!(
+            titles,
+            [
+                "Your drum file",
+                "From one drum layout to another",
+                "Convert"
+            ]
+        );
+        let schema: serde_json::Value = serde_json::from_str(
+            structured_data(html).trim_start_matches(r#"<script type="application/ld+json">"#),
+        )
+        .unwrap();
+        assert_eq!(schema["step"][1]["name"], "From one drum layout to another");
+    }
+
+    #[test]
+    fn the_guide_and_the_faq_end_on_the_converters_button() {
+        for path in ["how-it-works/index.html", "faq/index.html"] {
+            let main = page(path).split("</main>").next().unwrap();
+            let panel = main.rsplit(">Ready to convert?</h2>").next().unwrap();
+            let tag = anchor_to(panel, "/");
+            assert!(tag.contains("bg-accent"), "{path}");
+            assert!(opened_converter(tag), "{path}");
+        }
+    }
+
+    #[test]
+    fn the_other_documents_end_on_a_link_to_the_converter() {
+        for path in [
+            "report-an-issue/index.html",
+            "contact/index.html",
+            "terms/index.html",
+        ] {
+            let html = page(path);
+            assert!(!html.contains(">Ready to convert?</h2>"), "{path}");
+            let main = html.split("<main").nth(1).unwrap();
+            assert!(
+                anchor_to(main, "/").contains("prose-link text-ui"),
+                "{path}"
+            );
+        }
     }
 
     #[test]
@@ -2059,7 +2169,7 @@ mod tests {
         let html = page("faq/index.html");
         let tag = anchors(html)
             .into_iter()
-            .find(|tag| tag.contains("prose-link text-ui") && tag.contains(r#"href="/""#))
+            .find(|tag| tag.contains("bg-accent") && tag.contains(r#"href="/""#))
             .unwrap();
         assert!(tag.contains(r#"data-umami-event-page="doc""#));
     }

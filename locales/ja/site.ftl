@@ -10,6 +10,7 @@ section-terms-title = 利用規約
 section-terms-description = ブラウザで使える無料のドラムMIDIコンバーター、Drumverterの利用規約：現状のまま提供、ファイルはアップロードされず、Cookieを使わない匿名の統計のみ。
 lang-offer = このページは日本語でもご覧いただけます →
 open-converter = コンバーターを開く
+doc-ready-heading = さっそく変換してみましょう
 thanks-title = ありがとうございます
 thanks-description = 無料のドラムMIDIコンバーター、Drumverterへのご支援ありがとうございます。
 thanks-heading = ありがとうございます！

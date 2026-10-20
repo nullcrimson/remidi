@@ -10,6 +10,7 @@ section-terms-title = Условия использования
 section-terms-description = Условия использования Drumverter — бесплатного конвертера MIDI плагинов для барабанов: всё «как есть», файлы никуда не загружаются, анонимная статистика без cookie.
 lang-offer = Эта страница есть на русском →
 open-converter = Открыть конвертер
+doc-ready-heading = Готовы конвертировать?
 thanks-title = Спасибо
 thanks-description = Спасибо за поддержку Drumverter — бесплатного конвертера MIDI плагинов для барабанов.
 thanks-heading = Спасибо!

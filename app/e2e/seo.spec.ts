@@ -17,5 +17,5 @@ test('the converter ships its popular conversion links for crawlers and keeps th
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Choose files' })).toBeVisible();
   await expect(page.locator('nav.sr-only')).toHaveCount(0);
-  await expect(page.locator(link)).toBeAttached();
+  await expect(page.getByRole('navigation', { name: 'Popular conversions' }).locator(link)).toBeAttached();
 });

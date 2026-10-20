@@ -10,6 +10,7 @@ section-terms-title = Termini di utilizzo
 section-terms-description = Termini di utilizzo di Drumverter, il convertitore MIDI per batteria gratuito nel browser: fornito così com'è, file mai caricati, statistiche anonime senza cookie.
 lang-offer = Questa pagina è disponibile in italiano →
 open-converter = Apri il convertitore
+doc-ready-heading = Pronto a convertire?
 thanks-title = Grazie
 thanks-description = Grazie per il supporto a Drumverter, il convertitore MIDI per batteria gratuito.
 thanks-heading = Grazie!

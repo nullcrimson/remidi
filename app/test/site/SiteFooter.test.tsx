@@ -102,12 +102,12 @@ describe('SiteFooter', () => {
     return screen.getByRole('dialog', { name: 'How to convert drum MIDI' });
   };
 
-  it('shows three short steps and tips in How to use', async () => {
+  it('shows the converter’s three steps and tips in How to use', async () => {
     const dialog = await openHowToUse();
-    expect(within(dialog).getAllByRole('listitem').map((li) => li.textContent?.split('.')[0])).toEqual([
-      'Add your files',
-      'Pick two engines',
-      'Convert and download',
+    expect(within(dialog).getAllByRole('listitem').map((li) => li.querySelector('span')?.textContent ?? li.textContent?.split('.')[0])).toEqual([
+      'Your drum file',
+      'From one drum layout to another',
+      'Convert',
       'Hover dotted text to see what changed; the note editor fixes any drum',
       'Save a preset to reuse your setup',
       'Every supported engine and its notes: note maps',
@@ -137,7 +137,7 @@ describe('SiteFooter', () => {
 
   it('keeps dialog content in the DOM while collapsed (crawlable)', () => {
     render(<SiteFooter />);
-    expect(screen.getByText('Pick two engines.')).toBeInTheDocument();
+    expect(screen.getByText('From one drum layout to another')).toBeInTheDocument();
     expect(screen.getByText(/files never leave your device/i)).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });

@@ -1,20 +1,11 @@
 {
   "guide": [
     {
-      "steps": [
-        {
-          "title": "Add your files.",
-          "body": "Drop .mid files anywhere on the page, or choose them."
-        },
-        {
-          "title": "Pick two engines.",
-          "body": "FROM is what your file was made for, TO is where it goes."
-        },
-        {
-          "title": "Convert and download.",
-          "body": "Press Convert, then download the result."
-        }
-      ]
+      "converter-steps": {
+        "file": "Drop one or more .mid files on the converter, or choose them. Nothing is uploaded.",
+        "engines": "Pick FROM, the engine your file was written for, and TO, the engine you play.",
+        "convert": "Press Convert, then download the file, or one .zip for several. The report lists every note that moved to a close match."
+      }
     },
     {
       "h": "Tips"
@@ -39,35 +30,89 @@
   ],
   "faq": [
     {
+      "h": "Converting"
+    },
+    {
       "faq": [
         {
-          "q": "Is Drumverter free?",
-          "a": "Yes. It runs entirely in your browser, with no account and no cost."
-        },
-        {
-          "q": "Do my MIDI files get uploaded?",
-          "a": "No. Conversion happens locally in your browser; files never leave your device."
-        },
-        {
-          "q": "Where are my presets saved?",
-          "a": "Only in this browser on this device — they’re never uploaded, and clearing site data removes them. To move one, choose Export in its menu, then drop the .json file on the page in the other browser."
-        },
-        {
           "q": "How do I convert GetGood Drums MIDI to EZdrummer?",
-          "a": "Add the .mid, set the source to GetGood Drums and the target to EZdrummer, then download the remapped file."
-        },
-        {
-          "q": "Which DAWs and octave conventions are supported?",
-          "a": "Both common note-octave conventions are covered — toggle between C-1 (Reaper, Logic, Ableton, Guitar Pro) and C-2 (Studio One, Cubase, FL Studio) so note names match your DAW."
+          "a": [
+            "Add the .mid, set the source to GetGood Drums and the target to EZdrummer, then download the remapped file. ",
+            {
+              "text": "See where each GetGood Drums Invasion note lands in EZdrummer 3",
+              "href": "/convert/ggd-invasion-to-ezdrummer/"
+            },
+            "."
+          ]
         },
         {
           "q": "Can I convert multiple files at once?",
-          "a": "Yes. Queue several .mid files and download them all as a single .zip."
+          "a": [
+            "Yes. Queue several .mid files and download them all as a single .zip."
+          ]
         },
         {
           "q": "What if a drum has no equivalent in the target engine?",
-          "a": "Drumverter uses per-slot fallback chains to pick the closest available voice, and reports anything it couldn't map."
+          "a": [
+            "Drumverter uses per-slot fallback chains to pick the closest available voice, and reports anything it couldn't map. The ",
+            {
+              "text": "note maps",
+              "href": "/engines/"
+            },
+            " show where each drum lands before you convert."
+          ]
+        },
+        {
+          "q": "Which DAWs and octave conventions are supported?",
+          "a": [
+            "Both common note-octave conventions are covered — toggle between C-1 (Reaper, Logic, Ableton, Guitar Pro) and C-2 (Studio One, Cubase, FL Studio) so note names match your DAW. Reaper, Cubase and Studio One can also load a ",
+            {
+              "text": "drum map",
+              "href": "/drum-maps/"
+            },
+            " that names every note."
+          ]
         }
+      ]
+    },
+    {
+      "h": "Privacy and cost"
+    },
+    {
+      "faq": [
+        {
+          "q": "Is Drumverter free?",
+          "a": [
+            "Yes. It runs entirely in your browser, with no account and no cost."
+          ]
+        },
+        {
+          "q": "Do my MIDI files get uploaded?",
+          "a": [
+            "No. Conversion happens locally in your browser; files never leave your device."
+          ]
+        },
+        {
+          "q": "Where are my presets saved?",
+          "a": [
+            "Only in this browser on this device — they’re never uploaded, and clearing site data removes them. To move one, choose Export in its menu, then drop the .json file on the page in the other browser."
+          ]
+        }
+      ]
+    },
+    {
+      "p": [
+        "Question not here? ",
+        {
+          "text": "Report an issue",
+          "href": "/report-an-issue/"
+        },
+        " or ",
+        {
+          "text": "get in touch",
+          "href": "/contact/"
+        },
+        "."
       ]
     }
   ],

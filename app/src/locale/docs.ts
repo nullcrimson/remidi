@@ -8,11 +8,13 @@ interface Step {
 }
 interface Qa {
   q: string;
-  a: string;
+  a: Inline[];
 }
+/** The converter's steps, by the key the guide gives each one's text. */
+export type ConverterStep = 'file' | 'engines' | 'convert';
 export type Block
   = | { p: Inline[] }
-    | { steps: Step[] }
+    | { 'converter-steps': Record<ConverterStep, string> }
     | { list: Inline[][] }
     | { faq: Qa[] }
     | { h: string }

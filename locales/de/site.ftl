@@ -10,6 +10,7 @@ section-terms-title = Nutzungsbedingungen
 section-terms-description = Nutzungsbedingungen für Drumverter, den kostenlosen Drum-MIDI-Konverter im Browser: ohne Gewähr, keine Datei-Uploads, anonyme Statistiken ohne Cookies.
 lang-offer = Diese Seite gibt es auch auf Deutsch →
 open-converter = Konverter öffnen
+doc-ready-heading = Bereit zum Konvertieren?
 thanks-title = Danke
 thanks-description = Danke, dass Sie Drumverter unterstützen, den kostenlosen Drum-MIDI-Konverter.
 thanks-heading = Danke!

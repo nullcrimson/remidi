@@ -9,9 +9,9 @@
   {% when Block::P(parts) %}<p>{% call inline(parts) %}{% endcall %}</p>
   {% when Block::H(text) %}<h2 class="mt-3 font-display text-title font-semibold text-t1">{{ text }}</h2>
   {% when Block::Note(step) %}<p class="text-t4"><span class="font-medium text-t2">{{ step.title }}</span> {{ step.body }}</p>
-  {% when Block::Steps(steps) %}
-  <ol class="flex list-decimal flex-col gap-2 pl-5 marker:text-decor">
-    {% for s in steps %}<li><span class="font-medium text-t2">{{ s.title }}</span> {{ s.body }}</li>{% endfor %}
+  {% when Block::ConverterSteps(bodies) %}
+  <ol class="flex flex-col gap-4">
+    {% for (step, state) in steps %}<li class="flex gap-3"><span class="step-badge" data-state="{{ state.key() }}" aria-hidden="true">{{ step.number() }}</span><div class="flex flex-col gap-1"><h2 class="font-display text-body font-semibold text-t1">{{ texts.get(step.title()) }}</h2><p>{{ bodies.body(**step) }}</p></div></li>{% endfor %}
   </ol>
   {% when Block::List(items) %}
   <ul class="flex list-disc flex-col gap-1 pl-5 marker:text-decor">
@@ -21,15 +21,23 @@
   <div class="flex flex-col gap-5">
     {% for qa in qas %}
     <div class="flex flex-col gap-1">
-      <h2 class="text-body font-semibold text-t1">{{ qa.q }}</h2>
-      <p>{{ qa.a }}</p>
+      <h3 class="text-body font-semibold text-t1">{{ qa.q }}</h3>
+      <p>{% call inline(qa.a.as_slice()) %}{% endcall %}</p>
     </div>
     {% endfor %}
   </div>
   {% endmatch %}
   {% endfor %}
 </div>
+{% match closing %}
+{% when Closing::Panel %}
+<section class="flex flex-wrap items-center justify-between gap-4 rounded-panel bg-field p-5">
+  <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::DocReadyHeading) }}</h2>
+  {% call macros::converter_link(None, None, "inline-flex items-center justify-center rounded-panel bg-accent px-5 py-3 font-display text-body font-semibold text-ink transition hover:brightness-110 pointer-coarse:min-h-11", frame.open_converter) %}{% endcall %}
+</section>
+{% when Closing::Link %}
 <p class="text-ui">
   {% call macros::converter_link(None, None, "prose-link text-ui", frame.open_converter) %}<span aria-hidden="true"> →</span>{% endcall %}
 </p>
+{% endmatch %}
 {% endblock %}

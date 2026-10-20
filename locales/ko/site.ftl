@@ -10,6 +10,7 @@ section-terms-title = 이용약관
 section-terms-description = 브라우저에서 쓰는 무료 드럼 MIDI 변환기 Drumverter의 이용약관: 있는 그대로 제공되며, 파일은 업로드되지 않고, 쿠키 없는 익명 통계만 수집합니다.
 lang-offer = 이 페이지를 한국어로 볼 수 있습니다 →
 open-converter = 변환기 열기
+doc-ready-heading = 바로 변환해 볼까요?
 thanks-title = 감사합니다
 thanks-description = 무료 드럼 MIDI 변환기 Drumverter를 후원해 주셔서 감사합니다.
 thanks-heading = 감사합니다!

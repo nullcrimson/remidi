@@ -10,6 +10,7 @@ section-terms-title = Warunki korzystania
 section-terms-description = Warunki korzystania z aplikacji Drumverter: bez gwarancji, pliki nigdy nie są wysyłane, anonimowe statystyki bez plików cookie.
 lang-offer = Ta strona jest też po polsku →
 open-converter = Otwórz konwerter
+doc-ready-heading = Czas na konwersję?
 thanks-title = Dziękuję
 thanks-description = Dziękuję za wsparcie aplikacji Drumverter — darmowego konwertera MIDI perkusji.
 thanks-heading = Dziękuję!

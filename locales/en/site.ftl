@@ -10,6 +10,7 @@ section-terms-title = Terms of Use
 section-terms-description = Terms of use for Drumverter, the free in-browser drum MIDI converter: provided as is, files never uploaded, anonymous cookieless statistics.
 lang-offer = This page is available in English →
 open-converter = Open the converter
+doc-ready-heading = Ready to convert?
 thanks-title = Thank you
 thanks-description = Thank you for supporting Drumverter, the free drum MIDI converter.
 thanks-heading = Thank you!

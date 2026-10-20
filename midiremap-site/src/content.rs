@@ -39,14 +39,34 @@ pub struct Step {
 #[derive(Deserialize)]
 pub struct Qa {
     pub q: String,
-    pub a: String,
+    pub a: Vec<Inline>,
+}
+
+/// What the guide says about each of the converter's steps.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StepBodies {
+    file: String,
+    engines: String,
+    convert: String,
+}
+
+impl StepBodies {
+    pub fn body(&self, step: ConverterStep) -> &str {
+        match step {
+            ConverterStep::File => &self.file,
+            ConverterStep::Engines => &self.engines,
+            ConverterStep::Convert => &self.convert,
+        }
+    }
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Block {
     P(Vec<Inline>),
-    Steps(Vec<Step>),
+    #[serde(rename = "converter-steps")]
+    ConverterSteps(StepBodies),
     List(Vec<Vec<Inline>>),
     Faq(Vec<Qa>),
     H(String),
@@ -67,13 +87,20 @@ impl Block {
         };
         match self {
             Block::P(parts) => format!("p:[{}]", links(parts)),
-            Block::Steps(s) => format!("steps:{}", s.len()),
+            Block::ConverterSteps(_) => "converter-steps".to_owned(),
             Block::List(items) => format!(
                 "list:{}:[{}]",
                 items.len(),
                 items.iter().map(|i| links(i)).collect::<Vec<_>>().join("|")
             ),
-            Block::Faq(q) => format!("faq:{}", q.len()),
+            Block::Faq(qas) => format!(
+                "faq:{}:[{}]",
+                qas.len(),
+                qas.iter()
+                    .map(|qa| links(&qa.a))
+                    .collect::<Vec<_>>()
+                    .join("|")
+            ),
             Block::H(_) => "h".to_owned(),
             Block::Note(_) => "note".to_owned(),
         }
@@ -174,7 +201,10 @@ pub fn faq_schema(blocks: &[Block]) -> String {
             json!({
                 "@type": "Question",
                 "name": qa.q,
-                "acceptedAnswer": { "@type": "Answer", "text": qa.a },
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": qa.a.iter().map(Inline::plain).collect::<String>(),
+                },
             })
         })
         .collect();
@@ -199,19 +229,25 @@ pub fn breadcrumb_schema(trail: &[(&str, String)]) -> String {
     }))
 }
 
-/// The HowTo schema for the steps in `blocks`.
-pub fn how_to_schema(heading: &str, blocks: &[Block]) -> String {
+/// The HowTo schema for the converter's steps in `blocks`, each named by `title`.
+pub fn how_to_schema<'a>(
+    heading: &str,
+    blocks: &[Block],
+    title: impl Fn(ConverterStep) -> &'a str,
+) -> String {
     let steps: Vec<serde_json::Value> = blocks
         .iter()
-        .flat_map(|b| match b {
-            Block::Steps(steps) => steps.as_slice(),
-            _ => &[],
+        .filter_map(|b| match b {
+            Block::ConverterSteps(bodies) => Some(bodies),
+            _ => None,
         })
-        .map(|s| {
-            json!({
-                "@type": "HowToStep",
-                "name": s.title.trim_end_matches('.'),
-                "text": s.body,
+        .flat_map(|bodies| {
+            ConverterStep::ALL.map(|step| {
+                json!({
+                    "@type": "HowToStep",
+                    "name": title(step),
+                    "text": bodies.body(step),
+                })
             })
         })
         .collect();
@@ -234,7 +270,7 @@ mod tests {
     #[test]
     fn faq_schema_lists_each_question_with_its_answer() {
         let faq: serde_json::Value = serde_json::from_str(&faq_schema(&blocks(
-            r#"[{ "p": ["intro"] }, { "faq": [{ "q": "Free?", "a": "Yes." }] }]"#,
+            r#"[{ "p": ["intro"] }, { "faq": [{ "q": "Free?", "a": ["Yes."] }] }]"#,
         )))
         .unwrap();
         assert_eq!(faq["@type"], "FAQPage");
@@ -243,15 +279,46 @@ mod tests {
     }
 
     #[test]
-    fn how_to_schema_names_each_step_without_its_full_stop() {
+    fn faq_schema_joins_an_answers_parts_into_its_text() {
+        let faq: serde_json::Value = serde_json::from_str(&faq_schema(&blocks(
+            r#"[{ "faq": [{ "q": "Where?", "a": ["See the ", { "text": "maps", "href": "/engines/" }, "."] }] }]"#,
+        )))
+        .unwrap();
+        assert_eq!(
+            faq["mainEntity"][0]["acceptedAnswer"]["text"],
+            "See the maps."
+        );
+    }
+
+    #[test]
+    fn how_to_schema_names_the_converters_steps() {
         let how: serde_json::Value = serde_json::from_str(&how_to_schema(
             "Heading",
-            &blocks(r#"[{ "steps": [{ "title": "Add files.", "body": "Drop them." }] }]"#),
+            &blocks(
+                r#"[{ "converter-steps": { "file": "Drop it.", "engines": "Pick two.", "convert": "Press it." } }]"#,
+            ),
+            |step| match step {
+                ConverterStep::File => "File",
+                ConverterStep::Engines => "Engines",
+                ConverterStep::Convert => "Convert",
+            },
         ))
         .unwrap();
         assert_eq!(how["name"], "Heading");
-        assert_eq!(how["step"][0]["name"], "Add files");
-        assert_eq!(how["step"][0]["text"], "Drop them.");
+        let steps: Vec<(&str, &str)> = how["step"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|s| (s["name"].as_str().unwrap(), s["text"].as_str().unwrap()))
+            .collect();
+        assert_eq!(
+            steps,
+            [
+                ("File", "Drop it."),
+                ("Engines", "Pick two."),
+                ("Convert", "Press it.")
+            ]
+        );
     }
 
     #[test]

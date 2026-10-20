@@ -10,6 +10,7 @@ section-terms-title = 使用条款
 section-terms-description = 免费的浏览器端鼓 MIDI 转换器 Drumverter 的使用条款：按“现状”提供，文件不会上传，只收集不使用 Cookie 的匿名统计数据。
 lang-offer = 本页面有中文版 →
 open-converter = 打开转换器
+doc-ready-heading = 准备好转换了吗？
 thanks-title = 感谢支持
 thanks-description = 感谢支持免费的鼓 MIDI 转换器 Drumverter。
 thanks-heading = 谢谢！
