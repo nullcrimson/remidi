@@ -14,14 +14,15 @@ const ITEM = `
 const SUMMARY = `
   inline-flex cursor-pointer list-none items-center gap-1.5 text-caption font-medium
   tracking-wider text-t4 uppercase transition-colors
-  tap
   hover:text-t2
+  pointer-coarse:min-h-11
   [&::-webkit-details-marker]:hidden
 `;
 
 const LINK = `
-  tap transition-colors
+  inline-flex items-center transition-colors
   hover:text-t2
+  pointer-coarse:min-h-11
 `;
 
 /** Links to the popular conversion tables, once the engines are known. */
