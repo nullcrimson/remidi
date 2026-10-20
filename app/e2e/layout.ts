@@ -40,13 +40,16 @@ const brokenNav = (page: Page) => page.evaluate(() =>
 /** The shipped locales besides English, which the pseudo-locale stands in for. */
 export const SHIPPED = LOCALE_CODES.filter((code) => code !== 'en');
 
-/** The locales the layout tests check: the shipped ones and the pseudo-locale. */
+/** The locales the converter's layout test checks: the shipped ones and the pseudo-locale. */
 export const LOCALES = [PSEUDO, ...SHIPPED];
 
-/** The static page checked at every viewport: its header and nav are the static pages' own. */
+/** The static page checked at every viewport, in every shipped locale: its header and nav are the static pages' own. */
 export const EVERY_VIEWPORT_PAGE = 'engines/';
 
-/** The other static pages, one of each kind, checked on the phone, where text runs out of room first. */
+/**
+ * The other static pages, one of each kind, checked on the phone in every shipped locale,
+ * English included: the site generator writes them, so the pseudo-locale cannot stand in.
+ */
 export const PHONE_PAGES = ['engines/ezdrummer/', 'convert/ggd-invasion-to-ezdrummer/', 'drum-maps/', 'how-it-works/', 'faq/', 'terms/', 'thanks/'];
 
 /** Fails when the page scrolls sideways, clips text or breaks a nav label over two lines. */

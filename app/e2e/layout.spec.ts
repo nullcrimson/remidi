@@ -1,3 +1,4 @@
+import { LOCALE_CODES } from '../src/generated/localeCodes';
 import { addFiles, expect, kickAndChina, test } from './fixtures';
 import { clipped, EVERY_VIEWPORT_PAGE, fits, LOCALES, PHONE_PAGES } from './layout';
 import { messages, PSEUDO, pseudoFtl } from './messages';
@@ -55,18 +56,21 @@ for (const code of LOCALES) {
         await page.keyboard.press('Escape');
       }
     });
+  });
+}
 
-    if (code !== PSEUDO) {
-      test(`/${code}/${EVERY_VIEWPORT_PAGE} fits`, async ({ page }) => {
-        await page.goto(`/${code}/${EVERY_VIEWPORT_PAGE}`);
-        await fits(page, EVERY_VIEWPORT_PAGE);
+for (const code of LOCALE_CODES) {
+  const root = code === 'en' ? '/' : `/${code}/`;
+  test.describe(`${code} static pages`, () => {
+    test(`${root}${EVERY_VIEWPORT_PAGE} fits`, async ({ page }) => {
+      await page.goto(`${root}${EVERY_VIEWPORT_PAGE}`);
+      await fits(page, EVERY_VIEWPORT_PAGE);
+    });
+    for (const path of PHONE_PAGES) {
+      test(`${root}${path} fits a phone`, { tag: '@phone' }, async ({ page }) => {
+        await page.goto(`${root}${path}`);
+        await fits(page, path);
       });
-      for (const path of PHONE_PAGES) {
-        test(`/${code}/${path} fits a phone`, { tag: '@phone' }, async ({ page }) => {
-          await page.goto(`/${code}/${path}`);
-          await fits(page, path);
-        });
-      }
     }
   });
 }
