@@ -15,6 +15,7 @@ import { UnsavedNotice } from './presets/UnsavedNotice';
 import { StatusNotice } from './ui/StatusNotice';
 import { Step } from './convert/Step';
 import { stepStates } from './convert/stepState';
+import { isConverted } from './convert/useConverter';
 import { CONVERTER_STEPS, type ConverterStep } from './locale/docs';
 import { useDropGuard } from './convert/useDropGuard';
 import { useConversionReport } from './report/useConversionReport';
@@ -71,8 +72,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
   const trySample = useSampleFile({ ...intake, core, convert: remapper.convert });
   const { view: reportView, dropMissing } = useConversionReport({ ...editor, ...remapper });
   const names = pair && namesOf(remapper.engines, pair);
-  const converted = conv.kind === 'done' && conv.results.length > 0;
-  const steps = stepStates({ file: remapper.files.length > 0, engines: pair !== null, convert: converted });
+  const steps = stepStates({ file: remapper.files.length > 0, engines: pair !== null, convert: isConverted(conv) });
   const { open: openEditor, close: closeEditor } = useEditorSession(remapper, request);
 
   if (view.kind === 'edit') {

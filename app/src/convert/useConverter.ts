@@ -13,6 +13,14 @@ export type Conv
     | { kind: 'done'; pair: EnginePair; results: FileResult[]; failures: FailedFile[] }
     | { kind: 'error'; failures: FailedFile[]; error: AppError };
 
+/** A finished run that converted at least one file. */
+export type Converted = Extract<Conv, { kind: 'done' }> & { results: [FileResult, ...FileResult[]] };
+
+/** Whether `conv` finished with at least one converted file. */
+export function isConverted(conv: Conv): conv is Converted {
+  return conv.kind === 'done' && conv.results.length > 0;
+}
+
 /** What a run of the converter came to, when it was not stopped: a batch that returned, or the call failing as a whole. */
 export type ConvertOutcome
   = | { kind: 'done'; ok: FileResult[]; failed: FailedFile[] }

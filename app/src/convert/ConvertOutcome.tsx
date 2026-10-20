@@ -8,6 +8,7 @@ import { convertBlocker } from './blocker';
 import { ConvertButton } from './ConvertButton';
 import { DonePanel } from './DonePanel';
 import type { Remapper } from './useRemapper';
+import { isConverted } from './useConverter';
 
 /** The last step's end: the Convert button and what failed, or the converted files once they are ready. */
 export function ConvertOutcome({
@@ -31,7 +32,7 @@ export function ConvertOutcome({
 }) {
   const t = useT();
   const { conv, pair } = remapper;
-  if (conv.kind === 'done' && conv.results.length > 0) {
+  if (isConverted(conv)) {
     return (
       <DonePanel
         results={conv.results}

@@ -5,6 +5,7 @@ import { DonePanel } from '../../src/convert/DonePanel';
 
 import { recordDownloads } from '../downloads';
 import type { FailedFile } from '../../src/convert/batch';
+import type { Converted } from '../../src/convert/useConverter';
 import type { FileResult } from '../../src/core/files';
 import type { Unrecognized } from '../../src/core/midiremap';
 import type { ReportGroups, ReportView } from '../../src/report/report';
@@ -34,7 +35,7 @@ function view(overrides: Partial<ReportView['totals']> = {}, files: ReportView['
 }
 
 function renderPanel({
-  results = [result('groove-ezd.mid', 'blob:x')],
+  results = [result('groove-ezd.mid', 'blob:x')] as Converted['results'],
   failures = [] as FailedFile[],
   report = view(),
   onViewReport = vi.fn(),

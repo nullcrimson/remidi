@@ -6,9 +6,9 @@ import type { EngineNames, EnginePair } from '../core/enginePair';
 import type { Unrecognized } from '../core/midiremap';
 import { reportLink } from '../report/reportLink';
 import type { FailedFile } from './batch';
-import type { FileResult } from '../core/files';
 import { ErrorText } from '../ui/ErrorText';
 import type { ReportView } from '../report/report';
+import type { Converted } from './useConverter';
 import { zipFiles } from './zip';
 import { Button } from '../ui/Button';
 import { askAfterDownload } from '../tip/tipAsk';
@@ -34,7 +34,7 @@ export function DonePanel({
   onDropMissing,
   editedDrums = 0,
 }: {
-  results: FileResult[];
+  results: Converted['results'];
   failures: FailedFile[];
   view: ReportView;
   pair: EnginePair;
