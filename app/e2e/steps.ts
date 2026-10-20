@@ -23,6 +23,9 @@ export const engineSide = (page: Page, side: 'FROM' | 'TO') => page.getByRole('g
 export const engineCard = (page: Page, side: 'FROM' | 'TO') =>
   engineSide(page, side).getByRole('button', { name: new RegExp(`^${side}`) });
 
+/** The name of the engine chosen on a side, shown on its card. */
+export const chosenEngine = (page: Page, side: 'FROM' | 'TO') => engineSide(page, side).getByTestId('chosen-engine');
+
 export const enginePicker = (page: Page, side: 'FROM' | 'TO') =>
   page.getByRole('dialog', { name: `Choose the ${side} engine` });
 

@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { addFiles, DRUMS, expect, midFile, openPair, test } from './fixtures';
+import { chosenEngine } from './steps';
 
 const kick = (name: string) => midFile(name, [{ channel: DRUMS, key: 24 }]);
 
@@ -55,8 +56,7 @@ test('Convert more leaves the done panel for an empty converter with the same en
   await expect(done).toBeHidden();
   await expect(page.getByText('kick.mid', { exact: true })).toBeHidden();
   await expect(page.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ })).toBeDisabled();
-  await expect(page.getByRole('group', { name: 'TO engine' }).getByTestId('chosen-engine'))
-    .toHaveText('EZdrummer 3');
+  await expect(chosenEngine(page, 'TO')).toHaveText('EZdrummer 3');
 });
 
 test('a file added after Convert more converts again', async ({ page }) => {

@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { ANALYTICS, expect, test } from './fixtures';
-import { openEditor, presetChip, saved, saveKickPreset, targetNote } from './steps';
+import { chosenEngine, openEditor, presetChip, saved, saveKickPreset, targetNote } from './steps';
 
 const NAME = 'Heavy Kick';
 
@@ -60,8 +60,7 @@ test('an exported preset imports into a browser that has never seen it', async (
 
   await expect(other.getByText(`Imported '${NAME}'.`)).toBeVisible();
   await presetChip(other, NAME).click();
-  await expect(other.getByRole('group', { name: 'FROM engine' }).getByTestId('chosen-engine'))
-    .toHaveText('GetGood Drums Invasion');
+  await expect(chosenEngine(other, 'FROM')).toHaveText('GetGood Drums Invasion');
   await openEditor(other);
   await expect(targetNote(other, 'Kick')).toHaveText('E2');
   await fresh.close();

@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import { addFiles, DRUMS, expect, midFile, openPair, test } from './fixtures';
-import { engineCard, engineSide } from './steps';
+import { chosenEngine, engineCard } from './steps';
 
 const groove = () => midFile('groove.mid', [{ channel: DRUMS, key: 24 }]);
 
@@ -25,7 +25,7 @@ test('walks from page load to a converted file by keyboard', async ({ page }) =>
   await expect(page.getByRole('combobox', { name: 'Filter FROM engines' })).toBeFocused();
   await page.keyboard.type('Invasion');
   await page.keyboard.press('Enter');
-  await expect(engineSide(page, 'FROM').getByTestId('chosen-engine')).toHaveText(/Invasion/);
+  await expect(chosenEngine(page, 'FROM')).toHaveText(/Invasion/);
   await expect(engineCard(page, 'FROM')).toBeFocused();
 
   await tabTo(page, engineCard(page, 'TO'));
@@ -33,8 +33,7 @@ test('walks from page load to a converted file by keyboard', async ({ page }) =>
   await expect(page.getByRole('combobox', { name: 'Filter TO engines' })).toBeFocused();
   await page.keyboard.type('General MIDI');
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('group', { name: 'TO engine' }).getByTestId('chosen-engine'))
-    .toHaveText(/General MIDI/);
+  await expect(chosenEngine(page, 'TO')).toHaveText(/General MIDI/);
 
   const convert = page.getByRole('button', { name: /^Convert/ });
   await tabTo(page, convert);

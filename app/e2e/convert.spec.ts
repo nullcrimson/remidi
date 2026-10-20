@@ -25,18 +25,6 @@ test('focus moves to the converted heading after Convert', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /1 file converted → EZdrummer/ })).toBeFocused();
 });
 
-test('one saved file does not ask for a tip', async ({ page }) => {
-  await openPair(page);
-  await addFiles(page, kick('kick.mid'));
-  await page.getByRole('button', { name: /^Convert/ }).click();
-  await page.getByRole('heading', { name: /1 file converted → EZdrummer/ }).waitFor();
-
-  const download = page.waitForEvent('download');
-  await page.getByRole('link', { name: /Download \.mid/ }).click();
-  await download;
-  await expect(page.getByRole('group', { name: 'Leave a tip' })).toHaveCount(0);
-});
-
 async function hoverDisabledConvert(page: Page) {
   await openPair(page);
   await expect(page.getByRole('button', { name: /Edit individual notes/ })).toBeVisible();

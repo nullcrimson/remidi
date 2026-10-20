@@ -1,5 +1,5 @@
 import { expect, openPair, test } from './fixtures';
-import { leaveEditor, openEditor, openSettings, press, retarget, targetNote } from './steps';
+import { chosenEngine, leaveEditor, openEditor, openSettings, press, retarget, targetNote } from './steps';
 
 test('the last engines, settings and unsaved edits come back on a fresh visit', async ({ page }) => {
   await openPair(page);
@@ -12,10 +12,8 @@ test('the last engines, settings and unsaved edits come back on a fresh visit', 
   await leaveEditor(page);
 
   await page.goto('/');
-  await expect(page.getByRole('group', { name: 'FROM engine' }).getByTestId('chosen-engine'))
-    .toHaveText('GetGood Drums Invasion');
-  await expect(page.getByRole('group', { name: 'TO engine' }).getByTestId('chosen-engine'))
-    .toHaveText('EZdrummer 3');
+  await expect(chosenEngine(page, 'FROM')).toHaveText('GetGood Drums Invasion');
+  await expect(chosenEngine(page, 'TO')).toHaveText('EZdrummer 3');
   await openSettings(page);
   await expect(page.getByRole('radio', { name: 'C-2' })).toBeChecked();
   await expect(page.getByRole('combobox', { name: 'Drum channel' })).toHaveValue('all');
@@ -30,10 +28,8 @@ test('a link with engines wins over the remembered ones', async ({ page }) => {
   await openPair(page);
 
   await page.goto('/?from=ezdrummer&to=general_midi');
-  await expect(page.getByRole('group', { name: 'FROM engine' }).getByTestId('chosen-engine'))
-    .toHaveText('EZdrummer 3');
-  await expect(page.getByRole('group', { name: 'TO engine' }).getByTestId('chosen-engine'))
-    .toHaveText(/General MIDI/);
+  await expect(chosenEngine(page, 'FROM')).toHaveText('EZdrummer 3');
+  await expect(chosenEngine(page, 'TO')).toHaveText(/General MIDI/);
 });
 
 test('a link with engines keeps the remembered settings', async ({ page }) => {

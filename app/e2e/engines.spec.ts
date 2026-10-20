@@ -1,5 +1,5 @@
 import { expect, test } from './fixtures';
-import { engineCard, enginePicker, engineSide, pickEngine } from './steps';
+import { chosenEngine, engineCard, enginePicker, engineSide, pickEngine } from './steps';
 
 test('Swap is disabled before any engine is chosen', async ({ page }) => {
   await page.goto('/');
@@ -18,7 +18,7 @@ test('picks a FROM engine by filtering the list in its picker', async ({ page })
   await expect(picker.getByRole('option', { name: 'EZdrummer 3', exact: true })).toHaveCount(0);
   await picker.getByRole('option', { name: 'GetGood Drums Invasion', exact: true }).click();
   await expect(picker).toBeHidden();
-  await expect(engineSide(page, 'FROM').getByTestId('chosen-engine')).toHaveText('GetGood Drums Invasion');
+  await expect(chosenEngine(page, 'FROM')).toHaveText('GetGood Drums Invasion');
   await expect(engineCard(page, 'FROM')).toBeFocused();
 });
 
@@ -35,7 +35,7 @@ test('picks a TO engine and disables it in the FROM picker', async ({ page }) =>
   await page.goto('/');
   await pickEngine(page, 'FROM', 'invasion', 'GetGood Drums Invasion');
   await pickEngine(page, 'TO', 'ezdrummer', 'EZdrummer 3');
-  await expect(engineSide(page, 'TO').getByTestId('chosen-engine')).toHaveText('EZdrummer 3');
+  await expect(chosenEngine(page, 'TO')).toHaveText('EZdrummer 3');
   await expect(page.getByRole('button', { name: /of \d+ drums remapped/ })).toBeVisible();
 
   await engineCard(page, 'FROM').click();
@@ -49,8 +49,8 @@ test('Swap exchanges the FROM and TO engines', async ({ page }) => {
   await pickEngine(page, 'TO', 'ezdrummer', 'EZdrummer 3');
 
   await page.getByRole('button', { name: 'Swap FROM and TO' }).click();
-  await expect(engineSide(page, 'FROM').getByTestId('chosen-engine')).toHaveText('EZdrummer 3');
-  await expect(engineSide(page, 'TO').getByTestId('chosen-engine')).toHaveText('GetGood Drums Invasion');
+  await expect(chosenEngine(page, 'FROM')).toHaveText('EZdrummer 3');
+  await expect(chosenEngine(page, 'TO')).toHaveText('GetGood Drums Invasion');
   await engineCard(page, 'FROM').click();
   await expect(enginePicker(page, 'FROM').getByRole('option', { name: 'EZdrummer 3', exact: true }))
     .toHaveAttribute('aria-selected', 'true');
@@ -80,7 +80,7 @@ test('a starred engine is one press away after a reload', async ({ page }) => {
   await page.reload();
   const quick = engineSide(page, 'TO').getByRole('list', { name: 'Favourites' });
   await quick.getByRole('button', { name: 'EZdrummer 3' }).click();
-  await expect(engineSide(page, 'TO').getByTestId('chosen-engine')).toHaveText('EZdrummer 3');
+  await expect(chosenEngine(page, 'TO')).toHaveText('EZdrummer 3');
   await expect(engineSide(page, 'FROM').getByRole('list', { name: 'Favourites' })).toHaveCount(0);
 });
 
