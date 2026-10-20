@@ -2057,6 +2057,42 @@ mod tests {
         }
     }
 
+    fn engine_hrefs(html: &str) -> Vec<&str> {
+        html.split(r#"href="/engines/"#)
+            .skip(1)
+            .filter_map(|rest| rest.split('"').next())
+            .filter(|slug| !slug.is_empty())
+            .collect()
+    }
+
+    #[test]
+    fn every_engine_is_listed_once_even_when_nested() {
+        let site = crate::fixtures::site();
+        let mut every: Vec<String> = site
+            .index
+            .all
+            .iter()
+            .map(|e| format!("{}/", e.slug))
+            .collect();
+        every.sort();
+        let index = page("engines/index.html");
+        let between = |html: &'static str, start: &str, end: &str| -> &'static str {
+            let from = html.find(start).unwrap();
+            let to = from + html[from..].find(end).unwrap();
+            &html[from..to]
+        };
+        let engines = between(index, r#"<div id="engines""#, r#"<p id="engines-empty""#);
+        let drum_maps = page("drum-maps/index.html");
+        let groups = between(drum_maps, "<li data-group>", r#"<p id="drum-maps-empty""#);
+        let a_to_z = groups.split("<li data-group>").nth(2).unwrap();
+        for list in [engines, a_to_z] {
+            let mut listed: Vec<&str> = engine_hrefs(list);
+            listed.sort_unstable();
+            assert_eq!(listed, every);
+        }
+        assert!(engines.contains(r#"href="/engines/ggd-invasion-ggd/" class="text-t4"#));
+    }
+
     #[test]
     fn the_drum_maps_page_lists_the_hub_engines_first() {
         let html = page("drum-maps/index.html");

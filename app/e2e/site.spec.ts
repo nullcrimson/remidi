@@ -101,3 +101,10 @@ test('filtering the engines puts the list right under the filter', async ({ page
   await expect(quick).toBeHidden();
   await expect(page.locator('#engines').getByRole('link', { name: 'EZdrummer 3' })).toBeVisible();
 });
+
+test('the engine list shows an engine’s other mappings beside it', async ({ page }) => {
+  await page.goto('/engines/');
+  const invasion = page.locator('#engines li').filter({ has: page.getByRole('link', { name: 'GetGood Drums Invasion', exact: true }) });
+  await invasion.getByRole('link', { name: "Mapping 'GGD'", exact: true }).click();
+  await expect(page).toHaveURL('/engines/ggd-invasion-ggd/');
+});

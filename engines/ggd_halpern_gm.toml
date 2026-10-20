@@ -1,6 +1,7 @@
 id = "ggd_halpern_gm"
 name = "GGD Matt Halpern (Mapping 'GM')"
 vendor = "GetGood Drums"
+variant = { of = "ggd_halpern", label = "Mapping 'GM'" }
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 38, canon = "snare1.hit", primary = true },

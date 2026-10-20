@@ -4,7 +4,7 @@
       <h3 class="pb-1.5 font-mono text-caption tracking-[0.14em] text-t5 uppercase">{{ heading }}</h3>
       <ul>
 {% for e in engines -%}
-<li data-q="{{ e.search() }}"><a href="{{ texts.path(e.href()) }}" class="block py-0.5 text-ui text-t2 transition-colors hover:text-accent pointer-coarse:py-3">{{ e.name }}</a></li>
+<li data-q="{{ e.search() }}"><a href="{{ texts.path(e.link.href()) }}" class="block py-0.5 text-ui text-t2 transition-colors hover:text-accent pointer-coarse:py-3">{{ e.link.name }}</a>{% if !e.variants.is_empty() %}<span class="flex flex-wrap gap-x-3 pb-1 pl-3 text-label">{% for v in e.variants %}<a href="{{ texts.path(v.link.href()) }}" class="text-t4 transition-colors hover:text-accent pointer-coarse:py-3">{{ v.label }}</a>{% endfor %}</span>{% endif %}</li>
 {% endfor -%}
       </ul>
     </section>

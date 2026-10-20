@@ -14,6 +14,7 @@ static SHARED: LazyLock<Result<Catalog, MapError>> = LazyLock::new(Catalog::buil
 pub struct Catalog {
     maps: BTreeMap<String, EngineMap>,
     aliases: HashMap<String, String>,
+    variants: HashMap<String, Vec<String>>,
 }
 
 impl Catalog {
@@ -28,7 +29,8 @@ impl Catalog {
     }
 
     /// Later maps with the same id replace earlier ones; fails on an alias that is also an
-    /// engine id or belongs to two engines.
+    /// engine id or belongs to two engines, and on a variant of an engine that is missing or
+    /// is itself a variant.
     pub fn from_maps(maps: impl IntoIterator<Item = EngineMap>) -> Result<Self, MapError> {
         let maps: BTreeMap<String, EngineMap> =
             maps.into_iter().map(|m| (m.id().to_owned(), m)).collect();
@@ -40,7 +42,39 @@ impl Catalog {
                 }
             }
         }
-        Ok(Self { maps, aliases })
+        let mut variants: HashMap<String, Vec<String>> = HashMap::new();
+        for (id, map) in &maps {
+            let Some(of) = map.variant_of() else {
+                continue;
+            };
+            let base = maps.get(of).ok_or_else(|| MapError::UnknownVariantBase {
+                variant: id.clone(),
+                of: of.to_owned(),
+            })?;
+            if base.variant_of().is_some() {
+                return Err(MapError::VariantOfVariant(id.clone()));
+            }
+            variants.entry(of.to_owned()).or_default().push(id.clone());
+        }
+        Ok(Self {
+            maps,
+            aliases,
+            variants,
+        })
+    }
+
+    /// The engines that are other mappings of `base`, in id order.
+    pub fn variants(&self, base: &EngineMap) -> impl Iterator<Item = &EngineMap> {
+        self.variants
+            .get(base.id())
+            .into_iter()
+            .flatten()
+            .filter_map(|id| self.maps.get(id))
+    }
+
+    /// The engine `map` is another mapping of, when it is a variant.
+    pub fn base_of(&self, map: &EngineMap) -> Option<&EngineMap> {
+        map.variant_of().and_then(|of| self.maps.get(of))
     }
 
     /// Adds a user map from JSON; it shadows a builtin with the same id.
@@ -287,5 +321,71 @@ mod tests {
     fn shared_holds_the_builtin_engines() {
         let shared = Catalog::shared().unwrap();
         assert!(shared.ids().eq(Catalog::builtin().unwrap().ids()));
+    }
+
+    fn kit(id: &str, variant_of: Option<&str>) -> EngineMap {
+        let variant = variant_of
+            .map(|of| format!(r#","variant":{{"of":"{of}","label":"Mapping '{id}'"}}"#))
+            .unwrap_or_default();
+        EngineMap::from_json(&format!(
+            r#"{{"id":"{id}","name":"{id}"{variant},"notes":[{{"note":36,"canon":"kick.main","primary":true}}]}}"#
+        ))
+        .unwrap()
+    }
+
+    #[test]
+    fn variants_of_a_base_are_listed_in_id_order() {
+        let c = Catalog::from_maps([
+            kit("base_gm", Some("base")),
+            kit("base", None),
+            kit("base_ggd", Some("base")),
+        ])
+        .unwrap();
+        let base = c.get("base").unwrap();
+        let ids: Vec<&str> = c.variants(base).map(EngineMap::id).collect();
+        assert_eq!(ids, ["base_ggd", "base_gm"]);
+        assert_eq!(
+            c.get("base_gm").unwrap().variant_label(),
+            Some("Mapping 'base_gm'")
+        );
+        assert_eq!(base.variant_label(), None);
+    }
+
+    #[test]
+    fn base_of_a_variant_is_its_base() {
+        let c = Catalog::from_maps([kit("base", None), kit("base_gm", Some("base"))]).unwrap();
+        let variant = c.get("base_gm").unwrap();
+        assert_eq!(c.base_of(variant).map(EngineMap::id), Some("base"));
+        assert!(c.base_of(c.get("base").unwrap()).is_none());
+        assert_eq!(c.variants(variant).count(), 0);
+    }
+
+    #[test]
+    fn an_unknown_variant_base_is_an_error() {
+        assert!(matches!(
+            Catalog::from_maps([kit("base_gm", Some("base"))]),
+            Err(MapError::UnknownVariantBase { variant, of }) if variant == "base_gm" && of == "base"
+        ));
+    }
+
+    #[test]
+    fn a_variant_of_a_variant_is_an_error() {
+        assert!(matches!(
+            Catalog::from_maps([
+                kit("base", None),
+                kit("base_gm", Some("base")),
+                kit("base_gm_ggd", Some("base_gm")),
+            ]),
+            Err(MapError::VariantOfVariant(id)) if id == "base_gm_ggd"
+        ));
+    }
+
+    #[test]
+    fn every_builtin_variant_has_a_builtin_base() {
+        let b = Catalog::builtin().unwrap();
+        let nested: usize = b.engines().map(|m| b.variants(m).count()).sum();
+        let variants = b.engines().filter(|m| b.base_of(m).is_some()).count();
+        assert_eq!(nested, variants);
+        assert!(variants > 0);
     }
 }

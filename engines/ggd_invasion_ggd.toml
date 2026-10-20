@@ -1,6 +1,7 @@
 id = "ggd_invasion_ggd"
 name = "GGD Invasion (Mapping 'GGD')"
 vendor = "GetGood Drums"
+variant = { of = "ggd_invasion", label = "Mapping 'GGD'" }
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.hit", primary = true },

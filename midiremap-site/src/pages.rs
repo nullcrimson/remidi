@@ -429,10 +429,45 @@ pub struct EngineCount {
     pub notes: usize,
 }
 
+/// Another mapping of a listed engine, named by how its mapping differs.
+pub struct VariantLink {
+    pub link: EngineLink,
+    pub label: String,
+}
+
+/// An engine as a list shows it: its link, then the other mappings of it.
+pub struct ListedEngine {
+    pub link: EngineLink,
+    pub variants: Vec<VariantLink>,
+}
+
+impl ListedEngine {
+    fn of(catalog: &Catalog, map: &EngineMap) -> Self {
+        Self {
+            link: EngineLink::of(map),
+            variants: catalog
+                .variants(map)
+                .map(|v| VariantLink {
+                    link: EngineLink::of(v),
+                    label: v.variant_label().unwrap_or(v.display_name()).to_owned(),
+                })
+                .collect(),
+        }
+    }
+
+    /// Lower-case text the list filters match against: the engine's and its variants'.
+    pub fn search(&self) -> String {
+        std::iter::once(self.link.search())
+            .chain(self.variants.iter().map(|v| v.link.search()))
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+}
+
 /// Engines of a vendor that makes at least two of them.
 pub struct VendorGroup {
     pub name: String,
-    pub engines: Vec<EngineLink>,
+    pub engines: Vec<ListedEngine>,
 }
 
 pub struct IndexPage {
@@ -442,7 +477,9 @@ pub struct IndexPage {
     pub matrix: Vec<MatrixRow>,
     pub vendors: Vec<VendorGroup>,
     /// The engines without a vendor group: no vendor, or a vendor that makes no other engine.
-    pub more: Vec<EngineLink>,
+    pub more: Vec<ListedEngine>,
+    /// Every engine that is no variant of another, by name, with its variants.
+    pub listed: Vec<ListedEngine>,
     pub all: Vec<EngineLink>,
 }
 
@@ -630,17 +667,23 @@ fn sort_by_name(maps: &mut [&EngineMap]) {
     maps.sort_by_cached_key(|m| (m.display_name().to_lowercase(), m.id().to_owned()));
 }
 
-fn vendor_groups(maps: &[&EngineMap]) -> (Vec<VendorGroup>, Vec<EngineLink>) {
-    let mut by_vendor: BTreeMap<(String, String), Vec<EngineLink>> = BTreeMap::new();
+fn listed(catalog: &Catalog, maps: &[&EngineMap]) -> Vec<ListedEngine> {
+    maps.iter()
+        .filter(|m| catalog.base_of(m).is_none())
+        .map(|m| ListedEngine::of(catalog, m))
+        .collect()
+}
+
+fn vendor_groups(listed: Vec<ListedEngine>) -> (Vec<VendorGroup>, Vec<ListedEngine>) {
+    let mut by_vendor: BTreeMap<(String, String), Vec<ListedEngine>> = BTreeMap::new();
     let mut more = Vec::new();
-    for m in maps {
-        let link = EngineLink::of(m);
-        match link.vendor.clone() {
+    for engine in listed {
+        match engine.link.vendor.clone() {
             Some(vendor) => by_vendor
                 .entry((vendor.to_lowercase(), vendor))
                 .or_default()
-                .push(link),
-            None => more.push(link),
+                .push(engine),
+            None => more.push(engine),
         }
     }
     let mut groups = Vec::new();
@@ -651,7 +694,7 @@ fn vendor_groups(maps: &[&EngineMap]) -> (Vec<VendorGroup>, Vec<EngineLink>) {
             more.extend(engines);
         }
     }
-    more.sort_by_cached_key(|e| (e.name.to_lowercase(), e.id.clone()));
+    more.sort_by_cached_key(|e| (e.link.name.to_lowercase(), e.link.id.clone()));
     (groups, more)
 }
 
@@ -711,7 +754,7 @@ impl Site {
             .iter()
             .map(|&(s, t)| pair_page(s, t, &routes))
             .collect();
-        let (vendors, more) = vendor_groups(&maps);
+        let (vendors, more) = vendor_groups(listed(catalog, &maps));
         let index = IndexPage {
             majors: majors
                 .iter()
@@ -724,6 +767,7 @@ impl Site {
             matrix: matrix(&majors, &pairs)?,
             vendors,
             more,
+            listed: listed(catalog, &maps),
             all: maps.iter().map(|m| EngineLink::of(m)).collect(),
         };
         Ok(Site {
@@ -1265,6 +1309,7 @@ mod tests {
             .iter()
             .flat_map(|g| g.engines.iter())
             .chain(&s.index.more)
+            .flat_map(|e| std::iter::once(&e.link).chain(e.variants.iter().map(|v| &v.link)))
             .map(|e| e.id.as_str())
             .collect()
     }
@@ -1275,6 +1320,44 @@ mod tests {
         let listed: HashSet<&str> = listed_engines(s).into_iter().collect();
         let all: HashSet<&str> = s.index.all.iter().map(|e| e.id.as_str()).collect();
         assert_eq!(listed, all);
+    }
+
+    #[test]
+    fn listed_engines_nest_every_variant_under_its_base() {
+        let maps = Catalog::builtin().unwrap();
+        let listed = &site().index.listed;
+        for e in listed {
+            let map = maps.get(&e.link.id).unwrap();
+            assert!(maps.base_of(map).is_none(), "{}", e.link.id);
+            for v in &e.variants {
+                let variant = maps.get(&v.link.id).unwrap();
+                assert_eq!(maps.base_of(variant).map(EngineMap::id), Some(map.id()));
+                assert_eq!(Some(v.label.as_str()), variant.variant_label());
+            }
+        }
+        let ids: HashSet<&str> = listed
+            .iter()
+            .flat_map(|e| std::iter::once(&e.link).chain(e.variants.iter().map(|v| &v.link)))
+            .map(|l| l.id.as_str())
+            .collect();
+        let all: HashSet<&str> = site().index.all.iter().map(|e| e.id.as_str()).collect();
+        assert_eq!(ids, all);
+    }
+
+    #[test]
+    fn ggd_invasion_lists_its_ggd_mapping_beside_it() {
+        let invasion = site()
+            .index
+            .listed
+            .iter()
+            .find(|e| e.link.id == "ggd_invasion")
+            .unwrap();
+        let variants: Vec<(&str, &str)> = invasion
+            .variants
+            .iter()
+            .map(|v| (v.link.id.as_str(), v.label.as_str()))
+            .collect();
+        assert_eq!(variants, [("ggd_invasion_ggd", "Mapping 'GGD'")]);
     }
 
     #[test]
@@ -1296,7 +1379,7 @@ mod tests {
             .index
             .more
             .iter()
-            .all(|e| e.vendor.as_ref().is_none_or(|v| s
+            .all(|e| e.link.vendor.as_ref().is_none_or(|v| s
                 .index
                 .vendors
                 .iter()

@@ -1,13 +1,7 @@
 {% extends "base.html" %}
 {% import "macros.html" as macros %}
-{% macro engine_downloads(heading, engines) %}<li data-group>
-      <h3 class="pt-4 pb-1.5 font-mono text-caption tracking-[0.14em] text-t5 uppercase">{{ heading }}</h3>
-      <ul class="flex flex-col">
-        {% for e in engines -%}
-<li data-q="{{ e.search() }}" class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5 border-t border-white/5 py-2"><a href="{{ texts.path(e.href()) }}" class="text-ui text-t2 transition-colors hover:text-accent">{{ e.name }}</a><span class="link-chips">{% for d in e.drum_maps() %}{% call macros::drum_map_download(e, d) %}{% endcall %}{% endfor %}</span></li>
-{% endfor -%}
-      </ul>
-    </li>{% endmacro %}
+{% macro downloads(e) %}<span class="link-chips">{% for d in e.drum_maps() %}{% call macros::drum_map_download(e, d) %}{% endcall %}{% endfor %}</span>{% endmacro %}
+{% macro group_heading(heading) %}<h3 class="pt-4 pb-1.5 font-mono text-caption tracking-[0.14em] text-t5 uppercase">{{ heading }}</h3>{% endmacro %}
 {% macro step_heading(number, state, text) %}<div class="flex items-center gap-2.5"><span class="step-badge" data-state="{{ state.key() }}" aria-hidden="true">{{ number }}</span><h2 class="font-display text-title font-semibold text-t1">{{ text }}</h2></div>{% endmacro %}
 {% block content %}
 <div class="flex flex-col gap-2.5">
@@ -47,8 +41,22 @@
     class="rounded-chip border border-field-border bg-field px-2 py-1.25 font-mono text-body text-t2 transition-colors outline-none placeholder:text-t5 focus:border-accent/40 sm:text-label pointer-coarse:py-2.5"
   />
   <ul id="drum-maps" class="flex flex-col">
-    {% call engine_downloads(texts.get(Plain::DrumMapsMostUsed), page.major_links()) %}{% endcall %}
-    {% call engine_downloads(texts.count(MessageId::MapsAllEngines, page.all.len())?, &page.all) %}{% endcall %}
+    <li data-group>
+      {% call group_heading(texts.get(Plain::DrumMapsMostUsed)) %}{% endcall %}
+      <ul class="flex flex-col">
+{% for e in page.major_links() -%}
+<li data-q="{{ e.search() }}" class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5 border-t border-white/5 py-2"><a href="{{ texts.path(e.href()) }}" class="text-ui text-t2 transition-colors hover:text-accent">{{ e.name }}</a>{% call downloads(e) %}{% endcall %}</li>
+{% endfor -%}
+      </ul>
+    </li>
+    <li data-group>
+      {% call group_heading(texts.count(MessageId::MapsAllEngines, page.all.len())?) %}{% endcall %}
+      <ul class="flex flex-col">
+{% for e in page.listed -%}
+<li data-q="{{ e.search() }}" class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5 border-t border-white/5 py-2"><a href="{{ texts.path(e.link.href()) }}" class="text-ui text-t2 transition-colors hover:text-accent">{{ e.link.name }}</a>{% call downloads(e.link) %}{% endcall %}{% for v in e.variants %}<span class="flex basis-full flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5 pl-3"><a href="{{ texts.path(v.link.href()) }}" class="text-label text-t4 transition-colors hover:text-accent">{{ v.label }}</a>{% call downloads(v.link) %}{% endcall %}</span>{% endfor %}</li>
+{% endfor -%}
+      </ul>
+    </li>
   </ul>
   <p id="drum-maps-empty" hidden class="font-mono text-label text-t5">{{ texts.get(Plain::MapsNoEngines) }}</p>
 </section>

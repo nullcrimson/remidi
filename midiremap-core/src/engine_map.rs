@@ -28,7 +28,15 @@ struct RawMap {
     vendor: Option<NonBlank>,
     #[serde(default)]
     aliases: Vec<String>,
+    #[serde(default)]
+    variant: Option<RawVariant>,
     notes: Vec<RawEntry>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawVariant {
+    of: String,
+    label: NonBlank,
 }
 
 /// One engine's note layout: which drum each note plays, and which note plays each drum.
@@ -39,6 +47,7 @@ pub struct EngineMap {
     short_name: Option<NonBlank>,
     vendor: Option<NonBlank>,
     aliases: Vec<String>,
+    variant: Option<RawVariant>,
     to_canon: HashMap<Note, Canon>,
     from_canon: HashMap<Canon, Note>,
 }
@@ -111,6 +120,17 @@ impl EngineMap {
         &self.aliases
     }
 
+    /// The id of the engine this one is another mapping of, when it is one.
+    pub(crate) fn variant_of(&self) -> Option<&str> {
+        self.variant.as_ref().map(|v| v.of.as_str())
+    }
+
+    /// How this engine's mapping differs from the engine it is a variant of, such as
+    /// `Mapping 'GM'`; `None` for an engine that is no variant.
+    pub fn variant_label(&self) -> Option<&str> {
+        self.variant.as_ref().map(|v| v.label.as_str())
+    }
+
     pub fn drums(&self) -> Vec<Drum> {
         listing(self.encodings().map(|(canon, note)| (note, canon)))
     }
@@ -143,6 +163,10 @@ pub enum MapError {
     Parse(#[source] serde_json::Error),
     #[error("alias {0} is already an engine id or another engine's alias")]
     AliasCollision(String),
+    #[error("{variant} is a variant of {of}, which is no engine")]
+    UnknownVariantBase { variant: String, of: String },
+    #[error("{0} is a variant of an engine that is itself a variant")]
+    VariantOfVariant(String),
 }
 
 fn build(raw: RawMap) -> Result<EngineMap, MapError> {
@@ -175,6 +199,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
         short_name: raw.short_name,
         vendor: raw.vendor,
         aliases: raw.aliases,
+        variant: raw.variant,
         to_canon,
         from_canon,
     })
