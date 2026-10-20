@@ -45,7 +45,17 @@ maps-index-intro = { $count ->
 }
 maps-more-engines = Другие плагины
 maps-matrix-corner = ИЗ ↓ В →
-maps-matrix-hint = Стрелка открывает таблицу конвертации: из плагина в строке в плагин в столбце.
+maps-quick-label = Популярные плагины
+maps-note-count = { $count ->
+    [one] { $count } нота
+    [few] { $count } ноты
+    [many] { $count } нот
+   *[other] { $count } ноты
+}
+maps-matrix-heading = Все пары из топ-{ $count }
+maps-matrix-share = { $percent }%
+maps-matrix-share-label = Из { $source } в { $target }: { $percent }% нот совпадают точно
+maps-matrix-hint = В каждой ячейке — доля нот, которые совпадают точно; по клику открывается таблица.
 maps-all-engines = Все плагины ({ $count })
 maps-filter-engines-label = Фильтр плагинов
 maps-filter-engines-placeholder = Фильтр…

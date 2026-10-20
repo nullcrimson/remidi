@@ -30,7 +30,15 @@ maps-index-heading = Drum MIDI note maps
 maps-index-intro = Note charts for { $count } drum engines and conversion tables between the most popular ones — the same mapping data the Drumverter converter uses.
 maps-more-engines = More engines
 maps-matrix-corner = FROM ↓ TO →
-maps-matrix-hint = Each arrow opens the conversion table from the row’s engine to the column’s.
+maps-quick-label = Most used engines
+maps-note-count = { $count ->
+    [one] { $count } note
+   *[other] { $count } notes
+}
+maps-matrix-heading = Every pair between the top { $count }
+maps-matrix-share = { $percent }%
+maps-matrix-share-label = { $source } to { $target }: { $percent }% of notes map exactly
+maps-matrix-hint = Each cell is the share of notes that map exactly, and opens that table.
 maps-all-engines = All { $count } engines
 maps-filter-engines-label = Filter engines
 maps-filter-engines-placeholder = Filter engines…

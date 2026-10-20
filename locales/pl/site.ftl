@@ -39,7 +39,16 @@ maps-index-intro = { $count ->
 }
 maps-more-engines = Pozostałe wtyczki
 maps-matrix-corner = ŹRÓDŁO ↓ CEL →
-maps-matrix-hint = Każda strzałka otwiera tabelę konwersji z wtyczki w wierszu na wtyczkę w kolumnie.
+maps-quick-label = Najczęściej używane wtyczki
+maps-note-count = { $count ->
+    [one] { $count } nuta
+    [few] { $count } nuty
+   *[many] { $count } nut
+}
+maps-matrix-heading = Wszystkie pary spośród { $count } najpopularniejszych
+maps-matrix-share = { $percent }%
+maps-matrix-share-label = { $source } na { $target }: { $percent }% nut pasuje dokładnie
+maps-matrix-hint = Każda komórka pokazuje odsetek nut, które pasują dokładnie, i otwiera tę tabelę.
 maps-all-engines = { $count ->
     [one] Wszystkie { $count } wtyczka
     [few] Wszystkie { $count } wtyczki

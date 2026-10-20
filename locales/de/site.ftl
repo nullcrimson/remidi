@@ -30,7 +30,15 @@ maps-index-heading = Drum-MIDI-Notenbelegungen
 maps-index-intro = Notenbelegungen für { $count } Drum-Plugins und Konvertierungstabellen zwischen den beliebtesten – mit genau diesen Daten arbeitet auch der Konverter von Drumverter.
 maps-more-engines = Weitere Plugins
 maps-matrix-corner = VON ↓ NACH →
-maps-matrix-hint = Jeder Pfeil öffnet die Konvertierungstabelle vom Plugin der Zeile zum Plugin der Spalte.
+maps-quick-label = Meistgenutzte Plugins
+maps-note-count = { $count ->
+    [one] { $count } Note
+   *[other] { $count } Noten
+}
+maps-matrix-heading = Alle Paare unter den Top { $count }
+maps-matrix-share = { $percent } %
+maps-matrix-share-label = { $source } nach { $target }: { $percent } % der Noten passen exakt
+maps-matrix-hint = Jede Zelle zeigt den Anteil der Noten, die exakt passen, und öffnet die Tabelle.
 maps-all-engines = Alle { $count } Plugins
 maps-filter-engines-label = Plugins filtern
 maps-filter-engines-placeholder = Plugins filtern…

@@ -30,7 +30,15 @@ maps-index-heading = Mapas de notas MIDI de bateria
 maps-index-intro = Mapas de notas de { $count } plugins de bateria e tabelas de conversão entre os mais populares — os mesmos dados de mapeamento que o conversor do Drumverter usa.
 maps-more-engines = Mais plugins
 maps-matrix-corner = DE ↓ PARA →
-maps-matrix-hint = Cada seta abre a tabela de conversão do plugin da linha para o plugin da coluna.
+maps-quick-label = Plugins mais usados
+maps-note-count = { $count ->
+    [one] { $count } nota
+   *[other] { $count } notas
+}
+maps-matrix-heading = Todos os pares entre os { $count } principais
+maps-matrix-share = { $percent }%
+maps-matrix-share-label = { $source } para { $target }: { $percent }% das notas batem exatamente
+maps-matrix-hint = Cada célula mostra a parcela de notas que batem exatamente e abre essa tabela.
 maps-all-engines = Todos os { $count } plugins
 maps-filter-engines-label = Filtrar plugins
 maps-filter-engines-placeholder = Filtrar plugins…

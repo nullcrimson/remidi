@@ -17,9 +17,32 @@
   </p>
   <p class="text-ui"><a href="{{ texts.path(DRUM_MAPS) }}" class="prose-link">{{ texts.get(Plain::MapsIndexDrumMaps) }}</a></p>
 </div>
+<input
+  type="search"
+  hidden
+  data-filter="engines"
+  data-page="{{ frame.kind }}"
+  aria-label="{{ texts.get(Plain::MapsFilterEnginesLabel) }}"
+  placeholder="{{ texts.get(Plain::MapsFilterEnginesPlaceholder) }}"
+  class="rounded-chip border border-field-border bg-field px-2 py-1.25 font-mono text-body text-t2 transition-colors outline-none placeholder:text-t5 focus:border-accent/40 sm:text-label pointer-coarse:py-2.5"
+/>
+<ul aria-label="{{ texts.get(Plain::MapsQuickLabel) }}" data-filtering-hides class="link-chips">
+{% for m in page.majors -%}
+<li><a href="{{ texts.path(m.link.href()) }}">{{ m.link.name }}<span class="font-mono text-caption text-t5">{{ texts.count(MessageId::MapsNoteCount, m.notes)? }}</span></a></li>
+{% endfor -%}
+</ul>
 
-<section class="flex flex-col gap-3">
+<section data-filtering-hides class="flex flex-col gap-3">
   <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::MapsPopular) }}</h2>
+  <ul class="grid gap-3 sm:grid-cols-2">
+{% for s in popular -%}
+<li><a href="{{ texts.path(s.link.href()) }}" class="flex h-full flex-col gap-1.5 rounded-panel border border-hairline px-4 py-3 transition-colors hover:border-accent/40"><span class="font-display text-body font-semibold text-star">{{ s.link.src_name }} → {{ s.link.tgt_name }}</span><span class="font-mono text-label text-t3">{{ texts.count(MessageId::MapsExactCount, s.tally.exact)? }} · {{ texts.count(MessageId::MapsApproximatedCount, s.tally.approximated)? }} · <span{% if s.tally.dropped > 0 %} class="text-danger"{% endif %}>{{ texts.count(MessageId::MapsDroppedCount, s.tally.dropped)? }}</span></span></a></li>
+{% endfor -%}
+  </ul>
+</section>
+
+<section data-filtering-hides class="flex flex-col gap-3">
+  <h2 class="font-display text-title font-semibold text-t1">{{ texts.count(MessageId::MapsMatrixHeading, page.matrix.len())? }}</h2>
   <div class="overflow-x-auto">
     <table class="w-full min-w-xl table-fixed border-separate border-spacing-0.5 font-mono text-caption">
       <thead>
@@ -36,7 +59,7 @@
           <th scope="row" class="sticky left-0 z-10 w-28 bg-card p-1.5 text-left font-sans text-label font-normal text-t2 sm:w-auto sm:whitespace-nowrap">{{ row.engine.name }}</th>
           {% for cell in row.cells %}
           <td class="text-center">
-            {% if let Some(l) = cell %}<a href="{{ texts.path(l.href()) }}" aria-label="{{ texts.pair(MessageId::MapsPairLink, l.src_name.as_str(), l.tgt_name.as_str())? }}" title="{{ l.src_name }} → {{ l.tgt_name }}" class="flex h-8 items-center justify-center rounded-chip border border-white/8 text-t2 transition-colors hover:border-accent/40 hover:bg-accent/8 hover:text-t1 pointer-coarse:h-11 pointer-coarse:min-w-11">→</a>{% else %}<span aria-hidden="true" class="text-decor">·</span>{% endif %}
+            {% if let Some(s) = cell %}<a href="{{ texts.path(s.link.href()) }}" aria-label="{{ texts.share(MessageId::MapsMatrixShareLabel, s)? }}" title="{{ s.link.src_name }} → {{ s.link.tgt_name }}" class="flex h-8 items-center justify-center rounded-chip border border-white/8 text-t2 transition-colors hover:border-accent/40 hover:bg-accent/8 hover:text-t1 pointer-coarse:h-11 pointer-coarse:min-w-11">{{ texts.share(MessageId::MapsMatrixShare, s)? }}</a>{% else %}<span aria-hidden="true" class="text-decor">·</span>{% endif %}
           </td>
           {% endfor %}
         </tr>
@@ -49,15 +72,6 @@
 
 <section class="flex flex-col gap-3">
   <h2 class="font-display text-title font-semibold text-t1">{{ texts.count(MessageId::MapsAllEngines, page.all.len())? }}</h2>
-  <input
-    type="search"
-    hidden
-    data-filter="engines"
-    data-page="{{ frame.kind }}"
-    aria-label="{{ texts.get(Plain::MapsFilterEnginesLabel) }}"
-    placeholder="{{ texts.get(Plain::MapsFilterEnginesPlaceholder) }}"
-    class="rounded-chip border border-field-border bg-field px-2 py-1.25 font-mono text-body text-t2 transition-colors outline-none placeholder:text-t5 focus:border-accent/40 sm:text-label pointer-coarse:py-2.5"
-  />
   <div id="engines" class="columns-1 gap-8 sm:columns-2 md:columns-3">
     {% for g in page.vendors %}{% call engine_group(g.name, &g.engines) %}{% endcall %}{% endfor %}{% call engine_group(texts.get(Plain::MapsMoreEngines), &page.more) %}{% endcall %}
   </div>

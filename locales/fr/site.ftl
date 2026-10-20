@@ -39,7 +39,15 @@ maps-index-intro = { $count ->
 }
 maps-more-engines = Autres plugins
 maps-matrix-corner = SOURCE ↓ CIBLE →
-maps-matrix-hint = Chaque flèche ouvre la table de conversion du plugin de la ligne vers celui de la colonne.
+maps-quick-label = Plugins les plus utilisés
+maps-note-count = { $count ->
+    [one] { $count } note
+   *[other] { $count } notes
+}
+maps-matrix-heading = Toutes les paires entre les { $count } principaux
+maps-matrix-share = { $percent } %
+maps-matrix-share-label = { $source } vers { $target } : { $percent } % des notes correspondent exactement
+maps-matrix-hint = Chaque case indique la part des notes qui correspondent exactement et ouvre cette table.
 maps-all-engines = { $count ->
     [one] { $count } plugin
    *[other] Les { $count } plugins

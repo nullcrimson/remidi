@@ -359,6 +359,15 @@ impl Tally {
     pub fn changes(&self) -> usize {
         self.approximated + self.dropped
     }
+
+    /// The share of the notes that land exactly, in whole percent; 0 when there are none.
+    pub fn exact_percent(&self) -> u8 {
+        let total = self.total();
+        if total == 0 {
+            return 0;
+        }
+        u8::try_from((self.exact * 200 + total) / (2 * total)).unwrap_or(100)
+    }
 }
 
 pub struct EnginePage {
@@ -410,7 +419,14 @@ impl PairPage {
 
 pub struct MatrixRow {
     pub engine: EngineLink,
-    pub cells: Vec<Option<PairLink>>,
+    /// The pair from this row's engine to each column's, none where the two are the same.
+    pub cells: Vec<Option<PairSummary>>,
+}
+
+/// An engine with how many notes it plays.
+pub struct EngineCount {
+    pub link: EngineLink,
+    pub notes: usize,
 }
 
 /// Engines of a vendor that makes at least two of them.
@@ -421,13 +437,20 @@ pub struct VendorGroup {
 
 pub struct IndexPage {
     /// The popular engines, in `MAJORS` order.
-    pub majors: Vec<EngineLink>,
+    pub majors: Vec<EngineCount>,
     pub columns: Vec<&'static str>,
     pub matrix: Vec<MatrixRow>,
     pub vendors: Vec<VendorGroup>,
     /// The engines without a vendor group: no vendor, or a vendor that makes no other engine.
     pub more: Vec<EngineLink>,
     pub all: Vec<EngineLink>,
+}
+
+impl IndexPage {
+    /// The popular engines' links, in `MAJORS` order.
+    pub fn major_links(&self) -> Vec<&EngineLink> {
+        self.majors.iter().map(|m| &m.link).collect()
+    }
 }
 
 pub struct Site {
@@ -446,19 +469,40 @@ pub struct PairSummary {
     pub tally: Tally,
 }
 
+fn summary(pairs: &[PairPage], src: &str, tgt: &str) -> Result<PairSummary, BuildError> {
+    let slug = pair_slug(src, tgt);
+    pairs
+        .iter()
+        .find(|p| p.slug == slug)
+        .map(|p| PairSummary {
+            link: p.link(),
+            tally: p.tally,
+        })
+        .ok_or(BuildError::NoPairPage(slug))
+}
+
 fn summaries(pairs: &[PairPage], wanted: &[(&str, &str)]) -> Result<Vec<PairSummary>, BuildError> {
     wanted
         .iter()
-        .map(|&(src, tgt)| {
-            let slug = pair_slug(src, tgt);
-            pairs
-                .iter()
-                .find(|p| p.slug == slug)
-                .map(|p| PairSummary {
-                    link: p.link(),
-                    tally: p.tally,
-                })
-                .ok_or(BuildError::NoPairPage(slug))
+        .map(|&(src, tgt)| summary(pairs, src, tgt))
+        .collect()
+}
+
+fn matrix(majors: &[&EngineMap], pairs: &[PairPage]) -> Result<Vec<MatrixRow>, BuildError> {
+    majors
+        .iter()
+        .map(|s| {
+            Ok(MatrixRow {
+                engine: EngineLink::of(s),
+                cells: majors
+                    .iter()
+                    .map(|t| {
+                        (t.id() != s.id())
+                            .then(|| summary(pairs, s.id(), t.id()))
+                            .transpose()
+                    })
+                    .collect::<Result<_, _>>()?,
+            })
         })
         .collect()
 }
@@ -669,18 +713,15 @@ impl Site {
             .collect();
         let (vendors, more) = vendor_groups(&maps);
         let index = IndexPage {
-            majors: majors.iter().map(|m| EngineLink::of(m)).collect(),
-            columns: MAJORS.iter().map(|(_, abbr)| *abbr).collect(),
-            matrix: majors
+            majors: majors
                 .iter()
-                .map(|s| MatrixRow {
-                    engine: EngineLink::of(s),
-                    cells: majors
-                        .iter()
-                        .map(|t| (t.id() != s.id()).then(|| PairLink::of(s, t)))
-                        .collect(),
+                .map(|m| EngineCount {
+                    link: EngineLink::of(m),
+                    notes: m.source_notes().len(),
                 })
                 .collect(),
+            columns: MAJORS.iter().map(|(_, abbr)| *abbr).collect(),
+            matrix: matrix(&majors, &pairs)?,
             vendors,
             more,
             all: maps.iter().map(|m| EngineLink::of(m)).collect(),
@@ -1149,7 +1190,7 @@ mod tests {
         let s = site();
         for row in s.index.matrix.iter() {
             for cell in row.cells.iter().flatten() {
-                assert_eq!(cell.src_name, row.engine.name);
+                assert_eq!(cell.link.src_name, row.engine.name);
             }
         }
     }
@@ -1160,7 +1201,7 @@ mod tests {
         let mut slugs = HashSet::new();
         for row in s.index.matrix.iter() {
             for cell in row.cells.iter().flatten() {
-                assert!(slugs.insert(cell.slug.clone()));
+                assert!(slugs.insert(cell.link.slug.clone()));
             }
         }
     }
@@ -1171,10 +1212,51 @@ mod tests {
         let mut slugs = HashSet::new();
         for row in s.index.matrix.iter() {
             for cell in row.cells.iter().flatten() {
-                slugs.insert(cell.slug.clone());
+                slugs.insert(cell.link.slug.clone());
             }
         }
         assert_eq!(slugs.len(), 56);
+    }
+
+    #[test]
+    fn matrix_cells_are_the_hub_pairs_summaries() {
+        let s = site();
+        for row in &s.index.matrix {
+            for cell in row.cells.iter().flatten() {
+                let page = pair(&cell.link.slug);
+                assert_eq!(cell.tally, page.tally, "{}", page.slug);
+                assert_eq!(cell.link.tgt_name, page.tgt.name, "{}", page.slug);
+            }
+        }
+    }
+
+    #[test]
+    fn exact_percent_rounds_and_never_divides_by_zero() {
+        let share = |exact, approximated, dropped| {
+            Tally {
+                exact,
+                approximated,
+                dropped,
+            }
+            .exact_percent()
+        };
+        assert_eq!(share(0, 0, 0), 0);
+        assert_eq!(share(1, 2, 0), 33);
+        assert_eq!(share(2, 1, 0), 67);
+        assert_eq!(share(1, 1, 0), 50);
+        assert_eq!(share(1, 0, 199), 1);
+        assert_eq!(share(5, 0, 0), 100);
+    }
+
+    #[test]
+    fn index_majors_count_their_engines_notes() {
+        let maps = Catalog::builtin().unwrap();
+        let majors = &site().index.majors;
+        let ids: Vec<&str> = majors.iter().map(|m| m.link.id.as_str()).collect();
+        assert_eq!(ids, MAJORS.map(|(id, _)| id));
+        for m in majors {
+            assert_eq!(m.notes, maps.get(&m.link.id).unwrap().source_notes().len());
+        }
     }
 
     fn listed_engines(s: &Site) -> Vec<&str> {

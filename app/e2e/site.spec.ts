@@ -81,3 +81,23 @@ test('a conversion table names notes in either octave naming', async ({ page }) 
   const lower = (name: string) => name.replace(/-?\d+$/, (n) => String(Number(n) - 1));
   expect(await c2.textContent()).toBe(lower((await c1.textContent())!));
 });
+
+test('a popular card opens its table', async ({ page }) => {
+  await page.goto('/engines/');
+  const card = page.getByRole('link', { name: /^GetGood Drums Invasion → EZdrummer 3 \d+ exact/ });
+  await card.click();
+  await expect(page).toHaveURL('/convert/ggd-invasion-to-ezdrummer/');
+});
+
+test('filtering the engines puts the list right under the filter', async ({ page }) => {
+  await page.goto('/engines/');
+  const popular = page.getByRole('heading', { name: 'Popular conversions' });
+  const quick = page.getByRole('list', { name: 'Most used engines' });
+  await expect(popular).toBeVisible();
+  await expect(quick).toBeVisible();
+
+  await page.getByRole('searchbox', { name: 'Filter engines' }).fill('ezdrummer');
+  await expect(popular).toBeHidden();
+  await expect(quick).toBeHidden();
+  await expect(page.locator('#engines').getByRole('link', { name: 'EZdrummer 3' })).toBeVisible();
+});

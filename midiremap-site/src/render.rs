@@ -309,6 +309,17 @@ impl<'a> Texts<'a> {
         )
     }
 
+    fn share(&self, id: MessageId, cell: &PairSummary) -> Result<String, I18nError> {
+        self.format(
+            id,
+            args([
+                ("source", cell.link.src_name.as_str().into()),
+                ("target", cell.link.tgt_name.as_str().into()),
+                ("percent", cell.tally.exact_percent().into()),
+            ]),
+        )
+    }
+
     fn plays(&self, sources: &[String]) -> Result<String, I18nError> {
         self.format(
             MessageId::MapsChangesPlays,
@@ -509,6 +520,7 @@ struct IndexHtml<'a> {
     frame: Frame<'a>,
     texts: &'a Texts<'a>,
     page: &'a IndexPage,
+    popular: &'a [PairSummary],
 }
 
 #[derive(Template)]
@@ -619,6 +631,7 @@ fn render_note_maps(
             frame: frame(NOTE_MAPS, PageKind::Index, None),
             texts,
             page: &site.index,
+            popular: &site.popular,
         }
         .render()?,
     )];
@@ -1499,11 +1512,86 @@ mod tests {
     #[test]
     fn index_matrix_links_fifty_six_named_pairs() {
         let html = page("engines/index.html");
-        let matrix_links = html
-            .split("<a ")
-            .filter(|a| a.contains("href=\"/convert/") && a.contains(" to "))
-            .count();
-        assert_eq!(matrix_links, 56);
+        let cells: Vec<&str> = anchors(html)
+            .into_iter()
+            .filter(|a| {
+                a.contains(r#"href="/convert/"#) && a.contains(r#"% of notes map exactly""#)
+            })
+            .collect();
+        assert_eq!(cells.len(), 56);
+    }
+
+    #[test]
+    fn index_matrix_cells_show_the_share_of_exact_notes() {
+        let html = page("engines/index.html");
+        let matrix = html
+            .split(">Every pair between the top 8</h2>")
+            .nth(1)
+            .unwrap();
+        for row in &crate::fixtures::site().index.matrix {
+            for cell in row.cells.iter().flatten() {
+                let tag = anchor_to(matrix, &cell.link.href().to_string());
+                let percent = cell.tally.exact_percent();
+                assert!(
+                    tag.contains(&format!(r#": {percent}% of notes map exactly""#)),
+                    "{}",
+                    cell.link.slug
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn the_index_offers_a_card_for_every_popular_pair() {
+        let html = page("engines/index.html");
+        let cards = html.split(">Popular conversions</h2>").nth(1).unwrap();
+        let cards = cards.split("</section>").next().unwrap();
+        let hrefs: Vec<String> = crate::fixtures::site()
+            .popular
+            .iter()
+            .map(|s| s.link.href().to_string())
+            .collect();
+        let linked: Vec<&str> = anchors(cards)
+            .into_iter()
+            .filter_map(|a| a.split(r#"href=""#).nth(1))
+            .filter_map(|rest| rest.split('"').next())
+            .collect();
+        assert_eq!(linked, hrefs);
+    }
+
+    #[test]
+    fn the_index_links_the_most_used_engines_with_their_note_counts() {
+        let html = page("engines/index.html");
+        let quick = html
+            .split(r#"<ul aria-label="Most used engines" data-filtering-hides class="link-chips">"#)
+            .nth(1)
+            .and_then(|rest| rest.split("</ul>").next())
+            .unwrap();
+        for m in &crate::fixtures::site().index.majors {
+            assert!(
+                quick.contains(&format!(
+                    r#"href="{}">{}<span class="font-mono text-caption text-t5">{} notes</span>"#,
+                    m.link.href(),
+                    m.link.name,
+                    m.notes
+                )),
+                "{}",
+                m.link.id
+            );
+        }
+    }
+
+    #[test]
+    fn the_index_hides_its_shortcuts_while_the_filter_has_text() {
+        assert_eq!(
+            page("engines/index.html")
+                .matches(" data-filtering-hides ")
+                .count(),
+            3
+        );
+        assert!(stylesheet().contains(
+            ":root:has([data-filter='engines']:not(:placeholder-shown)) [data-filtering-hides]"
+        ));
     }
 
     fn url_of(path: &str) -> String {
