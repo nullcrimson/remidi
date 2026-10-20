@@ -111,7 +111,47 @@ const APP_CHECK: Reads = Reads {
     built: &["app/src/generated", "app/src/wasm"],
 };
 
-const DIST: &[&str] = &["app/dist"];
+/// The app's build directory: the app build writes it, then the site build adds its pages.
+pub const DIST: &str = "app/dist";
+
+/// The site generator `Step::CompileSite` builds, from the repository root.
+pub const SITE_PROGRAM: &str = if cfg!(windows) {
+    "target/site/debug/midiremap-site.exe"
+} else {
+    "target/site/debug/midiremap-site"
+};
+
+/// What the app build and the site build read together to write `DIST`.
+pub const DIST_BUILD: Reads = Reads {
+    sources: &[
+        "app/src",
+        "app/public",
+        "app/index.html",
+        "app/vite.config.ts",
+        "app/tsconfig.json",
+        "app/scripts",
+        "app/package.json",
+        "app/package-lock.json",
+        "locales",
+        "content",
+        ".nvmrc",
+    ],
+    built: &["app/src/generated", "app/src/wasm", SITE_PROGRAM],
+};
+
+/// How the gate keeps a step's result between runs.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Kept {
+    /// A check: its pass holds while what it reads is unchanged.
+    Check(Reads),
+    /// One of the two builds that write `DIST`, the app build and then the site build into
+    /// the same directory: both are skipped while what they read and `DIST` as the site
+    /// build left it are unchanged. The site build, which finishes `DIST`, keeps it.
+    Dist { finishes: bool },
+    /// The other builds, which always run; cargo and the wasm script skip the work
+    /// themselves when nothing changed.
+    Never,
+}
 
 #[derive(
     Clone, Copy, Debug, PartialEq, Eq, strum::EnumString, strum::IntoStaticStr, strum::VariantArray,
@@ -152,7 +192,8 @@ impl Step {
             | Step::BuildWasm
             | Step::CompileSite => &[],
             Step::Eslint => &[Step::GenI18n],
-            Step::Tsc | Step::Vitest | Step::BuildApp => &[Step::GenI18n, Step::BuildWasm],
+            Step::Tsc | Step::Vitest => &[Step::GenI18n, Step::BuildWasm],
+            Step::BuildApp => &[Step::GenI18n, Step::BuildWasm, Step::CompileSite],
             Step::BuildSite => &[Step::BuildApp, Step::CompileSite],
             Step::Size | Step::E2e => &[Step::BuildSite],
         }
@@ -173,22 +214,21 @@ impl Step {
         }
     }
 
-    /// What the step reads, for a check; `None` for a build, which always runs, since the
-    /// checks after it read what it writes.
-    pub fn reads(self) -> Option<Reads> {
+    /// How the gate keeps the step's result between runs.
+    pub fn kept(self) -> Kept {
         match self {
-            Step::Fmt | Step::Clippy | Step::CargoTest => Some(RUST_CHECK),
-            Step::Eslint | Step::Tsc | Step::Vitest => Some(APP_CHECK),
-            Step::Size => Some(Reads {
+            Step::Fmt | Step::Clippy | Step::CargoTest => Kept::Check(RUST_CHECK),
+            Step::Eslint | Step::Tsc | Step::Vitest => Kept::Check(APP_CHECK),
+            Step::Size => Kept::Check(Reads {
                 sources: &[
                     "app/scripts",
                     "app/package.json",
                     "app/package-lock.json",
                     ".nvmrc",
                 ],
-                built: DIST,
+                built: &[DIST],
             }),
-            Step::E2e => Some(Reads {
+            Step::E2e => Kept::Check(Reads {
                 sources: &[
                     "app/e2e",
                     "app/playwright.config.ts",
@@ -198,13 +238,11 @@ impl Step {
                     "app/package-lock.json",
                     ".nvmrc",
                 ],
-                built: DIST,
+                built: &[DIST],
             }),
-            Step::GenI18n
-            | Step::BuildWasm
-            | Step::CompileSite
-            | Step::BuildApp
-            | Step::BuildSite => None,
+            Step::BuildApp => Kept::Dist { finishes: false },
+            Step::BuildSite => Kept::Dist { finishes: true },
+            Step::GenI18n | Step::BuildWasm | Step::CompileSite => Kept::Never,
         }
     }
 

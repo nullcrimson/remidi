@@ -766,12 +766,16 @@ Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props;
   (rustc, node, the nightly), its source files (what `git ls-files` lists under its paths,
   untracked ones included) and the build outputs it reads (`app/src/generated`,
   `app/src/wasm`, `app/dist`), and a check whose fingerprint passed before reports `cached`
-  instead of running (`target/gate/passes.json`). The builds always run, since the checks
-  after them read what they write. `--fresh` runs every check and keeps the new passes; the
-  quick gate reads the kept passes and keeps none; CI neither reads nor keeps them. On 16
-  threads (2026-10-20) the whole gate took 105 s with every check run and 23 s with every
-  check cached, against 243 s before passes were kept, the steps ranked and the unit tests
-  moved to happy-dom. A step whose need failed is
+  instead of running (`target/gate/passes.json`). The app build and the site build, which
+  write `app/dist` one after the other, keep one pass between them: both are skipped while
+  what they read (the app's sources, the generated types and wasm, the site generator
+  binary, so the app build waits for that to compile) and `app/dist` as the site build left
+  it are unchanged, which the site build records. The other builds always run; cargo and the
+  wasm script skip their work themselves when nothing changed. `--fresh` runs every check
+  and build and keeps the new passes; the quick gate reads the kept passes and keeps none; CI
+  neither reads nor keeps them. On 16 threads (2026-10-20) the whole gate took 105 s with
+  everything run and 3 s with nothing changed, against 243 s before passes were kept, the
+  steps ranked and the unit tests moved to happy-dom. A step whose need failed is
   skipped. It takes groups (`rust`, `app`, `dist`) or single steps as
   arguments; a partial run adds the i18n types and the site generator when a chosen step
   needs them and takes the other builds as done. Each run writes a log per step and

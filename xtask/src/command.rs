@@ -1,8 +1,8 @@
-use std::{env::consts::EXE_SUFFIX, path::Path, process::Command};
+use std::{path::Path, process::Command};
 
 use crate::{
     plan::{Mode, Plan},
-    step::{Step, TargetDir, Urgency},
+    step::{Step, Urgency, SITE_PROGRAM},
 };
 
 const SHIPPED: [&str; 3] = ["--workspace", "--exclude", "midiremap-wasm"];
@@ -85,7 +85,7 @@ impl Invocation {
     fn site() -> Self {
         Self {
             in_app: true,
-            program: Program::Built(site_program()),
+            program: Program::Built(SITE_PROGRAM.to_owned()),
             args: vec!["dist".to_owned()],
             env: Vec::new(),
             target_dir: None,
@@ -154,14 +154,6 @@ fn lower_priority(command: &mut Command) {
 pub enum Run {
     InTurn(Vec<Invocation>),
     AtOnce(Vec<Invocation>),
-}
-
-/// The site generator `Step::CompileSite` builds, from the repository root.
-fn site_program() -> String {
-    let dir = TargetDir::Site
-        .path()
-        .expect("the site generator has a directory of its own");
-    format!("{dir}/debug/{SITE}{EXE_SUFFIX}")
 }
 
 /// A cargo command in `step`'s build directory: its only one, or for a two-pass step, the
@@ -336,9 +328,10 @@ pub fn summary(step: Step, log: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use std::{ffi::OsStr, path::PathBuf};
+    use std::{env::consts::EXE_SUFFIX, ffi::OsStr, path::PathBuf};
 
     use super::*;
+    use crate::step::TargetDir;
 
     fn cx(mode: Mode) -> Context {
         Context {

@@ -23,7 +23,7 @@ use crate::{
     memo::{Passes, Policy},
     plan::{BrowserTests, Mode, Plan, Selection, Target},
     schedule::{run_plan, Outcome, Verdict},
-    step::Step,
+    step::{Kept, Step, DIST, DIST_BUILD},
 };
 
 #[derive(Parser)]
@@ -121,8 +121,9 @@ impl Gate {
         })
     }
 
-    /// Runs `step`, or for a check that passed before with everything it reads unchanged,
-    /// finds it cached; keeps the check's result for the next run as the policy allows.
+    /// Runs `step`, or finds it cached when it passed before with everything it reads
+    /// unchanged (and for a build of `DIST`, `DIST` as the site build left it); keeps the
+    /// result for the next run as the policy allows.
     fn verdict(&self, step: Step) -> Result<Verdict> {
         let ran = |passed| {
             if passed {
@@ -131,22 +132,35 @@ impl Gate {
                 Verdict::Failed
             }
         };
-        let reads = match step.reads() {
-            Some(reads) if self.policy != Policy::Off => reads,
-            _ => return Ok(ran(self.run(step)?)),
+        let (key, reads, dist) = match step.kept() {
+            _ if self.policy == Policy::Off => return Ok(ran(self.run(step)?)),
+            Kept::Never => return Ok(ran(self.run(step)?)),
+            Kept::Check(reads) => (step.name(), reads, None),
+            Kept::Dist { finishes } => (DIST, DIST_BUILD, Some(finishes)),
         };
-        let fingerprint = memo::fingerprint(&self.root, step, &reads, &self.toolchains)?;
+        let read = memo::fingerprint(&self.root, key, &reads, &self.toolchains)?;
+        let left = || memo::left(&self.root, DIST);
         let passes = || {
             self.passes
                 .lock()
                 .expect("no thread panics holding the passes")
         };
-        if self.policy.reads() && passes().has(step, &fingerprint) {
-            return Ok(Verdict::Cached);
+        if self.policy.reads() {
+            let now = dist.map(|_| left()).transpose()?;
+            if passes().has(key, &read, now.as_ref()) {
+                return Ok(Verdict::Cached);
+            }
         }
         let passed = self.run(step)?;
         if self.policy.writes() {
-            passes().record(step, &fingerprint, passed)?;
+            match dist {
+                None => passes().record(key, read, None, passed)?,
+                Some(true) => {
+                    let after = if passed { Some(left()?) } else { None };
+                    passes().record(key, read, after, passed)?;
+                }
+                Some(false) => {}
+            }
         }
         Ok(ran(passed))
     }

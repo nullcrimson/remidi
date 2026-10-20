@@ -7,14 +7,23 @@ use std::{
 };
 
 use anyhow::{bail, Context as _, Result};
+use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
-use crate::step::{Reads, Step};
+use crate::step::Reads;
 
-/// What a check read, hashed: the step, the toolchains, its source files and the build
-/// outputs it consumes. Two runs with the same fingerprint check the same thing.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// A hash of files: what a step read (with the toolchains), or a build directory it wrote.
+/// Two runs with the same fingerprint read the same thing.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Fingerprint(String);
+
+/// A kept pass: what it read, and for a build the directory it left.
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+struct Pass {
+    read: Fingerprint,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    left: Option<Fingerprint>,
+}
 
 /// Whether a run trusts the checks that passed before, and whether it keeps the ones that
 /// pass now.
@@ -41,11 +50,11 @@ impl Policy {
     }
 }
 
-/// The checks that passed, by step, with the fingerprint they passed at; kept in
-/// `target/gate/passes.json` between runs.
+/// The passes kept between runs in `target/gate/passes.json`, by key: a check's step name,
+/// or the name of the build directory the builds that write it share.
 pub struct Passes {
     path: PathBuf,
-    passed: BTreeMap<String, String>,
+    passed: BTreeMap<String, Pass>,
 }
 
 impl Passes {
@@ -59,17 +68,25 @@ impl Passes {
         Self { path, passed }
     }
 
-    pub fn has(&self, step: Step, fingerprint: &Fingerprint) -> bool {
-        self.passed.get(step.name()) == Some(&fingerprint.0)
+    /// Whether `key` passed having read `read` and, for a build, left `left`.
+    pub fn has(&self, key: &str, read: &Fingerprint, left: Option<&Fingerprint>) -> bool {
+        self.passed
+            .get(key)
+            .is_some_and(|p| p.read == *read && p.left.as_ref() == left)
     }
 
-    /// Keeps `step`'s pass at `fingerprint`, or forgets its pass when it failed.
-    pub fn record(&mut self, step: Step, fingerprint: &Fingerprint, passed: bool) -> Result<()> {
+    /// Keeps `key`'s pass, or forgets it when the step failed.
+    pub fn record(
+        &mut self,
+        key: &str,
+        read: Fingerprint,
+        left: Option<Fingerprint>,
+        passed: bool,
+    ) -> Result<()> {
         if passed {
-            self.passed
-                .insert(step.name().to_owned(), fingerprint.0.clone());
+            self.passed.insert(key.to_owned(), Pass { read, left });
         } else {
-            self.passed.remove(step.name());
+            self.passed.remove(key);
         }
         let json = serde_json::to_string_pretty(&self.passed)?;
         fs::write(&self.path, json + "\n")
@@ -154,15 +171,19 @@ fn hash_file(hasher: &mut blake3::Hasher, root: &Path, file: &str) -> Result<()>
     Ok(())
 }
 
-/// The fingerprint of `step` reading `reads` under `root` with `toolchains`.
-pub fn fingerprint(
-    root: &Path,
-    step: Step,
-    reads: &Reads,
-    toolchains: &str,
-) -> Result<Fingerprint> {
+/// What the files under the build directory `path` hold now.
+pub fn left(root: &Path, path: &str) -> Result<Fingerprint> {
     let mut hasher = blake3::Hasher::new();
-    hasher.update(step.name().as_bytes());
+    for file in built(root, &[path])? {
+        hash_file(&mut hasher, root, &file)?;
+    }
+    Ok(Fingerprint(hasher.finalize().to_hex().to_string()))
+}
+
+/// The fingerprint of what `key` reads (`reads` under `root`) with `toolchains`.
+pub fn fingerprint(root: &Path, key: &str, reads: &Reads, toolchains: &str) -> Result<Fingerprint> {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(key.as_bytes());
     hasher.update(&[0]);
     hasher.update(toolchains.as_bytes());
     hasher.update(&[0]);
@@ -191,7 +212,7 @@ mod tests {
             sources: &[],
             built: &["out"],
         };
-        fingerprint(root, Step::E2e, &reads, "tools").unwrap()
+        fingerprint(root, "e2e", &reads, "tools").unwrap()
     }
 
     #[test]
@@ -222,8 +243,8 @@ mod tests {
             built: &[],
         };
         assert_ne!(
-            fingerprint(&root, Step::Vitest, &reads, "node 24").unwrap(),
-            fingerprint(&root, Step::Vitest, &reads, "node 25").unwrap()
+            fingerprint(&root, "vitest", &reads, "node 24").unwrap(),
+            fingerprint(&root, "vitest", &reads, "node 25").unwrap()
         );
     }
 
@@ -233,12 +254,32 @@ mod tests {
         let path = root.join("passes.json");
         let fp = Fingerprint("abc".to_owned());
         let mut passes = Passes::load(path.clone());
-        assert!(!passes.has(Step::Tsc, &fp));
-        passes.record(Step::Tsc, &fp, true).unwrap();
-        assert!(Passes::load(path.clone()).has(Step::Tsc, &fp));
-        assert!(!Passes::load(path.clone()).has(Step::Tsc, &Fingerprint("abd".to_owned())));
-        passes.record(Step::Tsc, &fp, false).unwrap();
-        assert!(!Passes::load(path).has(Step::Tsc, &fp));
+        assert!(!passes.has("tsc", &fp, None));
+        passes.record("tsc", fp.clone(), None, true).unwrap();
+        assert!(Passes::load(path.clone()).has("tsc", &fp, None));
+        assert!(!Passes::load(path.clone()).has("tsc", &Fingerprint("abd".to_owned()), None));
+        passes.record("tsc", fp.clone(), None, false).unwrap();
+        assert!(!Passes::load(path).has("tsc", &fp, None));
+    }
+
+    #[test]
+    fn a_kept_build_holds_only_while_its_directory_is_as_it_left_it() {
+        let root = scratch("left");
+        fs::create_dir_all(root.join("dist")).unwrap();
+        fs::write(root.join("dist/index.html"), "built").unwrap();
+        let read = Fingerprint("inputs".to_owned());
+        let mut passes = Passes::load(root.join("passes.json"));
+        passes
+            .record(
+                "dist",
+                read.clone(),
+                Some(left(&root, "dist").unwrap()),
+                true,
+            )
+            .unwrap();
+        assert!(passes.has("dist", &read, Some(&left(&root, "dist").unwrap())));
+        fs::remove_file(root.join("dist/index.html")).unwrap();
+        assert!(!passes.has("dist", &read, Some(&left(&root, "dist").unwrap())));
     }
 
     #[test]

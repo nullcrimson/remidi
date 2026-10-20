@@ -1257,6 +1257,7 @@ dependencies = [
  "blake3",
  "clap",
  "libc",
+ "serde",
  "serde_json",
  "strum",
  "walkdir",

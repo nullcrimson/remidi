@@ -320,8 +320,8 @@ mod tests {
         let mut schedule = Schedule::new(&plan);
         assert!(started(&mut schedule).contains(&Step::CargoTest));
         schedule.finish(Step::GenI18n, passed());
-        assert_eq!(started(&mut schedule), [Step::BuildApp]);
         schedule.finish(Step::CompileSite, passed());
+        assert_eq!(started(&mut schedule), [Step::BuildApp]);
         schedule.finish(Step::BuildApp, passed());
         assert_eq!(started(&mut schedule), [Step::BuildSite]);
     }

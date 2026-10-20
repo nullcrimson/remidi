@@ -36,7 +36,7 @@ Deploy the static contents of `app/dist/` to any static host.
 npm run test     # Vitest; needs npm run build:wasm once (the contract test loads the real module)
 npm run e2e      # Playwright against vite preview of dist; run npm run build:site first
 npm run size     # size budgets for dist (wasm, JS, CSS gzipped; latin fonts; largest locale chunk; a static page's script)
-cargo xtask gate      # every check; a check that passed with nothing it reads changed shows cached (logs and timings.json in target/gate/)
+cargo xtask gate      # every check; a check, or the app and site build, that passed with nothing it reads changed shows cached (logs and timings.json in target/gate/)
 cargo xtask gate --fresh  # every check run again, cached or not
 cargo xtask gate app  # one group (rust; app = eslint, tsc, vitest; dist = size, e2e) or single steps; CI runs the same groups
 cargo xtask gate --quick  # local only: vitest --changed, changed e2e files on desktop (builds only then), wasm with thin LTO, no size
