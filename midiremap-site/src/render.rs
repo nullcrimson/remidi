@@ -1884,6 +1884,55 @@ mod tests {
         assert!(opened_converter(anchor_to(html, "/pl/#to=ezdrummer")));
     }
 
+    #[test]
+    fn every_converter_link_carries_the_stats_event() {
+        let mut checked = 0;
+        for (path, html) in rendered() {
+            let (locale, _) = locale_and_rest(path);
+            let home = home(locale).to_string();
+            for tag in anchors(html) {
+                let Some(href) = tag
+                    .split("href=\"")
+                    .nth(1)
+                    .and_then(|s| s.split('"').next())
+                else {
+                    continue;
+                };
+                if href == home || href.starts_with(&format!("{home}#")) {
+                    assert!(opened_converter(tag), "{path}: {tag}");
+                    assert!(tag.contains("data-umami-event-page=\""), "{path}: {tag}");
+                    checked += 1;
+                }
+            }
+        }
+        assert!(checked > rendered().len());
+    }
+
+    fn table_bodies(html: &str) -> impl Iterator<Item = &str> {
+        html.split("<tbody")
+            .skip(1)
+            .map(|rest| rest.split("</tbody>").next().unwrap())
+    }
+
+    #[test]
+    fn table_rows_are_one_unindented_line_each() {
+        for (path, html) in rendered() {
+            let (_, rest) = locale_and_rest(path);
+            let engine_page = rest.starts_with("engines/") && rest != "engines/index.html";
+            if !(engine_page || rest.starts_with("convert/")) {
+                continue;
+            }
+            for body in table_bodies(html) {
+                for line in body.lines().skip(1) {
+                    assert!(line.starts_with('<'), "{path}: {line:?}");
+                    if line.contains("<tr") {
+                        assert!(line.contains("</tr>"), "{path}: {line:?}");
+                    }
+                }
+            }
+        }
+    }
+
     fn filter_input<'a>(html: &'a str, scope: &str) -> &'a str {
         html.split("<input")
             .find(|tag| tag.contains(&format!(r#"data-filter="{scope}""#)))

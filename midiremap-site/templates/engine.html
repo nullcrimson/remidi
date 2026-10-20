@@ -11,20 +11,8 @@
   <p class="text-body/relaxed text-t3">{{ intro }}</p>
 </div>
 <div class="flex flex-wrap items-center gap-3">
-  <a
-    href="{{ frame.home }}#to={{ page.engine.id }}"
-    data-umami-event="converter-opened"
-    data-umami-event-page="{{ frame.kind }}"
-    data-umami-event-to="{{ page.engine.id }}"
-    class="inline-flex items-center justify-center rounded-panel bg-accent px-5 py-3 font-display text-body font-semibold text-ink transition hover:brightness-110 pointer-coarse:min-h-11"
-  >{{ texts.engine(MessageId::MapsConvertTo, page.engine.name.as_str())? }}</a>
-  <a
-    href="{{ frame.home }}#from={{ page.engine.id }}"
-    data-umami-event="converter-opened"
-    data-umami-event-page="{{ frame.kind }}"
-    data-umami-event-from="{{ page.engine.id }}"
-    class="inline-flex items-center justify-center rounded-panel border border-accent/40 px-5 py-3 font-display text-body font-semibold text-accent transition hover:border-accent hover:bg-accent/8 pointer-coarse:min-h-11"
-  >{{ texts.engine(MessageId::MapsConvertFrom, page.engine.name.as_str())? }}</a>
+  {% call macros::converter_link(None, Some(page.engine.id.as_str()), "inline-flex items-center justify-center rounded-panel bg-accent px-5 py-3 font-display text-body font-semibold text-ink transition hover:brightness-110 pointer-coarse:min-h-11", texts.engine(MessageId::MapsConvertTo, page.engine.name.as_str())?) %}{% endcall %}
+  {% call macros::converter_link(Some(page.engine.id.as_str()), None, "inline-flex items-center justify-center rounded-panel border border-accent/40 px-5 py-3 font-display text-body font-semibold text-accent transition hover:border-accent hover:bg-accent/8 pointer-coarse:min-h-11", texts.engine(MessageId::MapsConvertFrom, page.engine.name.as_str())?) %}{% endcall %}
 </div>
 
 <div class="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
@@ -44,48 +32,39 @@
   <thead class="sr-only">
     <tr><th scope="col">{{ texts.get(Plain::MapsColumnNote) }}</th><th scope="col">{{ texts.get(Plain::MapsColumnDrum) }}</th></tr>
   </thead>
-  {% for g in page.groups %}
-  <tbody data-group>
-    <tr>
-      <th scope="rowgroup" colspan="2">{{ g.name }}</th>
-    </tr>
-    {% for r in g.rows %}
-    <tr data-q="{{ r.search() }}">
-      <td>{% call macros::note_label(r) %}{% endcall %}</td>
-      <td>{{ r.drum }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-  {% endfor %}
+  {% for g in page.groups -%}
+<tbody data-group>
+<tr><th scope="rowgroup" colspan="2">{{ g.name }}</th></tr>
+{% for r in g.rows -%}
+<tr data-q="{{ r.search() }}"><td>{% call macros::note_label(r) %}{% endcall %}</td><td>{{ r.drum }}</td></tr>
+{% endfor -%}
+</tbody>
+{% endfor -%}
 </table>
 <p id="drums-empty" hidden class="font-mono text-label text-t5">{{ texts.get(Plain::RowsNone) }}</p>
 
 <section class="flex flex-col gap-3 border-t border-hairline pt-5">
   <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::MapsDawHeading) }}</h2>
   <p class="text-ui/relaxed text-t3">{{ texts.engine(MessageId::MapsDawIntro, page.engine.name.as_str())? }}</p>
-  <ul class="flex flex-wrap gap-2">
-    {% for d in page.engine.drum_maps() %}
-    <li>{% call macros::drum_map_download(page.engine, d) %}{% endcall %}</li>
-    {% endfor %}
-  </ul>
+  <ul class="link-chips">{% for d in page.engine.drum_maps() %}<li>{% call macros::drum_map_download(page.engine, d) %}{% endcall %}</li>{% endfor %}</ul>
   <p class="text-label text-t5"><a href="{{ texts.path(DRUM_MAPS) }}" class="prose-link">{{ texts.get(Plain::MapsDawHow) }}</a></p>
 </section>
 
 {% if !page.pairs_from.is_empty() %}
 <div class="flex flex-col gap-3 border-t border-hairline pt-5">
   <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::MapsConversionTables) }}</h2>
-  <ul class="flex flex-wrap gap-2">
-    {% for l in page.pairs_from %}
-    <li><a href="{{ texts.path(l.href()) }}" class="inline-flex rounded-chip border border-white/12 px-2.5 py-1 text-ui text-t2 transition-colors hover:border-accent/40 hover:text-t1 pointer-coarse:py-3">→ {{ l.tgt_name }}</a></li>
-    {% endfor %}
-  </ul>
-  {% if !page.pairs_to.is_empty() %}
-  <ul class="flex flex-wrap gap-2">
-    {% for l in page.pairs_to %}
-    <li><a href="{{ texts.path(l.href()) }}" class="inline-flex rounded-chip border border-white/12 px-2.5 py-1 text-ui text-t2 transition-colors hover:border-accent/40 hover:text-t1 pointer-coarse:py-3">{{ l.src_name }} →</a></li>
-    {% endfor %}
-  </ul>
-  {% endif %}
+  <ul class="link-chips">
+{% for l in page.pairs_from -%}
+<li><a href="{{ texts.path(l.href()) }}">→ {{ l.tgt_name }}</a></li>
+{% endfor -%}
+</ul>
+  {% if !page.pairs_to.is_empty() -%}
+<ul class="link-chips">
+{% for l in page.pairs_to -%}
+<li><a href="{{ texts.path(l.href()) }}">{{ l.src_name }} →</a></li>
+{% endfor -%}
+</ul>
+  {%- endif %}
 </div>
 {% endif %}
 {% endblock %}

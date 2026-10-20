@@ -11,25 +11,11 @@
   <p class="text-body/relaxed text-t3">{{ summary }}</p>
 </div>
 <div class="flex flex-wrap items-center gap-x-5 gap-y-3">
-  <a
-    href="{{ frame.home }}#from={{ page.src.id }}&amp;to={{ page.tgt.id }}"
-    data-umami-event="converter-opened"
-    data-umami-event-page="{{ frame.kind }}"
-    data-umami-event-from="{{ page.src.id }}"
-    data-umami-event-to="{{ page.tgt.id }}"
-    class="inline-flex items-center justify-center rounded-panel bg-accent px-5 py-3 font-display text-body font-semibold text-ink transition hover:brightness-110 pointer-coarse:min-h-11"
-  >{{ texts.pair(MessageId::MapsPairConvert, page.src.name.as_str(), page.tgt.name.as_str())? }}</a>
+  {% call macros::converter_link(Some(page.src.id.as_str()), Some(page.tgt.id.as_str()), "inline-flex items-center justify-center rounded-panel bg-accent px-5 py-3 font-display text-body font-semibold text-ink transition hover:brightness-110 pointer-coarse:min-h-11", texts.pair(MessageId::MapsPairConvert, page.src.name.as_str(), page.tgt.name.as_str())?) %}{% endcall %}
   {% if let Some(reverse) = page.reverse %}
   <a href="{{ texts.path(reverse.href()) }}" class="prose-link text-ui">{{ texts.get(Plain::MapsReverse) }}</a>
   {% else %}
-  <a
-    href="{{ frame.home }}#from={{ page.tgt.id }}&amp;to={{ page.src.id }}"
-    data-umami-event="converter-opened"
-    data-umami-event-page="{{ frame.kind }}"
-    data-umami-event-from="{{ page.tgt.id }}"
-    data-umami-event-to="{{ page.src.id }}"
-    class="prose-link text-ui"
-  >{{ texts.get(Plain::MapsReverse) }}</a>
+  {% call macros::converter_link(Some(page.tgt.id.as_str()), Some(page.src.id.as_str()), "prose-link text-ui", texts.get(Plain::MapsReverse)) %}{% endcall %}
   {% endif %}
 </div>
 
@@ -59,31 +45,19 @@
     </tr>
   </thead>
   <tbody>
-    {% for r in page.rows %}
-    <tr data-outcome="{{ r.landing.label() }}">
-      <td>{% call macros::note_label(r.source) %}{% endcall %}</td>
-      <td>{{ r.source.drum }}</td>
-      <td aria-hidden="true">→</td>
-      {% if let Some(t) = r.landing.target() %}
-      <td>{% call macros::note_label(t) %}{% endcall %}</td>
-      <td>{{ t.drum }}</td>
-      {% else %}
-      <td>—</td>
-      <td>{{ texts.get(Plain::MapsNoEquivalent) }}</td>
-      {% endif %}
-      <td>{% match r.landing %}{% when Landing::Exact(_) %}{{ texts.get(Plain::MapsStatusExact) }}{% when Landing::Approximated(_) %}{{ texts.get(Plain::MapsStatusApproximated) }}{% when Landing::Dropped %}{{ texts.get(Plain::MapsStatusDropped) }}{% endmatch %}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
+{% for r in page.rows -%}
+<tr data-outcome="{{ r.landing.label() }}"><td>{% call macros::note_label(r.source) %}{% endcall %}</td><td>{{ r.source.drum }}</td><td aria-hidden="true">→</td>{% if let Some(t) = r.landing.target() %}<td>{% call macros::note_label(t) %}{% endcall %}</td><td>{{ t.drum }}</td>{% else %}<td>—</td><td>{{ texts.get(Plain::MapsNoEquivalent) }}</td>{% endif %}<td>{% match r.landing %}{% when Landing::Exact(_) %}{{ texts.get(Plain::MapsStatusExact) }}{% when Landing::Approximated(_) %}{{ texts.get(Plain::MapsStatusApproximated) }}{% when Landing::Dropped %}{{ texts.get(Plain::MapsStatusDropped) }}{% endmatch %}</td></tr>
+{% endfor -%}
+</tbody>
 </table>
 
 <div class="flex flex-col gap-3 border-t border-hairline pt-5">
   <h2 class="font-display text-title font-semibold text-t1">{{ texts.engine(MessageId::MapsMoreFrom, page.src.name.as_str())? }}</h2>
-  <ul class="flex flex-wrap gap-2">
-    {% for l in page.siblings %}
-    <li><a href="{{ texts.path(l.href()) }}" class="inline-flex rounded-chip border border-white/12 px-2.5 py-1 text-ui text-t2 transition-colors hover:border-accent/40 hover:text-t1 pointer-coarse:py-3">→ {{ l.tgt_name }}</a></li>
-    {% endfor %}
-  </ul>
+  <ul class="link-chips">
+{% for l in page.siblings -%}
+<li><a href="{{ texts.path(l.href()) }}">→ {{ l.tgt_name }}</a></li>
+{% endfor -%}
+</ul>
   <p class="text-ui text-t4">
     {{ texts.get(Plain::MapsFullMaps) }}
     <a href="{{ texts.path(page.src.href()) }}" class="prose-link">{{ page.src.name }}</a>

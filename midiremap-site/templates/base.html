@@ -1,4 +1,4 @@
-<!doctype html>
+{% import "macros.html" as macros %}<!doctype html>
 <html lang="{{ frame.lang }}">
   <head>
     <meta charset="UTF-8" />
@@ -32,17 +32,12 @@
           class="skip-link"
         >{{ frame.skip }}</a>
         <header class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 px-1">
-          <a
-            href="{{ frame.home }}"
-            data-umami-event="converter-opened"
-            data-umami-event-page="{{ frame.kind }}"
-            class="tap brand-mark hover:text-t1"
-          >{{ crate::routes::SITE_NAME }}</a>
+          {% call macros::converter_link(None, None, "tap brand-mark hover:text-t1", crate::routes::SITE_NAME) %}{% endcall %}
           <nav aria-label="{{ frame.nav_main }}">
             <ul class="flex flex-wrap gap-x-5 gap-y-1 text-ui">
               {% for n in frame.nav %}
               <li>
-                <a href="{{ n.href }}"{% if n.current %} aria-current="page"{% endif %}{% if n.converter %} data-umami-event="converter-opened" data-umami-event-page="{{ frame.kind }}"{% endif %} class="nav-link whitespace-nowrap">{{ n.label }}</a>
+                {% if n.converter %}{% call macros::converter_link(None, None, "nav-link whitespace-nowrap", n.label) %}{% endcall %}{% else %}<a href="{{ n.href }}"{% if n.current %} aria-current="page"{% endif %} class="nav-link whitespace-nowrap">{{ n.label }}</a>{% endif %}
               </li>
               {% endfor %}
               <li>{% include "lang_menu.html" %}</li>
