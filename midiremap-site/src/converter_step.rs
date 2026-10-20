@@ -70,6 +70,8 @@ pub fn converter_steps(done: &[ConverterStep]) -> [ShownStep<ConverterStep>; 3] 
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use serde::Deserialize;
 
     use super::*;
@@ -96,12 +98,19 @@ mod tests {
         states: [String; 3],
     }
 
+    fn recorded() -> Vec<RecordedStates> {
+        serde_json::from_str(include_str!("../tests/golden/step-states.json")).unwrap()
+    }
+
     #[test]
-    fn step_states_match_the_recorded_cases() {
-        let cases: Vec<RecordedStates> =
-            serde_json::from_str(include_str!("../tests/golden/step-states.json")).unwrap();
-        assert!(!cases.is_empty());
-        for case in cases {
+    fn the_recorded_states_cover_every_combination_of_done_steps() {
+        let combinations: HashSet<[bool; 3]> = recorded().iter().map(|case| case.done).collect();
+        assert_eq!(combinations.len(), 1 << ALL.len());
+    }
+
+    #[test]
+    fn done_steps_are_done_and_the_first_undone_step_is_current() {
+        for case in recorded() {
             let done: Vec<ConverterStep> = ALL
                 .into_iter()
                 .zip(case.done)
