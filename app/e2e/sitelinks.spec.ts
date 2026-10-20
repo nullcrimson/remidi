@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { chosenEngine, press } from './steps';
 
@@ -71,15 +72,21 @@ test('an FAQ answer links the conversion table it talks about', async ({ page })
   await expect(page).toHaveURL('/convert/ggd-invasion-to-ezdrummer/');
 });
 
-for (const [doc, path] of [['guide', '/how-it-works/'], ['FAQ', '/faq/']]) {
-  test(`the ${doc} ends on a button that opens the converter`, async ({ page }) => {
-    await page.goto(path);
-    await expect(page.getByRole('heading', { name: 'Ready to convert?' })).toBeVisible();
-    await press(page.getByRole('main').getByRole('link', { name: 'Open the converter', exact: true }));
-    await expect(page).toHaveURL('/');
-    await expect(page.getByRole('button', { name: 'Choose files' })).toBeVisible();
-  });
+async function opensTheConverterFromItsEnd(page: Page, path: string) {
+  await page.goto(path);
+  await expect(page.getByRole('heading', { name: 'Ready to convert?' })).toBeVisible();
+  await press(page.getByRole('main').getByRole('link', { name: 'Open the converter', exact: true }));
+  await expect(page).toHaveURL('/');
+  await expect(page.getByRole('button', { name: 'Choose files' })).toBeVisible();
 }
+
+test('the guide ends on a button that opens the converter', async ({ page }) => {
+  await opensTheConverterFromItsEnd(page, '/how-it-works/');
+});
+
+test('the FAQ ends on a button that opens the converter', async ({ page }) => {
+  await opensTheConverterFromItsEnd(page, '/faq/');
+});
 
 test('the header button opens the converter from a note map', async ({ page }) => {
   await page.goto('/engines/ezdrummer/');
@@ -88,12 +95,18 @@ test('the header button opens the converter from a note map', async ({ page }) =
   await expect(page.getByRole('button', { name: 'Choose files' })).toBeVisible();
 });
 
-test('the main nav links the drum maps from the converter and marks the page open', async ({ page }) => {
+const mainNavLink = (page: Page, name: string) =>
+  page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name, exact: true });
+
+test('the main nav links the drum maps from the converter', async ({ page }) => {
   await page.goto('/');
-  await press(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Drum maps', exact: true }));
+  await press(mainNavLink(page, 'Drum maps'));
   await expect(page).toHaveURL('/drum-maps/');
-  await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Drum maps', exact: true }))
-    .toHaveAttribute('aria-current', 'page');
+});
+
+test('the main nav marks the page that is open', async ({ page }) => {
+  await page.goto('/drum-maps/');
+  await expect(mainNavLink(page, 'Drum maps')).toHaveAttribute('aria-current', 'page');
 });
 
 test('an engine page links the conversion tables into it', async ({ page }) => {
