@@ -1,5 +1,6 @@
 import type { Message } from '../generated/i18n';
 import type { Unrecognized } from './midiremap';
+import { optionsOf } from './options';
 
 /** The name of each unrecognized-notes choice. */
 export const UNRECOGNIZED_LABEL: Record<Unrecognized, Message> = {
@@ -7,10 +8,7 @@ export const UNRECOGNIZED_LABEL: Record<Unrecognized, Message> = {
   keep: { id: 'unrecognized-keep' },
 };
 
-export const UNRECOGNIZED_OPTIONS: { value: Unrecognized; label: Message }[] = [
-  { value: 'remove', label: UNRECOGNIZED_LABEL.remove },
-  { value: 'keep', label: UNRECOGNIZED_LABEL.keep },
-];
+export const UNRECOGNIZED_OPTIONS = optionsOf(UNRECOGNIZED_LABEL);
 
 const HINTS: Record<Unrecognized, Message> = {
   remove: { id: 'unrecognized-hint-remove' },

@@ -1,6 +1,7 @@
 import type { Message } from '../generated/i18n';
 import type { Canon, Drum, MissingDrums, VoiceRow } from './midiremap';
 import type { OctaveBase } from './notes';
+import { optionsOf } from './options';
 import { isPlayed, movesToOtherDrum, playedOn, type PlayedOn } from './outcome';
 
 /** The name of each missing-drums choice. */
@@ -9,10 +10,7 @@ export const MISSING_LABEL: Record<MissingDrums, Message> = {
   drop: { id: 'missing-drop' },
 };
 
-export const MISSING_OPTIONS: { value: MissingDrums; label: Message }[] = [
-  { value: 'nearest', label: MISSING_LABEL.nearest },
-  { value: 'drop', label: MISSING_LABEL.drop },
-];
+export const MISSING_OPTIONS = optionsOf(MISSING_LABEL);
 
 const swaps = (rows: VoiceRow[]) => rows.filter((r) => movesToOtherDrum(r.outcome) && isPlayed(r));
 
