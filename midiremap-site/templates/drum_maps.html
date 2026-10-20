@@ -2,7 +2,7 @@
 {% import "macros.html" as macros %}
 {% macro downloads(e) %}<span class="link-chips">{% for d in e.drum_maps() %}{% call macros::drum_map_download(e, d) %}{% endcall %}{% endfor %}</span>{% endmacro %}
 {% macro group_heading(heading) %}<h3 class="pt-4 pb-1.5 font-mono text-caption tracking-[0.14em] text-t5 uppercase">{{ heading }}</h3>{% endmacro %}
-{% macro step_heading(s, text) %}<div class="flex items-center gap-2.5"><span class="step-badge" data-state="{{ s.state.key() }}" aria-hidden="true">{{ s.number }}</span><h2 class="font-display text-title font-semibold text-t1">{{ text }}</h2></div>{% endmacro %}
+{% macro step_heading(s, text) %}<div class="flex items-center gap-2.5">{% call macros::step_badge(s.number, s.state) %}<h2 class="font-display text-title font-semibold text-t1">{{ text }}</h2>{% endcall %}</div>{% endmacro %}
 {% block content %}
 <div class="flex flex-col gap-2.5">
   <h1 class="font-display text-display/tight font-bold text-t1">{{ texts.get(Plain::DrumMapsHeading) }}</h1>

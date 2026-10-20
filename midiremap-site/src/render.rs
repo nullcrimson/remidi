@@ -6,7 +6,7 @@ use midiremap_core::{Canon, Daw};
 
 use crate::{
     content::{breadcrumb_schema, faq_schema, how_to_schema, Block, ContentPage},
-    converter_step::{converter_steps, shown_steps, ConverterStep, ShownStep, StepState},
+    converter_step::{converter_steps, shown_steps, ConverterStep, ShownStep},
     i18n::{Docs, I18nError, Locale, MessageId, Messages, Plain, SectionKey, TIP_HREF},
     manifest::{AnalyticsScript, LocaleScript, SiteManifest},
     pages::{EnginePage, IndexPage, Landing, NoteRole, PairPage, PairSummary, Site, Tally},

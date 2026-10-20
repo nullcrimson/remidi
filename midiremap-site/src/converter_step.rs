@@ -30,6 +30,10 @@ impl StepState {
             Self::Later => "later",
         }
     }
+
+    pub fn is_done(self) -> bool {
+        self == Self::Done
+    }
 }
 
 /// A step as a page lists it: the number its badge shows, from 1, and where it stands.
