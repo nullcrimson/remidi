@@ -11,9 +11,9 @@
   <p class="text-body/relaxed text-t3">{{ summary }}</p>
 </div>
 <ol class="step-list" aria-label="{{ texts.get(Plain::MapsStepsLabel) }}">
-{% for (step, state) in steps -%}
-<li><span class="step-badge" data-state="{{ state.key() }}" aria-hidden="true">{% if *state == StepState::Done %}✓{% else %}{{ step.number() }}{% endif %}</span>{{ texts.get(step.title()) }}{% if *state == StepState::Done %}<span class="sr-only"> · {{ texts.get(Plain::StepDone) }}</span>{% endif %}
-{%- if *step == ConverterStep::Engines %}<span class="basis-full font-sans text-ui font-normal text-t3">{{ page.src.name }} → {{ page.tgt.name }} · {% if let Some(reverse) = page.reverse %}<a href="{{ texts.path(reverse.href()) }}" class="prose-link whitespace-nowrap">{{ texts.get(Plain::MapsReverse) }}</a>{% else %}{% call macros::converter_link(Some(page.tgt.id.as_str()), Some(page.src.id.as_str()), "prose-link whitespace-nowrap", texts.get(Plain::MapsReverse)) %}{% endcall %}{% endif %}</span>{% endif %}</li>
+{% for s in steps -%}
+<li><span class="step-badge" data-state="{{ s.state.key() }}" aria-hidden="true">{% if s.state == StepState::Done %}✓{% else %}{{ s.number }}{% endif %}</span>{{ texts.step(s.step) }}{% if s.state == StepState::Done %}<span class="sr-only"> · {{ texts.get(Plain::StepDone) }}</span>{% endif %}
+{%- if s.step == ConverterStep::Engines %}<span class="basis-full font-sans text-ui font-normal text-t3">{{ page.src.name }} → {{ page.tgt.name }} · {% if let Some(reverse) = page.reverse %}<a href="{{ texts.path(reverse.href()) }}" class="prose-link whitespace-nowrap">{{ texts.get(Plain::MapsReverse) }}</a>{% else %}{% call macros::converter_link(Some(page.tgt.id.as_str()), Some(page.src.id.as_str()), "prose-link whitespace-nowrap", texts.get(Plain::MapsReverse)) %}{% endcall %}{% endif %}</span>{% endif %}</li>
 {% endfor -%}
 </ol>
 <div class="sticky top-0 z-10 -my-3 bg-card py-3 sm:static">

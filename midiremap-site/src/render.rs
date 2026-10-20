@@ -5,10 +5,8 @@ use fluent_bundle::{FluentArgs, FluentValue};
 use midiremap_core::{Canon, Daw};
 
 use crate::{
-    content::{
-        breadcrumb_schema, converter_steps, faq_schema, how_to_schema, step_states, Block,
-        ContentPage, ConverterStep, StepState,
-    },
+    content::{breadcrumb_schema, faq_schema, how_to_schema, Block, ContentPage},
+    converter_step::{converter_steps, shown_steps, ConverterStep, ShownStep, StepState},
     i18n::{Docs, I18nError, Locale, MessageId, Messages, Plain, SectionKey, TIP_HREF},
     manifest::{AnalyticsScript, LocaleScript, SiteManifest},
     pages::{EnginePage, IndexPage, Landing, NoteRole, PairPage, PairSummary, Site, Tally},
@@ -224,6 +222,21 @@ pub fn drum_maps_meta(p: &IndexPage, texts: &Texts) -> Result<Meta, I18nError> {
     })
 }
 
+/// A step of the drum maps page.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum DrumMapStep {
+    PickDaw,
+    Load,
+    Download,
+}
+
+/// The drum maps page's steps in the order it shows them.
+const DRUM_MAP_STEPS: [DrumMapStep; 3] = [
+    DrumMapStep::PickDaw,
+    DrumMapStep::Load,
+    DrumMapStep::Download,
+];
+
 fn daw_steps<'a>(texts: &Texts<'a>) -> Vec<(Daw, &'a str)> {
     Daw::ALL
         .iter()
@@ -292,6 +305,15 @@ pub struct Texts<'a> {
 impl<'a> Texts<'a> {
     pub fn get(&self, id: Plain) -> &'a str {
         self.messages.get(self.locale, id)
+    }
+
+    /// A converter step's title, the converter's own.
+    fn step(&self, step: impl Borrow<ConverterStep>) -> &'a str {
+        self.get(match step.borrow() {
+            ConverterStep::File => Plain::StepFile,
+            ConverterStep::Engines => Plain::StepEngines,
+            ConverterStep::Convert => Plain::StepConvert,
+        })
     }
 
     fn format(&self, id: MessageId, args: FluentArgs) -> Result<String, I18nError> {
@@ -477,9 +499,12 @@ const IN_NOTE_MAPS: Option<NavTarget> = Some(NavTarget::NoteMaps);
 fn section_schema(key: SectionKey, page: &ContentPage, texts: &Texts) -> Option<String> {
     match key {
         SectionKey::Faq => Some(faq_schema(page.blocks)),
-        SectionKey::Guide => Some(how_to_schema(page.heading, page.blocks, |step| {
-            texts.get(step.title())
-        })),
+        SectionKey::Guide => Some(how_to_schema(
+            page.heading,
+            page.blocks,
+            &converter_steps(&[]).map(|s| s.step),
+            |step| texts.step(step),
+        )),
         SectionKey::Issue | SectionKey::Contact | SectionKey::Terms => None,
     }
 }
@@ -517,7 +542,7 @@ struct PairHtml<'a> {
     texts: &'a Texts<'a>,
     heading: String,
     summary: String,
-    steps: [(ConverterStep, StepState); 3],
+    steps: [ShownStep<ConverterStep>; 3],
     page: &'a PairPage,
 }
 
@@ -538,8 +563,8 @@ struct DrumMapsHtml<'a> {
     frame: Frame<'a>,
     texts: &'a Texts<'a>,
     page: &'a IndexPage,
-    steps: Vec<(Daw, &'a str)>,
-    states: [StepState; 3],
+    steps: [ShownStep<DrumMapStep>; 3],
+    daws: Vec<(Daw, &'a str)>,
 }
 
 #[derive(Template)]
@@ -549,7 +574,7 @@ struct ContentHtml<'a> {
     frame: Frame<'a>,
     texts: &'a Texts<'a>,
     page: &'a ContentPage<'a>,
-    steps: [(ConverterStep, StepState); 3],
+    steps: [ShownStep<ConverterStep>; 3],
     closing: Closing,
 }
 
@@ -657,8 +682,8 @@ fn render_note_maps(
             ),
             texts,
             page: &site.index,
-            steps: daw_steps(texts),
-            states: step_states([false; 3]),
+            steps: shown_steps(DRUM_MAP_STEPS, |_| false),
+            daws: daw_steps(texts),
         }
         .render()?,
     ));
@@ -696,7 +721,7 @@ fn render_note_maps(
                 texts,
                 heading: pair_heading(p, texts)?,
                 summary: pair_summary(texts, &p.src.name, &p.tgt.name, p.tally)?,
-                steps: converter_steps([false, true, false]),
+                steps: converter_steps(&[ConverterStep::Engines]),
                 page: p,
             }
             .render()?,
@@ -734,7 +759,7 @@ fn render_sections(
                 ),
                 texts,
                 page: &page,
-                steps: converter_steps([false; 3]),
+                steps: converter_steps(&[]),
                 closing: Closing::of(k),
             }
             .render()?,

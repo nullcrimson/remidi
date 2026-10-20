@@ -11,7 +11,7 @@
   {% when Block::Note(step) %}<p class="text-t4"><span class="font-medium text-t2">{{ step.title }}</span> {{ step.body }}</p>
   {% when Block::ConverterSteps(bodies) %}
   <ol class="flex flex-col gap-4">
-    {% for (step, state) in steps %}<li class="flex gap-3"><span class="step-badge" data-state="{{ state.key() }}" aria-hidden="true">{{ step.number() }}</span><div class="flex flex-col gap-1"><h2 class="font-display text-body font-semibold text-t1">{{ texts.get(step.title()) }}</h2><p>{{ bodies.body(**step) }}</p></div></li>{% endfor %}
+    {% for s in steps %}<li class="flex gap-3"><span class="step-badge" data-state="{{ s.state.key() }}" aria-hidden="true">{{ s.number }}</span><div class="flex flex-col gap-1"><h2 class="font-display text-body font-semibold text-t1">{{ texts.step(s.step) }}</h2><p>{{ bodies.body(s.step) }}</p></div></li>{% endfor %}
   </ol>
   {% when Block::List(items) %}
   <ul class="flex list-disc flex-col gap-1 pl-5 marker:text-decor">

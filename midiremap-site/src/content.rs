@@ -1,7 +1,9 @@
+use std::borrow::Borrow;
+
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::i18n::Plain;
+use crate::converter_step::ConverterStep;
 
 #[derive(Deserialize)]
 #[serde(untagged)]
@@ -52,8 +54,8 @@ pub struct StepBodies {
 }
 
 impl StepBodies {
-    pub fn body(&self, step: ConverterStep) -> &str {
-        match step {
+    pub fn body(&self, step: impl Borrow<ConverterStep>) -> &str {
+        match step.borrow() {
             ConverterStep::File => &self.file,
             ConverterStep::Engines => &self.engines,
             ConverterStep::Convert => &self.convert,
@@ -105,76 +107,6 @@ impl Block {
             Block::Note(_) => "note".to_owned(),
         }
     }
-}
-
-/// A step of the converter, in the order the converter shows them.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ConverterStep {
-    File,
-    Engines,
-    Convert,
-}
-
-impl ConverterStep {
-    pub const ALL: [Self; 3] = [Self::File, Self::Engines, Self::Convert];
-
-    /// The step's title, the converter's own.
-    pub fn title(self) -> Plain {
-        match self {
-            Self::File => Plain::StepFile,
-            Self::Engines => Plain::StepEngines,
-            Self::Convert => Plain::StepConvert,
-        }
-    }
-
-    /// The number its badge shows: its place in `ALL`, from 1.
-    pub fn number(self) -> usize {
-        match self {
-            Self::File => 1,
-            Self::Engines => 2,
-            Self::Convert => 3,
-        }
-    }
-}
-
-/// Where a step stands: finished, the one to do now, or one that waits for an earlier step.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum StepState {
-    Done,
-    Current,
-    Later,
-}
-
-impl StepState {
-    /// The name the stylesheet dresses its badge by, the converter's own.
-    pub fn key(self) -> &'static str {
-        match self {
-            Self::Done => "done",
-            Self::Current => "current",
-            Self::Later => "later",
-        }
-    }
-}
-
-/// The states of the converter's steps: each one done when its own work is, the first undone
-/// one current, as the converter decides them.
-pub fn step_states(done: [bool; 3]) -> [StepState; 3] {
-    let current = done.iter().position(|d| !d);
-    std::array::from_fn(|i| {
-        if done[i] {
-            StepState::Done
-        } else if current == Some(i) {
-            StepState::Current
-        } else {
-            StepState::Later
-        }
-    })
-}
-
-/// The converter's steps with their states.
-pub fn converter_steps(done: [bool; 3]) -> [(ConverterStep, StepState); 3] {
-    let states = step_states(done);
-    std::array::from_fn(|i| (ConverterStep::ALL[i], states[i]))
 }
 
 /// A guide, FAQ or legal page in one locale.
@@ -229,10 +161,11 @@ pub fn breadcrumb_schema(trail: &[(&str, String)]) -> String {
     }))
 }
 
-/// The HowTo schema for the converter's steps in `blocks`, each named by `title`.
+/// The HowTo schema for the converter's `steps` in `blocks`, each named by `title`.
 pub fn how_to_schema<'a>(
     heading: &str,
     blocks: &[Block],
+    steps: &[ConverterStep],
     title: impl Fn(ConverterStep) -> &'a str,
 ) -> String {
     let steps: Vec<serde_json::Value> = blocks
@@ -242,7 +175,7 @@ pub fn how_to_schema<'a>(
             _ => None,
         })
         .flat_map(|bodies| {
-            ConverterStep::ALL.map(|step| {
+            steps.iter().map(|&step| {
                 json!({
                     "@type": "HowToStep",
                     "name": title(step),
@@ -297,6 +230,11 @@ mod tests {
             &blocks(
                 r#"[{ "converter-steps": { "file": "Drop it.", "engines": "Pick two.", "convert": "Press it." } }]"#,
             ),
+            &[
+                ConverterStep::File,
+                ConverterStep::Engines,
+                ConverterStep::Convert,
+            ],
             |step| match step {
                 ConverterStep::File => "File",
                 ConverterStep::Engines => "Engines",
@@ -319,34 +257,6 @@ mod tests {
                 ("Convert", "Press it.")
             ]
         );
-    }
-
-    #[test]
-    fn converter_steps_are_numbered_in_order() {
-        let numbers: Vec<usize> = ConverterStep::ALL.iter().map(|s| s.number()).collect();
-        assert_eq!(numbers, [1, 2, 3]);
-    }
-
-    #[derive(Deserialize)]
-    struct RecordedStates {
-        done: [bool; 3],
-        states: [String; 3],
-    }
-
-    #[test]
-    fn step_states_match_the_recorded_cases() {
-        let cases: Vec<RecordedStates> =
-            serde_json::from_str(include_str!("../tests/golden/step-states.json")).unwrap();
-        assert!(!cases.is_empty());
-        for case in cases {
-            let keys = step_states(case.done).map(StepState::key);
-            assert_eq!(
-                keys,
-                case.states.each_ref().map(String::as_str),
-                "{:?}",
-                case.done
-            );
-        }
     }
 
     #[test]
