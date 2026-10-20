@@ -42,9 +42,9 @@ struct RawVariant {
 /// What makes an engine another mapping of a base engine: the base's id and how the mapping
 /// differs, such as `Mapping 'GM'`.
 #[derive(Debug)]
-struct Variant {
-    of: String,
-    label: String,
+pub(crate) struct Variant {
+    pub(crate) of: String,
+    pub(crate) label: String,
 }
 
 /// One engine's note layout: which drum each note plays, and which note plays each drum.
@@ -131,6 +131,11 @@ impl EngineMap {
     /// The id of the engine this one is another mapping of, when it is one.
     pub(crate) fn variant_of(&self) -> Option<&str> {
         self.variant.as_ref().map(|v| v.of.as_str())
+    }
+
+    /// What makes this engine another mapping of a base engine, when it is one.
+    pub(crate) fn variant(&self) -> Option<&Variant> {
+        self.variant.as_ref()
     }
 
     /// How this engine's mapping differs from the engine it is a variant of, such as

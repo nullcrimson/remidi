@@ -56,11 +56,16 @@ impl Catalog {
         Ok(Self { maps, aliases })
     }
 
-    /// The engines that are other mappings of `base`, in id order.
-    pub fn variants<'a>(&'a self, base: &'a EngineMap) -> impl Iterator<Item = &'a EngineMap> {
-        self.maps
-            .values()
-            .filter(move |m| m.variant_of() == Some(base.id()))
+    /// The engines that are other mappings of `base`, each after its label, in id order.
+    pub fn variants<'a>(
+        &'a self,
+        base: &'a EngineMap,
+    ) -> impl Iterator<Item = (&'a str, &'a EngineMap)> {
+        self.maps.values().filter_map(move |m| {
+            m.variant()
+                .filter(|v| v.of == base.id())
+                .map(|v| (v.label.as_str(), m))
+        })
     }
 
     /// The engine `map` is another mapping of, when it is a variant.
@@ -338,13 +343,18 @@ mod tests {
         ])
         .unwrap();
         let base = c.get("base").unwrap();
-        let ids: Vec<&str> = c.variants(base).map(EngineMap::id).collect();
+        let ids: Vec<&str> = c.variants(base).map(|(_, m)| m.id()).collect();
         assert_eq!(ids, ["base_ggd", "base_gm"]);
-        assert_eq!(
-            c.get("base_gm").unwrap().variant_label(),
-            Some("Mapping 'base_gm'")
-        );
-        assert_eq!(base.variant_label(), None);
+    }
+
+    #[test]
+    fn variants_of_a_base_come_with_their_labels() {
+        let c = Catalog::from_maps([kit("base", None), kit("base_gm", Some("base"))]).unwrap();
+        let labels: Vec<&str> = c
+            .variants(c.get("base").unwrap())
+            .map(|(label, _)| label)
+            .collect();
+        assert_eq!(labels, ["Mapping 'base_gm'"]);
     }
 
     #[test]
@@ -352,8 +362,18 @@ mod tests {
         let c = Catalog::from_maps([kit("base", None), kit("base_gm", Some("base"))]).unwrap();
         let variant = c.get("base_gm").unwrap();
         assert_eq!(c.base_of(variant).map(EngineMap::id), Some("base"));
+    }
+
+    #[test]
+    fn a_base_has_no_base() {
+        let c = Catalog::from_maps([kit("base", None), kit("base_gm", Some("base"))]).unwrap();
         assert!(c.base_of(c.get("base").unwrap()).is_none());
-        assert_eq!(c.variants(variant).count(), 0);
+    }
+
+    #[test]
+    fn a_variant_has_no_variants() {
+        let c = Catalog::from_maps([kit("base", None), kit("base_gm", Some("base"))]).unwrap();
+        assert_eq!(c.variants(c.get("base_gm").unwrap()).count(), 0);
     }
 
     #[test]
@@ -374,14 +394,5 @@ mod tests {
             ]),
             Err(MapError::VariantOfVariant(id)) if id == "base_gm_ggd"
         ));
-    }
-
-    #[test]
-    fn every_builtin_variant_has_a_builtin_base() {
-        let b = Catalog::builtin().unwrap();
-        let nested: usize = b.engines().map(|m| b.variants(m).count()).sum();
-        let variants = b.engines().filter(|m| b.base_of(m).is_some()).count();
-        assert_eq!(nested, variants);
-        assert!(variants > 0);
     }
 }

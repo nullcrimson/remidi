@@ -415,9 +415,9 @@ impl ListedEngine {
             link: EngineLink::of(map),
             variants: catalog
                 .variants(map)
-                .map(|v| VariantLink {
+                .map(|(label, v)| VariantLink {
                     link: EngineLink::of(v),
-                    label: v.variant_label().unwrap_or(v.display_name()).to_owned(),
+                    label: label.to_owned(),
                 })
                 .collect(),
         }
