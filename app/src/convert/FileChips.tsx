@@ -1,4 +1,3 @@
-import { useId } from 'react';
 import { useT } from '../locale/localeContext';
 import type { FailedFile } from './batch';
 import type { LoadedFile, OnFiles } from '../core/files';
@@ -32,7 +31,6 @@ export function FileChips({
   onClear: () => void;
 }) {
   const t = useT();
-  const sampleHint = useId();
   const skippedLine = skipped.length > 0 && (
     <p role="status" className="w-full text-label text-t4">
       {t({ id: 'files-skipped', args: { names: skipped.join(', ') } })}
@@ -82,16 +80,11 @@ export function FileChips({
             <TextButton
               onClick={() => onTrySample?.()}
               disabled={onTrySample === undefined}
-              describedBy={onTrySample === undefined ? sampleHint : undefined}
+              reason={t({ id: 'files-sample-needs-from' })}
             >
               <PlayIcon />
               {t({ id: 'files-sample' })}
             </TextButton>
-            {onTrySample === undefined && (
-              <span id={sampleHint} className="w-full text-label text-t5">
-                {t({ id: 'files-sample-needs-from' })}
-              </span>
-            )}
           </div>
         </div>
         <p className="text-label text-t5">
