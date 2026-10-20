@@ -14,7 +14,6 @@ static SHARED: LazyLock<Result<Catalog, MapError>> = LazyLock::new(Catalog::buil
 pub struct Catalog {
     maps: BTreeMap<String, EngineMap>,
     aliases: HashMap<String, String>,
-    variants: HashMap<String, Vec<String>>,
 }
 
 impl Catalog {
@@ -42,7 +41,6 @@ impl Catalog {
                 }
             }
         }
-        let mut variants: HashMap<String, Vec<String>> = HashMap::new();
         for (id, map) in &maps {
             let Some(of) = map.variant_of() else {
                 continue;
@@ -54,22 +52,15 @@ impl Catalog {
             if base.variant_of().is_some() {
                 return Err(MapError::VariantOfVariant(id.clone()));
             }
-            variants.entry(of.to_owned()).or_default().push(id.clone());
         }
-        Ok(Self {
-            maps,
-            aliases,
-            variants,
-        })
+        Ok(Self { maps, aliases })
     }
 
     /// The engines that are other mappings of `base`, in id order.
-    pub fn variants(&self, base: &EngineMap) -> impl Iterator<Item = &EngineMap> {
-        self.variants
-            .get(base.id())
-            .into_iter()
-            .flatten()
-            .filter_map(|id| self.maps.get(id))
+    pub fn variants<'a>(&'a self, base: &'a EngineMap) -> impl Iterator<Item = &'a EngineMap> {
+        self.maps
+            .values()
+            .filter(move |m| m.variant_of() == Some(base.id()))
     }
 
     /// The engine `map` is another mapping of, when it is a variant.
