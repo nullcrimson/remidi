@@ -28,14 +28,12 @@ import { usePresetActions } from './presets/usePresetActions';
 import { useRemapper } from './convert/useRemapper';
 import { useSampleFile } from './convert/useSampleFile';
 import { useSavedMappings } from './presets/useSavedMappings';
-import { engineName, namesOf, samePair } from './core/enginePair';
-import { knownEdits } from './core/overrides';
-import type { SavedMapping } from './presets/mappings';
+import { namesOf, samePair } from './core/enginePair';
 import { downloadPreset } from './presets/presetFile';
 import { ErrorText } from './ui/ErrorText';
 import { useT } from './locale/localeContext';
 import type { Notice, NoticeLine } from './core/notice';
-import { saveRack } from './convert/rack';
+import { rackDownloads } from './convert/rack';
 import type { Runtime } from './convert/runtime';
 
 export default function App({ runtime }: { runtime: Runtime }) {
@@ -80,31 +78,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
   const steps = stepStates({ file: remapper.files.length > 0, engines: pair !== null, convert: isConverted(conv) });
   const { open: openEditor, close: closeEditor } = useEditorSession(remapper, request);
   const dismissNotice = () => setNotice(null);
-  const saveSummaryRack = () => {
-    if (core === null || pair === null || names === null) return;
-    const lines = saveRack(core, {
-      where: 'summary',
-      pair,
-      targetName: names.target,
-      edits: editor,
-      missing: remapper.missing,
-      unrecognized: remapper.unrecognized,
-      presetName: openPreset?.name,
-    });
-    setNotice({ lines, at: 'summary', pair });
-  };
-  const savePresetRack = (m: SavedMapping) => {
-    if (core === null) return;
-    notify(saveRack(core, {
-      where: 'preset',
-      pair: { src: m.src, tgt: m.tgt },
-      targetName: engineName(remapper.engines, m.tgt),
-      edits: knownEdits(m, editor.vocabulary),
-      missing: remapper.missing,
-      unrecognized: remapper.unrecognized,
-      presetName: m.name,
-    }));
-  };
+  const racks = rackDownloads(remapper, openPreset, setNotice);
 
   if (view.kind === 'edit') {
     const shown = namesOf(remapper.engines, view.pair);
@@ -173,7 +147,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
           onRename={saved.rename}
           onDuplicate={presets.duplicate}
           onExport={downloadPreset}
-          onRack={savePresetRack}
+          onRack={racks.preset}
           onDelete={saved.remove}
         />
 
@@ -183,7 +157,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
           edited={edited}
           editRef={focus.ref('editLink')}
           onOpenEditor={openEditor}
-          onRack={saveSummaryRack}
+          onRack={racks.summary}
         />
 
         {notice?.at === 'summary' && pair && samePair(notice.pair, pair) && (

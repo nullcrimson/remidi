@@ -1,7 +1,9 @@
-import type { EnginePair } from '../core/enginePair';
+import { engineName, type EnginePair } from '../core/enginePair';
 import type { Midiremap, MissingDrums, PresetName, RackFile, Unrecognized } from '../core/midiremap';
-import type { NoticeLine } from '../core/notice';
-import { editCount, editsToOverrides, type EditSet, type KnownEdits } from '../core/overrides';
+import type { Notice, NoticeLine } from '../core/notice';
+import { editCount, editsToOverrides, knownEdits, type EditSet, type KnownEdits } from '../core/overrides';
+import type { SavedMapping } from '../presets/mappings';
+import type { Remapper } from './useRemapper';
 import { saveBlob } from '../core/download';
 import { toAppError } from '../core/errors';
 import { packed } from '../core/packing';
@@ -46,4 +48,44 @@ export function saveRack(core: Midiremap, rack: RackRequest): NoticeLine[] {
   saveBlob(packed(file.packing, file.xml), file.fileName);
   track('rack-downloaded', { where: rack.where, edited: editCount(edits) > 0 });
   return [savedLine(file, rack.targetName), ...skippedLines(rack)];
+}
+
+/** What the rack downloads read from the converter: the catalog, the open pair and its edits, and the settings. */
+type RackSource = Pick<Remapper, 'catalog' | 'pair' | 'editor' | 'engines' | 'missing' | 'unrecognized'>;
+
+/**
+ * The two rack downloads: the open mapping's, whose notice shows under the summary row, and a
+ * saved preset's, made from that preset alone, whose notice shows above the saved mappings.
+ */
+export function rackDownloads(source: RackSource, openPreset: SavedMapping | undefined, show: (notice: Notice) => void) {
+  const core = source.catalog.status === 'ready' ? source.catalog.core : null;
+  const { pair, editor, engines, missing, unrecognized } = source;
+  return {
+    summary: () => {
+      if (core === null || pair === null) return;
+      const lines = saveRack(core, {
+        where: 'summary',
+        pair,
+        targetName: engineName(engines, pair.tgt),
+        edits: editor,
+        missing,
+        unrecognized,
+        presetName: openPreset?.name,
+      });
+      show({ lines, at: 'summary', pair });
+    },
+    preset: (m: SavedMapping) => {
+      if (core === null) return;
+      const lines = saveRack(core, {
+        where: 'preset',
+        pair: { src: m.src, tgt: m.tgt },
+        targetName: engineName(engines, m.tgt),
+        edits: knownEdits(m, editor.vocabulary),
+        missing,
+        unrecognized,
+        presetName: m.name,
+      });
+      show({ lines, at: 'engines' });
+    },
+  };
 }
