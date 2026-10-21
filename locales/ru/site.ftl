@@ -126,20 +126,20 @@ maps-changes-none = Каждая нота из { $source } попадает в {
 maps-table-heading = Все ноты по инструментам
 maps-more-from = Другие конвертации из { $engine }
 maps-full-maps = Полные маппинги нот:
-maps-index-drum-maps = Драм-карты для DAW для каждого плагина: Cubase, Reaper и Studio One
-maps-engine-description-drum-maps = Бесплатные драм-карты для Cubase, Reaper и Studio One.
+maps-index-drum-maps = Драм-карты для DAW для каждого плагина: Cubase, Reaper, Studio One и Ableton Live
+maps-engine-description-drum-maps = Бесплатные драм-карты для Cubase, Reaper, Studio One и Ableton Live.
 maps-daw-heading = Драм-карты для DAW
 maps-daw-intro = Загрузите один из этих файлов в DAW, чтобы видеть названия барабанов { $engine } на клавишах пиано-ролла.
-maps-daw-how = Как загрузить драм-карту в Reaper, Cubase или Studio One
+maps-daw-how = Как загрузить драм-карту в Reaper, Cubase, Studio One или Ableton Live
 drum-maps-title = { $count ->
-    [one] Драм-карты для Cubase, Reaper и Studio One: { $count } плагин
-    [few] Драм-карты для Cubase, Reaper и Studio One: { $count } плагина
-    [many] Драм-карты для Cubase, Reaper и Studio One: { $count } плагинов
-   *[other] Драм-карты для Cubase, Reaper и Studio One: { $count } плагина
+    [one] Драм-карты для Cubase, Reaper, Studio One и Ableton: { $count } плагин
+    [few] Драм-карты для Cubase, Reaper, Studio One и Ableton: { $count } плагина
+    [many] Драм-карты для Cubase, Reaper, Studio One и Ableton: { $count } плагинов
+   *[other] Драм-карты для Cubase, Reaper, Studio One и Ableton: { $count } плагина
 }
 drum-maps-description = { $count ->
-    [one] Бесплатные драм-карты для { $count } плагина ударных: drum maps для Cubase (.drm), имена нот для Reaper (.txt) и pitch lists для Studio One (.pitchlist).
-   *[other] Бесплатные драм-карты для { $count } плагинов ударных: drum maps для Cubase (.drm), имена нот для Reaper (.txt) и pitch lists для Studio One (.pitchlist).
+    [one] Бесплатные драм-карты для { $count } плагина ударных: drum maps для Cubase (.drm), имена нот для Reaper (.txt), pitch lists для Studio One (.pitchlist) и рэки для Ableton Live (.adg).
+   *[other] Бесплатные драм-карты для { $count } плагинов ударных: drum maps для Cubase (.drm), имена нот для Reaper (.txt), pitch lists для Studio One (.pitchlist) и рэки для Ableton Live (.adg).
 }
 drum-maps-heading = Драм-карты для DAW
 drum-maps-intro = { $count ->
@@ -152,6 +152,7 @@ drum-maps-how-heading = Как загрузить драм-карту
 drum-maps-reaper = В MIDI-редакторе выберите File → Note/CC names → Load note/CC names from file и укажите файл .txt.
 drum-maps-cubase = Откройте MIDI → Drum Map Setup, нажмите Load и выберите файл .drm. Затем выберите карту в поле Drum Map в инспекторе трека.
 drum-maps-studio-one = В окне Edit нажмите значок гаечного ключа, чтобы показать названия нот, и перетащите на них файл .pitchlist. Сохраните его через меню Pitch Names, чтобы использовать снова.
-drum-maps-other = Logic Pro, Ableton Live, FL Studio и Bitwig Studio не умеют загружать файлы с названиями нот. Найдите нужный барабан по маппингу плагина или сконвертируйте MIDI под плагин, на котором играете.
+drum-maps-ableton = Перетащите файл .adg на барабанную дорожку в Live 11 или 12, перед плагином. Откройте клип: каждая строка MIDI-редактора показывает название своего барабана. Ноты звучат без изменений.
+drum-maps-other = Logic Pro, FL Studio и Bitwig Studio не умеют загружать файлы с названиями нот. Найдите нужный барабан по маппингу плагина или сконвертируйте MIDI под плагин, на котором играете.
 drum-maps-list-heading = Драм-карты всех плагинов ({ $count })
 drum-maps-download-label = Драм-карта { $engine } для { $daw }

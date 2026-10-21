@@ -245,6 +245,7 @@ fn daw_steps<'a>(texts: &Texts<'a>) -> Vec<(Daw, &'a str)> {
                 Daw::Reaper => Plain::DrumMapsReaper,
                 Daw::Cubase => Plain::DrumMapsCubase,
                 Daw::StudioOne => Plain::DrumMapsStudioOne,
+                Daw::AbletonLive => Plain::DrumMapsAbleton,
             };
             (daw, texts.get(how))
         })
@@ -2011,8 +2012,21 @@ mod tests {
 
     #[test]
     fn engine_descriptions_mention_the_drum_maps_when_they_fit() {
+        let html = page("engines/bfd3/index.html");
+        assert!(html.contains("Free Cubase, Reaper, Studio One and Ableton Live drum maps."));
+    }
+
+    #[test]
+    fn an_ableton_download_tells_the_stats_daw_ableton() {
         let html = page("engines/ggd-invasion/index.html");
-        assert!(html.contains("Free Cubase, Reaper and Studio One drum maps."));
+        let ableton = download_wrapper(html, "/drum-maps/files/ggd-invasion.adg");
+        assert!(ableton.contains(r#"data-umami-event-daw="ableton""#));
+    }
+
+    #[test]
+    fn the_unsupported_daws_line_names_logic_fl_studio_and_bitwig() {
+        assert!(page("drum-maps/index.html")
+            .contains("Logic Pro, FL Studio and Bitwig Studio cannot load note-name files."));
     }
 
     #[test]

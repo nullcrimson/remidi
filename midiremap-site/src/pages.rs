@@ -1,11 +1,13 @@
 use std::{
     cmp::Reverse,
     collections::{BTreeMap, BTreeSet, HashSet},
+    io::Write,
 };
 
+use flate2::{write::GzEncoder, Compression};
 use midiremap_core::{
     Canon, CanonResolution, Catalog, Daw, Drum, EngineMap, Family, FileStem, Mapping, MissingDrums,
-    Note, OctaveBase, Overrides,
+    Note, OctaveBase, Overrides, Packing,
 };
 
 use crate::routes::{drum_map_href, engine_href, pair_href, SitePath, POPULAR, SITE_NAME};
@@ -460,8 +462,8 @@ pub struct Site {
     pub pairs: Vec<PairPage>,
     /// The conversions the converter's page links, in `content/structure.json` order.
     pub popular: Vec<PairSummary>,
-    /// Every engine's drum map in every DAW's format, by address.
-    pub drum_map_files: Vec<(SitePath, String)>,
+    /// Every engine's drum map in every DAW's format, by address, packed as the DAW reads it.
+    pub drum_map_files: Vec<(SitePath, Vec<u8>)>,
 }
 
 /// A conversion with a pair page: the link to that page and its tally.
@@ -522,6 +524,19 @@ fn landing(resolution: CanonResolution) -> Landing {
             Landing::Approximated(cell(stand_in, note))
         }
         CanonResolution::Dropped { .. } => Landing::Dropped,
+    }
+}
+
+/// `text` as the bytes of a file that stores it the `packing` way.
+fn packed(packing: Packing, text: String) -> Vec<u8> {
+    match packing {
+        Packing::Text => text.into_bytes(),
+        Packing::Gzip => {
+            let mut gz = GzEncoder::new(Vec::new(), Compression::best());
+            gz.write_all(text.as_bytes())
+                .and_then(|()| gz.finish())
+                .expect("compressing into memory cannot fail")
+        }
     }
 }
 
@@ -700,9 +715,12 @@ impl Site {
         let drum_map_files = maps
             .iter()
             .flat_map(|m| {
-                Daw::ALL
-                    .iter()
-                    .map(|&daw| (drum_map_href(&slug(m.id()), daw), daw.drum_map(m)))
+                Daw::ALL.iter().map(|&daw| {
+                    (
+                        drum_map_href(&slug(m.id()), daw),
+                        packed(daw.packing(), daw.drum_map(m)),
+                    )
+                })
             })
             .collect();
         let pairs: Vec<PairPage> = routes
@@ -736,8 +754,12 @@ impl Site {
 }
 #[cfg(test)]
 mod tests {
-    use std::collections::{HashMap, HashSet};
+    use std::{
+        collections::{HashMap, HashSet},
+        io::Read,
+    };
 
+    use flate2::read::GzDecoder;
     use midiremap_core::{convert, ChannelScope};
     use midiremap_testkit::{drums, engine_json, hit_keys, off, on};
 
@@ -799,6 +821,43 @@ mod tests {
             for d in p.engine.drum_maps() {
                 assert!(written.contains(&d.href.to_string()), "{}", d.href);
             }
+        }
+    }
+
+    fn drum_map_file(engine: &str, daw: Daw) -> &'static [u8] {
+        let href = drum_map_href(&slug(engine), daw);
+        site()
+            .drum_map_files
+            .iter()
+            .find(|(p, _)| *p == href)
+            .map(|(_, file)| file.as_slice())
+            .unwrap()
+    }
+
+    #[test]
+    fn an_ableton_drum_map_file_is_the_gzipped_names_rack() {
+        let mut xml = String::new();
+        GzDecoder::new(drum_map_file("ggd_invasion", Daw::AbletonLive))
+            .read_to_string(&mut xml)
+            .unwrap();
+        let maps = Catalog::builtin().unwrap();
+        assert_eq!(
+            xml,
+            Daw::AbletonLive.drum_map(maps.get("ggd_invasion").unwrap())
+        );
+    }
+
+    #[test]
+    fn text_drum_map_files_are_their_text() {
+        let maps = Catalog::builtin().unwrap();
+        let invasion = maps.get("ggd_invasion").unwrap();
+        for daw in [Daw::Reaper, Daw::Cubase, Daw::StudioOne] {
+            assert_eq!(
+                drum_map_file("ggd_invasion", daw),
+                daw.drum_map(invasion).as_bytes(),
+                "{}",
+                daw.key()
+            );
         }
     }
 

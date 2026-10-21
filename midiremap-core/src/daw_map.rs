@@ -5,7 +5,12 @@ use quick_xml::{
     Writer,
 };
 
-use crate::{engine_map::EngineMap, note::Note};
+use crate::{
+    ableton::{note_name_rack, ADG_EXTENSION, ADG_PACKING},
+    engine_map::EngineMap,
+    note::Note,
+    packing::Packing,
+};
 
 /// A DAW that reads a file naming the notes of a drum engine.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -13,6 +18,7 @@ pub enum Daw {
     Reaper,
     Cubase,
     StudioOne,
+    AbletonLive,
 }
 
 type Xml = Writer<Vec<u8>>;
@@ -21,7 +27,7 @@ const CUBASE_CHANNEL: &str = "9";
 const UNNAMED: &str = "---";
 
 impl Daw {
-    pub const ALL: [Daw; 3] = [Daw::Reaper, Daw::Cubase, Daw::StudioOne];
+    pub const ALL: [Daw; 4] = [Daw::Reaper, Daw::Cubase, Daw::StudioOne, Daw::AbletonLive];
 
     /// The id links, file names and usage stats use, such as `studio-one`.
     pub fn key(self) -> &'static str {
@@ -29,6 +35,7 @@ impl Daw {
             Daw::Reaper => "reaper",
             Daw::Cubase => "cubase",
             Daw::StudioOne => "studio-one",
+            Daw::AbletonLive => "ableton",
         }
     }
 
@@ -38,6 +45,7 @@ impl Daw {
             Daw::Reaper => "Reaper",
             Daw::Cubase => "Cubase",
             Daw::StudioOne => "Studio One",
+            Daw::AbletonLive => "Ableton Live",
         }
     }
 
@@ -47,22 +55,34 @@ impl Daw {
             Daw::Reaper => "txt",
             Daw::Cubase => "drm",
             Daw::StudioOne => "pitchlist",
+            Daw::AbletonLive => ADG_EXTENSION,
+        }
+    }
+
+    /// How the file stores the text [`Daw::drum_map`] gives.
+    pub fn packing(self) -> Packing {
+        match self {
+            Daw::Reaper | Daw::Cubase | Daw::StudioOne => Packing::Text,
+            Daw::AbletonLive => ADG_PACKING,
         }
     }
 
     /// The file that names every note `map` plays, in this DAW's format: Reaper MIDI note
-    /// names, a Cubase drum map or a Studio One pitch list.
+    /// names, a Cubase drum map, a Studio One pitch list or an Ableton Live names rack, before
+    /// [`Daw::packing`] packs it.
     pub fn drum_map(self, map: &EngineMap) -> String {
-        let notes: Vec<(Note, String)> = map
-            .source_notes()
-            .into_iter()
-            .map(|d| (d.note, d.label))
-            .collect();
+        let notes = || -> Vec<(Note, String)> {
+            map.source_notes()
+                .into_iter()
+                .map(|d| (d.note, d.label))
+                .collect()
+        };
         let title = map.display_name();
         match self {
-            Daw::Reaper => reaper(title, &notes),
-            Daw::Cubase => cubase(title, &notes),
-            Daw::StudioOne => studio_one(&notes),
+            Daw::Reaper => reaper(title, &notes()),
+            Daw::Cubase => cubase(title, &notes()),
+            Daw::StudioOne => studio_one(&notes()),
+            Daw::AbletonLive => note_name_rack(map),
         }
     }
 }

@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { gunzipSync } from 'node:zlib';
 import type { Download, Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { press } from './steps';
@@ -39,9 +40,19 @@ test('the drum maps page downloads a Cubase drum map', async ({ page }) => {
   expect(await textOf(download)).toBe(await golden('drm'));
 });
 
+test('Ableton Live downloads a names rack', async ({ page }) => {
+  await page.goto('/drum-maps/');
+  await pickDaw(page, 'Ableton Live');
+  const download = await downloadOf(page, 'GetGood Drums Invasion drum map for Ableton Live');
+  expect(download.suggestedFilename()).toBe('GetGood Drums Invasion (Drumverter).adg');
+  const bytes = await readFile(await download.path());
+  expect([...bytes.subarray(0, 2)]).toEqual([0x1f, 0x8b]);
+  expect(gunzipSync(bytes).toString('utf8')).toContain('<UserName Value="GetGood Drums Invasion"/>');
+});
+
 test('an engine page links the guide to loading drum maps', async ({ page }) => {
   await page.goto('/engines/ggd-invasion/');
-  await press(page.getByRole('link', { name: 'How to load a drum map in Reaper, Cubase or Studio One' }));
+  await press(page.getByRole('link', { name: 'How to load a drum map in Reaper, Cubase, Studio One or Ableton Live' }));
   await expect(page).toHaveURL('/drum-maps/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('DAW drum maps');
 });

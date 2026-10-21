@@ -9,6 +9,7 @@ publish = false
 midiremap-core = { path = "../midiremap-core" }
 askama = { version = "0.16", default-features = false, features = ["derive", "std", "urlencode"] }
 clap = { version = "4", features = ["derive"] }
+flate2 = "1"
 thiserror = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

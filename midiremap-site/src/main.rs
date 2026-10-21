@@ -61,7 +61,7 @@ pub enum SiteError {
     },
 }
 
-fn write(path: PathBuf, contents: &str) -> Result<(), SiteError> {
+fn write(path: PathBuf, contents: impl AsRef<[u8]>) -> Result<(), SiteError> {
     let io = |source| SiteError::Write {
         path: path.clone(),
         source,
@@ -95,8 +95,8 @@ fn run(out_dir: &Path) -> Result<usize, SiteError> {
         write(out_dir.join(path.to_string().trim_start_matches('/')), file)?;
     }
     write(out_dir.join("filter.js"), FILTER_JS)?;
-    write(out_dir.join("sitemap.xml"), &sitemap::sitemap(&site, &docs))?;
-    write(out_dir.join("robots.txt"), &sitemap::robots())?;
+    write(out_dir.join("sitemap.xml"), sitemap::sitemap(&site, &docs))?;
+    write(out_dir.join("robots.txt"), sitemap::robots())?;
     write(
         out_dir.join("llms.txt"),
         &llms::llms_txt(&site, &messages, &docs)?,

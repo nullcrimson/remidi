@@ -112,11 +112,31 @@ fn cubase_notes(xml: &str) -> Named {
         .collect()
 }
 
+fn chain_values(xml: &str, field: &str) -> Vec<String> {
+    elements(xml)
+        .iter()
+        .filter(|e| {
+            e.path
+                == format!("Ableton/GroupDevicePreset/BranchPresets/MidiEffectBranchPreset/{field}")
+        })
+        .map(|e| e.attr("Value").unwrap().to_owned())
+        .collect()
+}
+
+fn ableton_notes(xml: &str) -> Named {
+    chain_values(xml, "ZoneSettings/KeyRange/Min")
+        .into_iter()
+        .map(|note| note.parse().unwrap())
+        .zip(chain_values(xml, "Name"))
+        .collect()
+}
+
 fn read_back(daw: Daw, file: &str) -> Named {
     match daw {
         Daw::Reaper => reaper_notes(file),
         Daw::Cubase => cubase_notes(file),
         Daw::StudioOne => studio_one_notes(file),
+        Daw::AbletonLive => ableton_notes(file),
     }
 }
 
