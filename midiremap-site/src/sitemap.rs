@@ -2,8 +2,8 @@ use crate::{
     i18n::{Docs, Locale, SectionKey},
     pages::{PairPage, Site},
     routes::{
-        alternates, home, href, sitemap_url, NavTarget, Page, SitePath, CONVERTER_PAGE, DRUM_MAPS,
-        NOTE_MAPS,
+        alternates, drum_map_files, home, href, sitemap_url, NavTarget, Page, SitePath,
+        CONVERTER_PAGE, DRUM_MAPS, NOTE_MAPS,
     },
 };
 
@@ -60,7 +60,8 @@ pub fn sitemap(site: &Site, docs: &Docs) -> String {
 
 pub fn robots() -> String {
     format!(
-        "User-agent: *\nAllow: /\nDisallow: {DRUM_MAPS}files/\n\nSitemap: {}\n",
+        "User-agent: *\nAllow: /\nDisallow: {}\n\nSitemap: {}\n",
+        drum_map_files(),
         sitemap_url()
     )
 }

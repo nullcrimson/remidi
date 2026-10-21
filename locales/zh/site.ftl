@@ -77,6 +77,10 @@ maps-pair-summary = 在 { $source } 的 { $total } 个音符中，{ $exact } 个
    *[other] 没有对应鼓件
 }。
 maps-pair-convert = 转换 { $source } → { $target }
+maps-pair-rack-lead = 在 Ableton 里现场演奏？
+maps-pair-rack-link = 下载机架（.adg）
+maps-pair-rack = 把它放在 { $target } 之前：{ $sourceMidi } 就能正确发声，无需转换文件。支持 Live 11 和 12。
+maps-pair-rack-dropped = { $target } 没有的鼓件不会发声，其所在行只显示音符名称。
 maps-steps-label = 三步完成转换
 maps-reverse = ⇄ 反向转换
 maps-exact-count = 精确 { $count }

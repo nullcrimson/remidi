@@ -104,6 +104,10 @@ maps-pair-summary = Из { $total } { $total ->
    *[other] ноты
 } плагина { $source }: { $exact } — точно в { $target }, { $approximated } — заменены самым похожим инструментом, { $dropped } — без аналога.
 maps-pair-convert = Конвертировать { $source } → { $target }
+maps-pair-rack-lead = Играете вживую в Ableton?
+maps-pair-rack-link = Скачать рэк (.adg)
+maps-pair-rack = Поставьте его перед { $target }: { $sourceMidi } звучит правильно, без конвертации файла. Live 11 и 12.
+maps-pair-rack-dropped = Барабаны, которых нет в { $target }, молчат; в их строках видно только название ноты.
 maps-steps-label = Конвертация в три шага
 maps-reverse = ⇄ В обратную сторону
 maps-exact-count = точно: { $count }

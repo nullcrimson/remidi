@@ -139,6 +139,7 @@ summary-remapped = { $total ->
 summary-edit-tip-title = パーツごとに微調整
 summary-edit-tip = どのパーツも、別の変換先ノートに割り当て直せます。パーツ一覧か鍵盤から選んでください。変更は変換に反映され、プリセットとして保存することもできます。
 summary-edit = ノートを個別に編集 →
+summary-rack-label = { $source } → { $target }用のAbletonラックをダウンロード（.adg）
 missing-detail-moved = 別のパーツに置き換え
 missing-detail-dropped = ファイルから削除
 detail-edit = ノートエディターで変更 →

@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import type { Locator, Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { press } from './steps';
@@ -12,6 +13,16 @@ test('the engine list filters as you type', async ({ page }) => {
   await filter.fill('ezdrummer');
   await expect(ezdrummer).toBeVisible();
   await expect(bfd).toBeHidden();
+});
+
+test('a pair page downloads its Ableton rack', async ({ page }) => {
+  await page.goto('/convert/ggd-invasion-to-ezdrummer/');
+  const download = page.waitForEvent('download');
+  await press(page.getByRole('link', { name: 'Download an Ableton rack for GetGood Drums Invasion → EZdrummer 3 (.adg)' }));
+  const file = await download;
+  expect(file.suggestedFilename()).toBe('GetGood Drums Invasion to EZdrummer 3.adg');
+  const bytes = await readFile(await file.path());
+  expect([...bytes.subarray(0, 2)]).toEqual([0x1f, 0x8b]);
 });
 
 test('the engine list says so when no engine matches', async ({ page }) => {

@@ -84,6 +84,10 @@ maps-pair-summary = Of { $total } { $source } notes, { $exact } { $exact ->
    *[other] have
 } no equivalent.
 maps-pair-convert = Convert { $source } → { $target }
+maps-pair-rack-lead = Playing live in Ableton?
+maps-pair-rack-link = Download the rack (.adg)
+maps-pair-rack = Put it in front of { $target }: { $sourceMidi } plays right, no file to convert. Live 11 and 12.
+maps-pair-rack-dropped = Drums { $target } lacks stay silent; their rows show only a note name.
 maps-steps-label = Convert in three steps
 maps-reverse = ⇄ Reverse direction
 maps-exact-count = { $count } exact

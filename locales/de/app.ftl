@@ -152,6 +152,7 @@ summary-remapped = { $total ->
 summary-edit-tip-title = Instrumente einzeln anpassen
 summary-edit-tip = Sie können jedem Instrument eine andere Zielnote geben – in der Instrumentenliste oder auf der Klaviatur. Die Änderungen gelten für die Konvertierung und lassen sich als Preset speichern.
 summary-edit = Einzelne Noten bearbeiten →
+summary-rack-label = Ableton-Rack für { $source } → { $target } herunterladen (.adg)
 missing-detail-moved = Durch ein anderes Instrument ersetzt
 missing-detail-dropped = Aus der Datei entfernt
 detail-edit = Im Noten-Editor ändern →

@@ -155,6 +155,7 @@ summary-remapped = Piezas reasignadas: { $remapped } de { $total }
 summary-edit-tip-title = Ajusta cada pieza
 summary-edit-tip = Asigna cualquier pieza a otra nota de destino: elígela en la lista de piezas o en el piano. Tus cambios se aplican a la conversión y puedes guardarlos como preset.
 summary-edit = Editar notas una por una →
+summary-rack-label = Descargar un rack de Ableton para { $source } → { $target } (.adg)
 missing-detail-moved = Reemplazadas por otra pieza
 missing-detail-dropped = Quitadas del archivo
 detail-edit = Cambiar en el editor de notas →

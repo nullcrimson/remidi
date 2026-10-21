@@ -140,6 +140,7 @@ summary-remapped = { $total ->
 summary-edit-tip-title = 逐个微调鼓件
 summary-edit-tip = 每个鼓件都可以改用其他目标音符，在鼓件列表或琴键上选择即可。修改会用于本次转换，也可以保存为预设。
 summary-edit = 编辑单个音符 →
+summary-rack-label = 下载 { $source } → { $target } 的 Ableton 机架（.adg）
 missing-detail-moved = 换成了其他鼓件
 missing-detail-dropped = 已从文件中删除
 detail-edit = 在音符编辑器中修改 →

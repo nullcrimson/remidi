@@ -172,6 +172,7 @@ summary-remapped = { $total ->
 summary-edit-tip-title = Настройте любой инструмент
 summary-edit-tip = Любому инструменту можно назначить другую ноту — выберите её в списке или на клавишах пианино. Изменения применятся при конвертации, и их можно сохранить как пресет.
 summary-edit = Изменить отдельные ноты →
+summary-rack-label = Скачать рэк Ableton для { $source } → { $target } (.adg)
 missing-detail-moved = Заменены другим инструментом
 missing-detail-dropped = Убраны из файла
 detail-edit = Изменить в редакторе нот →

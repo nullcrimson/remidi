@@ -6,11 +6,13 @@ use std::{
 
 use flate2::{write::GzEncoder, Compression};
 use midiremap_core::{
-    Canon, CanonResolution, Catalog, Daw, Drum, EngineMap, Family, FileStem, Mapping, MissingDrums,
-    Note, OctaveBase, Overrides, Packing,
+    rack_file, Canon, CanonResolution, Catalog, Daw, Drum, EngineMap, Family, FileStem, Mapping,
+    MissingDrums, Note, OctaveBase, Overrides, Packing, RackFile,
 };
 
-use crate::routes::{drum_map_href, engine_href, pair_href, SitePath, POPULAR, SITE_NAME};
+use crate::routes::{
+    drum_map_href, engine_href, pair_href, rack_href, SitePath, POPULAR, SITE_NAME,
+};
 
 /// What stops the site's pages from being planned.
 #[derive(thiserror::Error, Debug)]
@@ -84,10 +86,12 @@ impl EngineLink {
             .iter()
             .map(|&daw| DrumMapLink {
                 daw,
-                href: drum_map_href(&self.slug, daw),
-                file_name: FileStem::parse(&format!("{} ({SITE_NAME})", self.name))
-                    .expect("a name with the site's name after it is never blank")
-                    .with_extension(daw.extension()),
+                file: Download {
+                    href: drum_map_href(&self.slug, daw),
+                    file_name: FileStem::parse(&format!("{} ({SITE_NAME})", self.name))
+                        .expect("a name with the site's name after it is never blank")
+                        .with_extension(daw.extension()),
+                },
             })
             .collect()
     }
@@ -102,12 +106,17 @@ impl EngineLink {
     }
 }
 
-/// A download of one engine's drum map for one DAW.
-pub struct DrumMapLink {
-    pub daw: Daw,
+/// A file the site serves for download.
+pub struct Download {
     pub href: SitePath,
     /// The name the browser saves the file under.
     pub file_name: String,
+}
+
+/// A download of one engine's drum map for one DAW.
+pub struct DrumMapLink {
+    pub daw: Daw,
+    pub file: Download,
 }
 
 pub struct PairLink {
@@ -364,6 +373,8 @@ pub struct PairPage {
     pub groups: Vec<FamilyGroup<PairRow>>,
     pub changes: Changes,
     pub tally: Tally,
+    /// The pair's Ableton rack with the converter's defaults.
+    pub rack: Download,
     /// The page for the other direction, when the site has one.
     pub reverse: Option<PairLink>,
     pub siblings: Vec<PairLink>,
@@ -464,6 +475,8 @@ pub struct Site {
     pub popular: Vec<PairSummary>,
     /// Every engine's drum map in every DAW's format, by address, packed as the DAW reads it.
     pub drum_map_files: Vec<(SitePath, Vec<u8>)>,
+    /// Every pair page's Ableton rack, by address, packed as Live reads it.
+    pub rack_files: Vec<(SitePath, Vec<u8>)>,
 }
 
 /// A conversion with a pair page: the link to that page and its tally.
@@ -560,16 +573,31 @@ fn pair_rows(src: &EngineMap, mapping: &Mapping) -> Vec<FamilyGroup<PairRow>> {
     }))
 }
 
-fn pair_page(src: &EngineMap, tgt: &EngineMap, routes: &[Route]) -> PairPage {
+/// A pair's page, and its rack file by address.
+fn pair_page(
+    src: &EngineMap,
+    tgt: &EngineMap,
+    routes: &[Route],
+) -> (PairPage, (SitePath, Vec<u8>)) {
     let mapping = default_mapping(src, tgt);
     let groups = pair_rows(src, &mapping);
     let rows = || groups.iter().flat_map(|g| &g.rows);
-    PairPage {
-        slug: pair_slug(src.id(), tgt.id()),
+    let slug = pair_slug(src.id(), tgt.id());
+    let RackFile {
+        file_name,
+        xml,
+        packing,
+        ..
+    } = rack_file(&mapping, None);
+    let href = rack_href(&slug);
+    let rack = (href.clone(), packed(packing, xml));
+    let page = PairPage {
+        slug,
         src: EngineLink::of(src),
         tgt: EngineLink::of(tgt),
         tally: Tally::of(rows()),
         changes: Changes::of(rows(), &mapping),
+        rack: Download { href, file_name },
         groups,
         reverse: routes
             .iter()
@@ -580,7 +608,8 @@ fn pair_page(src: &EngineMap, tgt: &EngineMap, routes: &[Route]) -> PairPage {
             .filter(|(s, t)| s.id() == src.id() && t.id() != tgt.id())
             .map(|(s, t)| PairLink::of(s, t))
             .collect(),
-    }
+    };
+    (page, rack)
 }
 
 fn engine_row(map: &EngineMap, d: Drum) -> (Family, EngineRow) {
@@ -723,10 +752,10 @@ impl Site {
                 })
             })
             .collect();
-        let pairs: Vec<PairPage> = routes
+        let (pairs, rack_files): (Vec<PairPage>, Vec<_>) = routes
             .iter()
             .map(|&(s, t)| pair_page(s, t, &routes))
-            .collect();
+            .unzip();
         let (vendors, more) = vendor_groups(listed(catalog, &maps));
         let index = IndexPage {
             majors: majors
@@ -749,7 +778,13 @@ impl Site {
             popular: summaries(&pairs, POPULAR)?,
             pairs,
             drum_map_files,
+            rack_files,
         })
+    }
+
+    /// Every file the site serves for download, by address: the drum maps and the racks.
+    pub fn files(&self) -> impl Iterator<Item = &(SitePath, Vec<u8>)> {
+        self.drum_map_files.iter().chain(&self.rack_files)
     }
 }
 #[cfg(test)]
@@ -819,7 +854,11 @@ mod tests {
             .collect();
         for p in &s.engines {
             for d in p.engine.drum_maps() {
-                assert!(written.contains(&d.href.to_string()), "{}", d.href);
+                assert!(
+                    written.contains(&d.file.href.to_string()),
+                    "{}",
+                    d.file.href
+                );
             }
         }
     }
@@ -859,6 +898,53 @@ mod tests {
                 daw.key()
             );
         }
+    }
+
+    #[test]
+    fn every_pair_page_has_its_rack_file() {
+        let s = site();
+        let written: HashSet<String> = s.rack_files.iter().map(|(p, _)| p.to_string()).collect();
+        assert_eq!(s.rack_files.len(), s.pairs.len());
+        for p in &s.pairs {
+            assert!(written.contains(&p.rack.href.to_string()), "{}", p.slug);
+        }
+    }
+
+    #[test]
+    fn a_pair_rack_is_the_default_rack_file_gzipped() {
+        let page = pair("ggd-invasion-to-ezdrummer");
+        let (_, bytes) = site()
+            .rack_files
+            .iter()
+            .find(|(p, _)| *p == page.rack.href)
+            .unwrap();
+        let mut xml = String::new();
+        GzDecoder::new(bytes.as_slice())
+            .read_to_string(&mut xml)
+            .unwrap();
+        let maps = Catalog::builtin().unwrap();
+        let expected = rack_file(
+            &default_mapping(
+                maps.get("ggd_invasion").unwrap(),
+                maps.get("ezdrummer").unwrap(),
+            ),
+            None,
+        );
+        assert_eq!(
+            (xml, page.rack.file_name.as_str()),
+            (expected.xml, expected.file_name.as_str())
+        );
+    }
+
+    #[test]
+    fn the_site_writes_every_drum_map_and_rack_file_once() {
+        let s = site();
+        let paths: HashSet<String> = s.files().map(|(p, _)| p.to_string()).collect();
+        assert_eq!(
+            s.files().count(),
+            s.drum_map_files.len() + s.rack_files.len()
+        );
+        assert_eq!(paths.len(), s.files().count());
     }
 
     #[test]

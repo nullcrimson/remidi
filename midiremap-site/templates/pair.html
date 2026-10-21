@@ -19,6 +19,7 @@
 <div class="sticky top-0 z-10 -my-3 bg-card py-3 sm:static">
   {% call macros::converter_link(Some(page.src.id.as_str()), Some(page.tgt.id.as_str()), "cta", texts.pair(MessageId::MapsPairConvert, page.src.name.as_str(), page.tgt.name.as_str())?) %}{% endcall %}
 </div>
+<p class="text-ui/relaxed text-t3">{{ texts.get(Plain::MapsPairRackLead) }} <span class="contents" data-umami-event="rack-downloaded" data-umami-event-where="pair"><a href="{{ page.rack.href }}" download="{{ page.rack.file_name }}" class="prose-link" aria-label="{{ texts.pair(MessageId::SummaryRackLabel, page.src.name.as_str(), page.tgt.name.as_str())? }}">{{ texts.get(Plain::MapsPairRackLink) }}</a></span> {{ rack }}{% if !page.changes.dropped.is_empty() %} {{ texts.pair(MessageId::MapsPairRackDropped, page.src.name.as_str(), page.tgt.name.as_str())? }}{% endif %}</p>
 
 <div class="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
   <span class="tag" data-tone="neutral">{{ texts.count(MessageId::MapsExactCount, page.tally.exact)? }}</span>

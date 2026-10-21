@@ -77,6 +77,10 @@ maps-pair-summary = { $source } 노트 { $total }개 중 { $exact ->
    *[other] { $dropped }개는
 } 대응하는 악기가 없습니다.
 maps-pair-convert = { $source } → { $target } 변환
+maps-pair-rack-lead = Ableton으로 라이브 연주하나요?
+maps-pair-rack-link = 랙 다운로드(.adg)
+maps-pair-rack = { $target } 앞에 놓으면 { $sourceMidi }가 제대로 연주됩니다. 변환할 파일은 없습니다. Live 11, 12 지원.
+maps-pair-rack-dropped = { $target }에 없는 드럼은 소리가 나지 않고, 해당 행에는 노트 이름만 표시됩니다.
 maps-steps-label = 세 단계로 변환
 maps-reverse = ⇄ 방향 바꾸기
 maps-exact-count = 일치 { $count }

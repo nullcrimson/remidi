@@ -16,6 +16,7 @@ export interface StatEvents {
   'converter-opened': { page: 'index' | 'engine' | 'pair' | 'doc'; from?: string; to?: string };
   'maps-filtered': { page: 'index' | 'engine' | 'drum-maps' };
   'drum-map-downloaded': { engine: string; daw: 'reaper' | 'cubase' | 'studio-one' | 'ableton'; page: 'engine' | 'drum-maps' };
+  'rack-downloaded': { where: 'summary' | 'preset'; edited: boolean } | { where: 'pair' };
   'language-offered': { to: Locale };
   'language-offer-answered': { to: Locale; answer: 'accepted' | 'dismissed' };
   'engine-picked': { side: 'from' | 'to'; id: string; via: 'list' | 'filter' | 'favorite' };

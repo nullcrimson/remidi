@@ -139,6 +139,7 @@ summary-remapped = { $total ->
 summary-edit-tip-title = 악기별 세부 조정
 summary-edit-tip = 어떤 악기든 다른 대상 노트로 바꿀 수 있습니다. 악기 목록이나 피아노에서 고르세요. 바꾼 내용은 변환에 적용되고, 프리셋으로 저장할 수도 있습니다.
 summary-edit = 노트 개별 편집 →
+summary-rack-label = { $source } → { $target }용 Ableton 랙 다운로드(.adg)
 missing-detail-moved = 다른 악기로 대체
 missing-detail-dropped = 파일에서 제외
 detail-edit = 노트 편집에서 변경 →

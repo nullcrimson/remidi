@@ -152,6 +152,7 @@ summary-remapped = { $total ->
 summary-edit-tip-title = Fine-tune each drum
 summary-edit-tip = Reassign any drum to a different target note — pick from the drum list or the piano. Your changes apply to the conversion and can be saved as a preset.
 summary-edit = Edit individual notes →
+summary-rack-label = Download an Ableton rack for { $source } → { $target } (.adg)
 missing-detail-moved = Played on another drum
 missing-detail-dropped = Left out of the file
 detail-edit = Change in note editor →

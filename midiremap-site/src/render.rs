@@ -528,6 +528,7 @@ struct PairHtml<'a> {
     texts: &'a Texts<'a>,
     heading: String,
     summary: String,
+    rack: String,
     steps: [ShownStep<ConverterStep>; 3],
     page: &'a PairPage,
 }
@@ -707,6 +708,10 @@ fn render_note_maps(
                 texts,
                 heading: pair_heading(p, texts)?,
                 summary: pair_summary(texts, &p.src.name, &p.tgt.name, p.tally)?,
+                rack: texts.format(
+                    MessageId::MapsPairRack,
+                    pair_args(&p.src.name, &p.tgt.name, p.tally),
+                )?,
                 steps: converter_steps(&[ConverterStep::Engines]),
                 page: p,
             }
@@ -1730,8 +1735,7 @@ mod tests {
         known.extend(STATIC_ASSETS.iter().map(|s| s.to_string()));
         known.extend(
             crate::fixtures::site()
-                .drum_map_files
-                .iter()
+                .files()
                 .map(|(path, _)| path.to_string()),
         );
         for (path, html) in pages {
@@ -2001,6 +2005,39 @@ mod tests {
         assert!(cubase.contains(r#"data-umami-event-engine="ggd_invasion""#));
         assert!(cubase.contains(r#"data-umami-event-daw="cubase""#));
         assert!(cubase.contains(r#"data-umami-event-page="engine""#));
+    }
+
+    const INVASION_TO_EZDRUMMER: &str = "convert/ggd-invasion-to-ezdrummer/index.html";
+    const RACK: &str = "/drum-maps/files/racks/ggd-invasion-to-ezdrummer.adg";
+
+    #[test]
+    fn a_pair_page_offers_its_rack_outside_the_sticky_bar() {
+        let html = page(INVASION_TO_EZDRUMMER);
+        let rack = anchor_to(html, RACK);
+        assert!(rack.contains(r#"download="GetGood Drums Invasion to EZdrummer 3.adg""#));
+        let bar = html.find(r#"<div class="sticky top-0"#).unwrap();
+        let bar_end = bar + html[bar..].find("</div>").unwrap();
+        assert!(html.find(&format!(r#"href="{RACK}""#)).unwrap() > bar_end);
+    }
+
+    #[test]
+    fn a_rack_link_is_no_stats_element_so_the_browser_downloads_it() {
+        assert!(!anchor_to(page(INVASION_TO_EZDRUMMER), RACK).contains("data-umami-event"));
+    }
+
+    #[test]
+    fn a_rack_download_tells_the_stats_it_came_from_a_pair_page() {
+        let wrapper = download_wrapper(page(INVASION_TO_EZDRUMMER), RACK);
+        assert!(wrapper.contains(r#"data-umami-event="rack-downloaded""#));
+        assert!(wrapper.contains(r#"data-umami-event-where="pair""#));
+    }
+
+    #[test]
+    fn a_pair_page_says_dropped_drums_stay_silent_only_when_it_drops_some() {
+        let silent = "stay silent; their rows show only a note name.";
+        assert!(page("convert/superior-drummer3-to-general-midi/index.html")
+            .contains(&format!("Drums General MIDI lacks {silent}")));
+        assert!(!page(INVASION_TO_EZDRUMMER).contains(silent));
     }
 
     #[test]

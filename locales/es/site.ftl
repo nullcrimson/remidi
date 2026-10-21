@@ -81,6 +81,10 @@ maps-pair-summary = De las { $total } notas de { $source }, { $exact } { $exact 
    *[other] no tienen
 } equivalente.
 maps-pair-convert = Convertir { $source } → { $target }
+maps-pair-rack-lead = ¿Tocas en directo con Ableton?
+maps-pair-rack-link = Descarga el rack (.adg)
+maps-pair-rack = Ponlo delante de { $target }: { $sourceMidi } suena bien, sin convertir ningún archivo. Live 11 y 12.
+maps-pair-rack-dropped = Las piezas que le faltan a { $target } quedan en silencio; sus filas solo muestran un nombre de nota.
 maps-steps-label = Convertir en tres pasos
 maps-reverse = ⇄ Invertir dirección
 maps-exact-count = { $count ->

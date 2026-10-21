@@ -161,6 +161,7 @@ summary-remapped = { $total ->
 summary-edit-tip-title = Dopracuj każdy instrument
 summary-edit-tip = Przypisz dowolny instrument do innej nuty docelowej — wybierz go z listy instrumentów albo z pianina. Zmiany obowiązują w konwersji i można je zapisać jako preset.
 summary-edit = Edytuj pojedyncze nuty →
+summary-rack-label = Pobierz rack Abletona dla { $source } → { $target } (.adg)
 missing-detail-moved = Zastąpione innym instrumentem
 missing-detail-dropped = Usunięte z pliku
 detail-edit = Zmień w edytorze nut →

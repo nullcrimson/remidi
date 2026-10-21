@@ -158,6 +158,7 @@ summary-remapped = Éléments remappés : { $remapped } sur { $total }
 summary-edit-tip-title = Réglez chaque élément
 summary-edit-tip = Vous pouvez donner une autre note cible à n’importe quel élément, depuis la liste ou le clavier. Vos modifications sont prises en compte à la conversion et peuvent être enregistrées comme preset.
 summary-edit = Modifier note par note →
+summary-rack-label = Télécharger un rack Ableton pour { $source } → { $target } (.adg)
 missing-detail-moved = Remplacés par un autre élément
 missing-detail-dropped = Supprimés du fichier
 detail-edit = Modifier dans l’éditeur de notes →

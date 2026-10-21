@@ -77,6 +77,10 @@ maps-pair-summary = { $source }の全{ $total }個のノートのうち、{ $exa
    *[other] { $dropped }個
 }は対応するパーツがありません。
 maps-pair-convert = 変換：{ $source } → { $target }
+maps-pair-rack-lead = Abletonでライブ演奏しますか？
+maps-pair-rack-link = ラックをダウンロード（.adg）
+maps-pair-rack = { $target }の前に置けば、{ $sourceMidi }が正しく鳴ります。ファイルの変換は不要です。Live 11と12に対応。
+maps-pair-rack-dropped = { $target }にないドラムは鳴らず、その行にはノート名だけが表示されます。
 maps-steps-label = 3ステップで変換
 maps-reverse = ⇄ 逆方向
 maps-exact-count = 一致 { $count }

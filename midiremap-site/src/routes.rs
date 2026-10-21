@@ -96,9 +96,23 @@ pub fn engine_href(slug: &str) -> SitePath {
     SitePath::new(format!("{NOTE_MAPS}{slug}/"))
 }
 
-/// A drum map file's address: one copy every locale links.
+/// The folder of the files the site serves for download: one copy every locale links.
+pub fn drum_map_files() -> SitePath {
+    SitePath::new(format!("{DRUM_MAPS}files/"))
+}
+
+/// A drum map file's address.
 pub fn drum_map_href(slug: &str, daw: Daw) -> SitePath {
-    SitePath::new(format!("{DRUM_MAPS}files/{slug}.{}", daw.extension()))
+    SitePath::new(format!("{}{slug}.{}", drum_map_files(), daw.extension()))
+}
+
+/// The address of a pair's Ableton rack with the converter's defaults.
+pub fn rack_href(pair_slug: &str) -> SitePath {
+    SitePath::new(format!(
+        "{}racks/{pair_slug}.{}",
+        drum_map_files(),
+        Daw::AbletonLive.extension()
+    ))
 }
 
 /// A conversion pair page's address.
