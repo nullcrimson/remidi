@@ -302,7 +302,7 @@ fn a_rack_file_counts_its_dropped_drums() {
     );
     let dropped = rack_file(&mapping, None).dropped;
     assert!(dropped > 0);
-    assert_eq!(dropped, mapping.dropped_drums().len());
+    assert_eq!(dropped, mapping.dropped_drums().count());
 }
 
 #[test]

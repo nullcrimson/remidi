@@ -6,7 +6,7 @@ import type { Overrides } from '../src/core/midiremap';
 import naming from '../src/wasm/note_naming.json';
 import { PRESET_FIXTURE } from './presetFixture';
 import * as stub from './stubs/wasm';
-import { canon, typed } from './typed';
+import { canon, presetName, typed } from './typed';
 
 type Wasm = typeof import('../src/wasm/midiremap_wasm.js');
 
@@ -219,6 +219,38 @@ describe('real WASM module', () => {
   it('throws a typed error for a bad preset', () => {
     expect(kind(() => real.parse_preset_file('{}'))).toBe('badPreset');
   });
+
+  it('names a rack after its pair and packs it as gzip', () => {
+    const rack = real.remap_rack('ggd_invasion', 'ezdrummer');
+    expect([rack.fileName, rack.packing, rack.xml.startsWith('<?xml')]).toEqual([
+      'GetGood Drums Invasion to EZdrummer 3.adg',
+      'gzip',
+      true,
+    ]);
+  });
+
+  it('names a preset rack after the preset', () => {
+    expect(real.remap_rack('ggd_invasion', 'ezdrummer', undefined, undefined, undefined, presetName('My kit')).fileName).toBe('My kit.adg');
+  });
+
+  it('gives a rack that keeps unknown notes more chains than one that removes them', () => {
+    const chains = (unrecognized: 'keep' | 'remove') =>
+      real.remap_rack('ggd_invasion', 'ezdrummer', undefined, undefined, unrecognized).xml.split('<MidiEffectBranchPreset ').length;
+    expect(chains('keep')).toBeGreaterThan(chains('remove'));
+  });
+
+  it('counts the drums a rack leaves silent', () => {
+    expect(real.remap_rack('superior_drummer3', 'general_midi', undefined, 'drop').dropped).toBeGreaterThan(0);
+    expect(real.remap_rack('ggd_invasion', 'ezdrummer', undefined, 'nearest').dropped).toBe(0);
+  });
+
+  it('throws a typed error for a rack of an unknown engine', () => {
+    expect(thrown(() => real.remap_rack('ggd_invasion', 'nope'))).toEqual({ kind: 'unknownEngine', role: 'target', id: 'nope' });
+  });
+
+  it('refuses a blank preset name for a rack', () => {
+    expect(kind(() => real.remap_rack('ggd_invasion', 'ezdrummer', undefined, undefined, undefined, ' ' as never))).toBe('badPreset');
+  });
 });
 
 describe('test stub', () => {
@@ -254,6 +286,15 @@ describe('test stub', () => {
     const [s, r] = [stub.remap(MIDI, 'ggd_invasion', 'ezdrummer'), real.remap(MIDI, 'ggd_invasion', 'ezdrummer')];
     expect(keys(s)).toEqual(keys(r));
     expect(keys(s.report)).toEqual(keys(r.report));
+  });
+
+  it('returns the same rack fields as the real module', () => {
+    const [s, r] = [stub.remap_rack('ggd_invasion', 'ezdrummer'), real.remap_rack('ggd_invasion', 'ezdrummer')];
+    expect([keys(s), s.packing]).toEqual([keys(r), r.packing]);
+  });
+
+  it('throws the same error for a rack of an unknown engine as the real module', () => {
+    expect(thrown(() => stub.remap_rack('ggd_invasion', 'nope'))).toEqual(thrown(() => real.remap_rack('ggd_invasion', 'nope')));
   });
 
   it('returns a sample as bytes, as the real module does', () => {

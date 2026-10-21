@@ -59,7 +59,7 @@ pub fn rack_file(mapping: &Mapping, preset: Option<&NonBlank>) -> RackFile {
         file_name: rack_file_name(mapping, preset),
         xml: remap_rack(mapping),
         packing: ADG_PACKING,
-        dropped: mapping.dropped_drums().len(),
+        dropped: mapping.dropped_drums().count(),
     }
 }
 

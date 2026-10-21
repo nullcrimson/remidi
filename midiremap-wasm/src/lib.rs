@@ -1,10 +1,10 @@
 use std::{collections::BTreeMap, error::Error};
 
 use midiremap_core::{
-    convert, note_hits, parse_preset, plan as core_plan, sample_file as core_sample_file,
-    source_fits as core_source_fits, Canon, Catalog, ChannelScope, Drum, EngineMap, Family,
-    LoadedPreset, Mapping, MissingDrums, Note, NoteHits, OctaveBase, Overrides, Report,
-    SkippedEdit, Unrecognized, VoicePlan,
+    convert, note_hits, parse_preset, plan as core_plan, rack_file,
+    sample_file as core_sample_file, source_fits as core_source_fits, Canon, Catalog, ChannelScope,
+    Drum, EngineMap, Family, LoadedPreset, Mapping, MissingDrums, NonBlank, Note, NoteHits,
+    OctaveBase, Overrides, RackFile, Report, SkippedEdit, Unrecognized, VoicePlan,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -106,6 +106,20 @@ struct Settings {
     unrecognized: Unrecognized,
 }
 
+/// The mapping a conversion and a rack read their settings through, the one way both do.
+fn mapping(
+    catalog: &Catalog,
+    src_id: &str,
+    tgt_id: &str,
+    ov: &Overrides,
+    missing: MissingDrums,
+    unrecognized: Unrecognized,
+) -> Result<Mapping, WasmError> {
+    let src = engine(catalog, src_id, Role::Source)?;
+    let tgt = engine(catalog, tgt_id, Role::Target)?;
+    Ok(Mapping::new(src, tgt, ov, missing).with_unrecognized(unrecognized))
+}
+
 fn convert_file(
     catalog: &Catalog,
     mid: &[u8],
@@ -114,10 +128,14 @@ fn convert_file(
     ov: &Overrides,
     settings: &Settings,
 ) -> Result<RemapOutput, WasmError> {
-    let src = engine(catalog, src_id, Role::Source)?;
-    let tgt = engine(catalog, tgt_id, Role::Target)?;
-    let mapping =
-        Mapping::new(src, tgt, ov, settings.missing).with_unrecognized(settings.unrecognized);
+    let mapping = mapping(
+        catalog,
+        src_id,
+        tgt_id,
+        ov,
+        settings.missing,
+        settings.unrecognized,
+    )?;
     let out = convert(mid, &mapping, settings.scope)
         .map_err(|e| WasmError::BadMidi { detail: chain(&e) })?;
     Ok(RemapOutput {
@@ -144,6 +162,30 @@ pub fn remap(
     };
     let out = convert_file(catalog()?, mid, src_id, tgt_id, &ov, &settings)?;
     Ok(out.into_ts()?)
+}
+
+/// The Ableton rack that plays drum MIDI written for `src_id` on `tgt_id` with these edits and
+/// settings, as [`remap`] would convert it, named after `preset_name` when one is given.
+#[wasm_bindgen]
+pub fn remap_rack(
+    src_id: &str,
+    tgt_id: &str,
+    overrides: Option<Ts<Overrides>>,
+    missing: Option<Ts<MissingDrums>>,
+    unrecognized: Option<Ts<Unrecognized>>,
+    preset_name: Option<Ts<PresetName>>,
+) -> Result<Ts<RackFile>, WasmError> {
+    let ov = from_js(overrides, |detail| WasmError::BadOverrides { detail })?;
+    let missing = from_js(missing, |detail| WasmError::BadMissing { detail })?;
+    let unrecognized = from_js(unrecognized, |detail| WasmError::Internal { detail })?;
+    let preset = preset_name
+        .map(|name| name.to_rust())
+        .transpose()
+        .map_err(|e| WasmError::BadPreset {
+            detail: e.to_string(),
+        })?;
+    let mapping = mapping(catalog()?, src_id, tgt_id, &ov, missing, unrecognized)?;
+    Ok(rack_file(&mapping, preset.as_ref().map(|PresetName(name)| name)).into_ts()?)
 }
 
 /// One drum of the edit preview with its display label.
@@ -205,9 +247,10 @@ impl EngineId {
 }
 
 /// A preset's name: text that is not blank, its spacing kept.
-#[derive(Serialize, Tsify, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Tsify, Debug, PartialEq, Eq)]
+#[serde(transparent)]
 #[tsify(type = r#"string & { readonly __brand: "PresetName" }"#)]
-pub struct PresetName(String);
+pub struct PresetName(NonBlank);
 
 /// A preset file read for import: engines resolved to current ids, unreadable edits
 /// listed in `skipped`.
@@ -241,7 +284,7 @@ fn preset_view(json: &str, catalog: &Catalog) -> Result<PresetView, WasmError> {
         tgt: engine(preset.tgt.as_str(), Role::Target)?,
         edits: preset.edits,
         src_edits: preset.src_edits,
-        name: PresetName(preset.name.into()),
+        name: PresetName(preset.name),
         skipped,
     })
 }
@@ -483,7 +526,39 @@ mod tests {
     #[test]
     fn preset_view_carries_the_preset_name() {
         let view = view_through_an_alias_with_a_bogus_edit();
-        assert_eq!(view.name, PresetName("My kit".into()));
+        assert_eq!(view.name.0.as_str(), "My kit");
+    }
+
+    #[test]
+    fn a_rack_for_an_unknown_engine_is_an_unknown_engine_error() {
+        let err = mapping(
+            &Catalog::builtin().unwrap(),
+            "ggd_invasion",
+            "gone",
+            &Overrides::default(),
+            MissingDrums::Nearest,
+            Unrecognized::Remove,
+        )
+        .err()
+        .unwrap();
+        assert_eq!(
+            err,
+            WasmError::UnknownEngine {
+                role: Role::Target,
+                id: "gone".to_owned(),
+            }
+        );
+    }
+
+    #[test]
+    fn a_blank_preset_name_is_refused() {
+        assert!(serde_json::from_str::<PresetName>(r#"" \t""#).is_err());
+    }
+
+    #[test]
+    fn a_preset_name_serializes_as_its_text() {
+        let name: PresetName = serde_json::from_str(r#""My kit""#).unwrap();
+        assert_eq!(serde_json::to_string(&name).unwrap(), r#""My kit""#);
     }
 
     #[test]

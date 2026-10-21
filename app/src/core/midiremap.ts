@@ -5,7 +5,9 @@ import type {
   Family,
   MissingDrums,
   Overrides,
+  PresetName,
   PresetView,
+  RackFile,
   RemapOutput,
   SourceFits,
   Unrecognized,
@@ -29,9 +31,11 @@ export type {
   NoteNamings,
   OctaveBase,
   Overrides,
+  Packing,
   PlanOutcome,
   PresetName,
   PresetView,
+  RackFile,
   RemapOutput,
   Report,
   SourceFit,
@@ -58,6 +62,14 @@ export interface Midiremap {
     missing?: MissingDrums,
     unrecognized?: Unrecognized,
   ): RemapOutput;
+  /** The Ableton rack that plays `pair.src` MIDI on `pair.tgt` as `remap` converts it, named after `presetName` when given. */
+  remapRack(
+    pair: EnginePair,
+    ov?: Overrides,
+    missing?: MissingDrums,
+    unrecognized?: Unrecognized,
+    presetName?: PresetName,
+  ): RackFile;
   /** Every engine fitted to the hits of `mids` a conversion with `channel` reads, best first; a file that does not parse is left out. */
   sourceFits(mids: Uint8Array[], channel?: ChannelScope): SourceFits;
   /** A two-bar groove of kick, snare, closed hi-hat and crash on the notes `engine` plays them on. */
@@ -86,6 +98,8 @@ function calls(m: WasmModule): Midiremap {
     plan: ({ src, tgt }, ov, missing) => call(() => m.plan(src, tgt, ov, missing)),
     remap: (mid, { src, tgt }, ov, channel, missing, unrecognized) =>
       call(() => m.remap(mid, src, tgt, ov, channel, missing, unrecognized)),
+    remapRack: ({ src, tgt }, ov, missing, unrecognized, presetName) =>
+      call(() => m.remap_rack(src, tgt, ov, missing, unrecognized, presetName)),
     sourceFits: (mids, channel) => call(() => m.source_fits(mids, channel)),
     sampleFile: (engine) => call(() => m.sample_file(engine)),
   };

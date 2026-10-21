@@ -298,7 +298,7 @@ impl Changes {
         merges.sort_by_key(|m| Reverse(m.sources.len()));
         Self {
             merges,
-            dropped: mapping.dropped_drums(),
+            dropped: mapping.dropped_drums().collect(),
         }
     }
 }

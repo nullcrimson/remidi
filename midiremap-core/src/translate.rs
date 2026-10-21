@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
@@ -146,12 +146,11 @@ impl Mapping {
         played
     }
 
-    /// The drums the source plays that nothing on the target plays.
-    pub fn dropped_drums(&self) -> BTreeSet<Canon> {
+    /// The drums the source plays that nothing on the target plays, each once, in no order.
+    pub fn dropped_drums(&self) -> impl Iterator<Item = Canon> + '_ {
         self.played_drums()
             .into_keys()
             .filter(|&canon| matches!(self.resolve_canon(canon), CanonResolution::Dropped { .. }))
-            .collect()
     }
 }
 
@@ -640,9 +639,13 @@ notes = [ {} ]",
                 missing,
             )
             .dropped_drums()
+            .count()
         };
-        assert!(!between("superior_drummer3", "general_midi", MissingDrums::Drop).is_empty());
-        assert!(between("ggd_invasion", "ezdrummer", MissingDrums::Nearest).is_empty());
+        assert!(between("superior_drummer3", "general_midi", MissingDrums::Drop) > 0);
+        assert_eq!(
+            between("ggd_invasion", "ezdrummer", MissingDrums::Nearest),
+            0
+        );
     }
 
     #[test]

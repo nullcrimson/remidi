@@ -9,7 +9,7 @@ import { gzipSync } from 'node:zlib';
  * the largest locale chunk: a visitor loads one language's messages, never all of them.
  */
 export const BUDGETS = {
-  wasm: 166_000,
+  wasm: 181_000,
   js: 156_000,
   css: 12_470,
   fonts: 108_000,

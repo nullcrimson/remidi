@@ -84,6 +84,14 @@ export const remap = vi.fn<typeof Wasm.remap>(() => ({
   }),
 }));
 
+export const RACK_XML = '<?xml version="1.0" encoding="UTF-8"?>\n<Ableton/>\n';
+
+export const remap_rack = vi.fn<typeof Wasm.remap_rack>((src, tgt, _overrides, _missing, _unrecognized, presetName) => {
+  if (src === 'nope') throw unknownEngine('source', src);
+  if (tgt === 'nope') throw unknownEngine('target', tgt);
+  return { fileName: `${presetName ?? 'GGD Invasion to EZdrummer'}.adg`, xml: RACK_XML, packing: 'gzip', dropped: 0 };
+});
+
 export const source_fits = vi.fn<typeof Wasm.source_fits>(() => ({ hits: 0, ranked: [] }));
 
 export const SAMPLE_BYTES = new Uint8Array([77, 84, 104, 100, 0, 0, 0, 6]);
