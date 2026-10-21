@@ -26,14 +26,6 @@ pub enum CanonResolution {
 }
 
 impl CanonResolution {
-    pub(crate) fn canon(&self) -> Canon {
-        match *self {
-            Self::Direct { canon, .. }
-            | Self::Fallback { canon, .. }
-            | Self::Dropped { canon, .. } => canon,
-        }
-    }
-
     /// Whether the target lacks the drum and its nearest stand-in is another drum, so the
     /// [`MissingDrums`] setting decides what plays it.
     pub fn moves_to_other_drum(&self) -> bool {

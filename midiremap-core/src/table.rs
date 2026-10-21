@@ -40,10 +40,6 @@ impl NoteTable {
         &self.notes[note.index()]
     }
 
-    pub(crate) fn iter(&self) -> impl Iterator<Item = (Note, &Resolution)> {
-        Note::ALL.into_iter().zip(&self.notes)
-    }
-
     pub(crate) fn unrecognized(&self) -> Unrecognized {
         self.unrecognized
     }
@@ -120,19 +116,5 @@ mod tests {
             NoteTable::compile(&mapping).unrecognized(),
             Unrecognized::Keep
         );
-    }
-
-    #[test]
-    fn iter_yields_each_note_once_in_order() {
-        let b = Catalog::builtin().unwrap();
-        let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
-        let table = NoteTable::compile(&Mapping::new(
-            src,
-            tgt,
-            &Overrides::default(),
-            MissingDrums::Nearest,
-        ));
-        let notes: Vec<u8> = table.iter().map(|(n, _)| n.get()).collect();
-        assert_eq!(notes, (0..128).collect::<Vec<u8>>());
     }
 }

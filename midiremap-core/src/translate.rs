@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use serde::{Deserialize, Serialize};
 
@@ -133,6 +133,25 @@ impl Mapping {
 
     pub fn resolve_canon(&self, canon: Canon) -> CanonResolution {
         self.drums[&canon]
+    }
+
+    /// Each drum some source note decodes to, edits applied, with those notes ascending.
+    pub(crate) fn played_drums(&self) -> HashMap<Canon, Vec<Note>> {
+        let mut played: HashMap<Canon, Vec<Note>> = HashMap::new();
+        for note in Note::ALL {
+            if let Some(&canon) = self.decode.get(&note) {
+                played.entry(canon).or_default().push(note);
+            }
+        }
+        played
+    }
+
+    /// The drums the source plays that nothing on the target plays.
+    pub fn dropped_drums(&self) -> BTreeSet<Canon> {
+        self.played_drums()
+            .into_keys()
+            .filter(|&canon| matches!(self.resolve_canon(canon), CanonResolution::Dropped { .. }))
+            .collect()
     }
 }
 
@@ -608,6 +627,22 @@ notes = [ {} ]",
                 other_drum: false
             })
         );
+    }
+
+    #[test]
+    fn a_drum_the_source_plays_and_the_target_lacks_is_dropped() {
+        let catalog = Catalog::builtin().unwrap();
+        let between = |src: &str, tgt: &str, missing| {
+            Mapping::new(
+                catalog.get(src).unwrap(),
+                catalog.get(tgt).unwrap(),
+                &Overrides::default(),
+                missing,
+            )
+            .dropped_drums()
+        };
+        assert!(!between("superior_drummer3", "general_midi", MissingDrums::Drop).is_empty());
+        assert!(between("ggd_invasion", "ezdrummer", MissingDrums::Nearest).is_empty());
     }
 
     #[test]

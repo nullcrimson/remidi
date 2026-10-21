@@ -281,21 +281,13 @@ fn merges_by_target<'a>(rows: impl IntoIterator<Item = &'a PairRow>) -> Vec<Merg
     by_note.into_values().collect()
 }
 
-/// The source drums that land nowhere.
-fn dropped<'a>(rows: impl IntoIterator<Item = &'a PairRow>) -> BTreeSet<Canon> {
-    rows.into_iter()
-        .filter(|row| matches!(row.landing, Landing::Dropped))
-        .map(|row| row.source.canon)
-        .collect()
-}
-
 impl Changes {
-    fn of<'a>(rows: impl IntoIterator<Item = &'a PairRow> + Clone) -> Self {
-        let mut merges = merges_by_target(rows.clone());
+    fn of<'a>(rows: impl IntoIterator<Item = &'a PairRow>, mapping: &Mapping) -> Self {
+        let mut merges = merges_by_target(rows);
         merges.sort_by_key(|m| Reverse(m.sources.len()));
         Self {
             merges,
-            dropped: dropped(rows),
+            dropped: mapping.dropped_drums(),
         }
     }
 }
@@ -538,8 +530,7 @@ fn default_mapping(src: &EngineMap, tgt: &EngineMap) -> Mapping {
     Mapping::new(src, tgt, &Overrides::default(), MissingDrums::default())
 }
 
-fn pair_rows(src: &EngineMap, tgt: &EngineMap) -> Vec<FamilyGroup<PairRow>> {
-    let mapping = default_mapping(src, tgt);
+fn pair_rows(src: &EngineMap, mapping: &Mapping) -> Vec<FamilyGroup<PairRow>> {
     by_family(src.source_notes().into_iter().map(|d| {
         (
             d.family,
@@ -555,14 +546,15 @@ fn pair_rows(src: &EngineMap, tgt: &EngineMap) -> Vec<FamilyGroup<PairRow>> {
 }
 
 fn pair_page(src: &EngineMap, tgt: &EngineMap, routes: &[Route]) -> PairPage {
-    let groups = pair_rows(src, tgt);
+    let mapping = default_mapping(src, tgt);
+    let groups = pair_rows(src, &mapping);
     let rows = || groups.iter().flat_map(|g| &g.rows);
     PairPage {
         slug: pair_slug(src.id(), tgt.id()),
         src: EngineLink::of(src),
         tgt: EngineLink::of(tgt),
         tally: Tally::of(rows()),
-        changes: Changes::of(rows()),
+        changes: Changes::of(rows(), &mapping),
         groups,
         reverse: routes
             .iter()

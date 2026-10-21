@@ -8,8 +8,7 @@ use crate::{
     note::Note,
     overrides::Overrides,
     resolution::{CanonResolution, MissingDrums},
-    table::NoteTable,
-    translate::{Mapping, Resolution},
+    translate::Mapping,
 };
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
@@ -79,7 +78,7 @@ impl PlanOutcome {
     }
 }
 
-/// One drum of the edit preview, derived from the same [`NoteTable`] the converter uses.
+/// One drum of the edit preview, derived from the same [`Mapping`] the converter uses.
 #[derive(Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(
@@ -125,15 +124,8 @@ pub fn plan(
 ) -> Vec<VoicePlan> {
     let mapping = Mapping::new(src, tgt, ov, missing);
     let unedited = Mapping::new(src, tgt, &Overrides::default(), missing);
-    let table = NoteTable::compile(&mapping);
     let edited = ov.source();
-
-    let mut notes_by_canon: HashMap<Canon, Vec<Note>> = HashMap::new();
-    for (note, res) in table.iter() {
-        if let Resolution::Resolved(r) = res {
-            notes_by_canon.entry(r.canon()).or_default().push(note);
-        }
-    }
+    let mut notes_by_canon = mapping.played_drums();
 
     Canon::all()
         .iter()
