@@ -9,9 +9,9 @@ use crate::{
     engine_map::EngineMap,
     note::Note,
     overrides::Overrides,
-    resolution::{CanonResolution, MissingDrums},
-    table::NoteTable,
-    translate::{Mapping, Resolution},
+    resolution::MissingDrums,
+    table::{Destination, NoteTable},
+    translate::Mapping,
 };
 
 type Xml = Writer<Vec<u8>>;
@@ -38,23 +38,18 @@ pub fn remap_rack(
     missing: MissingDrums,
 ) -> String {
     let table = NoteTable::compile(&Mapping::new(src, tgt, overrides, missing));
-    let chains = table
-        .iter()
-        .filter_map(|(note, res)| match res {
-            Resolution::Resolved(
-                CanonResolution::Direct { canon, note: to }
-                | CanonResolution::Fallback {
-                    canon, note: to, ..
-                },
-            ) => {
-                let shift = i16::from(to.get()) - i16::from(note.get());
+    let chains = Note::ALL
+        .into_iter()
+        .filter_map(|note| match table.destination(note)? {
+            Destination::Drum { canon, note: to } => {
+                let shift = note.semitones_to(to);
                 Some(Chain {
                     note,
                     name: format!("{} → {}", canon.label(), to.get()),
                     shift: (shift != 0).then_some(shift),
                 })
             }
-            Resolution::Resolved(CanonResolution::Dropped { .. }) | Resolution::Unmapped => None,
+            Destination::Kept(_) => None,
         })
         .collect::<Vec<_>>();
     let title = format!("{} → {}", src.display_name(), tgt.display_name());

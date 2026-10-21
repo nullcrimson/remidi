@@ -82,6 +82,11 @@ impl Note {
         u7::from_int_lossy(self.0)
     }
 
+    /// How many semitones `to` lies above this note; negative when it lies below.
+    pub fn semitones_to(self, to: Note) -> i16 {
+        i16::from(to.0) - i16::from(self.0)
+    }
+
     /// Serializes a map keyed by note with every key as text, which a JavaScript object
     /// needs of its keys: `#[serde(serialize_with = "Note::text_keys")]`.
     pub fn text_keys<V: Serialize, S: Serializer>(
@@ -249,6 +254,14 @@ mod tests {
     fn converts_to_and_from_u7() {
         let n = Note::new(100).unwrap();
         assert_eq!(Note::from_key(n.key()), n);
+    }
+
+    #[test]
+    fn semitones_to_counts_up_and_down() {
+        assert_eq!(
+            (n(36).semitones_to(n(40)), n(40).semitones_to(n(36))),
+            (4, -4)
+        );
     }
 
     #[test]

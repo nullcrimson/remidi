@@ -8,9 +8,7 @@ use crate::{
     midi::{is_hit, CodecError},
     note::Note,
     report::Report,
-    resolution::CanonResolution,
     table::NoteTable,
-    translate::{Resolution, Unrecognized},
 };
 
 #[derive(Default)]
@@ -43,7 +41,6 @@ pub(crate) fn rewrite(
     report: &mut Report,
 ) -> Result<(), CodecError> {
     let filters = scope.resolve(smf);
-    let unrecognized = table.unrecognized();
     for (track, filter) in smf.tracks.iter_mut().zip(filters) {
         let events = std::mem::take(track);
         let mut out = Vec::with_capacity(events.len());
@@ -57,14 +54,13 @@ pub(crate) fn rewrite(
                     match message {
                         MidiMessage::NoteOn { key, .. } => {
                             let note = Note::from_key(*key);
-                            let res = table.get(note);
                             if hit {
-                                report.record(note, res);
+                                report.record(note, table.get(note));
                             }
-                            apply(res, unrecognized, key)
+                            apply(table, key)
                         }
                         MidiMessage::NoteOff { key, .. } | MidiMessage::Aftertouch { key, .. } => {
-                            apply(table.get(Note::from_key(*key)), unrecognized, key)
+                            apply(table, key)
                         }
                         _ => true,
                     }
@@ -89,14 +85,12 @@ pub(crate) fn rewrite(
     Ok(())
 }
 
-fn apply(res: &Resolution, unrecognized: Unrecognized, key: &mut u7) -> bool {
-    match res {
-        Resolution::Resolved(CanonResolution::Direct { note, .. })
-        | Resolution::Resolved(CanonResolution::Fallback { note, .. }) => {
-            *key = note.key();
+fn apply(table: &NoteTable, key: &mut u7) -> bool {
+    match table.destination(Note::from_key(*key)) {
+        Some(to) => {
+            *key = to.note().key();
             true
         }
-        Resolution::Unmapped => unrecognized.keeps(),
-        Resolution::Resolved(CanonResolution::Dropped { .. }) => false,
+        None => false,
     }
 }

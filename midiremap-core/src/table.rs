@@ -1,7 +1,25 @@
 use crate::{
+    canon::Canon,
     note::Note,
+    resolution::CanonResolution,
     translate::{Mapping, Resolution, Unrecognized},
 };
+
+/// Where a source note plays on the target: on the note of the drum it decodes to, or
+/// unchanged, when the source does not recognize it and the table keeps such notes.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub(crate) enum Destination {
+    Drum { canon: Canon, note: Note },
+    Kept(Note),
+}
+
+impl Destination {
+    pub(crate) fn note(&self) -> Note {
+        match *self {
+            Self::Drum { note, .. } | Self::Kept(note) => note,
+        }
+    }
+}
 
 /// Every source note's resolution, compiled once per (source, target, overrides), and
 /// what happens to the notes that resolve to nothing the source recognizes.
@@ -28,6 +46,24 @@ impl NoteTable {
 
     pub(crate) fn unrecognized(&self) -> Unrecognized {
         self.unrecognized
+    }
+
+    /// Where `note` plays, or `None` when nothing plays it: its drum is dropped, or the source
+    /// does not recognize it and the table removes such notes.
+    pub(crate) fn destination(&self, note: Note) -> Option<Destination> {
+        match *self.get(note) {
+            Resolution::Resolved(
+                CanonResolution::Direct { canon, note: to }
+                | CanonResolution::Fallback {
+                    canon, note: to, ..
+                },
+            ) => Some(Destination::Drum { canon, note: to }),
+            Resolution::Resolved(CanonResolution::Dropped { .. }) => None,
+            Resolution::Unmapped => self
+                .unrecognized()
+                .keeps()
+                .then_some(Destination::Kept(note)),
+        }
     }
 }
 
