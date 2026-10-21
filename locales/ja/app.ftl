@@ -237,6 +237,7 @@ files-sample-lead = 手元にファイルがない場合
 chip-rename = 名前を変更
 chip-duplicate = 複製
 chip-export = エクスポート
+chip-rack = Abletonラック
 chip-delete = 削除
 chip-rename-label = { $name }の名前を変更
 chip-rename-save = 名前を保存

@@ -4,7 +4,7 @@ import { gunzipSync, strFromU8 } from 'fflate';
 import { describe, expect, it, vi } from 'vitest';
 import { WasmCallError } from '../src/core/errors';
 import * as stub from './stubs/wasm';
-import { MY_KIT, openSettings, pickEngines, startApp, store, storePresets } from './eventSteps';
+import { MY_KIT, openSettings, pickEngines, startApp, store, storePresets, type StoredPreset } from './eventSteps';
 import { recordDownloads } from './downloads';
 import { fakeUmami } from './umami';
 
@@ -136,5 +136,83 @@ describe('the summary row rack', () => {
     const tip = await screen.findByRole('tooltip');
     expect(within(tip).getByText('Play it live in Ableton')).toBeInTheDocument();
     expect(tip).toHaveTextContent('Put it in front of EZdrummer and GGD Invasion MIDI plays right');
+  });
+});
+
+const KIT_A: StoredPreset = { ...MY_KIT, id: 'a', name: 'Kit A', edits: { 'kick.main': 40 } };
+
+const KIT_B: StoredPreset = { ...MY_KIT, id: 'b', name: 'Kit B', src: 'ezdrummer', tgt: 'ggd_invasion', edits: { 'snare1.hit': 27 } };
+
+const KIT_A_CALL = ['ggd_invasion', 'ezdrummer', { tgt: [{ canon: 'kick.main', note: 40 }], src: [] }, 'nearest', 'remove', 'Kit A'];
+
+async function chooseRack(preset: string): Promise<void> {
+  await userEvent.click(screen.getByRole('button', { name: `More actions for ${preset}` }));
+  await userEvent.click(screen.getByRole('menuitem', { name: 'Ableton rack' }));
+}
+
+const summaryText = () => screen.getByText(/drums? remapped/).closest('div')?.parentElement?.textContent;
+
+describe('a saved preset rack', () => {
+  const umami = fakeUmami();
+
+  it('a preset\'s rack uses that preset\'s engines and edits while another preset is loaded', async () => {
+    storePresets(KIT_A, KIT_B);
+    await startApp();
+    await userEvent.click(screen.getByRole('button', { name: /^Kit B/ }));
+    const before = summaryText();
+    await chooseRack('Kit A');
+    expect(rackCalls()).toEqual([KIT_A_CALL]);
+    expect(downloads().map((d) => d.name)).toEqual(['Kit A.adg']);
+    expect(rackButton()).toHaveAccessibleName('Download an Ableton rack for EZdrummer → GGD Invasion (.adg)');
+    expect(summaryText()).toBe(before);
+  });
+
+  it('… while no preset is loaded', async () => {
+    storePresets(KIT_A);
+    await startApp();
+    await pickEngines();
+    await userEvent.click(screen.getByRole('button', { name: 'Swap FROM and TO' }));
+    await chooseRack('Kit A');
+    expect(rackCalls()).toEqual([KIT_A_CALL]);
+    expect(downloads().map((d) => d.name)).toEqual(['Kit A.adg']);
+  });
+
+  it('a preset whose engine is unknown cannot make a rack', async () => {
+    storePresets({ ...KIT_A, tgt: 'gone' });
+    await startApp();
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for Kit A' }));
+    expect(screen.getByRole('menuitem', { name: 'Ableton rack' })).toBeDisabled();
+  });
+
+  it('a failed preset rack from another pair says why', async () => {
+    vi.mocked(stub.remap_rack).mockImplementation(() => {
+      throw { kind: 'internal', detail: 'boom' };
+    });
+    storePresets(KIT_A);
+    await startApp();
+    await pickEngines();
+    await userEvent.click(screen.getByRole('button', { name: 'Swap FROM and TO' }));
+    await chooseRack('Kit A');
+    expect(screen.getByRole('status')).toHaveTextContent("Couldn't make the rack: Something went wrong");
+    expect(umami).not.toHaveBeenCalledWith('rack-downloaded', expect.anything());
+  });
+
+  it('a preset rack\'s notice shows while another pair is open', async () => {
+    storePresets(KIT_A);
+    await startApp();
+    await pickEngines();
+    await userEvent.click(screen.getByRole('button', { name: 'Swap FROM and TO' }));
+    await chooseRack('Kit A');
+    const notice = screen.getByRole('status');
+    expect(notice).toHaveTextContent('Rack saved: Kit A.adg. Drag it onto the MIDI track, in front of EZdrummer.');
+    expect(screen.getByRole('group', { name: 'Saved mappings' }).compareDocumentPosition(notice)).toBe(Node.DOCUMENT_POSITION_PRECEDING);
+  });
+
+  it('a preset rack names the edits this version does not know', async () => {
+    storePresets({ ...KIT_A, edits: { 'kick.main': 40, 'gone.drum': 41 } });
+    await startApp();
+    await chooseRack('Kit A');
+    expect(rackCalls()).toEqual([KIT_A_CALL]);
+    expect(screen.getByRole('status')).toHaveTextContent("1 edit in 'Kit A' uses a drum this version doesn't know; skipped.");
   });
 });

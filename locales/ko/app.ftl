@@ -236,6 +236,7 @@ files-sample-lead = 파일이 없나요?
 chip-rename = 이름 변경
 chip-duplicate = 복제
 chip-export = 내보내기
+chip-rack = Ableton 랙
 chip-delete = 삭제
 chip-rename-label = { $name } 이름 변경
 chip-rename-save = 이름 저장

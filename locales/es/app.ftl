@@ -257,6 +257,7 @@ files-sample-lead = ¿No tienes un archivo a mano?
 chip-rename = Cambiar nombre
 chip-duplicate = Duplicar
 chip-export = Exportar
+chip-rack = Rack de Ableton
 chip-delete = Eliminar
 chip-rename-label = Cambiar el nombre de { $name }
 chip-rename-save = Guardar nombre

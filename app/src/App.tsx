@@ -28,7 +28,9 @@ import { usePresetActions } from './presets/usePresetActions';
 import { useRemapper } from './convert/useRemapper';
 import { useSampleFile } from './convert/useSampleFile';
 import { useSavedMappings } from './presets/useSavedMappings';
-import { namesOf, samePair } from './core/enginePair';
+import { engineName, namesOf, samePair } from './core/enginePair';
+import { knownEdits } from './core/overrides';
+import type { SavedMapping } from './presets/mappings';
 import { downloadPreset } from './presets/presetFile';
 import { ErrorText } from './ui/ErrorText';
 import { useT } from './locale/localeContext';
@@ -90,6 +92,18 @@ export default function App({ runtime }: { runtime: Runtime }) {
       presetName: openPreset?.name,
     });
     setNotice({ lines, at: 'summary', pair });
+  };
+  const savePresetRack = (m: SavedMapping) => {
+    if (core === null) return;
+    notify(saveRack(core, {
+      where: 'preset',
+      pair: { src: m.src, tgt: m.tgt },
+      targetName: engineName(remapper.engines, m.tgt),
+      edits: knownEdits(m, editor.vocabulary),
+      missing: remapper.missing,
+      unrecognized: remapper.unrecognized,
+      presetName: m.name,
+    }));
   };
 
   if (view.kind === 'edit') {
@@ -159,6 +173,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
           onRename={saved.rename}
           onDuplicate={presets.duplicate}
           onExport={downloadPreset}
+          onRack={savePresetRack}
           onDelete={saved.remove}
         />
 

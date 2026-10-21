@@ -46,6 +46,14 @@ describe('the events of presets', () => {
     expect(umami).toHaveBeenCalledWith('preset-managed', { action: 'delete' });
   });
 
+  it('sends rack-downloaded from a preset as edited, and no preset-managed', async () => {
+    storePresets(MY_KIT);
+    await startApp();
+    await choose('Ableton rack');
+    expect(umami).toHaveBeenCalledWith('rack-downloaded', { where: 'preset', edited: true });
+    expect(umami).not.toHaveBeenCalledWith('preset-managed', expect.anything());
+  });
+
   it('sends presets-unsaved when the browser cannot store a change', async () => {
     storePresets(MY_KIT);
     await startApp();

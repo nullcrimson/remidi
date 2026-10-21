@@ -1,10 +1,12 @@
+import { readFile } from 'node:fs/promises';
+import { gunzipSync } from 'node:zlib';
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { leaveEditor, openEditor, presetChip, press, retarget, saved, saveKickPreset, targetNote } from './steps';
 
 const NAME = 'Heavy Kick';
 
-async function menu(page: Page, name: string, action: 'Rename' | 'Duplicate' | 'Delete') {
+async function menu(page: Page, name: string, action: 'Rename' | 'Duplicate' | 'Ableton rack' | 'Delete') {
   await press(page.getByRole('button', { name: `More actions for ${name}`, exact: true }));
   await press(page.getByRole('menuitem', { name: action }));
 }
@@ -137,4 +139,19 @@ test('an updated preset brings both edits back after a reload', async ({ page })
   await openEditor(page);
   await expect(targetNote(page, 'Kick')).toHaveText('E2');
   await expect(targetNote(page, 'Snare')).toHaveText('F2');
+});
+
+test("a saved preset's menu downloads its rack", async ({ page }) => {
+  await saveKickPreset(page, 'My kick');
+  await page.goto('/?from=superior_drummer3&to=general_midi');
+  await expect(presetChip(page, 'My kick')).toBeVisible();
+
+  const file = page.waitForEvent('download');
+  await menu(page, 'My kick', 'Ableton rack');
+  const download = await file;
+  expect(download.suggestedFilename()).toBe('My kick.adg');
+  const xml = gunzipSync(await readFile(await download.path())).toString('utf8');
+  expect(xml).toContain('<Name Value="Kick → 40"/>');
+  expect(xml).toContain('<UserName Value="GetGood Drums Invasion → EZdrummer 3"/>');
+  await expect(page.getByRole('status')).toContainText('Rack saved: My kick.adg.');
 });

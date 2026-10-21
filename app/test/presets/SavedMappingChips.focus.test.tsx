@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { SavedMappingChips } from '../../src/presets/SavedMappingChips';
 import type { SavedMapping } from '../../src/presets/mappings';
 import type { Engine } from '../../src/core/midiremap';
@@ -22,6 +22,12 @@ const preset = (id: string, name: string): SavedMapping => ({
   updatedAt: 1,
 });
 
+const racks: string[] = [];
+
+beforeEach(() => {
+  racks.length = 0;
+});
+
 function Harness({ initial }: { initial: SavedMapping[] }) {
   const [mappings, setMappings] = useState(initial);
   return (
@@ -37,6 +43,7 @@ function Harness({ initial }: { initial: SavedMapping[] }) {
         onRename={(id, name) => setMappings((ms) => ms.map((m) => (m.id === id ? { ...m, name } : m)))}
         onDuplicate={() => {}}
         onExport={() => {}}
+        onRack={(m) => racks.push(m.name)}
         onDelete={(id) => setMappings((ms) => ms.filter((m) => m.id !== id))}
       />
     </>
@@ -98,6 +105,25 @@ describe('saved preset focus', () => {
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'More actions for Alpha' })).toHaveFocus();
+  });
+
+  it('reaches Ableton rack with the arrow keys, runs it with Enter and returns to the menu button', async () => {
+    render(<Harness initial={[preset('a', 'Alpha')]} />);
+    const more = screen.getByRole('button', { name: 'More actions for Alpha' });
+    more.focus();
+    await userEvent.keyboard('{Enter}');
+    const menu = screen.getByRole('menu');
+    const rack = within(menu).getByRole('menuitem', { name: 'Ableton rack' });
+    const seen: string[] = [];
+    for (let presses = 0; presses < 5 && document.activeElement !== rack; presses++) {
+      await userEvent.keyboard('{ArrowDown}');
+      seen.push(document.activeElement?.textContent ?? '');
+    }
+    expect(seen.slice(-2)).toEqual(['Export', 'Ableton rack']);
+    await userEvent.keyboard('{Enter}');
+    expect(racks).toEqual(['Alpha']);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(more).toHaveFocus();
   });
 
   it('returns to the menu button after Duplicate', async () => {

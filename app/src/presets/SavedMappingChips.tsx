@@ -17,6 +17,7 @@ export function SavedMappingChips({
   onRename,
   onDuplicate,
   onExport,
+  onRack,
   onDelete,
 }: {
   mappings: SavedMapping[];
@@ -29,6 +30,7 @@ export function SavedMappingChips({
   onRename: (id: string, name: PresetName) => void;
   onDuplicate: (m: SavedMapping) => void;
   onExport: (m: SavedMapping) => void;
+  onRack: (m: SavedMapping) => void;
   onDelete: (id: string) => void;
 }) {
   const t = useT();
@@ -63,6 +65,7 @@ export function SavedMappingChips({
             onRename={onRename}
             onDuplicate={onDuplicate}
             onExport={onExport}
+            onRack={onRack}
             onDelete={remove}
           />
         ))}

@@ -238,6 +238,7 @@ files-sample-lead = 手边没有文件？
 chip-rename = 重命名
 chip-duplicate = 创建副本
 chip-export = 导出
+chip-rack = Ableton 机架
 chip-delete = 删除
 chip-rename-label = 重命名 { $name }
 chip-rename-save = 保存名称

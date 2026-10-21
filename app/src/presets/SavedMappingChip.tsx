@@ -26,6 +26,7 @@ export function SavedMappingChip({
   onRename,
   onDuplicate,
   onExport,
+  onRack,
   onDelete,
 }: {
   mapping: SavedMapping;
@@ -36,6 +37,7 @@ export function SavedMappingChip({
   onRename: (id: string, name: PresetName) => void;
   onDuplicate: (m: SavedMapping) => void;
   onExport: (m: SavedMapping) => void;
+  onRack: (m: SavedMapping) => void;
   onDelete: (id: string) => void;
 }) {
   const t = useT();
@@ -70,6 +72,16 @@ export function SavedMappingChip({
       danger: false,
     },
     { label: t({ id: 'chip-export' }), title: undefined, run: managed('export', () => onExport(mapping)), disabled: false, danger: false },
+    {
+      label: t({ id: 'chip-rack' }),
+      title: known ? undefined : t({ id: 'chip-unavailable' }),
+      run: (focusButton) => {
+        onRack(mapping);
+        focusButton();
+      },
+      disabled: !known,
+      danger: false,
+    },
     { label: t({ id: 'chip-delete' }), title: undefined, run: managed('delete', () => onDelete(mapping.id)), disabled: false, danger: true },
   ];
 

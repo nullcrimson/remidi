@@ -25,6 +25,7 @@ function makeProps(overrides = {}) {
     onRename: vi.fn(),
     onDuplicate: vi.fn(),
     onExport: vi.fn(),
+    onRack: vi.fn(),
     onDelete: vi.fn(),
     ...overrides,
   };
@@ -105,6 +106,34 @@ describe('SavedMappingChip', () => {
     expect(screen.getByRole('menu')).toBeVisible();
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('lists Rename, Duplicate, Export, Ableton rack and Delete in that order', async () => {
+    renderChip();
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for My kit' }));
+    expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
+      'Rename',
+      'Duplicate',
+      'Export',
+      'Ableton rack',
+      'Delete',
+    ]);
+  });
+
+  it('downloads the rack via the menu', async () => {
+    const p = renderChip();
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for My kit' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Ableton rack' }));
+    expect(p.onRack).toHaveBeenCalledWith(mapping);
+  });
+
+  it('disables Ableton rack for a stale preset', async () => {
+    const p = renderChip({ known: false });
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for My kit' }));
+    const rack = screen.getByRole('menuitem', { name: 'Ableton rack' });
+    expect(rack).toBeDisabled();
+    await userEvent.click(rack);
+    expect(p.onRack).not.toHaveBeenCalled();
   });
 
   it('disables body and edit for a stale preset', () => {

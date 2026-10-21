@@ -31,6 +31,7 @@ function makeProps(overrides = {}) {
     onRename: vi.fn(),
     onDuplicate: vi.fn(),
     onExport: vi.fn(),
+    onRack: vi.fn(),
     onDelete: vi.fn(),
     ...overrides,
   };
