@@ -18,6 +18,7 @@ function renderRow(edited?: Partial<EditedState>) {
       remapped={45}
       total={47}
       onEdit={() => {}}
+      onRack={() => {}}
       names={{ source: 'GetGood Drums', target: 'EZdrummer 3' }}
       edited={edited && { count: 2, lines: LINES, preset: { kind: 'none' }, onReview, ...edited }}
     />,
@@ -90,6 +91,7 @@ describe('SummaryRow breakdown', () => {
         remapped={18}
         total={22}
         onEdit={onEdit}
+        onRack={() => {}}
         breakdown={breakdown}
         names={{ source: 'GetGood Drums', target: 'EZdrummer 3' }}
       />,

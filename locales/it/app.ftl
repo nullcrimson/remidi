@@ -159,6 +159,15 @@ summary-edit-tip-title = Regola ogni strumento
 summary-edit-tip = Puoi dare a qualsiasi strumento un'altra nota di destinazione, scegliendola dall'elenco o dalla tastiera. Le modifiche valgono per la conversione e puoi salvarle come preset.
 summary-edit = Modifica le singole note →
 summary-rack-label = Scarica un rack di Ableton per { $source } → { $target } (.adg)
+summary-rack = Rack di Ableton
+summary-rack-tip-title = Suonalo dal vivo in Ableton
+summary-rack-tip = Un MIDI Effect Rack per Live 11 e 12. Mettilo davanti a { $target } e il MIDI di { $source } suona giusto, senza file da convertire. Usa le tue modifiche alle note e l'impostazione Strumenti mancanti.
+rack-saved = Rack salvato: { $file }. Trascinalo sulla traccia MIDI, davanti a { $target }. In una clip, ogni riga mostra lo strumento e la nota che ora suona.
+rack-saved-dropped = Rack salvato: { $file }. Trascinalo sulla traccia MIDI, davanti a { $target }. { $count ->
+    [one] Uno strumento che manca a { $target } non ha nome di riga nella clip, solo una nota come D1, e resta muto.
+   *[other] { $count } strumenti che mancano a { $target } non hanno nome di riga nella clip, solo una nota come D1, e restano muti.
+}
+rack-failed = Impossibile creare il rack: { $error }
 missing-detail-moved = Sostituiti con un altro strumento
 missing-detail-dropped = Rimossi dal file
 detail-edit = Modifica nell’editor delle note →

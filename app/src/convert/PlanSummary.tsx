@@ -16,12 +16,14 @@ export function PlanSummary({
   edited,
   editRef,
   onOpenEditor,
+  onRack,
 }: {
   remapper: Remapper;
   editor: Editor;
   edited: ReturnType<typeof useEditedSummary>;
   editRef: FocusRef;
   onOpenEditor: (from: Extract<StatEvents['editor-opened']['from'], 'summary'>, show?: EditFilter) => void;
+  onRack: () => void;
 }) {
   const { pair } = remapper;
   if (pair === null) return null;
@@ -31,6 +33,7 @@ export function PlanSummary({
       remapped={editor.remappedCount}
       total={editor.rows.length}
       onEdit={(show) => onOpenEditor('summary', show)}
+      onRack={onRack}
       breakdown={planBreakdown(editor.rows, editor.targetDrums, remapper.oct)}
       names={namesOf(remapper.engines, pair)}
       editRef={editRef}

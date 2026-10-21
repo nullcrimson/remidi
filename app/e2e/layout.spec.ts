@@ -5,6 +5,9 @@ import { messages, PSEUDO, pseudoFtl } from './messages';
 
 const prefix = (code: string) => (code === PSEUDO ? 'pl' : code);
 
+const rackLabel = (m: ReturnType<typeof messages>) =>
+  m('summary-rack-label', { source: 'GetGood Drums Invasion', target: 'EZdrummer 3' });
+
 test('the probe flags text cut off by its box', async ({ page }) => {
   await page.goto('/');
   await page.evaluate(() => {
@@ -37,6 +40,9 @@ for (const code of LOCALES) {
       await page.keyboard.press('Escape');
       await addFiles(page, kickAndChina());
       await fits(page, 'file loaded');
+      await page.getByRole('button', { name: rackLabel(m) }).click();
+      await expect(page.getByRole('status')).toBeVisible();
+      await fits(page, 'rack saved');
       await page.getByRole('group', { name: m('library-group', { side: m('engine-to') }) }).getByRole('button').first().click();
       await fits(page, 'engine picker');
       await page.keyboard.press('Escape');
@@ -55,6 +61,26 @@ for (const code of LOCALES) {
         await fits(page, id);
         await page.keyboard.press('Escape');
       }
+    });
+
+    test.describe('360 px', () => {
+      test.use({ viewport: { width: 360, height: 780 } });
+
+      test('the summary row and the rack notice fit', async ({ page }) => {
+        const m = messages(code);
+        await page.goto(`/${prefix(code)}/?from=ggd_invasion&to=ezdrummer`);
+        const edit = page.getByRole('button', { name: m('summary-edit') });
+        const rack = page.getByRole('button', { name: rackLabel(m) });
+        await expect(edit).toBeVisible();
+        await expect(rack).toBeVisible();
+        expect(await clipped(page)).toEqual([]);
+        await fits(page, 'summary row');
+        await rack.click();
+        await expect(page.getByRole('status')).toBeVisible();
+        await expect(edit).toBeVisible();
+        await expect(rack).toBeVisible();
+        await fits(page, 'rack saved');
+      });
     });
   });
 }

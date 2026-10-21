@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { CardDropzone } from './convert/CardDropzone';
 import { CloserSourcesNotice } from './convert/CloserSourcesNotice';
 import { EditView } from './editor/EditView';
@@ -28,11 +28,12 @@ import { usePresetActions } from './presets/usePresetActions';
 import { useRemapper } from './convert/useRemapper';
 import { useSampleFile } from './convert/useSampleFile';
 import { useSavedMappings } from './presets/useSavedMappings';
-import { namesOf } from './core/enginePair';
+import { namesOf, samePair } from './core/enginePair';
 import { downloadPreset } from './presets/presetFile';
 import { ErrorText } from './ui/ErrorText';
 import { useT } from './locale/localeContext';
-import type { NoticeLine } from './core/notice';
+import type { Notice, NoticeLine } from './core/notice';
+import { saveRack } from './convert/rack';
 import type { Runtime } from './convert/runtime';
 
 export default function App({ runtime }: { runtime: Runtime }) {
@@ -41,7 +42,8 @@ export default function App({ runtime }: { runtime: Runtime }) {
   const remapper = useRemapper(runtime);
   const { editor, view, pair, conv } = remapper;
   const focus = useFocusIntent();
-  const [notice, setNotice] = useState<NoticeLine[] | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const notify = useCallback((lines: NoticeLine[] | null) => setNotice(lines && { lines, at: 'engines' }), []);
   const saved = useSavedMappings();
   const [reportOpen, setReportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -53,7 +55,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
       openEditor: () => openEditor('preset'),
     },
     saved,
-    setNotice,
+    notify,
   );
   const openPreset = presets.open(remapper.presetId);
   const edited = useEditedSummary(editor, remapper.oct, openPreset);
@@ -64,7 +66,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
     src: remapper.src,
     tgt: remapper.tgt,
     saved,
-    notify: setNotice,
+    notify,
     focus: request,
   };
   const pickFiles = useFileIntake({ ...intake, via: 'picker' });
@@ -75,6 +77,20 @@ export default function App({ runtime }: { runtime: Runtime }) {
   const names = pair && namesOf(remapper.engines, pair);
   const steps = stepStates({ file: remapper.files.length > 0, engines: pair !== null, convert: isConverted(conv) });
   const { open: openEditor, close: closeEditor } = useEditorSession(remapper, request);
+  const dismissNotice = () => setNotice(null);
+  const saveSummaryRack = () => {
+    if (core === null || pair === null || names === null) return;
+    const lines = saveRack(core, {
+      where: 'summary',
+      pair,
+      targetName: names.target,
+      edits: editor,
+      missing: remapper.missing,
+      unrecognized: remapper.unrecognized,
+      presetName: openPreset?.name,
+    });
+    setNotice({ lines, at: 'summary', pair });
+  };
 
   if (view.kind === 'edit') {
     const shown = namesOf(remapper.engines, view.pair);
@@ -129,7 +145,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
 
         <CloserSourcesNotice remapper={remapper} />
 
-        {notice && <StatusNotice lines={notice} onDismiss={() => setNotice(null)} />}
+        {notice?.at === 'engines' && <StatusNotice lines={notice.lines} onDismiss={dismissNotice} />}
 
         {saved.unsaved && <UnsavedNotice />}
 
@@ -152,7 +168,12 @@ export default function App({ runtime }: { runtime: Runtime }) {
           edited={edited}
           editRef={focus.ref('editLink')}
           onOpenEditor={openEditor}
+          onRack={saveSummaryRack}
         />
+
+        {notice?.at === 'summary' && pair && samePair(notice.pair, pair) && (
+          <StatusNotice lines={notice.lines} onDismiss={dismissNotice} />
+        )}
       </>
     ),
     convert: (

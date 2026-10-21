@@ -162,6 +162,16 @@ summary-edit-tip-title = Dopracuj każdy instrument
 summary-edit-tip = Przypisz dowolny instrument do innej nuty docelowej — wybierz go z listy instrumentów albo z pianina. Zmiany obowiązują w konwersji i można je zapisać jako preset.
 summary-edit = Edytuj pojedyncze nuty →
 summary-rack-label = Pobierz rack Abletona dla { $source } → { $target } (.adg)
+summary-rack = Rack Abletona
+summary-rack-tip-title = Graj na żywo w Abletonie
+summary-rack-tip = MIDI Effect Rack dla Live 11 i 12. Wstaw go przed { $target }, a MIDI z { $source } zagra dobrze, bez konwertowania pliku. Uwzględnia zmiany nut i ustawienie Brakujące instrumenty.
+rack-saved = Zapisano rack: { $file }. Przeciągnij go na ścieżkę MIDI, przed { $target }. W klipie każdy wiersz pokazuje instrument i nutę, którą teraz gra.
+rack-saved-dropped = Zapisano rack: { $file }. Przeciągnij go na ścieżkę MIDI, przed { $target }. { $count ->
+    [one] { $count } instrument, którego brakuje w { $target }, nie ma w klipie nazwy wiersza, tylko nutę taką jak D1, i milknie.
+    [few] { $count } instrumenty, których brakuje w { $target }, nie mają w klipie nazwy wiersza, tylko nutę taką jak D1, i milkną.
+   *[many] { $count } instrumentów, których brakuje w { $target }, nie ma w klipie nazwy wiersza, tylko nutę taką jak D1, i milknie.
+}
+rack-failed = Nie udało się utworzyć racka: { $error }
 missing-detail-moved = Zastąpione innym instrumentem
 missing-detail-dropped = Usunięte z pliku
 detail-edit = Zmień w edytorze nut →

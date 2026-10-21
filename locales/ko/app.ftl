@@ -140,6 +140,14 @@ summary-edit-tip-title = 악기별 세부 조정
 summary-edit-tip = 어떤 악기든 다른 대상 노트로 바꿀 수 있습니다. 악기 목록이나 피아노에서 고르세요. 바꾼 내용은 변환에 적용되고, 프리셋으로 저장할 수도 있습니다.
 summary-edit = 노트 개별 편집 →
 summary-rack-label = { $source } → { $target }용 Ableton 랙 다운로드(.adg)
+summary-rack = Ableton 랙
+summary-rack-tip-title = Ableton에서 라이브로 연주
+summary-rack-tip = Live 11, 12용 MIDI Effect Rack입니다. { $target } 앞에 놓으면 { $source } MIDI가 제대로 연주되고, 변환할 파일은 없습니다. 노트 편집과 '없는 악기' 설정이 적용됩니다.
+rack-saved = 랙을 저장했습니다: { $file }. MIDI 트랙의 { $target } 앞에 끌어다 놓으세요. 클립의 각 행에 악기와 지금 연주하는 노트가 표시됩니다.
+rack-saved-dropped = 랙을 저장했습니다: { $file }. MIDI 트랙의 { $target } 앞에 끌어다 놓으세요. { $count ->
+   *[other] { $target }에 없는 악기 { $count }개는 클립에서 행 이름 없이 D1 같은 노트 이름만 보이고 소리가 나지 않습니다.
+}
+rack-failed = 랙을 만들지 못했습니다: { $error }
 missing-detail-moved = 다른 악기로 대체
 missing-detail-dropped = 파일에서 제외
 detail-edit = 노트 편집에서 변경 →

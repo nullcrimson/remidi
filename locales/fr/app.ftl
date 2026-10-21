@@ -159,6 +159,15 @@ summary-edit-tip-title = Réglez chaque élément
 summary-edit-tip = Vous pouvez donner une autre note cible à n’importe quel élément, depuis la liste ou le clavier. Vos modifications sont prises en compte à la conversion et peuvent être enregistrées comme preset.
 summary-edit = Modifier note par note →
 summary-rack-label = Télécharger un rack Ableton pour { $source } → { $target } (.adg)
+summary-rack = Rack Ableton
+summary-rack-tip-title = Jouez-le en live dans Ableton
+summary-rack-tip = Un MIDI Effect Rack pour Live 11 et 12. Placez-le devant { $target } et le MIDI { $source } joue juste, sans fichier à convertir. Il reprend vos modifications de notes et le réglage Éléments manquants.
+rack-saved = Rack enregistré : { $file }. Glissez-le sur la piste MIDI, devant { $target }. Dans un clip, chaque ligne affiche l’élément et la note qu’il joue désormais.
+rack-saved-dropped = Rack enregistré : { $file }. Glissez-le sur la piste MIDI, devant { $target }. { $count ->
+    [one] Un élément absent de { $target } n’a pas de nom de ligne dans le clip, seulement une note comme D1, et reste muet.
+   *[other] { $count } éléments absents de { $target } n’ont pas de nom de ligne dans le clip, seulement une note comme D1, et restent muets.
+}
+rack-failed = Impossible de créer le rack : { $error }
 missing-detail-moved = Remplacés par un autre élément
 missing-detail-dropped = Supprimés du fichier
 detail-edit = Modifier dans l’éditeur de notes →

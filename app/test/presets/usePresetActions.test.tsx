@@ -97,7 +97,7 @@ describe('usePresetActions', () => {
   it('says how many edits a loaded preset skipped', () => {
     const { actions, notify } = arrange(2);
     actions.load(kit);
-    expect(notify.mock.lastCall?.[0].map((l: NoticeLine) => ('message' in l ? t(l.message) : l.failed))).toEqual([
+    expect(notify.mock.lastCall?.[0].map((l: NoticeLine) => ('message' in l ? t(l.message) : l))).toEqual([
       "2 edits in 'My kit' use drums this version doesn't know; skipped.",
     ]);
   });

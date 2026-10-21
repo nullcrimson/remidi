@@ -153,6 +153,15 @@ summary-edit-tip-title = Fine-tune each drum
 summary-edit-tip = Reassign any drum to a different target note — pick from the drum list or the piano. Your changes apply to the conversion and can be saved as a preset.
 summary-edit = Edit individual notes →
 summary-rack-label = Download an Ableton rack for { $source } → { $target } (.adg)
+summary-rack = Ableton rack
+summary-rack-tip-title = Play it live in Ableton
+summary-rack-tip = A MIDI Effect Rack for Live 11 and 12. Put it in front of { $target } and { $source } MIDI plays right, with no file to convert. It uses your note edits and the Missing drums setting.
+rack-saved = Rack saved: { $file }. Drag it onto the MIDI track, in front of { $target }. In a clip, each row shows the drum and the note it now plays.
+rack-saved-dropped = Rack saved: { $file }. Drag it onto the MIDI track, in front of { $target }. { $count ->
+    [one] One drum { $target } lacks has no row name in the clip, only a note like D1, and stays silent.
+   *[other] { $count } drums { $target } lacks have no row name in the clip, only a note like D1, and stay silent.
+}
+rack-failed = Couldn't make the rack: { $error }
 missing-detail-moved = Played on another drum
 missing-detail-dropped = Left out of the file
 detail-edit = Change in note editor →

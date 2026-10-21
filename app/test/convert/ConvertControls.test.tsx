@@ -6,13 +6,13 @@ import { SummaryRow } from '../../src/convert/SummaryRow';
 
 describe('SummaryRow', () => {
   it('shows counts', () => {
-    render(<SummaryRow remapped={3} total={14} onEdit={() => {}} names={{ source: 'GetGood Drums', target: 'EZdrummer 3' }} />);
+    render(<SummaryRow remapped={3} total={14} onEdit={() => {}} onRack={() => {}} names={{ source: 'GetGood Drums', target: 'EZdrummer 3' }} />);
     expect(screen.getByText(/of 14 drums remapped/)).toBeInTheDocument();
   });
 
   it('fires edit', async () => {
     const onEdit = vi.fn();
-    render(<SummaryRow remapped={3} total={14} onEdit={onEdit} names={{ source: 'GetGood Drums', target: 'EZdrummer 3' }} />);
+    render(<SummaryRow remapped={3} total={14} onEdit={onEdit} onRack={() => {}} names={{ source: 'GetGood Drums', target: 'EZdrummer 3' }} />);
     await userEvent.click(screen.getByText(/Edit individual notes/));
     expect(onEdit).toHaveBeenCalledOnce();
   });

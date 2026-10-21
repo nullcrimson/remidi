@@ -19,6 +19,11 @@ export function pairOf(src: EngineId | null, tgt: EngineId | null): EnginePair |
   return src !== null && tgt !== null ? { src, tgt } : null;
 }
 
+/** Whether two pairs convert between the same two engines the same way round. */
+export function samePair(a: EnginePair, b: EnginePair): boolean {
+  return a.src === b.src && a.tgt === b.tgt;
+}
+
 /** The display names of the source and target engines. */
 export interface EngineNames {
   source: string;

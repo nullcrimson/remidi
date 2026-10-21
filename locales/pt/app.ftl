@@ -160,6 +160,15 @@ summary-edit-tip-title = Ajuste cada peça
 summary-edit-tip = Atribua qualquer peça a outra nota de destino — escolha na lista de peças ou no piano. Suas alterações valem para a conversão e podem ser salvas como preset.
 summary-edit = Editar nota por nota →
 summary-rack-label = Baixar um rack do Ableton para { $source } → { $target } (.adg)
+summary-rack = Rack do Ableton
+summary-rack-tip-title = Toque ao vivo no Ableton
+summary-rack-tip = Um MIDI Effect Rack para Live 11 e 12. Coloque-o antes do { $target } e o MIDI do { $source } toca certo, sem arquivo para converter. Ele usa suas alterações de notas e o ajuste Peças que faltam.
+rack-saved = Rack salvo: { $file }. Arraste-o para a faixa MIDI, antes do { $target }. Num clipe, cada linha mostra a peça e a nota que ela toca agora.
+rack-saved-dropped = Rack salvo: { $file }. Arraste-o para a faixa MIDI, antes do { $target }. { $count ->
+    [one] Uma peça que falta no { $target } não tem nome de linha no clipe, só uma nota como D1, e fica muda.
+   *[other] { $count } peças que faltam no { $target } não têm nome de linha no clipe, só uma nota como D1, e ficam mudas.
+}
+rack-failed = Não foi possível criar o rack: { $error }
 missing-detail-moved = Trocadas por outra peça
 missing-detail-dropped = Removidas do arquivo
 detail-edit = Alterar no editor de notas →

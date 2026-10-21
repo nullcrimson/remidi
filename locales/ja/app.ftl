@@ -140,6 +140,14 @@ summary-edit-tip-title = パーツごとに微調整
 summary-edit-tip = どのパーツも、別の変換先ノートに割り当て直せます。パーツ一覧か鍵盤から選んでください。変更は変換に反映され、プリセットとして保存することもできます。
 summary-edit = ノートを個別に編集 →
 summary-rack-label = { $source } → { $target }用のAbletonラックをダウンロード（.adg）
+summary-rack = Abletonラック
+summary-rack-tip-title = Abletonでライブ演奏
+summary-rack-tip = Live 11と12用のMIDI Effect Rackです。{ $target }の前に置けば、{ $source }のMIDIが正しく鳴ります。ファイルの変換は不要です。ノートの編集と「足りないパーツ」の設定が反映されます。
+rack-saved = ラックを保存しました：{ $file }。MIDIトラックの{ $target }の前にドラッグしてください。クリップの各行に、パーツと今鳴らすノートが表示されます。
+rack-saved-dropped = ラックを保存しました：{ $file }。MIDIトラックの{ $target }の前にドラッグしてください。{ $count ->
+   *[other] { $target }にないパーツ{ $count }個は、クリップの行に名前がなくD1のようなノート名だけが表示され、鳴りません。
+}
+rack-failed = ラックを作成できませんでした：{ $error }
 missing-detail-moved = 別のパーツに置き換え
 missing-detail-dropped = ファイルから削除
 detail-edit = ノートエディターで変更 →

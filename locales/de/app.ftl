@@ -153,6 +153,15 @@ summary-edit-tip-title = Instrumente einzeln anpassen
 summary-edit-tip = Sie können jedem Instrument eine andere Zielnote geben – in der Instrumentenliste oder auf der Klaviatur. Die Änderungen gelten für die Konvertierung und lassen sich als Preset speichern.
 summary-edit = Einzelne Noten bearbeiten →
 summary-rack-label = Ableton-Rack für { $source } → { $target } herunterladen (.adg)
+summary-rack = Ableton-Rack
+summary-rack-tip-title = Live in Ableton spielen
+summary-rack-tip = Ein MIDI Effect Rack für Live 11 und 12. Setzen Sie es vor { $target }, dann klingt { $source }-MIDI richtig, ohne Datei zu konvertieren. Es nutzt Ihre Notenänderungen und die Einstellung „Fehlende Instrumente“.
+rack-saved = Rack gespeichert: { $file }. Ziehen Sie es auf die MIDI-Spur, vor { $target }. In einem Clip zeigt jede Zeile das Instrument und die Note, die es jetzt spielt.
+rack-saved-dropped = Rack gespeichert: { $file }. Ziehen Sie es auf die MIDI-Spur, vor { $target }. { $count ->
+    [one] Ein Instrument, das { $target } fehlt, hat im Clip keinen Zeilennamen, nur eine Note wie D1, und bleibt stumm.
+   *[other] { $count } Instrumente, die { $target } fehlen, haben im Clip keinen Zeilennamen, nur eine Note wie D1, und bleiben stumm.
+}
+rack-failed = Das Rack konnte nicht erstellt werden: { $error }
 missing-detail-moved = Durch ein anderes Instrument ersetzt
 missing-detail-dropped = Aus der Datei entfernt
 detail-edit = Im Noten-Editor ändern →

@@ -14,6 +14,7 @@ export function SummaryRow({
   remapped,
   total,
   onEdit,
+  onRack,
   editRef,
   edited,
   breakdown,
@@ -22,6 +23,7 @@ export function SummaryRow({
   remapped: number;
   total: number;
   onEdit: (show?: EditFilter) => void;
+  onRack: () => void;
   editRef?: FocusRef;
   edited?: EditedState;
   breakdown?: PlanBreakdown;
@@ -53,26 +55,48 @@ export function SummaryRow({
         </span>
         {edited && <EditedChip {...edited} />}
       </div>
-      <Tooltip
-        content={(
-          <TooltipBody title={t({ id: 'summary-edit-tip-title' })}>
-            {t({ id: 'summary-edit-tip' })}
-          </TooltipBody>
-        )}
-      >
-        <button
-          ref={editRef}
-          type="button"
-          onClick={() => onEdit()}
-          className={`
-            whitespace-nowrap
-            ${textAction('link')}
-          `}
+      <span className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Tooltip
+          content={(
+            <TooltipBody title={t({ id: 'summary-edit-tip-title' })}>
+              {t({ id: 'summary-edit-tip' })}
+            </TooltipBody>
+          )}
         >
-          <span aria-hidden="true">✎</span>
-          {t({ id: 'summary-edit' })}
-        </button>
-      </Tooltip>
+          <button
+            ref={editRef}
+            type="button"
+            onClick={() => onEdit()}
+            className={`
+              whitespace-nowrap
+              ${textAction('link')}
+            `}
+          >
+            <span aria-hidden="true">✎</span>
+            {t({ id: 'summary-edit' })}
+          </button>
+        </Tooltip>
+        <Tooltip
+          content={(
+            <TooltipBody title={t({ id: 'summary-rack-tip-title' })}>
+              {t({ id: 'summary-rack-tip', args: { source: names.source, target: names.target } })}
+            </TooltipBody>
+          )}
+        >
+          <button
+            type="button"
+            onClick={onRack}
+            aria-label={t({ id: 'summary-rack-label', args: { source: names.source, target: names.target } })}
+            className={`
+              whitespace-nowrap
+              ${textAction()}
+            `}
+          >
+            <span aria-hidden="true">↓</span>
+            {t({ id: 'summary-rack' })}
+          </button>
+        </Tooltip>
+      </span>
     </div>
   );
 }

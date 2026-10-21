@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { WasmCallError } from '../src/core/errors';
 import * as stub from './stubs/wasm';
 import type { RemapOutput } from '../src/core/midiremap';
-import { addMidi, convert, MY_KIT, pickEngines, startApp, storePresets } from './eventSteps';
+import { addMidi, convert, MY_KIT, pickEngines, startApp, store, storePresets } from './eventSteps';
 import { recordDownloads } from './downloads';
 import { typed } from './typed';
 import { fakeUmami } from './umami';
@@ -118,6 +118,20 @@ describe('the events of converting', () => {
     await userEvent.click(screen.getByRole('button', { name: /Download 2 files/ }));
     expect(downloads()).toHaveLength(1);
     expect(umami).toHaveBeenCalledWith('downloaded', { files: 2, how: 'zip' });
+  });
+
+  it('sends rack-downloaded from the summary row, not edited', async () => {
+    await startApp();
+    await pickEngines();
+    await userEvent.click(screen.getByRole('button', { name: /^Download an Ableton rack for / }));
+    expect(umami).toHaveBeenCalledWith('rack-downloaded', { where: 'summary', edited: false });
+  });
+
+  it('sends rack-downloaded from the summary row as edited after an edit', async () => {
+    store('session', { version: 1, src: 'ggd_invasion', tgt: 'ezdrummer', edits: { 'kick.main': 40 }, srcEdits: {} });
+    await startApp();
+    await userEvent.click(screen.getByRole('button', { name: /^Download an Ableton rack for / }));
+    expect(umami).toHaveBeenCalledWith('rack-downloaded', { where: 'summary', edited: true });
   });
 
   it('sends downloaded with how file for a link beside one file of a batch', async () => {

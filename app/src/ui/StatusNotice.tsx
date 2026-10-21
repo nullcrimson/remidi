@@ -8,6 +8,7 @@ import { TextButton } from './TextButton';
 function Line({ line }: { line: NoticeLine }) {
   const t = useT();
   if ('message' in line) return t(line.message);
+  if ('rackFailed' in line) return <Rich id="rack-failed" slots={{ error: <ErrorText error={line.rackFailed} /> }} />;
   return (
     <Rich
       id="import-failed"

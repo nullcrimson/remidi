@@ -141,6 +141,14 @@ summary-edit-tip-title = 逐个微调鼓件
 summary-edit-tip = 每个鼓件都可以改用其他目标音符，在鼓件列表或琴键上选择即可。修改会用于本次转换，也可以保存为预设。
 summary-edit = 编辑单个音符 →
 summary-rack-label = 下载 { $source } → { $target } 的 Ableton 机架（.adg）
+summary-rack = Ableton 机架
+summary-rack-tip-title = 在 Ableton 里现场演奏
+summary-rack-tip = 适用于 Live 11 和 12 的 MIDI Effect Rack。放在 { $target } 之前，{ $source } 的 MIDI 就能正确发声，无需转换文件。它会用上你的音符修改和“缺少的鼓件”设置。
+rack-saved = 机架已保存：{ $file }。把它拖到 MIDI 轨道上，放在 { $target } 之前。片段的每一行会显示鼓件和它现在演奏的音符。
+rack-saved-dropped = 机架已保存：{ $file }。把它拖到 MIDI 轨道上，放在 { $target } 之前。{ $count ->
+   *[other] { $target } 没有的 { $count } 个鼓件在片段里没有行名，只显示 D1 这样的音符，且不会发声。
+}
+rack-failed = 无法生成机架：{ $error }
 missing-detail-moved = 换成了其他鼓件
 missing-detail-dropped = 已从文件中删除
 detail-edit = 在音符编辑器中修改 →
