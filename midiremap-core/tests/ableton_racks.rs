@@ -135,19 +135,26 @@ fn through_rack(xml: &str) -> BTreeMap<u8, u8> {
     out
 }
 
-fn converted(src: &str, tgt: &str, ov: &Overrides, missing: MissingDrums) -> BTreeMap<u8, u8> {
-    let hits: Vec<_> = (0..128u8)
-        .flat_map(|note| [(LEAD, on(note)), (TAIL, off(note))])
-        .collect();
-    let mapping = Mapping::new(
+fn mapping(src: &str, tgt: &str, ov: &Overrides, missing: MissingDrums) -> Mapping {
+    Mapping::new(
         CATALOG.get(src).unwrap(),
         CATALOG.get(tgt).unwrap(),
         ov,
         missing,
-    );
-    let bytes = convert(&drums(&hits), &mapping, ChannelScope::Auto)
-        .unwrap()
-        .bytes;
+    )
+}
+
+fn converted(src: &str, tgt: &str, ov: &Overrides, missing: MissingDrums) -> BTreeMap<u8, u8> {
+    let hits: Vec<_> = (0..128u8)
+        .flat_map(|note| [(LEAD, on(note)), (TAIL, off(note))])
+        .collect();
+    let bytes = convert(
+        &drums(&hits),
+        &mapping(src, tgt, ov, missing),
+        ChannelScope::Auto,
+    )
+    .unwrap()
+    .bytes;
     let mut time = 0;
     let mut out = BTreeMap::new();
     for (delta, _, message) in events(&bytes, 0) {
@@ -168,12 +175,7 @@ fn a_remap_rack_plays_every_note_where_the_converter_puts_it() {
         for missing in [MissingDrums::Nearest, MissingDrums::Drop] {
             ENGINES.par_iter().for_each(|&src| {
                 for tgt in ENGINES {
-                    let xml = remap_rack(
-                        CATALOG.get(src).unwrap(),
-                        CATALOG.get(tgt).unwrap(),
-                        &ov,
-                        missing,
-                    );
+                    let xml = remap_rack(&mapping(src, tgt, &ov, missing));
                     assert_eq!(
                         through_rack(&xml),
                         converted(src, tgt, &ov, missing),
@@ -187,12 +189,12 @@ fn a_remap_rack_plays_every_note_where_the_converter_puts_it() {
 
 #[test]
 fn every_parameter_of_a_rack_has_its_own_id() {
-    let xml = remap_rack(
-        CATALOG.get("ggd_invasion").unwrap(),
-        CATALOG.get("ezdrummer").unwrap(),
+    let xml = remap_rack(&mapping(
+        "ggd_invasion",
+        "ezdrummer",
         &Overrides::default(),
         MissingDrums::Nearest,
-    );
+    ));
     let ids = read(&xml).ids;
     let unique: BTreeSet<&String> = ids.iter().collect();
     assert!(ids.len() > 100);
@@ -201,12 +203,12 @@ fn every_parameter_of_a_rack_has_its_own_id() {
 
 #[test]
 fn a_remap_rack_names_each_chain_after_its_drum_and_the_note_it_lands_on() {
-    let xml = remap_rack(
-        CATALOG.get("general_midi").unwrap(),
-        CATALOG.get("ezdrummer").unwrap(),
+    let xml = remap_rack(&mapping(
+        "general_midi",
+        "ezdrummer",
         &Overrides::default(),
         MissingDrums::Nearest,
-    );
+    ));
     let rack = read(&xml);
     let kick = rack.chains.iter().find(|c| single_key(c) == 36).unwrap();
     assert_eq!(kick.name, "Kick → 36");
@@ -236,12 +238,12 @@ fn a_note_name_rack_names_every_note_an_engine_plays_and_moves_none() {
 
 #[test]
 fn a_rack_numbers_its_chains_in_order_from_zero() {
-    let xml = remap_rack(
-        CATALOG.get("ggd_halpern").unwrap(),
-        CATALOG.get("ggd_invasion").unwrap(),
+    let xml = remap_rack(&mapping(
+        "ggd_halpern",
+        "ggd_invasion",
         &Overrides::default(),
         MissingDrums::Nearest,
-    );
+    ));
     let ids: Vec<String> = read(&xml).chains.into_iter().map(|c| c.id).collect();
     let expected: Vec<String> = (0..ids.len()).map(|i| i.to_string()).collect();
     assert!(ids.len() > 1);
@@ -263,12 +265,12 @@ fn a_rack_is_a_live_11_preset_down_to_every_protection_number() {
 
 #[test]
 fn a_rack_writes_no_setting_only_live_12_reads() {
-    let xml = remap_rack(
-        CATALOG.get("ggd_halpern").unwrap(),
-        CATALOG.get("ggd_invasion").unwrap(),
+    let xml = remap_rack(&mapping(
+        "ggd_halpern",
+        "ggd_invasion",
         &Overrides::default(),
         MissingDrums::Nearest,
-    );
+    ));
     for tag in [
         "BreakoutIsExpanded",
         "MpePitchBendUsesTuning",

@@ -4,8 +4,8 @@ use std::{
 };
 
 use midiremap_core::{
-    safe_file_name, Canon, CanonResolution, Catalog, Daw, Drum, EngineMap, Family, Mapping,
-    MissingDrums, Note, OctaveBase, Overrides,
+    Canon, CanonResolution, Catalog, Daw, Drum, EngineMap, Family, FileStem, Mapping, MissingDrums,
+    Note, OctaveBase, Overrides,
 };
 
 use crate::routes::{drum_map_href, engine_href, pair_href, SitePath, POPULAR, SITE_NAME};
@@ -83,11 +83,9 @@ impl EngineLink {
             .map(|&daw| DrumMapLink {
                 daw,
                 href: drum_map_href(&self.slug, daw),
-                file_name: format!(
-                    "{} ({SITE_NAME}).{}",
-                    safe_file_name(&self.name),
-                    daw.extension()
-                ),
+                file_name: FileStem::parse(&format!("{} ({SITE_NAME})", self.name))
+                    .expect("a name with the site's name after it is never blank")
+                    .with_extension(daw.extension()),
             })
             .collect()
     }

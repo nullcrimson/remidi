@@ -70,6 +70,8 @@ impl UnrecognizedParseError {
 /// A source and a target engine with overrides applied: the hub-and-spoke pipeline for
 /// one conversion.
 pub struct Mapping {
+    source_name: String,
+    target_name: String,
     decode: Decoding,
     drums: HashMap<Canon, CanonResolution>,
     unrecognized: Unrecognized,
@@ -86,6 +88,8 @@ impl Mapping {
     ) -> Self {
         let encode = encoding(tgt, overrides);
         Self {
+            source_name: src.display_name().to_owned(),
+            target_name: tgt.display_name().to_owned(),
             decode: decoding(src, overrides),
             drums: Canon::all()
                 .iter()
@@ -107,6 +111,16 @@ impl Mapping {
 
     pub(crate) fn unrecognized(&self) -> Unrecognized {
         self.unrecognized
+    }
+
+    /// The source engine's display name.
+    pub(crate) fn source_name(&self) -> &str {
+        &self.source_name
+    }
+
+    /// The target engine's display name.
+    pub(crate) fn target_name(&self) -> &str {
+        &self.target_name
     }
 
     pub(crate) fn translate(&self, note: Note) -> Resolution {

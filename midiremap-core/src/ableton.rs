@@ -8,8 +8,6 @@ use quick_xml::{
 use crate::{
     engine_map::EngineMap,
     note::Note,
-    overrides::Overrides,
-    resolution::MissingDrums,
     table::{Destination, NoteTable},
     translate::Mapping,
 };
@@ -28,16 +26,11 @@ struct Chain {
 }
 
 /// An Ableton Live 11 MIDI Effect Rack preset, which Live 12 also opens (the XML a `.adg`
-/// file holds, before gzip), that plays drum MIDI written for `src` on `tgt`: one chain per source note that lands
-/// on the target, shifting it to the target's note. Notes that nothing plays have no chain,
-/// so the rack drops them, as the converter does.
-pub fn remap_rack(
-    src: &EngineMap,
-    tgt: &EngineMap,
-    overrides: &Overrides,
-    missing: MissingDrums,
-) -> String {
-    let table = NoteTable::compile(&Mapping::new(src, tgt, overrides, missing));
+/// file holds, before gzip), that plays drum MIDI written for the mapping's source on its
+/// target: one chain per source note that lands on the target, shifting it to the target's
+/// note. Notes that nothing plays have no chain, so the rack drops them, as the converter does.
+pub fn remap_rack(mapping: &Mapping) -> String {
+    let table = NoteTable::compile(mapping);
     let chains = Note::ALL
         .into_iter()
         .filter_map(|note| match table.destination(note)? {
@@ -52,7 +45,7 @@ pub fn remap_rack(
             Destination::Kept(_) => None,
         })
         .collect::<Vec<_>>();
-    let title = format!("{} → {}", src.display_name(), tgt.display_name());
+    let title = format!("{} → {}", mapping.source_name(), mapping.target_name());
     rack(&title, &chains)
 }
 
