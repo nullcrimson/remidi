@@ -23,6 +23,7 @@
     "pretypecheck": "npm run gen:i18n",
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test",
+    "screenshot": "playwright test -c playwright.screenshot.config.ts",
     "size": "node scripts/check-size.ts"
   },
   "dependencies": {

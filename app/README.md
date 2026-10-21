@@ -36,6 +36,7 @@ Deploy the static contents of `app/dist/` to any static host.
 npm run test     # Vitest; needs npm run build:wasm once (the contract test loads the real module)
 npm run e2e      # Playwright against vite preview of dist; run npm run build:site first
 npm run size     # size budgets for dist (wasm, JS, CSS gzipped; latin fonts; largest locale chunk; a static page's script)
+npm run screenshot  # rewrites ../docs/screenshot.png from dist (playwright.screenshot.config.ts; npm run e2e and the gate never run it)
 cargo xtask gate      # every check; a check, or the app and site build, that passed with nothing it reads changed shows cached (logs and timings.json in target/gate/)
 cargo xtask gate --fresh  # every check run again, cached or not
 cargo xtask gate app  # one group (rust; app = eslint, tsc, vitest; dist = size, e2e) or single steps; CI runs the same groups
@@ -84,10 +85,11 @@ swapping and starring engines, the picker sheet and the favourite chips; the fol
 channel, octave and missing-drums settings; the note editor (targets, filters, search,
 reset, Advanced source notes, Back); presets (save, update, rename, duplicate, delete,
 export, import into a fresh browser); the breakdown pop-ups and the edited chip; the
-named Convert, the result card, single and zip downloads, the report and its fixes; what
+named Convert, the result card, single and zip downloads, the report and its fixes; the
+Ableton racks of the summary row and of a preset's menu, read back and gunzipped; what
 a reload brings back; the static pages (header button and nav, engine pages' jump links
 and notes, pair summaries and steps, the index's filter and matrix, the drum maps' DAW
-picker and files) and their converter links; the footer dialogs; keyboard walk and focus;
+picker and files, the pair pages' racks) and their converter links; the footer dialogs; keyboard walk and focus;
 tap sizes; languages; and the crawler heading. The static-page specs (`site`,
 `sitelinks`, `drumMaps`) run on the phone too.
 `e2e/fixtures.ts` writes the MIDI files with `midi-file` and fails any test whose page
@@ -133,8 +135,8 @@ on a phone and click elsewhere.
   `parseEdits`, `parseSrcEdits` and `sameEdits` read and compare them), `missing.ts` (the
   missing-drums setting, Nearest / Drop, and its hint), `unrecognized.ts` (the
   unrecognized-notes setting, Remove / Keep as they are, and its hint), `channel.ts`, `files.ts` (the accepted extensions, once: `ACCEPT_EXTENSIONS`, `splitFiles`, `withoutMidExtension`),
-  `selection.ts` (`SelectionEvent`, handed to each reducer), `notice.ts`, `download.ts` (`saveBlob`: save a file made in memory, free its address after ten seconds),
-  `umami.ts` (the 37 analytics events, each with its exact properties, and `send`, the typed call into Umami: the only code that reads `window.umami`; the static pages' script uses it alone) and `stats.ts` (`track`, the app's call, accepting the events of `AppEvent` only: it sends one only when its tier is on, `ENABLED_TIERS`; the four events only static pages send, `StaticOnlyEvent`, have no tier), `storage.ts` (the only module that touches `localStorage`: the closed `StorageKey` set, `storedName` which
+  `selection.ts` (`SelectionEvent`, handed to each reducer), `notice.ts` (`NoticeLine`, and `Notice`: its lines and where it shows, above the saved mappings or under the summary row of one pair), `download.ts` (`saveBlob`: save a file made in memory, free its address after ten seconds), `packing.ts` (`packed`: a file's text as the bytes its `Packing` says, gzip through `fflate`),
+  `umami.ts` (the 43 analytics events, each with its exact properties, and `send`, the typed call into Umami: the only code that reads `window.umami`; the static pages' script uses it alone) and `stats.ts` (`track`, the app's call, accepting the events of `AppEvent` only: it sends one only when its tier is on, `ENABLED_TIERS`; the four events only static pages send, `StaticOnlyEvent`, have no tier), `storage.ts` (the only module that touches `localStorage`: the closed `StorageKey` set, `storedName` which
   puts `midiremap:` in front of it, and `readStored`, `readStoredStrict` (blocked or `{ value }`), `writeStored`, `removeStored`, `clearStored`, `onStoredChange` (the one `storage` event subscription); eslint
   rejects `localStorage` anywhere else in `src`), `contact.ts` (the issue and contact addresses), `engineCode.ts`
   (the three-letter badge of an engine id).
@@ -146,7 +148,9 @@ on a phone and click elsewhere.
   answering leaves conversion to the main thread, a batch is stopped through its
   `AbortSignal`), `useConverter.ts` (its `Conv` `done` arm carries the pair it converted with), `useFileIntake.ts`, `useDropGuard.ts`, `session.ts` (the setup a reload brings back: engines, settings, unsaved
   edits; `EMPTY_SESSION` states the starting settings), `preselect.ts` (the engines a link names), `planBreakdown.ts`
-  (the groups behind the "N of M drums remapped" pop-up), `stepState.ts` (which step is done,
+  (the groups behind the "N of M drums remapped" pop-up), `rack.ts` (`saveRack`: one Ableton
+  rack from the open mapping or a saved preset, saved and told in a notice; `rackDownloads`: the
+  summary row's and the preset menu's), `stepState.ts` (which step is done,
   current or waiting), and Step (a numbered step), FileChips/CardDropzone,
   OctaveToggle, ChannelSelect, MissingDrumsSetting, UnrecognizedSetting, ConvertSettings,
   SettingsFold (the settings under one line naming their values), PlanControls (PlanSettings,
@@ -195,7 +199,10 @@ on a phone and click elsewhere.
   drum file: drop `.mid` files, or try a sample groove built for the FROM layout. 2. From one
   drum layout to another: a FROM and a TO card (⇄ swaps), each opening a searchable picker
   (a bottom sheet on phones) with its favourites under the card to pick in one
-  press; the drum summary follows. 3. Convert: the settings folded under one line that
+  press; the saved mapping chips and the summary row follow: "N of M drums remapped",
+  "Edit individual notes →" and "↓ Ableton rack", a MIDI Effect Rack for Live 11 and 12 that
+  plays the FROM engine's MIDI on the TO engine with the note edits and the Missing drums and
+  Unknown notes settings, its load step told in a notice under the row. 3. Convert: the settings folded under one line that
   names their values (octave naming, drum channel, missing drums (Nearest plays a drum the target lacks on the closest
   one, Drop leaves it out) and unknown notes (Remove leaves out a note the source layout
   does not know, Keep as they are writes it out unchanged; the done panel and the report
@@ -206,7 +213,8 @@ on a phone and click elsewhere.
   missing-drums counts lists what happens to each drum, with a link into the editor; a
   disabled Convert says why beside the mouse. Presets live in the browser; they can be
   exported (⋯ → Export) as `<name>-drumverter.json` and imported by dropping or picking
-  the file. The report groups dropped / approximated /
+  the file; ⋯ → Ableton rack downloads the rack of that preset's engines and edits, whichever
+  pair is open. The report groups dropped / approximated /
   unrecognized / unchanged notes with links to fix each one; after a conversion that
   moved drums to another drum, "Drop missing drums & convert again" re-runs it with Drop.
 - **Edit notes**: drums grouped by family with a filter and All / Changed / Issues chips;

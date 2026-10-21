@@ -37,11 +37,11 @@ Five crates, a web app, and embedded engine presets:
 
 | Component | Role | Depends on |
 |-------|------|------------|
-| `midiremap-core` | Pure engine. No I/O beyond parsing bytes handed to it. All the logic below. | `midly`, `serde`, `serde_json`, `strum`, `thiserror` (`toml` at build and test time only; `tsify` and `wasm-bindgen` behind the feature `ts`) |
+| `midiremap-core` | Pure engine. No I/O beyond parsing bytes handed to it. All the logic below. | `midly`, `quick-xml`, `serde`, `serde_json`, `strum`, `thiserror` (`toml` at build and test time only; `tsify` and `wasm-bindgen` behind the feature `ts`) |
 | `midiremap-cli` | Offline `convert` / `list` binary. | core, `clap`, `anyhow` |
 | `midiremap-wasm` | Browser bindings for the web app. | core (feature `ts`), `wasm-bindgen`, `tsify`, `serde`, `serde_bytes`, `console_error_panic_hook` |
 | `app/` | Vite + React + TypeScript converter UI over the WASM bindings. | Vite, React, Tailwind, Vitest |
-| `midiremap-site` | Static SEO pages (engine note maps, pair tables, FAQ / guide / legal pages) in the app's style. | core, `askama`, `fluent-bundle`, `clap`, `serde_json`, `thiserror` (`fluent-syntax`, `heck` in `build.rs`) |
+| `midiremap-site` | Static SEO pages (engine note maps, pair tables, FAQ / guide / legal pages) in the app's style. | core, `askama`, `fluent-bundle`, `clap`, `flate2`, `serde_json`, `thiserror` (`fluent-syntax`, `heck` in `build.rs`) |
 | `midiremap-testkit` | Test-only: builds and reads small SMFs (channels `1..=16`) for the other crates' tests; a key, channel or delta out of range panics. | `midly` |
 | `engines/*.toml` | Preset note↔canon maps; core's `build.rs` converts them to one embedded JSON table. | — |
 
@@ -83,6 +83,10 @@ fit         ── note_hits / source_fits: how well each engine's layout covers
 plan        ── per-drum rows from the Mapping the converter uses (for UI display), no MIDI
 preset      ── the preset file the app exports and the CLI reads
 sample      ── sample_file: a two-bar groove on the notes one engine plays, written by midi
+ableton     ── rack_file: an Ableton Live MIDI Effect Rack from a Mapping (RackFile); note_name_rack
+daw_map     ── Daw (Reaper, Cubase, Studio One, Ableton Live): an engine's drum-map file and its Packing
+file        ── FileStem: a name cleaned into a file name every system accepts
+packing     ── Packing { Text | Gzip }: how a file's text is stored; core writes text only
 ```
 
 Every concept is one concrete type or function; the core defines no traits.
@@ -168,7 +172,13 @@ the rules allow.
   note and reads the same outcome. `with_unrecognized(Unrecognized)` sets, once, what the
   conversion does with notes that do not decode (`Remove` unless set); the `NoteTable`
   compiled from the mapping carries that choice to `rewrite`. It changes neither the
-  resolutions nor the report, only whether those notes are written.
+  resolutions nor the report, only whether those notes are written. The mapping also keeps
+  the two engines' display names, which only the Ableton rack reads (its title), so a rack
+  titled A → B cannot play C's layout.
+- `dropped_drums()` is the one rule for "a drum the source plays that the target leaves
+  out": every drum a source note decodes to (`played_drums`, edits applied) whose outcome is
+  `Dropped`. `plan` fills a row's `srcNotes` from the same `played_drums`, the site's pair
+  pages and the rack's `dropped` count read `dropped_drums`.
 - A drum the target has plays on its own note. Otherwise the first drum of its fallback
   chain that the target has stands in; `Drop` walks the same chain filtered to
   `Canon::same_drum`, so both modes share one order. `moves_to_other_drum()` on the
@@ -202,6 +212,13 @@ the rules allow.
   `Mapping` by calling `Mapping::translate` for each note.
 - The converter reads the table for every event, so the fallback search never runs
   per MIDI event, and the report records what the table said.
+- `destination(note) → Option<Destination>` is the one rule for where a source note plays:
+  `Drum { canon, note }` for a direct or approximated hit, `Kept(note)` for a note the
+  source does not know when the table's `Unrecognized` is `Keep`, `None` when the note is
+  dropped or removed. `rewrite` and the Ableton rack both read it, so the rack plays every
+  note where the converted file puts it (`tests/ableton_racks.rs` checks that note for note
+  over five engines' pairs, both Missing drums and both Unrecognized settings, with and
+  without edits).
 - The edit preview (`plan`) compiles the same table to group source notes by drum, and
   reads each drum's outcome from the same `Mapping`, which is where the table's entries
   come from: the preview and the file share one compiled outcome per drum.
@@ -224,7 +241,7 @@ the rules allow.
   across channels convert whole, and files with drums elsewhere convert as before.
   Parses from `auto`, `all` or `1`..=`16`.
 - `rewrite`: `rewrite(&mut smf, &NoteTable, ChannelScope, &mut Report)` applies the
-  table to the events each track's filter accepts:
+  table's `destination` to the events each track's filter accepts:
   - Note-on/off and poly aftertouch keys are rewritten to the resolved target
     note, so cymbal chokes follow their cymbal.
   - Dropped notes (and their aftertouch) are removed, and so are unmapped ones unless
@@ -404,6 +421,12 @@ error and 2 on a usage error.
   (the default) or `keep`. Like `channel`, a value outside its set is `internal`: the app
   only sends its own typed values. `plan` does not take it, since no plan row is an
   unrecognized note.
+- `remap_rack(src_id, tgt_id, overrides?, missing?, unrecognized?, preset_name?) → RackFile { fileName, xml, packing, dropped }` —
+  core's `rack_file` from a `Mapping` built the way `remap` builds its own, so the rack and
+  the `.mid` read the same settings: the Ableton rack's XML, its file name (`<preset>.adg`, or
+  `<FROM> to <TO>.adg`), how to pack it (`gzip`; the app packs it with `fflate`, core writes
+  text only) and how many played drums the target drops. A blank `preset_name` is
+  `badPreset`. The channel setting does not apply: the rack sits on the drum track.
 - `plan(src_id, tgt_id, overrides?, missing?) → VoiceRow[]` — a core `VoicePlan`
   (`canon, srcNotes, defaultTgtNote, outcome`, the outcome tagged by `status`) plus its
   `label` and its canon's `family`; the app reads it through `core/outcome.ts` (`playedNote`, `movesToOtherDrum`, `isPlayed`, `leadNote`).
@@ -433,8 +456,9 @@ error and 2 on a usage error.
 - A `start` function installs `console_error_panic_hook`, so a panic prints its message.
 
 The browser build uses the `wasm` Cargo profile (release with LTO and one codegen
-unit), then `wasm-opt -Oz` (npm `binaryen`) on the bindgen output: about 536 KB, 160 KB
-gzipped, against a 166 KB budget (`scripts/check-size.ts`). `opt-level` s / z made it
+unit), then `wasm-opt -Oz` (npm `binaryen`) on the bindgen output: about 587 KB, 180.5 KB
+gzipped, against a 181 KB budget (`scripts/check-size.ts`); the rack writer (`quick-xml`)
+is about 14 KB of it. `opt-level` s / z made it
 larger — a quarter of the module is the embedded engine table.
 
 One contract, generated from Rust. Every value crossing the boundary is a serde type
@@ -642,6 +666,16 @@ that both surfaces draw are `@utility` classes in `index.css` (`prose-link`,
 alike. Pair-page rows take their status from the core (`PlanStatus` of each source
 note's resolution); the site only names it (exact / approximated / dropped) and sorts
 changes first.
+
+Drum maps and racks are files beside the pages, under `/drum-maps/files/` (robots keep
+crawlers out; no sitemap lists them). Every engine has one per `Daw`: Reaper note names,
+a Cubase drum map, a Studio One pitch list and an Ableton Live names rack (`note_name_rack`,
+one empty chain per note, named after its drum). Every pair page has its rack under
+`racks/`, core's `rack_file` of the converter's default mapping (Nearest, Remove, no edits).
+`Site::files()` lists both, written by one loop; `packed` in `pages.rs` gzips a file whose
+`Packing` says so (`flate2`, mtime 0, so builds are byte-stable). `/drum-maps/` shows one
+DAW's files at a time through a CSS-only picker, and each engine page offers all four; a pair page names its rack
+under Convert, outside the sticky bar, and says when the target leaves drums silent.
 
 Tips go through Stripe Payment Links, listed once in `content/tip.json` (the
 app imports it; `build.rs` turns its `other` link into `TIP_HREF`). Every footer ends

@@ -14,7 +14,7 @@ export default defineConfig({
     trace: process.env.CI ? 'on-first-retry' : 'off',
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'] }, testIgnore: /touch\.spec/, grepInvert: /@phone/ },
+    { name: 'desktop', use: { ...devices['Desktop Chrome'] }, testIgnore: [/touch\.spec/, /readme\.screenshot\.spec/], grepInvert: /@phone/ },
     {
       name: 'phone',
       use: { ...devices['Pixel 7'] },
