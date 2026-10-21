@@ -54,7 +54,11 @@ test('the README screenshot shows the converter with every step in use', async (
   await page.evaluate(() => {
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   });
-  await page.getByText('verse.mid', { exact: true }).scrollIntoViewIfNeeded();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const height = await page.evaluate(() => document.documentElement.scrollHeight);
+  await page.setViewportSize({ width: 1280, height });
+  await expect(page.locator('header').first()).toBeInViewport({ ratio: 1 });
+  await expect(page.locator('footer').last()).toBeInViewport({ ratio: 1 });
 
   const shown = [
     engineSide(page, 'FROM').getByRole('list', { name: 'Favourites' }),
