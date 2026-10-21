@@ -4,10 +4,14 @@ use quick_xml::{
     events::{BytesDecl, Event},
     Writer,
 };
+use serde::Serialize;
 
 use crate::{
     engine_map::EngineMap,
+    file::FileStem,
+    non_blank::NonBlank,
     note::Note,
+    packing::Packing,
     table::{Destination, NoteTable},
     translate::Mapping,
 };
@@ -16,6 +20,13 @@ type Xml = Writer<Vec<u8>>;
 
 const PROTECTION: &str = "2818";
 const MACROS: usize = 16;
+const KEPT: &str = "Unknown, kept";
+
+/// The extension of an Ableton Live device preset file.
+pub(crate) const ADG_EXTENSION: &str = "adg";
+
+/// How an Ableton Live device preset file stores its XML.
+pub(crate) const ADG_PACKING: Packing = Packing::Gzip;
 
 /// One chain of a rack: its key zone holds `note` alone, and a Pitch device moves the note by
 /// `shift` semitones when there is one.
@@ -25,24 +36,73 @@ struct Chain {
     shift: Option<i16>,
 }
 
+/// A remap rack as a file: the name to save it under, its XML, how the file stores that
+/// XML, and how many drums the source plays that the rack leaves silent.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
+pub struct RackFile {
+    pub file_name: String,
+    pub xml: String,
+    pub packing: Packing,
+    pub dropped: usize,
+}
+
+/// The remap rack for `mapping`, named after `preset` when it gives a file name, else
+/// after the mapping's engines.
+pub fn rack_file(mapping: &Mapping, preset: Option<&NonBlank>) -> RackFile {
+    RackFile {
+        file_name: rack_file_name(mapping, preset),
+        xml: remap_rack(mapping),
+        packing: ADG_PACKING,
+        dropped: mapping.dropped_drums().len(),
+    }
+}
+
+fn rack_file_name(mapping: &Mapping, preset: Option<&NonBlank>) -> String {
+    preset
+        .and_then(|p| FileStem::parse(p.as_str()))
+        .unwrap_or_else(|| {
+            FileStem::parse(&format!(
+                "{} to {}",
+                mapping.source_name(),
+                mapping.target_name()
+            ))
+            .expect("two engine names with a word between are never blank")
+        })
+        .with_extension(ADG_EXTENSION)
+}
+
 /// An Ableton Live 11 MIDI Effect Rack preset, which Live 12 also opens (the XML a `.adg`
 /// file holds, before gzip), that plays drum MIDI written for the mapping's source on its
 /// target: one chain per source note that lands on the target, shifting it to the target's
-/// note. Notes that nothing plays have no chain, so the rack drops them, as the converter does.
-pub fn remap_rack(mapping: &Mapping) -> String {
+/// note, and one chain without a device per note the source does not recognize when the
+/// mapping keeps those. Notes that nothing plays have no chain, so the rack drops them, as the
+/// converter does.
+fn remap_rack(mapping: &Mapping) -> String {
     let table = NoteTable::compile(mapping);
     let chains = Note::ALL
         .into_iter()
-        .filter_map(|note| match table.destination(note)? {
-            Destination::Drum { canon, note: to } => {
-                let shift = note.semitones_to(to);
-                Some(Chain {
+        .filter_map(|note| {
+            table.destination(note).map(|to| match to {
+                Destination::Drum { canon, note: to } => {
+                    let shift = note.semitones_to(to);
+                    Chain {
+                        note,
+                        name: format!("{} → {}", canon.label(), to.get()),
+                        shift: (shift != 0).then_some(shift),
+                    }
+                }
+                Destination::Kept(note) => Chain {
                     note,
-                    name: format!("{} → {}", canon.label(), to.get()),
-                    shift: (shift != 0).then_some(shift),
-                })
-            }
-            Destination::Kept(_) => None,
+                    name: KEPT.to_owned(),
+                    shift: None,
+                },
+            })
         })
         .collect::<Vec<_>>();
     let title = format!("{} → {}", mapping.source_name(), mapping.target_name());

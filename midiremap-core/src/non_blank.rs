@@ -1,7 +1,8 @@
-use serde::{de, Deserialize, Deserializer};
+use serde::{de, Deserialize, Deserializer, Serialize};
 
 /// Text with at least one non-whitespace character, such as a name.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(transparent)]
 pub struct NonBlank(String);
 
 impl NonBlank {
