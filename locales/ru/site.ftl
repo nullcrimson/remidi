@@ -24,34 +24,38 @@ converter-noscript = Drumverter — бесплатный конвертер MIDI
 load-failed = Не удалось загрузить Drumverter. Проверьте интернет и обновите страницу.
 load-failed-reload = Обновить
 maps-breadcrumb = Навигационная цепочка
-maps-index-title = { $count ->
-    [one] Маппинги нот MIDI ударных для { $count } плагина
-    [few] Маппинги нот MIDI ударных для { $count } плагинов
-    [many] Маппинги нот MIDI ударных для { $count } плагинов
-   *[other] Маппинги нот MIDI ударных для { $count } плагина
-}
-maps-index-description = { $count ->
-    [one] Маппинги нот MIDI ударных для { $count } плагина и таблицы конвертации между GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums и другими.
-    [few] Маппинги нот MIDI ударных для { $count } плагинов и таблицы конвертации между GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums и другими.
-    [many] Маппинги нот MIDI ударных для { $count } плагинов и таблицы конвертации между GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums и другими.
-   *[other] Маппинги нот MIDI ударных для { $count } плагина и таблицы конвертации между GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums и другими.
-}
+maps-index-title =
+    { $count ->
+        [one] Маппинги нот MIDI ударных для { $count } плагина
+        [few] Маппинги нот MIDI ударных для { $count } плагинов
+        [many] Маппинги нот MIDI ударных для { $count } плагинов
+       *[other] Маппинги нот MIDI ударных для { $count } плагина
+    }
+maps-index-description =
+    { $count ->
+        [one] Маппинги нот MIDI ударных для { $count } плагина и таблицы конвертации между GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums и другими.
+        [few] Маппинги нот MIDI ударных для { $count } плагинов и таблицы конвертации между GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums и другими.
+        [many] Маппинги нот MIDI ударных для { $count } плагинов и таблицы конвертации между GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums и другими.
+       *[other] Маппинги нот MIDI ударных для { $count } плагина и таблицы конвертации между GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums и другими.
+    }
 maps-index-heading = Маппинги нот MIDI ударных
-maps-index-intro = { $count ->
-    [one] Маппинги нот для { $count } плагина ударных и таблицы конвертации между самыми популярными — на этих же данных работает конвертер Drumverter.
-    [few] Маппинги нот для { $count } плагинов ударных и таблицы конвертации между самыми популярными — на этих же данных работает конвертер Drumverter.
-    [many] Маппинги нот для { $count } плагинов ударных и таблицы конвертации между самыми популярными — на этих же данных работает конвертер Drumverter.
-   *[other] Маппинги нот для { $count } плагина ударных и таблицы конвертации между самыми популярными — на этих же данных работает конвертер Drumverter.
-}
+maps-index-intro =
+    { $count ->
+        [one] Маппинги нот для { $count } плагина ударных и таблицы конвертации между самыми популярными — на этих же данных работает конвертер Drumverter.
+        [few] Маппинги нот для { $count } плагинов ударных и таблицы конвертации между самыми популярными — на этих же данных работает конвертер Drumverter.
+        [many] Маппинги нот для { $count } плагинов ударных и таблицы конвертации между самыми популярными — на этих же данных работает конвертер Drumverter.
+       *[other] Маппинги нот для { $count } плагина ударных и таблицы конвертации между самыми популярными — на этих же данных работает конвертер Drumverter.
+    }
 maps-more-engines = Другие плагины
 maps-matrix-corner = ИЗ ↓ В →
 maps-quick-label = Популярные плагины
-maps-note-count = { $count ->
-    [one] { $count } нота
-    [few] { $count } ноты
-    [many] { $count } нот
-   *[other] { $count } ноты
-}
+maps-note-count =
+    { $count ->
+        [one] { $count } нота
+        [few] { $count } ноты
+        [many] { $count } нот
+       *[other] { $count } ноты
+    }
 maps-matrix-heading = Все пары из топ-{ $count }
 maps-matrix-share = { $percent }%
 maps-matrix-share-label = Из { $source } в { $target }: { $percent }% нот совпадают точно
@@ -62,21 +66,23 @@ maps-filter-engines-placeholder = Фильтр…
 maps-no-engines = Ничего не найдено
 maps-engine-title = { $engineMidi }: маппинг нот ударных
 maps-engine-title-long-name = Маппинг нот MIDI: { $engine }
-maps-engine-description = { $total ->
-    [one] { $engine }: маппинг нот MIDI ударных — всего { $total } нота с названиями инструментов, в нотации C-1 и C-2.
-    [few] { $engine }: маппинг нот MIDI ударных — всего { $total } ноты с названиями инструментов, в нотации C-1 и C-2.
-    [many] { $engine }: маппинг нот MIDI ударных — всего { $total } нот с названиями инструментов, в нотации C-1 и C-2.
-   *[other] { $engine }: маппинг нот MIDI ударных — всего { $total } ноты с названиями инструментов, в нотации C-1 и C-2.
-}
+maps-engine-description =
+    { $total ->
+        [one] { $engine }: маппинг нот MIDI ударных — всего { $total } нота с названиями инструментов, в нотации C-1 и C-2.
+        [few] { $engine }: маппинг нот MIDI ударных — всего { $total } ноты с названиями инструментов, в нотации C-1 и C-2.
+        [many] { $engine }: маппинг нот MIDI ударных — всего { $total } нот с названиями инструментов, в нотации C-1 и C-2.
+       *[other] { $engine }: маппинг нот MIDI ударных — всего { $total } ноты с названиями инструментов, в нотации C-1 и C-2.
+    }
 maps-engine-description-short = { $engine }: маппинг нот MIDI ударных с названиями нот в нотации C-1 и C-2.
 maps-engine-description-more = Конвертируйте { $engineMidi } в любой другой плагин — бесплатно.
 maps-engine-heading = MIDI-маппинг ударных { $engine }
-maps-engine-intro = { $total ->
-    [one] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } нота), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper, Logic, Ableton, Guitar Pro) или C-2 (Studio One, Cubase, FL Studio).
-    [few] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } ноты), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper, Logic, Ableton, Guitar Pro) или C-2 (Studio One, Cubase, FL Studio).
-    [many] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } нот), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper, Logic, Ableton, Guitar Pro) или C-2 (Studio One, Cubase, FL Studio).
-   *[other] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } ноты), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper, Logic, Ableton, Guitar Pro) или C-2 (Studio One, Cubase, FL Studio).
-}
+maps-engine-intro =
+    { $total ->
+        [one] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } нота), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper, Logic, Ableton, Guitar Pro) или C-2 (Studio One, Cubase, FL Studio).
+        [few] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } ноты), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper, Logic, Ableton, Guitar Pro) или C-2 (Studio One, Cubase, FL Studio).
+        [many] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } нот), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper, Logic, Ableton, Guitar Pro) или C-2 (Studio One, Cubase, FL Studio).
+       *[other] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } ноты), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper, Logic, Ableton, Guitar Pro) или C-2 (Studio One, Cubase, FL Studio).
+    }
 maps-convert-to = Конвертировать в { $engine }
 maps-convert-from = Конвертировать из { $engine }
 maps-filter-drums-label = Фильтр инструментов
@@ -97,12 +103,13 @@ maps-pair-title = Конвертация { $sourceMidi } в { $target }
 maps-pair-description = Конвертация MIDI ударных из { $source } в { $target }: точно — { $exact }, заменено — { $approximated }, убрано — { $dropped }.
 maps-pair-description-more = Бесплатный конвертер прямо в браузере.
 maps-pair-description-short = Конвертация MIDI ударных из { $source } в { $target }.
-maps-pair-summary = Из { $total } { $total ->
-    [one] ноты
-    [few] нот
-    [many] нот
-   *[other] ноты
-} плагина { $source }: { $exact } — точно в { $target }, { $approximated } — заменены самым похожим инструментом, { $dropped } — без аналога.
+maps-pair-summary =
+    Из { $total } { $total ->
+        [one] ноты
+        [few] нот
+        [many] нот
+       *[other] ноты
+    } плагина { $source }: { $exact } — точно в { $target }, { $approximated } — заменены самым похожим инструментом, { $dropped } — без аналога.
 maps-pair-convert = Конвертировать { $source } → { $target }
 maps-pair-rack-lead = Играете вживую в Ableton?
 maps-pair-rack-link = Скачать рэк (.adg)
@@ -135,21 +142,24 @@ maps-engine-description-drum-maps = Бесплатные драм-карты д�
 maps-daw-heading = Драм-карты для DAW
 maps-daw-intro = Загрузите один из этих файлов в DAW, чтобы видеть названия барабанов { $engine } на клавишах пиано-ролла.
 maps-daw-how = Как загрузить драм-карту в Reaper, Cubase, Studio One или Ableton Live
-drum-maps-title = { $count ->
-    [one] Драм-карты для Cubase, Reaper, Studio One и Ableton: { $count } плагин
-    [few] Драм-карты для Cubase, Reaper, Studio One и Ableton: { $count } плагина
-    [many] Драм-карты для Cubase, Reaper, Studio One и Ableton: { $count } плагинов
-   *[other] Драм-карты для Cubase, Reaper, Studio One и Ableton: { $count } плагина
-}
-drum-maps-description = { $count ->
-    [one] Бесплатные драм-карты для { $count } плагина ударных: drum maps для Cubase (.drm), имена нот для Reaper (.txt), pitch lists для Studio One (.pitchlist) и рэки для Ableton Live (.adg).
-   *[other] Бесплатные драм-карты для { $count } плагинов ударных: drum maps для Cubase (.drm), имена нот для Reaper (.txt), pitch lists для Studio One (.pitchlist) и рэки для Ableton Live (.adg).
-}
+drum-maps-title =
+    { $count ->
+        [one] Драм-карты для Cubase, Reaper, Studio One и Ableton: { $count } плагин
+        [few] Драм-карты для Cubase, Reaper, Studio One и Ableton: { $count } плагина
+        [many] Драм-карты для Cubase, Reaper, Studio One и Ableton: { $count } плагинов
+       *[other] Драм-карты для Cubase, Reaper, Studio One и Ableton: { $count } плагина
+    }
+drum-maps-description =
+    { $count ->
+        [one] Бесплатные драм-карты для { $count } плагина ударных: drum maps для Cubase (.drm), имена нот для Reaper (.txt), pitch lists для Studio One (.pitchlist) и рэки для Ableton Live (.adg).
+       *[other] Бесплатные драм-карты для { $count } плагинов ударных: drum maps для Cubase (.drm), имена нот для Reaper (.txt), pitch lists для Studio One (.pitchlist) и рэки для Ableton Live (.adg).
+    }
 drum-maps-heading = Драм-карты для DAW
-drum-maps-intro = { $count ->
-    [one] Бесплатные драм-карты для { $count } плагина ударных, сделанные из тех же маппингов, что использует конвертер. Каждый файл называет все ноты, которые играет плагин, поэтому пиано-ролл показывает названия барабанов вместо номеров нот. Файлы используют номера нот MIDI, поэтому подходят для любой нумерации октав.
-   *[other] Бесплатные драм-карты для { $count } плагинов ударных, сделанные из тех же маппингов, что использует конвертер. Каждый файл называет все ноты, которые играет плагин, поэтому пиано-ролл показывает названия барабанов вместо номеров нот. Файлы используют номера нот MIDI, поэтому подходят для любой нумерации октав.
-}
+drum-maps-intro =
+    { $count ->
+        [one] Бесплатные драм-карты для { $count } плагина ударных, сделанные из тех же маппингов, что использует конвертер. Каждый файл называет все ноты, которые играет плагин, поэтому пиано-ролл показывает названия барабанов вместо номеров нот. Файлы используют номера нот MIDI, поэтому подходят для любой нумерации октав.
+       *[other] Бесплатные драм-карты для { $count } плагинов ударных, сделанные из тех же маппингов, что использует конвертер. Каждый файл называет все ноты, которые играет плагин, поэтому пиано-ролл показывает названия барабанов вместо номеров нот. Файлы используют номера нот MIDI, поэтому подходят для любой нумерации октав.
+    }
 drum-maps-pick-daw = Ваша DAW
 drum-maps-most-used = Самые популярные
 drum-maps-how-heading = Как загрузить драм-карту

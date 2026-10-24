@@ -17,10 +17,11 @@ nav-main = Główna
 nav-site = Witryna
 lang-menu-label = Język
 lang-load-failed = Nie udało się wczytać wersji: { $language }. Sprawdź połączenie z internetem i spróbuj ponownie.
-error-unknown-engine = Nieznana wtyczka { $role ->
-    [source] źródłowa
-   *[target] docelowa
-} „{ $id }”
+error-unknown-engine =
+    Nieznana wtyczka { $role ->
+        [source] źródłowa
+       *[target] docelowa
+    } „{ $id }”
 error-bad-midi = Konwerter nie może odczytać tego pliku — to chyba nie jest MIDI
 error-bad-preset = To nie jest plik presetu
 error-bad-overrides = Nie udało się odczytać zmian nut
@@ -41,36 +42,41 @@ missing-nearest = Zastąp
 missing-drop = Usuń
 missing-hint-nearest = zastępowane podobnym instrumentem
 missing-hint-drop = usuwane z pliku
-missing-hint-moved = { $count ->
-    [0] nic nie jest zastępowane
-    [one] { $count } instrument zastąpiony
-    [few] { $count } instrumenty zastąpione
-   *[many] { $count } instrumentów zastąpionych
-}
-missing-hint-dropped = { $count ->
-    [0] nic nie jest usuwane
-    [one] { $count } instrument usunięty
-    [few] { $count } instrumenty usunięte
-   *[many] { $count } instrumentów usuniętych
-}
-files-unreadable = Nie udało się odczytać: { $names } — wybierz { $count ->
-    [one] go
-   *[other] je
-} ponownie.
-preset-skipped = { $count ->
-    [one] { $count } zmiana w „{ $name }” używa instrumentu, którego ta wersja nie zna; pominięto.
-    [few] { $count } zmiany w „{ $name }” używają instrumentów, których ta wersja nie zna; pominięto.
-   *[many] { $count } zmian w „{ $name }” używa instrumentów, których ta wersja nie zna; pominięto.
-}
+missing-hint-moved =
+    { $count ->
+        [0] nic nie jest zastępowane
+        [one] { $count } instrument zastąpiony
+        [few] { $count } instrumenty zastąpione
+       *[many] { $count } instrumentów zastąpionych
+    }
+missing-hint-dropped =
+    { $count ->
+        [0] nic nie jest usuwane
+        [one] { $count } instrument usunięty
+        [few] { $count } instrumenty usunięte
+       *[many] { $count } instrumentów usuniętych
+    }
+files-unreadable =
+    Nie udało się odczytać: { $names } — wybierz { $count ->
+        [one] go
+       *[other] je
+    } ponownie.
+preset-skipped =
+    { $count ->
+        [one] { $count } zmiana w „{ $name }” używa instrumentu, którego ta wersja nie zna; pominięto.
+        [few] { $count } zmiany w „{ $name }” używają instrumentów, których ta wersja nie zna; pominięto.
+       *[many] { $count } zmian w „{ $name }” używa instrumentów, których ta wersja nie zna; pominięto.
+    }
 import-failed = Nie udało się zaimportować { $file }: { $error }
 import-at-cap = Nie udało się zaimportować { $file }: więcej presetów się nie zmieści (maks. { $cap })
 presets-unsaved = Nie udało się zapisać presetów: pamięć przeglądarki jest pełna lub zablokowana. Znikną po odświeżeniu strony.
 import-done = Zaimportowano „{ $name }”.
-import-done-skipped = Zaimportowano „{ $name }” (pominięto { $count ->
-    [one] { $count } zmianę
-    [few] { $count } zmiany
-   *[many] { $count } zmian
-}).
+import-done-skipped =
+    Zaimportowano „{ $name }” (pominięto { $count ->
+        [one] { $count } zmianę
+        [few] { $count } zmiany
+       *[many] { $count } zmian
+    }).
 edit-line = { $drum }: { $now } (domyślnie { $byDefault })
 edit-more = +{ $count } więcej
 app-intro = Konwertuj MIDI perkusji między GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro i ponad 80 innymi wtyczkami. Wszystko dzieje się w przeglądarce — pliki nigdzie nie są wysyłane.
@@ -90,26 +96,30 @@ unrecognized-remove = Usuń
 unrecognized-keep = Zostaw bez zmian
 unrecognized-hint-remove = usuwane z pliku
 unrecognized-hint-keep = zostają bez zmian
-edited-review = { $count ->
-    [one] { $count } instrument zmieniony
-    [few] { $count } instrumenty zmienione
-   *[many] { $count } instrumentów zmienionych
-} — przejrzyj zmiany
-edited-review-saved = { $count ->
-    [one] { $count } instrument zmieniony
-    [few] { $count } instrumenty zmienione
-   *[many] { $count } instrumentów zmienionych
-} z presetu { $name } — przejrzyj zmiany
-edited-review-unsaved = { $count ->
-    [one] { $count } instrument zmieniony, niezapisany w { $name }
-    [few] { $count } instrumenty zmienione, niezapisane w { $name }
-   *[many] { $count } instrumentów zmienionych, niezapisanych w { $name }
-} — przejrzyj zmiany
-edited-differ = { $count ->
-    [one] { $count } instrument różni się
-    [few] { $count } instrumenty różnią się
-   *[many] { $count } instrumentów różni się
-} od domyślnego mapowania
+edited-review =
+    { $count ->
+        [one] { $count } instrument zmieniony
+        [few] { $count } instrumenty zmienione
+       *[many] { $count } instrumentów zmienionych
+    } — przejrzyj zmiany
+edited-review-saved =
+    { $count ->
+        [one] { $count } instrument zmieniony
+        [few] { $count } instrumenty zmienione
+       *[many] { $count } instrumentów zmienionych
+    } z presetu { $name } — przejrzyj zmiany
+edited-review-unsaved =
+    { $count ->
+        [one] { $count } instrument zmieniony, niezapisany w { $name }
+        [few] { $count } instrumenty zmienione, niezapisane w { $name }
+       *[many] { $count } instrumentów zmienionych, niezapisanych w { $name }
+    } — przejrzyj zmiany
+edited-differ =
+    { $count ->
+        [one] { $count } instrument różni się
+        [few] { $count } instrumenty różnią się
+       *[many] { $count } instrumentów różni się
+    } od domyślnego mapowania
 edited-click = Kliknij, aby przejrzeć lub przywrócić.
 edited-count = zmienione: { $count }
 edited-count-unsaved = zmienione: { $count } · niezapisane
@@ -123,11 +133,12 @@ dropzone-heading = UPUŚĆ .MID
 dropzone-presets = lub wyeksportowany preset (.json)
 convert-running = mapowanie
 convert-button = Konwertuj
-convert-button-ready = { $count ->
-    [one] Konwertuj 1 plik
-    [few] Konwertuj { $count } pliki
-   *[many] Konwertuj { $count } plików
-} dla { $target }
+convert-button-ready =
+    { $count ->
+        [one] Konwertuj 1 plik
+        [few] Konwertuj { $count } pliki
+       *[many] Konwertuj { $count } plików
+    } dla { $target }
 settings-heading = Ustawienia
 engine-from = ŹRÓDŁO
 engine-to = CEL
@@ -154,10 +165,11 @@ saved-heading = ZAPISANE
 edit-back = ← Wstecz
 edit-heading = Edycja nut
 edit-advanced = Zaawansowane — przypisz nuty źródłowe
-summary-remapped = { $total ->
-    [one] Przemapowano { $remapped } z { $total } instrumentu
-   *[other] Przemapowano { $remapped } z { $total } instrumentów
-}
+summary-remapped =
+    { $total ->
+        [one] Przemapowano { $remapped } z { $total } instrumentu
+       *[other] Przemapowano { $remapped } z { $total } instrumentów
+    }
 summary-edit-tip-title = Dopracuj każdy instrument
 summary-edit-tip = Przypisz dowolny instrument do innej nuty docelowej — wybierz go z listy instrumentów albo z pianina. Zmiany obowiązują w konwersji i można je zapisać jako preset.
 summary-edit = Edytuj pojedyncze nuty →
@@ -166,21 +178,23 @@ summary-rack = Rack Abletona
 summary-rack-tip-title = Graj na żywo w Abletonie
 summary-rack-tip = MIDI Effect Rack dla Live 11 i 12. Wstaw go przed { $target }, a MIDI z { $source } zagra dobrze, bez konwertowania pliku. Uwzględnia zmiany nut i ustawienie Brakujące instrumenty.
 rack-saved = Zapisano rack: { $file }. Przeciągnij go na ścieżkę MIDI, przed { $target }. W klipie każdy wiersz pokazuje instrument i nutę, którą teraz gra.
-rack-saved-dropped = Zapisano rack: { $file }. Przeciągnij go na ścieżkę MIDI, przed { $target }. { $count ->
-    [one] { $count } instrument, którego brakuje w { $target }, nie ma w klipie nazwy wiersza, tylko nutę taką jak D1, i milknie.
-    [few] { $count } instrumenty, których brakuje w { $target }, nie mają w klipie nazwy wiersza, tylko nutę taką jak D1, i milkną.
-   *[many] { $count } instrumentów, których brakuje w { $target }, nie ma w klipie nazwy wiersza, tylko nutę taką jak D1, i milknie.
-}
+rack-saved-dropped =
+    Zapisano rack: { $file }. Przeciągnij go na ścieżkę MIDI, przed { $target }. { $count ->
+        [one] { $count } instrument, którego brakuje w { $target }, nie ma w klipie nazwy wiersza, tylko nutę taką jak D1, i milknie.
+        [few] { $count } instrumenty, których brakuje w { $target }, nie mają w klipie nazwy wiersza, tylko nutę taką jak D1, i milkną.
+       *[many] { $count } instrumentów, których brakuje w { $target }, nie ma w klipie nazwy wiersza, tylko nutę taką jak D1, i milknie.
+    }
 rack-failed = Nie udało się utworzyć racka: { $error }
 missing-detail-moved = Zastąpione innym instrumentem
 missing-detail-dropped = Usunięte z pliku
 detail-edit = Zmień w edytorze nut →
-summary-detail-heading = { $total ->
-    [one] { $total } instrument w tej mapie
-    [few] { $total } instrumenty w tej mapie
-    [many] { $total } instrumentów w tej mapie
-   *[other] { $total } instrumentu w tej mapie
-}
+summary-detail-heading =
+    { $total ->
+        [one] { $total } instrument w tej mapie
+        [few] { $total } instrumenty w tej mapie
+        [many] { $total } instrumentów w tej mapie
+       *[other] { $total } instrumentu w tej mapie
+    }
 summary-detail-moved = na nowej nucie
 summary-detail-same = już na właściwej nucie
 summary-detail-variant = na podobnym wariancie
@@ -192,16 +206,18 @@ summary-reason-variant = brak dokładnego odpowiednika w { $target } — gra war
 summary-reason-swapped = brak odpowiednika w { $target } — gra najbliższy instrument
 summary-reason-dropped = brak odpowiednika w { $target }
 summary-reason-unplayed = brak nuty w { $source }
-row-extras-dropped = { $count ->
-    [one] Jeszcze { $count } nuta źródłowa gra { $drum }: { $notes }. Żadna nie ma celu.
-    [few] Jeszcze { $count } nuty źródłowe grają { $drum }: { $notes }. Żadna nie ma celu.
-   *[many] Jeszcze { $count } nut źródłowych gra { $drum }: { $notes }. Żadna nie ma celu.
-}
-row-extras = { $count ->
-    [one] Jeszcze { $count } nuta źródłowa gra { $drum }: { $notes }. Obie trafiają na { $target }.
-    [few] Jeszcze { $count } nuty źródłowe grają { $drum }: { $notes }. Wszystkie trafiają na { $target }.
-   *[many] Jeszcze { $count } nut źródłowych gra { $drum }: { $notes }. Wszystkie trafiają na { $target }.
-}
+row-extras-dropped =
+    { $count ->
+        [one] Jeszcze { $count } nuta źródłowa gra { $drum }: { $notes }. Żadna nie ma celu.
+        [few] Jeszcze { $count } nuty źródłowe grają { $drum }: { $notes }. Żadna nie ma celu.
+       *[many] Jeszcze { $count } nut źródłowych gra { $drum }: { $notes }. Żadna nie ma celu.
+    }
+row-extras =
+    { $count ->
+        [one] Jeszcze { $count } nuta źródłowa gra { $drum }: { $notes }. Obie trafiają na { $target }.
+        [few] Jeszcze { $count } nuty źródłowe grają { $drum }: { $notes }. Wszystkie trafiają na { $target }.
+       *[many] Jeszcze { $count } nut źródłowych gra { $drum }: { $notes }. Wszystkie trafiają na { $target }.
+    }
 row-reset = Przywróć { $drum }
 edit-filter-label = Filtruj instrumenty
 edit-filter-placeholder = filtruj instrumenty…
@@ -211,12 +227,13 @@ edit-show-all = Wszystkie { $count }
 edit-show-changed = Zmienione { $count }
 edit-show-issues = Problemy { $count }
 edit-actions = Akcje edycji
-edit-changes = { $count ->
-    [0] Brak zmian
-    [one] { $count } zmiana
-    [few] { $count } zmiany
-   *[many] { $count } zmian
-}
+edit-changes =
+    { $count ->
+        [0] Brak zmian
+        [one] { $count } zmiana
+        [few] { $count } zmiany
+       *[many] { $count } zmian
+    }
 edit-reset-all = Przywróć wszystko
 edit-done = Gotowe
 row-no-source = brak źródła
@@ -274,20 +291,22 @@ chip-delete = Usuń
 chip-rename-label = Zmień nazwę { $name }
 chip-rename-save = Zapisz nazwę
 chip-rename-cancel = Anuluj zmianę nazwy
-chip-overrides = { $count ->
-    [one] { $count } zmiana
-    [few] { $count } zmiany
-   *[many] { $count } zmian
-}
+chip-overrides =
+    { $count ->
+        [one] { $count } zmiana
+        [few] { $count } zmiany
+       *[many] { $count } zmian
+    }
 chip-unavailable = wtyczka niedostępna
 chip-edit = Edytuj nuty dla { $name }
 chip-more = Więcej akcji dla { $name }
 chip-at-cap = brak miejsca na presety
-done-tag-converted = { $count ->
-    [one] { $count } nuta przekonwertowana
-    [few] { $count } nuty przekonwertowane
-   *[many] { $count } nut przekonwertowanych
-}
+done-tag-converted =
+    { $count ->
+        [one] { $count } nuta przekonwertowana
+        [few] { $count } nuty przekonwertowane
+       *[many] { $count } nut przekonwertowanych
+    }
 done-tag-nothing = nic nie przekonwertowano
 done-tag-approximated = zastąpione: { $count }
 done-tag-dropped = usunięte: { $count }
@@ -298,16 +317,18 @@ done-file-approximated = zast.: { $count }
 done-file-dropped = usun.: { $count }
 done-file-unrecognized = nierozp.: { $count }
 done-file-clean = bez strat
-done-heading = { $count ->
-    [one] { $count } plik przekonwertowany
-    [few] { $count } pliki przekonwertowane
-   *[many] { $count } plików przekonwertowanych
-} → { $target }
-done-edited = { $count ->
-    [one] { $count } instrument zmieniony
-    [few] { $count } instrumenty zmienione
-   *[many] { $count } instrumentów zmienionych
-}
+done-heading =
+    { $count ->
+        [one] { $count } plik przekonwertowany
+        [few] { $count } pliki przekonwertowane
+       *[many] { $count } plików przekonwertowanych
+    } → { $target }
+done-edited =
+    { $count ->
+        [one] { $count } instrument zmieniony
+        [few] { $count } instrumenty zmienione
+       *[many] { $count } instrumentów zmienionych
+    }
 done-download-one = ↓ Pobierz .mid
 done-download-zip = ↓ Pobierz pliki: { $count } (.zip)
 done-files = Przekonwertowane pliki
@@ -320,23 +341,26 @@ done-view-report = Zobacz raport →
 done-convert-more = Nowa konwersja
 done-convert-more-hint = Kolejny plik? Wtyczki i ustawienia zostają bez zmian.
 done-report-mapping = Błędne mapowanie? Zgłoś
-done-removed = { $count ->
-    [one] W mapie { $source } brakuje { $count } nuty z pliku, więc ją usunięto. Złe źródło?
-   *[other] W mapie { $source } brakuje { $count } nut z pliku, więc je usunięto. Złe źródło?
-}
-done-kept = { $count ->
-    [one] W mapie { $source } brakuje { $count } nuty z pliku, więc zostawiono ją bez zmian. Złe źródło?
-   *[other] W mapie { $source } brakuje { $count } nut z pliku, więc zostawiono je bez zmian. Złe źródło?
-}
+done-removed =
+    { $count ->
+        [one] W mapie { $source } brakuje { $count } nuty z pliku, więc ją usunięto. Złe źródło?
+       *[other] W mapie { $source } brakuje { $count } nut z pliku, więc je usunięto. Złe źródło?
+    }
+done-kept =
+    { $count ->
+        [one] W mapie { $source } brakuje { $count } nuty z pliku, więc zostawiono ją bez zmian. Złe źródło?
+       *[other] W mapie { $source } brakuje { $count } nut z pliku, więc zostawiono je bez zmian. Złe źródło?
+    }
 done-pick-source = Wybierz inne źródło
 done-assign-notes = Przypisz nuty
 source-fit-missing = W mapie { $source } brakuje { $missing } z { $hits } nut z pliku. Lepiej pasują: { $engines }
 source-fit-all = { $engine } (wszystkie nuty)
-source-fit-some = { $engine } ({ $count ->
-    [one] { $count } nuta
-    [few] { $count } nuty
-   *[many] { $count } nut
-})
+source-fit-some =
+    { $engine } ({ $count ->
+        [one] { $count } nuta
+        [few] { $count } nuty
+       *[many] { $count } nut
+    })
 drop-missing = Usuń brakujące instrumenty i konwertuj ponownie
 report-dropped = Usunięte
 report-approximated = Zastąpione
@@ -347,10 +371,11 @@ report-unrecognized-hint = brak w mapie { $source } — usunięte z pliku
 report-unrecognized-hint-kept = brak w mapie { $source } — zostawione bez zmian
 report-pick-target = Wybierz cel →
 report-assign = Przypisz →
-report-across = { $summary } w { $count ->
-    [one] { $count } pliku
-   *[other] { $count } plikach
-}
+report-across =
+    { $summary } w { $count ->
+        [one] { $count } pliku
+       *[other] { $count } plikach
+    }
 report-contact = Błędne mapowanie lub brak wtyczki? Otwórz { $issue } lub napisz na { $email }.
 report-contact-issue = zgłoszenie na GitHubie
 report-unchanged = Bez zmian

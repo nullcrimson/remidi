@@ -31,10 +31,11 @@ maps-index-intro = Mapas de notas de { $count } plugins de batería y tablas de 
 maps-more-engines = Más plugins
 maps-matrix-corner = ORIGEN ↓ DESTINO →
 maps-quick-label = Plugins más usados
-maps-note-count = { $count ->
-    [one] { $count } nota
-   *[other] { $count } notas
-}
+maps-note-count =
+    { $count ->
+        [one] { $count } nota
+       *[other] { $count } notas
+    }
 maps-matrix-heading = Todos los pares entre los { $count } principales
 maps-matrix-share = { $percent } %
 maps-matrix-share-label = { $source } a { $target }: el { $percent } % de las notas coincide exactamente
@@ -70,16 +71,17 @@ maps-pair-title = Convertir { $sourceMidi } a { $target }
 maps-pair-description = Convierte MIDI de batería de { $source } a { $target }. Notas exactas: { $exact }, reemplazadas: { $approximated }, quitadas: { $dropped }.
 maps-pair-description-more = Conversor gratuito en el navegador.
 maps-pair-description-short = Convierte MIDI de batería de { $source } a { $target }.
-maps-pair-summary = De las { $total } notas de { $source }, { $exact } { $exact ->
-    [one] coincide
-   *[other] coinciden
-} exactamente con { $target }, { $approximated } { $approximated ->
-    [one] se reemplaza
-   *[other] se reemplazan
-} por la pieza disponible más parecida y { $dropped } { $dropped ->
-    [one] no tiene
-   *[other] no tienen
-} equivalente.
+maps-pair-summary =
+    De las { $total } notas de { $source }, { $exact } { $exact ->
+        [one] coincide
+       *[other] coinciden
+    } exactamente con { $target }, { $approximated } { $approximated ->
+        [one] se reemplaza
+       *[other] se reemplazan
+    } por la pieza disponible más parecida y { $dropped } { $dropped ->
+        [one] no tiene
+       *[other] no tienen
+    } equivalente.
 maps-pair-convert = Convertir { $source } → { $target }
 maps-pair-rack-lead = ¿Tocas en directo con Ableton?
 maps-pair-rack-link = Descarga el rack (.adg)
@@ -87,18 +89,21 @@ maps-pair-rack = Ponlo delante de { $target }: { $sourceMidi } suena bien, sin c
 maps-pair-rack-dropped = Las piezas que le faltan a { $target } quedan en silencio; sus filas solo muestran un nombre de nota.
 maps-steps-label = Convertir en tres pasos
 maps-reverse = ⇄ Invertir dirección
-maps-exact-count = { $count ->
-    [one] { $count } exacta
-   *[other] { $count } exactas
-}
-maps-approximated-count = { $count ->
-    [one] { $count } reemplazada
-   *[other] { $count } reemplazadas
-}
-maps-dropped-count = { $count ->
-    [one] { $count } quitada
-   *[other] { $count } quitadas
-}
+maps-exact-count =
+    { $count ->
+        [one] { $count } exacta
+       *[other] { $count } exactas
+    }
+maps-approximated-count =
+    { $count ->
+        [one] { $count } reemplazada
+       *[other] { $count } reemplazadas
+    }
+maps-dropped-count =
+    { $count ->
+        [one] { $count } quitada
+       *[other] { $count } quitadas
+    }
 maps-rows = Filas
 maps-rows-changes = Cambios { $count }
 maps-column-engine-note = Nota de { $engine }

@@ -64,18 +64,20 @@ maps-core-heading = 가장 많이 쓰는 노트
 maps-core-hint = 각 악기의 주 노트로, 변환기가 쓰는 노트입니다.
 maps-pair-heading = { $sourceMidi }를 { $target }용으로 변환
 maps-pair-title = { $sourceMidi }를 { $target }용으로 변환
-maps-pair-description = { $source } 드럼 MIDI를 { $target }용으로 변환: 정확히 일치 { $exact ->
-   *[other] { $exact }개
-}, 대체 { $approximated }개, 제외 { $dropped }개.
+maps-pair-description =
+    { $source } 드럼 MIDI를 { $target }용으로 변환: 정확히 일치 { $exact ->
+       *[other] { $exact }개
+    }, 대체 { $approximated }개, 제외 { $dropped }개.
 maps-pair-description-more = 무료 브라우저 변환기.
 maps-pair-description-short = { $source } 드럼 MIDI를 { $target }용으로 변환.
-maps-pair-summary = { $source } 노트 { $total }개 중 { $exact ->
-   *[other] { $exact }개는
-} { $target }에 정확히 매핑되고, { $approximated ->
-   *[other] { $approximated }개는
-} 가장 비슷한 악기로 대체되며, { $dropped ->
-   *[other] { $dropped }개는
-} 대응하는 악기가 없습니다.
+maps-pair-summary =
+    { $source } 노트 { $total }개 중 { $exact ->
+       *[other] { $exact }개는
+    } { $target }에 정확히 매핑되고, { $approximated ->
+       *[other] { $approximated }개는
+    } 가장 비슷한 악기로 대체되며, { $dropped ->
+       *[other] { $dropped }개는
+    } 대응하는 악기가 없습니다.
 maps-pair-convert = { $source } → { $target } 변환
 maps-pair-rack-lead = Ableton으로 라이브 연주하나요?
 maps-pair-rack-link = 랙 다운로드(.adg)

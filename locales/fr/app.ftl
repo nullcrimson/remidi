@@ -17,10 +17,11 @@ nav-main = Principal
 nav-site = Site
 lang-menu-label = Langue
 lang-load-failed = Impossible de charger la langue { $language }. Vérifiez votre connexion Internet et réessayez.
-error-unknown-engine = Plugin { $role ->
-    [source] source
-   *[target] cible
-} inconnu : « { $id } »
+error-unknown-engine =
+    Plugin { $role ->
+        [source] source
+       *[target] cible
+    } inconnu : « { $id } »
 error-bad-midi = Le convertisseur ne peut pas lire ce fichier : il ne ressemble pas à un fichier MIDI
 error-bad-preset = Ce n’est pas un fichier de preset
 error-bad-overrides = Impossible de lire les modifications de notes
@@ -41,37 +42,43 @@ missing-nearest = Remplacer
 missing-drop = Supprimer
 missing-hint-nearest = remplacés par l’élément le plus proche
 missing-hint-drop = supprimés du fichier
-missing-hint-moved = { $count ->
-    [0] aucun élément remplacé
-    [one] { $count } élément remplacé par un autre
-   *[other] { $count } éléments remplacés par d’autres
-}
-missing-hint-dropped = { $count ->
-    [0] aucun élément supprimé
-    [one] { $count } élément supprimé
-   *[other] { $count } éléments supprimés
-}
-files-unreadable = Impossible de lire { $names }. Choisissez { $count ->
-    [one] ce fichier
-   *[other] ces fichiers
-} à nouveau.
-preset-skipped = { $count ->
-    [one] { $count } modification ignorée dans « { $name } » : cette version ne connaît pas l’élément.
-   *[other] { $count } modifications ignorées dans « { $name } » : cette version ne connaît pas ces éléments.
-}
+missing-hint-moved =
+    { $count ->
+        [0] aucun élément remplacé
+        [one] { $count } élément remplacé par un autre
+       *[other] { $count } éléments remplacés par d’autres
+    }
+missing-hint-dropped =
+    { $count ->
+        [0] aucun élément supprimé
+        [one] { $count } élément supprimé
+       *[other] { $count } éléments supprimés
+    }
+files-unreadable =
+    Impossible de lire { $names }. Choisissez { $count ->
+        [one] ce fichier
+       *[other] ces fichiers
+    } à nouveau.
+preset-skipped =
+    { $count ->
+        [one] { $count } modification ignorée dans « { $name } » : cette version ne connaît pas l’élément.
+       *[other] { $count } modifications ignorées dans « { $name } » : cette version ne connaît pas ces éléments.
+    }
 import-failed = Impossible d’importer { $file } : { $error }
 import-at-cap = Impossible d’importer { $file } : plus de place, { $cap } presets maximum
 presets-unsaved = Impossible d’enregistrer les presets : le stockage du navigateur est plein ou bloqué. Ils seront perdus au rechargement.
 import-done = Preset « { $name } » importé.
-import-done-skipped = Preset « { $name } » importé ({ $count ->
-    [one] { $count } modification ignorée
-   *[other] { $count } modifications ignorées
-}).
+import-done-skipped =
+    Preset « { $name } » importé ({ $count ->
+        [one] { $count } modification ignorée
+       *[other] { $count } modifications ignorées
+    }).
 edit-line = { $drum } : { $now } (par défaut : { $byDefault })
-edit-more = { $count ->
-    [one] +{ $count } autre
-   *[other] +{ $count } autres
-}
+edit-more =
+    { $count ->
+        [one] +{ $count } autre
+       *[other] +{ $count } autres
+    }
 app-intro = Convertissez du MIDI batterie entre GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro et plus de 80 autres plugins. Tout se passe dans votre navigateur : vos fichiers ne sont envoyés nulle part.
 app-loading = Chargement du convertisseur…
 convert-error = Erreur : { $error }
@@ -89,31 +96,37 @@ unrecognized-remove = Supprimer
 unrecognized-keep = Garder telles quelles
 unrecognized-hint-remove = supprimées du fichier
 unrecognized-hint-keep = gardées inchangées
-edited-review = { $count ->
-    [one] { $count } élément modifié
-   *[other] { $count } éléments modifiés
-} — voir les modifications
-edited-review-saved = { $count ->
-    [one] { $count } élément modifié
-   *[other] { $count } éléments modifiés
-} (preset { $name }) — voir les modifications
-edited-review-unsaved = { $count ->
-    [one] { $count } élément modifié
-   *[other] { $count } éléments modifiés
-} — voir les modifications (non enregistrées dans { $name })
-edited-differ = { $count ->
-    [one] { $count } élément diffère
-   *[other] { $count } éléments diffèrent
-} du mapping par défaut
+edited-review =
+    { $count ->
+        [one] { $count } élément modifié
+       *[other] { $count } éléments modifiés
+    } — voir les modifications
+edited-review-saved =
+    { $count ->
+        [one] { $count } élément modifié
+       *[other] { $count } éléments modifiés
+    } (preset { $name }) — voir les modifications
+edited-review-unsaved =
+    { $count ->
+        [one] { $count } élément modifié
+       *[other] { $count } éléments modifiés
+    } — voir les modifications (non enregistrées dans { $name })
+edited-differ =
+    { $count ->
+        [one] { $count } élément diffère
+       *[other] { $count } éléments diffèrent
+    } du mapping par défaut
 edited-click = Cliquez pour voir ou réinitialiser.
-edited-count = { $count ->
-    [one] { $count } modifié
-   *[other] { $count } modifiés
-}
-edited-count-unsaved = { $count ->
-    [one] { $count } modifié · non enregistré
-   *[other] { $count } modifiés · non enregistrés
-}
+edited-count =
+    { $count ->
+        [one] { $count } modifié
+       *[other] { $count } modifiés
+    }
+edited-count-unsaved =
+    { $count ->
+        [one] { $count } modifié · non enregistré
+       *[other] { $count } modifiés · non enregistrés
+    }
 octave-label = Première octave
 octave-tip-title = Ne change que l’affichage
 octave-tip = Indique dans quelle octave se trouve la note MIDI 0, pour que les noms de notes soient les mêmes que dans votre DAW. Les notes du fichier, elles, ne changent pas.
@@ -124,10 +137,11 @@ dropzone-heading = DÉPOSEZ UN .MID
 dropzone-presets = ou un preset exporté (.json)
 convert-running = conversion
 convert-button = Convertir
-convert-button-ready = { $count ->
-    [one] Convertir 1 fichier
-   *[other] Convertir { $count } fichiers
-} pour { $target }
+convert-button-ready =
+    { $count ->
+        [one] Convertir 1 fichier
+       *[other] Convertir { $count } fichiers
+    } pour { $target }
 settings-heading = Réglages
 engine-from = SOURCE
 engine-to = CIBLE
@@ -163,18 +177,20 @@ summary-rack = Rack Ableton
 summary-rack-tip-title = Jouez-le en live dans Ableton
 summary-rack-tip = Un MIDI Effect Rack pour Live 11 et 12. Placez-le devant { $target } et le MIDI { $source } joue juste, sans fichier à convertir. Il reprend vos modifications de notes et le réglage Éléments manquants.
 rack-saved = Rack enregistré : { $file }. Glissez-le sur la piste MIDI, devant { $target }. Dans un clip, chaque ligne affiche l’élément et la note qu’il joue désormais.
-rack-saved-dropped = Rack enregistré : { $file }. Glissez-le sur la piste MIDI, devant { $target }. { $count ->
-    [one] Un élément absent de { $target } n’a pas de nom de ligne dans le clip, seulement une note comme D1, et reste muet.
-   *[other] { $count } éléments absents de { $target } n’ont pas de nom de ligne dans le clip, seulement une note comme D1, et restent muets.
-}
+rack-saved-dropped =
+    Rack enregistré : { $file }. Glissez-le sur la piste MIDI, devant { $target }. { $count ->
+        [one] Un élément absent de { $target } n’a pas de nom de ligne dans le clip, seulement une note comme D1, et reste muet.
+       *[other] { $count } éléments absents de { $target } n’ont pas de nom de ligne dans le clip, seulement une note comme D1, et restent muets.
+    }
 rack-failed = Impossible de créer le rack : { $error }
 missing-detail-moved = Remplacés par un autre élément
 missing-detail-dropped = Supprimés du fichier
 detail-edit = Modifier dans l’éditeur de notes →
-summary-detail-heading = { $total ->
-    [one] { $total } élément dans ce mapping
-   *[other] { $total } éléments dans ce mapping
-}
+summary-detail-heading =
+    { $total ->
+        [one] { $total } élément dans ce mapping
+       *[other] { $total } éléments dans ce mapping
+    }
 summary-detail-moved = sur une nouvelle note
 summary-detail-same = déjà sur la bonne note
 summary-detail-variant = sur une variante proche
@@ -186,14 +202,16 @@ summary-reason-variant = pas d’équivalent exact dans { $target } — une vari
 summary-reason-swapped = pas d’équivalent dans { $target } — l’élément le plus proche joue à la place
 summary-reason-dropped = pas d’équivalent dans { $target }
 summary-reason-unplayed = aucune note dans { $source }
-row-extras-dropped = { $count ->
-    [one] { $count } autre note source joue aussi { $drum } : { $notes }. Elle n’a pas de cible.
-   *[other] { $count } autres notes sources jouent aussi { $drum } : { $notes }. Aucune n’a de cible.
-}
-row-extras = { $count ->
-    [one] { $count } autre note source joue aussi { $drum } : { $notes }. Les deux vont sur { $target }.
-   *[other] { $count } autres notes sources jouent aussi { $drum } : { $notes }. Toutes vont sur { $target }.
-}
+row-extras-dropped =
+    { $count ->
+        [one] { $count } autre note source joue aussi { $drum } : { $notes }. Elle n’a pas de cible.
+       *[other] { $count } autres notes sources jouent aussi { $drum } : { $notes }. Aucune n’a de cible.
+    }
+row-extras =
+    { $count ->
+        [one] { $count } autre note source joue aussi { $drum } : { $notes }. Les deux vont sur { $target }.
+       *[other] { $count } autres notes sources jouent aussi { $drum } : { $notes }. Toutes vont sur { $target }.
+    }
 row-reset = Réinitialiser { $drum }
 edit-filter-label = Filtrer les éléments
 edit-filter-placeholder = filtrer les éléments…
@@ -203,11 +221,12 @@ edit-show-all = Tous { $count }
 edit-show-changed = Modifiés { $count }
 edit-show-issues = Problèmes { $count }
 edit-actions = Actions d’édition
-edit-changes = { $count ->
-    [0] Aucune modification
-    [one] { $count } modification
-   *[other] { $count } modifications
-}
+edit-changes =
+    { $count ->
+        [0] Aucune modification
+        [one] { $count } modification
+       *[other] { $count } modifications
+    }
 edit-reset-all = Tout réinitialiser
 edit-done = Terminé
 row-no-source = aucune source
@@ -265,51 +284,60 @@ chip-delete = Supprimer
 chip-rename-label = Renommer { $name }
 chip-rename-save = Enregistrer le nom
 chip-rename-cancel = Annuler le renommage
-chip-overrides = { $count ->
-    [one] { $count } modification
-   *[other] { $count } modifications
-}
+chip-overrides =
+    { $count ->
+        [one] { $count } modification
+       *[other] { $count } modifications
+    }
 chip-unavailable = plugin indisponible
 chip-edit = Modifier les notes de { $name }
 chip-more = Plus d’actions pour { $name }
 chip-at-cap = plus de place pour d’autres presets
-done-tag-converted = { $count ->
-    [one] { $count } note convertie
-   *[other] { $count } notes converties
-}
+done-tag-converted =
+    { $count ->
+        [one] { $count } note convertie
+       *[other] { $count } notes converties
+    }
 done-tag-nothing = aucune note convertie
-done-tag-approximated = { $count ->
-    [one] { $count } remplacée
-   *[other] { $count } remplacées
-}
-done-tag-dropped = { $count ->
-    [one] { $count } supprimée
-   *[other] { $count } supprimées
-}
-done-tag-unrecognized = { $count ->
-    [one] { $count } non reconnue
-   *[other] { $count } non reconnues
-}
-done-tag-untouched = { $count ->
-    [one] { $count } inchangée sur un autre canal
-   *[other] { $count } inchangées sur d’autres canaux
-}
-done-tag-failed = { $count ->
-    [one] { $count } échec
-   *[other] { $count } échecs
-}
+done-tag-approximated =
+    { $count ->
+        [one] { $count } remplacée
+       *[other] { $count } remplacées
+    }
+done-tag-dropped =
+    { $count ->
+        [one] { $count } supprimée
+       *[other] { $count } supprimées
+    }
+done-tag-unrecognized =
+    { $count ->
+        [one] { $count } non reconnue
+       *[other] { $count } non reconnues
+    }
+done-tag-untouched =
+    { $count ->
+        [one] { $count } inchangée sur un autre canal
+       *[other] { $count } inchangées sur d’autres canaux
+    }
+done-tag-failed =
+    { $count ->
+        [one] { $count } échec
+       *[other] { $count } échecs
+    }
 done-file-approximated = { $count } rempl.
 done-file-dropped = { $count } suppr.
 done-file-unrecognized = { $count } non rec.
 done-file-clean = sans perte
-done-heading = { $count ->
-    [one] { $count } fichier converti
-   *[other] { $count } fichiers convertis
-} → { $target }
-done-edited = { $count ->
-    [one] { $count } élément modifié
-   *[other] { $count } éléments modifiés
-}
+done-heading =
+    { $count ->
+        [one] { $count } fichier converti
+       *[other] { $count } fichiers convertis
+    } → { $target }
+done-edited =
+    { $count ->
+        [one] { $count } élément modifié
+       *[other] { $count } éléments modifiés
+    }
 done-download-one = ↓ Télécharger le .mid
 done-download-zip = ↓ Télécharger { $count } fichiers (.zip)
 done-files = Fichiers convertis
@@ -322,26 +350,30 @@ done-view-report = Voir le rapport →
 done-convert-more = Nouvelle conversion
 done-convert-more-hint = Un autre fichier ? Les plugins et les réglages restent tels quels.
 done-report-mapping = Mapping erroné ? Signalez-le
-done-removed = { $count ->
-    [one] { $count } note de votre fichier est absente du mapping { $source } : elle a donc été supprimée. Mauvais plugin source ?
-   *[other] { $count } notes de votre fichier sont absentes du mapping { $source } : elles ont donc été supprimées. Mauvais plugin source ?
-}
-done-kept = { $count ->
-    [one] { $count } note de votre fichier est absente du mapping { $source } : elle a donc été gardée telle quelle. Mauvais plugin source ?
-   *[other] { $count } notes de votre fichier sont absentes du mapping { $source } : elles ont donc été gardées telles quelles. Mauvais plugin source ?
-}
+done-removed =
+    { $count ->
+        [one] { $count } note de votre fichier est absente du mapping { $source } : elle a donc été supprimée. Mauvais plugin source ?
+       *[other] { $count } notes de votre fichier sont absentes du mapping { $source } : elles ont donc été supprimées. Mauvais plugin source ?
+    }
+done-kept =
+    { $count ->
+        [one] { $count } note de votre fichier est absente du mapping { $source } : elle a donc été gardée telle quelle. Mauvais plugin source ?
+       *[other] { $count } notes de votre fichier sont absentes du mapping { $source } : elles ont donc été gardées telles quelles. Mauvais plugin source ?
+    }
 done-pick-source = Choisir une autre source
 done-assign-notes = Attribuer les notes
-source-fit-missing = { $missing ->
-    [one] { $missing } note sur { $hits } de votre fichier est absente du mapping { $source }.
-   *[other] { $missing } notes sur { $hits } de votre fichier sont absentes du mapping { $source }.
-} Plus proches : { $engines }
+source-fit-missing =
+    { $missing ->
+        [one] { $missing } note sur { $hits } de votre fichier est absente du mapping { $source }.
+       *[other] { $missing } notes sur { $hits } de votre fichier sont absentes du mapping { $source }.
+    } Plus proches : { $engines }
 source-fit-all = { $engine } (toutes les notes)
-source-fit-some = { $engine } ({ $count ->
-    [one] { $count } note
-   *[other] { $count } notes
-})
-drop-missing =Supprimer les éléments manquants et reconvertir
+source-fit-some =
+    { $engine } ({ $count ->
+        [one] { $count } note
+       *[other] { $count } notes
+    })
+drop-missing = Supprimer les éléments manquants et reconvertir
 report-dropped = Supprimés
 report-approximated = Remplacés
 report-unrecognized = Non reconnues

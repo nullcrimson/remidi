@@ -31,10 +31,11 @@ maps-index-intro = Note charts for { $count } drum engines and conversion tables
 maps-more-engines = More engines
 maps-matrix-corner = FROM ↓ TO →
 maps-quick-label = Most used engines
-maps-note-count = { $count ->
-    [one] { $count } note
-   *[other] { $count } notes
-}
+maps-note-count =
+    { $count ->
+        [one] { $count } note
+       *[other] { $count } notes
+    }
 maps-matrix-heading = Every pair between the top { $count }
 maps-matrix-share = { $percent }%
 maps-matrix-share-label = { $source } to { $target }: { $percent }% of notes map exactly
@@ -67,22 +68,24 @@ maps-core-heading = The notes you will use most
 maps-core-hint = The main note of each drum, the one the converter writes.
 maps-pair-heading = Convert { $sourceMidi } to { $target }
 maps-pair-title = Convert { $sourceMidi } to { $target }
-maps-pair-description = Convert { $source } drum MIDI to { $target }: { $exact } { $exact ->
-    [one] note maps
-   *[other] notes map
-} exactly, { $approximated } approximated, { $dropped } dropped.
+maps-pair-description =
+    Convert { $source } drum MIDI to { $target }: { $exact } { $exact ->
+        [one] note maps
+       *[other] notes map
+    } exactly, { $approximated } approximated, { $dropped } dropped.
 maps-pair-description-more = Free in-browser converter.
 maps-pair-description-short = Convert { $source } drum MIDI to { $target }.
-maps-pair-summary = Of { $total } { $source } notes, { $exact } { $exact ->
-    [one] maps
-   *[other] map
-} exactly to { $target }, { $approximated } { $approximated ->
-    [one] is
-   *[other] are
-} approximated with the closest available drum, and { $dropped } { $dropped ->
-    [one] has
-   *[other] have
-} no equivalent.
+maps-pair-summary =
+    Of { $total } { $source } notes, { $exact } { $exact ->
+        [one] maps
+       *[other] map
+    } exactly to { $target }, { $approximated } { $approximated ->
+        [one] is
+       *[other] are
+    } approximated with the closest available drum, and { $dropped } { $dropped ->
+        [one] has
+       *[other] have
+    } no equivalent.
 maps-pair-convert = Convert { $source } → { $target }
 maps-pair-rack-lead = Playing live in Ableton?
 maps-pair-rack-link = Download the rack (.adg)

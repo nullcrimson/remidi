@@ -8,6 +8,7 @@
   "scripts": {
     "build:wasm": "node scripts/build-wasm.mjs",
     "gen:i18n": "node scripts/gen-i18n.ts",
+    "fmt:ftl": "node scripts/format-ftl.ts",
     "predev": "npm run gen:i18n && npm run build:wasm",
     "dev": "vite",
     "prebuild": "npm run gen:i18n && npm run build:wasm",

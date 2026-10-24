@@ -64,18 +64,20 @@ maps-core-heading = 最常用的音符
 maps-core-hint = 每个鼓件的主音符，也就是转换器写入的音符。
 maps-pair-heading = 将 { $sourceMidi } 转换为 { $target }
 maps-pair-title = 将 { $sourceMidi } 转换为 { $target }
-maps-pair-description = 将 { $source } 鼓 MIDI 转换为 { $target }：{ $exact } 个音符{ $exact ->
-   *[other] 精确对应
-}，{ $approximated } 个替换，{ $dropped } 个删除。
+maps-pair-description =
+    将 { $source } 鼓 MIDI 转换为 { $target }：{ $exact } 个音符{ $exact ->
+       *[other] 精确对应
+    }，{ $approximated } 个替换，{ $dropped } 个删除。
 maps-pair-description-more = 免费的浏览器端转换器。
 maps-pair-description-short = 将 { $source } 鼓 MIDI 转换为 { $target }。
-maps-pair-summary = 在 { $source } 的 { $total } 个音符中，{ $exact } 个{ $exact ->
-   *[other] 精确对应
-}到 { $target }，{ $approximated } 个{ $approximated ->
-   *[other] 换成最接近的鼓件
-}，{ $dropped } 个{ $dropped ->
-   *[other] 没有对应鼓件
-}。
+maps-pair-summary =
+    在 { $source } 的 { $total } 个音符中，{ $exact } 个{ $exact ->
+       *[other] 精确对应
+    }到 { $target }，{ $approximated } 个{ $approximated ->
+       *[other] 换成最接近的鼓件
+    }，{ $dropped } 个{ $dropped ->
+       *[other] 没有对应鼓件
+    }。
 maps-pair-convert = 转换 { $source } → { $target }
 maps-pair-rack-lead = 在 Ableton 里现场演奏？
 maps-pair-rack-link = 下载机架（.adg）

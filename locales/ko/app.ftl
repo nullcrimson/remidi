@@ -17,10 +17,11 @@ nav-main = 주 메뉴
 nav-site = 사이트 메뉴
 lang-menu-label = 언어
 lang-load-failed = 언어를 불러오지 못했습니다({ $language }). 인터넷 연결을 확인하고 다시 시도하세요.
-error-unknown-engine = 알 수 없는 { $role ->
-    [source] 원본
-   *[target] 대상
-} 음원 '{ $id }'
+error-unknown-engine =
+    알 수 없는 { $role ->
+        [source] 원본
+       *[target] 대상
+    } 음원 '{ $id }'
 error-bad-midi = 파일을 읽을 수 없습니다. MIDI 파일이 아닌 것 같습니다
 error-bad-preset = 프리셋 파일이 아닙니다
 error-bad-overrides = 노트 편집 내용을 읽을 수 없습니다
@@ -28,7 +29,7 @@ error-bad-missing = 알 수 없는 '없는 악기' 설정입니다
 error-internal = 문제가 발생했습니다
 error-wasm-unavailable = 변환기를 불러오지 못했습니다
 error-detail = 세부 정보: { $detail }
-blocker-files-and-engines = .mid 파일을 추가하고 음원을 둘 다 선택하세요
+blocker-files-and-engines = { "." }mid 파일을 추가하고 음원을 둘 다 선택하세요
 blocker-files = 먼저 .mid 파일을 추가하세요
 blocker-engines = 원본 음원과 대상 음원을 선택하세요
 channel-auto = 자동
@@ -41,27 +42,32 @@ missing-nearest = 대체
 missing-drop = 제외
 missing-hint-nearest = 가장 비슷한 악기로 대체
 missing-hint-drop = 파일에서 제외
-missing-hint-moved = { $count ->
-    [0] 대체되는 악기 없음
-   *[other] 악기 { $count }개 대체
-}
-missing-hint-dropped = { $count ->
-    [0] 제외되는 악기 없음
-   *[other] 악기 { $count }개 제외
-}
-files-unreadable = { $count ->
-   *[other] 파일 { $count }개를 읽을 수 없습니다: { $names }. 다시 선택하세요.
-}
-preset-skipped = { $count ->
-   *[other] '{ $name }'의 편집 { $count }개는 이 버전에 없는 악기가 들어 있어 건너뛰었습니다.
-}
+missing-hint-moved =
+    { $count ->
+        [0] 대체되는 악기 없음
+       *[other] 악기 { $count }개 대체
+    }
+missing-hint-dropped =
+    { $count ->
+        [0] 제외되는 악기 없음
+       *[other] 악기 { $count }개 제외
+    }
+files-unreadable =
+    { $count ->
+       *[other] 파일 { $count }개를 읽을 수 없습니다: { $names }. 다시 선택하세요.
+    }
+preset-skipped =
+    { $count ->
+       *[other] '{ $name }'의 편집 { $count }개는 이 버전에 없는 악기가 들어 있어 건너뛰었습니다.
+    }
 import-failed = { $file } 파일을 가져오지 못했습니다: { $error }
 import-at-cap = { $file } 파일을 가져오지 못했습니다: 프리셋은 최대 { $cap }개까지입니다
 presets-unsaved = 프리셋을 저장하지 못했습니다: 브라우저 저장 공간이 가득 찼거나 차단되어 있습니다. 새로고침하면 사라집니다.
 import-done = '{ $name }' 프리셋을 가져왔습니다.
-import-done-skipped = '{ $name }' 프리셋을 가져왔습니다(편집 { $count ->
-   *[other] { $count }개
-} 건너뜀).
+import-done-skipped =
+    '{ $name }' 프리셋을 가져왔습니다(편집 { $count ->
+       *[other] { $count }개
+    } 건너뜀).
 edit-line = { $drum }: { $now } (기본값 { $byDefault })
 edit-more = +{ $count }개 더
 app-intro = GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro 등 80개 이상의 드럼 음원에 맞게 드럼 MIDI의 노트 배치를 바꿔 줍니다. 브라우저에서 바로 실행되고, 파일은 업로드되지 않습니다.
@@ -81,18 +87,22 @@ unrecognized-remove = 제거
 unrecognized-keep = 그대로 두기
 unrecognized-hint-remove = 파일에서 제거
 unrecognized-hint-keep = 바꾸지 않고 그대로 유지
-edited-review = { $count ->
-   *[other] 악기 { $count }개
-} 편집됨 — 변경 사항 확인
-edited-review-saved = { $count ->
-   *[other] 악기 { $count }개
-} 편집됨 — 변경 사항 확인 (프리셋: { $name })
-edited-review-unsaved = { $count ->
-   *[other] 악기 { $count }개
-} 편집됨 — 변경 사항 확인 ({ $name }에 저장 안 됨)
-edited-differ = { $count ->
-   *[other] 악기 { $count }개가
-} 기본 매핑과 다릅니다
+edited-review =
+    { $count ->
+       *[other] 악기 { $count }개
+    } 편집됨 — 변경 사항 확인
+edited-review-saved =
+    { $count ->
+       *[other] 악기 { $count }개
+    } 편집됨 — 변경 사항 확인 (프리셋: { $name })
+edited-review-unsaved =
+    { $count ->
+       *[other] 악기 { $count }개
+    } 편집됨 — 변경 사항 확인 ({ $name }에 저장 안 됨)
+edited-differ =
+    { $count ->
+       *[other] 악기 { $count }개가
+    } 기본 매핑과 다릅니다
 edited-click = 클릭해서 확인하거나 초기화하세요.
 edited-count = { $count }개 편집
 edited-count-unsaved = { $count }개 편집 · 저장 안 됨
@@ -102,7 +112,7 @@ octave-tip = 노트 이름이 사용하는 DAW와 같아지도록 MIDI 노트 0�
 canon-picker-label = { $note }에 지정할 악기
 canon-picker-heading = 원본 · { $note }
 close = 닫기
-dropzone-heading = .MID 놓기
+dropzone-heading = { "." }MID 놓기
 dropzone-presets = 또는 내보낸 프리셋(.json)
 convert-running = 변환 중
 convert-button = 변환하기
@@ -133,9 +143,10 @@ saved-heading = 저장됨
 edit-back = ← 뒤로
 edit-heading = 노트 편집
 edit-advanced = 고급 — 원본 노트 다시 지정
-summary-remapped = { $total ->
-   *[other] 악기 { $total }개 중 { $remapped }개 리매핑됨
-}
+summary-remapped =
+    { $total ->
+       *[other] 악기 { $total }개 중 { $remapped }개 리매핑됨
+    }
 summary-edit-tip-title = 악기별 세부 조정
 summary-edit-tip = 어떤 악기든 다른 대상 노트로 바꿀 수 있습니다. 악기 목록이나 피아노에서 고르세요. 바꾼 내용은 변환에 적용되고, 프리셋으로 저장할 수도 있습니다.
 summary-edit = 노트 개별 편집 →
@@ -144,16 +155,18 @@ summary-rack = Ableton 랙
 summary-rack-tip-title = Ableton에서 라이브로 연주
 summary-rack-tip = Live 11, 12용 MIDI Effect Rack입니다. { $target } 앞에 놓으면 { $source } MIDI가 제대로 연주되고, 변환할 파일은 없습니다. 노트 편집과 '없는 악기' 설정이 적용됩니다.
 rack-saved = 랙을 저장했습니다: { $file }. MIDI 트랙의 { $target } 앞에 끌어다 놓으세요. 클립의 각 행에 악기와 지금 연주하는 노트가 표시됩니다.
-rack-saved-dropped = 랙을 저장했습니다: { $file }. MIDI 트랙의 { $target } 앞에 끌어다 놓으세요. { $count ->
-   *[other] { $target }에 없는 악기 { $count }개는 클립에서 행 이름 없이 D1 같은 노트 이름만 보이고 소리가 나지 않습니다.
-}
+rack-saved-dropped =
+    랙을 저장했습니다: { $file }. MIDI 트랙의 { $target } 앞에 끌어다 놓으세요. { $count ->
+       *[other] { $target }에 없는 악기 { $count }개는 클립에서 행 이름 없이 D1 같은 노트 이름만 보이고 소리가 나지 않습니다.
+    }
 rack-failed = 랙을 만들지 못했습니다: { $error }
 missing-detail-moved = 다른 악기로 대체
 missing-detail-dropped = 파일에서 제외
 detail-edit = 노트 편집에서 변경 →
-summary-detail-heading = { $total ->
-   *[other] 이 매핑의 악기 { $total }개
-}
+summary-detail-heading =
+    { $total ->
+       *[other] 이 매핑의 악기 { $total }개
+    }
 summary-detail-moved = 새 노트로 이동
 summary-detail-same = 이미 맞는 노트
 summary-detail-variant = 비슷한 변형으로 연주
@@ -165,12 +178,14 @@ summary-reason-variant = { $target }에 정확히 같은 악기가 없어 같은
 summary-reason-swapped = { $target }에 해당 악기가 없어 가장 비슷한 악기로 연주
 summary-reason-dropped = { $target }에 해당 악기 없음
 summary-reason-unplayed = { $source }에 노트 없음
-row-extras-dropped = { $count ->
-   *[other] { $drum } 소리를 내는 원본 노트가 { $count }개 더 있습니다: { $notes }. 모두 대상 노트가 없습니다.
-}
-row-extras = { $count ->
-   *[other] { $drum } 소리를 내는 원본 노트가 { $count }개 더 있습니다: { $notes }. 모두 { $target }에 연결됩니다.
-}
+row-extras-dropped =
+    { $count ->
+       *[other] { $drum } 소리를 내는 원본 노트가 { $count }개 더 있습니다: { $notes }. 모두 대상 노트가 없습니다.
+    }
+row-extras =
+    { $count ->
+       *[other] { $drum } 소리를 내는 원본 노트가 { $count }개 더 있습니다: { $notes }. 모두 { $target }에 연결됩니다.
+    }
 row-reset = { $drum } 초기화
 edit-filter-label = 악기 검색
 edit-filter-placeholder = 악기 검색…
@@ -180,10 +195,11 @@ edit-show-all = 전체 { $count }
 edit-show-changed = 변경됨 { $count }
 edit-show-issues = 문제 { $count }
 edit-actions = 편집 메뉴
-edit-changes = { $count ->
-    [0] 변경 사항 없음
-   *[other] 변경 { $count }개
-}
+edit-changes =
+    { $count ->
+        [0] 변경 사항 없음
+       *[other] 변경 { $count }개
+    }
 edit-reset-all = 모두 초기화
 edit-done = 완료
 row-no-source = 원본 없음
@@ -220,7 +236,7 @@ library-favourites = 즐겨찾기
 library-all = 전체 음원
 library-none = 검색 결과 없음
 files-skipped = { $names } 건너뜀 — .mid 파일과 내보낸 프리셋(.json)만 추가할 수 있습니다
-files-drop = .mid 파일(여러 개 가능)을 아무 곳에나 끌어다 놓으세요
+files-drop = { "." }mid 파일(여러 개 가능)을 아무 곳에나 끌어다 놓으세요
 files-choose = 파일 선택
 files-presets = 내보낸 프리셋 파일(.json)도 같은 방법으로 끌어다 놓거나 선택할 수 있습니다.
 files-sample = 샘플 그루브로 사용해 보기
@@ -241,16 +257,18 @@ chip-delete = 삭제
 chip-rename-label = { $name } 이름 변경
 chip-rename-save = 이름 저장
 chip-rename-cancel = 이름 변경 취소
-chip-overrides = { $count ->
-   *[other] { $count }개 변경
-}
+chip-overrides =
+    { $count ->
+       *[other] { $count }개 변경
+    }
 chip-unavailable = 음원 사용 불가
 chip-edit = { $name } 노트 편집
 chip-more = { $name } 더보기
 chip-at-cap = 프리셋을 더 만들 수 없음
-done-tag-converted = { $count ->
-   *[other] 노트 { $count }개 변환됨
-}
+done-tag-converted =
+    { $count ->
+       *[other] 노트 { $count }개 변환됨
+    }
 done-tag-nothing = 변환된 노트 없음
 done-tag-approximated = { $count }개 대체됨
 done-tag-dropped = { $count }개 제외됨
@@ -261,12 +279,14 @@ done-file-approximated = 대체 { $count }
 done-file-dropped = 제외 { $count }
 done-file-unrecognized = 미인식 { $count }
 done-file-clean = 문제 없음
-done-heading = { $count ->
-   *[other] 파일 { $count }개
-} 변환됨 → { $target }
-done-edited = { $count ->
-   *[other] 악기 { $count }개
-} 편집됨
+done-heading =
+    { $count ->
+       *[other] 파일 { $count }개
+    } 변환됨 → { $target }
+done-edited =
+    { $count ->
+       *[other] 악기 { $count }개
+    } 편집됨
 done-download-one = ↓ .mid 다운로드
 done-download-zip = ↓ 파일 { $count }개 다운로드(.zip)
 done-files = 변환된 파일

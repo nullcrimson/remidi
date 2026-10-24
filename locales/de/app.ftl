@@ -17,10 +17,11 @@ nav-main = Hauptnavigation
 nav-site = Website
 lang-menu-label = Sprache
 lang-load-failed = { $language } konnte nicht geladen werden. Prüfen Sie Ihre Internetverbindung und versuchen Sie es noch einmal.
-error-unknown-engine = Unbekanntes { $role ->
-    [source] Quell
-   *[target] Ziel
-}-Plugin „{ $id }“
+error-unknown-engine =
+    Unbekanntes { $role ->
+        [source] Quell
+       *[target] Ziel
+    }-Plugin „{ $id }“
 error-bad-midi = Der Konverter kann diese Datei nicht lesen – sie sieht nicht nach MIDI aus
 error-bad-preset = Das ist keine Preset-Datei
 error-bad-overrides = Die Notenänderungen konnten nicht gelesen werden
@@ -28,7 +29,7 @@ error-bad-missing = Unbekannte Einstellung für fehlende Instrumente
 error-internal = Etwas ist schiefgelaufen
 error-wasm-unavailable = Der Konverter konnte nicht geladen werden
 error-detail = Details: { $detail }
-blocker-files-and-engines = .mid-Datei hinzufügen und beide Plugins wählen
+blocker-files-and-engines = { "." }mid-Datei hinzufügen und beide Plugins wählen
 blocker-files = Erst eine .mid-Datei hinzufügen
 blocker-engines = Plugins für VON und NACH wählen
 channel-auto = Auto
@@ -41,32 +42,37 @@ missing-nearest = Ersetzen
 missing-drop = Entfernen
 missing-hint-nearest = werden durch das ähnlichste Instrument ersetzt
 missing-hint-drop = werden aus der Datei entfernt
-missing-hint-moved = { $count ->
-    [0] nichts wird ersetzt
-    [one] { $count } Instrument wird ersetzt
-   *[other] { $count } Instrumente werden ersetzt
-}
-missing-hint-dropped = { $count ->
-    [0] nichts wird entfernt
-    [one] { $count } Instrument wird entfernt
-   *[other] { $count } Instrumente werden entfernt
-}
-files-unreadable = { $count ->
-    [one] { $names } konnte nicht gelesen werden – bitte wählen Sie die Datei noch einmal aus.
-   *[other] { $names } konnten nicht gelesen werden – bitte wählen Sie die Dateien noch einmal aus.
-}
-preset-skipped = { $count ->
-    [one] { $count } Änderung in „{ $name }“ übersprungen: Das Instrument kennt diese Version nicht.
-   *[other] { $count } Änderungen in „{ $name }“ übersprungen: Diese Instrumente kennt diese Version nicht.
-}
+missing-hint-moved =
+    { $count ->
+        [0] nichts wird ersetzt
+        [one] { $count } Instrument wird ersetzt
+       *[other] { $count } Instrumente werden ersetzt
+    }
+missing-hint-dropped =
+    { $count ->
+        [0] nichts wird entfernt
+        [one] { $count } Instrument wird entfernt
+       *[other] { $count } Instrumente werden entfernt
+    }
+files-unreadable =
+    { $count ->
+        [one] { $names } konnte nicht gelesen werden – bitte wählen Sie die Datei noch einmal aus.
+       *[other] { $names } konnten nicht gelesen werden – bitte wählen Sie die Dateien noch einmal aus.
+    }
+preset-skipped =
+    { $count ->
+        [one] { $count } Änderung in „{ $name }“ übersprungen: Das Instrument kennt diese Version nicht.
+       *[other] { $count } Änderungen in „{ $name }“ übersprungen: Diese Instrumente kennt diese Version nicht.
+    }
 import-failed = { $file } konnte nicht importiert werden: { $error }
 import-at-cap = { $file } konnte nicht importiert werden: Kein Platz für weitere Presets, maximal { $cap }
 presets-unsaved = Presets konnten nicht gespeichert werden: Der Speicher des Browsers ist voll oder gesperrt. Nach dem Neuladen sind sie weg.
 import-done = Preset „{ $name }“ importiert.
-import-done-skipped = Preset „{ $name }“ importiert ({ $count ->
-    [one] { $count } Änderung
-   *[other] { $count } Änderungen
-} übersprungen).
+import-done-skipped =
+    Preset „{ $name }“ importiert ({ $count ->
+        [one] { $count } Änderung
+       *[other] { $count } Änderungen
+    } übersprungen).
 edit-line = { $drum }: { $now } (Standard: { $byDefault })
 edit-more = +{ $count } weitere
 app-intro = Konvertieren Sie Drum-MIDI zwischen GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro und über 80 weiteren Drum-Plugins. Alles läuft in Ihrem Browser – Ihre Dateien werden nirgendwohin hochgeladen.
@@ -86,22 +92,26 @@ unrecognized-remove = Entfernen
 unrecognized-keep = Unverändert lassen
 unrecognized-hint-remove = werden aus der Datei entfernt
 unrecognized-hint-keep = bleiben unverändert in der Datei
-edited-review = { $count ->
-    [one] { $count } Instrument
-   *[other] { $count } Instrumente
-} geändert – Änderungen ansehen
-edited-review-saved = { $count ->
-    [one] { $count } Instrument
-   *[other] { $count } Instrumente
-} geändert (Preset { $name }) – Änderungen ansehen
-edited-review-unsaved = { $count ->
-    [one] { $count } Instrument
-   *[other] { $count } Instrumente
-} geändert, nicht in { $name } gespeichert – Änderungen ansehen
-edited-differ = { $count ->
-    [one] { $count } Instrument weicht
-   *[other] { $count } Instrumente weichen
-} von der Standardzuordnung ab
+edited-review =
+    { $count ->
+        [one] { $count } Instrument
+       *[other] { $count } Instrumente
+    } geändert – Änderungen ansehen
+edited-review-saved =
+    { $count ->
+        [one] { $count } Instrument
+       *[other] { $count } Instrumente
+    } geändert (Preset { $name }) – Änderungen ansehen
+edited-review-unsaved =
+    { $count ->
+        [one] { $count } Instrument
+       *[other] { $count } Instrumente
+    } geändert, nicht in { $name } gespeichert – Änderungen ansehen
+edited-differ =
+    { $count ->
+        [one] { $count } Instrument weicht
+       *[other] { $count } Instrumente weichen
+    } von der Standardzuordnung ab
 edited-click = Klicken zum Ansehen oder Zurücksetzen.
 edited-count = { $count } geändert
 edited-count-unsaved = { $count } geändert · nicht gespeichert
@@ -111,14 +121,15 @@ octave-tip = Legt fest, in welcher Oktave die MIDI-Note 0 liegt, damit die Noten
 canon-picker-label = Instrument für { $note }
 canon-picker-heading = QUELLE · { $note }
 close = Schließen
-dropzone-heading = .MID ABLEGEN
+dropzone-heading = { "." }MID ABLEGEN
 dropzone-presets = oder ein exportiertes Preset (.json)
 convert-running = wird konvertiert
 convert-button = Konvertieren
-convert-button-ready = { $count ->
-    [one] 1 Datei
-   *[other] { $count } Dateien
-} für { $target } konvertieren
+convert-button-ready =
+    { $count ->
+        [one] 1 Datei
+       *[other] { $count } Dateien
+    } für { $target } konvertieren
 settings-heading = Einstellungen
 engine-from = VON
 engine-to = NACH
@@ -145,10 +156,11 @@ saved-heading = PRESETS
 edit-back = ← Zurück
 edit-heading = Noten bearbeiten
 edit-advanced = Erweitert – Quellnoten neu zuweisen
-summary-remapped = { $total ->
-    [one] { $remapped } von { $total } Instrument umbelegt
-   *[other] { $remapped } von { $total } Instrumenten umbelegt
-}
+summary-remapped =
+    { $total ->
+        [one] { $remapped } von { $total } Instrument umbelegt
+       *[other] { $remapped } von { $total } Instrumenten umbelegt
+    }
 summary-edit-tip-title = Instrumente einzeln anpassen
 summary-edit-tip = Sie können jedem Instrument eine andere Zielnote geben – in der Instrumentenliste oder auf der Klaviatur. Die Änderungen gelten für die Konvertierung und lassen sich als Preset speichern.
 summary-edit = Einzelne Noten bearbeiten →
@@ -157,18 +169,20 @@ summary-rack = Ableton-Rack
 summary-rack-tip-title = Live in Ableton spielen
 summary-rack-tip = Ein MIDI Effect Rack für Live 11 und 12. Setzen Sie es vor { $target }, dann klingt { $source }-MIDI richtig, ohne Datei zu konvertieren. Es nutzt Ihre Notenänderungen und die Einstellung „Fehlende Instrumente“.
 rack-saved = Rack gespeichert: { $file }. Ziehen Sie es auf die MIDI-Spur, vor { $target }. In einem Clip zeigt jede Zeile das Instrument und die Note, die es jetzt spielt.
-rack-saved-dropped = Rack gespeichert: { $file }. Ziehen Sie es auf die MIDI-Spur, vor { $target }. { $count ->
-    [one] Ein Instrument, das { $target } fehlt, hat im Clip keinen Zeilennamen, nur eine Note wie D1, und bleibt stumm.
-   *[other] { $count } Instrumente, die { $target } fehlen, haben im Clip keinen Zeilennamen, nur eine Note wie D1, und bleiben stumm.
-}
+rack-saved-dropped =
+    Rack gespeichert: { $file }. Ziehen Sie es auf die MIDI-Spur, vor { $target }. { $count ->
+        [one] Ein Instrument, das { $target } fehlt, hat im Clip keinen Zeilennamen, nur eine Note wie D1, und bleibt stumm.
+       *[other] { $count } Instrumente, die { $target } fehlen, haben im Clip keinen Zeilennamen, nur eine Note wie D1, und bleiben stumm.
+    }
 rack-failed = Das Rack konnte nicht erstellt werden: { $error }
 missing-detail-moved = Durch ein anderes Instrument ersetzt
 missing-detail-dropped = Aus der Datei entfernt
 detail-edit = Im Noten-Editor ändern →
-summary-detail-heading = { $total ->
-    [one] { $total } Instrument in dieser Drum-Map
-   *[other] { $total } Instrumente in dieser Drum-Map
-}
+summary-detail-heading =
+    { $total ->
+        [one] { $total } Instrument in dieser Drum-Map
+       *[other] { $total } Instrumente in dieser Drum-Map
+    }
 summary-detail-moved = auf neuer Note
 summary-detail-same = schon auf der richtigen Note
 summary-detail-variant = auf ähnlicher Variante
@@ -180,14 +194,16 @@ summary-reason-variant = kein exaktes Gegenstück in { $target } – eine Varian
 summary-reason-swapped = kein Gegenstück in { $target } – das ähnlichste Instrument spielt stattdessen
 summary-reason-dropped = kein Gegenstück in { $target }
 summary-reason-unplayed = keine Note in { $source }
-row-extras-dropped = { $count ->
-    [one] Auch { $count } weitere Quellnote spielt { $drum }: { $notes }. Sie hat kein Ziel.
-   *[other] Auch { $count } weitere Quellnoten spielen { $drum }: { $notes }. Keine davon hat ein Ziel.
-}
-row-extras = { $count ->
-    [one] Auch { $count } weitere Quellnote spielt { $drum }: { $notes }. Beide landen auf { $target }.
-   *[other] Auch { $count } weitere Quellnoten spielen { $drum }: { $notes }. Alle landen auf { $target }.
-}
+row-extras-dropped =
+    { $count ->
+        [one] Auch { $count } weitere Quellnote spielt { $drum }: { $notes }. Sie hat kein Ziel.
+       *[other] Auch { $count } weitere Quellnoten spielen { $drum }: { $notes }. Keine davon hat ein Ziel.
+    }
+row-extras =
+    { $count ->
+        [one] Auch { $count } weitere Quellnote spielt { $drum }: { $notes }. Beide landen auf { $target }.
+       *[other] Auch { $count } weitere Quellnoten spielen { $drum }: { $notes }. Alle landen auf { $target }.
+    }
 row-reset = { $drum } zurücksetzen
 edit-filter-label = Instrumente filtern
 edit-filter-placeholder = Instrumente filtern…
@@ -197,11 +213,12 @@ edit-show-all = Alle { $count }
 edit-show-changed = Geändert { $count }
 edit-show-issues = Probleme { $count }
 edit-actions = Aktionen
-edit-changes = { $count ->
-    [0] Keine Änderungen
-    [one] { $count } Änderung
-   *[other] { $count } Änderungen
-}
+edit-changes =
+    { $count ->
+        [0] Keine Änderungen
+        [one] { $count } Änderung
+       *[other] { $count } Änderungen
+    }
 edit-reset-all = Alle zurücksetzen
 edit-done = Fertig
 row-no-source = keine Quelle
@@ -259,18 +276,20 @@ chip-delete = Löschen
 chip-rename-label = { $name } umbenennen
 chip-rename-save = Namen speichern
 chip-rename-cancel = Umbenennen abbrechen
-chip-overrides = { $count ->
-    [one] { $count } Änderung
-   *[other] { $count } Änderungen
-}
+chip-overrides =
+    { $count ->
+        [one] { $count } Änderung
+       *[other] { $count } Änderungen
+    }
 chip-unavailable = Plugin nicht verfügbar
 chip-edit = Noten für { $name } bearbeiten
 chip-more = Weitere Aktionen für { $name }
 chip-at-cap = kein Platz für weitere Presets
-done-tag-converted = { $count ->
-    [one] { $count } Note konvertiert
-   *[other] { $count } Noten konvertiert
-}
+done-tag-converted =
+    { $count ->
+        [one] { $count } Note konvertiert
+       *[other] { $count } Noten konvertiert
+    }
 done-tag-nothing = nichts konvertiert
 done-tag-approximated = { $count } ersetzt
 done-tag-dropped = { $count } entfernt
@@ -281,14 +300,16 @@ done-file-approximated = { $count } ersetzt
 done-file-dropped = { $count } entfernt
 done-file-unrecognized = { $count } unbek.
 done-file-clean = verlustfrei
-done-heading = { $count ->
-    [one] { $count } Datei
-   *[other] { $count } Dateien
-} konvertiert → { $target }
-done-edited = { $count ->
-    [one] { $count } Instrument geändert
-   *[other] { $count } Instrumente geändert
-}
+done-heading =
+    { $count ->
+        [one] { $count } Datei
+       *[other] { $count } Dateien
+    } konvertiert → { $target }
+done-edited =
+    { $count ->
+        [one] { $count } Instrument geändert
+       *[other] { $count } Instrumente geändert
+    }
 done-download-one = ↓ .mid herunterladen
 done-download-zip = ↓ { $count } Dateien herunterladen (.zip)
 done-files = Konvertierte Dateien
@@ -301,25 +322,29 @@ done-view-report = Bericht anzeigen →
 done-convert-more = Weitere konvertieren
 done-convert-more-hint = Nächste Datei? Plugins und Einstellungen bleiben, wie sie sind.
 done-report-mapping = Falsche Zuordnung? Melden
-done-removed = { $count ->
-    [one] { $count } Note Ihrer Datei ist nicht in der Notenbelegung von { $source } und wurde deshalb entfernt. Falsche Quelle?
-   *[other] { $count } Noten Ihrer Datei sind nicht in der Notenbelegung von { $source } und wurden deshalb entfernt. Falsche Quelle?
-}
-done-kept = { $count ->
-    [one] { $count } Note Ihrer Datei ist nicht in der Notenbelegung von { $source } und wurde deshalb unverändert übernommen. Falsche Quelle?
-   *[other] { $count } Noten Ihrer Datei sind nicht in der Notenbelegung von { $source } und wurden deshalb unverändert übernommen. Falsche Quelle?
-}
+done-removed =
+    { $count ->
+        [one] { $count } Note Ihrer Datei ist nicht in der Notenbelegung von { $source } und wurde deshalb entfernt. Falsche Quelle?
+       *[other] { $count } Noten Ihrer Datei sind nicht in der Notenbelegung von { $source } und wurden deshalb entfernt. Falsche Quelle?
+    }
+done-kept =
+    { $count ->
+        [one] { $count } Note Ihrer Datei ist nicht in der Notenbelegung von { $source } und wurde deshalb unverändert übernommen. Falsche Quelle?
+       *[other] { $count } Noten Ihrer Datei sind nicht in der Notenbelegung von { $source } und wurden deshalb unverändert übernommen. Falsche Quelle?
+    }
 done-pick-source = Andere Quelle wählen
 done-assign-notes = Noten zuweisen
-source-fit-missing = { $missing ->
-    [one] { $missing } von { $hits } Noten Ihrer Datei ist nicht in der Notenbelegung von { $source }.
-   *[other] { $missing } von { $hits } Noten Ihrer Datei sind nicht in der Notenbelegung von { $source }.
-} Passen besser: { $engines }
+source-fit-missing =
+    { $missing ->
+        [one] { $missing } von { $hits } Noten Ihrer Datei ist nicht in der Notenbelegung von { $source }.
+       *[other] { $missing } von { $hits } Noten Ihrer Datei sind nicht in der Notenbelegung von { $source }.
+    } Passen besser: { $engines }
 source-fit-all = { $engine } (alle Noten)
-source-fit-some = { $engine } ({ $count ->
-    [one] { $count } Note
-   *[other] { $count } Noten
-})
+source-fit-some =
+    { $engine } ({ $count ->
+        [one] { $count } Note
+       *[other] { $count } Noten
+    })
 drop-missing = Fehlende entfernen & neu konvertieren
 report-dropped = Entfernt
 report-approximated = Ersetzt

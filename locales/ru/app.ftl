@@ -17,10 +17,11 @@ nav-main = Главное меню
 nav-site = Сайт
 lang-menu-label = Язык
 lang-load-failed = Не удалось загрузить язык: { $language }. Проверьте соединение и попробуйте ещё раз.
-error-unknown-engine = Неизвестный { $role ->
-    [source] исходный
-   *[target] целевой
-} плагин «{ $id }»
+error-unknown-engine =
+    Неизвестный { $role ->
+        [source] исходный
+       *[target] целевой
+    } плагин «{ $id }»
 error-bad-midi = Конвертер не может прочитать этот файл — похоже, это не MIDI
 error-bad-preset = Это не файл пресета
 error-bad-overrides = Не удалось прочитать изменения нот
@@ -41,40 +42,45 @@ missing-nearest = Заменить
 missing-drop = Убрать
 missing-hint-nearest = заменяются самым похожим инструментом
 missing-hint-drop = убираются из файла
-missing-hint-moved = { $count ->
-    [0] ничего не заменяется
-    [one] заменяется { $count } инструмент
-    [few] заменяются { $count } инструмента
-    [many] заменяются { $count } инструментов
-   *[other] заменяется { $count } инструмента
-}
-missing-hint-dropped = { $count ->
-    [0] ничего не убирается
-    [one] убирается { $count } инструмент
-    [few] убираются { $count } инструмента
-    [many] убираются { $count } инструментов
-   *[other] убирается { $count } инструмента
-}
-files-unreadable = Не удалось прочитать { $names }. Выберите { $count ->
-    [1] файл
-   *[other] файлы
-} ещё раз.
-preset-skipped = { $count ->
-    [one] В «{ $name }» пропущено { $count } изменение: такого инструмента в этой версии больше нет.
-    [few] В «{ $name }» пропущено { $count } изменения: таких инструментов в этой версии больше нет.
-    [many] В «{ $name }» пропущено { $count } изменений: таких инструментов в этой версии больше нет.
-   *[other] В «{ $name }» пропущено { $count } изменения: таких инструментов в этой версии больше нет.
-}
+missing-hint-moved =
+    { $count ->
+        [0] ничего не заменяется
+        [one] заменяется { $count } инструмент
+        [few] заменяются { $count } инструмента
+        [many] заменяются { $count } инструментов
+       *[other] заменяется { $count } инструмента
+    }
+missing-hint-dropped =
+    { $count ->
+        [0] ничего не убирается
+        [one] убирается { $count } инструмент
+        [few] убираются { $count } инструмента
+        [many] убираются { $count } инструментов
+       *[other] убирается { $count } инструмента
+    }
+files-unreadable =
+    Не удалось прочитать { $names }. Выберите { $count ->
+        [1] файл
+       *[other] файлы
+    } ещё раз.
+preset-skipped =
+    { $count ->
+        [one] В «{ $name }» пропущено { $count } изменение: такого инструмента в этой версии больше нет.
+        [few] В «{ $name }» пропущено { $count } изменения: таких инструментов в этой версии больше нет.
+        [many] В «{ $name }» пропущено { $count } изменений: таких инструментов в этой версии больше нет.
+       *[other] В «{ $name }» пропущено { $count } изменения: таких инструментов в этой версии больше нет.
+    }
 import-failed = Не удалось импортировать { $file }: { $error }
 import-at-cap = Не удалось импортировать { $file }: пресетов уже максимум ({ $cap })
 presets-unsaved = Не удалось сохранить пресеты: хранилище браузера переполнено или заблокировано. После перезагрузки они пропадут.
 import-done = Пресет «{ $name }» импортирован.
-import-done-skipped = Пресет «{ $name }» импортирован, но пропущено { $count ->
-    [one] { $count } изменение
-    [few] { $count } изменения
-    [many] { $count } изменений
-   *[other] { $count } изменения
-}.
+import-done-skipped =
+    Пресет «{ $name }» импортирован, но пропущено { $count ->
+        [one] { $count } изменение
+        [few] { $count } изменения
+        [many] { $count } изменений
+       *[other] { $count } изменения
+    }.
 edit-line = { $drum }: { $now } (по умолчанию { $byDefault })
 edit-more = + ещё { $count }
 app-intro = Конвертируйте MIDI для GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro и ещё более чем 80 плагинов. Всё работает прямо в браузере — файлы никуда не загружаются.
@@ -94,30 +100,34 @@ unrecognized-remove = Убрать
 unrecognized-keep = Оставить как есть
 unrecognized-hint-remove = убираются из файла
 unrecognized-hint-keep = остаются без изменений
-edited-review = { $count ->
-    [one] { $count } инструмент изменён
-    [few] { $count } инструмента изменены
-    [many] { $count } инструментов изменено
-   *[other] { $count } инструмента изменено
-} — посмотреть изменения
-edited-review-saved = { $count ->
-    [one] { $count } инструмент изменён
-    [few] { $count } инструмента изменены
-    [many] { $count } инструментов изменено
-   *[other] { $count } инструмента изменено
-} — посмотреть изменения (пресет «{ $name }»)
-edited-review-unsaved = { $count ->
-    [one] { $count } инструмент изменён
-    [few] { $count } инструмента изменены
-    [many] { $count } инструментов изменено
-   *[other] { $count } инструмента изменено
-} — посмотреть изменения, в пресет «{ $name }» не сохранены
-edited-differ = { $count ->
-    [one] { $count } инструмент отличается
-    [few] { $count } инструмента отличаются
-    [many] { $count } инструментов отличаются
-   *[other] { $count } инструмента отличаются
-} от стандартного маппинга
+edited-review =
+    { $count ->
+        [one] { $count } инструмент изменён
+        [few] { $count } инструмента изменены
+        [many] { $count } инструментов изменено
+       *[other] { $count } инструмента изменено
+    } — посмотреть изменения
+edited-review-saved =
+    { $count ->
+        [one] { $count } инструмент изменён
+        [few] { $count } инструмента изменены
+        [many] { $count } инструментов изменено
+       *[other] { $count } инструмента изменено
+    } — посмотреть изменения (пресет «{ $name }»)
+edited-review-unsaved =
+    { $count ->
+        [one] { $count } инструмент изменён
+        [few] { $count } инструмента изменены
+        [many] { $count } инструментов изменено
+       *[other] { $count } инструмента изменено
+    } — посмотреть изменения, в пресет «{ $name }» не сохранены
+edited-differ =
+    { $count ->
+        [one] { $count } инструмент отличается
+        [few] { $count } инструмента отличаются
+        [many] { $count } инструментов отличаются
+       *[other] { $count } инструмента отличаются
+    } от стандартного маппинга
 edited-click = Нажмите, чтобы посмотреть или сбросить.
 edited-count = изменено: { $count }
 edited-count-unsaved = изменено: { $count } · не сохранено
@@ -131,12 +141,13 @@ dropzone-heading = ПЕРЕТАЩИТЕ .MID
 dropzone-presets = или экспортированный пресет (.json)
 convert-running = конвертирую
 convert-button = Конвертировать
-convert-button-ready = { $count ->
-    [one] Конвертировать { $count } файл
-    [few] Конвертировать { $count } файла
-    [many] Конвертировать { $count } файлов
-   *[other] Конвертировать { $count } файла
-} для { $target }
+convert-button-ready =
+    { $count ->
+        [one] Конвертировать { $count } файл
+        [few] Конвертировать { $count } файла
+        [many] Конвертировать { $count } файлов
+       *[other] Конвертировать { $count } файла
+    } для { $target }
 settings-heading = Настройки
 engine-from = ИЗ
 engine-to = В
@@ -163,12 +174,13 @@ saved-heading = ПРЕСЕТЫ
 edit-back = ← Назад
 edit-heading = Редактор нот
 edit-advanced = Дополнительно — маппинг исходных нот
-summary-remapped = { $total ->
-    [one] Сконвертировано { $remapped } из { $total } инструмента
-    [few] Сконвертировано { $remapped } из { $total } инструментов
-    [many] Сконвертировано { $remapped } из { $total } инструментов
-   *[other] Сконвертировано { $remapped } из { $total } инструмента
-}
+summary-remapped =
+    { $total ->
+        [one] Сконвертировано { $remapped } из { $total } инструмента
+        [few] Сконвертировано { $remapped } из { $total } инструментов
+        [many] Сконвертировано { $remapped } из { $total } инструментов
+       *[other] Сконвертировано { $remapped } из { $total } инструмента
+    }
 summary-edit-tip-title = Настройте любой инструмент
 summary-edit-tip = Любому инструменту можно назначить другую ноту — выберите её в списке или на клавишах пианино. Изменения применятся при конвертации, и их можно сохранить как пресет.
 summary-edit = Изменить отдельные ноты →
@@ -177,22 +189,24 @@ summary-rack = Рэк Ableton
 summary-rack-tip-title = Играйте вживую в Ableton
 summary-rack-tip = MIDI Effect Rack для Live 11 и 12. Поставьте его перед { $target }, и MIDI для { $source } зазвучит правильно, без конвертации файла. Учитывает ваши изменения нот и настройку «Недостающие инструменты».
 rack-saved = Рэк сохранён: { $file }. Перетащите его на MIDI-дорожку, перед { $target }. В клипе каждая строка показывает инструмент и ноту, на которой он теперь звучит.
-rack-saved-dropped = Рэк сохранён: { $file }. Перетащите его на MIDI-дорожку, перед { $target }. { $count ->
-    [one] У { $count } инструмента, которого нет в { $target }, в клипе нет названия строки, только нота вроде D1, и он молчит.
-    [few] У { $count } инструментов, которых нет в { $target }, в клипе нет названий строк, только ноты вроде D1, и они молчат.
-    [many] У { $count } инструментов, которых нет в { $target }, в клипе нет названий строк, только ноты вроде D1, и они молчат.
-   *[other] У { $count } инструмента, которых нет в { $target }, в клипе нет названий строк, только ноты вроде D1, и они молчат.
-}
+rack-saved-dropped =
+    Рэк сохранён: { $file }. Перетащите его на MIDI-дорожку, перед { $target }. { $count ->
+        [one] У { $count } инструмента, которого нет в { $target }, в клипе нет названия строки, только нота вроде D1, и он молчит.
+        [few] У { $count } инструментов, которых нет в { $target }, в клипе нет названий строк, только ноты вроде D1, и они молчат.
+        [many] У { $count } инструментов, которых нет в { $target }, в клипе нет названий строк, только ноты вроде D1, и они молчат.
+       *[other] У { $count } инструмента, которых нет в { $target }, в клипе нет названий строк, только ноты вроде D1, и они молчат.
+    }
 rack-failed = Не удалось создать рэк: { $error }
 missing-detail-moved = Заменены другим инструментом
 missing-detail-dropped = Убраны из файла
 detail-edit = Изменить в редакторе нот →
-summary-detail-heading = { $total ->
-    [one] { $total } инструмент в этом маппинге
-    [few] { $total } инструмента в этом маппинге
-    [many] { $total } инструментов в этом маппинге
-   *[other] { $total } инструмента в этом маппинге
-}
+summary-detail-heading =
+    { $total ->
+        [one] { $total } инструмент в этом маппинге
+        [few] { $total } инструмента в этом маппинге
+        [many] { $total } инструментов в этом маппинге
+       *[other] { $total } инструмента в этом маппинге
+    }
 summary-detail-moved = на новой ноте
 summary-detail-same = уже на своей ноте
 summary-detail-variant = на похожем варианте
@@ -204,19 +218,21 @@ summary-reason-variant = в { $target } нет точного аналога —
 summary-reason-swapped = в { $target } нет аналога — звучит самый похожий инструмент
 summary-reason-dropped = в { $target } нет аналога
 summary-reason-unplayed = нет ноты в { $source }
-row-extras-dropped = { $count ->
-    [one] Ещё { $count } исходная нота тоже запускает { $drum }: { $notes }. Целевой ноты для неё нет.
-    [few] Ещё { $count } исходные ноты тоже запускают { $drum }: { $notes }. Целевой ноты для них нет.
-    [many] Ещё { $count } исходных нот тоже запускают { $drum }: { $notes }. Целевой ноты для них нет.
-   *[other] Ещё { $count } исходной ноты тоже запускают { $drum }: { $notes }. Целевой ноты для них нет.
-}
-row-extras = { $count ->
-    [1] Ещё { $count } исходная нота тоже запускает { $drum }: { $notes }. Обе уходят на { $target }.
-    [one] Ещё { $count } исходная нота тоже запускает { $drum }: { $notes }. Все уходят на { $target }.
-    [few] Ещё { $count } исходные ноты тоже запускают { $drum }: { $notes }. Все уходят на { $target }.
-    [many] Ещё { $count } исходных нот тоже запускают { $drum }: { $notes }. Все уходят на { $target }.
-   *[other] Ещё { $count } исходной ноты тоже запускают { $drum }: { $notes }. Все уходят на { $target }.
-}
+row-extras-dropped =
+    { $count ->
+        [one] Ещё { $count } исходная нота тоже запускает { $drum }: { $notes }. Целевой ноты для неё нет.
+        [few] Ещё { $count } исходные ноты тоже запускают { $drum }: { $notes }. Целевой ноты для них нет.
+        [many] Ещё { $count } исходных нот тоже запускают { $drum }: { $notes }. Целевой ноты для них нет.
+       *[other] Ещё { $count } исходной ноты тоже запускают { $drum }: { $notes }. Целевой ноты для них нет.
+    }
+row-extras =
+    { $count ->
+        [1] Ещё { $count } исходная нота тоже запускает { $drum }: { $notes }. Обе уходят на { $target }.
+        [one] Ещё { $count } исходная нота тоже запускает { $drum }: { $notes }. Все уходят на { $target }.
+        [few] Ещё { $count } исходные ноты тоже запускают { $drum }: { $notes }. Все уходят на { $target }.
+        [many] Ещё { $count } исходных нот тоже запускают { $drum }: { $notes }. Все уходят на { $target }.
+       *[other] Ещё { $count } исходной ноты тоже запускают { $drum }: { $notes }. Все уходят на { $target }.
+    }
 row-reset = Сбросить { $drum }
 edit-filter-label = Фильтр инструментов
 edit-filter-placeholder = фильтр…
@@ -226,13 +242,14 @@ edit-show-all = Все { $count }
 edit-show-changed = Изменённые { $count }
 edit-show-issues = Проблемы { $count }
 edit-actions = Действия редактора
-edit-changes = { $count ->
-    [0] Нет изменений
-    [one] { $count } изменение
-    [few] { $count } изменения
-    [many] { $count } изменений
-   *[other] { $count } изменения
-}
+edit-changes =
+    { $count ->
+        [0] Нет изменений
+        [one] { $count } изменение
+        [few] { $count } изменения
+        [many] { $count } изменений
+       *[other] { $count } изменения
+    }
 edit-reset-all = Сбросить всё
 edit-done = Готово
 row-no-source = нет исходной ноты
@@ -295,12 +312,13 @@ chip-unavailable = плагин недоступен
 chip-edit = Изменить ноты: { $name }
 chip-more = Другие действия: { $name }
 chip-at-cap = пресетов уже максимум
-done-tag-converted = { $count ->
-    [one] { $count } нота конвертирована
-    [few] { $count } ноты конвертированы
-    [many] { $count } нот конвертировано
-   *[other] { $count } ноты конвертировано
-}
+done-tag-converted =
+    { $count ->
+        [one] { $count } нота конвертирована
+        [few] { $count } ноты конвертированы
+        [many] { $count } нот конвертировано
+       *[other] { $count } ноты конвертировано
+    }
 done-tag-nothing = ничего не конвертировано
 done-tag-approximated = заменено: { $count }
 done-tag-dropped = убрано: { $count }
@@ -311,25 +329,28 @@ done-file-approximated = заменено: { $count }
 done-file-dropped = убрано: { $count }
 done-file-unrecognized = не распозн.: { $count }
 done-file-clean = без потерь
-done-heading = { $count ->
-    [one] { $count } файл конвертирован
-    [few] { $count } файла конвертированы
-    [many] { $count } файлов конвертировано
-   *[other] { $count } файла конвертировано
-} → { $target }
-done-edited = { $count ->
-    [one] { $count } инструмент изменён
-    [few] { $count } инструмента изменены
-    [many] { $count } инструментов изменено
-   *[other] { $count } инструмента изменено
-}
+done-heading =
+    { $count ->
+        [one] { $count } файл конвертирован
+        [few] { $count } файла конвертированы
+        [many] { $count } файлов конвертировано
+       *[other] { $count } файла конвертировано
+    } → { $target }
+done-edited =
+    { $count ->
+        [one] { $count } инструмент изменён
+        [few] { $count } инструмента изменены
+        [many] { $count } инструментов изменено
+       *[other] { $count } инструмента изменено
+    }
 done-download-one = ↓ Скачать .mid
-done-download-zip = ↓ Скачать { $count ->
-    [one] { $count } файл
-    [few] { $count } файла
-    [many] { $count } файлов
-   *[other] { $count } файла
-} (.zip)
+done-download-zip =
+    ↓ Скачать { $count ->
+        [one] { $count } файл
+        [few] { $count } файла
+        [many] { $count } файлов
+       *[other] { $count } файла
+    } (.zip)
 done-files = Конвертированные файлы
 done-file-download = ↓ .mid
 tip-link = Угостить кофе
@@ -340,28 +361,31 @@ done-view-report = Посмотреть отчёт →
 done-convert-more = Конвертировать ещё
 done-convert-more-hint = Следующий файл? Плагины и настройки останутся прежними.
 done-report-mapping = Неправильная нота? Сообщить
-done-removed = { $count ->
-    [one] { $count } нота из вашего файла отсутствует в маппинге { $source }, поэтому она удалена. Не тот источник?
-    [few] { $count } ноты из вашего файла отсутствуют в маппинге { $source }, поэтому они удалены. Не тот источник?
-    [many] { $count } нот из вашего файла отсутствуют в маппинге { $source }, поэтому они удалены. Не тот источник?
-   *[other] { $count } ноты из вашего файла отсутствуют в маппинге { $source }, поэтому они удалены. Не тот источник?
-}
-done-kept = { $count ->
-    [one] { $count } нота из вашего файла отсутствует в маппинге { $source }, поэтому она оставлена без изменений. Не тот источник?
-    [few] { $count } ноты из вашего файла отсутствуют в маппинге { $source }, поэтому они оставлены без изменений. Не тот источник?
-    [many] { $count } нот из вашего файла отсутствуют в маппинге { $source }, поэтому они оставлены без изменений. Не тот источник?
-   *[other] { $count } ноты из вашего файла отсутствуют в маппинге { $source }, поэтому они оставлены без изменений. Не тот источник?
-}
+done-removed =
+    { $count ->
+        [one] { $count } нота из вашего файла отсутствует в маппинге { $source }, поэтому она удалена. Не тот источник?
+        [few] { $count } ноты из вашего файла отсутствуют в маппинге { $source }, поэтому они удалены. Не тот источник?
+        [many] { $count } нот из вашего файла отсутствуют в маппинге { $source }, поэтому они удалены. Не тот источник?
+       *[other] { $count } ноты из вашего файла отсутствуют в маппинге { $source }, поэтому они удалены. Не тот источник?
+    }
+done-kept =
+    { $count ->
+        [one] { $count } нота из вашего файла отсутствует в маппинге { $source }, поэтому она оставлена без изменений. Не тот источник?
+        [few] { $count } ноты из вашего файла отсутствуют в маппинге { $source }, поэтому они оставлены без изменений. Не тот источник?
+        [many] { $count } нот из вашего файла отсутствуют в маппинге { $source }, поэтому они оставлены без изменений. Не тот источник?
+       *[other] { $count } ноты из вашего файла отсутствуют в маппинге { $source }, поэтому они оставлены без изменений. Не тот источник?
+    }
 done-pick-source = Выбрать другой источник
 done-assign-notes = Назначить ноты
 source-fit-missing = Нет в маппинге { $source }: { $missing } из { $hits } нот вашего файла. Подходят лучше: { $engines }
 source-fit-all = { $engine } (все ноты)
-source-fit-some = { $engine } ({ $count ->
-    [one] { $count } нота
-    [few] { $count } ноты
-    [many] { $count } нот
-   *[other] { $count } ноты
-})
+source-fit-some =
+    { $engine } ({ $count ->
+        [one] { $count } нота
+        [few] { $count } ноты
+        [many] { $count } нот
+       *[other] { $count } ноты
+    })
 drop-missing = Убрать недостающие инструменты и конвертировать заново
 report-dropped = Убрано
 report-approximated = Заменено
@@ -372,12 +396,13 @@ report-unrecognized-hint = нет в маппинге { $source } — убран
 report-unrecognized-hint-kept = нет в маппинге { $source } — оставлены без изменений
 report-pick-target = Выбрать ноту →
 report-assign = Назначить →
-report-across = { $summary } в { $count ->
-    [one] { $count } файле
-    [few] { $count } файлах
-    [many] { $count } файлах
-   *[other] { $count } файлах
-}
+report-across =
+    { $summary } в { $count ->
+        [one] { $count } файле
+        [few] { $count } файлах
+        [many] { $count } файлах
+       *[other] { $count } файлах
+    }
 report-contact = Неправильная нота или в списке нет нужного плагина? Создайте { $issue } или напишите на { $email }.
 report-contact-issue = issue на GitHub
 report-unchanged = Без изменений

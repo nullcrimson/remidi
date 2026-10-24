@@ -17,10 +17,11 @@ nav-main = メイン
 nav-site = サイト
 lang-menu-label = 言語
 lang-load-failed = { $language }を読み込めませんでした。インターネット接続を確認して、もう一度お試しください。
-error-unknown-engine = 不明な{ $role ->
-    [source] 変換元
-   *[target] 変換先
-}のドラム音源「{ $id }」
+error-unknown-engine =
+    不明な{ $role ->
+        [source] 変換元
+       *[target] 変換先
+    }のドラム音源「{ $id }」
 error-bad-midi = このファイルは読み込めません。MIDIファイルではないようです
 error-bad-preset = プリセットファイルではありません
 error-bad-overrides = ノートの編集内容を読み込めませんでした
@@ -28,7 +29,7 @@ error-bad-missing = 「足りないパーツ」の設定が不明です
 error-internal = 問題が発生しました
 error-wasm-unavailable = コンバーターを読み込めませんでした
 error-detail = 詳細：{ $detail }
-blocker-files-and-engines = .midファイルを追加して、ドラム音源を2つとも選んでください
+blocker-files-and-engines = { "." }midファイルを追加して、ドラム音源を2つとも選んでください
 blocker-files = まず.midファイルを追加してください
 blocker-engines = 変換元と変換先のドラム音源を選んでください
 channel-auto = 自動
@@ -41,27 +42,32 @@ missing-nearest = 置き換え
 missing-drop = 削除
 missing-hint-nearest = いちばん近いパーツに置き換える
 missing-hint-drop = ファイルから削除する
-missing-hint-moved = { $count ->
-    [0] 置き換えるパーツはなし
-   *[other] { $count }個のパーツを置き換え
-}
-missing-hint-dropped = { $count ->
-    [0] 削除するパーツはなし
-   *[other] { $count }個のパーツを削除
-}
-files-unreadable = { $names }を読み込めませんでした。{ $count ->
-   *[other] もう一度選んでください。
-}
-preset-skipped = { $count ->
-   *[other] 「{ $name }」の編集のうち{ $count }件は、このバージョンにないパーツのものなのでスキップしました。
-}
+missing-hint-moved =
+    { $count ->
+        [0] 置き換えるパーツはなし
+       *[other] { $count }個のパーツを置き換え
+    }
+missing-hint-dropped =
+    { $count ->
+        [0] 削除するパーツはなし
+       *[other] { $count }個のパーツを削除
+    }
+files-unreadable =
+    { $names }を読み込めませんでした。{ $count ->
+       *[other] もう一度選んでください。
+    }
+preset-skipped =
+    { $count ->
+       *[other] 「{ $name }」の編集のうち{ $count }件は、このバージョンにないパーツのものなのでスキップしました。
+    }
 import-failed = { $file }をインポートできませんでした：{ $error }
 import-at-cap = { $file }をインポートできませんでした：プリセットは{ $cap }個までです
 presets-unsaved = プリセットを保存できませんでした：ブラウザーの保存領域がいっぱいか、ブロックされています。再読み込みすると消えます。
 import-done = 「{ $name }」をインポートしました。
-import-done-skipped = 「{ $name }」をインポートしました（{ $count ->
-   *[other] { $count }件の編集
-}はスキップ）。
+import-done-skipped =
+    「{ $name }」をインポートしました（{ $count ->
+       *[other] { $count }件の編集
+    }はスキップ）。
 edit-line = { $drum }：{ $now }（デフォルト：{ $byDefault }）
 edit-more = ほか{ $count }件
 app-intro = GetGood Drums、EZdrummer、Superior Drummer 3、Addictive Drums 2、General MIDI、Guitar Proなど、80種類以上のドラム音源のノート配置に合わせてドラムMIDIを変換します。ブラウザだけで動き、ファイルはアップロードされません。
@@ -81,18 +87,22 @@ unrecognized-remove = 削除
 unrecognized-keep = そのまま残す
 unrecognized-hint-remove = ファイルから削除する
 unrecognized-hint-keep = 変えずにそのまま残す
-edited-review = { $count ->
-   *[other] { $count }個のパーツを編集済み
-} — 変更を確認
-edited-review-saved = { $count ->
-   *[other] { $count }個のパーツを編集済み
-} — 変更を確認（プリセット「{ $name }」）
-edited-review-unsaved = { $count ->
-   *[other] { $count }個のパーツを編集済み
-} — 変更を確認（「{ $name }」には未保存）
-edited-differ = { $count ->
-   *[other] { $count }個のパーツ
-}がデフォルトの割り当てと違います
+edited-review =
+    { $count ->
+       *[other] { $count }個のパーツを編集済み
+    } — 変更を確認
+edited-review-saved =
+    { $count ->
+       *[other] { $count }個のパーツを編集済み
+    } — 変更を確認（プリセット「{ $name }」）
+edited-review-unsaved =
+    { $count ->
+       *[other] { $count }個のパーツを編集済み
+    } — 変更を確認（「{ $name }」には未保存）
+edited-differ =
+    { $count ->
+       *[other] { $count }個のパーツ
+    }がデフォルトの割り当てと違います
 edited-click = クリックして確認・リセットできます。
 edited-count = 編集済み { $count }
 edited-count-unsaved = 編集済み { $count } · 未保存
@@ -102,7 +112,7 @@ octave-tip = お使いのDAWと同じノート名になるよう、MIDIノート
 canon-picker-label = { $note }に割り当てるパーツ
 canon-picker-heading = 変換元 · { $note }
 close = 閉じる
-dropzone-heading = .MIDをドロップ
+dropzone-heading = { "." }MIDをドロップ
 dropzone-presets = プリセット（.json）もOK
 convert-running = 変換中
 convert-button = 変換する
@@ -133,9 +143,10 @@ saved-heading = 保存済み
 edit-back = ← 戻る
 edit-heading = ノートを編集
 edit-advanced = 詳細 — 変換元ノートを割り当て直す
-summary-remapped = { $total ->
-   *[other] { $total }個中{ $remapped }個のパーツをリマップ
-}
+summary-remapped =
+    { $total ->
+       *[other] { $total }個中{ $remapped }個のパーツをリマップ
+    }
 summary-edit-tip-title = パーツごとに微調整
 summary-edit-tip = どのパーツも、別の変換先ノートに割り当て直せます。パーツ一覧か鍵盤から選んでください。変更は変換に反映され、プリセットとして保存することもできます。
 summary-edit = ノートを個別に編集 →
@@ -144,16 +155,18 @@ summary-rack = Abletonラック
 summary-rack-tip-title = Abletonでライブ演奏
 summary-rack-tip = Live 11と12用のMIDI Effect Rackです。{ $target }の前に置けば、{ $source }のMIDIが正しく鳴ります。ファイルの変換は不要です。ノートの編集と「足りないパーツ」の設定が反映されます。
 rack-saved = ラックを保存しました：{ $file }。MIDIトラックの{ $target }の前にドラッグしてください。クリップの各行に、パーツと今鳴らすノートが表示されます。
-rack-saved-dropped = ラックを保存しました：{ $file }。MIDIトラックの{ $target }の前にドラッグしてください。{ $count ->
-   *[other] { $target }にないパーツ{ $count }個は、クリップの行に名前がなくD1のようなノート名だけが表示され、鳴りません。
-}
+rack-saved-dropped =
+    ラックを保存しました：{ $file }。MIDIトラックの{ $target }の前にドラッグしてください。{ $count ->
+       *[other] { $target }にないパーツ{ $count }個は、クリップの行に名前がなくD1のようなノート名だけが表示され、鳴りません。
+    }
 rack-failed = ラックを作成できませんでした：{ $error }
 missing-detail-moved = 別のパーツに置き換え
 missing-detail-dropped = ファイルから削除
 detail-edit = ノートエディターで変更 →
-summary-detail-heading = { $total ->
-   *[other] このマップのパーツ：{ $total }個
-}
+summary-detail-heading =
+    { $total ->
+       *[other] このマップのパーツ：{ $total }個
+    }
 summary-detail-moved = 新しいノートへ
 summary-detail-same = すでに正しいノート
 summary-detail-variant = 近いバリエーションで再生
@@ -165,13 +178,15 @@ summary-reason-variant = { $target }に完全に一致するパーツがない�
 summary-reason-swapped = { $target }に該当パーツがないため、いちばん近いパーツで鳴らします
 summary-reason-dropped = { $target }に該当パーツなし
 summary-reason-unplayed = { $source }にノートなし
-row-extras-dropped = { $count ->
-   *[other] ほかに{ $count }個の変換元ノートが{ $drum }を鳴らします：{ $notes }。どれも変換先がありません。
-}
-row-extras = { $count ->
-    [1] ほかに{ $count }個の変換元ノートが{ $drum }を鳴らします：{ $notes }。どちらも{ $target }になります。
-   *[other] ほかに{ $count }個の変換元ノートが{ $drum }を鳴らします：{ $notes }。すべて{ $target }になります。
-}
+row-extras-dropped =
+    { $count ->
+       *[other] ほかに{ $count }個の変換元ノートが{ $drum }を鳴らします：{ $notes }。どれも変換先がありません。
+    }
+row-extras =
+    { $count ->
+        [1] ほかに{ $count }個の変換元ノートが{ $drum }を鳴らします：{ $notes }。どちらも{ $target }になります。
+       *[other] ほかに{ $count }個の変換元ノートが{ $drum }を鳴らします：{ $notes }。すべて{ $target }になります。
+    }
 row-reset = { $drum }をリセット
 edit-filter-label = パーツを絞り込み
 edit-filter-placeholder = パーツを検索…
@@ -181,10 +196,11 @@ edit-show-all = 全{ $count }件
 edit-show-changed = 変更{ $count }件
 edit-show-issues = 問題{ $count }件
 edit-actions = 編集メニュー
-edit-changes = { $count ->
-    [0] 変更なし
-   *[other] { $count }件の変更
-}
+edit-changes =
+    { $count ->
+        [0] 変更なし
+       *[other] { $count }件の変更
+    }
 edit-reset-all = すべてリセット
 edit-done = 完了
 row-no-source = 変換元なし
@@ -221,7 +237,7 @@ library-favourites = お気に入り
 library-all = すべてのドラム音源
 library-none = 該当なし
 files-skipped = { $names }はスキップしました。追加できるのは.midファイルと、エクスポートしたプリセット（.json）だけです
-files-drop = .midファイル（複数可）をページのどこかにドロップ
+files-drop = { "." }midファイル（複数可）をページのどこかにドロップ
 files-choose = ファイルを選択
 files-presets = エクスポートしたプリセット（.json）も、同じようにドロップまたは選択できます。
 files-sample = サンプルのグルーヴで試す
@@ -242,16 +258,18 @@ chip-delete = 削除
 chip-rename-label = { $name }の名前を変更
 chip-rename-save = 名前を保存
 chip-rename-cancel = 名前の変更をキャンセル
-chip-overrides = { $count ->
-   *[other] { $count }件の変更
-}
+chip-overrides =
+    { $count ->
+       *[other] { $count }件の変更
+    }
 chip-unavailable = この音源は使えません
 chip-edit = { $name }のノートを編集
 chip-more = { $name }のその他の操作
 chip-at-cap = プリセットはこれ以上保存できません
-done-tag-converted = { $count ->
-   *[other] { $count }個のノートを変換
-}
+done-tag-converted =
+    { $count ->
+       *[other] { $count }個のノートを変換
+    }
 done-tag-nothing = 変換なし
 done-tag-approximated = 置き換え { $count }
 done-tag-dropped = 削除 { $count }
@@ -262,12 +280,14 @@ done-file-approximated = 置き換え { $count }
 done-file-dropped = 削除 { $count }
 done-file-unrecognized = 不明 { $count }
 done-file-clean = 問題なし
-done-heading = { $count ->
-   *[other] { $count }ファイル
-}を変換 → { $target }
-done-edited = { $count ->
-   *[other] { $count }個のパーツを編集済み
-}
+done-heading =
+    { $count ->
+       *[other] { $count }ファイル
+    }を変換 → { $target }
+done-edited =
+    { $count ->
+       *[other] { $count }個のパーツを編集済み
+    }
 done-download-one = ↓ .midをダウンロード
 done-download-zip = ↓ { $count }ファイルをダウンロード（.zip）
 done-files = 変換したファイル

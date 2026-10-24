@@ -31,10 +31,11 @@ maps-index-intro = Notenbelegungen für { $count } Drum-Plugins und Konvertierun
 maps-more-engines = Weitere Plugins
 maps-matrix-corner = VON ↓ NACH →
 maps-quick-label = Meistgenutzte Plugins
-maps-note-count = { $count ->
-    [one] { $count } Note
-   *[other] { $count } Noten
-}
+maps-note-count =
+    { $count ->
+        [one] { $count } Note
+       *[other] { $count } Noten
+    }
 maps-matrix-heading = Alle Paare unter den Top { $count }
 maps-matrix-share = { $percent } %
 maps-matrix-share-label = { $source } nach { $target }: { $percent } % der Noten passen exakt
@@ -67,25 +68,27 @@ maps-core-heading = Die Noten, die Sie am häufigsten brauchen
 maps-core-hint = Die Hauptnote jedes Instruments, die der Konverter schreibt.
 maps-pair-heading = { $sourceMidi } nach { $target } konvertieren
 maps-pair-title = { $sourceMidi } nach { $target } konvertieren
-maps-pair-description = Drum-MIDI von { $source } nach { $target } konvertieren: { $exact } { $exact ->
-    [one] Note passt
-   *[other] Noten passen
-} exakt, { $approximated } ersetzt, { $dropped } entfernt.
+maps-pair-description =
+    Drum-MIDI von { $source } nach { $target } konvertieren: { $exact } { $exact ->
+        [one] Note passt
+       *[other] Noten passen
+    } exakt, { $approximated } ersetzt, { $dropped } entfernt.
 maps-pair-description-more = Kostenloser Konverter im Browser.
 maps-pair-description-short = Drum-MIDI von { $source } nach { $target } konvertieren.
-maps-pair-summary = Von { $total } { $total ->
-    [one] Note
-   *[other] Noten
-} in { $source } { $exact ->
-    [one] passt { $exact } exakt auf { $target }
-   *[other] passen { $exact } exakt auf { $target }
-}, { $approximated } { $approximated ->
-    [one] wird
-   *[other] werden
-} durch das ähnlichste verfügbare Instrument ersetzt und { $dropped } { $dropped ->
-    [one] hat
-   *[other] haben
-} keine Entsprechung.
+maps-pair-summary =
+    Von { $total } { $total ->
+        [one] Note
+       *[other] Noten
+    } in { $source } { $exact ->
+        [one] passt { $exact } exakt auf { $target }
+       *[other] passen { $exact } exakt auf { $target }
+    }, { $approximated } { $approximated ->
+        [one] wird
+       *[other] werden
+    } durch das ähnlichste verfügbare Instrument ersetzt und { $dropped } { $dropped ->
+        [one] hat
+       *[other] haben
+    } keine Entsprechung.
 maps-pair-convert = { $source } → { $target } konvertieren
 maps-pair-rack-lead = Spielen Sie live in Ableton?
 maps-pair-rack-link = Rack herunterladen (.adg)

@@ -17,10 +17,11 @@ nav-main = 主要
 nav-site = 网站
 lang-menu-label = 语言
 lang-load-failed = 无法加载 { $language }。请检查网络后重试。
-error-unknown-engine = 未知的{ $role ->
-    [source] 来源
-   *[target] 目标
-}鼓音源“{ $id }”
+error-unknown-engine =
+    未知的{ $role ->
+        [source] 来源
+       *[target] 目标
+    }鼓音源“{ $id }”
 error-bad-midi = 无法读取此文件，它似乎不是 MIDI 文件
 error-bad-preset = 不是预设文件
 error-bad-overrides = 无法读取音符修改
@@ -41,28 +42,33 @@ missing-nearest = 替换
 missing-drop = 删除
 missing-hint-nearest = 换成最接近的鼓件
 missing-hint-drop = 从文件中删除
-missing-hint-moved = { $count ->
-    [0] 没有需要替换的鼓件
-   *[other] { $count } 个鼓件会被替换
-}
-missing-hint-dropped = { $count ->
-    [0] 没有需要删除的鼓件
-   *[other] { $count } 个鼓件会被删除
-}
-files-unreadable = 无法读取 { $names }，请重新选择{ $count ->
-    [1] 该文件
-   *[other] 这些文件
-}。
-preset-skipped = { $count ->
-   *[other] “{ $name }”中有 { $count } 处修改用到了当前版本不认识的鼓件，已跳过。
-}
+missing-hint-moved =
+    { $count ->
+        [0] 没有需要替换的鼓件
+       *[other] { $count } 个鼓件会被替换
+    }
+missing-hint-dropped =
+    { $count ->
+        [0] 没有需要删除的鼓件
+       *[other] { $count } 个鼓件会被删除
+    }
+files-unreadable =
+    无法读取 { $names }，请重新选择{ $count ->
+        [1] 该文件
+       *[other] 这些文件
+    }。
+preset-skipped =
+    { $count ->
+       *[other] “{ $name }”中有 { $count } 处修改用到了当前版本不认识的鼓件，已跳过。
+    }
 import-failed = 无法导入 { $file }：{ $error }
 import-at-cap = 无法导入 { $file }：最多只能保存 { $cap } 个预设
 presets-unsaved = 无法保存预设：浏览器存储空间已满或被阻止。刷新页面后将丢失。
 import-done = 已导入“{ $name }”。
-import-done-skipped = 已导入“{ $name }”（跳过了 { $count ->
-   *[other] { $count } 处修改
-}）。
+import-done-skipped =
+    已导入“{ $name }”（跳过了 { $count ->
+       *[other] { $count } 处修改
+    }）。
 edit-line = { $drum }：{ $now }（默认 { $byDefault }）
 edit-more = 另有 { $count } 项
 app-intro = 把鼓 MIDI 转换到 GetGood Drums、EZdrummer、Superior Drummer 3、Addictive Drums 2、General MIDI、Guitar Pro 等 80 多款鼓音源的音符布局。全程在浏览器里完成，文件不会上传。
@@ -82,18 +88,22 @@ unrecognized-remove = 删除
 unrecognized-keep = 保持原样
 unrecognized-hint-remove = 从文件中删除
 unrecognized-hint-keep = 原样保留
-edited-review = 已编辑 { $count ->
-   *[other] { $count } 个鼓件
-}，查看更改
-edited-review-saved = 已编辑 { $count ->
-   *[other] { $count } 个鼓件
-}，查看更改（来自预设 { $name }）
-edited-review-unsaved = 已编辑 { $count ->
-   *[other] { $count } 个鼓件
-}，查看更改（未保存到 { $name }）
-edited-differ = { $count ->
-   *[other] 有 { $count } 个鼓件
-}与默认映射不同
+edited-review =
+    已编辑 { $count ->
+       *[other] { $count } 个鼓件
+    }，查看更改
+edited-review-saved =
+    已编辑 { $count ->
+       *[other] { $count } 个鼓件
+    }，查看更改（来自预设 { $name }）
+edited-review-unsaved =
+    已编辑 { $count ->
+       *[other] { $count } 个鼓件
+    }，查看更改（未保存到 { $name }）
+edited-differ =
+    { $count ->
+       *[other] 有 { $count } 个鼓件
+    }与默认映射不同
 edited-click = 点击查看或重置。
 edited-count = 已编辑 { $count }
 edited-count-unsaved = 已编辑 { $count } · 未保存
@@ -134,9 +144,10 @@ saved-heading = 已保存
 edit-back = ← 返回
 edit-heading = 编辑音符
 edit-advanced = 高级：重新分配来源音符
-summary-remapped = { $total ->
-   *[other] { $total } 个鼓件中已重新映射 { $remapped } 个
-}
+summary-remapped =
+    { $total ->
+       *[other] { $total } 个鼓件中已重新映射 { $remapped } 个
+    }
 summary-edit-tip-title = 逐个微调鼓件
 summary-edit-tip = 每个鼓件都可以改用其他目标音符，在鼓件列表或琴键上选择即可。修改会用于本次转换，也可以保存为预设。
 summary-edit = 编辑单个音符 →
@@ -145,16 +156,18 @@ summary-rack = Ableton 机架
 summary-rack-tip-title = 在 Ableton 里现场演奏
 summary-rack-tip = 适用于 Live 11 和 12 的 MIDI Effect Rack。放在 { $target } 之前，{ $source } 的 MIDI 就能正确发声，无需转换文件。它会用上你的音符修改和“缺少的鼓件”设置。
 rack-saved = 机架已保存：{ $file }。把它拖到 MIDI 轨道上，放在 { $target } 之前。片段的每一行会显示鼓件和它现在演奏的音符。
-rack-saved-dropped = 机架已保存：{ $file }。把它拖到 MIDI 轨道上，放在 { $target } 之前。{ $count ->
-   *[other] { $target } 没有的 { $count } 个鼓件在片段里没有行名，只显示 D1 这样的音符，且不会发声。
-}
+rack-saved-dropped =
+    机架已保存：{ $file }。把它拖到 MIDI 轨道上，放在 { $target } 之前。{ $count ->
+       *[other] { $target } 没有的 { $count } 个鼓件在片段里没有行名，只显示 D1 这样的音符，且不会发声。
+    }
 rack-failed = 无法生成机架：{ $error }
 missing-detail-moved = 换成了其他鼓件
 missing-detail-dropped = 已从文件中删除
 detail-edit = 在音符编辑器中修改 →
-summary-detail-heading = { $total ->
-   *[other] 此映射共 { $total } 个鼓件
-}
+summary-detail-heading =
+    { $total ->
+       *[other] 此映射共 { $total } 个鼓件
+    }
 summary-detail-moved = 换到新音符
 summary-detail-same = 已在正确音符上
 summary-detail-variant = 改用相近的变体
@@ -166,13 +179,15 @@ summary-reason-variant = { $target } 中没有完全对应的鼓件，改用同�
 summary-reason-swapped = { $target } 中没有对应鼓件，改用最接近的鼓件
 summary-reason-dropped = { $target } 中没有对应鼓件
 summary-reason-unplayed = { $source } 中没有音符
-row-extras-dropped = { $count ->
-   *[other] 另有 { $count } 个来源音符触发 { $drum }：{ $notes }。都没有目标音符。
-}
-row-extras = { $count ->
-    [1] 另有 { $count } 个来源音符触发 { $drum }：{ $notes }。两者都映射到 { $target }。
-   *[other] 另有 { $count } 个来源音符触发 { $drum }：{ $notes }。全部映射到 { $target }。
-}
+row-extras-dropped =
+    { $count ->
+       *[other] 另有 { $count } 个来源音符触发 { $drum }：{ $notes }。都没有目标音符。
+    }
+row-extras =
+    { $count ->
+        [1] 另有 { $count } 个来源音符触发 { $drum }：{ $notes }。两者都映射到 { $target }。
+       *[other] 另有 { $count } 个来源音符触发 { $drum }：{ $notes }。全部映射到 { $target }。
+    }
 row-reset = 重置 { $drum }
 edit-filter-label = 筛选鼓件
 edit-filter-placeholder = 筛选鼓件…
@@ -182,10 +197,11 @@ edit-show-all = 全部 { $count }
 edit-show-changed = 已更改 { $count }
 edit-show-issues = 问题 { $count }
 edit-actions = 编辑操作
-edit-changes = { $count ->
-    [0] 无更改
-   *[other] { $count } 处更改
-}
+edit-changes =
+    { $count ->
+        [0] 无更改
+       *[other] { $count } 处更改
+    }
 edit-reset-all = 全部重置
 edit-done = 完成
 row-no-source = 无来源
@@ -243,16 +259,18 @@ chip-delete = 删除
 chip-rename-label = 重命名 { $name }
 chip-rename-save = 保存名称
 chip-rename-cancel = 取消重命名
-chip-overrides = { $count ->
-   *[other] { $count } 处修改
-}
+chip-overrides =
+    { $count ->
+       *[other] { $count } 处修改
+    }
 chip-unavailable = 鼓音源不可用
 chip-edit = 编辑 { $name } 的音符
 chip-more = { $name } 的更多操作
 chip-at-cap = 预设已满
-done-tag-converted = { $count ->
-   *[other] 已转换 { $count } 个音符
-}
+done-tag-converted =
+    { $count ->
+       *[other] 已转换 { $count } 个音符
+    }
 done-tag-nothing = 没有转换任何内容
 done-tag-approximated = 替换 { $count } 个
 done-tag-dropped = 删除 { $count } 个
@@ -263,12 +281,14 @@ done-file-approximated = 替换 { $count }
 done-file-dropped = 删除 { $count }
 done-file-unrecognized = 未识别 { $count }
 done-file-clean = 全部对应
-done-heading = { $count ->
-   *[other] 已转换 { $count } 个文件
-} → { $target }
-done-edited = { $count ->
-   *[other] 已编辑 { $count } 个鼓件
-}
+done-heading =
+    { $count ->
+       *[other] 已转换 { $count } 个文件
+    } → { $target }
+done-edited =
+    { $count ->
+       *[other] 已编辑 { $count } 个鼓件
+    }
 done-download-one = ↓ 下载 .mid
 done-download-zip = ↓ 下载 { $count } 个文件（.zip）
 done-files = 已转换的文件

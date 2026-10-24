@@ -17,10 +17,11 @@ nav-main = Main
 nav-site = Site
 lang-menu-label = Language
 lang-load-failed = Couldn't load { $language }. Check your connection and try again.
-error-unknown-engine = Unknown { $role ->
-    [source] source
-   *[target] target
-} engine '{ $id }'
+error-unknown-engine =
+    Unknown { $role ->
+        [source] source
+       *[target] target
+    } engine '{ $id }'
 error-bad-midi = Not a MIDI file this converter can read
 error-bad-preset = Not a preset file
 error-bad-overrides = The note edits couldn't be read
@@ -41,32 +42,37 @@ missing-nearest = Nearest
 missing-drop = Drop
 missing-hint-nearest = play on the closest drum
 missing-hint-drop = leave them out
-missing-hint-moved = { $count ->
-    [0] no drum moves to another drum
-    [one] { $count } drum played on another drum
-   *[other] { $count } drums played on another drum
-}
-missing-hint-dropped = { $count ->
-    [0] no drums dropped
-    [one] { $count } drum dropped
-   *[other] { $count } drums dropped
-}
-files-unreadable = Couldn't read { $names } — pick { $count ->
-    [one] it
-   *[other] them
-} again.
-preset-skipped = { $count ->
-    [one] { $count } edit in '{ $name }' uses a drum this version doesn't know; skipped.
-   *[other] { $count } edits in '{ $name }' use drums this version doesn't know; skipped.
-}
+missing-hint-moved =
+    { $count ->
+        [0] no drum moves to another drum
+        [one] { $count } drum played on another drum
+       *[other] { $count } drums played on another drum
+    }
+missing-hint-dropped =
+    { $count ->
+        [0] no drums dropped
+        [one] { $count } drum dropped
+       *[other] { $count } drums dropped
+    }
+files-unreadable =
+    Couldn't read { $names } — pick { $count ->
+        [one] it
+       *[other] them
+    } again.
+preset-skipped =
+    { $count ->
+        [one] { $count } edit in '{ $name }' uses a drum this version doesn't know; skipped.
+       *[other] { $count } edits in '{ $name }' use drums this version doesn't know; skipped.
+    }
 import-failed = Couldn't import { $file }: { $error }
 import-at-cap = Couldn't import { $file }: preset limit reached ({ $cap })
 presets-unsaved = Couldn't save presets: the browser's storage is full or blocked. They will be gone when you reload.
 import-done = Imported '{ $name }'.
-import-done-skipped = Imported '{ $name }' ({ $count ->
-    [one] { $count } edit
-   *[other] { $count } edits
-} skipped).
+import-done-skipped =
+    Imported '{ $name }' ({ $count ->
+        [one] { $count } edit
+       *[other] { $count } edits
+    } skipped).
 edit-line = { $drum }: { $now } (default { $byDefault })
 edit-more = +{ $count } more
 app-intro = Convert drum MIDI between GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro and 80+ other engine layouts. Runs in your browser; files are never uploaded.
@@ -86,22 +92,26 @@ unrecognized-remove = Remove
 unrecognized-keep = Keep as they are
 unrecognized-hint-remove = leave them out of the file
 unrecognized-hint-keep = write them out unchanged
-edited-review = { $count ->
-    [one] { $count } drum
-   *[other] { $count } drums
-} edited — review changes
-edited-review-saved = { $count ->
-    [one] { $count } drum
-   *[other] { $count } drums
-} edited — review changes, from preset { $name }
-edited-review-unsaved = { $count ->
-    [one] { $count } drum
-   *[other] { $count } drums
-} edited — review changes, not saved to { $name }
-edited-differ = { $count ->
-    [one] { $count } drum differs
-   *[other] { $count } drums differ
-} from the default mapping
+edited-review =
+    { $count ->
+        [one] { $count } drum
+       *[other] { $count } drums
+    } edited — review changes
+edited-review-saved =
+    { $count ->
+        [one] { $count } drum
+       *[other] { $count } drums
+    } edited — review changes, from preset { $name }
+edited-review-unsaved =
+    { $count ->
+        [one] { $count } drum
+       *[other] { $count } drums
+    } edited — review changes, not saved to { $name }
+edited-differ =
+    { $count ->
+        [one] { $count } drum differs
+       *[other] { $count } drums differ
+    } from the default mapping
 edited-click = Click to review or reset.
 edited-count = { $count } edited
 edited-count-unsaved = { $count } edited · unsaved
@@ -115,10 +125,11 @@ dropzone-heading = DROP .MID
 dropzone-presets = or an exported preset (.json)
 convert-running = remapping
 convert-button = Convert
-convert-button-ready = { $count ->
-    [one] Convert 1 file
-   *[other] Convert { $count } files
-} to { $target }
+convert-button-ready =
+    { $count ->
+        [one] Convert 1 file
+       *[other] Convert { $count } files
+    } to { $target }
 settings-heading = Settings
 engine-from = FROM
 engine-to = TO
@@ -145,10 +156,11 @@ saved-heading = SAVED
 edit-back = ← Back
 edit-heading = Edit notes
 edit-advanced = Advanced — reassign source notes
-summary-remapped = { $total ->
-    [one] { $remapped } of { $total } drum remapped
-   *[other] { $remapped } of { $total } drums remapped
-}
+summary-remapped =
+    { $total ->
+        [one] { $remapped } of { $total } drum remapped
+       *[other] { $remapped } of { $total } drums remapped
+    }
 summary-edit-tip-title = Fine-tune each drum
 summary-edit-tip = Reassign any drum to a different target note — pick from the drum list or the piano. Your changes apply to the conversion and can be saved as a preset.
 summary-edit = Edit individual notes →
@@ -157,18 +169,20 @@ summary-rack = Ableton rack
 summary-rack-tip-title = Play it live in Ableton
 summary-rack-tip = A MIDI Effect Rack for Live 11 and 12. Put it in front of { $target } and { $source } MIDI plays right, with no file to convert. It uses your note edits and the Missing drums setting.
 rack-saved = Rack saved: { $file }. Drag it onto the MIDI track, in front of { $target }. In a clip, each row shows the drum and the note it now plays.
-rack-saved-dropped = Rack saved: { $file }. Drag it onto the MIDI track, in front of { $target }. { $count ->
-    [one] One drum { $target } lacks has no row name in the clip, only a note like D1, and stays silent.
-   *[other] { $count } drums { $target } lacks have no row name in the clip, only a note like D1, and stay silent.
-}
+rack-saved-dropped =
+    Rack saved: { $file }. Drag it onto the MIDI track, in front of { $target }. { $count ->
+        [one] One drum { $target } lacks has no row name in the clip, only a note like D1, and stays silent.
+       *[other] { $count } drums { $target } lacks have no row name in the clip, only a note like D1, and stay silent.
+    }
 rack-failed = Couldn't make the rack: { $error }
 missing-detail-moved = Played on another drum
 missing-detail-dropped = Left out of the file
 detail-edit = Change in note editor →
-summary-detail-heading = { $total ->
-    [one] { $total } drum in this mapping
-   *[other] { $total } drums in this mapping
-}
+summary-detail-heading =
+    { $total ->
+        [one] { $total } drum in this mapping
+       *[other] { $total } drums in this mapping
+    }
 summary-detail-moved = on a new note
 summary-detail-same = already on the right note
 summary-detail-variant = played on a close variant
@@ -180,14 +194,16 @@ summary-reason-variant = no exact match in { $target } — a variant of the same
 summary-reason-swapped = not in { $target } — the closest drum plays instead
 summary-reason-dropped = not in { $target }, so left out
 summary-reason-unplayed = no note in { $source }
-row-extras-dropped = { $count ->
-    [one] { $count } more source note plays { $drum }: { $notes }. None has a target.
-   *[other] { $count } more source notes play { $drum }: { $notes }. None has a target.
-}
-row-extras = { $count ->
-    [one] { $count } more source note plays { $drum }: { $notes }. Both go to { $target }.
-   *[other] { $count } more source notes play { $drum }: { $notes }. All go to { $target }.
-}
+row-extras-dropped =
+    { $count ->
+        [one] { $count } more source note plays { $drum }: { $notes }. None has a target.
+       *[other] { $count } more source notes play { $drum }: { $notes }. None has a target.
+    }
+row-extras =
+    { $count ->
+        [one] { $count } more source note plays { $drum }: { $notes }. Both go to { $target }.
+       *[other] { $count } more source notes play { $drum }: { $notes }. All go to { $target }.
+    }
 row-reset = Reset { $drum }
 edit-filter-label = Filter drums
 edit-filter-placeholder = filter drums…
@@ -197,11 +213,12 @@ edit-show-all = All { $count }
 edit-show-changed = Changed { $count }
 edit-show-issues = Issues { $count }
 edit-actions = Edit actions
-edit-changes = { $count ->
-    [0] No changes
-    [one] { $count } change
-   *[other] { $count } changes
-}
+edit-changes =
+    { $count ->
+        [0] No changes
+        [one] { $count } change
+       *[other] { $count } changes
+    }
 edit-reset-all = Reset all
 edit-done = Done
 row-no-source = no source
@@ -259,18 +276,20 @@ chip-delete = Delete
 chip-rename-label = Rename { $name }
 chip-rename-save = Save name
 chip-rename-cancel = Cancel rename
-chip-overrides = { $count ->
-    [one] { $count } override
-   *[other] { $count } overrides
-}
+chip-overrides =
+    { $count ->
+        [one] { $count } override
+       *[other] { $count } overrides
+    }
 chip-unavailable = engine unavailable
 chip-edit = Edit notes for { $name }
 chip-more = More actions for { $name }
 chip-at-cap = preset limit reached
-done-tag-converted = { $count ->
-    [one] { $count } note converted
-   *[other] { $count } notes converted
-}
+done-tag-converted =
+    { $count ->
+        [one] { $count } note converted
+       *[other] { $count } notes converted
+    }
 done-tag-nothing = nothing converted
 done-tag-approximated = { $count } approximated
 done-tag-dropped = { $count } dropped
@@ -281,14 +300,16 @@ done-file-approximated = { $count } approx
 done-file-dropped = { $count } dropped
 done-file-unrecognized = { $count } unrec.
 done-file-clean = clean
-done-heading = { $count ->
-    [one] { $count } file
-   *[other] { $count } files
-} converted → { $target }
-done-edited = { $count ->
-    [one] { $count } drum
-   *[other] { $count } drums
-} edited
+done-heading =
+    { $count ->
+        [one] { $count } file
+       *[other] { $count } files
+    } converted → { $target }
+done-edited =
+    { $count ->
+        [one] { $count } drum
+       *[other] { $count } drums
+    } edited
 done-download-one = ↓ Download .mid
 done-download-zip = ↓ Download { $count } files (.zip)
 done-files = Converted files
@@ -301,25 +322,29 @@ done-view-report = View report →
 done-convert-more = Convert more
 done-convert-more-hint = Next file? The engines and settings stay as they are.
 done-report-mapping = Wrong mapping? Report it
-done-removed = { $count ->
-    [one] { $count } note in your file isn't in the { $source } layout, so it was removed. Wrong source?
-   *[other] { $count } notes in your file aren't in the { $source } layout, so they were removed. Wrong source?
-}
-done-kept = { $count ->
-    [one] { $count } note in your file isn't in the { $source } layout, so it was kept unchanged. Wrong source?
-   *[other] { $count } notes in your file aren't in the { $source } layout, so they were kept unchanged. Wrong source?
-}
+done-removed =
+    { $count ->
+        [one] { $count } note in your file isn't in the { $source } layout, so it was removed. Wrong source?
+       *[other] { $count } notes in your file aren't in the { $source } layout, so they were removed. Wrong source?
+    }
+done-kept =
+    { $count ->
+        [one] { $count } note in your file isn't in the { $source } layout, so it was kept unchanged. Wrong source?
+       *[other] { $count } notes in your file aren't in the { $source } layout, so they were kept unchanged. Wrong source?
+    }
 done-pick-source = Pick another source
 done-assign-notes = Assign the notes
-source-fit-missing = { $missing ->
-    [one] { $missing } of { $hits } notes in your file isn't in the { $source } layout.
-   *[other] { $missing } of { $hits } notes in your file aren't in the { $source } layout.
-} Closer fits: { $engines }
+source-fit-missing =
+    { $missing ->
+        [one] { $missing } of { $hits } notes in your file isn't in the { $source } layout.
+       *[other] { $missing } of { $hits } notes in your file aren't in the { $source } layout.
+    } Closer fits: { $engines }
 source-fit-all = { $engine } (all notes)
-source-fit-some = { $engine } ({ $count ->
-    [one] { $count } note
-   *[other] { $count } notes
-})
+source-fit-some =
+    { $engine } ({ $count ->
+        [one] { $count } note
+       *[other] { $count } notes
+    })
 drop-missing = Drop missing drums & convert again
 report-dropped = Dropped
 report-approximated = Approximated

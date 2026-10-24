@@ -31,10 +31,11 @@ maps-index-intro = Mapas de notas de { $count } plugins de bateria e tabelas de 
 maps-more-engines = Mais plugins
 maps-matrix-corner = DE ↓ PARA →
 maps-quick-label = Plugins mais usados
-maps-note-count = { $count ->
-    [one] { $count } nota
-   *[other] { $count } notas
-}
+maps-note-count =
+    { $count ->
+        [one] { $count } nota
+       *[other] { $count } notas
+    }
 maps-matrix-heading = Todos os pares entre os { $count } principais
 maps-matrix-share = { $percent }%
 maps-matrix-share-label = { $source } para { $target }: { $percent }% das notas batem exatamente
@@ -67,34 +68,36 @@ maps-core-heading = As notas que você mais vai usar
 maps-core-hint = A nota principal de cada peça, a que o conversor escreve.
 maps-pair-heading = Converter { $sourceMidi } para { $target }
 maps-pair-title = Converter { $sourceMidi } para { $target }
-maps-pair-description = Converta MIDI de bateria de { $source } para { $target }: { $exact } { $exact ->
-    [0] notas mapeadas
-    [one] nota mapeada
-   *[other] notas mapeadas
-} exatamente, { $approximated } { $approximated ->
-    [0] substituídas
-    [one] substituída
-   *[other] substituídas
-} e { $dropped } { $dropped ->
-    [0] removidas
-    [one] removida
-   *[other] removidas
-}.
+maps-pair-description =
+    Converta MIDI de bateria de { $source } para { $target }: { $exact } { $exact ->
+        [0] notas mapeadas
+        [one] nota mapeada
+       *[other] notas mapeadas
+    } exatamente, { $approximated } { $approximated ->
+        [0] substituídas
+        [one] substituída
+       *[other] substituídas
+    } e { $dropped } { $dropped ->
+        [0] removidas
+        [one] removida
+       *[other] removidas
+    }.
 maps-pair-description-more = Conversor grátis no navegador.
 maps-pair-description-short = Converta MIDI de bateria de { $source } para { $target }.
-maps-pair-summary = Das { $total } notas de { $source }, { $exact } { $exact ->
-    [0] são mapeadas
-    [one] é mapeada
-   *[other] são mapeadas
-} exatamente para { $target }, { $approximated } { $approximated ->
-    [0] são substituídas
-    [one] é substituída
-   *[other] são substituídas
-} pela peça disponível mais parecida e { $dropped } { $dropped ->
-    [0] não têm
-    [one] não tem
-   *[other] não têm
-} equivalente.
+maps-pair-summary =
+    Das { $total } notas de { $source }, { $exact } { $exact ->
+        [0] são mapeadas
+        [one] é mapeada
+       *[other] são mapeadas
+    } exatamente para { $target }, { $approximated } { $approximated ->
+        [0] são substituídas
+        [one] é substituída
+       *[other] são substituídas
+    } pela peça disponível mais parecida e { $dropped } { $dropped ->
+        [0] não têm
+        [one] não tem
+       *[other] não têm
+    } equivalente.
 maps-pair-convert = Converter { $source } → { $target }
 maps-pair-rack-lead = Tocando ao vivo no Ableton?
 maps-pair-rack-link = Baixe o rack (.adg)
@@ -102,19 +105,22 @@ maps-pair-rack = Coloque-o antes do { $target }: { $sourceMidi } toca certo, sem
 maps-pair-rack-dropped = As peças que faltam no { $target } ficam mudas; as linhas delas mostram só um nome de nota.
 maps-steps-label = Converter em três passos
 maps-reverse = ⇄ Inverter direção
-maps-exact-count = { $count ->
-    [0] { $count } exatas
-    [one] { $count } exata
-   *[other] { $count } exatas
-}
-maps-approximated-count = { $count ->
-    [one] { $count } substituída
-   *[other] { $count } substituídas
-}
-maps-dropped-count = { $count ->
-    [one] { $count } removida
-   *[other] { $count } removidas
-}
+maps-exact-count =
+    { $count ->
+        [0] { $count } exatas
+        [one] { $count } exata
+       *[other] { $count } exatas
+    }
+maps-approximated-count =
+    { $count ->
+        [one] { $count } substituída
+       *[other] { $count } substituídas
+    }
+maps-dropped-count =
+    { $count ->
+        [one] { $count } removida
+       *[other] { $count } removidas
+    }
 maps-rows = Linhas
 maps-rows-changes = Alteradas { $count }
 maps-column-engine-note = Nota ({ $engine })

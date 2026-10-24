@@ -31,34 +31,38 @@ maps-index-intro = Le mappe delle note di { $count } plugin di batteria e le tab
 maps-more-engines = Altri plugin
 maps-matrix-corner = DA ↓ A →
 maps-quick-label = Plugin più usati
-maps-note-count = { $count ->
-    [one] { $count } nota
-   *[other] { $count } note
-}
+maps-note-count =
+    { $count ->
+        [one] { $count } nota
+       *[other] { $count } note
+    }
 maps-matrix-heading = Tutte le coppie tra i primi { $count }
 maps-matrix-share = { $percent }%
 maps-matrix-share-label = Da { $source } a { $target }: il { $percent }% delle note corrisponde esattamente
 maps-matrix-hint = Ogni cella mostra la quota di note che corrispondono esattamente e apre quella tabella.
-maps-all-engines = { $count ->
-    [one] { $count } plugin
-   *[other] Tutti i { $count } plugin
-}
+maps-all-engines =
+    { $count ->
+        [one] { $count } plugin
+       *[other] Tutti i { $count } plugin
+    }
 maps-filter-engines-label = Filtra plugin
 maps-filter-engines-placeholder = Filtra plugin…
 maps-no-engines = Nessun plugin trovato
 maps-engine-title = { $engineMidi }: mappa delle note della batteria
 maps-engine-title-long-name = Mappa delle note MIDI: { $engine }
-maps-engine-description = { $total ->
-    [one] Mappa delle note MIDI di { $engine }: { $total } nota con il nome dello strumento, in C-1 e in C-2.
-   *[other] Mappa delle note MIDI di { $engine }: tutte le { $total } note con i nomi degli strumenti, in C-1 e in C-2.
-}
+maps-engine-description =
+    { $total ->
+        [one] Mappa delle note MIDI di { $engine }: { $total } nota con il nome dello strumento, in C-1 e in C-2.
+       *[other] Mappa delle note MIDI di { $engine }: tutte le { $total } note con i nomi degli strumenti, in C-1 e in C-2.
+    }
 maps-engine-description-short = Mappa delle note MIDI di { $engine } con i nomi delle note in C-1 e C-2.
 maps-engine-description-more = Converti { $engineMidi } in qualsiasi altro plugin, gratis.
 maps-engine-heading = Mappa delle note MIDI di { $engine }
-maps-engine-intro = { $total ->
-    [one] { $engine } risponde a { $total } nota MIDI, mostrata con il suo strumento. Puoi vedere i nomi delle note in C-1 (Reaper, Logic, Ableton, Guitar Pro) o in C-2 (Studio One, Cubase, FL Studio).
-   *[other] { $engine } risponde a { $total } note MIDI, raggruppate per strumento. Puoi vedere i nomi delle note in C-1 (Reaper, Logic, Ableton, Guitar Pro) o in C-2 (Studio One, Cubase, FL Studio).
-}
+maps-engine-intro =
+    { $total ->
+        [one] { $engine } risponde a { $total } nota MIDI, mostrata con il suo strumento. Puoi vedere i nomi delle note in C-1 (Reaper, Logic, Ableton, Guitar Pro) o in C-2 (Studio One, Cubase, FL Studio).
+       *[other] { $engine } risponde a { $total } note MIDI, raggruppate per strumento. Puoi vedere i nomi delle note in C-1 (Reaper, Logic, Ableton, Guitar Pro) o in C-2 (Studio One, Cubase, FL Studio).
+    }
 maps-convert-to = Converti in { $engine }
 maps-convert-from = Converti da { $engine }
 maps-filter-drums-label = Filtra strumenti
@@ -76,31 +80,33 @@ maps-core-heading = Le note che userai di più
 maps-core-hint = La nota principale di ogni strumento, quella che scrive il convertitore.
 maps-pair-heading = Converti { $sourceMidi } in { $target }
 maps-pair-title = Converti { $sourceMidi } in { $target }
-maps-pair-description = Converti il MIDI di batteria di { $source } in { $target }: { $exact } { $exact ->
-    [one] nota esatta
-   *[other] note esatte
-}, { $approximated } { $approximated ->
-    [one] sostituita
-   *[other] sostituite
-}, { $dropped } { $dropped ->
-    [one] rimossa
-   *[other] rimosse
-}.
+maps-pair-description =
+    Converti il MIDI di batteria di { $source } in { $target }: { $exact } { $exact ->
+        [one] nota esatta
+       *[other] note esatte
+    }, { $approximated } { $approximated ->
+        [one] sostituita
+       *[other] sostituite
+    }, { $dropped } { $dropped ->
+        [one] rimossa
+       *[other] rimosse
+    }.
 maps-pair-description-more = Convertitore gratuito nel browser.
 maps-pair-description-short = Converti il MIDI di batteria di { $source } in { $target }.
-maps-pair-summary = Su { $total } { $total ->
-    [one] nota
-   *[other] note
-} di { $source }, { $exact } { $exact ->
-    [one] ha
-   *[other] hanno
-} una corrispondenza esatta in { $target }, { $approximated } { $approximated ->
-    [one] è sostituita
-   *[other] sono sostituite
-} con lo strumento più simile e { $dropped } { $dropped ->
-    [one] non ha
-   *[other] non hanno
-} un equivalente.
+maps-pair-summary =
+    Su { $total } { $total ->
+        [one] nota
+       *[other] note
+    } di { $source }, { $exact } { $exact ->
+        [one] ha
+       *[other] hanno
+    } una corrispondenza esatta in { $target }, { $approximated } { $approximated ->
+        [one] è sostituita
+       *[other] sono sostituite
+    } con lo strumento più simile e { $dropped } { $dropped ->
+        [one] non ha
+       *[other] non hanno
+    } un equivalente.
 maps-pair-convert = Converti { $source } → { $target }
 maps-pair-rack-lead = Suoni dal vivo con Ableton?
 maps-pair-rack-link = Scarica il rack (.adg)
@@ -108,18 +114,21 @@ maps-pair-rack = Mettilo davanti a { $target }: { $sourceMidi } suona giusto, se
 maps-pair-rack-dropped = I pezzi che mancano a { $target } restano muti; le loro righe mostrano solo un nome di nota.
 maps-steps-label = Converti in tre passaggi
 maps-reverse = ⇄ Inverti direzione
-maps-exact-count = { $count ->
-    [one] { $count } esatta
-   *[other] { $count } esatte
-}
-maps-approximated-count = { $count ->
-    [one] { $count } sostituita
-   *[other] { $count } sostituite
-}
-maps-dropped-count = { $count ->
-    [one] { $count } rimossa
-   *[other] { $count } rimosse
-}
+maps-exact-count =
+    { $count ->
+        [one] { $count } esatta
+       *[other] { $count } esatte
+    }
+maps-approximated-count =
+    { $count ->
+        [one] { $count } sostituita
+       *[other] { $count } sostituite
+    }
+maps-dropped-count =
+    { $count ->
+        [one] { $count } rimossa
+       *[other] { $count } rimosse
+    }
 maps-rows = Righe
 maps-rows-changes = Differenze { $count }
 maps-column-engine-note = Nota { $engine }
@@ -154,8 +163,9 @@ drum-maps-cubase = Apri MIDI → Drum Map Setup, fai clic su Load e seleziona il
 drum-maps-studio-one = Nella vista Edit fai clic sull’icona della chiave inglese per mostrare i nomi delle note e trascinaci sopra il file .pitchlist. Salvalo dal menu Pitch Names per riutilizzarlo.
 drum-maps-ableton = Trascina il file .adg sulla traccia di batteria in Live 11 o 12, davanti al plugin. Apri una clip: ogni riga dell’editor MIDI mostra il nome del suo pezzo. Le note suonano invariate.
 drum-maps-other = Logic Pro, FL Studio e Bitwig Studio non caricano file di nomi delle note. Usa la mappa delle note del plugin per trovare ogni pezzo, oppure converti il tuo MIDI per il plugin che usi.
-drum-maps-list-heading = { $count ->
-    [one] Drum map di { $count } plugin
-   *[other] Drum map di tutti i { $count } plugin
-}
+drum-maps-list-heading =
+    { $count ->
+        [one] Drum map di { $count } plugin
+       *[other] Drum map di tutti i { $count } plugin
+    }
 drum-maps-download-label = Drum map di { $engine } per { $daw }
