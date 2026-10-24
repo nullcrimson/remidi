@@ -17,7 +17,9 @@ class EscapeLeading extends Transformer {
 
 /** The Fluent file `ftl` in the layout translate-toolkit, and so Weblate, writes. */
 export function canonicalFtl(ftl: string): string {
-  return new FluentSerializer().serialize(new EscapeLeading().visit(new FluentParser({ withSpans: false }).parse(ftl)));
+  const resource = new FluentParser({ withSpans: false }).parse(ftl);
+  new EscapeLeading().visit(resource);
+  return new FluentSerializer().serialize(resource);
 }
 
 /** The `app.ftl` and `site.ftl` paths of every locale, relative to the repo root. */
