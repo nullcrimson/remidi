@@ -33,6 +33,11 @@ are never uploaded.
 - Batch conversion, drum-channel selection, 11 languages, and a command-line tool for
   offline use.
 
+## Translations
+
+Drumverter is translated on [Hosted Weblate](https://hosted.weblate.org/projects/drumverter/).
+[TRANSLATING.md](TRANSLATING.md) says how, for translators and for developers.
+
 ## Workspace
 
 | Path | What it is |
@@ -46,6 +51,7 @@ are never uploaded.
 | `engines/*.toml` | One note map per engine, embedded at build time |
 | `locales/` | The locale list, and per language the Fluent messages the app shows (`app.ftl`, read by the site too), the ones only the site reads (`site.ftl`) and a documents file |
 | `content/` | The site structure and the tip links, shared by the app and the site |
+| `TRANSLATING.md` | How the `locales/` messages are translated on Hosted Weblate, and the rules for adding one |
 
 [ARCHITECTURE.md](ARCHITECTURE.md) explains the design; [app/README.md](app/README.md)
 covers the UI.
