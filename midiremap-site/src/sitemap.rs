@@ -1,29 +1,31 @@
 use crate::{
     i18n::{Docs, Locale, SectionKey},
-    pages::{PairPage, Site},
+    pages::Site,
     routes::{
-        alternates, drum_map_files, home, href, sitemap_url, NavTarget, Page, SitePath,
-        CONVERTER_PAGE, DRUM_MAPS, NOTE_MAPS,
+        alternates, drum_map_files, home, href, sitemap_url, NavTarget, Page, CONVERTER_PAGE,
+        DRUM_MAPS, NOTE_MAPS,
     },
 };
 
-/// Every page's address, each translated one with `xhtml:link`s to all its versions.
+/// Every indexed page's address, each with `xhtml:link`s to its indexed versions.
 pub fn sitemap(site: &Site, docs: &Docs) -> String {
     let converters = Locale::ALL
         .iter()
         .map(|&l| (home(l), alternates(&CONVERTER_PAGE, docs)));
-    let english: Vec<SitePath> = [NOTE_MAPS, DRUM_MAPS]
+    let pages: Vec<Page> = [NOTE_MAPS, DRUM_MAPS]
         .into_iter()
         .chain(site.engines.iter().map(|p| p.engine.href()))
-        .chain(site.pairs.iter().map(PairPage::href))
+        .map(Page::Everywhere)
+        .chain(site.pairs.iter().map(|p| Page::Pair(p.href())))
         .collect();
     let note_maps = Locale::ALL.iter().flat_map(|&l| {
-        english.iter().map(move |path| {
-            (
-                path.in_locale(l),
-                alternates(&Page::Everywhere(path.clone()), docs),
-            )
-        })
+        pages
+            .iter()
+            .filter(move |page| page.indexed_in(l))
+            .filter_map(move |page| {
+                page.in_locale(l, docs)
+                    .map(|path| (path, alternates(page, docs)))
+            })
     });
     let sections = Locale::ALL.iter().flat_map(|&l| {
         SectionKey::ALL
@@ -73,7 +75,10 @@ mod tests {
     use midiremap_core::Catalog;
 
     use super::*;
-    use crate::pages::{EXCLUDED_IDS, MAJORS, TARGETS};
+    use crate::{
+        pages::{EXCLUDED_IDS, MAJORS, TARGETS},
+        routes::pair_href,
+    };
 
     #[test]
     fn robots_allows_all() {
@@ -114,9 +119,10 @@ mod tests {
             .iter()
             .map(|&l| SectionKey::ALL.iter().filter(|&&k| docs.has(l, k)).count())
             .sum();
+        let reviewed = Locale::ALL.iter().filter(|l| l.reviewed()).count();
         assert_eq!(
             locs.len(),
-            Locale::ALL.len() * (3 + engines + pairs) + sections
+            Locale::ALL.len() * (3 + engines) + reviewed * pairs + sections
         );
     }
 
@@ -267,5 +273,34 @@ mod tests {
             .find(|(loc, _)| loc == "https://drumverter.com/pl/engines/ezdrummer/")
             .unwrap();
         assert_eq!(engine.1.len(), Locale::ALL.len() + 1);
+    }
+
+    #[test]
+    fn lists_no_pair_page_of_an_unreviewed_locale() {
+        let pair = Page::Pair(pair_href("addictive-drums2-to-ezdrummer"));
+        for &l in Locale::ALL.iter().filter(|l| !l.reviewed()) {
+            let url = pair.in_locale(l, crate::fixtures::docs()).unwrap().url();
+            assert!(all_urls().iter().all(|(loc, _)| *loc != url), "{url}");
+        }
+    }
+
+    #[test]
+    fn lists_the_pair_pages_of_the_reviewed_locales() {
+        url_entry("https://drumverter.com/convert/addictive-drums2-to-ezdrummer/");
+        url_entry("https://drumverter.com/ru/convert/addictive-drums2-to-ezdrummer/");
+    }
+
+    #[test]
+    fn a_pair_page_lists_only_its_reviewed_versions_and_the_default() {
+        let (_, versions) =
+            url_entry("https://drumverter.com/ru/convert/addictive-drums2-to-ezdrummer/");
+        let tags: Vec<&str> = versions.iter().map(|(tag, _)| tag.as_str()).collect();
+        let reviewed: Vec<&str> = Locale::ALL
+            .iter()
+            .filter(|l| l.reviewed())
+            .map(|l| l.lang_tag())
+            .chain(["x-default"])
+            .collect();
+        assert_eq!(tags, reviewed);
     }
 }

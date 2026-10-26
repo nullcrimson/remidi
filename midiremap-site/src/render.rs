@@ -420,6 +420,7 @@ struct Frame<'a> {
     languages: Vec<LangItem>,
     offers: Vec<Offer<'a>>,
     alternates: Vec<Alternate>,
+    indexed: bool,
     css: &'a str,
     csp: &'a str,
     analytics: &'a [AnalyticsScript],
@@ -476,6 +477,7 @@ impl<'a> Frame<'a> {
                 })
                 .collect(),
             alternates: alternates(page, texts.docs),
+            indexed: page.indexed_in(here),
             css: &manifest.stylesheet,
             csp: &manifest.content_security_policy,
             analytics: &manifest.analytics,
@@ -625,15 +627,8 @@ fn render_note_maps(
     manifest: &SiteManifest,
     texts: &Texts,
 ) -> Result<Vec<(String, String)>, RenderError> {
-    let frame = |path: SitePath, kind: PageKind, json_ld: Option<String>| {
-        Frame::new(
-            manifest,
-            texts,
-            IN_NOTE_MAPS,
-            json_ld,
-            &Page::Everywhere(path),
-            kind,
-        )
+    let frame = |page: Page, kind: PageKind, json_ld: Option<String>| {
+        Frame::new(manifest, texts, IN_NOTE_MAPS, json_ld, &page, kind)
     };
     let trail = |name: &str, path: &SitePath| {
         Some(breadcrumb_schema(&[
@@ -648,7 +643,7 @@ fn render_note_maps(
         NOTE_MAPS.in_locale(texts.locale).file(),
         IndexHtml {
             meta: index_meta(&site.index, texts)?,
-            frame: frame(NOTE_MAPS, PageKind::Index, None),
+            frame: frame(Page::Everywhere(NOTE_MAPS), PageKind::Index, None),
             texts,
             page: &site.index,
             popular: &site.popular,
@@ -680,7 +675,11 @@ fn render_note_maps(
             path.in_locale(texts.locale).file(),
             EngineHtml {
                 meta: engine_meta(p, texts)?,
-                frame: frame(path.clone(), PageKind::Engine, trail(&p.engine.name, &path)),
+                frame: frame(
+                    Page::Everywhere(path.clone()),
+                    PageKind::Engine,
+                    trail(&p.engine.name, &path),
+                ),
                 texts,
                 intro: texts.format(
                     MessageId::MapsEngineIntro,
@@ -701,7 +700,7 @@ fn render_note_maps(
             PairHtml {
                 meta: pair_meta(p, texts)?,
                 frame: frame(
-                    path.clone(),
+                    Page::Pair(path.clone()),
                     PageKind::Pair,
                     trail(&format!("{} → {}", p.src.name, p.tgt.name), &path),
                 ),
@@ -767,7 +766,7 @@ mod tests {
     use scraper::{ElementRef, Html, Selector};
 
     use super::*;
-    use crate::pages::MAJORS;
+    use crate::{pages::MAJORS, routes::pair_href};
 
     const ORIGIN: &str = "https://drumverter.com";
 
@@ -2328,6 +2327,54 @@ mod tests {
         let html = page("pl/faq/index.html");
         let link = alternate_link("x-default", "/faq/");
         assert!(html.contains(&link), "{link}");
+    }
+
+    const NOINDEX: &str = r#"<meta name="robots" content="noindex,follow" />"#;
+
+    fn head(path: &str) -> &'static str {
+        page(path).split("</head>").next().unwrap()
+    }
+
+    #[test]
+    fn pair_pages_of_unreviewed_locales_are_kept_out_of_search() {
+        for &l in Locale::ALL.iter().filter(|l| !l.reviewed()) {
+            let file = pair_href("addictive-drums2-to-ezdrummer")
+                .in_locale(l)
+                .file();
+            assert!(head(&file).contains(NOINDEX), "{file}");
+        }
+    }
+
+    #[test]
+    fn pair_pages_of_reviewed_locales_stay_in_search() {
+        for &l in Locale::ALL.iter().filter(|l| l.reviewed()) {
+            let file = pair_href("addictive-drums2-to-ezdrummer")
+                .in_locale(l)
+                .file();
+            assert!(!head(&file).contains("name=\"robots\""), "{file}");
+        }
+    }
+
+    #[test]
+    fn other_pages_of_unreviewed_locales_stay_in_search() {
+        for file in [
+            "pl/engines/ezdrummer/index.html",
+            "pl/engines/index.html",
+            "pl/drum-maps/index.html",
+            "pl/faq/index.html",
+        ] {
+            assert!(!head(file).contains("name=\"robots\""), "{file}");
+        }
+    }
+
+    #[test]
+    fn a_pair_page_of_an_unreviewed_locale_links_only_the_reviewed_versions() {
+        let html = head("pl/convert/addictive-drums2-to-ezdrummer/index.html");
+        assert!(!html.contains(r#"hreflang="pl""#));
+        assert!(html.contains(&alternate_link(
+            "en",
+            "/convert/addictive-drums2-to-ezdrummer/"
+        )));
     }
 
     #[test]

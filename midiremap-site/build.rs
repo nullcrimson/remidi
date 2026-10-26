@@ -41,6 +41,7 @@ struct LocaleEntry {
     prefix: String,
     lang_tag: String,
     native_name: String,
+    reviewed: bool,
 }
 
 #[derive(Deserialize, Debug)]
@@ -243,6 +244,10 @@ fn main() {
         }
         read(&root.join(format!("locales/{}/docs.json", l.code)));
     }
+    assert!(
+        locales.iter().any(|l| l.code == "en" && l.reviewed),
+        "locales.json: en must be reviewed, since x-default points at it"
+    );
     let keys: BTreeSet<&str> = structure.sections.iter().map(|s| s.key.as_str()).collect();
 
     let locale_variants: Vec<String> = locales
@@ -264,6 +269,9 @@ fn main() {
         &locales,
         field(|l| &l.native_name),
     );
+    out += &matcher("reviewed", "bool", &locales, |l| {
+        (l.code.to_upper_camel_case(), l.reviewed.to_string())
+    });
     out += &locale_ftl(&locales);
     out += &matcher("docs", "&'static str", &locales, |l| {
         (

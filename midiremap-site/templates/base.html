@@ -7,7 +7,7 @@
     <title>{{ meta.title() }}</title>
     <meta name="description" content="{{ meta.description }}" />
     <link rel="canonical" href="{{ meta.canonical }}" />
-    {% block robots %}{% endblock %}
+    {% block robots %}{% if !frame.indexed %}<meta name="robots" content="noindex,follow" />{% endif %}{% endblock %}
     {% for a in frame.alternates %}<link rel="alternate" hreflang="{{ a.tag }}" href="{{ a.url() }}" />
     {% endfor %}    {% include "icons.html" %}
     <meta property="og:type" content="website" />

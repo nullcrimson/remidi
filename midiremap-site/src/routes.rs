@@ -160,6 +160,9 @@ pub enum Page {
     Section(SectionKey),
     /// A page every locale has, by its English path.
     Everywhere(SitePath),
+    /// A conversion pair page, by its English path: every locale has it, but search engines
+    /// index it only in reviewed locales.
+    Pair(SitePath),
 }
 
 impl Page {
@@ -169,7 +172,15 @@ impl Page {
             Page::Section(k) => docs
                 .has(locale, *k)
                 .then(|| section_path(*k).in_locale(locale)),
-            Page::Everywhere(path) => Some(path.in_locale(locale)),
+            Page::Everywhere(path) | Page::Pair(path) => Some(path.in_locale(locale)),
+        }
+    }
+
+    /// Whether search engines may index the page's version in `locale`.
+    pub fn indexed_in(&self, locale: Locale) -> bool {
+        match self {
+            Page::Section(_) | Page::Everywhere(_) => true,
+            Page::Pair(_) => locale.reviewed(),
         }
     }
 }
@@ -193,10 +204,12 @@ impl Alternate {
     }
 }
 
-/// The versions of `page` for `hreflang`: each locale that has it, then `x-default`.
+/// The versions of `page` for `hreflang`: each locale that has it and may be indexed, then
+/// `x-default`.
 pub fn alternates(page: &Page, docs: &Docs) -> Vec<Alternate> {
     Locale::ALL
         .iter()
+        .filter(|&&l| page.indexed_in(l))
         .filter_map(|&l| {
             page.in_locale(l, docs).map(|path| Alternate {
                 tag: l.lang_tag(),
@@ -333,6 +346,37 @@ mod tests {
             alternates(&Page::Everywhere(NOTE_MAPS), docs).len(),
             Locale::ALL.len() + 1
         );
+    }
+
+    #[test]
+    fn a_pair_page_is_indexed_only_in_reviewed_locales() {
+        let pair = Page::Pair(pair_href("addictive-drums2-to-ezdrummer"));
+        for &l in Locale::ALL {
+            assert_eq!(pair.indexed_in(l), l.reviewed(), "{l:?}");
+        }
+    }
+
+    #[test]
+    fn every_other_page_is_indexed_in_every_locale() {
+        for page in [Page::Everywhere(NOTE_MAPS), Page::Section(SectionKey::Faq)] {
+            assert!(Locale::ALL.iter().all(|&l| page.indexed_in(l)));
+        }
+    }
+
+    #[test]
+    fn a_pair_page_lists_the_reviewed_locales_and_the_default() {
+        let pair = Page::Pair(pair_href("addictive-drums2-to-ezdrummer"));
+        let tags: Vec<&str> = alternates(&pair, crate::fixtures::docs())
+            .iter()
+            .map(|a| a.tag)
+            .collect();
+        let reviewed: Vec<&str> = Locale::ALL
+            .iter()
+            .filter(|l| l.reviewed())
+            .map(|l| l.lang_tag())
+            .chain(["x-default"])
+            .collect();
+        assert_eq!(tags, reviewed);
     }
 
     fn versions(page: &Page, docs: &Docs) -> Vec<(&'static str, String)> {
