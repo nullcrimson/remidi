@@ -1,5 +1,5 @@
 import { gzipSync } from 'node:zlib';
-import { BUDGETS, kindOf, overBudget, totals } from '../scripts/check-size';
+import { BUDGETS, chunksLoadedBy, kindOf, overBudget, pageBytes, totals } from '../scripts/check-size';
 
 const gz = (n: number) => gzipSync(new Uint8Array(n).fill(7), { level: 9 }).length;
 const bytes = (n: number) => new Uint8Array(n).map((_, i) => (i * 7919) % 251);
@@ -40,7 +40,7 @@ describe('asset size budgets', () => {
     ])).toEqual({ wasm: 0, js: 2 * gzipSync(js, { level: 9 }).length, css: 0, fonts: 3000, locale: 0 });
   });
 
-  const within = { wasm: BUDGETS.wasm, js: 0, css: 0, fonts: 0, locale: 0 };
+  const within = { wasm: BUDGETS.wasm, js: 0, css: 0, fonts: 0, locale: 0, page: 0 };
 
   it('names no kind that is within its budget', () => {
     expect(overBudget(within)).toEqual([]);
@@ -64,5 +64,37 @@ describe('asset size budgets', () => {
     ]);
     expect(sizes.js).toBeLessThan(100);
     expect(sizes.locale).toBe(Math.max(gz(20_000), gz(30_000)));
+  });
+});
+
+describe('what a static page loads', () => {
+  const text = (source: string) => new TextEncoder().encode(source);
+  const chunks: Record<string, string> = {
+    'site-locale-a.js': 'import{a}from"./language-b.js";a()',
+    'language-b.js': 'import"./deep-c.js";export const a=()=>{}',
+    'deep-c.js': 'export{}',
+    'index-d.js': 'import"./language-b.js"',
+  };
+  const read = (name: string) => text(chunks[name]);
+  const size = (name: string) => gzipSync(read(name), { level: 9 }).length;
+
+  it('follows a chunk to the chunks it imports', () => {
+    expect(chunksLoadedBy('site-locale-a.js', (name) => chunks[name])).toEqual(['site-locale-a.js', 'language-b.js', 'deep-c.js']);
+  });
+
+  it('lists a chunk two others import once', () => {
+    const twice = { 'a.js': 'import"./b.js";import"./c.js"', 'b.js': 'import"./c.js"', 'c.js': '' };
+    expect(chunksLoadedBy('a.js', (name) => twice[name as keyof typeof twice])).toEqual(['a.js', 'b.js', 'c.js']);
+  });
+
+  it('counts the language script, its chunks and the list filter, gzipped', () => {
+    const filter = text('filter();');
+    expect(pageBytes(Object.keys(chunks), read, filter)).toBe(
+      size('site-locale-a.js') + size('language-b.js') + size('deep-c.js') + gzipSync(filter, { level: 9 }).length,
+    );
+  });
+
+  it('refuses a build without the language script of static pages', () => {
+    expect(() => pageBytes(['index-d.js'], read, text(''))).toThrow('no language script');
   });
 });

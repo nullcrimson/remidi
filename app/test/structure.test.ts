@@ -2,6 +2,7 @@ import { createRequire } from 'node:module';
 import { posix } from 'node:path';
 import type * as TypeScript from 'typescript';
 import { describe, expect, it } from 'vitest';
+import { reachable } from '../scripts/reachable';
 
 const ts: typeof TypeScript = createRequire(import.meta.url)('typescript');
 
@@ -87,15 +88,10 @@ function codeImports(file: string, text: string): string[] {
 }
 
 function loadedBy(entry: string): string[] {
-  const seen = new Set<string>();
-  const visit = (target: string) => {
-    const file = [`${target}.ts`, `${target}.tsx`].find((candidate) => candidate in SOURCES) ?? target;
-    if (seen.has(file)) return;
-    seen.add(file);
-    if (file in SOURCES) codeImports(file, SOURCES[file]).forEach(visit);
-  };
-  visit(entry);
-  return [...seen].map((file) => file.slice(SRC_PREFIX.length)).sort();
+  const fileOf = (target: string) => [`${target}.ts`, `${target}.tsx`].find((candidate) => candidate in SOURCES) ?? target;
+  return reachable(fileOf(entry), (file) => (file in SOURCES ? codeImports(file, SOURCES[file]).map(fileOf) : []))
+    .map((file) => file.slice(SRC_PREFIX.length))
+    .sort();
 }
 
 describe('app structure', () => {
@@ -141,6 +137,32 @@ describe('app structure', () => {
       .filter(({ from, to }) => from !== '' && to !== from && to !== 'generated' && to !== 'wasm' && !ALLOWED_IMPORTS[from]?.includes(to))
       .map(({ file, from, to }) => `${file}: ${from} -> ${to}`);
     expect(outOfOrder).toEqual([]);
+  });
+
+  it('keeps ui/ clear of statistics and browser storage', () => {
+    const sideEffects = ['core/stats', 'core/umami', 'core/storage'].map((module) => `${SRC_PREFIX}${module}`);
+    const leaks = Object.entries(SOURCES)
+      .filter(([file]) => ownFolder(file) === 'ui')
+      .flatMap(([file, text]) => importSpecifiers(file, text)
+        .map((specifier) => posix.join(posix.dirname(file), specifier))
+        .filter((target) => sideEffects.includes(target))
+        .map((target) => `${file} -> ${target}`));
+    expect(leaks).toEqual([]);
+  });
+
+  it('touches browser storage only in core/storage', () => {
+    const direct = Object.entries(SOURCES)
+      .filter(([file, text]) => file !== `${SRC_PREFIX}core/storage.ts` && /\b(localStorage|sessionStorage|indexedDB)\b/.test(text))
+      .map(([file]) => file);
+    expect(direct).toEqual([]);
+  });
+
+  it('takes the event sender only into core/stats and the static page script', () => {
+    const senders = Object.entries(SOURCES)
+      .filter(([file, text]) => codeImports(file, text).includes(`${SRC_PREFIX}core/umami`))
+      .map(([file]) => file.slice(SRC_PREFIX.length))
+      .sort();
+    expect(senders).toEqual(['core/stats.ts', 'locale/staticPages.ts']);
   });
 
   it('imports generated/ from the folders of the table and wasm/ only from core', () => {
