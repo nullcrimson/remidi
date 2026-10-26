@@ -4,8 +4,19 @@ import { loadTranslator, type Translator } from './i18n';
 import { applyDocument, converterPath, pathLocale, storeLocale } from './locale';
 import { LocaleContext, type LocaleState } from './localeContext';
 
-/** Holds the page's translator; switches language in place and follows Back and Forward. */
-export function LocaleProvider({ initial, children }: { initial: Translator; children: ReactNode }) {
+/**
+ * Holds the page's translator; switches language in place and follows Back and Forward.
+ * `load` fetches a language's translator: the app's own loader unless another is given.
+ */
+export function LocaleProvider({
+  initial,
+  load = loadTranslator,
+  children,
+}: {
+  initial: Translator;
+  load?: (locale: Locale) => Promise<Translator>;
+  children: ReactNode;
+}) {
   const [translator, setTranslator] = useState(initial);
   const [failed, setFailed] = useState<Locale | null>(null);
   const latest = useRef(0);
@@ -13,7 +24,7 @@ export function LocaleProvider({ initial, children }: { initial: Translator; chi
   const show = useCallback(async (locale: Locale, push: boolean) => {
     const request = ++latest.current;
     try {
-      const next = await loadTranslator(locale);
+      const next = await load(locale);
       if (request !== latest.current) return;
       setTranslator(next);
       setFailed(null);
@@ -24,7 +35,7 @@ export function LocaleProvider({ initial, children }: { initial: Translator; chi
       console.error(err);
       setFailed(locale);
     }
-  }, []);
+  }, [load]);
 
   useEffect(() => {
     const onPop = () => void show(pathLocale(), false);
