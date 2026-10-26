@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from '../src/App';
 import { RUNTIME } from './runtime';
+import { failWrites } from './eventSteps';
 import { recordDownloads } from './downloads';
 import { WasmCallError } from '../src/core/errors';
 import { MAPPINGS_CAP } from '../src/presets/mappings';
@@ -115,11 +116,7 @@ describe('App presets', () => {
 
   it('says a duplicated preset will be gone on reload when the browser cannot store it', async () => {
     await start();
-    const realSetItem = localStorage.setItem.bind(localStorage);
-    const set = vi.spyOn(localStorage, 'setItem').mockImplementation((name, value) => {
-      if (name === MAPPINGS_KEY) throw new DOMException('full', 'QuotaExceededError');
-      realSetItem(name, value);
-    });
+    const set = failWrites();
     try {
       await userEvent.click(screen.getByRole('button', { name: 'More actions for My kit' }));
       await userEvent.click(screen.getByRole('menuitem', { name: 'Duplicate' }));
@@ -133,14 +130,6 @@ describe('App presets', () => {
 
   describe('when the browser cannot store presets', () => {
     const UNSAVED = /They will be gone when you reload\./;
-
-    const failWrites = () => {
-      const realSetItem = localStorage.setItem.bind(localStorage);
-      return vi.spyOn(localStorage, 'setItem').mockImplementation((name, value) => {
-        if (name === MAPPINGS_KEY) throw new DOMException('full', 'QuotaExceededError');
-        realSetItem(name, value);
-      });
-    };
 
     const duplicate = async () => {
       await userEvent.click(screen.getByRole('button', { name: 'More actions for My kit' }));
