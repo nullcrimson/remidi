@@ -3,7 +3,6 @@ import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ORIGIN = 'https://drumverter.com';
 const KEY = 'b70482caafc9bdd6b2cc45b7fd07ddae';
 const PUBLISHED = 'page-hashes.json';
 const LIVE_TIMEOUT_MS = 10_000;
@@ -25,6 +24,13 @@ export function parseDay(text: string): Day {
 
 export function sitemapUrls(xml: string): string[] {
   return [...xml.matchAll(LOC)].map((m) => m[1]);
+}
+
+/** The site's origin: the one every sitemap URL has. A sitemap with none, or with two, is refused. */
+export function siteOrigin(urls: string[]): string {
+  const origins = [...new Set(urls.map((url) => new URL(url).origin))];
+  if (origins.length !== 1) throw new Error(`the sitemap names ${origins.length} origins, not one`);
+  return origins[0];
 }
 
 export function pageFile(url: string): string {
@@ -85,17 +91,17 @@ export function withLastmod(xml: string, pages: Pages): string {
   );
 }
 
-export function payload(urls: string[]) {
+export function payload(origin: string, urls: string[]) {
   return {
-    host: new URL(ORIGIN).host,
+    host: new URL(origin).host,
     key: KEY,
-    keyLocation: `${ORIGIN}/${KEY}.txt`,
+    keyLocation: `${origin}/${KEY}.txt`,
     urlList: urls,
   };
 }
 
-async function livePages(): Promise<LivePages | undefined> {
-  const res = await fetch(`${ORIGIN}/${PUBLISHED}`, { signal: AbortSignal.timeout(LIVE_TIMEOUT_MS) });
+async function livePages(origin: string): Promise<LivePages | undefined> {
+  const res = await fetch(`${origin}/${PUBLISHED}`, { signal: AbortSignal.timeout(LIVE_TIMEOUT_MS) });
   if (res.status === 404) return undefined;
   if (!res.ok) throw new Error(`${PUBLISHED}: HTTP ${res.status}`);
   return parseLive(await res.json());
@@ -107,7 +113,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const xml = readFileSync(sitemap, 'utf8');
   const urls = sitemapUrls(xml);
   const now = hashPages(urls, (file) => readFileSync(join(dist, file), 'utf8'));
-  const live = await livePages();
+  const origin = siteOrigin(urls);
+  const live = await livePages(origin);
   const pages = datePages(now, live, parseDay(new Date().toISOString().slice(0, 10)));
   writeFileSync(sitemap, withLastmod(xml, pages));
   writeFileSync(join(dist, PUBLISHED), JSON.stringify(pages));
@@ -115,7 +122,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   console.log(`${changed.length} of ${urls.length} pages new or changed`);
   const output = process.env.GITHUB_OUTPUT;
   if (output && changed.length > 0) {
-    writeFileSync(fileURLToPath(new URL('../indexnow.json', import.meta.url)), JSON.stringify(payload(changed)));
+    writeFileSync(fileURLToPath(new URL('../indexnow.json', import.meta.url)), JSON.stringify(payload(origin, changed)));
     appendFileSync(output, `changed=${changed.length}\n`);
   }
 }

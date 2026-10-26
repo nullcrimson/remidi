@@ -6,6 +6,7 @@ import {
   parseDay,
   parseLive,
   payload,
+  siteOrigin,
   sitemapUrls,
   withLastmod,
 } from '../scripts/indexnow';
@@ -47,8 +48,20 @@ describe('IndexNow for changed pages only', () => {
     expect(changedUrls(now, undefined)).toEqual(Object.keys(now));
   });
 
+  it('takes the site origin from the sitemap URLs', () => {
+    expect(siteOrigin(['https://drumverter.com/', 'https://drumverter.com/faq/'])).toBe('https://drumverter.com');
+  });
+
+  it('refuses a sitemap whose URLs are on two origins', () => {
+    expect(() => siteOrigin(['https://drumverter.com/', 'https://example.org/faq/'])).toThrow('2 origins');
+  });
+
+  it('refuses a sitemap with no URL', () => {
+    expect(() => siteOrigin([])).toThrow('0 origins');
+  });
+
   it('builds the IndexNow request body', () => {
-    expect(payload(['https://drumverter.com/faq/'])).toEqual({
+    expect(payload('https://drumverter.com', ['https://drumverter.com/faq/'])).toEqual({
       host: 'drumverter.com',
       key: 'b70482caafc9bdd6b2cc45b7fd07ddae',
       keyLocation: 'https://drumverter.com/b70482caafc9bdd6b2cc45b7fd07ddae.txt',
