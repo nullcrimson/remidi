@@ -17,3 +17,4 @@ anyhow = "1"
 
 [dev-dependencies]
 midiremap-testkit = { path = "../midiremap-testkit" }
+tempfile = "3"

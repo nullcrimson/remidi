@@ -1,7 +1,7 @@
 use std::{collections::BTreeSet, sync::LazyLock};
 
 use midiremap_core::{Catalog, Daw, EngineMap};
-use quick_xml::{events::Event, Reader, XmlVersion};
+use midiremap_testkit::xml::{self, Element};
 
 type Named = Vec<(u8, String)>;
 
@@ -12,62 +12,13 @@ fn played(map: &EngineMap) -> Named {
         .collect()
 }
 
-struct Element {
-    path: String,
-    attrs: Vec<(String, String)>,
-}
-
-impl Element {
-    fn attr(&self, key: &str) -> Option<&str> {
-        self.attrs
-            .iter()
-            .find(|(k, _)| k == key)
-            .map(|(_, v)| v.as_str())
-    }
-}
-
-fn elements(xml: &str) -> Vec<Element> {
-    let mut reader = Reader::from_str(xml);
-    let mut stack: Vec<String> = Vec::new();
-    let mut out = Vec::new();
-    loop {
-        let event = reader.read_event().unwrap();
-        let (tag, open) = match &event {
-            Event::Start(e) => (e, true),
-            Event::Empty(e) => (e, false),
-            Event::End(_) => {
-                stack.pop();
-                continue;
-            }
-            Event::Eof => return out,
-            _ => continue,
-        };
-        let attrs: Vec<(String, String)> = tag
-            .attributes()
-            .map(|a| {
-                let a = a.unwrap();
-                (
-                    a.key.as_ref().to_owned(),
-                    a.normalized_value(XmlVersion::Explicit1_0)
-                        .unwrap()
-                        .into_owned(),
-                )
-            })
-            .collect();
-        let name = tag.name().as_ref().to_owned();
-        let step = match attrs.iter().find(|(k, _)| k == "name") {
+fn elements(text: &str) -> Vec<Element> {
+    xml::elements(text, |name, attrs| {
+        match attrs.iter().find(|(k, _)| k == "name") {
             Some((_, v)) if name != "Music.PitchName" => format!("{name}[{v}]"),
-            _ => name,
-        };
-        stack.push(step);
-        out.push(Element {
-            path: stack.join("/"),
-            attrs,
-        });
-        if !open {
-            stack.pop();
+            _ => name.to_owned(),
         }
-    }
+    })
 }
 
 fn reaper_notes(text: &str) -> Named {

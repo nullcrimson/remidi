@@ -1,6 +1,11 @@
 //! Builds and reads small Standard MIDI Files for tests, and the engine maps they play
 //! on. Channels are numbered `1..=16` as people count them.
 
+pub mod layers;
+pub mod xml;
+
+use std::collections::BTreeMap;
+
 use midly::{
     num::{u15, u28, u4, u7},
     Format, Header, MidiMessage, Smf, Timing, Track, TrackEvent, TrackEventKind,
@@ -139,6 +144,58 @@ pub fn hit_keys(bytes: &[u8]) -> Vec<u8> {
         .collect()
 }
 
+/// How many note-ons with a velocity the file holds, over all its tracks.
+pub fn hits(bytes: &[u8]) -> u32 {
+    let count = parse(bytes)
+        .tracks
+        .iter()
+        .flatten()
+        .filter(|ev| {
+            matches!(
+                ev.kind,
+                TrackEventKind::Midi {
+                    message: MidiMessage::NoteOn { vel, .. },
+                    ..
+                } if vel.as_int() > 0
+            )
+        })
+        .count();
+    u32::try_from(count).expect("a test file has fewer than 2^32 events")
+}
+
+const EVERY_NOTE_LEAD: u32 = 10;
+const EVERY_NOTE_TAIL: u32 = 5;
+const EVERY_NOTE_STEP: u32 = EVERY_NOTE_LEAD + EVERY_NOTE_TAIL;
+
+/// A drum file that hits every note `0..=127` once, in order, each on its own beat of
+/// `EVERY_NOTE_LEAD + EVERY_NOTE_TAIL` ticks.
+pub fn every_note() -> Vec<u8> {
+    let hits: Vec<_> = (0..=127)
+        .flat_map(|note| [(EVERY_NOTE_LEAD, on(note)), (EVERY_NOTE_TAIL, off(note))])
+        .collect();
+    drums(&hits)
+}
+
+/// Read back from a file made of `every_note`: the key each hit came out on, by the note it
+/// was in `every_note`.
+pub fn every_note_keys(bytes: &[u8]) -> BTreeMap<u8, u8> {
+    let mut time = 0;
+    let mut out = BTreeMap::new();
+    for (delta, _, message) in events(bytes, 0) {
+        time += delta;
+        if let MidiMessage::NoteOn { key, vel } = message {
+            if vel.as_int() > 0 {
+                let beat = (time - EVERY_NOTE_LEAD) / EVERY_NOTE_STEP;
+                out.insert(
+                    u8::try_from(beat).expect("every_note has 128 beats"),
+                    key.as_int(),
+                );
+            }
+        }
+    }
+    out
+}
+
 /// An engine map as `EngineMap::from_json` reads it, named by its id, playing each
 /// `(note, drum key)` pair; set more fields on the value before reading it.
 pub fn engine_json(id: &str, notes: &[(u8, &str)]) -> serde_json::Value {
@@ -201,6 +258,21 @@ mod tests {
             (0, on(38)),
         ]);
         assert_eq!(hit_keys(&bytes), vec![36, 38]);
+    }
+
+    #[test]
+    fn hits_count_note_ons_with_a_velocity_on_every_track() {
+        let bytes = tracks(&[
+            &[(0, 10, on(36)), (0, 10, silent_on(36)), (0, 10, off(36))],
+            &[(0, 2, on(40)), (0, 2, choke(49))],
+        ]);
+        assert_eq!(hits(&bytes), 2);
+    }
+
+    #[test]
+    fn every_note_reads_back_as_itself() {
+        let identity: BTreeMap<u8, u8> = (0..=127).map(|n| (n, n)).collect();
+        assert_eq!(every_note_keys(&every_note()), identity);
     }
 
     #[test]

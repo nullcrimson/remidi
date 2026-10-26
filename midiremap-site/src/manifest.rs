@@ -102,13 +102,6 @@ mod tests {
         SiteManifest::parse(SITE_JSON, Path::new("site.json")).unwrap()
     }
 
-    fn build_folder(name: &str) -> PathBuf {
-        let dir =
-            std::env::temp_dir().join(format!("midiremap-site-{name}-{}", std::process::id()));
-        fs::create_dir_all(&dir).unwrap();
-        dir
-    }
-
     #[test]
     fn parses_the_stylesheet_and_policy_from_the_site_data() {
         let manifest = parsed();
@@ -149,21 +142,19 @@ mod tests {
 
     #[test]
     fn reads_the_index_and_the_site_data_from_the_build_folder() {
-        let dir = build_folder("complete");
-        fs::write(dir.join("index.html"), "<html></html>").unwrap();
-        fs::write(dir.join("site.json"), SITE_JSON).unwrap();
-        let build = AppBuild::read(&dir).unwrap();
-        fs::remove_dir_all(&dir).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("index.html"), "<html></html>").unwrap();
+        fs::write(dir.path().join("site.json"), SITE_JSON).unwrap();
+        let build = AppBuild::read(dir.path()).unwrap();
         assert_eq!(build.index_html, "<html></html>");
         assert_eq!(build.manifest.analytics.len(), 2);
     }
 
     #[test]
     fn a_build_folder_without_the_site_data_asks_for_the_app_build() {
-        let dir = build_folder("no-site-json");
-        fs::write(dir.join("index.html"), "<html></html>").unwrap();
-        let err = AppBuild::read(&dir).err().unwrap();
-        fs::remove_dir_all(&dir).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("index.html"), "<html></html>").unwrap();
+        let err = AppBuild::read(dir.path()).err().unwrap();
         assert!(matches!(err, ManifestError::Unreadable { .. }), "{err}");
         assert!(err.to_string().contains("site.json"), "{err}");
         assert!(err.to_string().contains("run the app build first"), "{err}");
@@ -171,10 +162,9 @@ mod tests {
 
     #[test]
     fn a_build_folder_without_the_index_asks_for_the_app_build() {
-        let dir = build_folder("no-index");
-        fs::write(dir.join("site.json"), SITE_JSON).unwrap();
-        let err = AppBuild::read(&dir).err().unwrap();
-        fs::remove_dir_all(&dir).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("site.json"), SITE_JSON).unwrap();
+        let err = AppBuild::read(dir.path()).err().unwrap();
         assert!(matches!(err, ManifestError::Unreadable { .. }), "{err}");
         assert!(err.to_string().contains("index.html"), "{err}");
         assert!(err.to_string().contains("run the app build first"), "{err}");

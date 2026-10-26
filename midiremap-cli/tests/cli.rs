@@ -1,4 +1,4 @@
-use std::process::Command;
+use std::process::{Command, Output};
 
 use midiremap_testkit::{drums, hit_keys, off, on};
 
@@ -10,6 +10,41 @@ fn one_kick_smf() -> Vec<u8> {
 
 fn one_note_smf(note: u8) -> Vec<u8> {
     drums(&[(0, on(note)), (48, off(note))])
+}
+
+const PAIR: [&str; 2] = ["ggd_invasion", "ezdrummer"];
+
+/// Runs `convert` on `input` from one engine to the other, with an edits file passed after
+/// its flag, and returns the run and the file it wrote.
+fn run(
+    input: &[u8],
+    engines: [&str; 2],
+    edits: Option<(&str, &str)>,
+    extra: &[&str],
+) -> (Output, Vec<u8>) {
+    let dir = tempfile::tempdir().unwrap();
+    let in_path = dir.path().join("in.mid");
+    let out_path = dir.path().join("out.mid");
+    let edits_path = dir.path().join("edits.drumverter.json");
+    std::fs::write(&in_path, input).unwrap();
+    let mut command = Command::new(BIN);
+    command.args([
+        "convert",
+        in_path.to_str().unwrap(),
+        engines[0],
+        engines[1],
+        out_path.to_str().unwrap(),
+    ]);
+    if let Some((flag, contents)) = edits {
+        std::fs::write(&edits_path, contents).unwrap();
+        command.args([flag, edits_path.to_str().unwrap()]);
+    }
+    let out = command.args(extra).output().unwrap();
+    (out, std::fs::read(&out_path).unwrap_or_default())
+}
+
+fn convert_note(note: u8, extra: &[&str]) -> (Output, Vec<u8>) {
+    run(&one_note_smf(note), PAIR, None, extra)
 }
 
 #[test]
@@ -31,7 +66,7 @@ fn lists_builtin_engines() {
 
 #[test]
 fn converting_a_file_succeeds() {
-    let (out, _) = convert_note("end_to_end_status", 24, &[]);
+    let (out, _) = convert_note(24, &[]);
     assert!(
         out.status.success(),
         "stderr: {}",
@@ -41,14 +76,14 @@ fn converting_a_file_succeeds() {
 
 #[test]
 fn converting_a_file_prints_the_report_on_stderr() {
-    let (out, _) = convert_note("end_to_end_report", 24, &[]);
+    let (out, _) = convert_note(24, &[]);
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(err.contains("unmappedSource"), "report missing: {err}");
 }
 
 #[test]
 fn converting_a_file_writes_the_converted_notes() {
-    let (_, bytes) = convert_note("end_to_end_notes", 24, &[]);
+    let (_, bytes) = convert_note(24, &[]);
     assert_eq!(hit_keys(&bytes), vec![36]);
 }
 
@@ -56,37 +91,17 @@ fn first_note_on(bytes: &[u8]) -> u8 {
     hit_keys(bytes)[0]
 }
 
-fn convert_with_overrides(name: &str, overrides: &str) -> (std::process::Output, Vec<u8>) {
-    let dir = std::env::temp_dir();
-    let pid = std::process::id();
-    let in_path = dir.join(format!("midiremap_{name}_in_{pid}.mid"));
-    let out_path = dir.join(format!("midiremap_{name}_out_{pid}.mid"));
-    let ov_path = dir.join(format!("midiremap_{name}_ov_{pid}.json"));
-    std::fs::write(&in_path, one_kick_smf()).unwrap();
-    std::fs::write(&ov_path, overrides).unwrap();
-    let out = Command::new(BIN)
-        .args([
-            "convert",
-            in_path.to_str().unwrap(),
-            "ggd_invasion",
-            "ezdrummer",
-            out_path.to_str().unwrap(),
-            "--overrides",
-            ov_path.to_str().unwrap(),
-        ])
-        .output()
-        .unwrap();
-    let bytes = std::fs::read(&out_path).unwrap_or_default();
-    for p in [in_path, out_path, ov_path] {
-        let _ = std::fs::remove_file(p);
-    }
-    (out, bytes)
-}
-
 #[test]
 fn overrides_file_retargets_a_drum() {
-    let (out, bytes) =
-        convert_with_overrides("ov_ok", r#"{"tgt":[{"canon":"kick.main","note":35}]}"#);
+    let (out, bytes) = run(
+        &one_kick_smf(),
+        PAIR,
+        Some((
+            "--overrides",
+            r#"{"tgt":[{"canon":"kick.main","note":35}]}"#,
+        )),
+        &[],
+    );
     assert!(
         out.status.success(),
         "stderr: {}",
@@ -97,48 +112,31 @@ fn overrides_file_retargets_a_drum() {
 
 #[test]
 fn invalid_overrides_file_fails_with_its_path() {
-    let (out, _) =
-        convert_with_overrides("ov_bad", r#"{"tgt":[{"canon":"kick.main","note":200}]}"#);
+    let (out, _) = run(
+        &one_kick_smf(),
+        PAIR,
+        Some((
+            "--overrides",
+            r#"{"tgt":[{"canon":"kick.main","note":200}]}"#,
+        )),
+        &[],
+    );
     assert!(!out.status.success());
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(err.contains("invalid overrides"), "stderr: {err}");
     assert!(err.contains("0..=127"), "stderr: {err}");
 }
 
-fn convert_note(name: &str, note: u8, extra: &[&str]) -> (std::process::Output, Vec<u8>) {
-    let dir = std::env::temp_dir();
-    let pid = std::process::id();
-    let in_path = dir.join(format!("midiremap_{name}_in_{pid}.mid"));
-    let out_path = dir.join(format!("midiremap_{name}_out_{pid}.mid"));
-    std::fs::write(&in_path, one_note_smf(note)).unwrap();
-    let out = Command::new(BIN)
-        .args([
-            "convert",
-            in_path.to_str().unwrap(),
-            "ggd_invasion",
-            "ezdrummer",
-            out_path.to_str().unwrap(),
-        ])
-        .args(extra)
-        .output()
-        .unwrap();
-    let bytes = std::fs::read(&out_path).unwrap_or_default();
-    for p in [in_path, out_path] {
-        let _ = std::fs::remove_file(p);
-    }
-    (out, bytes)
-}
-
 #[test]
 fn missing_drums_default_to_the_nearest_drum() {
-    let (out, bytes) = convert_note("missing_default", 65, &[]);
+    let (out, bytes) = convert_note(65, &[]);
     assert!(out.status.success());
     assert_eq!(hit_keys(&bytes), vec![86]);
 }
 
 #[test]
 fn missing_drop_leaves_a_swapped_drum_out() {
-    let (out, bytes) = convert_note("missing_drop", 65, &["--missing", "drop"]);
+    let (out, bytes) = convert_note(65, &["--missing", "drop"]);
     assert!(
         out.status.success(),
         "stderr: {}",
@@ -149,14 +147,14 @@ fn missing_drop_leaves_a_swapped_drum_out() {
 
 #[test]
 fn missing_drop_reports_the_swapped_drum() {
-    let (out, _) = convert_note("missing_drop_report", 65, &["--missing", "drop"]);
+    let (out, _) = convert_note(65, &["--missing", "drop"]);
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(err.contains("china.1.hit"), "report: {err}");
 }
 
 #[test]
 fn unknown_missing_value_is_rejected() {
-    let (out, _) = convert_note("missing_bad", 65, &["--missing", "maybe"]);
+    let (out, _) = convert_note(65, &["--missing", "maybe"]);
     assert!(!out.status.success());
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(
@@ -167,14 +165,14 @@ fn unknown_missing_value_is_rejected() {
 
 #[test]
 fn unrecognized_notes_are_removed_by_default() {
-    let (out, bytes) = convert_note("unrecognized_default", 99, &[]);
+    let (out, bytes) = convert_note(99, &[]);
     assert!(out.status.success());
     assert!(hit_keys(&bytes).is_empty());
 }
 
 #[test]
 fn unrecognized_keep_writes_the_note_out_unchanged() {
-    let (out, bytes) = convert_note("unrecognized_keep", 99, &["--unrecognized", "keep"]);
+    let (out, bytes) = convert_note(99, &["--unrecognized", "keep"]);
     assert!(
         out.status.success(),
         "stderr: {}",
@@ -185,14 +183,14 @@ fn unrecognized_keep_writes_the_note_out_unchanged() {
 
 #[test]
 fn unrecognized_keep_still_reports_the_note() {
-    let (out, _) = convert_note("unrecognized_keep_report", 99, &["--unrecognized", "keep"]);
+    let (out, _) = convert_note(99, &["--unrecognized", "keep"]);
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(err.contains(r#""99": 1"#), "report: {err}");
 }
 
 #[test]
 fn unknown_unrecognized_value_is_rejected() {
-    let (out, _) = convert_note("unrecognized_bad", 99, &["--unrecognized", "maybe"]);
+    let (out, _) = convert_note(99, &["--unrecognized", "maybe"]);
     assert!(!out.status.success());
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(
@@ -203,42 +201,9 @@ fn unknown_unrecognized_value_is_rejected() {
 
 const PRESET: &str = include_str!("../../midiremap-core/tests/golden/my-kit.drumverter.json");
 
-fn convert_with_preset(
-    name: &str,
-    preset: &str,
-    engines: [&str; 2],
-    extra: &[&str],
-) -> (std::process::Output, Vec<u8>) {
-    let dir = std::env::temp_dir();
-    let pid = std::process::id();
-    let in_path = dir.join(format!("midiremap_{name}_in_{pid}.mid"));
-    let out_path = dir.join(format!("midiremap_{name}_out_{pid}.mid"));
-    let preset_path = dir.join(format!("midiremap_{name}_{pid}.drumverter.json"));
-    std::fs::write(&in_path, one_kick_smf()).unwrap();
-    std::fs::write(&preset_path, preset).unwrap();
-    let out = Command::new(BIN)
-        .args([
-            "convert",
-            in_path.to_str().unwrap(),
-            engines[0],
-            engines[1],
-            out_path.to_str().unwrap(),
-            "--preset",
-            preset_path.to_str().unwrap(),
-        ])
-        .args(extra)
-        .output()
-        .unwrap();
-    let bytes = std::fs::read(&out_path).unwrap_or_default();
-    for p in [in_path, out_path, preset_path] {
-        let _ = std::fs::remove_file(p);
-    }
-    (out, bytes)
-}
-
 #[test]
 fn a_preset_exported_by_the_app_applies_its_edits() {
-    let (out, bytes) = convert_with_preset("preset_ok", PRESET, ["ggd_invasion", "ezdrummer"], &[]);
+    let (out, bytes) = run(&one_kick_smf(), PAIR, Some(("--preset", PRESET)), &[]);
     assert!(
         out.status.success(),
         "stderr: {}",
@@ -253,8 +218,12 @@ fn a_preset_exported_by_the_app_applies_its_edits() {
 
 #[test]
 fn a_preset_for_other_engines_is_refused() {
-    let (out, _) =
-        convert_with_preset("preset_pair", PRESET, ["ggd_invasion", "general_midi"], &[]);
+    let (out, _) = run(
+        &one_kick_smf(),
+        ["ggd_invasion", "general_midi"],
+        Some(("--preset", PRESET)),
+        &[],
+    );
     assert!(!out.status.success());
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(
@@ -266,7 +235,7 @@ fn a_preset_for_other_engines_is_refused() {
 #[test]
 fn a_preset_warns_about_skipped_edits() {
     let preset = PRESET.replace("\"kick.main\": 35", "\"bogus.drum\": 35");
-    let (out, _) = convert_with_preset("preset_skip", &preset, ["ggd_invasion", "ezdrummer"], &[]);
+    let (out, _) = run(&one_kick_smf(), PAIR, Some(("--preset", &preset)), &[]);
     assert!(out.status.success());
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(
@@ -277,10 +246,10 @@ fn a_preset_warns_about_skipped_edits() {
 
 #[test]
 fn preset_and_overrides_cannot_be_combined() {
-    let (out, _) = convert_with_preset(
-        "preset_both",
-        PRESET,
-        ["ggd_invasion", "ezdrummer"],
+    let (out, _) = run(
+        &one_kick_smf(),
+        PAIR,
+        Some(("--preset", PRESET)),
         &["--overrides", "x.json"],
     );
     assert!(!out.status.success());

@@ -128,7 +128,19 @@ version = "0.0.0"
 dependencies = [
  "libfuzzer-sys",
  "midiremap-core",
+ "midiremap-testkit",
  "midly",
+]
+
+[[package]]
+name = "midiremap-testkit"
+version = "0.1.0"
+dependencies = [
+ "midly",
+ "proc-macro2",
+ "quick-xml",
+ "serde_json",
+ "syn 2.0.119",
 ]
 
 [[package]]

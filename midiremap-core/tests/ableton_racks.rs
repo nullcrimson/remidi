@@ -7,14 +7,9 @@ use midiremap_core::{
     convert, note_name_rack, rack_file, Catalog, ChannelScope, FileStem, Mapping, MissingDrums,
     NonBlank, Note, Overrides, Packing, Unrecognized,
 };
-use midiremap_testkit::{drums, events, off, on};
-use midly::MidiMessage;
-use quick_xml::{events::Event, Reader};
+use midiremap_testkit::{every_note, every_note_keys, xml};
 use rayon::prelude::*;
 
-const LEAD: u32 = 10;
-const TAIL: u32 = 5;
-const STEP: u32 = LEAD + TAIL;
 const ENGINES: [&str; 5] = [
     "ggd_invasion",
     "ezdrummer",
@@ -47,61 +42,36 @@ struct Read {
     ids: Vec<String>,
 }
 
-fn attr(e: &quick_xml::events::BytesStart, key: &str) -> Option<String> {
-    e.attributes()
-        .flatten()
-        .find(|a| a.key.as_ref() == key)
-        .map(|a| a.value.into_owned())
-}
-
 fn read(xml: &str) -> Read {
-    let mut reader = Reader::from_str(xml);
-    let mut stack: Vec<String> = Vec::new();
-    let mut chains = Vec::new();
+    let mut chains: Vec<Chain> = Vec::new();
     let mut ids = Vec::new();
-    loop {
-        let (e, open) = match reader.read_event().unwrap() {
-            Event::Start(e) => (e, true),
-            Event::Empty(e) => (e, false),
-            Event::End(_) => {
-                stack.pop();
-                continue;
-            }
-            Event::Eof => break,
-            _ => continue,
-        };
-        let name = e.name().as_ref().to_owned();
-        stack.push(name.clone());
-        let path = stack.join("/");
-        let value = attr(&e, "Value");
+    for e in xml::elements(xml, |name, _| name.to_owned()) {
+        let value = e.attr("Value").map(str::to_owned);
         if matches!(
-            name.as_str(),
+            e.name.as_str(),
             "AutomationTarget" | "ModulationTarget" | "Pointee"
         ) {
-            ids.push(attr(&e, "Id").unwrap());
+            ids.push(e.attr("Id").unwrap().to_owned());
         }
-        if name == "MidiEffectBranchPreset" {
+        if e.name == "MidiEffectBranchPreset" {
             chains.push(Chain {
-                id: attr(&e, "Id").unwrap(),
+                id: e.attr("Id").unwrap().to_owned(),
                 ..Chain::default()
             });
         }
         if let Some(chain) = chains.last_mut() {
-            if path.ends_with("MidiEffectBranchPreset/Name") {
+            if e.path.ends_with("MidiEffectBranchPreset/Name") {
                 chain.name = value.clone().unwrap();
             }
-            if path.contains("ZoneSettings/KeyRange/") {
-                chain.keys.push((name.clone(), value.clone().unwrap()));
+            if e.path.contains("ZoneSettings/KeyRange/") {
+                chain.keys.push((e.name.clone(), value.clone().unwrap()));
             }
-            if path.ends_with("DevicePresets/AbletonDevicePreset/Device") {
+            if e.path.ends_with("DevicePresets/AbletonDevicePreset/Device") {
                 chain.devices += 1;
             }
-            if path.ends_with("MidiPitcher/Pitch/Manual") {
+            if e.path.ends_with("MidiPitcher/Pitch/Manual") {
                 chain.pitch = Some(value.unwrap().parse().unwrap());
             }
-        }
-        if !open {
-            stack.pop();
         }
     }
     Read { chains, ids }
@@ -158,23 +128,11 @@ fn preset(name: &str) -> NonBlank {
 }
 
 fn converted(mapping: &Mapping) -> BTreeMap<u8, u8> {
-    let hits: Vec<_> = (0..128u8)
-        .flat_map(|note| [(LEAD, on(note)), (TAIL, off(note))])
-        .collect();
-    let bytes = convert(&drums(&hits), mapping, ChannelScope::Auto)
-        .unwrap()
-        .bytes;
-    let mut time = 0;
-    let mut out = BTreeMap::new();
-    for (delta, _, message) in events(&bytes, 0) {
-        time += delta;
-        if let MidiMessage::NoteOn { key, vel } = message {
-            if vel.as_int() > 0 {
-                out.insert(u8::try_from((time - LEAD) / STEP).unwrap(), key.as_int());
-            }
-        }
-    }
-    out
+    every_note_keys(
+        &convert(&every_note(), mapping, ChannelScope::Auto)
+            .unwrap()
+            .bytes,
+    )
 }
 
 #[test]

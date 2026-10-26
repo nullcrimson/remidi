@@ -200,13 +200,6 @@ pub fn fingerprint(root: &Path, key: &str, reads: &Reads, toolchains: &str) -> R
 mod tests {
     use super::*;
 
-    fn scratch(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("xtask-memo-{name}-{}", std::process::id()));
-        let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(&dir).unwrap();
-        dir
-    }
-
     fn print(root: &Path) -> Fingerprint {
         let reads = Reads {
             sources: &[],
@@ -217,40 +210,44 @@ mod tests {
 
     #[test]
     fn a_changed_build_output_changes_the_fingerprint() {
-        let root = scratch("changed");
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
         fs::create_dir_all(root.join("out")).unwrap();
         fs::write(root.join("out/a.html"), "one").unwrap();
-        let before = print(&root);
-        assert_eq!(print(&root), before);
+        let before = print(root);
+        assert_eq!(print(root), before);
         fs::write(root.join("out/a.html"), "two").unwrap();
-        assert_ne!(print(&root), before);
+        assert_ne!(print(root), before);
     }
 
     #[test]
     fn a_missing_build_output_hashes_as_empty() {
-        let root = scratch("missing");
-        let empty = print(&root);
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let empty = print(root);
         fs::create_dir_all(root.join("out")).unwrap();
         fs::write(root.join("out/a.html"), "one").unwrap();
-        assert_ne!(print(&root), empty);
+        assert_ne!(print(root), empty);
     }
 
     #[test]
     fn the_toolchains_are_part_of_the_fingerprint() {
-        let root = scratch("tools");
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
         let reads = Reads {
             sources: &[],
             built: &[],
         };
         assert_ne!(
-            fingerprint(&root, "vitest", &reads, "node 24").unwrap(),
-            fingerprint(&root, "vitest", &reads, "node 25").unwrap()
+            fingerprint(root, "vitest", &reads, "node 24").unwrap(),
+            fingerprint(root, "vitest", &reads, "node 25").unwrap()
         );
     }
 
     #[test]
     fn a_pass_is_kept_and_a_failure_forgets_it() {
-        let root = scratch("passes");
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
         let path = root.join("passes.json");
         let fp = Fingerprint("abc".to_owned());
         let mut passes = Passes::load(path.clone());
@@ -264,7 +261,8 @@ mod tests {
 
     #[test]
     fn a_kept_build_holds_only_while_its_directory_is_as_it_left_it() {
-        let root = scratch("left");
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
         fs::create_dir_all(root.join("dist")).unwrap();
         fs::write(root.join("dist/index.html"), "built").unwrap();
         let read = Fingerprint("inputs".to_owned());
@@ -273,13 +271,13 @@ mod tests {
             .record(
                 "dist",
                 read.clone(),
-                Some(left(&root, "dist").unwrap()),
+                Some(left(root, "dist").unwrap()),
                 true,
             )
             .unwrap();
-        assert!(passes.has("dist", &read, Some(&left(&root, "dist").unwrap())));
+        assert!(passes.has("dist", &read, Some(&left(root, "dist").unwrap())));
         fs::remove_file(root.join("dist/index.html")).unwrap();
-        assert!(!passes.has("dist", &read, Some(&left(&root, "dist").unwrap())));
+        assert!(!passes.has("dist", &read, Some(&left(root, "dist").unwrap())));
     }
 
     #[test]

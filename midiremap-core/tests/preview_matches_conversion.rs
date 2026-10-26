@@ -3,13 +3,9 @@ use std::collections::BTreeMap;
 use midiremap_core::{
     convert, plan, Catalog, ChannelScope, EngineMap, Mapping, MissingDrums, Overrides,
 };
-use midiremap_testkit::{drums, events, off, on};
-use midly::MidiMessage;
+use midiremap_testkit::{every_note, every_note_keys};
 use rayon::prelude::*;
 
-const LEAD: u32 = 10;
-const TAIL: u32 = 5;
-const STEP: u32 = LEAD + TAIL;
 const OVERRIDES: &str = r#"{
     "src": [
         { "note": 24, "canon": "snare1.hit" },
@@ -21,28 +17,6 @@ const OVERRIDES: &str = r#"{
         { "canon": "kick.main", "note": 34 }
     ]
 }"#;
-
-fn every_note_smf() -> Vec<u8> {
-    let hits: Vec<_> = (0..128u8)
-        .flat_map(|note| [(LEAD, on(note)), (TAIL, off(note))])
-        .collect();
-    drums(&hits)
-}
-
-fn converted_by_source_note(bytes: &[u8]) -> BTreeMap<u8, u8> {
-    let mut time = 0;
-    let mut out = BTreeMap::new();
-    for (delta, _, message) in events(bytes, 0) {
-        time += delta;
-        if let MidiMessage::NoteOn { key, vel } = message {
-            if vel.as_int() > 0 {
-                let src = u8::try_from((time - LEAD) / STEP).unwrap();
-                out.insert(src, key.as_int());
-            }
-        }
-    }
-    out
-}
 
 fn previewed_by_source_note(
     src: &EngineMap,
@@ -73,7 +47,7 @@ fn previewed_by_source_note(
 fn assert_preview_matches_conversion(ov_json: &str, missing: MissingDrums) {
     let maps = Catalog::builtin().unwrap();
     let ov: Overrides = serde_json::from_str(ov_json).unwrap();
-    let midi = every_note_smf();
+    let midi = every_note();
     let ids: Vec<&str> = maps.ids().collect();
     ids.par_iter().for_each(|&src_id| {
         let src = maps.get(src_id).unwrap();
@@ -86,7 +60,7 @@ fn assert_preview_matches_conversion(ov_json: &str, missing: MissingDrums) {
             )
             .unwrap();
             assert_eq!(
-                converted_by_source_note(&converted.bytes),
+                every_note_keys(&converted.bytes),
                 previewed_by_source_note(src, tgt, &ov, missing),
                 "{src_id} -> {tgt_id} ({missing}): preview must equal conversion"
             );

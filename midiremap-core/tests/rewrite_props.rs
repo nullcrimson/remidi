@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use midiremap_core::{
     convert, Catalog, Channel, ChannelScope, Mapping, MissingDrums, Overrides, Unrecognized,
 };
-use midiremap_testkit::{cc, choke, event, off, on, silent_on, smf, DRUMS};
+use midiremap_testkit::{cc, choke, event, hits, off, on, silent_on, smf, DRUMS};
 use midly::{
     num::{u14, u24, u28, u7},
     MetaMessage, MidiMessage, PitchBend, Smf, TrackEvent, TrackEventKind,
@@ -255,23 +255,6 @@ fn balanced(track: &[(u64, TrackEventKind)]) -> bool {
         }
     }
     sounding.values().all(|&n| n == 0)
-}
-
-fn hits(bytes: &[u8]) -> u32 {
-    let count = absolute(bytes)
-        .iter()
-        .flatten()
-        .filter(|(_, kind)| {
-            matches!(
-                kind,
-                TrackEventKind::Midi {
-                    message: MidiMessage::NoteOn { vel, .. },
-                    ..
-                } if vel.as_int() > 0
-            )
-        })
-        .count();
-    u32::try_from(count).unwrap()
 }
 
 proptest! {

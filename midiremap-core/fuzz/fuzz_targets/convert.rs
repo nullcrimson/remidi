@@ -6,7 +6,8 @@ use libfuzzer_sys::fuzz_target;
 use midiremap_core::{
     convert, Catalog, Channel, ChannelScope, EngineMap, Mapping, MissingDrums, Overrides,
 };
-use midly::{MidiMessage, Smf, TrackEventKind};
+use midiremap_testkit::hits;
+use midly::Smf;
 
 static ENGINES: LazyLock<Vec<&EngineMap>> =
     LazyLock::new(|| Catalog::shared().unwrap().engines().collect());
@@ -28,24 +29,6 @@ fn setting(byte: u8) -> (MissingDrums, ChannelScope) {
     (missing, scope)
 }
 
-fn hits(smf: &Smf) -> u32 {
-    let count = smf
-        .tracks
-        .iter()
-        .flatten()
-        .filter(|ev| {
-            matches!(
-                ev.kind,
-                TrackEventKind::Midi {
-                    message: MidiMessage::NoteOn { vel, .. },
-                    ..
-                } if vel.as_int() > 0
-            )
-        })
-        .count();
-    u32::try_from(count).expect("a parsed file has fewer than 2^32 events")
-}
-
 fuzz_target!(|data: &[u8]| {
     let [src, tgt, byte, midi @ ..] = data else {
         return;
@@ -56,6 +39,5 @@ fuzz_target!(|data: &[u8]| {
         return;
     };
     Smf::parse(&out.bytes).expect("a converted file parses");
-    let input = Smf::parse(midi).expect("convert parsed this file");
-    assert_eq!(out.report.hits(), hits(&input));
+    assert_eq!(out.report.hits(), hits(midi));
 });
