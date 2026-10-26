@@ -70,6 +70,24 @@ test('the highlight of the row a moved stand-in\'s line jumps to fades away', as
   await expect(row).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 });
 
+test('with reduced motion the row highlight holds its shade instead of fading', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const standIn = await moveChinaStandIn(page);
+  await press(chinaLine(page).getByRole('button'));
+  const row = drumRow(page, standIn);
+  await expect(row).toHaveAttribute('data-flash', '');
+
+  const [atStart, nearEnd] = await row.evaluate((el) => {
+    const [flash] = el.getAnimations();
+    flash.pause();
+    return [0, 2300].map((ms) => {
+      flash.currentTime = ms;
+      return getComputedStyle(el).backgroundColor;
+    });
+  });
+  expect(nearEnd).toBe(atStart);
+});
+
 test('the done heading counts the drums edited in the editor', async ({ page }) => {
   await openPair(page);
   await addFiles(page, kickFile());
