@@ -426,7 +426,7 @@ notes = [ {} ]",
 
     #[test]
     fn drop_never_plays_another_drum_on_any_builtin_target() {
-        let catalog = Catalog::builtin().unwrap();
+        let catalog = Catalog::builtin();
         for id in catalog.ids() {
             let tgt = catalog.get(id).unwrap();
             let nearest = onto(tgt, MissingDrums::Nearest);
@@ -452,7 +452,7 @@ notes = [ {} ]",
 
     #[test]
     fn an_engine_resolves_a_drum_as_a_mapping_without_overrides_does() {
-        let catalog = Catalog::builtin().unwrap();
+        let catalog = Catalog::builtin();
         for map in catalog.engines() {
             for missing in [MissingDrums::Nearest, MissingDrums::Drop] {
                 let mapping = onto(map, missing);
@@ -684,7 +684,7 @@ notes = [ {} ]",
 
     #[test]
     fn a_drum_the_source_plays_and_the_target_lacks_is_dropped() {
-        let catalog = Catalog::builtin().unwrap();
+        let catalog = Catalog::builtin();
         let between = |src: &str, tgt: &str, missing| {
             Mapping::new(
                 catalog.get(src).unwrap(),

@@ -126,7 +126,7 @@ mod tests {
     };
 
     fn ggd_to_ezd(unrecognized: Unrecognized) -> Mapping<'static> {
-        let catalog = Catalog::shared().unwrap();
+        let catalog = Catalog::shared();
         Mapping::new(
             catalog.get("ggd_invasion").unwrap(),
             catalog.get("ezdrummer").unwrap(),

@@ -108,7 +108,7 @@ mod tests {
 
     #[test]
     fn lists_as_many_addresses_as_there_are_pages() {
-        let catalog = Catalog::builtin().unwrap();
+        let catalog = Catalog::builtin();
         let xml = sitemap_xml();
         let doc = roxmltree::Document::parse(xml).unwrap();
         let locs: Vec<&str> = locations(&doc);

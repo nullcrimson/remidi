@@ -97,7 +97,7 @@ mod tests {
     }
 
     fn ggd_to_ezd_with(ov: &str, missing: MissingDrums) -> Vec<VoicePlan> {
-        let b = Catalog::builtin().unwrap();
+        let b = Catalog::builtin();
         let ov: Overrides = serde_json::from_str(ov).unwrap();
         Mapping::new(
             b.get("ggd_invasion").unwrap(),
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn rows_follow_canon_declaration_order() {
-        let b = Catalog::builtin().unwrap();
+        let b = Catalog::builtin();
         let rows = Mapping::new(
             b.get("ggd_invasion").unwrap(),
             b.get("ggd_invasion").unwrap(),

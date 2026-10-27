@@ -34,7 +34,7 @@ fn richest_engine(maps: &Catalog) -> &str {
 
 #[test]
 fn ezdrummer2_is_the_richest_source_kit() {
-    let maps = Catalog::builtin().unwrap();
+    let maps = Catalog::builtin();
     let src_id = richest_engine(&maps);
     assert_eq!(
         src_id, "ezdrummer2",
@@ -44,7 +44,7 @@ fn ezdrummer2_is_the_richest_source_kit() {
 
 #[test]
 fn the_richest_source_kit_decodes_127_notes() {
-    let maps = Catalog::builtin().unwrap();
+    let maps = Catalog::builtin();
     let src_id = richest_engine(&maps);
     assert_eq!(
         maps.get(src_id).unwrap().source_notes().len(),
@@ -92,7 +92,7 @@ fn first_difference<'a>(actual: &'a [String], recorded: &'a str) -> Option<LineP
 
 #[test]
 fn every_note_of_the_richest_kit_lands_on_every_target_as_recorded() {
-    let maps = Catalog::builtin().unwrap();
+    let maps = Catalog::builtin();
     let src = maps.get(richest_engine(&maps)).unwrap();
     let notes: Vec<Note> = src.source_notes().iter().map(|d| d.note).collect();
     let midi = walkthrough_smf(&notes);
@@ -120,7 +120,7 @@ fn every_note_of_the_richest_kit_lands_on_every_target_as_recorded() {
 
 #[test]
 fn same_engine_conversion_is_all_direct() {
-    let maps = Catalog::builtin().unwrap();
+    let maps = Catalog::builtin();
     let src_id = richest_engine(&maps);
     let src = maps.get(src_id).unwrap();
     let notes: Vec<Note> = src.source_notes().iter().map(|d| d.note).collect();
@@ -144,7 +144,7 @@ fn same_engine_conversion_is_all_direct() {
 
 #[test]
 fn general_midi_maps_the_standard_anchor_notes() {
-    let maps = Catalog::builtin().unwrap();
+    let maps = Catalog::builtin();
     let gm = maps.get("general_midi").unwrap();
     let note = |key: &str| gm.encode(key.parse().unwrap()).map(Note::get);
     assert_eq!(note("kick.main"), Some(36));
@@ -160,7 +160,7 @@ fn general_midi_maps_the_standard_anchor_notes() {
 
 #[test]
 fn ride_bow_approximates_to_a_bow_tip_before_a_crash() {
-    let catalog = Catalog::builtin().unwrap();
+    let catalog = Catalog::builtin();
     let mapping = Mapping::new(
         catalog.get("addictive_drums2").unwrap(),
         catalog.get("ezdrummer").unwrap(),

@@ -7,7 +7,7 @@ use crate::{
     pages::Site,
 };
 
-static SITE: LazyLock<Site> = LazyLock::new(|| Site::build(&Catalog::builtin().unwrap()).unwrap());
+static SITE: LazyLock<Site> = LazyLock::new(|| Site::build(&Catalog::builtin()).unwrap());
 static MESSAGES: LazyLock<Messages> = LazyLock::new(|| Messages::load().unwrap());
 static DOCS: LazyLock<Docs> = LazyLock::new(|| Docs::load().unwrap());
 

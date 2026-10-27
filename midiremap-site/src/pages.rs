@@ -761,7 +761,7 @@ mod tests {
 
     #[test]
     fn one_page_per_engine_except_excluded() {
-        let maps = Catalog::builtin().unwrap();
+        let maps = Catalog::builtin();
         let s = site();
         assert_eq!(s.engines.len(), maps.ids().count() - EXCLUDED_IDS.len());
     }
@@ -825,7 +825,7 @@ mod tests {
         GzDecoder::new(drum_map_file("ggd_invasion", Daw::AbletonLive))
             .read_to_string(&mut xml)
             .unwrap();
-        let maps = Catalog::builtin().unwrap();
+        let maps = Catalog::builtin();
         assert_eq!(
             xml,
             Daw::AbletonLive.drum_map(maps.get("ggd_invasion").unwrap(), DOMAIN)
@@ -834,7 +834,7 @@ mod tests {
 
     #[test]
     fn text_drum_map_files_are_their_text() {
-        let maps = Catalog::builtin().unwrap();
+        let maps = Catalog::builtin();
         let invasion = maps.get("ggd_invasion").unwrap();
         for daw in [Daw::Reaper, Daw::Cubase, Daw::StudioOne] {
             assert_eq!(
@@ -868,7 +868,7 @@ mod tests {
         GzDecoder::new(bytes.as_slice())
             .read_to_string(&mut xml)
             .unwrap();
-        let maps = Catalog::builtin().unwrap();
+        let maps = Catalog::builtin();
         let expected = rack_file(
             &default_mapping(
                 maps.get("ggd_invasion").unwrap(),
@@ -1171,7 +1171,7 @@ mod tests {
 
     #[test]
     fn engine_rows_mark_exactly_one_main_note_per_drum() {
-        let maps = Catalog::builtin().unwrap();
+        let maps = Catalog::builtin();
         for p in &site().engines {
             let map = maps.get(&p.engine.id).unwrap();
             let mut mains: HashMap<Canon, usize> = HashMap::new();
@@ -1213,7 +1213,7 @@ mod tests {
 
     #[test]
     fn engine_page_rows_cover_every_source_note() {
-        let maps = Catalog::builtin().unwrap();
+        let maps = Catalog::builtin();
         for p in &site().engines {
             let total: usize = p.groups.iter().map(|g| g.rows.len()).sum();
             let map = maps.get(&p.engine.id).unwrap();
@@ -1336,7 +1336,7 @@ mod tests {
 
     #[test]
     fn index_majors_count_their_engines_notes() {
-        let maps = Catalog::builtin().unwrap();
+        let maps = Catalog::builtin();
         for m in &site().index.majors {
             assert_eq!(m.notes, maps.get(&m.link.id).unwrap().source_notes().len());
         }
@@ -1363,7 +1363,7 @@ mod tests {
 
     #[test]
     fn listed_engines_nest_every_variant_under_its_base() {
-        let maps = Catalog::builtin().unwrap();
+        let maps = Catalog::builtin();
         for e in &site().index.listed {
             let map = maps.get(&e.link.id).unwrap();
             assert!(maps.base_of(map).is_none(), "{}", e.link.id);
@@ -1376,7 +1376,7 @@ mod tests {
 
     #[test]
     fn listed_variants_carry_their_mapping_labels() {
-        let maps = Catalog::builtin().unwrap();
+        let maps = Catalog::builtin();
         for v in site().index.listed.iter().flat_map(|e| &e.variants) {
             let variant = maps.get(&v.link.id).unwrap();
             assert_eq!(Some(v.label.as_str()), variant.variant_label());
@@ -1554,7 +1554,7 @@ mod tests {
 
     #[test]
     fn pair_rows_agree_with_the_converter() {
-        let maps = Catalog::builtin().unwrap();
+        let maps = Catalog::builtin();
         let by_id: HashMap<&str, &EngineMap> = maps.engines().map(|m| (m.id(), m)).collect();
         for p in &site().pairs {
             let (src, tgt) = (by_id[p.src.id.as_str()], by_id[p.tgt.id.as_str()]);
@@ -1589,7 +1589,7 @@ mod tests {
 
     #[test]
     fn core_notes_agree_with_the_converter() {
-        let maps = Catalog::builtin().unwrap();
+        let maps = Catalog::builtin();
         let kit = core_kit();
         for p in &site().engines {
             let map = maps.get(&p.engine.id).unwrap();

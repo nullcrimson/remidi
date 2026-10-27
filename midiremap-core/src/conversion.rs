@@ -54,7 +54,7 @@ mod tests {
         tgt_id: &str,
         missing: MissingDrums,
     ) -> Converted {
-        let b = Catalog::builtin().unwrap();
+        let b = Catalog::builtin();
         let src = b.get(src_id).unwrap();
         let tgt = b.get(tgt_id).unwrap();
         convert(
@@ -66,7 +66,7 @@ mod tests {
     }
 
     fn convert_edited(mid: &[u8], overrides: &str) -> Converted {
-        let b = Catalog::builtin().unwrap();
+        let b = Catalog::builtin();
         let src = b.get("ggd_invasion").unwrap();
         let tgt = b.get("ezdrummer").unwrap();
         let overrides: Overrides = serde_json::from_str(overrides).unwrap();
@@ -176,7 +176,7 @@ mod tests {
     }
 
     fn convert_unrecognized(mid: &[u8], unrecognized: Unrecognized) -> Converted {
-        let b = Catalog::builtin().unwrap();
+        let b = Catalog::builtin();
         let mapping = Mapping::new(
             b.get("ggd_invasion").unwrap(),
             b.get("ezdrummer").unwrap(),

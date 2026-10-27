@@ -149,7 +149,7 @@ impl Pair {
     }
 
     fn mapping_with(&self, unrecognized: Unrecognized) -> Mapping<'static> {
-        let engine = |id| Catalog::shared().unwrap().get(id).unwrap();
+        let engine = |id| Catalog::shared().get(id).unwrap();
         Mapping::new(
             engine(self.src),
             engine(self.tgt),
@@ -161,7 +161,7 @@ impl Pair {
 }
 
 fn pair() -> impl Strategy<Value = Pair> {
-    let ids: Vec<&'static str> = Catalog::shared().unwrap().ids().collect();
+    let ids: Vec<&'static str> = Catalog::shared().ids().collect();
     let missing = prop_oneof![Just(MissingDrums::Nearest), Just(MissingDrums::Drop)];
     let unrecognized = prop_oneof![Just(Unrecognized::Remove), Just(Unrecognized::Keep)];
     (any::<Index>(), any::<Index>(), missing, unrecognized).prop_map(

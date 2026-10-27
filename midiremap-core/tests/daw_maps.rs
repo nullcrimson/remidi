@@ -91,7 +91,7 @@ fn read_back(daw: Daw, file: &str) -> Named {
     }
 }
 
-static CATALOG: LazyLock<Catalog> = LazyLock::new(|| Catalog::builtin().unwrap());
+static CATALOG: LazyLock<Catalog> = LazyLock::new(Catalog::builtin);
 const CREDIT: &str = "drumverter.com";
 
 fn invasion() -> &'static EngineMap {

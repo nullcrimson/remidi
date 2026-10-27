@@ -172,13 +172,12 @@ mod tests {
     const FIXTURE: &str = include_str!("../tests/golden/my-kit.drumverter.json");
 
     fn catalog() -> &'static Catalog {
-        Catalog::shared().unwrap()
+        Catalog::shared()
     }
 
     #[test]
     fn resolves_an_engine_alias_to_its_id() {
         let catalog = Catalog::builtin()
-            .unwrap()
             .with_user_json(
                 r#"{"id":"custom","name":"Custom","aliases":["old_kit"],"notes":[{"note":60,"canon":"kick.main","primary":true}]}"#,
             )

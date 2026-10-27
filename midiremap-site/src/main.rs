@@ -21,7 +21,7 @@ use std::{
 };
 
 use clap::Parser;
-use midiremap_core::{Catalog, MapError};
+use midiremap_core::Catalog;
 
 use crate::{
     i18n::{Docs, I18nError, Locale, Messages},
@@ -48,8 +48,6 @@ pub enum SiteError {
     Manifest(#[from] ManifestError),
     #[error(transparent)]
     Shell(#[from] ShellError),
-    #[error("the builtin engine maps are broken")]
-    Catalog(#[from] MapError),
     #[error(transparent)]
     Render(#[from] RenderError),
     #[error(transparent)]
@@ -77,7 +75,7 @@ fn run(out_dir: &Path) -> Result<usize, SiteError> {
         index_html,
         manifest,
     } = AppBuild::read(out_dir)?;
-    let site = Site::build(&Catalog::builtin()?)?;
+    let site = Site::build(Catalog::shared())?;
     let messages = Messages::load()?;
     let docs = Docs::load()?;
     let pages = render::render_site(&site, &manifest, &messages, &docs)?;

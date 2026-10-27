@@ -240,7 +240,7 @@ mod tests {
             &[(0, DRUMS, on(24)), (0, DRUMS, on(99)), (0, DRUMS, on(99))],
             &[(0, 1, on(26))],
         ]);
-        let catalog = Catalog::builtin().unwrap();
+        let catalog = Catalog::builtin();
         let hits = note_hits(&midi, ChannelScope::Auto).unwrap();
         let src = catalog.get("ggd_invasion").unwrap();
         let tgt = catalog.get("ezdrummer").unwrap();

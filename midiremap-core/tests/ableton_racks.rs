@@ -23,7 +23,7 @@ const OVERRIDES: &str = r#"{
     "srcEdits": { "24": "snare1.hit", "100": "china.1.hit" }
 }"#;
 
-static CATALOG: LazyLock<Catalog> = LazyLock::new(|| Catalog::builtin().unwrap());
+static CATALOG: LazyLock<Catalog> = LazyLock::new(Catalog::builtin);
 const CREDIT: &str = "drumverter.com";
 
 #[derive(Debug, Default)]

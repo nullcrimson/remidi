@@ -61,10 +61,6 @@ impl From<tsify::Error> for WasmError {
     }
 }
 
-fn catalog() -> Result<&'static Catalog, WasmError> {
-    Catalog::shared().map_err(|e| WasmError::Internal { detail: chain(e) })
-}
-
 fn engine<'a>(catalog: &'a Catalog, id: &str, role: Role) -> Result<&'a EngineMap, WasmError> {
     catalog.get(id).ok_or_else(|| WasmError::UnknownEngine {
         role,
@@ -145,7 +141,7 @@ pub fn remap(
         missing: from_js(missing, |detail| WasmError::BadMissing { detail })?,
         unrecognized: from_js(unrecognized, |detail| WasmError::Internal { detail })?,
     };
-    let out = convert_file(catalog()?, mid, src_id, tgt_id, &ov, &settings)?;
+    let out = convert_file(Catalog::shared(), mid, src_id, tgt_id, &ov, &settings)?;
     Ok(out.into_ts()?)
 }
 
@@ -169,7 +165,14 @@ pub fn remap_rack(
         .map_err(|e| WasmError::BadPreset {
             detail: e.to_string(),
         })?;
-    let mapping = mapping(catalog()?, src_id, tgt_id, &ov, missing, unrecognized)?;
+    let mapping = mapping(
+        Catalog::shared(),
+        src_id,
+        tgt_id,
+        &ov,
+        missing,
+        unrecognized,
+    )?;
     Ok(rack_file(&mapping, preset.as_ref()).into_ts()?)
 }
 
@@ -193,7 +196,13 @@ pub fn plan(
 ) -> Result<Vec<Ts<VoicePlan>>, WasmError> {
     let ov = from_js(overrides, |detail| WasmError::BadOverrides { detail })?;
     let missing = from_js(missing, |detail| WasmError::BadMissing { detail })?;
-    to_js_all(&voice_rows(catalog()?, src_id, tgt_id, &ov, missing)?)
+    to_js_all(&voice_rows(
+        Catalog::shared(),
+        src_id,
+        tgt_id,
+        &ov,
+        missing,
+    )?)
 }
 
 fn preset_view(json: &str, catalog: &Catalog) -> Result<LoadedPreset, WasmError> {
@@ -216,7 +225,7 @@ fn preset_view(json: &str, catalog: &Catalog) -> Result<LoadedPreset, WasmError>
 /// listed in `skipped`.
 #[wasm_bindgen]
 pub fn parse_preset_file(json: &str) -> Result<Ts<LoadedPreset>, WasmError> {
-    Ok(preset_view(json, catalog()?)?.into_ts()?)
+    Ok(preset_view(json, Catalog::shared())?.into_ts()?)
 }
 
 fn drums_of(catalog: &Catalog, id: &str, role: Role) -> Result<Vec<Drum>, WasmError> {
@@ -229,12 +238,12 @@ fn drums_of(catalog: &Catalog, id: &str, role: Role) -> Result<Vec<Drum>, WasmEr
 
 #[wasm_bindgen]
 pub fn engine_drums(tgt_id: &str) -> Result<Vec<Ts<Drum>>, WasmError> {
-    to_js_all(&drums_of(catalog()?, tgt_id, Role::Target)?)
+    to_js_all(&drums_of(Catalog::shared(), tgt_id, Role::Target)?)
 }
 
 #[wasm_bindgen]
 pub fn engine_notes(src_id: &str) -> Result<Vec<Ts<Drum>>, WasmError> {
-    to_js_all(&drums_of(catalog()?, src_id, Role::Source)?)
+    to_js_all(&drums_of(Catalog::shared(), src_id, Role::Source)?)
 }
 
 #[wasm_bindgen]
@@ -309,7 +318,7 @@ fn engines(catalog: &Catalog) -> Vec<Engine> {
 
 #[wasm_bindgen]
 pub fn engine_catalog() -> Result<Vec<Ts<Engine>>, WasmError> {
-    to_js_all(&engines(catalog()?))
+    to_js_all(&engines(Catalog::shared()))
 }
 
 /// The bytes of the files a fit is computed over.
@@ -335,7 +344,7 @@ pub fn source_fits(
 ) -> Result<Ts<SourceFits>, WasmError> {
     let MidiFiles(mids) = mids.to_rust()?;
     let scope = from_js(channel, |detail| WasmError::Internal { detail })?;
-    Ok(fits_of(catalog()?, &mids, scope).into_ts()?)
+    Ok(fits_of(Catalog::shared(), &mids, scope).into_ts()?)
 }
 
 fn sample_of(catalog: &Catalog, engine_id: &str) -> Result<Vec<u8>, WasmError> {
@@ -346,7 +355,7 @@ fn sample_of(catalog: &Catalog, engine_id: &str) -> Result<Vec<u8>, WasmError> {
 /// on, for trying the converter without a file of one's own.
 #[wasm_bindgen]
 pub fn sample_file(engine: &str) -> Result<Vec<u8>, WasmError> {
-    sample_of(catalog()?, engine)
+    sample_of(Catalog::shared(), engine)
 }
 
 #[cfg(test)]
@@ -358,7 +367,7 @@ mod tests {
 
     #[test]
     fn catalog_names_engines_by_display_name() {
-        let engines = engines(&Catalog::builtin().unwrap());
+        let engines = engines(&Catalog::builtin());
         let ezd = engines
             .iter()
             .find(|e| e.id.as_str() == "ezdrummer")
@@ -368,7 +377,7 @@ mod tests {
 
     #[test]
     fn catalog_keeps_the_full_name() {
-        let engines = engines(&Catalog::builtin().unwrap());
+        let engines = engines(&Catalog::builtin());
         let ezd = engines
             .iter()
             .find(|e| e.id.as_str() == "ezdrummer")
@@ -378,7 +387,7 @@ mod tests {
 
     #[test]
     fn catalog_gives_an_engine_without_a_short_name_the_same_name_and_full_name() {
-        let engines = engines(&Catalog::builtin().unwrap());
+        let engines = engines(&Catalog::builtin());
         let hertz = engines.iter().find(|e| e.id.as_str() == "hertz").unwrap();
         assert_eq!(hertz.name, hertz.full_name);
     }
@@ -387,10 +396,7 @@ mod tests {
 
     fn view_through_an_alias_with_a_bogus_edit() -> LoadedPreset {
         let with_alias = r#"{"id":"custom","name":"Custom","aliases":["old_kit"],"notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
-        let catalog = Catalog::builtin()
-            .unwrap()
-            .with_user_json(with_alias)
-            .unwrap();
+        let catalog = Catalog::builtin().with_user_json(with_alias).unwrap();
         let json = FIXTURE
             .replace("ggd_invasion", "old_kit")
             .replace("\"kick.main\": 35", "\"bogus.drum\": 35");
@@ -418,7 +424,7 @@ mod tests {
     #[test]
     fn a_rack_for_an_unknown_engine_is_an_unknown_engine_error() {
         let err = mapping(
-            &Catalog::builtin().unwrap(),
+            &Catalog::builtin(),
             "ggd_invasion",
             "gone",
             &Overrides::default(),
@@ -478,7 +484,7 @@ mod tests {
 
     #[test]
     fn preset_view_names_an_unknown_target_engine() {
-        let catalog = Catalog::builtin().unwrap();
+        let catalog = Catalog::builtin();
         let unknown = FIXTURE.replace("ezdrummer", "gone_engine");
         assert_eq!(
             preset_view(&unknown, &catalog).unwrap_err(),
@@ -491,7 +497,7 @@ mod tests {
 
     #[test]
     fn an_unknown_source_engine_error_names_its_role_and_id() {
-        let catalog = Catalog::builtin().unwrap();
+        let catalog = Catalog::builtin();
         let err = voice_rows(
             &catalog,
             "nope",
@@ -512,7 +518,7 @@ mod tests {
 
     #[test]
     fn an_unknown_target_engine_error_names_its_role_and_id() {
-        let catalog = Catalog::builtin().unwrap();
+        let catalog = Catalog::builtin();
         assert_eq!(
             drums_of(&catalog, "gone", Role::Target).err().unwrap(),
             WasmError::UnknownEngine {
@@ -562,7 +568,7 @@ mod tests {
 
     #[test]
     fn a_bad_midi_files_detail_carries_its_cause() {
-        let catalog = Catalog::builtin().unwrap();
+        let catalog = Catalog::builtin();
         let midi = convert_file(
             &catalog,
             b"garbage",
@@ -587,7 +593,7 @@ mod tests {
 
     fn converted_unrecognized(unrecognized: Unrecognized) -> Converted {
         convert_file(
-            &Catalog::builtin().unwrap(),
+            &Catalog::builtin(),
             &drums(&[(0, on(99))]),
             "ggd_invasion",
             "ezdrummer",
@@ -630,7 +636,7 @@ mod tests {
 
     #[test]
     fn a_bad_preset_files_detail_carries_its_cause() {
-        let catalog = Catalog::builtin().unwrap();
+        let catalog = Catalog::builtin();
         let WasmError::BadPreset { detail } = preset_view("{", &catalog).unwrap_err() else {
             panic!("not BadPreset");
         };
@@ -642,7 +648,7 @@ mod tests {
 
     fn ggd_fit(mids: &[&[u8]]) -> (u32, u32) {
         let mids: Vec<ByteBuf> = mids.iter().map(|mid| ByteBuf::from(*mid)).collect();
-        let fits = fits_of(&Catalog::builtin().unwrap(), &mids, ChannelScope::Auto);
+        let fits = fits_of(&Catalog::builtin(), &mids, ChannelScope::Auto);
         let ggd = fits
             .ranked()
             .iter()
@@ -666,7 +672,7 @@ mod tests {
 
     #[test]
     fn a_sample_is_recognized_whole_by_the_engine_it_was_made_for() {
-        let sample = sample_of(&Catalog::builtin().unwrap(), "ggd_invasion").unwrap();
+        let sample = sample_of(&Catalog::builtin(), "ggd_invasion").unwrap();
         let (recognized, hits) = ggd_fit(&[&sample]);
         assert!(hits > 0 && recognized == hits, "{recognized} of {hits}");
     }
@@ -674,7 +680,7 @@ mod tests {
     #[test]
     fn a_sample_for_an_unknown_engine_names_it_as_the_source() {
         assert_eq!(
-            sample_of(&Catalog::builtin().unwrap(), "gone").unwrap_err(),
+            sample_of(&Catalog::builtin(), "gone").unwrap_err(),
             WasmError::UnknownEngine {
                 role: Role::Source,
                 id: "gone".to_owned(),

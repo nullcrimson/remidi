@@ -219,7 +219,7 @@ impl<'a> Pair<'a> {
 
 #[test]
 fn every_builtin_pair_plays_the_agreed_stand_in_or_drops() {
-    let catalog = Catalog::builtin().unwrap();
+    let catalog = Catalog::builtin();
     let engines: Vec<&EngineMap> = catalog.engines().collect();
     let pairs: Vec<Pair> = engines
         .iter()
@@ -266,7 +266,7 @@ fn guitar_pro_pedal_hat_plays_on_the_benny_greb_pedal_hat() {
 }
 
 fn guitar_pro_to_benny_greb() -> impl Fn(&'static str) -> Option<u8> {
-    let catalog = Catalog::shared().unwrap();
+    let catalog = Catalog::shared();
     let mapping = Mapping::new(
         catalog.get("guitar_pro").unwrap(),
         catalog.get("ggd_bennygreb").unwrap(),

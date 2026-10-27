@@ -7,7 +7,7 @@ use crate::engine_map::{many_from_json, EngineMap, MapError};
 
 const EMBEDDED: &str = include_str!(concat!(env!("OUT_DIR"), "/engines.json"));
 
-static SHARED: LazyLock<Result<Catalog, MapError>> = LazyLock::new(Catalog::builtin);
+static SHARED: LazyLock<Catalog> = LazyLock::new(Catalog::builtin);
 
 /// Engine maps keyed by engine id, in id order; former ids resolve through each map's
 /// aliases.
@@ -17,14 +17,14 @@ pub struct Catalog {
 }
 
 impl Catalog {
-    /// Parses every `engines/*.toml`, embedded at build time.
-    pub fn builtin() -> Result<Self, MapError> {
-        Self::from_maps(many_from_json(EMBEDDED)?)
+    /// Every `engines/*.toml`, embedded at build time.
+    pub fn builtin() -> Self {
+        embedded().expect("the embedded engine maps load, as every_embedded_engine_loads proves")
     }
 
     /// The builtin catalog, parsed once per process.
-    pub fn shared() -> Result<&'static Self, &'static MapError> {
-        SHARED.as_ref()
+    pub fn shared() -> &'static Self {
+        &SHARED
     }
 
     /// Later maps with the same id replace earlier ones; fails on an alias that is also an
@@ -102,6 +102,10 @@ impl Catalog {
     }
 }
 
+fn embedded() -> Result<Catalog, MapError> {
+    Catalog::from_maps(many_from_json(EMBEDDED)?)
+}
+
 #[cfg(test)]
 mod tests {
     use midiremap_testkit::engine_json;
@@ -114,7 +118,7 @@ mod tests {
 
     #[test]
     fn every_builtin_names_its_vendor() {
-        let b = Catalog::builtin().unwrap();
+        let b = Catalog::builtin();
         for id in b.ids() {
             assert!(b.get(id).and_then(EngineMap::vendor).is_some(), "{id}");
         }
@@ -122,7 +126,7 @@ mod tests {
 
     #[test]
     fn general_midi_decodes_36_as_the_main_kick() {
-        let b = Catalog::builtin().unwrap();
+        let b = Catalog::builtin();
         assert_eq!(
             b.get("general_midi").unwrap().decode(n(36)),
             Some(Canon::Kick(KickKind::Main))
@@ -131,7 +135,7 @@ mod tests {
 
     #[test]
     fn general_midi_decodes_42_as_the_closed_hat() {
-        let b = Catalog::builtin().unwrap();
+        let b = Catalog::builtin();
         assert_eq!(
             b.get("general_midi").unwrap().decode(n(42)),
             Some(Canon::Hat(HatOpen::Closed, HatZone::Plain))
@@ -140,7 +144,7 @@ mod tests {
 
     #[test]
     fn guitar_pro_decodes_38_as_the_first_snare() {
-        let b = Catalog::builtin().unwrap();
+        let b = Catalog::builtin();
         assert_eq!(
             b.get("guitar_pro").unwrap().decode(n(38)),
             Some(Canon::Snare(idx(1), SnareArtic::Hit))
@@ -149,7 +153,7 @@ mod tests {
 
     #[test]
     fn ggd_cymbal_layout_is_fixed() {
-        let b = Catalog::builtin().unwrap();
+        let b = Catalog::builtin();
         let ggd = b.get("ggd_invasion").unwrap();
         assert_eq!(
             ggd.decode(n(54)),
@@ -171,7 +175,7 @@ mod tests {
 
     #[test]
     fn addictive_drums2_decodes_its_native_layout() {
-        let b = Catalog::builtin().unwrap();
+        let b = Catalog::builtin();
         let ad2 = b.get("addictive_drums2").unwrap();
         assert_eq!(
             ad2.decode(n(49)),
@@ -182,7 +186,7 @@ mod tests {
 
     #[test]
     fn addictive_drums2_encodes_its_native_layout() {
-        let b = Catalog::builtin().unwrap();
+        let b = Catalog::builtin();
         let ad2 = b.get("addictive_drums2").unwrap();
         assert_eq!(
             ad2.encode(Canon::Hat(HatOpen::Open(idx(1)), HatZone::Plain)),
@@ -193,7 +197,7 @@ mod tests {
     #[test]
     fn layered_override_shadows_base() {
         let json = r#"{"id":"ezdrummer","name":"Custom EZD","notes":[{"note":35,"canon":"kick.main","primary":true}]}"#;
-        let p = Catalog::builtin().unwrap().with_user_json(json).unwrap();
+        let p = Catalog::builtin().with_user_json(json).unwrap();
         let ezd = p.get("ezdrummer").unwrap();
         assert_eq!(ezd.name(), "Custom EZD");
         assert_eq!(ezd.encode(Canon::Kick(KickKind::Main)), Some(n(35)));
@@ -202,7 +206,7 @@ mod tests {
     #[test]
     fn layered_falls_through_to_base() {
         let json = r#"{"id":"custom","name":"Custom","notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
-        let p = Catalog::builtin().unwrap().with_user_json(json).unwrap();
+        let p = Catalog::builtin().with_user_json(json).unwrap();
         assert_eq!(
             p.get("ggd_invasion").unwrap().decode(n(24)),
             Some(Canon::Kick(KickKind::Main))
@@ -212,13 +216,13 @@ mod tests {
     #[test]
     fn layered_serves_the_added_engine() {
         let json = r#"{"id":"custom","name":"Custom","notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
-        let p = Catalog::builtin().unwrap().with_user_json(json).unwrap();
+        let p = Catalog::builtin().with_user_json(json).unwrap();
         assert!(p.get("custom").is_some());
     }
 
     fn catalog_with_an_alias() -> Catalog {
         let json = r#"{"id":"custom","name":"Custom","aliases":["legacy_kit"],"notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
-        Catalog::builtin().unwrap().with_user_json(json).unwrap()
+        Catalog::builtin().with_user_json(json).unwrap()
     }
 
     #[test]
@@ -255,21 +259,21 @@ mod tests {
     fn an_alias_may_not_shadow_an_engine_id() {
         let json = r#"{"id":"custom","name":"Custom","aliases":["ezdrummer"],"notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
         assert!(matches!(
-            Catalog::builtin().unwrap().with_user_json(json),
+            Catalog::builtin().with_user_json(json),
             Err(MapError::AliasCollision(alias)) if alias == "ezdrummer"
         ));
     }
 
     #[test]
     fn every_embedded_engine_loads() {
-        assert!(Catalog::builtin().is_ok());
+        assert!(embedded().is_ok());
     }
 
     #[test]
     fn layered_ids_are_union() {
         let json = r#"{"id":"custom","name":"Custom","notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
-        let p = Catalog::builtin().unwrap().with_user_json(json).unwrap();
-        let n = Catalog::builtin().unwrap().ids().count();
+        let p = Catalog::builtin().with_user_json(json).unwrap();
+        let n = Catalog::builtin().ids().count();
         assert_eq!(p.ids().count(), n + 1);
     }
 
@@ -286,7 +290,6 @@ mod tests {
             .collect();
         stems.sort_unstable();
         assert!(Catalog::builtin()
-            .unwrap()
             .ids()
             .eq(stems.iter().map(String::as_str)));
     }
@@ -306,19 +309,19 @@ mod tests {
 
     fn catalog_with_aaa_first() -> Catalog {
         let json = r#"{"id":"aaa_first","name":"First","notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
-        Catalog::builtin().unwrap().with_user_json(json).unwrap()
+        Catalog::builtin().with_user_json(json).unwrap()
     }
 
     #[test]
     fn shared_is_parsed_once() {
-        let shared = Catalog::shared().unwrap();
-        assert!(std::ptr::eq(shared, Catalog::shared().unwrap()));
+        let shared = Catalog::shared();
+        assert!(std::ptr::eq(shared, Catalog::shared()));
     }
 
     #[test]
     fn shared_holds_the_builtin_engines() {
-        let shared = Catalog::shared().unwrap();
-        assert!(shared.ids().eq(Catalog::builtin().unwrap().ids()));
+        let shared = Catalog::shared();
+        assert!(shared.ids().eq(Catalog::builtin().ids()));
     }
 
     fn kit(id: &str, variant_of: Option<&str>) -> EngineMap {

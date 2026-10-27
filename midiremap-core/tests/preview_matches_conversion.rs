@@ -37,7 +37,7 @@ fn previewed_by_source_note(
 }
 
 fn assert_preview_matches_conversion(ov_json: &str, missing: MissingDrums) {
-    let maps = Catalog::builtin().unwrap();
+    let maps = Catalog::builtin();
     let ov: Overrides = serde_json::from_str(ov_json).unwrap();
     let midi = every_note();
     let ids: Vec<&str> = maps.ids().collect();

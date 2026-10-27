@@ -10,7 +10,7 @@ use midiremap_testkit::hits;
 use midly::Smf;
 
 static ENGINES: LazyLock<Vec<&EngineMap>> =
-    LazyLock::new(|| Catalog::shared().unwrap().engines().collect());
+    LazyLock::new(|| Catalog::shared().engines().collect());
 
 fn engine(pick: u8) -> &'static EngineMap {
     ENGINES[usize::from(pick) % ENGINES.len()]

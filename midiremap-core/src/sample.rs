@@ -134,7 +134,7 @@ mod tests {
 
     #[test]
     fn every_builtin_engines_sample_parses_and_that_engine_recognizes_its_every_hit() {
-        let catalog = Catalog::builtin().unwrap();
+        let catalog = Catalog::builtin();
         let unrecognized: Vec<String> = catalog
             .engines()
             .filter_map(|engine| {
@@ -160,7 +160,7 @@ mod tests {
 
     #[test]
     fn the_sample_plays_the_engines_own_kick_snare_closed_hat_and_crash() {
-        let catalog = Catalog::builtin().unwrap();
+        let catalog = Catalog::builtin();
         let gm = catalog.get("general_midi").unwrap();
         let keys: BTreeSet<u8> = hit_keys(&sample_file(gm)).into_iter().collect();
         let own: BTreeSet<u8> = Voice::VARIANTS

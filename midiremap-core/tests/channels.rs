@@ -8,7 +8,7 @@ use midly::num::u28;
 const BASS: u8 = 1;
 
 fn ggd_to_ezd(midi: &[u8], scope: ChannelScope) -> Result<Converted, CodecError> {
-    let b = Catalog::builtin().unwrap();
+    let b = Catalog::builtin();
     let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
     convert(
         midi,
