@@ -1,6 +1,12 @@
 use plist::{Dictionary, Value};
+use uuid::Uuid;
 
-use crate::{engine_map::EngineMap, family::Family, note::Note};
+use crate::{
+    canon::{PercKind, Piece, RackIdx},
+    engine_map::EngineMap,
+    family::Family,
+    note::Note,
+};
 
 /// The steps of each row, all off: a template holds rows, not a groove.
 const STEPS: usize = 16;
@@ -8,8 +14,6 @@ const STEPS: usize = 16;
 const ROW_BASE_NOTE: i64 = 60;
 /// The status byte Logic keeps under a row's note in its note id.
 const NOTE_ON: i64 = 0x90;
-/// The low half of a row icon: the icon's own colour.
-const ICON_COLOUR: i64 = 0xFFFF_FFFF;
 /// The pattern's length and time signature as Logic stores them: one bar of 4/4.
 const TIME_SIGNATURE: [u8; 24] = [
     4, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0x80, 0, 0, 0, 0, 0, 0, 0,
@@ -19,23 +23,40 @@ const ROW_SORT_STATE: [u8; 24] = [
     1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ];
 
-/// The pictures Logic shows beside a row: the row's icon and its instrument icon.
-struct Icon {
-    row: i64,
-    instrument: i64,
+/// The colour of a row of `family`: Logic's own colours for kick, snare, hats, cymbals and
+/// percussion, toms between hats and cymbals.
+fn row_colour(family: Family) -> i64 {
+    let colour = match family {
+        Family::Kick => 0x49,
+        Family::Snare => 0x4B,
+        Family::HiHat => 0x4D,
+        Family::Aux => 0x4F,
+        Family::Toms => 0x51,
+        Family::Cymbals => 0x53,
+        Family::Percussion => 0x57,
+    };
+    colour << 32 | 0xFFFF_FFFF
 }
 
-fn icon(family: Family) -> Icon {
-    let (row, instrument) = match family {
-        Family::Kick => (0x49, 4521),
-        Family::Snare | Family::Toms => (0x4B, 4524),
-        Family::HiHat => (0x4D, 4526),
-        Family::Cymbals => (0x53, 4530),
-        Family::Percussion | Family::Aux => (0x57, 4456),
-    };
-    Icon {
-        row: row << 32 | ICON_COLOUR,
-        instrument,
+/// The picture Logic draws beside a row of `piece`.
+fn instrument_icon(piece: Piece) -> i64 {
+    match piece {
+        Piece::Kick => 4521,
+        Piece::Snare => 4524,
+        Piece::RackTom(i) if i == RackIdx::FIRST => 4541,
+        Piece::RackTom(_) => 4542,
+        Piece::FloorTom => 4543,
+        Piece::HatClosed => 4526,
+        Piece::HatOpen => 4527,
+        Piece::HatPedal => 4528,
+        Piece::Crash => 4530,
+        Piece::Ride => 4531,
+        Piece::OtherCymbal => 4529,
+        Piece::Perc(PercKind::Tambourine | PercKind::Shaker | PercKind::Vibraslap) => 4533,
+        Piece::Perc(PercKind::Clap) => 4534,
+        Piece::Perc(PercKind::Cowbell) => 4536,
+        Piece::Perc(PercKind::Sticks) => 4537,
+        Piece::Perc(PercKind::Misc) => 4535,
     }
 }
 
@@ -52,14 +73,17 @@ fn int(value: i64) -> Value {
     Value::Integer(value.into())
 }
 
-/// The id Logic keys a row's open state by; one per note, so unique in the file.
-fn row_id(note: Note) -> String {
-    format!("6D726D70-0000-4000-8000-{:012X}", note.get())
+/// The id Logic keys a row by: one per engine and note, so no two rows Logic knows share one.
+fn row_id(engine: &str, note: Note) -> String {
+    let name = format!("https://drumverter.com/drum-maps/{engine}/{}", note.get());
+    format!(
+        "{:X}",
+        Uuid::new_v5(&Uuid::NAMESPACE_URL, name.as_bytes()).hyphenated()
+    )
 }
 
-fn row(note: Note, name: String, family: Family) -> Value {
+fn row(engine: &str, note: Note, name: String, family: Family, piece: Piece) -> Value {
     let from_base = i64::from(note.get()) - ROW_BASE_NOTE;
-    let icon = icon(family);
     let empty_step = dict([
         ("kStepSequenceSelectedKey", false.into()),
         ("kStepSequenceSkipEnabledKey", false.into()),
@@ -72,15 +96,18 @@ fn row(note: Note, name: String, family: Family) -> Value {
     ]);
     dict([
         ("kStepSequenceEndIndexKey", int(STEPS as i64)),
-        ("kStepSequenceInstrumentIconKey", int(icon.instrument)),
+        (
+            "kStepSequenceInstrumentIconKey",
+            int(instrument_icon(piece)),
+        ),
         (
             "kStepSequenceNoteIDKey",
             int(i64::from(note.get()) << 8 | NOTE_ON),
         ),
-        ("kStepSequenceRowIconKey", int(icon.row)),
+        ("kStepSequenceRowIconKey", int(row_colour(family))),
         ("kStepSequenceRowNameKey", name.into()),
         ("kStepSequenceRowPlaybackStateKey", int(0)),
-        ("kStepSequenceRowUUIDKey", row_id(note).into()),
+        ("kStepSequenceRowUUIDKey", row_id(engine, note).into()),
         ("kStepSequenceSelectedKey", false.into()),
         ("kStepSequenceStartIndexKey", int(0)),
         (
@@ -159,14 +186,14 @@ pub(super) fn step_sequencer(map: &EngineMap) -> String {
                 ("kStepSequencerRowStateSubRowsExpandedKey", false.into()),
                 ("kStepSequencerRowStateSubRowsKey", Value::Array(vec![])),
             ]);
-            (row_id(d.note), state)
+            (row_id(map.id(), d.note), state)
         })
         .collect();
     let rows = drums
         .into_iter()
         .map(|d| {
-            let family = d.entry.family();
-            row(d.note, d.entry.into_label(), family)
+            let (family, piece) = (d.entry.family(), d.entry.canon().piece());
+            row(map.id(), d.note, d.entry.into_label(), family, piece)
         })
         .collect();
     let session = dict([

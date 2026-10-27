@@ -155,7 +155,7 @@ drum-maps-reaper = W edytorze MIDI wybierz File → Note/CC names → Load note/
 drum-maps-cubase = Otwórz MIDI → Drum Map Setup, kliknij Load i wskaż plik .drm. Potem wybierz mapę w polu Drum Map w Inspectorze ścieżki.
 drum-maps-studio-one = W widoku Edit kliknij ikonę klucza, żeby pokazać nazwy nut, i przeciągnij na nie plik .pitchlist. Zapisz go z menu Pitch Names, żeby używać go ponownie.
 drum-maps-ableton = Przeciągnij plik .adg na ścieżkę perkusji w Live 11 lub 12, przed wtyczkę. Otwórz klip: każdy wiersz edytora MIDI pokazuje nazwę swojego instrumentu. Nuty grają bez zmian.
-drum-maps-logic = Skopiuj plik .pattern na Macu do ~/Music/Audio Music Apps/Step Sequencer Settings/Templates. W Logic Pro otwórz Przeglądarkę, wybierz Wzorce i przeciągnij szablon na ścieżkę perkusji. Każdy wiersz Step Sequencera pokazuje nazwę swojego instrumentu i gra jego nutę.
+drum-maps-logic = Skopiuj plik .pattern na Macu do ~/Music/Audio Music Apps/Step Sequencer Settings/Patterns. W Logic Pro otwórz Step Sequencer ścieżki perkusji i Pattern Browser (⌥⇧B), wybierz Patterns → User i kliknij szablon. Każdy wiersz pokazuje nazwę swojego instrumentu i gra jego nutę.
 drum-maps-other = FL Studio i Bitwig Studio nie wczytują plików z nazwami nut. Znajdź instrument na mapie nut wtyczki albo przekonwertuj MIDI na wtyczkę, której używasz.
 drum-maps-list-heading =
     { $count ->

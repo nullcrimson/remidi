@@ -343,3 +343,42 @@ fn the_logic_template_writes_only_keys_a_logic_template_has() {
     let extra: Vec<&String> = written.difference(&logic).collect();
     assert!(extra.is_empty(), "{extra:?}");
 }
+
+#[test]
+fn logic_templates_of_two_engines_share_no_row_id() {
+    let row_ids = |id: &str| -> BTreeSet<String> {
+        logic_rows(&Daw::Logic.drum_map(CATALOG.get(id).unwrap(), CREDIT))
+            .iter()
+            .map(|row| {
+                let id = row
+                    .get("kStepSequenceRowUUIDKey")
+                    .and_then(Value::as_string);
+                id.unwrap().to_owned()
+            })
+            .collect()
+    };
+    assert!(row_ids("ggd_invasion").is_disjoint(&row_ids("ezdrummer")));
+}
+
+#[test]
+fn logic_draws_each_tom_with_its_own_picture() {
+    let icon_of = |name: &str| {
+        logic_rows(&Daw::Logic.drum_map(invasion(), CREDIT))
+            .iter()
+            .find(|row| {
+                row.get("kStepSequenceRowNameKey")
+                    .and_then(Value::as_string)
+                    == Some(name)
+            })
+            .map(|row| int(row, "kStepSequenceInstrumentIconKey"))
+            .unwrap()
+    };
+    assert_eq!(
+        [
+            icon_of("Rack Tom 1"),
+            icon_of("Rack Tom 2"),
+            icon_of("Floor Tom 1")
+        ],
+        [4541, 4542, 4543]
+    );
+}

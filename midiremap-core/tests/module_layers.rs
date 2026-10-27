@@ -13,6 +13,7 @@ const ALLOWED_USES: &Table = &[
     (
         "daw",
         &[
+            "canon",
             "channel",
             "engine_map",
             "family",

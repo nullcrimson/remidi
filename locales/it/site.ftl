@@ -162,7 +162,7 @@ drum-maps-reaper = Nell’editor MIDI scegli File → Note/CC names → Load not
 drum-maps-cubase = Apri MIDI → Drum Map Setup, fai clic su Load e seleziona il file .drm. Poi scegli la mappa nel campo Drum Map dell’Inspector della traccia.
 drum-maps-studio-one = Nella vista Edit fai clic sull’icona della chiave inglese per mostrare i nomi delle note e trascinaci sopra il file .pitchlist. Salvalo dal menu Pitch Names per riutilizzarlo.
 drum-maps-ableton = Trascina il file .adg sulla traccia di batteria in Live 11 o 12, davanti al plugin. Apri una clip: ogni riga dell’editor MIDI mostra il nome del suo pezzo. Le note suonano invariate.
-drum-maps-logic = Copia il file .pattern sul tuo Mac in ~/Music/Audio Music Apps/Step Sequencer Settings/Templates. In Logic Pro apri il Browser, scegli Pattern e trascina il template sulla traccia di batteria. Ogni riga dello Step Sequencer mostra il nome del suo pezzo e suona la sua nota.
+drum-maps-logic = Copia il file .pattern sul tuo Mac in ~/Music/Audio Music Apps/Step Sequencer Settings/Patterns. In Logic Pro apri lo Step Sequencer della traccia di batteria e il Pattern Browser (⌥⇧B), scegli Patterns → User e clicca sul template. Ogni riga mostra il nome del suo pezzo e suona la sua nota.
 drum-maps-other = FL Studio e Bitwig Studio non caricano file di nomi delle note. Usa la mappa delle note del plugin per trovare ogni pezzo, oppure converti il tuo MIDI per il plugin che usi.
 drum-maps-list-heading =
     { $count ->
