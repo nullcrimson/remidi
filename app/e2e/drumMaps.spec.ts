@@ -50,9 +50,17 @@ test('Ableton Live downloads a names rack', async ({ page }) => {
   expect(gunzipSync(bytes).toString('utf8')).toContain('<UserName Value="GetGood Drums Invasion"/>');
 });
 
+test('Logic Pro downloads a Step Sequencer template', async ({ page }) => {
+  await page.goto('/drum-maps/');
+  await pickDaw(page, 'Logic Pro');
+  const download = await downloadOf(page, 'GetGood Drums Invasion drum map for Logic Pro');
+  expect(download.suggestedFilename()).toBe('GetGood Drums Invasion (Drumverter).pattern');
+  expect(await textOf(download)).toContain('<key>kStepSequenceRowsKey</key>');
+});
+
 test('an engine page links the guide to loading drum maps', async ({ page }) => {
   await page.goto('/engines/ggd-invasion/');
-  await press(page.getByRole('link', { name: 'How to load a drum map in Reaper, Cubase, Studio One or Ableton Live' }));
+  await press(page.getByRole('link', { name: 'How to load a drum map in Reaper, Cubase, Studio One, Ableton Live or Logic Pro' }));
   await expect(page).toHaveURL('/drum-maps/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('DAW drum maps');
 });

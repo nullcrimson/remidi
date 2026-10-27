@@ -74,6 +74,7 @@ fn how_to_load(daw: Daw) -> Plain {
         Daw::Cubase => Plain::DrumMapsCubase,
         Daw::StudioOne => Plain::DrumMapsStudioOne,
         Daw::AbletonLive => Plain::DrumMapsAbleton,
+        Daw::Logic => Plain::DrumMapsLogic,
     }
 }
 
@@ -1703,7 +1704,7 @@ mod tests {
     #[test]
     fn engine_descriptions_mention_the_drum_maps_when_they_fit() {
         let html = page("engines/bfd3/index.html");
-        assert!(html.contains("Free Cubase, Reaper, Studio One and Ableton Live drum maps."));
+        assert!(html.contains("Free Cubase, Reaper, Studio One, Ableton and Logic drum maps."));
     }
 
     #[test]
@@ -1714,9 +1715,9 @@ mod tests {
     }
 
     #[test]
-    fn the_unsupported_daws_line_names_logic_fl_studio_and_bitwig() {
+    fn the_unsupported_daws_line_names_fl_studio_and_bitwig() {
         assert!(page("drum-maps/index.html")
-            .contains("Logic Pro, FL Studio and Bitwig Studio cannot load note-name files."));
+            .contains("FL Studio and Bitwig Studio cannot load note-name files."));
     }
 
     #[test]

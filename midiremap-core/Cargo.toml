@@ -8,6 +8,7 @@ publish = false
 [dependencies]
 flate2 = { version = "1", optional = true }
 midly = { version = "0.5", default-features = false, features = ["alloc", "std"] }
+plist = { version = "1.10", default-features = false }
 quick-xml = "0.42"
 serde = { version = "1", features = ["derive"] }
 serde_bytes = "0.11"

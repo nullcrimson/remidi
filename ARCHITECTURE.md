@@ -336,11 +336,13 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
 
 ### `daw` — files for the DAWs
 
-- `Daw { Reaper, Cubase, StudioOne, AbletonLive }` (`Daw::ALL`) and one `Format` entry per
+- `Daw { Reaper, Cubase, StudioOne, AbletonLive, Logic }` (`Daw::ALL`) and one `Format` entry per
   DAW: its names, the drum-map file's extension, how the file is packed and how its text
   is written for an engine. `daw.drum_map(map, credit)` writes an engine's drum map:
   Reaper note names (with `credit` in the header), a Cubase `.drm`, a Studio One
-  `.pitchlist` and an Ableton note-name rack.
+  `.pitchlist`, an Ableton note-name rack and a Logic Pro Step Sequencer template
+  (`.pattern`, an XML plist written with the `plist` crate: one row per played note, family
+  by family, named after its drum and set to its note, every step off).
 - `rack_file(&Mapping, Option<&PresetName>) → RackFile { file_name, xml, packing, dropped }`
   is the Ableton Live MIDI Effect Rack that plays a mapping: one chain per source note,
   shifted onto where the conversion puts it.

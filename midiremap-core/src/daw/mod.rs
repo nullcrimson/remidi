@@ -1,6 +1,7 @@
 mod ableton;
 mod file;
 mod formats;
+mod logic;
 mod packing;
 
 use strum::VariantArray;
@@ -19,6 +20,7 @@ pub enum Daw {
     Cubase,
     StudioOne,
     AbletonLive,
+    Logic,
 }
 
 /// A DAW's drum map file: the DAW's names, the file's extension, how the file stores its
@@ -65,6 +67,13 @@ impl Daw {
                 packing: ableton::ADG_PACKING,
                 write: |map, _| ableton::note_name_rack(map),
             },
+            Daw::Logic => Format {
+                key: "logic",
+                name: "Logic Pro",
+                extension: "pattern",
+                packing: Packing::Text,
+                write: |map, _| logic::step_sequencer(map),
+            },
         }
     }
 
@@ -89,7 +98,8 @@ impl Daw {
     }
 
     /// The file that names every note `map` plays, in this DAW's format: Reaper MIDI note
-    /// names, a Cubase drum map, a Studio One pitch list or an Ableton Live names rack, before
+    /// names, a Cubase drum map, a Studio One pitch list, an Ableton Live names rack or a Logic Pro
+    /// Step Sequencer template, before
     /// [`Daw::packing`] packs it. `credit` names who made the file where the format has a
     /// place for it, as Reaper's header does.
     pub fn drum_map(self, map: &EngineMap, credit: &str) -> String {

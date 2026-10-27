@@ -1,6 +1,7 @@
 use std::{collections::BTreeSet, sync::LazyLock};
 
-use midiremap_core::{Catalog, Daw, EngineMap};
+use midiremap_core::{Catalog, Daw, EngineMap, Family};
+use plist::{Dictionary, Value};
 use roxmltree::{Document, Node};
 
 mod xml_path;
@@ -85,12 +86,58 @@ fn ableton_notes(xml: &str) -> Named {
         .collect()
 }
 
+fn logic_pattern(file: &str) -> Value {
+    Value::from_reader_xml(file.as_bytes()).unwrap()
+}
+
+fn logic_rows(file: &str) -> Vec<Dictionary> {
+    logic_pattern(file)
+        .as_dictionary()
+        .and_then(|d| d.get("kSessionDataKey")?.as_dictionary())
+        .and_then(|d| d.get("kSequenceDataKey")?.as_dictionary())
+        .and_then(|d| d.get("kStepSequenceRowsKey")?.as_array())
+        .unwrap()
+        .iter()
+        .map(|row| row.as_dictionary().unwrap().clone())
+        .collect()
+}
+
+fn int(row: &Dictionary, key: &str) -> i64 {
+    row.get(key).and_then(Value::as_signed_integer).unwrap()
+}
+
+fn row_note_settings(row: &Dictionary) -> &Dictionary {
+    row.get("propertyNodeKey")
+        .and_then(Value::as_dictionary)
+        .and_then(|d| d.get("kStepSequenceNoteKey")?.as_dictionary())
+        .unwrap()
+}
+
+fn row_note(row: &Dictionary) -> u8 {
+    u8::try_from(int(row, "kStepSequenceNoteIDKey") >> 8).unwrap()
+}
+
+fn logic_notes(file: &str) -> Named {
+    let mut named: Named = logic_rows(file)
+        .iter()
+        .map(|row| {
+            let name = row
+                .get("kStepSequenceRowNameKey")
+                .and_then(Value::as_string);
+            (row_note(row), name.unwrap().to_owned())
+        })
+        .collect();
+    named.sort();
+    named
+}
+
 fn read_back(daw: Daw, file: &str) -> Named {
     match daw {
         Daw::Reaper => reaper_notes(file),
         Daw::Cubase => cubase_notes(file),
         Daw::StudioOne => studio_one_notes(file),
         Daw::AbletonLive => ableton_notes(file),
+        Daw::Logic => logic_notes(file),
     }
 }
 
@@ -216,4 +263,83 @@ fn each_daw_has_its_own_key_and_extension() {
     let extensions: BTreeSet<&str> = Daw::ALL.iter().map(|d| d.extension()).collect();
     assert_eq!(keys.len(), Daw::ALL.len());
     assert_eq!(extensions.len(), Daw::ALL.len());
+}
+
+#[test]
+fn a_logic_row_plays_the_note_its_id_names() {
+    for row in logic_rows(&Daw::Logic.drum_map(invasion(), CREDIT)) {
+        let settings = row_note_settings(&row);
+        let pitch = int(settings, "kStepSequenceNoteKey")
+            + 12 * int(settings, "kStepSequenceOctaveTransposeKey")
+            + int(settings, "kStepSequenceNoteTransposeKey");
+        assert_eq!(pitch, i64::from(row_note(&row)));
+    }
+}
+
+#[test]
+fn logic_rows_keep_their_notes_off_the_scale() {
+    for row in logic_rows(&Daw::Logic.drum_map(invasion(), CREDIT)) {
+        let quantize = row_note_settings(&row).get("kStepSequenceNoteScaleQuantizeKey");
+        assert_eq!(quantize.and_then(Value::as_boolean), Some(false));
+    }
+}
+
+#[test]
+fn logic_rows_come_family_by_family() {
+    let map = invasion();
+    let family_of = |note: u8| {
+        map.source_notes()
+            .into_iter()
+            .find(|d| d.note.get() == note)
+            .map(|d| d.entry.family())
+            .unwrap()
+    };
+    let families: Vec<Family> = logic_rows(&Daw::Logic.drum_map(map, CREDIT))
+        .iter()
+        .map(|row| family_of(row_note(row)))
+        .collect();
+    assert!(families.is_sorted());
+}
+
+fn key_paths(value: &Value, at: &str, out: &mut BTreeSet<String>) {
+    match value {
+        Value::Dictionary(d) => {
+            for (key, inner) in d {
+                let step = if key.len() == 36 && key.matches('-').count() == 4 {
+                    "*"
+                } else {
+                    key.as_str()
+                };
+                let path = if at.is_empty() {
+                    step.to_owned()
+                } else {
+                    format!("{at}/{step}")
+                };
+                key_paths(inner, &path, out);
+                out.insert(path);
+            }
+        }
+        Value::Array(items) => {
+            for item in items {
+                key_paths(item, &format!("{at}[]"), out);
+            }
+        }
+        _ => {}
+    }
+}
+
+#[test]
+fn the_logic_template_writes_only_keys_a_logic_template_has() {
+    let mut written = BTreeSet::new();
+    key_paths(
+        &logic_pattern(&Daw::Logic.drum_map(invasion(), CREDIT)),
+        "",
+        &mut written,
+    );
+    let logic: BTreeSet<String> = include_str!("golden/logic-skeleton.txt")
+        .lines()
+        .map(str::to_owned)
+        .collect();
+    let extra: Vec<&String> = written.difference(&logic).collect();
+    assert!(extra.is_empty(), "{extra:?}");
 }

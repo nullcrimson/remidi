@@ -126,21 +126,21 @@ maps-changes-none = Każda nuta z { $source } trafia w { $target } na swój wła
 maps-table-heading = Wszystkie nuty, instrument po instrumencie
 maps-more-from = Więcej z { $engine }
 maps-full-maps = Pełne mapy nut:
-maps-index-drum-maps = Mapy perkusji do DAW dla każdej wtyczki: Cubase, Reaper, Studio One i Ableton Live
-maps-engine-description-drum-maps = Darmowe mapy perkusji do Cubase, Reapera, Studio One i Ableton Live.
+maps-index-drum-maps = Mapy perkusji do DAW dla każdej wtyczki: Cubase, Reaper, Studio One, Ableton Live i Logic Pro
+maps-engine-description-drum-maps = Darmowe mapy perkusji do Cubase, Reapera, Studio One, Abletona i Logica.
 maps-daw-heading = Mapy perkusji do DAW
 maps-daw-intro = Wczytaj jeden z tych plików do DAW, a na klawiszach piano rolla zobaczysz nazwy instrumentów { $engine }.
-maps-daw-how = Jak wczytać mapę perkusji w Reaperze, Cubase, Studio One lub Ableton Live
+maps-daw-how = Jak wczytać mapę perkusji w Reaperze, Cubase, Studio One, Ableton Live lub Logic Pro
 drum-maps-title =
     { $count ->
-        [one] Mapy perkusji do Cubase, Reapera, Studio One i Abletona: { $count } wtyczka
-        [few] Mapy perkusji do Cubase, Reapera, Studio One i Abletona: { $count } wtyczki
-       *[many] Mapy perkusji do Cubase, Reapera, Studio One i Abletona: { $count } wtyczek
+        [one] Mapy perkusji do Cubase, Reapera, Studio One, Abletona i Logica: { $count } wtyczka
+        [few] Mapy perkusji do Cubase, Reapera, Studio One, Abletona i Logica: { $count } wtyczki
+       *[many] Mapy perkusji do Cubase, Reapera, Studio One, Abletona i Logica: { $count } wtyczek
     }
 drum-maps-description =
     { $count ->
-        [one] Darmowe mapy perkusji dla { $count } wtyczki: drum mapy Cubase (.drm), nazwy nut Reapera (.txt), pitch listy Studio One (.pitchlist) i racki Ableton Live (.adg).
-       *[other] Darmowe mapy perkusji dla { $count } wtyczek: drum mapy Cubase (.drm), nazwy nut Reapera (.txt), pitch listy Studio One (.pitchlist) i racki Ableton Live (.adg).
+        [one] Darmowe mapy perkusji dla { $count } wtyczki: drum mapy Cubase (.drm), nazwy nut Reapera (.txt), pitch listy Studio One (.pitchlist), racki Ableton Live (.adg) i szablony Step Sequencera Logic Pro (.pattern).
+       *[other] Darmowe mapy perkusji dla { $count } wtyczek: drum mapy Cubase (.drm), nazwy nut Reapera (.txt), pitch listy Studio One (.pitchlist), racki Ableton Live (.adg) i szablony Step Sequencera Logic Pro (.pattern).
     }
 drum-maps-heading = Mapy perkusji do DAW
 drum-maps-intro =
@@ -155,7 +155,8 @@ drum-maps-reaper = W edytorze MIDI wybierz File → Note/CC names → Load note/
 drum-maps-cubase = Otwórz MIDI → Drum Map Setup, kliknij Load i wskaż plik .drm. Potem wybierz mapę w polu Drum Map w Inspectorze ścieżki.
 drum-maps-studio-one = W widoku Edit kliknij ikonę klucza, żeby pokazać nazwy nut, i przeciągnij na nie plik .pitchlist. Zapisz go z menu Pitch Names, żeby używać go ponownie.
 drum-maps-ableton = Przeciągnij plik .adg na ścieżkę perkusji w Live 11 lub 12, przed wtyczkę. Otwórz klip: każdy wiersz edytora MIDI pokazuje nazwę swojego instrumentu. Nuty grają bez zmian.
-drum-maps-other = Logic Pro, FL Studio i Bitwig Studio nie wczytują plików z nazwami nut. Znajdź instrument na mapie nut wtyczki albo przekonwertuj MIDI na wtyczkę, której używasz.
+drum-maps-logic = Skopiuj plik .pattern na Macu do ~/Music/Audio Music Apps/Step Sequencer Settings/Templates. W Logic Pro otwórz Przeglądarkę, wybierz Wzorce i przeciągnij szablon na ścieżkę perkusji. Każdy wiersz Step Sequencera pokazuje nazwę swojego instrumentu i gra jego nutę.
+drum-maps-other = FL Studio i Bitwig Studio nie wczytują plików z nazwami nut. Znajdź instrument na mapie nut wtyczki albo przekonwertuj MIDI na wtyczkę, której używasz.
 drum-maps-list-heading =
     { $count ->
         [one] Mapy perkusji { $count } wtyczki

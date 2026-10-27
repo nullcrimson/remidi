@@ -15,6 +15,7 @@ const ALLOWED_USES: &Table = &[
         &[
             "channel",
             "engine_map",
+            "family",
             "note",
             "preset",
             "translate",
