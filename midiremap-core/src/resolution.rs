@@ -22,7 +22,6 @@ pub enum Outcome {
     Direct {
         #[serde(skip)]
         canon: Canon,
-        #[serde(rename = "tgtNote")]
         note: Note,
     },
     /// The drum `stand_in` plays it, on `note`; `other_drum` when the stand-in is another
@@ -31,7 +30,6 @@ pub enum Outcome {
         #[serde(skip)]
         canon: Canon,
         stand_in: Canon,
-        #[serde(rename = "tgtNote")]
         note: Note,
         other_drum: bool,
     },

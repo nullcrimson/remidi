@@ -22,27 +22,27 @@ describe('midiremap wrapper', () => {
     const rows = core.plan(enginePair('ggd_invasion', 'ezdrummer'));
     const kick = rows.find((r) => r.canon === 'kick.main')!;
     expect(kick.srcNotes).toEqual([24]);
-    expect(kick.outcome).toEqual({ status: 'direct', tgtNote: 36 });
+    expect(kick.outcome).toEqual({ status: 'direct', note: 36 });
     expect(kick.defaultTgtNote).toBe(36);
     expect(rows.find((r) => r.canon === 'china.1.hit')!.outcome.status).toBe('dropped');
   });
 
   it('passes overrides to the module as an object', () => {
-    const ov = typed<Overrides>({ tgt: [{ canon: 'kick.main', note: 35 }], src: [] });
+    const ov = typed<Overrides>({ edits: { 'kick.main': 35 }, srcEdits: {} });
     core.plan(enginePair('ggd_invasion', 'ezdrummer'), ov);
     expect(vi.mocked(stub.plan).mock.lastCall?.[2]).toEqual(ov);
   });
 
   it('returns the plan the module made for the overrides', () => {
-    const ov = typed<Overrides>({ tgt: [{ canon: 'kick.main', note: 35 }], src: [] });
+    const ov = typed<Overrides>({ edits: { 'kick.main': 35 }, srcEdits: {} });
     const rows = core.plan(enginePair('ggd_invasion', 'ezdrummer'), ov);
-    expect(rows.find((r) => r.canon === 'kick.main')!.outcome).toEqual({ status: 'direct', tgtNote: 35 });
+    expect(rows.find((r) => r.canon === 'kick.main')!.outcome).toEqual({ status: 'direct', note: 35 });
   });
 
   it('applies a source override that rescues a note in the plan', () => {
     const rows = core.plan(enginePair('ggd_invasion', 'ezdrummer'), typed<Overrides>({
-      tgt: [],
-      src: [{ note: 60, canon: 'china.1.hit' }],
+      edits: {},
+      srcEdits: { 60: 'china.1.hit' },
     }));
     expect(rows.find((r) => r.canon === 'china.1.hit')!.srcNotes[0]).toBe(60);
   });

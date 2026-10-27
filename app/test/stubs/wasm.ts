@@ -1,6 +1,8 @@
 import type * as Wasm from '@wasm';
 import { vi } from 'vitest';
 import { presetName, typed } from '../typed';
+import { byCanon } from '../../src/core/canon';
+import { byNote } from '../../src/core/notes';
 
 const init = vi.fn<() => Promise<unknown>>(async () => ({}));
 export default init;
@@ -45,9 +47,9 @@ export const family_order = vi.fn<typeof Wasm.family_order>(() => [
 ]);
 
 const BASE_ROWS = typed<Wasm.VoicePlan[]>([
-  { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
-  { canon: 'snare1.hit', label: 'Snare', family: 'Snare', srcNotes: [26], defaultTgtNote: 38, outcome: { status: 'direct', tgtNote: 38 } },
-  { canon: 'hat.open3', label: 'Hi-Hat Open 3', family: 'Hi-Hat', srcNotes: [47], defaultTgtNote: 46, outcome: { status: 'fallback', standIn: 'hat.open1', tgtNote: 46, otherDrum: false } },
+  { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', note: 36 } },
+  { canon: 'snare1.hit', label: 'Snare', family: 'Snare', srcNotes: [26], defaultTgtNote: 38, outcome: { status: 'direct', note: 38 } },
+  { canon: 'hat.open3', label: 'Hi-Hat Open 3', family: 'Hi-Hat', srcNotes: [47], defaultTgtNote: 46, outcome: { status: 'fallback', standIn: 'hat.open1', note: 46, otherDrum: false } },
   { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: true } },
   { canon: 'hat.cc', label: 'Hi-Hat CC', family: 'Hi-Hat', srcNotes: [4], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
 ]);
@@ -59,14 +61,14 @@ export const parse_preset_file = vi.fn<typeof Wasm.parse_preset_file>((json) => 
 
 export const plan = vi.fn<typeof Wasm.plan>((_src, _tgt, overrides) => {
   const rows = BASE_ROWS.map((r) => ({ ...r, srcNotes: [...r.srcNotes] }));
-  for (const o of overrides?.tgt ?? []) {
-    const row = rows.find((r) => r.canon === o.canon);
-    if (row) row.outcome = { status: 'direct', tgtNote: o.note };
+  for (const [canon, note] of byCanon(overrides?.edits ?? {})) {
+    const row = rows.find((r) => r.canon === canon);
+    if (row) row.outcome = { status: 'direct', note };
   }
-  for (const s of overrides?.src ?? []) {
-    for (const r of rows) r.srcNotes = r.srcNotes.filter((n) => n !== s.note);
-    const row = rows.find((r) => r.canon === s.canon);
-    if (row) row.srcNotes = [s.note, ...row.srcNotes];
+  for (const [note, canon] of byNote(overrides?.srcEdits ?? {})) {
+    for (const r of rows) r.srcNotes = r.srcNotes.filter((n) => n !== note);
+    const row = rows.find((r) => r.canon === canon);
+    if (row) row.srcNotes = [note, ...row.srcNotes];
   }
   return rows;
 });

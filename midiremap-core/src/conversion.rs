@@ -274,28 +274,28 @@ mod tests {
     #[test]
     fn tgt_override_changes_output_note() {
         let mid = drums(&[(0, on(24)), (48, off(24))]);
-        let out = convert_edited(&mid, r#"{"tgt":[{"canon":"kick.main","note":35}]}"#);
+        let out = convert_edited(&mid, r#"{"edits":{"kick.main":35},"srcEdits":{}}"#);
         assert_eq!(hit_keys(&out.bytes), vec![35]);
     }
 
     #[test]
     fn src_override_rescues_unmapped_note_into_the_output() {
         let mid = drums(&[(0, on(99)), (48, off(99))]);
-        let out = convert_edited(&mid, r#"{"src":[{"note":99,"canon":"kick.main"}]}"#);
+        let out = convert_edited(&mid, r#"{"edits":{},"srcEdits":{"99":"kick.main"}}"#);
         assert_eq!(hit_keys(&out.bytes), vec![36]);
     }
 
     #[test]
     fn src_override_takes_the_rescued_note_off_the_unmapped_list() {
         let mid = drums(&[(0, on(99)), (48, off(99))]);
-        let out = convert_edited(&mid, r#"{"src":[{"note":99,"canon":"kick.main"}]}"#);
+        let out = convert_edited(&mid, r#"{"edits":{},"srcEdits":{"99":"kick.main"}}"#);
         assert!(out.report.unmapped_source().next().is_none());
     }
 
     #[test]
     fn src_override_reassigns_mapped_note() {
         let mid = drums(&[(0, on(24)), (48, off(24))]);
-        let out = convert_edited(&mid, r#"{"src":[{"note":24,"canon":"snare1.hit"}]}"#);
+        let out = convert_edited(&mid, r#"{"edits":{},"srcEdits":{"24":"snare1.hit"}}"#);
         assert_eq!(hit_keys(&out.bytes), vec![38]);
     }
 

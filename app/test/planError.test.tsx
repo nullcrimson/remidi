@@ -13,10 +13,10 @@ import { storedName } from '../src/core/storage';
 
 const MAPPINGS_KEY = storedName('mappings');
 
-const ROW = typed<VoicePlan>({ canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } });
+const ROW = typed<VoicePlan>({ canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', note: 36 } });
 
 function planThatRejectsBogus(_s: string, _t: string, ov?: Overrides | null) {
-  if (ov?.tgt?.some((e) => e.canon === 'bogus.canon')) throw new Error('unknown canon bogus.canon');
+  if (ov && 'bogus.canon' in ov.edits) throw new Error('unknown canon bogus.canon');
   return [ROW];
 }
 

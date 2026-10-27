@@ -11,7 +11,7 @@ import { family_order } from '../stubs/wasm';
 import { enginePair, presetName, typed } from '../typed';
 
 const editor = typed<Editor>({
-  rows: [{ canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } }],
+  rows: [{ canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, note: 36 } }],
   edits: {},
   srcEdits: {},
   overlay: null,
@@ -192,7 +192,7 @@ describe('EditView', () => {
         editor={{
           ...editor,
           changedSrc: new Set(typed<Canon[]>(['KickMain'])),
-          rows: typed<VoicePlan[]>([{ canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } }]),
+          rows: typed<VoicePlan[]>([{ canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [], defaultTgtNote: 36, outcome: { status: 'direct' as const, note: 36 } }]),
         }}
       />,
     );
@@ -223,10 +223,10 @@ describe('EditView', () => {
     { canon: 'hat.cc', label: 'Hi-Hat CC', family: 'Hi-Hat' as const },
   ]);
   const ROWS = typed<VoicePlan[]>([
-    { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback' as const, standIn: 'ride.1', tgtNote: 51, otherDrum: false } },
-    { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } },
+    { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback' as const, standIn: 'ride.1', note: 51, otherDrum: false } },
+    { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, note: 36 } },
     { canon: 'china.1', label: 'China 1', family: 'Cymbals', srcNotes: [52], defaultTgtNote: null, outcome: { status: 'dropped' as const, otherDrum: false } },
-    { canon: 'snare.main', label: 'Snare', family: 'Snare', srcNotes: [26], defaultTgtNote: 38, outcome: { status: 'direct' as const, tgtNote: 40 } },
+    { canon: 'snare.main', label: 'Snare', family: 'Snare', srcNotes: [26], defaultTgtNote: 38, outcome: { status: 'direct' as const, note: 40 } },
     { canon: 'hat.cc', label: 'Hi-Hat CC', family: 'Hi-Hat', srcNotes: [], defaultTgtNote: null, outcome: { status: 'dropped' as const, otherDrum: false } },
   ]);
   const full = {
@@ -281,7 +281,7 @@ describe('EditView', () => {
 
     it('names the stand-in the converter chose, then the stock drum on the note an edit gave it', () => {
       const standInMoved = typed<VoicePlan[]>([
-        { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback', standIn: 'snare.rim', tgtNote: 51, otherDrum: true } },
+        { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback', standIn: 'snare.rim', note: 51, otherDrum: true } },
       ]);
       render(<EditView {...props} editor={{ ...full, targetDrums, rows: standInMoved }} />);
       expect(plays('Ride Bell').textContent).toBe('≈ Snare Rimshot → Ride');
@@ -289,7 +289,7 @@ describe('EditView', () => {
 
     it('explains a moved stand-in when the mouse is over its line', async () => {
       const standInMoved = typed<VoicePlan[]>([
-        { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback', standIn: 'snare.rim', tgtNote: 51, otherDrum: true } },
+        { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback', standIn: 'snare.rim', note: 51, otherDrum: true } },
       ]);
       render(<EditView {...props} editor={{ ...full, targetDrums, rows: standInMoved }} />);
       await userEvent.hover(screen.getByText('≈ Snare Rimshot → Ride'));
@@ -299,8 +299,8 @@ describe('EditView', () => {
     });
 
     const causeAndEffect = typed<VoicePlan[]>([
-      { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback', standIn: 'snare.rim', tgtNote: 51, otherDrum: true } },
-      { canon: 'snare.rim', label: 'Snare Rimshot', family: 'Snare', srcNotes: [40], defaultTgtNote: 40, outcome: { status: 'direct', tgtNote: 51 } },
+      { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback', standIn: 'snare.rim', note: 51, otherDrum: true } },
+      { canon: 'snare.rim', label: 'Snare Rimshot', family: 'Snare', srcNotes: [40], defaultTgtNote: 40, outcome: { status: 'direct', note: 51 } },
     ]);
     const targetChip = (drum: string) => within(rowOfDrum(drum)).getAllByRole('button', { expanded: false })[1];
 

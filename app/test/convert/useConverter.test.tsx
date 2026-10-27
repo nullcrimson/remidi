@@ -5,7 +5,7 @@ import type { BatchResult } from '../../src/convert/batch';
 import type { Converter } from '../../src/convert/converter';
 import { enginePair } from '../typed';
 
-const OV = { tgt: [], src: [] };
+const OV = { edits: {}, srcEdits: {} };
 const FILE = { name: 'a.mid', bytes: new Uint8Array([1]) };
 
 function stoppable() {

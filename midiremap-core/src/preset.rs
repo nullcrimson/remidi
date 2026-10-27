@@ -40,9 +40,8 @@ pub struct SavedPreset {
     pub name: PresetName,
     pub src: EngineId,
     pub tgt: EngineId,
-    pub edits: BTreeMap<Canon, Note>,
-    #[serde(serialize_with = "Note::text_keys")]
-    pub src_edits: BTreeMap<Note, Option<Canon>>,
+    #[serde(flatten)]
+    pub overrides: Overrides,
 }
 
 /// A parsed preset and the edits it had to skip.
@@ -159,21 +158,10 @@ pub fn parse_preset(json: &str, catalog: &Catalog) -> Result<LoadedPreset, Prese
             name: raw.name,
             src,
             tgt,
-            edits,
-            src_edits,
+            overrides: Overrides::new(edits, src_edits),
         },
         skipped,
     })
-}
-
-impl SavedPreset {
-    /// The preset's edits in the shape a [`crate::Mapping`] applies.
-    pub fn overrides(&self) -> Overrides {
-        Overrides::new(
-            self.edits.iter().map(|(&canon, &note)| (canon, note)),
-            self.src_edits.iter().map(|(&note, &canon)| (note, canon)),
-        )
-    }
 }
 
 #[cfg(test)]
@@ -249,18 +237,18 @@ mod tests {
             ("My kit", "ggd_invasion", "ezdrummer")
         );
         assert_eq!(
-            p.edits,
-            BTreeMap::from([(k("kick.main"), n(35)), (k("china.1.hit"), n(52))])
+            p.overrides.target(),
+            &BTreeMap::from([(k("kick.main"), n(35)), (k("china.1.hit"), n(52))])
         );
         assert_eq!(
-            p.src_edits,
-            BTreeMap::from([(n(24), Some(k("snare1.hit"))), (n(60), None)])
+            p.overrides.source(),
+            &BTreeMap::from([(n(24), Some(k("snare1.hit"))), (n(60), None)])
         );
     }
 
     #[test]
     fn turns_into_target_overrides() {
-        let ov = parse_preset(FIXTURE, catalog()).unwrap().preset.overrides();
+        let ov = parse_preset(FIXTURE, catalog()).unwrap().preset.overrides;
         assert_eq!(
             ov.target(),
             &BTreeMap::from([(k("kick.main"), n(35)), (k("china.1.hit"), n(52))])
@@ -269,7 +257,7 @@ mod tests {
 
     #[test]
     fn turns_into_source_overrides() {
-        let ov = parse_preset(FIXTURE, catalog()).unwrap().preset.overrides();
+        let ov = parse_preset(FIXTURE, catalog()).unwrap().preset.overrides;
         assert_eq!(
             ov.source(),
             &BTreeMap::from([(n(24), Some(k("snare1.hit"))), (n(60), None)])
@@ -284,7 +272,7 @@ mod tests {
         )
         .unwrap()
         .preset;
-        assert!(p.edits.is_empty() && p.src_edits.is_empty());
+        assert_eq!(p.overrides, Overrides::default());
     }
 
     #[test]
@@ -339,8 +327,8 @@ mod tests {
     fn keeps_only_the_target_edits_it_can_read() {
         let loaded = load_with_unreadable_edits();
         assert_eq!(
-            loaded.preset.edits,
-            BTreeMap::from([(k("kick.main"), n(35))])
+            loaded.preset.overrides.target(),
+            &BTreeMap::from([(k("kick.main"), n(35))])
         );
     }
 
@@ -348,8 +336,8 @@ mod tests {
     fn keeps_only_the_source_edits_it_can_read() {
         let loaded = load_with_unreadable_edits();
         assert_eq!(
-            loaded.preset.src_edits,
-            BTreeMap::from([(n(24), Some(k("snare1.hit")))])
+            loaded.preset.overrides.source(),
+            &BTreeMap::from([(n(24), Some(k("snare1.hit")))])
         );
     }
 
@@ -386,6 +374,9 @@ mod tests {
         let p = parse_preset(&with(r#"{"ride.1.bow":51}"#, "{}"), catalog())
             .unwrap()
             .preset;
-        assert_eq!(p.edits, BTreeMap::from([(k("ride.1"), n(51))]));
+        assert_eq!(
+            p.overrides.target(),
+            &BTreeMap::from([(k("ride.1"), n(51))])
+        );
     }
 }

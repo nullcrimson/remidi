@@ -14,7 +14,7 @@ const reportOf = (report: Partial<Loose<Converted['report']>>) => typed<Converte
 
 const swappedChina = () => {
   vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([
-    { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals', srcNotes: [60], defaultTgtNote: 49, outcome: { status: 'fallback', standIn: 'crash.1.hit', tgtNote: 49, otherDrum: true } },
+    { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals', srcNotes: [60], defaultTgtNote: 49, outcome: { status: 'fallback', standIn: 'crash.1.hit', note: 49, otherDrum: true } },
   ]));
   vi.mocked(stub.remap).mockReturnValue(reportOf({ fallbackUsed: { 'china.1.hit': { standIn: 'crash.1.hit', note: 49, count: 3 } } }));
 };

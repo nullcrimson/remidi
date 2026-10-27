@@ -11,7 +11,7 @@ import { shownTgtPick } from '../picks';
 beforeEach(() => {
   vi.mocked(stub.engine_drums).mockReturnValue([]);
   vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([
-    { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+    { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', note: 36 } },
   ]));
 });
 

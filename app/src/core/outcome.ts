@@ -4,7 +4,7 @@ import type { OctaveBase } from './notes';
 
 /** The note a drum plays on, or `null` when it is dropped. */
 export const playedNote = (outcome: Outcome): Note | null =>
-  outcome.status === 'dropped' ? null : outcome.tgtNote;
+  outcome.status === 'dropped' ? null : outcome.note;
 
 /** Whether some source note plays the drum. */
 export const isPlayed = (row: Pick<VoicePlan, 'srcNotes'>): boolean => row.srcNotes.length > 0;
@@ -35,8 +35,8 @@ export type Playing
 
 /** The target drum that plays a drum that is not dropped: the stand-in the converter chose, or the drum on its note. */
 export function playingDrum(outcome: Exclude<Outcome, { status: 'dropped' }>, labels: DrumLabels, oct: OctaveBase): Playing {
-  if (outcome.status === 'direct') return { kind: 'direct', text: labels.atNote(outcome.tgtNote, oct) };
-  return { kind: 'standIn', canon: outcome.standIn, name: labels.ofStandIn(outcome.standIn, outcome.tgtNote, oct) };
+  if (outcome.status === 'direct') return { kind: 'direct', text: labels.atNote(outcome.note, oct) };
+  return { kind: 'standIn', canon: outcome.standIn, name: labels.ofStandIn(outcome.standIn, outcome.note, oct) };
 }
 
 /** What plays a drum as one text. */

@@ -4,16 +4,10 @@ use midiremap_core::{convert, Catalog, ChannelScope, EngineMap, Mapping, Missing
 use midiremap_testkit::{every_note, every_note_keys};
 use rayon::prelude::*;
 
+const NO_EDITS: &str = r#"{"edits":{},"srcEdits":{}}"#;
 const OVERRIDES: &str = r#"{
-    "src": [
-        { "note": 24, "canon": "snare1.hit" },
-        { "note": 100, "canon": "kick.main" },
-        { "note": 100, "canon": "china.1.hit" }
-    ],
-    "tgt": [
-        { "canon": "kick.main", "note": 35 },
-        { "canon": "kick.main", "note": 34 }
-    ]
+    "edits": { "kick.main": 34 },
+    "srcEdits": { "24": "snare1.hit", "100": "china.1.hit" }
 }"#;
 
 fn previewed_by_source_note(
@@ -68,12 +62,12 @@ fn assert_preview_matches_conversion(ov_json: &str, missing: MissingDrums) {
 
 #[test]
 fn preview_matches_conversion_for_every_builtin_pair() {
-    assert_preview_matches_conversion("{}", MissingDrums::Nearest);
+    assert_preview_matches_conversion(NO_EDITS, MissingDrums::Nearest);
 }
 
 #[test]
 fn preview_matches_conversion_under_drop_for_every_builtin_pair() {
-    assert_preview_matches_conversion("{}", MissingDrums::Drop);
+    assert_preview_matches_conversion(NO_EDITS, MissingDrums::Drop);
 }
 
 #[test]

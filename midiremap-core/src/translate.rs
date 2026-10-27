@@ -300,47 +300,45 @@ notes = [ {} ]",
 
     #[test]
     fn target_override_beats_base() {
-        let mapping = kick_and_snare_edited(r#"{"tgt":[{"canon":"kick.main","note":35}]}"#);
+        let mapping = kick_and_snare_edited(r#"{"edits":{"kick.main":35},"srcEdits":{}}"#);
         assert_eq!(mapping.resolve_canon(k("kick.main")).note(), Some(n(35)));
     }
 
     #[test]
     fn target_override_leaves_other_drums_on_the_base() {
-        let mapping = kick_and_snare_edited(r#"{"tgt":[{"canon":"kick.main","note":35}]}"#);
+        let mapping = kick_and_snare_edited(r#"{"edits":{"kick.main":35},"srcEdits":{}}"#);
         assert_eq!(mapping.resolve_canon(k("snare1.hit")).note(), Some(n(38)));
     }
 
     #[test]
     fn source_override_with_null_canon_unassigns_the_note() {
-        let mapping = kick_and_snare_edited(
-            r#"{"src":[{"note":36,"canon":null},{"note":40,"canon":"kick.main"}]}"#,
-        );
+        let mapping =
+            kick_and_snare_edited(r#"{"edits":{},"srcEdits":{"36":null,"40":"kick.main"}}"#);
         assert_eq!(mapping.get(n(36)), None);
     }
 
     #[test]
     fn source_override_assigns_a_new_note_alongside_an_unassigned_one() {
-        let mapping = kick_and_snare_edited(
-            r#"{"src":[{"note":36,"canon":null},{"note":40,"canon":"kick.main"}]}"#,
-        );
+        let mapping =
+            kick_and_snare_edited(r#"{"edits":{},"srcEdits":{"36":null,"40":"kick.main"}}"#);
         assert_eq!(mapping.get(n(40)), kick_on(36));
     }
 
     #[test]
     fn source_override_rescues_a_note() {
-        let mapping = kick_and_snare_edited(r#"{"src":[{"note":99,"canon":"kick.main"}]}"#);
+        let mapping = kick_and_snare_edited(r#"{"edits":{},"srcEdits":{"99":"kick.main"}}"#);
         assert_eq!(mapping.get(n(99)), kick_on(36));
     }
 
     #[test]
     fn source_override_leaves_a_base_note_mapped() {
-        let mapping = kick_and_snare_edited(r#"{"src":[{"note":99,"canon":"kick.main"}]}"#);
+        let mapping = kick_and_snare_edited(r#"{"edits":{},"srcEdits":{"99":"kick.main"}}"#);
         assert_eq!(mapping.get(n(36)), kick_on(36));
     }
 
     #[test]
     fn source_override_leaves_another_note_unmapped() {
-        let mapping = kick_and_snare_edited(r#"{"src":[{"note":99,"canon":"kick.main"}]}"#);
+        let mapping = kick_and_snare_edited(r#"{"edits":{},"srcEdits":{"99":"kick.main"}}"#);
         assert_eq!(mapping.get(n(50)), None);
     }
 
@@ -475,7 +473,7 @@ notes = [ {} ]",
         let src = target(&[(60, "china.1.hit")]);
         let tgt = target(&[(49, "crash.1.hit")]);
         let ov: Overrides =
-            serde_json::from_str(r#"{"tgt":[{"canon":"china.1.hit","note":55}]}"#).unwrap();
+            serde_json::from_str(r#"{"edits":{"china.1.hit":55},"srcEdits":{}}"#).unwrap();
         let mapping = Mapping::new(&src, &tgt, &ov, MissingDrums::Drop);
         assert_eq!(
             mapping.get(n(60)),
@@ -491,7 +489,7 @@ notes = [ {} ]",
         let src = target(&[(60, "china.1.hit")]);
         let tgt = target(&[(49, "crash.1.hit")]);
         let ov: Overrides =
-            serde_json::from_str(r#"{"tgt":[{"canon":"china.1.hit","note":55}]}"#).unwrap();
+            serde_json::from_str(r#"{"edits":{"china.1.hit":55},"srcEdits":{}}"#).unwrap();
         let mapping = Mapping::new(&src, &tgt, &ov, MissingDrums::Drop);
         assert!(!mapping
             .resolve_canon(k("china.1.hit"))

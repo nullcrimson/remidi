@@ -12,7 +12,7 @@ const LABELS: Record<string, string> = { 'kick.main': 'Kick', 'snare1.hit': 'Sna
 
 function fakePlan(_src: string, _tgt: string, ov?: Overrides | null) {
   const decode: Record<number, string | null> = { ...DEFAULTS };
-  for (const s of ov?.src ?? []) decode[s.note] = s.canon;
+  Object.assign(decode, ov?.srcEdits);
   return typed<VoicePlan[]>(Object.keys(LABELS).map((canon) => ({
     canon,
     label: LABELS[canon],
@@ -21,7 +21,7 @@ function fakePlan(_src: string, _tgt: string, ov?: Overrides | null) {
       .filter(([, c]) => c === canon)
       .map(([n]) => Number(n)),
     defaultTgtNote: 36,
-    outcome: { status: 'direct', tgtNote: 36 },
+    outcome: { status: 'direct', note: 36 },
   })));
 }
 

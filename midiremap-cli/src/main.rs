@@ -37,10 +37,6 @@ struct ConvertArgs {
     /// Channels to convert: auto (tracks with channel-10 hits, else every track), all, or 1-16
     #[arg(long, value_name = "CHANNEL", default_value_t)]
     channel: ChannelScope,
-    /// Note edits as JSON: {"tgt":[{"canon":"kick.main","note":35}],
-    /// "src":[{"note":24,"canon":"snare1.hit"}]}; a null canon silences a source note
-    #[arg(long, value_name = "FILE", conflicts_with = "preset")]
-    overrides: Option<PathBuf>,
     /// A preset exported from the web app (<name>-drumverter.json); its engines must match
     #[arg(long, value_name = "FILE")]
     preset: Option<PathBuf>,
@@ -66,15 +62,6 @@ fn build_catalog(user_map: Option<PathBuf>) -> Result<Catalog> {
     Ok(catalog)
 }
 
-fn read_overrides(path: Option<PathBuf>) -> Result<Overrides> {
-    let Some(path) = path else {
-        return Ok(Overrides::default());
-    };
-    let json = std::fs::read_to_string(&path)
-        .with_context(|| format!("cannot read overrides {}", path.display()))?;
-    serde_json::from_str(&json).with_context(|| format!("invalid overrides {}", path.display()))
-}
-
 fn read_preset(path: &Path, catalog: &Catalog, src: &str, tgt: &str) -> Result<Overrides> {
     let json = std::fs::read_to_string(path)
         .with_context(|| format!("cannot read preset {}", path.display()))?;
@@ -91,7 +78,7 @@ fn read_preset(path: &Path, catalog: &Catalog, src: &str, tgt: &str) -> Result<O
     for skipped in &loaded.skipped {
         eprintln!("skipped: {skipped}");
     }
-    Ok(preset.overrides())
+    Ok(preset.overrides)
 }
 
 fn run_list(user_map: Option<PathBuf>) -> Result<()> {
@@ -117,7 +104,7 @@ fn run_convert(a: ConvertArgs) -> Result<()> {
 
     let overrides = match &a.preset {
         Some(path) => read_preset(path, &catalog, src.id(), tgt.id())?,
-        None => read_overrides(a.overrides)?,
+        None => Overrides::default(),
     };
     let out = convert(
         &mid,

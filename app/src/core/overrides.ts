@@ -1,5 +1,5 @@
-import { byCanon, type Vocabulary } from './canon';
-import type { Canon, Note, Overrides } from './midiremap';
+import type { Vocabulary } from './canon';
+import type { Canon, Note } from './midiremap';
 import { byNote, parseNote } from './notes';
 
 export type Edits = Record<Canon, Note>;
@@ -13,13 +13,6 @@ export type SrcEdits = Record<Note, Canon | null>;
 export interface StoredEdits {
   edits: Record<string, Note>;
   srcEdits: Record<Note, string | null>;
-}
-
-export function editsToOverrides(edits: Edits, srcEdits: SrcEdits = {}): Overrides {
-  return {
-    tgt: byCanon(edits).map(([canon, note]) => ({ canon, note })),
-    src: byNote(srcEdits).map(([note, canon]) => ({ note, canon })),
-  };
 }
 
 /**

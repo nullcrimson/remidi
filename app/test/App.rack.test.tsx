@@ -59,7 +59,7 @@ describe('the summary row rack', () => {
     expect(rackCalls()).toEqual([[
       'ggd_invasion',
       'ezdrummer',
-      { tgt: [{ canon: 'kick.main', note: 40 }], src: [] },
+      { edits: { 'kick.main': 40 }, srcEdits: {} },
       'drop',
       'keep',
       undefined,
@@ -143,7 +143,7 @@ const KIT_A: StoredPreset = { ...MY_KIT, id: 'a', name: 'Kit A', edits: { 'kick.
 
 const KIT_B: StoredPreset = { ...MY_KIT, id: 'b', name: 'Kit B', src: 'ezdrummer', tgt: 'ggd_invasion', edits: { 'snare1.hit': 27 } };
 
-const KIT_A_CALL = ['ggd_invasion', 'ezdrummer', { tgt: [{ canon: 'kick.main', note: 40 }], src: [] }, 'nearest', 'remove', 'Kit A'];
+const KIT_A_CALL = ['ggd_invasion', 'ezdrummer', { edits: { 'kick.main': 40 }, srcEdits: {} }, 'nearest', 'remove', 'Kit A'];
 
 async function chooseRack(preset: string): Promise<void> {
   await userEvent.click(screen.getByRole('button', { name: `More actions for ${preset}` }));

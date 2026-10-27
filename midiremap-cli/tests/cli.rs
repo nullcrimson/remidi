@@ -92,42 +92,6 @@ fn first_note_on(bytes: &[u8]) -> u8 {
 }
 
 #[test]
-fn overrides_file_retargets_a_drum() {
-    let (out, bytes) = run(
-        &one_kick_smf(),
-        PAIR,
-        Some((
-            "--overrides",
-            r#"{"tgt":[{"canon":"kick.main","note":35}]}"#,
-        )),
-        &[],
-    );
-    assert!(
-        out.status.success(),
-        "stderr: {}",
-        String::from_utf8_lossy(&out.stderr)
-    );
-    assert_eq!(first_note_on(&bytes), 35);
-}
-
-#[test]
-fn invalid_overrides_file_fails_with_its_path() {
-    let (out, _) = run(
-        &one_kick_smf(),
-        PAIR,
-        Some((
-            "--overrides",
-            r#"{"tgt":[{"canon":"kick.main","note":200}]}"#,
-        )),
-        &[],
-    );
-    assert!(!out.status.success());
-    let err = String::from_utf8_lossy(&out.stderr);
-    assert!(err.contains("invalid overrides"), "stderr: {err}");
-    assert!(err.contains("0..=127"), "stderr: {err}");
-}
-
-#[test]
 fn missing_drums_default_to_the_nearest_drum() {
     let (out, bytes) = convert_note(65, &[]);
     assert!(out.status.success());
@@ -245,14 +209,21 @@ fn a_preset_warns_about_skipped_edits() {
 }
 
 #[test]
-fn preset_and_overrides_cannot_be_combined() {
-    let (out, _) = run(
-        &one_kick_smf(),
-        PAIR,
-        Some(("--preset", PRESET)),
-        &["--overrides", "x.json"],
+fn a_preset_retargets_a_drum() {
+    let preset = PRESET.replace("\"24\": \"snare1.hit\",", "");
+    let (out, bytes) = run(&one_kick_smf(), PAIR, Some(("--preset", &preset)), &[]);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
     );
+    assert_eq!(first_note_on(&bytes), 35);
+}
+
+#[test]
+fn an_unreadable_preset_fails_with_its_path() {
+    let (out, _) = run(&one_kick_smf(), PAIR, Some(("--preset", "{")), &[]);
     assert!(!out.status.success());
     let err = String::from_utf8_lossy(&out.stderr);
-    assert!(err.contains("cannot be used with"), "stderr: {err}");
+    assert!(err.contains("invalid preset"), "stderr: {err}");
 }

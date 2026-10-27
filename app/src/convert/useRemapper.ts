@@ -6,7 +6,7 @@ import { pairOf } from '../core/enginePair';
 import { kindCounts } from '../core/errors';
 import { track } from '../core/stats';
 import { convertedProps } from '../report/report';
-import { editCount, editsToOverrides, knownEdits, type StoredEdits } from '../core/overrides';
+import { editCount, knownEdits, type StoredEdits } from '../core/overrides';
 import { preselection } from './preselect';
 import type { Runtime } from './runtime';
 import type { SelectionEvent } from '../core/selection';
@@ -44,7 +44,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
   const pair = useMemo(() => pairOf(src, tgt), [src, tgt]);
   const editor = useEditor(catalog.status === 'ready' ? catalog.core : null, pair, missing);
   const { edits, srcEdits, vocabulary, load: loadEditor, onSelection: editorSees } = editor;
-  const overrides = useMemo(() => editsToOverrides(edits, srcEdits), [edits, srcEdits]);
+  const overrides = useMemo(() => ({ edits, srcEdits }), [edits, srcEdits]);
   const keyFor = useCallback(
     (m: MissingDrums) => JSON.stringify({ pair, channel, missing: m, unrecognized, overrides }),
     [pair, channel, unrecognized, overrides],

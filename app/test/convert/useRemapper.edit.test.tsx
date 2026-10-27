@@ -9,7 +9,7 @@ import { canon, engineId, note, typed } from '../typed';
 import { shownTgtPick } from '../picks';
 
 const ROWS = typed<VoicePlan[]>([
-  { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+  { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', note: 36 } },
 ]);
 
 describe('useRemapper edit path', () => {
@@ -49,7 +49,7 @@ describe('useRemapper edit path', () => {
     expect(stub.plan).toHaveBeenCalledWith(
       'ggd_invasion',
       'ezdrummer',
-      { tgt: [{ canon: 'KickMain', note: 50 }], src: [] },
+      { edits: { KickMain: 50 }, srcEdits: {} },
       'nearest',
     );
   });
@@ -102,7 +102,7 @@ describe('useRemapper edit path', () => {
 
   it('takes the reset note from the row default, not the edited target', async () => {
     vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([
-      { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 50 } },
+      { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', note: 50 } },
     ]));
     const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
@@ -115,7 +115,7 @@ describe('useRemapper edit path', () => {
 
   async function withSilentRows() {
     vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([
-      { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+      { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [], defaultTgtNote: 36, outcome: { status: 'direct', note: 36 } },
       { canon: 'China', label: 'China', family: 'Cymbals', srcNotes: [], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
     ]));
     const { result } = renderHook(() => useRemapper(RUNTIME));
@@ -144,8 +144,8 @@ describe('useRemapper edit path', () => {
 
   it('counts a row as remapped only when its shown source note moves', async () => {
     vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([
-      { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [36, 35], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
-      { canon: 'Snare', label: 'Snare', family: 'Snare', srcNotes: [26], defaultTgtNote: 38, outcome: { status: 'direct', tgtNote: 38 } },
+      { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [36, 35], defaultTgtNote: 36, outcome: { status: 'direct', note: 36 } },
+      { canon: 'Snare', label: 'Snare', family: 'Snare', srcNotes: [26], defaultTgtNote: 38, outcome: { status: 'direct', note: 38 } },
     ]));
     const { result } = renderHook(() => useRemapper(RUNTIME));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));

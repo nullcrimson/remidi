@@ -34,7 +34,7 @@ describe('runBatch', () => {
 
   it('passes engines, overrides, channel, missing drums and unrecognized notes through to remap', () => {
     const calls: unknown[][] = [];
-    const ov = typed<Overrides>({ tgt: [{ canon: 'kick.main', note: 35 }], src: [] });
+    const ov = typed<Overrides>({ edits: { 'kick.main': 35 }, srcEdits: {} });
     runBatch([{ name: 'a.mid', bytes: new Uint8Array([1]) }], enginePair('s', 't'), ov, '10', 'drop', 'keep', (...args) => {
       calls.push(args.slice(1));
       return { bytes: new Uint8Array(), report: REPORT };

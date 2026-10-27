@@ -11,7 +11,7 @@ import { pickFrom, pickTo } from './eventSteps';
 describe('App convert view', () => {
   beforeEach(() => {
     vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([
-      { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+      { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', note: 36 } },
     ]));
   });
 

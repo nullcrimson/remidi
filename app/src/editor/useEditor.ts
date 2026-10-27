@@ -7,7 +7,7 @@ import type { Canon, Midiremap, MissingDrums, Note, VoicePlan } from '../core/mi
 import type { EnginePair } from '../core/enginePair';
 import { byCanon } from '../core/canon';
 import { byNote, octaveIndexOf } from '../core/notes';
-import { editsToOverrides, type KnownEdits } from '../core/overrides';
+import type { KnownEdits } from '../core/overrides';
 import type { SelectionEvent } from '../core/selection';
 import { useEngineData } from './useEngineData';
 import { isPlayed, leadNote, playedNote } from '../core/outcome';
@@ -31,7 +31,7 @@ export function useEditor(
     if (dataError !== null) return { rows: [], planError: dataError };
     if (!pair) return { rows: [], planError: null };
     try {
-      return { rows: core.plan(pair, editsToOverrides(edits, srcEdits), missing), planError: null };
+      return { rows: core.plan(pair, { edits, srcEdits }, missing), planError: null };
     } catch (err) {
       return { rows: [], planError: toAppError(err) };
     }
@@ -104,7 +104,7 @@ export function useEditor(
 
   const remappedCount = useMemo(
     () =>
-      rows.filter((r) => r.outcome.status !== 'dropped' && isPlayed(r) && leadNote(r) !== r.outcome.tgtNote)
+      rows.filter((r) => r.outcome.status !== 'dropped' && isPlayed(r) && leadNote(r) !== r.outcome.note)
         .length,
     [rows],
   );

@@ -7,14 +7,14 @@ import type { Message } from '../../src/generated/i18n';
 
 const { t } = ENGLISH;
 
-const row = (canon: string, label: string, srcNotes: number[], tgtNote: number | null, defaultTgtNote: number | null): VoicePlan =>
+const row = (canon: string, label: string, srcNotes: number[], note: number | null, defaultTgtNote: number | null): VoicePlan =>
   typed<VoicePlan>({
     canon,
     label,
     family: 'Kick',
     srcNotes,
     defaultTgtNote,
-    outcome: tgtNote === null ? { status: 'dropped', otherDrum: false } : { status: 'direct', tgtNote },
+    outcome: note === null ? { status: 'dropped', otherDrum: false } : { status: 'direct', note },
   });
 
 const ROWS = [

@@ -17,12 +17,10 @@ const ENGINES: [&str; 5] = [
     "general_midi",
     "addictive_drums2",
 ];
+const NO_EDITS: &str = r#"{"edits":{},"srcEdits":{}}"#;
 const OVERRIDES: &str = r#"{
-    "src": [
-        { "note": 24, "canon": "snare1.hit" },
-        { "note": 100, "canon": "china.1.hit" }
-    ],
-    "tgt": [{ "canon": "kick.main", "note": 35 }]
+    "edits": { "kick.main": 35 },
+    "srcEdits": { "24": "snare1.hit", "100": "china.1.hit" }
 }"#;
 
 static CATALOG: LazyLock<Catalog> = LazyLock::new(|| Catalog::builtin().unwrap());
@@ -137,7 +135,7 @@ fn converted(mapping: &Mapping) -> BTreeMap<u8, u8> {
 
 #[test]
 fn a_remap_rack_plays_every_note_where_the_converter_puts_it() {
-    for ov_json in ["{}", OVERRIDES] {
+    for ov_json in [NO_EDITS, OVERRIDES] {
         let ov: Overrides = serde_json::from_str(ov_json).unwrap();
         for missing in [MissingDrums::Nearest, MissingDrums::Drop] {
             for unrecognized in [Unrecognized::Remove, Unrecognized::Keep] {

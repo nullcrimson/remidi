@@ -49,7 +49,7 @@ impl SrcNoteRank {
 
 impl Mapping<'_> {
     /// The edit preview: one row per drum the source plays or names, in canon order, with
-    /// where it lands. Duplicate overrides resolve last-wins, exactly as in conversion.
+    /// where it lands.
     pub fn preview(&self) -> Vec<VoicePlan> {
         let src = self.source();
         let mut notes_by_canon = self.played_drums();
@@ -84,6 +84,8 @@ mod tests {
         MissingDrums, Overrides,
     };
 
+    const NO_EDITS: &str = r#"{"edits":{},"srcEdits":{}}"#;
+
     fn find<'a>(rows: &'a [VoicePlan], name: &str) -> &'a VoicePlan {
         rows.iter()
             .find(|r| r.entry.canon.to_string() == name)
@@ -108,7 +110,7 @@ mod tests {
 
     #[test]
     fn a_dropped_voice_serializes_in_camel_case_with_its_outcome_tagged_by_status() {
-        let drop = ggd_to_ezd_with("{}", MissingDrums::Drop);
+        let drop = ggd_to_ezd_with(NO_EDITS, MissingDrums::Drop);
         let json = serde_json::to_value(find(&drop, "china.1.hit")).unwrap();
         assert_eq!(
             json,
@@ -126,17 +128,17 @@ mod tests {
 
     #[test]
     fn a_direct_outcome_serializes_tagged_by_status() {
-        let drop = ggd_to_ezd_with("{}", MissingDrums::Drop);
+        let drop = ggd_to_ezd_with(NO_EDITS, MissingDrums::Drop);
         let kick = serde_json::to_value(find(&drop, "kick.main")).unwrap();
         assert_eq!(
             kick["outcome"],
-            serde_json::json!({ "status": "direct", "tgtNote": 36 })
+            serde_json::json!({ "status": "direct", "note": 36 })
         );
     }
 
     #[test]
     fn a_swapped_drum_is_marked_as_a_fallback_under_nearest() {
-        let near = ggd_to_ezd("{}");
+        let near = ggd_to_ezd(NO_EDITS);
         assert_eq!(
             find(&near, "china.1.hit").outcome,
             Outcome::Fallback {
@@ -150,7 +152,7 @@ mod tests {
 
     #[test]
     fn a_present_drum_is_direct() {
-        let near = ggd_to_ezd("{}");
+        let near = ggd_to_ezd(NO_EDITS);
         assert_eq!(
             find(&near, "kick.main").outcome,
             Outcome::Direct {
@@ -162,7 +164,7 @@ mod tests {
 
     #[test]
     fn a_swapped_drum_is_marked_and_dropped_under_drop() {
-        let drop = ggd_to_ezd_with("{}", MissingDrums::Drop);
+        let drop = ggd_to_ezd_with(NO_EDITS, MissingDrums::Drop);
         let china = find(&drop, "china.1.hit");
         assert_eq!(
             china.outcome,
@@ -177,7 +179,7 @@ mod tests {
     #[test]
     fn a_target_edit_rescues_a_dropped_swap() {
         let rows = ggd_to_ezd_with(
-            r#"{"tgt":[{"canon":"china.1.hit","note":52}]}"#,
+            r#"{"edits":{"china.1.hit":52},"srcEdits":{}}"#,
             MissingDrums::Drop,
         );
         assert_eq!(
@@ -191,7 +193,10 @@ mod tests {
 
     #[test]
     fn a_row_lists_the_source_note_that_plays_its_drum() {
-        assert_eq!(find(&ggd_to_ezd("{}"), "kick.main").src_notes, vec![n(24)]);
+        assert_eq!(
+            find(&ggd_to_ezd(NO_EDITS), "kick.main").src_notes,
+            vec![n(24)]
+        );
     }
 
     #[test]
@@ -217,7 +222,7 @@ mod tests {
 
     #[test]
     fn tgt_override_flips_a_row() {
-        let rows = ggd_to_ezd(r#"{"tgt":[{"canon":"kick.main","note":35}]}"#);
+        let rows = ggd_to_ezd(r#"{"edits":{"kick.main":35},"srcEdits":{}}"#);
         let kick = find(&rows, "kick.main");
         assert_eq!(kick.outcome.note(), Some(n(35)));
         assert_eq!(kick.default_tgt_note, Some(n(36)));
@@ -225,33 +230,32 @@ mod tests {
 
     #[test]
     fn src_override_adds_a_note_ahead_of_the_primary() {
-        let rows = ggd_to_ezd(r#"{"src":[{"canon":"kick.main","note":99}]}"#);
+        let rows = ggd_to_ezd(r#"{"edits":{},"srcEdits":{"99":"kick.main"}}"#);
         assert_eq!(find(&rows, "kick.main").src_notes, vec![n(99), n(24)]);
     }
 
     #[test]
     fn src_override_can_replace_the_primary() {
-        let rows =
-            ggd_to_ezd(r#"{"src":[{"note":24,"canon":null},{"canon":"kick.main","note":99}]}"#);
+        let rows = ggd_to_ezd(r#"{"edits":{},"srcEdits":{"24":null,"99":"kick.main"}}"#);
         assert_eq!(find(&rows, "kick.main").src_notes, vec![n(99)]);
     }
 
     #[test]
     fn src_override_can_unassign_the_primary() {
-        let rows = ggd_to_ezd(r#"{"src":[{"note":24,"canon":null}]}"#);
+        let rows = ggd_to_ezd(r#"{"edits":{},"srcEdits":{"24":null}}"#);
         assert!(find(&rows, "kick.main").src_notes.is_empty());
     }
 
     #[test]
     fn reassigned_note_leaves_its_old_row() {
-        let rows = ggd_to_ezd(r#"{"src":[{"canon":"snare1.hit","note":24}]}"#);
+        let rows = ggd_to_ezd(r#"{"edits":{},"srcEdits":{"24":"snare1.hit"}}"#);
         let kick = find(&rows, "kick.main");
         assert!(kick.src_notes.is_empty(), "kick keeps {:?}", kick.src_notes);
     }
 
     #[test]
     fn a_row_that_lost_its_source_note_still_resolves_its_target() {
-        let rows = ggd_to_ezd(r#"{"src":[{"canon":"snare1.hit","note":24}]}"#);
+        let rows = ggd_to_ezd(r#"{"edits":{},"srcEdits":{"24":"snare1.hit"}}"#);
         let kick = find(&rows, "kick.main");
         assert_eq!(
             kick.outcome.note(),
@@ -262,25 +266,8 @@ mod tests {
 
     #[test]
     fn a_reassigned_note_lands_on_its_new_row() {
-        let rows = ggd_to_ezd(r#"{"src":[{"canon":"snare1.hit","note":24}]}"#);
+        let rows = ggd_to_ezd(r#"{"edits":{},"srcEdits":{"24":"snare1.hit"}}"#);
         assert_eq!(find(&rows, "snare1.hit").src_notes.first(), Some(&n(24)));
-    }
-
-    #[test]
-    fn duplicate_src_override_last_wins() {
-        let rows = ggd_to_ezd(
-            r#"{"src":[{"canon":"snare1.hit","note":24},{"canon":"hat.closed","note":24}]}"#,
-        );
-        assert!(!find(&rows, "snare1.hit").src_notes.contains(&n(24)));
-        assert_eq!(find(&rows, "hat.closed").src_notes.first(), Some(&n(24)));
-    }
-
-    #[test]
-    fn duplicate_tgt_override_last_wins() {
-        let rows = ggd_to_ezd(
-            r#"{"tgt":[{"canon":"kick.main","note":35},{"canon":"kick.main","note":40}]}"#,
-        );
-        assert_eq!(find(&rows, "kick.main").outcome.note(), Some(n(40)));
     }
 
     #[test]
@@ -298,7 +285,7 @@ mod tests {
         )
         .unwrap();
         let ov: Overrides =
-            serde_json::from_str(r#"{"src":[{"canon":"kick.main","note":30}]}"#).unwrap();
+            serde_json::from_str(r#"{"edits":{},"srcEdits":{"30":"kick.main"}}"#).unwrap();
         let rows = Mapping::new(&src, &src, &ov, MissingDrums::Nearest).preview();
         assert_eq!(
             find(&rows, "kick.main").src_notes,
@@ -328,7 +315,7 @@ mod tests {
         )
         .unwrap();
         let ov: Overrides =
-            serde_json::from_str(r#"{"src":[{"canon":"snare1.hit","note":60}]}"#).unwrap();
+            serde_json::from_str(r#"{"edits":{},"srcEdits":{"60":"snare1.hit"}}"#).unwrap();
         let rows = Mapping::new(&src, &tgt, &ov, MissingDrums::Nearest).preview();
         let snare = find(&rows, "snare1.hit");
         assert_eq!(snare.src_notes, vec![n(60)]);

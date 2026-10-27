@@ -16,7 +16,7 @@ const base = {
   result: { text: 'direct', tone: 'faint' as const },
 };
 
-const kickFixture = { canon: 'KickMain', label: 'Kick', family: 'Kick' as const, srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } };
+const kickFixture = { canon: 'KickMain', label: 'Kick', family: 'Kick' as const, srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, note: 36 } };
 const rowOf = (extra: Partial<Loose<VoicePlan>> = {}) => typed<VoicePlan>({ ...kickFixture, ...extra });
 const kick = rowOf();
 

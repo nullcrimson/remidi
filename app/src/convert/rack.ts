@@ -1,7 +1,7 @@
 import { engineName, type EnginePair } from '../core/enginePair';
 import type { Midiremap, MissingDrums, PresetName, RackFile, Unrecognized } from '../core/midiremap';
 import type { Notice, NoticeLine } from '../core/notice';
-import { editCount, editsToOverrides, knownEdits, type EditSet, type KnownEdits } from '../core/overrides';
+import { editCount, knownEdits, type EditSet, type KnownEdits } from '../core/overrides';
 import type { SavedMapping } from '../presets/mappings';
 import type { Remapper } from './useRemapper';
 import { saveBlob } from '../core/download';
@@ -41,7 +41,7 @@ export function saveRack(core: Midiremap, rack: RackRequest): NoticeLine[] {
   const { pair, edits, missing, unrecognized, presetName } = rack;
   let file: RackFile;
   try {
-    file = core.remapRack(pair, editsToOverrides(edits.edits, edits.srcEdits), missing, unrecognized, presetName);
+    file = core.remapRack(pair, { edits: edits.edits, srcEdits: edits.srcEdits }, missing, unrecognized, presetName);
   } catch (err) {
     return [{ rackFailed: toAppError(err) }];
   }

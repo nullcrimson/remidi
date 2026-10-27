@@ -13,15 +13,15 @@ function row(canon: string, extra: Partial<Loose<VoicePlan>>): VoicePlan {
     family: 'Kick',
     srcNotes: [1],
     defaultTgtNote: 36,
-    outcome: { status: 'direct', tgtNote: 36 },
+    outcome: { status: 'direct', note: 36 },
     ...extra,
   });
 }
 
-const SWAP = row('china.1.hit', { outcome: { status: 'fallback', standIn: 'kick.main', tgtNote: 36, otherDrum: true } });
-const SAME = row('snare1.rimshot', { outcome: { status: 'fallback', standIn: 'kick.main', tgtNote: 36, otherDrum: false } });
+const SWAP = row('china.1.hit', { outcome: { status: 'fallback', standIn: 'kick.main', note: 36, otherDrum: true } });
+const SAME = row('snare1.rimshot', { outcome: { status: 'fallback', standIn: 'kick.main', note: 36, otherDrum: false } });
 const DROPPED_SWAP = row('tom.rack4.hit', { outcome: { status: 'dropped', otherDrum: true } });
-const SILENT_SWAP = row('splash.1.hit', { srcNotes: [], outcome: { status: 'fallback', standIn: 'kick.main', tgtNote: 36, otherDrum: true } });
+const SILENT_SWAP = row('splash.1.hit', { srcNotes: [], outcome: { status: 'fallback', standIn: 'kick.main', note: 36, otherDrum: true } });
 
 describe('missing drums setting', () => {
   it('offers Nearest then Drop', () => {
@@ -48,7 +48,7 @@ describe('missing drums setting', () => {
   });
 
   it('counts several drums played on another drum under Nearest', () => {
-    expect(t(missingHint('nearest', [SWAP, row('x', { outcome: { status: 'fallback', standIn: 'kick.main', tgtNote: 36, otherDrum: true } })]))).toBe(
+    expect(t(missingHint('nearest', [SWAP, row('x', { outcome: { status: 'fallback', standIn: 'kick.main', note: 36, otherDrum: true } })]))).toBe(
       '2 drums played on another drum',
     );
   });
@@ -73,8 +73,8 @@ describe('missing drums setting', () => {
       { note: 49, canon: 'crash.1.choke', label: 'Crash 1 choke', family: 'Cymbals' },
       { note: 45, canon: 'tom.rack3.hit', label: 'Tom 3', family: 'Toms' },
     ]);
-    const china = row('china.1.hit', { label: 'China', outcome: { status: 'fallback', standIn: 'crash.1.hit', tgtNote: 49, otherDrum: true } });
-    const tom = row('tom.rack4.hit', { label: 'Tom 4', outcome: { status: 'fallback', standIn: 'tom.rack3.hit', tgtNote: 45, otherDrum: true } });
+    const china = row('china.1.hit', { label: 'China', outcome: { status: 'fallback', standIn: 'crash.1.hit', note: 49, otherDrum: true } });
+    const tom = row('tom.rack4.hit', { label: 'Tom 4', outcome: { status: 'fallback', standIn: 'tom.rack3.hit', note: 45, otherDrum: true } });
     expect(swapList([china, SAME, tom, SILENT_SWAP], drums, 'c1')).toEqual([
       { drum: 'China', now: 'Crash 1' },
       { drum: 'Tom 4', now: 'Tom 3' },

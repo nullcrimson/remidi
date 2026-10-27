@@ -451,7 +451,7 @@ mod tests {
     fn preset_view_lists_the_target_edits_it_can_read() {
         let view = view_through_an_alias_with_a_bogus_edit();
         assert_eq!(
-            serde_json::to_value(&view.preset.edits).unwrap(),
+            serde_json::to_value(&view.preset.overrides).unwrap()["edits"],
             serde_json::json!({ "china.1.hit": 52 })
         );
     }
@@ -460,7 +460,7 @@ mod tests {
     fn preset_view_lists_the_source_edits() {
         let view = view_through_an_alias_with_a_bogus_edit();
         assert_eq!(
-            serde_json::to_value(&view.preset.src_edits).unwrap(),
+            serde_json::to_value(&view.preset.overrides).unwrap()["srcEdits"],
             serde_json::json!({ "24": "snare1.hit", "60": null })
         );
     }

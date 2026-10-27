@@ -9,7 +9,7 @@ import { canon, engineId, note, typed } from '../typed';
 import { shownTgtPick } from '../picks';
 
 const ROWS = typed<VoicePlan[]>([
-  { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+  { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', note: 36 } },
   { canon: 'China', label: 'China', family: 'Cymbals', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
 ]);
 

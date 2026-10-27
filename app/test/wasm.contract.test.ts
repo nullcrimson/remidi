@@ -71,7 +71,7 @@ describe('real WASM module', () => {
     const rows = real.plan('ggd_invasion', 'ezdrummer', undefined, 'drop');
     const kick = rows.find((r) => r.canon === 'kick.main')!;
     expect(keys(kick)).toEqual(['canon', 'defaultTgtNote', 'family', 'label', 'outcome', 'srcNotes']);
-    expect(kick.outcome).toEqual({ status: 'direct', tgtNote: 36 });
+    expect(kick.outcome).toEqual({ status: 'direct', note: 36 });
   });
 
   it('plans null for no note', () => {
@@ -84,7 +84,7 @@ describe('real WASM module', () => {
   it('plans the stand-in of a swapped drum', () => {
     const rows = real.plan('ggd_invasion', 'ezdrummer');
     const china = rows.find((r) => r.canon === 'china.1.hit')!;
-    expect(china.outcome).toEqual({ status: 'fallback', standIn: 'crash.1.hit', tgtNote: 86, otherDrum: true });
+    expect(china.outcome).toEqual({ status: 'fallback', standIn: 'crash.1.hit', note: 86, otherDrum: true });
   });
 
   it('plans the three statuses', () => {
@@ -93,14 +93,14 @@ describe('real WASM module', () => {
   });
 
   const overridden = () => real.plan('ggd_invasion', 'ezdrummer', typed<Overrides>({
-    tgt: [{ canon: 'kick.main', note: 35 }],
-    src: [{ note: 127, canon: 'china.1.hit' }],
+    edits: { 'kick.main': 35 },
+    srcEdits: { 127: 'china.1.hit' },
   }));
 
   it('applies target overrides passed as an object', () => {
     const rows = overridden();
     const kick = rows.find((r) => r.canon === 'kick.main')!;
-    expect(kick.outcome).toEqual({ status: 'direct', tgtNote: 35 });
+    expect(kick.outcome).toEqual({ status: 'direct', note: 35 });
     expect(kick.defaultTgtNote).toBe(36);
   });
 
@@ -207,7 +207,7 @@ describe('real WASM module', () => {
   });
 
   it('throws a typed error for bad overrides', () => {
-    expect(kind(() => real.plan('ggd_invasion', 'ezdrummer', typed<Overrides>({ tgt: [{ canon: 'bogus', note: 1 }] })))).toBe(
+    expect(kind(() => real.plan('ggd_invasion', 'ezdrummer', typed<Overrides>({ edits: { bogus: 1 }, srcEdits: {} })))).toBe(
       'badOverrides',
     );
   });

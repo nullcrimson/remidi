@@ -96,6 +96,20 @@ impl Note {
         s.collect_map(map.iter().map(|(note, value)| (note.to_string(), value)))
     }
 
+    /// Reads a map keyed by note numbers written as text, as [`Note::text_keys`] writes it.
+    pub(crate) fn from_text_keys<'de, V: Deserialize<'de>, D: Deserializer<'de>>(
+        d: D,
+    ) -> Result<BTreeMap<Self, V>, D::Error> {
+        BTreeMap::<String, V>::deserialize(d)?
+            .into_iter()
+            .map(|(key, value)| {
+                key.parse()
+                    .map(|note| (note, value))
+                    .map_err(de::Error::custom)
+            })
+            .collect()
+    }
+
     /// The number of the octave the note is in, in the given octave convention.
     pub fn octave(self, base: OctaveBase) -> i8 {
         (self.0 / SEMITONES).cast_signed() - base.offset()

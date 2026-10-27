@@ -33,7 +33,7 @@ describe('keyboard use', () => {
       { canon: 'kick.main', label: 'Kick', family: 'Kick' },
     ]));
     vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([
-      { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
+      { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', note: 36 } },
     ]));
     vi.mocked(stub.remap).mockReturnValue(typed<Converted>({
       bytes: new Uint8Array([1]),
