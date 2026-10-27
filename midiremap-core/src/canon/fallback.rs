@@ -235,11 +235,7 @@ mod tests {
     use strum::VariantArray;
 
     use super::*;
-    use crate::canon::PercKind;
-
-    fn k(s: &str) -> Canon {
-        s.parse().unwrap()
-    }
+    use crate::canon::{k, PercKind};
 
     fn chain(s: &str) -> &'static [Canon] {
         k(s).fallback_chain()

@@ -8,7 +8,7 @@ const UNNAMED: &str = "---";
 fn named_notes(map: &EngineMap) -> Vec<(Note, String)> {
     map.source_notes()
         .into_iter()
-        .map(|d| (d.note, d.entry.label))
+        .map(|d| (d.note, d.entry.label().to_owned()))
         .collect()
 }
 

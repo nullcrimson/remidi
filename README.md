@@ -95,11 +95,11 @@ fuzzes the converter (see ARCHITECTURE.md).
 cargo run -p midiremap-cli -- list
 cargo run -p midiremap-cli -- convert in.mid ggd_invasion ezdrummer out.mid \
     [--channel auto|all|1-16] [--missing nearest|drop] [--unrecognized remove|keep] \
-    [--preset my-kit-drumverter.json | --overrides edits.json] [--user-map map.json]
+    [--preset my-kit-drumverter.json] [--user-map map.json]
 ```
 
-`--preset` applies a preset exported from the app (⋯ → Export); `--overrides` takes raw
-note edits instead; `--user-map` adds your own engine map (JSON), also for `list`;
+`--preset` applies the note edits of a preset exported from the app (⋯ → Export), whose
+engines must be the ones named; `--user-map` adds your own engine map (JSON), also for `list`;
 `--unrecognized keep` writes notes the source layout does not know out unchanged instead of
 removing them. The
 loss report is printed to stderr as JSON (`unmappedSource`, `fallbackUsed`, `dropped`,

@@ -42,14 +42,7 @@ const ALLOWED_USES: &Table = &[
     ),
     (
         "sample",
-        &[
-            "canon",
-            "channel",
-            "engine_map",
-            "idx",
-            "midi",
-            "resolution",
-        ],
+        &["canon", "channel", "engine_map", "midi", "resolution"],
     ),
     (
         "translate",

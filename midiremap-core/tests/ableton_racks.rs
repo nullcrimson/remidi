@@ -223,7 +223,7 @@ fn a_note_name_rack_names_every_note_an_engine_plays_and_moves_none() {
         let played: Vec<(u8, String)> = map
             .source_notes()
             .into_iter()
-            .map(|d| (d.note.get(), d.entry.label))
+            .map(|d| (d.note.get(), d.entry.label().to_owned()))
             .collect();
         assert_eq!(named, played, "{}", map.id());
     }

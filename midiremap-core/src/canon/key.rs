@@ -99,11 +99,7 @@ impl<'de> Deserialize<'de> for Canon {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::canon::{idx, CymArtic, CymSlot, KickKind, PercKind, SnareArtic, TomArtic};
-
-    fn k(s: &str) -> Canon {
-        s.parse().unwrap()
-    }
+    use crate::canon::{idx, k, CymArtic, CymSlot, KickKind, PercKind, SnareArtic, TomArtic};
 
     #[test]
     fn key_round_trips_over_all() {

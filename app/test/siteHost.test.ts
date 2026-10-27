@@ -8,8 +8,8 @@ const ROUTES = readFileSync(join(HERE, '..', '..', 'midiremap-site', 'src', 'rou
 const VITE_CONFIG = readFileSync(join(HERE, '..', 'vite.config.ts'), 'utf8');
 
 it('counts visits on the host the site generator links its pages to', () => {
-  const origin = /const ORIGIN: &str = "([^"]+)";/.exec(ROUTES)?.[1];
+  const domain = /const DOMAIN: &str = "([^"]+)";/.exec(ROUTES)?.[1];
   const counted = /'data-domains': '([^']+)'/.exec(VITE_CONFIG)?.[1];
-  expect(origin).toBeDefined();
-  expect(counted).toBe(new URL(origin!).host);
+  expect(domain).toBeDefined();
+  expect(counted).toBe(domain);
 });

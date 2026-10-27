@@ -393,24 +393,23 @@ mod tests {
     }
 
     #[test]
-    fn the_chain_to_the_browser_and_unit_tests_runs_at_normal_priority() {
-        let chain: Vec<&str> = Step::VARIANTS
-            .iter()
-            .filter(|s| s.urgency() == Urgency::Chain)
-            .map(|s| s.name())
-            .collect();
-        assert_eq!(
-            chain,
-            [
-                "gen-i18n",
-                "build-wasm",
-                "compile-site",
-                "vitest",
-                "build-app",
-                "build-site",
-                "e2e"
-            ]
-        );
+    fn a_step_runs_on_the_chain_exactly_when_a_chain_end_is_or_needs_it() {
+        for &step in Step::VARIANTS {
+            let on_chain = CHAIN_ENDS
+                .iter()
+                .any(|&end| end == step || end.needs_closure().contains(&step));
+            assert_eq!(
+                step.urgency() == Urgency::Chain,
+                on_chain,
+                "{}",
+                step.name()
+            );
+        }
+    }
+
+    #[test]
+    fn a_step_no_chain_end_needs_runs_in_the_background() {
+        assert_eq!(Step::Fmt.urgency(), Urgency::Background);
     }
 
     #[test]

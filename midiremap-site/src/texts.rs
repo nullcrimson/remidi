@@ -10,7 +10,7 @@ use crate::{
 
 const LIST_SEPARATOR: &str = ", ";
 
-pub fn drum_list(drums: &BTreeSet<Canon>) -> String {
+fn drum_list(drums: &BTreeSet<Canon>) -> String {
     drums
         .iter()
         .map(|drum| drum.label())
@@ -51,10 +51,10 @@ impl<'a> Texts<'a> {
     }
 
     /// How the pair table names the outcome of a row.
-    pub fn status(&self, outcome: &Outcome) -> &'a str {
+    pub fn status(&self, outcome: Outcome) -> &'a str {
         self.get(match outcome {
             Outcome::Direct { .. } => Plain::MapsStatusExact,
-            Outcome::Fallback { .. } => Plain::MapsStatusApproximated,
+            Outcome::Fallback(_) => Plain::MapsStatusApproximated,
             Outcome::Dropped { .. } => Plain::MapsStatusDropped,
         })
     }

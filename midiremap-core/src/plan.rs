@@ -19,13 +19,24 @@ use crate::{
 )]
 pub struct VoicePlan {
     #[serde(flatten)]
-    pub entry: CanonEntry,
+    entry: CanonEntry,
     /// Source notes that play this drum: overridden notes, then the engine's primary note,
     /// then the rest, each group ascending. Empty when no source note plays it.
     pub src_notes: Vec<Note>,
     /// Target note without target overrides.
     pub(crate) default_tgt_note: Option<Note>,
-    pub outcome: Outcome,
+    outcome: Outcome,
+}
+
+impl VoicePlan {
+    /// The drum, as people read it.
+    pub fn entry(&self) -> &CanonEntry {
+        &self.entry
+    }
+
+    pub fn outcome(&self) -> Outcome {
+        self.outcome
+    }
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
@@ -62,11 +73,12 @@ impl Mapping<'_> {
                     return None;
                 }
                 src_notes.sort_by_key(|&n| (SrcNoteRank::of(n, self.edited(), primary), n));
+                let outcome = self.resolve_canon(canon);
                 Some(VoicePlan {
-                    entry: canon.into(),
+                    entry: outcome.canon().into(),
                     src_notes,
                     default_tgt_note: self.target().resolve(canon, self.missing()).note(),
-                    outcome: self.resolve_canon(canon),
+                    outcome,
                 })
             })
             .collect()
@@ -77,10 +89,7 @@ impl Mapping<'_> {
 mod tests {
     use super::*;
     use crate::{
-        canon::{idx, KickKind, Slot, SnareArtic},
-        catalog::Catalog,
-        engine_map::from_toml,
-        note::n,
+        canon::k, catalog::Catalog, engine_map::from_toml, note::n, resolution::StandIn,
         MissingDrums, Overrides,
     };
 
@@ -88,7 +97,7 @@ mod tests {
 
     fn find<'a>(rows: &'a [VoicePlan], name: &str) -> &'a VoicePlan {
         rows.iter()
-            .find(|r| r.entry.canon.to_string() == name)
+            .find(|r| r.entry.canon().to_string() == name)
             .unwrap_or_else(|| panic!("no voice {name}"))
     }
 
@@ -141,12 +150,11 @@ mod tests {
         let near = ggd_to_ezd(NO_EDITS);
         assert_eq!(
             find(&near, "china.1.hit").outcome,
-            Outcome::Fallback {
-                canon: "china.1.hit".parse().unwrap(),
-                stand_in: "crash.1.hit".parse().unwrap(),
-                note: n(86),
-                other_drum: true
-            }
+            Outcome::Fallback(StandIn::new(
+                "china.1.hit".parse().unwrap(),
+                "crash.1.hit".parse().unwrap(),
+                n(86)
+            ))
         );
     }
 
@@ -156,7 +164,7 @@ mod tests {
         assert_eq!(
             find(&near, "kick.main").outcome,
             Outcome::Direct {
-                canon: Canon(Slot::Kick(KickKind::Main)),
+                canon: k("kick.main"),
                 note: n(36)
             }
         );
@@ -169,7 +177,7 @@ mod tests {
         assert_eq!(
             china.outcome,
             Outcome::Dropped {
-                canon: china.entry.canon,
+                canon: china.entry.canon(),
                 other_drum: true
             }
         );
@@ -211,11 +219,11 @@ mod tests {
         .preview();
         let kick = rows
             .iter()
-            .position(|r| r.entry.canon == Canon(Slot::Kick(KickKind::Main)))
+            .position(|r| r.entry.canon() == k("kick.main"))
             .unwrap();
         let snare = rows
             .iter()
-            .position(|r| r.entry.canon == Canon(Slot::Snare(idx(1), SnareArtic::Hit)))
+            .position(|r| r.entry.canon() == k("snare1.hit"))
             .unwrap();
         assert!(kick < snare, "kick must precede snare");
     }

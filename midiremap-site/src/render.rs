@@ -66,16 +66,14 @@ fn daw_steps<'a>(texts: &Texts<'a>) -> Vec<(Daw, &'a str)> {
         .collect()
 }
 
-/// The message telling how `daw` loads its drum map, `drum-maps-<key>`.
+/// The message telling how `daw` loads its drum map.
 fn how_to_load(daw: Daw) -> Plain {
-    let id = format!("drum-maps-{}", daw.key());
-    Plain::ALL
-        .iter()
-        .copied()
-        .find(|message| message.id() == id)
-        .expect(
-            "every DAW has its drum-maps message, as every_daw_has_its_how_to_load_message proves",
-        )
+    match daw {
+        Daw::Reaper => Plain::DrumMapsReaper,
+        Daw::Cubase => Plain::DrumMapsCubase,
+        Daw::StudioOne => Plain::DrumMapsStudioOne,
+        Daw::AbletonLive => Plain::DrumMapsAbleton,
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -378,7 +376,7 @@ fn render_note_maps(
         ));
     }
     for p in &site.pairs {
-        let path = p.link.href();
+        let path = p.href();
         out.push((
             path.in_locale(texts.locale).file(),
             PairHtml {
@@ -386,7 +384,7 @@ fn render_note_maps(
                 frame: frame(
                     Page::Pair(path.clone()),
                     PageKind::Pair,
-                    trail(&p.link.title(), &path),
+                    trail(&p.link().title(), &path),
                 ),
                 texts,
                 heading: pair_heading(p, texts),
@@ -454,14 +452,6 @@ mod tests {
     };
 
     const ORIGIN: &str = "https://drumverter.com";
-
-    #[test]
-    fn every_daw_has_its_how_to_load_message() {
-        for &daw in Daw::ALL {
-            let id = format!("drum-maps-{}", daw.key());
-            assert!(Plain::ALL.iter().any(|m| m.id() == id), "no {id} message");
-        }
-    }
 
     const STATIC_ASSETS: [&str; 6] = [
         "/favicon.ico",
@@ -1095,19 +1085,19 @@ mod tests {
     #[test]
     fn pair_counts_use_the_tag_utility() {
         for p in &crate::fixtures::site().pairs {
-            let html = page(&p.link.href().in_locale(Locale::En).file());
+            let html = page(&p.href().in_locale(Locale::En).file());
             let shown =
                 1 + usize::from(p.tally.approximated > 0) + usize::from(p.tally.dropped > 0);
             let tags = attrs(html, "span.tag", "data-tone");
-            assert_eq!(tags.len(), shown, "{}", p.link.slug);
-            assert_eq!(tags[0], "neutral", "{}", p.link.slug);
+            assert_eq!(tags.len(), shown, "{}", p.slug);
+            assert_eq!(tags[0], "neutral", "{}", p.slug);
             assert!(
                 tags.iter()
                     .all(|t| ["neutral", "bright", "danger"].contains(&t.as_str())),
                 "{}",
-                p.link.slug
+                p.slug
             );
-            assert!(!html.contains(r#"data-tone="gold""#), "{}", p.link.slug);
+            assert!(!html.contains(r#"data-tone="gold""#), "{}", p.slug);
         }
     }
 
@@ -1130,7 +1120,7 @@ mod tests {
     }
 
     fn pair_page(p: &PairPage) -> &'static str {
-        page(&p.link.href().in_locale(Locale::En).file())
+        page(&p.href().in_locale(Locale::En).file())
     }
 
     #[test]
@@ -1144,7 +1134,7 @@ mod tests {
                 page_text(pair_page(p)).contains(&none),
                 p.tally.changes() == 0,
                 "{}",
-                p.link.slug
+                p.slug
             );
         }
     }
@@ -1156,7 +1146,7 @@ mod tests {
                 !texts(pair_page(p), "ul.merge-list").is_empty(),
                 p.tally.approximated > 0,
                 "{}",
-                p.link.slug
+                p.slug
             );
         }
     }
@@ -1168,7 +1158,7 @@ mod tests {
                 page_text(pair_page(p)).contains(&format!("{} has no drum for ", p.tgt.name)),
                 p.tally.dropped > 0,
                 "{}",
-                p.link.slug
+                p.slug
             );
         }
     }
@@ -1176,7 +1166,7 @@ mod tests {
     #[test]
     fn an_all_exact_group_hides_with_the_exact_rows() {
         for p in &crate::fixtures::site().pairs {
-            let html = page(&p.link.href().in_locale(Locale::En).file());
+            let html = page(&p.href().in_locale(Locale::En).file());
             let groups: Vec<(bool, &str)> = html
                 .split("<tbody")
                 .skip(1)
@@ -1185,16 +1175,16 @@ mod tests {
                     (open == r#" data-outcome="exact""#, body)
                 })
                 .collect();
-            assert_eq!(groups.len(), p.groups.len(), "{}", p.link.slug);
+            assert_eq!(groups.len(), p.groups.len(), "{}", p.slug);
             for ((hidden, body), g) in groups.iter().zip(&p.groups) {
-                assert_eq!(*hidden, g.all_exact(), "{}: {}", p.link.slug, g.family);
+                assert_eq!(*hidden, g.all_exact(), "{}: {}", p.slug, g.family);
                 assert!(
                     body.starts_with(&format!(
                         "\n<tr><th scope=\"rowgroup\" colspan=\"6\">{}</th></tr>",
                         g.family
                     )),
                     "{}",
-                    p.link.slug
+                    p.slug
                 );
             }
         }
@@ -1212,13 +1202,8 @@ mod tests {
     #[test]
     fn pair_pages_mark_the_engine_step_done() {
         for p in &crate::fixtures::site().pairs {
-            let html = page(&p.link.href().in_locale(Locale::En).file());
-            assert_eq!(
-                badges(html),
-                ["current", "done", "later"],
-                "{}",
-                p.link.slug
-            );
+            let html = page(&p.href().in_locale(Locale::En).file());
+            assert_eq!(badges(html), ["current", "done", "later"], "{}", p.slug);
             let steps = html.split(r#"<ol class="step-list""#).nth(1).unwrap();
             let engines = steps.split("<li>").nth(2).unwrap();
             assert!(
@@ -1226,7 +1211,7 @@ mod tests {
                     "From one drum layout to another<span class=\"sr-only\"> · done</span>"
                 ),
                 "{}",
-                p.link.slug
+                p.slug
             );
         }
     }

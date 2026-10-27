@@ -360,7 +360,6 @@ pub fn sample_file(engine: &str) -> Result<Vec<u8>, WasmError> {
 
 #[cfg(test)]
 mod tests {
-    use midiremap_core::SkippedEdit;
     use midiremap_testkit::{drums, on};
 
     use super::*;
@@ -394,33 +393,6 @@ mod tests {
 
     const FIXTURE: &str = include_str!("../../midiremap-core/tests/golden/my-kit.drumverter.json");
 
-    fn view_through_an_alias_with_a_bogus_edit() -> LoadedPreset {
-        let with_alias = r#"{"id":"custom","name":"Custom","aliases":["old_kit"],"notes":[{"note":60,"canon":"kick.main","primary":true}]}"#;
-        let catalog = Catalog::builtin().with_user_json(with_alias).unwrap();
-        let json = FIXTURE
-            .replace("ggd_invasion", "old_kit")
-            .replace("\"kick.main\": 35", "\"bogus.drum\": 35");
-        preset_view(&json, &catalog).unwrap()
-    }
-
-    #[test]
-    fn preset_view_resolves_a_source_alias() {
-        let view = view_through_an_alias_with_a_bogus_edit();
-        assert_eq!(view.preset.src.as_str(), "custom");
-    }
-
-    #[test]
-    fn preset_view_keeps_the_target_engine() {
-        let view = view_through_an_alias_with_a_bogus_edit();
-        assert_eq!(view.preset.tgt.as_str(), "ezdrummer");
-    }
-
-    #[test]
-    fn preset_view_carries_the_preset_name() {
-        let view = view_through_an_alias_with_a_bogus_edit();
-        assert_eq!(view.preset.name.as_str(), "My kit");
-    }
-
     #[test]
     fn a_rack_for_an_unknown_engine_is_an_unknown_engine_error() {
         let err = mapping(
@@ -439,46 +411,6 @@ mod tests {
                 role: Role::Target,
                 id: "gone".to_owned(),
             }
-        );
-    }
-
-    #[test]
-    fn a_blank_preset_name_is_refused() {
-        assert!(serde_json::from_str::<PresetName>(r#"" \t""#).is_err());
-    }
-
-    #[test]
-    fn a_preset_name_serializes_as_its_text() {
-        let name: PresetName = serde_json::from_str(r#""My kit""#).unwrap();
-        assert_eq!(serde_json::to_string(&name).unwrap(), r#""My kit""#);
-    }
-
-    #[test]
-    fn preset_view_lists_the_target_edits_it_can_read() {
-        let view = view_through_an_alias_with_a_bogus_edit();
-        assert_eq!(
-            serde_json::to_value(&view.preset.overrides).unwrap()["edits"],
-            serde_json::json!({ "china.1.hit": 52 })
-        );
-    }
-
-    #[test]
-    fn preset_view_lists_the_source_edits() {
-        let view = view_through_an_alias_with_a_bogus_edit();
-        assert_eq!(
-            serde_json::to_value(&view.preset.overrides).unwrap()["srcEdits"],
-            serde_json::json!({ "24": "snare1.hit", "60": null })
-        );
-    }
-
-    #[test]
-    fn preset_view_lists_the_skipped_edits() {
-        let view = view_through_an_alias_with_a_bogus_edit();
-        assert_eq!(
-            view.skipped,
-            [SkippedEdit::UnknownDrum {
-                key: "bogus.drum".into()
-            }]
         );
     }
 

@@ -115,7 +115,7 @@ impl Passes {
 
 /// The source files under `pathspecs` that git sees: tracked ones, deleted ones included,
 /// and untracked ones it does not ignore.
-fn sources(root: &Path, pathspecs: &[String]) -> Result<Vec<String>> {
+fn sources(root: &Path, pathspecs: &[&str]) -> Result<Vec<String>> {
     if pathspecs.is_empty() {
         return Ok(Vec::new());
     }
@@ -144,7 +144,7 @@ fn sources(root: &Path, pathspecs: &[String]) -> Result<Vec<String>> {
 }
 
 /// Every file under the build outputs `paths`, a missing output being no files.
-fn built(root: &Path, paths: &[String]) -> Result<Vec<String>> {
+fn built(root: &Path, paths: &[&str]) -> Result<Vec<String>> {
     let mut files = paths
         .iter()
         .flat_map(|path| {
@@ -187,7 +187,7 @@ fn hash_file(hasher: &mut blake3::Hasher, root: &Path, file: &str) -> Result<()>
 /// What the files under the build directory `path` hold now.
 pub fn left(root: &Path, path: &str) -> Result<Fingerprint> {
     let mut hasher = blake3::Hasher::new();
-    for file in built(root, &[path.to_owned()])? {
+    for file in built(root, &[path])? {
         hash_file(&mut hasher, root, &file)?;
     }
     Ok(Fingerprint(hasher.finalize().to_hex().to_string()))
@@ -195,16 +195,16 @@ pub fn left(root: &Path, path: &str) -> Result<Fingerprint> {
 
 /// The paths a pass reads, from the repository root: source pathspecs, and build outputs.
 #[derive(Debug, Default)]
-pub struct Paths {
-    pub sources: Vec<String>,
-    pub built: Vec<String>,
+pub struct Paths<'a> {
+    pub sources: Vec<&'a str>,
+    pub built: Vec<&'a str>,
 }
 
 /// The fingerprint of what `key` reads (`paths` under `root`) with `toolchains`.
 pub fn fingerprint(
     root: &Path,
     key: PassKey,
-    paths: &Paths,
+    paths: &Paths<'_>,
     toolchains: &str,
 ) -> Result<Fingerprint> {
     let mut hasher = blake3::Hasher::new();
@@ -231,7 +231,7 @@ mod tests {
     fn print(root: &Path) -> Fingerprint {
         let paths = Paths {
             sources: Vec::new(),
-            built: vec!["out".to_owned()],
+            built: vec!["out"],
         };
         fingerprint(root, E2E, &paths, "tools").unwrap()
     }
@@ -270,18 +270,34 @@ mod tests {
         );
     }
 
-    #[test]
-    fn a_pass_is_kept_and_a_failure_forgets_it() {
+    fn recorded(passed: bool) -> (tempfile::TempDir, PathBuf, Fingerprint) {
         let dir = tempfile::tempdir().unwrap();
-        let root = dir.path();
-        let path = root.join("passes.json");
+        let path = dir.path().join("passes.json");
         let fp = Fingerprint("abc".to_owned());
-        let mut passes = Passes::load(path.clone());
-        assert!(!passes.has(TSC, &fp, None));
-        passes.record(TSC, fp.clone(), None, true).unwrap();
-        assert!(Passes::load(path.clone()).has(TSC, &fp, None));
-        assert!(!Passes::load(path.clone()).has(TSC, &Fingerprint("abd".to_owned()), None));
-        passes.record(TSC, fp.clone(), None, false).unwrap();
+        Passes::load(path.clone())
+            .record(TSC, fp.clone(), None, passed)
+            .unwrap();
+        (dir, path, fp)
+    }
+
+    #[test]
+    fn a_recorded_pass_is_kept_across_loads() {
+        let (_dir, path, fp) = recorded(true);
+        assert!(Passes::load(path).has(TSC, &fp, None));
+    }
+
+    #[test]
+    fn a_pass_holds_only_for_its_fingerprint() {
+        let (_dir, path, _) = recorded(true);
+        assert!(!Passes::load(path).has(TSC, &Fingerprint("abd".to_owned()), None));
+    }
+
+    #[test]
+    fn a_failure_forgets_the_pass() {
+        let (_dir, path, fp) = recorded(true);
+        Passes::load(path.clone())
+            .record(TSC, fp.clone(), None, false)
+            .unwrap();
         assert!(!Passes::load(path).has(TSC, &fp, None));
     }
 

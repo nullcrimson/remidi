@@ -20,15 +20,15 @@ fn previewed_by_source_note(
     let mut seen = BTreeMap::new();
     for row in Mapping::new(src, tgt, ov, missing).preview() {
         for &note in &row.src_notes {
-            if let Some(prev) = seen.insert(note, row.entry.canon) {
+            if let Some(prev) = seen.insert(note, row.entry().canon()) {
                 panic!(
                     "{} -> {}: note {note} in rows {prev} and {}",
                     src.id(),
                     tgt.id(),
-                    row.entry.canon
+                    row.entry().canon()
                 );
             }
-            if let Some(tgt_note) = row.outcome.note() {
+            if let Some(tgt_note) = row.outcome().note() {
                 out.insert(note.get(), tgt_note.get());
             }
         }

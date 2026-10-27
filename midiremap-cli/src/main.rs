@@ -3,7 +3,8 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand};
 use midiremap_core::{
-    convert, parse_preset, Catalog, ChannelScope, Mapping, MissingDrums, Overrides, Unrecognized,
+    convert, parse_preset, Catalog, ChannelScope, EngineId, EngineMap, Mapping, MissingDrums,
+    Overrides, Unrecognized,
 };
 
 #[derive(Parser)]
@@ -62,17 +63,25 @@ fn build_catalog(user_map: Option<PathBuf>) -> Result<Catalog> {
     Ok(catalog)
 }
 
-fn read_preset(path: &Path, catalog: &Catalog, src: &str, tgt: &str) -> Result<Overrides> {
+fn read_preset(
+    path: &Path,
+    catalog: &Catalog,
+    src: &EngineMap,
+    tgt: &EngineMap,
+) -> Result<Overrides> {
     let json = std::fs::read_to_string(path)
         .with_context(|| format!("cannot read preset {}", path.display()))?;
     let loaded = parse_preset(&json, catalog)
         .with_context(|| format!("invalid preset {}", path.display()))?;
     let preset = loaded.preset;
-    let (p_src, p_tgt) = (preset.src.as_str(), preset.tgt.as_str());
-    if (p_src, p_tgt) != (src, tgt) {
+    if (&preset.src, &preset.tgt) != (&EngineId::from(src), &EngineId::from(tgt)) {
         anyhow::bail!(
-            "preset {} is for {p_src} → {p_tgt}, not {src} → {tgt}",
-            path.display()
+            "preset {} is for {} → {}, not {} → {}",
+            path.display(),
+            preset.src.as_str(),
+            preset.tgt.as_str(),
+            src.id(),
+            tgt.id()
         );
     }
     for skipped in &loaded.skipped {
@@ -103,7 +112,7 @@ fn run_convert(a: ConvertArgs) -> Result<()> {
         std::fs::read(&a.input).with_context(|| format!("cannot read {}", a.input.display()))?;
 
     let overrides = match &a.preset {
-        Some(path) => read_preset(path, &catalog, src.id(), tgt.id())?,
+        Some(path) => read_preset(path, &catalog, src, tgt)?,
         None => Overrides::default(),
     };
     let out = convert(

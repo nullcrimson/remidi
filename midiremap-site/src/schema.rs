@@ -18,7 +18,7 @@ fn script(mut value: Value) -> String {
 }
 
 /// The FAQPage schema for the questions in `blocks`.
-pub fn faq_schema(blocks: &[Block]) -> String {
+fn faq_schema(blocks: &[Block]) -> String {
     let entities: Vec<Value> = blocks
         .iter()
         .flat_map(|b| match b {
@@ -55,7 +55,7 @@ pub fn breadcrumb_schema(trail: &[(&str, String)]) -> String {
 }
 
 /// The HowTo schema for the converter's `steps` in `blocks`, each named by `title`.
-pub fn how_to_schema<'a>(
+fn how_to_schema<'a>(
     heading: &str,
     blocks: &[Block],
     steps: &[ConverterStep],

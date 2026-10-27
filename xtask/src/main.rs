@@ -71,6 +71,7 @@ struct Gate {
     policy: Policy,
     toolchains: String,
     crates: Vec<String>,
+    site_program: String,
     passes: Mutex<Passes>,
 }
 
@@ -131,6 +132,7 @@ impl Gate {
         Ok(Self {
             toolchains: toolchains(&root, &nightly)?,
             crates: crates(&root)?,
+            site_program: site_program(),
             passes: Mutex::new(Passes::load(logs.join("passes.json"))),
             policy,
             cx: Context::new(nightly, plan),
@@ -141,13 +143,13 @@ impl Gate {
     }
 
     /// The paths `inputs` names, from the repository root.
-    fn paths(&self, inputs: &[Input]) -> Vec<String> {
+    fn paths(&self, inputs: &[Input]) -> Vec<&str> {
         inputs
             .iter()
             .flat_map(|input| match input {
-                Input::Path(path) => vec![(*path).to_owned()],
-                Input::Crates => self.crates.clone(),
-                Input::SiteProgram => vec![site_program()],
+                Input::Path(path) => vec![*path],
+                Input::Crates => self.crates.iter().map(String::as_str).collect(),
+                Input::SiteProgram => vec![self.site_program.as_str()],
             })
             .collect()
     }
@@ -379,16 +381,18 @@ mod tests {
 
     #[test]
     fn the_rust_checks_read_every_crate_of_the_workspace() {
-        let crates = crates(&root()).unwrap();
-        for name in [
-            "midiremap-cli",
-            "midiremap-core",
-            "midiremap-site",
-            "midiremap-testkit",
-            "midiremap-wasm",
-            "xtask",
-        ] {
-            assert!(crates.iter().any(|c| c == name), "{name} in {crates:?}");
-        }
+        let mut crates = crates(&root()).unwrap();
+        crates.sort();
+        assert_eq!(
+            crates,
+            [
+                "midiremap-cli",
+                "midiremap-core",
+                "midiremap-site",
+                "midiremap-testkit",
+                "midiremap-wasm",
+                "xtask",
+            ]
+        );
     }
 }

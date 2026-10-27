@@ -82,12 +82,8 @@ impl Report {
     pub(crate) fn record(&mut self, source_note: Note, outcome: Option<Outcome>) {
         match outcome {
             None => *self.unmapped_source.entry(source_note).or_default() += 1,
-            Some(Outcome::Fallback {
-                canon,
-                stand_in,
-                note,
-                ..
-            }) => {
+            Some(fallback @ Outcome::Fallback(s)) => {
+                let (canon, stand_in, note) = (fallback.canon(), s.stand_in(), s.note());
                 self.converted += 1;
                 self.fallback_used
                     .entry(canon)
@@ -107,17 +103,14 @@ impl Report {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        canon::{idx, HatOpen, HatZone, KickKind, Slot, SnareArtic},
-        note::n,
-    };
+    use crate::{canon::k, note::n, resolution::StandIn};
 
     fn open3() -> Canon {
-        Canon(Slot::Hat(HatOpen::Open(idx(3)), HatZone::Plain))
+        k("hat.open3")
     }
 
     fn snare() -> Canon {
-        Canon(Slot::Snare(idx(1), SnareArtic::Hit))
+        k("snare1.hit")
     }
 
     fn tallied_report() -> Report {
@@ -126,12 +119,11 @@ mod tests {
         r.record(n(99), None);
         r.record(
             n(11),
-            Some(Outcome::Fallback {
-                canon: open3,
-                stand_in: Canon(Slot::Hat(HatOpen::Closed, HatZone::Plain)),
-                note: n(60),
-                other_drum: false,
-            }),
+            Some(Outcome::Fallback(StandIn::new(
+                open3,
+                k("hat.closed"),
+                n(60),
+            ))),
         );
         r.record(
             n(10),
@@ -143,7 +135,7 @@ mod tests {
         r.record(
             n(12),
             Some(Outcome::Direct {
-                canon: Canon(Slot::Kick(KickKind::Main)),
+                canon: k("kick.main"),
                 note: n(50),
             }),
         );
@@ -164,7 +156,7 @@ mod tests {
             [(
                 open3(),
                 &FallbackTally {
-                    stand_in: Canon(Slot::Hat(HatOpen::Closed, HatZone::Plain)),
+                    stand_in: k("hat.closed"),
                     note: n(60),
                     count: 1
                 }

@@ -70,7 +70,11 @@ pub(crate) fn write(smf: &Smf) -> Result<Vec<u8>, CodecError> {
     Ok(bytes)
 }
 
-/// A track of `events` given at their absolute ticks, which never decrease.
+/// A track of `events` given at their absolute ticks.
+///
+/// # Panics
+///
+/// When a tick is below the one before it, or the gap between them does not fit a delta.
 pub(crate) fn track_at<'a>(
     events: impl IntoIterator<Item = (u32, TrackEventKind<'a>)>,
 ) -> Track<'a> {
@@ -78,7 +82,10 @@ pub(crate) fn track_at<'a>(
     events
         .into_iter()
         .map(|(tick, kind)| {
-            let delta = u28::new(tick - last);
+            let delta = tick
+                .checked_sub(last)
+                .and_then(u28::try_from)
+                .expect("the ticks never decrease and their gaps fit a delta");
             last = tick;
             TrackEvent { delta, kind }
         })

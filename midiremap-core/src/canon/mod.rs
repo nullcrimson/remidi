@@ -23,7 +23,7 @@ pub(crate) type OpenLevel = Idx<6>;
     derive(tsify::Tsify),
     tsify(type = r#"string & { readonly __brand: "Canon" }"#)
 )]
-pub struct Canon(pub(crate) Slot);
+pub struct Canon(Slot);
 
 /// What a canon names: the drum and the way it is played.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -209,13 +209,19 @@ fn build_all() -> Vec<Canon> {
 static ALL: LazyLock<Vec<Canon>> = LazyLock::new(build_all);
 
 impl Canon {
+    pub(crate) const KICK: Self = Self(Slot::Kick(KickKind::Main));
+    pub(crate) const SNARE: Self = Self(Slot::Snare(Idx::FIRST, SnareArtic::Hit));
+    pub(crate) const CLOSED_HAT: Self = Self(Slot::Hat(HatOpen::Closed, HatZone::Plain));
+    pub(crate) const CRASH: Self = Self(Slot::Cymbal(CymSlot::Crash(Idx::FIRST), CymArtic::Hit));
+    pub(crate) const RIDE: Self = Self(Slot::Ride(Idx::FIRST, RideArtic::Bow));
+
     /// The drums a groove uses most, in kit order.
     pub const CORE_KIT: [Canon; 16] = [
-        Canon(Slot::Kick(KickKind::Main)),
-        Canon(Slot::Snare(Idx::FIRST, SnareArtic::Hit)),
+        Self::KICK,
+        Self::SNARE,
         Canon(Slot::Snare(Idx::FIRST, SnareArtic::Sidestick)),
         Canon(Slot::Snare(Idx::FIRST, SnareArtic::Rimshot)),
-        Canon(Slot::Hat(HatOpen::Closed, HatZone::Plain)),
+        Self::CLOSED_HAT,
         Canon(Slot::Hat(HatOpen::Pedal, HatZone::Plain)),
         Canon(Slot::Hat(HatOpen::Open(Idx::FIRST), HatZone::Plain)),
         Canon(Slot::Tom(TomPos::Rack(Idx::FIRST), TomArtic::Hit)),
@@ -223,9 +229,9 @@ impl Canon {
         Canon(Slot::Tom(TomPos::Rack(idx(3)), TomArtic::Hit)),
         Canon(Slot::Tom(TomPos::Floor(Idx::FIRST), TomArtic::Hit)),
         Canon(Slot::Tom(TomPos::Floor(idx(2)), TomArtic::Hit)),
-        Canon(Slot::Cymbal(CymSlot::Crash(Idx::FIRST), CymArtic::Hit)),
+        Self::CRASH,
         Canon(Slot::Cymbal(CymSlot::Crash(idx(2)), CymArtic::Hit)),
-        Canon(Slot::Ride(Idx::FIRST, RideArtic::Bow)),
+        Self::RIDE,
         Canon(Slot::Ride(Idx::FIRST, RideArtic::Bell)),
     ];
 
@@ -269,9 +275,23 @@ impl Canon {
     tsify(missing_as_null, hashmap_as_object)
 )]
 pub struct CanonEntry {
-    pub canon: Canon,
-    pub label: String,
-    pub family: Family,
+    canon: Canon,
+    label: String,
+    family: Family,
+}
+
+impl CanonEntry {
+    pub fn canon(&self) -> Canon {
+        self.canon
+    }
+
+    pub fn label(&self) -> &str {
+        &self.label
+    }
+
+    pub fn family(&self) -> Family {
+        self.family
+    }
 }
 
 impl From<Canon> for CanonEntry {
@@ -284,6 +304,12 @@ impl From<Canon> for CanonEntry {
     }
 }
 
+/// The canon of `key`, for tests.
+#[cfg(test)]
+pub(crate) fn k(key: &str) -> Canon {
+    key.parse().expect("test canon key is valid")
+}
+
 pub(crate) const fn idx<const MAX: u8>(n: u8) -> Idx<MAX> {
     Idx::new(n).expect("a constant index is in range")
 }
@@ -293,10 +319,6 @@ mod tests {
     use std::collections::HashSet;
 
     use super::*;
-
-    fn k(s: &str) -> Canon {
-        s.parse().unwrap()
-    }
 
     fn assert_reaches_every<D: VariantArray + Eq + std::hash::Hash>(seen: impl Iterator<Item = D>) {
         let seen: HashSet<D> = seen.collect();

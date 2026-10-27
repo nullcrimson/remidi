@@ -31,36 +31,57 @@ impl DeltaFold {
     }
 }
 
-/// What a note event adds to the report.
+/// What a conversion does with one event: whether it stays in the file, and what it adds
+/// to the report.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-enum Tally {
-    /// A hit the conversion rewrites, on its source note.
-    Rewritten(Note),
-    /// A hit on a channel the scope leaves as it is.
+enum Fate {
+    /// Stays, adding nothing: no hit, such as a controller or the release of a played note.
+    Kept,
+    /// Goes, adding nothing: the release of a note nothing plays.
+    Removed,
+    /// A hit on a channel the scope leaves as it is: stays as it is.
     Untouched,
+    /// A hit on its source note that stays, on the note that plays it.
+    Played(Note),
+    /// A hit on its source note that goes, since nothing plays it.
+    Dropped(Note),
+}
+
+impl Fate {
+    fn stays(self) -> bool {
+        match self {
+            Fate::Kept | Fate::Untouched | Fate::Played(_) => true,
+            Fate::Removed | Fate::Dropped(_) => false,
+        }
+    }
 }
 
 /// One event of a conversion: when `filter` accepts its channel, its key moves to where
-/// `mapping` plays it. Says what the event tallies and whether it stays in the file.
-fn step(
-    mapping: &Mapping,
-    filter: ChannelFilter,
-    kind: &mut TrackEventKind,
-) -> (Option<Tally>, bool) {
+/// `mapping` plays it.
+fn step(mapping: &Mapping, filter: ChannelFilter, kind: &mut TrackEventKind) -> Fate {
     let hit = hit(kind);
     let TrackEventKind::Midi { channel, message } = kind else {
-        return (None, true);
+        return Fate::Kept;
     };
     if !filter.accepts(Channel::of(*channel)) {
-        return (hit.map(|_| Tally::Untouched), true);
+        return if hit.is_some() {
+            Fate::Untouched
+        } else {
+            Fate::Kept
+        };
     }
-    let keep = match message {
+    let stays = match message {
         MidiMessage::NoteOn { key, .. }
         | MidiMessage::NoteOff { key, .. }
         | MidiMessage::Aftertouch { key, .. } => apply(mapping, key),
         _ => true,
     };
-    (hit.map(|(_, note)| Tally::Rewritten(note)), keep)
+    match (hit, stays) {
+        (Some((_, note)), true) => Fate::Played(note),
+        (Some((_, note)), false) => Fate::Dropped(note),
+        (None, true) => Fate::Kept,
+        (None, false) => Fate::Removed,
+    }
 }
 
 fn apply(mapping: &Mapping, key: &mut u7) -> bool {
@@ -103,117 +124,14 @@ pub(crate) fn rewrite<'a>(
     let filters = scope.resolve(&smf);
     for (track, filter) in smf.tracks.iter_mut().zip(filters) {
         *track = thin(std::mem::take(track), |ev| {
-            let (tally, keep) = step(mapping, filter, &mut ev.kind);
-            match tally {
-                Some(Tally::Rewritten(note)) => report.record(note, mapping.get(note)),
-                Some(Tally::Untouched) => report.record_untouched(),
-                None => {}
+            let fate = step(mapping, filter, &mut ev.kind);
+            match fate {
+                Fate::Played(note) | Fate::Dropped(note) => report.record(note, mapping.get(note)),
+                Fate::Untouched => report.record_untouched(),
+                Fate::Kept | Fate::Removed => {}
             }
-            keep
+            fate.stays()
         })?;
     }
     Ok((smf, report))
-}
-
-#[cfg(test)]
-mod tests {
-    use midiremap_testkit::{cc, choke, event, off, on};
-
-    use super::*;
-    use crate::{
-        catalog::Catalog, note::n, overrides::Overrides, resolution::MissingDrums,
-        translate::Unrecognized,
-    };
-
-    fn ggd_to_ezd(unrecognized: Unrecognized) -> Mapping<'static> {
-        let catalog = Catalog::shared();
-        Mapping::new(
-            catalog.get("ggd_invasion").unwrap(),
-            catalog.get("ezdrummer").unwrap(),
-            &Overrides::default(),
-            MissingDrums::Nearest,
-        )
-        .with_unrecognized(unrecognized)
-    }
-
-    fn stepped(
-        unrecognized: Unrecognized,
-        filter: ChannelFilter,
-        ev: TrackEvent<'static>,
-    ) -> (Option<Tally>, bool, TrackEventKind<'static>) {
-        let mut kind = ev.kind;
-        let (tally, keep) = step(&ggd_to_ezd(unrecognized), filter, &mut kind);
-        (tally, keep, kind)
-    }
-
-    #[test]
-    fn a_hit_moves_to_where_the_target_plays_its_drum() {
-        let (tally, keep, kind) = stepped(
-            Unrecognized::Remove,
-            ChannelFilter::All,
-            event(0, 10, on(24)),
-        );
-        assert_eq!(tally, Some(Tally::Rewritten(n(24))));
-        assert!(keep);
-        assert_eq!(kind, event(0, 10, on(36)).kind);
-    }
-
-    #[test]
-    fn a_hit_the_scope_skips_stays_as_it_is_and_counts_as_untouched() {
-        let (tally, keep, kind) = stepped(
-            Unrecognized::Remove,
-            ChannelFilter::Skip,
-            event(0, 10, on(24)),
-        );
-        assert_eq!(tally, Some(Tally::Untouched));
-        assert!(keep);
-        assert_eq!(kind, event(0, 10, on(24)).kind);
-    }
-
-    #[test]
-    fn a_release_moves_with_its_note_but_tallies_nothing() {
-        let (tally, keep, kind) = stepped(
-            Unrecognized::Remove,
-            ChannelFilter::All,
-            event(0, 10, off(24)),
-        );
-        assert_eq!(tally, None);
-        assert!(keep);
-        assert_eq!(kind, event(0, 10, off(36)).kind);
-    }
-
-    #[test]
-    fn an_unrecognized_note_leaves_unless_the_mapping_keeps_it() {
-        let removed = stepped(
-            Unrecognized::Remove,
-            ChannelFilter::All,
-            event(0, 10, choke(99)),
-        );
-        let kept = stepped(
-            Unrecognized::Keep,
-            ChannelFilter::All,
-            event(0, 10, choke(99)),
-        );
-        assert!(!removed.1);
-        assert!(kept.1);
-    }
-
-    #[test]
-    fn other_messages_stay_and_tally_nothing() {
-        let (tally, keep, _) =
-            stepped(Unrecognized::Remove, ChannelFilter::All, event(0, 10, cc()));
-        assert_eq!((tally, keep), (None, true));
-    }
-
-    #[test]
-    fn thinning_folds_a_removed_events_delta_into_the_next_kept_one() {
-        let events = vec![
-            event(5, 10, cc()),
-            event(7, 10, off(1)),
-            event(11, 10, cc()),
-        ];
-        let kept = thin(events, |ev| ev.delta.as_int() != 7).unwrap();
-        let deltas: Vec<u32> = kept.iter().map(|ev| ev.delta.as_int()).collect();
-        assert_eq!(deltas, [5, 18]);
-    }
 }

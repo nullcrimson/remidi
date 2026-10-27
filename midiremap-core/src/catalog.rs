@@ -112,7 +112,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        canon::{idx, Canon, HatOpen, HatZone, KickKind, Slot, SnareArtic},
+        canon::{k, Canon},
         note::n,
     };
 
@@ -129,7 +129,7 @@ mod tests {
         let b = Catalog::builtin();
         assert_eq!(
             b.get("general_midi").unwrap().decode(n(36)),
-            Some(Canon(Slot::Kick(KickKind::Main)))
+            Some(k("kick.main"))
         );
     }
 
@@ -138,7 +138,7 @@ mod tests {
         let b = Catalog::builtin();
         assert_eq!(
             b.get("general_midi").unwrap().decode(n(42)),
-            Some(Canon(Slot::Hat(HatOpen::Closed, HatZone::Plain)))
+            Some(k("hat.closed"))
         );
     }
 
@@ -147,7 +147,7 @@ mod tests {
         let b = Catalog::builtin();
         assert_eq!(
             b.get("guitar_pro").unwrap().decode(n(38)),
-            Some(Canon(Slot::Snare(idx(1), SnareArtic::Hit)))
+            Some(k("snare1.hit"))
         );
     }
 
@@ -177,21 +177,15 @@ mod tests {
     fn addictive_drums2_decodes_its_native_layout() {
         let b = Catalog::builtin();
         let ad2 = b.get("addictive_drums2").unwrap();
-        assert_eq!(
-            ad2.decode(n(49)),
-            Some(Canon(Slot::Hat(HatOpen::Tight, HatZone::Tip)))
-        );
-        assert_eq!(ad2.decode(n(36)), Some(Canon(Slot::Kick(KickKind::Main))));
+        assert_eq!(ad2.decode(n(49)), Some(k("hat.tight.tip")));
+        assert_eq!(ad2.decode(n(36)), Some(k("kick.main")));
     }
 
     #[test]
     fn addictive_drums2_encodes_its_native_layout() {
         let b = Catalog::builtin();
         let ad2 = b.get("addictive_drums2").unwrap();
-        assert_eq!(
-            ad2.encode(Canon(Slot::Hat(HatOpen::Open(idx(1)), HatZone::Plain))),
-            Some(n(55))
-        );
+        assert_eq!(ad2.encode(k("hat.open1")), Some(n(55)));
     }
 
     #[test]
@@ -200,7 +194,7 @@ mod tests {
         let p = Catalog::builtin().with_user_json(json).unwrap();
         let ezd = p.get("ezdrummer").unwrap();
         assert_eq!(ezd.name(), "Custom EZD");
-        assert_eq!(ezd.encode(Canon(Slot::Kick(KickKind::Main))), Some(n(35)));
+        assert_eq!(ezd.encode(k("kick.main")), Some(n(35)));
     }
 
     #[test]
@@ -209,7 +203,7 @@ mod tests {
         let p = Catalog::builtin().with_user_json(json).unwrap();
         assert_eq!(
             p.get("ggd_invasion").unwrap().decode(n(24)),
-            Some(Canon(Slot::Kick(KickKind::Main)))
+            Some(k("kick.main"))
         );
     }
 

@@ -41,19 +41,19 @@ struct RawVariant {
 /// What makes an engine another mapping of a base engine: the base's id and how the mapping
 /// differs, such as `Mapping 'GM'`.
 #[derive(Debug)]
-pub struct Variant {
+pub(crate) struct Variant {
     of: String,
     label: String,
 }
 
 impl Variant {
     /// The id of the engine this one is another mapping of.
-    pub fn of(&self) -> &str {
+    pub(crate) fn of(&self) -> &str {
         &self.of
     }
 
     /// How the mapping differs from the base engine's, such as `Mapping 'GM'`.
-    pub fn label(&self) -> &str {
+    pub(crate) fn label(&self) -> &str {
         &self.label
     }
 }
@@ -175,7 +175,7 @@ impl EngineMap {
     }
 
     /// What makes this engine another mapping of a base engine, when it is one.
-    pub fn variant(&self) -> Option<&Variant> {
+    pub(crate) fn variant(&self) -> Option<&Variant> {
         self.variant.as_ref()
     }
 
@@ -284,11 +284,7 @@ pub(crate) fn many_from_json(s: &str) -> Result<Vec<EngineMap>, MapError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        canon::{idx, KickKind, Slot, SnareArtic},
-        family::Family,
-        note::n,
-    };
+    use crate::{canon::k, family::Family, note::n};
 
     const SAMPLE: &str = r#"
         id = "demo"
@@ -303,12 +299,9 @@ mod tests {
     #[test]
     fn decodes_every_note() {
         let m = from_toml(SAMPLE).unwrap();
-        assert_eq!(m.decode(n(24)), Some(Canon(Slot::Kick(KickKind::Main))));
-        assert_eq!(m.decode(n(23)), Some(Canon(Slot::Kick(KickKind::Main))));
-        assert_eq!(
-            m.decode(n(26)),
-            Some(Canon(Slot::Snare(idx(1), SnareArtic::Hit)))
-        );
+        assert_eq!(m.decode(n(24)), Some(k("kick.main")));
+        assert_eq!(m.decode(n(23)), Some(k("kick.main")));
+        assert_eq!(m.decode(n(26)), Some(k("snare1.hit")));
     }
 
     #[test]
@@ -320,11 +313,8 @@ mod tests {
     #[test]
     fn encode_uses_primary_note() {
         let m = from_toml(SAMPLE).unwrap();
-        assert_eq!(m.encode(Canon(Slot::Kick(KickKind::Main))), Some(n(24)));
-        assert_eq!(
-            m.encode(Canon(Slot::Snare(idx(1), SnareArtic::Hit))),
-            Some(n(26))
-        );
+        assert_eq!(m.encode(k("kick.main")), Some(n(24)));
+        assert_eq!(m.encode(k("snare1.hit")), Some(n(26)));
     }
 
     #[test]
@@ -333,10 +323,10 @@ mod tests {
         let d = m.drums();
         assert_eq!(d.len(), 2);
         assert_eq!(d[0].note, n(24));
-        assert_eq!(d[0].entry.label, "Kick");
-        assert_eq!(d[0].entry.family, Family::Kick);
+        assert_eq!(d[0].entry.label(), "Kick");
+        assert_eq!(d[0].entry.family(), Family::Kick);
         assert_eq!(d[1].note, n(26));
-        assert_eq!(d[1].entry.family, Family::Snare);
+        assert_eq!(d[1].entry.family(), Family::Snare);
     }
 
     #[test]
@@ -356,11 +346,8 @@ mod tests {
             notes.iter().map(|d| d.note).collect::<Vec<_>>(),
             vec![n(23), n(24), n(26)]
         );
-        assert_eq!(notes[0].entry.canon, Canon(Slot::Kick(KickKind::Main)));
-        assert_eq!(
-            notes[2].entry.canon,
-            Canon(Slot::Snare(idx(1), SnareArtic::Hit))
-        );
+        assert_eq!(notes[0].entry.canon(), k("kick.main"));
+        assert_eq!(notes[2].entry.canon(), k("snare1.hit"));
     }
 
     #[test]
@@ -446,9 +433,7 @@ mod tests {
         "#;
         assert!(matches!(
             from_toml(bad),
-            Err(MapError::DuplicatePrimary(Canon(Slot::Kick(
-                KickKind::Main
-            ))))
+            Err(MapError::DuplicatePrimary(c)) if c == k("kick.main")
         ));
     }
 

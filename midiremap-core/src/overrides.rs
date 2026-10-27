@@ -44,10 +44,7 @@ impl Overrides {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        canon::{Canon, KickKind, Slot},
-        note::n,
-    };
+    use crate::{canon::k, note::n};
 
     fn read(json: &str) -> Overrides {
         serde_json::from_str(json).unwrap()
@@ -61,10 +58,7 @@ mod tests {
     #[test]
     fn a_target_edit_names_the_note_its_drum_plays_on() {
         let ov = read(r#"{"edits":{"kick.main":35},"srcEdits":{}}"#);
-        assert_eq!(
-            ov.target(),
-            &BTreeMap::from([(Canon(Slot::Kick(KickKind::Main)), n(35))])
-        );
+        assert_eq!(ov.target(), &BTreeMap::from([(k("kick.main"), n(35))]));
     }
 
     #[test]
@@ -72,10 +66,7 @@ mod tests {
         let ov = read(r#"{"edits":{},"srcEdits":{"127":"kick.main","36":null}}"#);
         assert_eq!(
             ov.source(),
-            &BTreeMap::from([
-                (n(36), None),
-                (n(127), Some(Canon(Slot::Kick(KickKind::Main))))
-            ])
+            &BTreeMap::from([(n(36), None), (n(127), Some(k("kick.main")))])
         );
     }
 

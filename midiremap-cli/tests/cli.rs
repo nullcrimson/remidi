@@ -16,6 +16,8 @@ const PAIR: [&str; 2] = ["ggd_invasion", "ezdrummer"];
 
 /// Runs `convert` on `input` from one engine to the other, with an edits file passed after
 /// its flag, and returns the run and the file it wrote.
+const EDITS_FILE: &str = "edits.drumverter.json";
+
 fn run(
     input: &[u8],
     engines: [&str; 2],
@@ -25,7 +27,7 @@ fn run(
     let dir = tempfile::tempdir().unwrap();
     let in_path = dir.path().join("in.mid");
     let out_path = dir.path().join("out.mid");
-    let edits_path = dir.path().join("edits.drumverter.json");
+    let edits_path = dir.path().join(EDITS_FILE);
     std::fs::write(&in_path, input).unwrap();
     let mut command = Command::new(BIN);
     command.args([
@@ -226,4 +228,5 @@ fn an_unreadable_preset_fails_with_its_path() {
     assert!(!out.status.success());
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(err.contains("invalid preset"), "stderr: {err}");
+    assert!(err.contains(EDITS_FILE), "stderr: {err}");
 }

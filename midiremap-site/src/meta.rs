@@ -28,10 +28,16 @@ pub fn fit(first: &str, fallbacks: &[String], rest: &[String], max: usize) -> St
         .find(|s| s.chars().count() <= max)
         .map(str::to_owned)
     else {
-        return std::iter::once(first)
-            .chain(fallbacks.iter().map(String::as_str))
-            .min_by_key(|s| s.chars().count())
-            .unwrap_or(first)
+        return fallbacks
+            .iter()
+            .map(String::as_str)
+            .fold(first, |shortest, s| {
+                if s.chars().count() < shortest.chars().count() {
+                    s
+                } else {
+                    shortest
+                }
+            })
             .to_owned();
     };
     for sentence in rest {
@@ -93,7 +99,7 @@ fn conversion_meta(src: &str, tgt: &str, tally: Tally, path: SitePath, texts: &T
 }
 
 pub fn pair_meta(p: &PairPage, texts: &Texts) -> Meta {
-    conversion_meta(&p.src.name, &p.tgt.name, p.tally, p.link.href(), texts)
+    conversion_meta(&p.src.name, &p.tgt.name, p.tally, p.href(), texts)
 }
 
 pub fn summary_meta(p: &PairSummary, texts: &Texts) -> Meta {

@@ -172,7 +172,7 @@ impl NoteCell for Drum {
             self.note,
             self.name_c1(),
             self.name_c2(),
-            self.entry.label
+            self.entry.label()
         )
         .to_lowercase()
     }
@@ -217,16 +217,32 @@ pub struct EngineRow {
 }
 
 pub struct PairRow {
-    pub source: Drum,
-    pub outcome: Outcome,
+    source: Drum,
+    outcome: Outcome,
 }
 
 impl PairRow {
+    /// The row of the source note `note`, whose drum `outcome` is about.
+    pub fn new(note: Note, outcome: Outcome) -> Self {
+        Self {
+            source: Drum::new(note, outcome.canon()),
+            outcome,
+        }
+    }
+
+    pub fn source(&self) -> &Drum {
+        &self.source
+    }
+
+    pub fn outcome(&self) -> Outcome {
+        self.outcome
+    }
+
     /// The word the page marks the outcome with.
     pub fn outcome_word(&self) -> &'static str {
         match self.outcome {
             Outcome::Direct { .. } => "exact",
-            Outcome::Fallback { .. } => "approximated",
+            Outcome::Fallback(_) => "approximated",
             Outcome::Dropped { .. } => "dropped",
         }
     }
@@ -268,9 +284,7 @@ fn approximated<'a, I: IntoIterator<Item = &'a PairRow>>(
     rows: I,
 ) -> impl Iterator<Item = (Drum, Canon)> + use<'a, I> {
     rows.into_iter().filter_map(|row| match row.outcome {
-        Outcome::Fallback { stand_in, note, .. } => {
-            Some((Drum::new(note, stand_in), row.source.entry.canon))
-        }
+        Outcome::Fallback(s) => Some((Drum::new(s.note(), s.stand_in()), row.source.entry.canon())),
         Outcome::Direct { .. } | Outcome::Dropped { .. } => None,
     })
 }
@@ -315,7 +329,7 @@ impl Tally {
         rows.into_iter().fold(Self::default(), |mut tally, row| {
             match row.outcome {
                 Outcome::Direct { .. } => tally.exact += 1,
-                Outcome::Fallback { .. } => tally.approximated += 1,
+                Outcome::Fallback(_) => tally.approximated += 1,
                 Outcome::Dropped { .. } => tally.dropped += 1,
             }
             tally
@@ -365,7 +379,7 @@ impl EnginePage {
 }
 
 pub struct PairPage {
-    pub link: PairLink,
+    pub slug: String,
     pub src: EngineLink,
     pub tgt: EngineLink,
     /// The source notes by the family of their drum, each family in note order.
@@ -377,6 +391,21 @@ pub struct PairPage {
     /// The page for the other direction, when the site has one.
     pub reverse: Option<PairLink>,
     pub siblings: Vec<PairLink>,
+}
+
+impl PairPage {
+    /// The link to this page, as the other pages show it.
+    pub fn link(&self) -> PairLink {
+        PairLink {
+            slug: self.slug.clone(),
+            src_name: self.src.name.clone(),
+            tgt_name: self.tgt.name.clone(),
+        }
+    }
+
+    pub fn href(&self) -> SitePath {
+        pair_href(&self.slug)
+    }
 }
 
 pub struct MatrixRow {
@@ -479,7 +508,7 @@ impl Site {
                 .iter()
                 .map(|p| Page::Everywhere(p.engine.href())),
         )
-        .chain(self.pairs.iter().map(|p| Page::Pair(p.link.href())))
+        .chain(self.pairs.iter().map(|p| Page::Pair(p.href())))
         .chain(SectionKey::ALL.iter().map(|&k| Page::Section(k)))
         .chain([Page::Unlisted(THANKS)])
         .collect()
@@ -496,9 +525,9 @@ fn summary(pairs: &[PairPage], src: &str, tgt: &str) -> Result<PairSummary, Buil
     let slug = pair_slug(src, tgt);
     pairs
         .iter()
-        .find(|p| p.link.slug == slug)
+        .find(|p| p.slug == slug)
         .map(|p| PairSummary {
-            link: p.link.clone(),
+            link: p.link(),
             tally: p.tally,
         })
         .ok_or(BuildError::NoPairPage(slug))
@@ -574,8 +603,8 @@ fn default_mapping<'a>(src: &'a EngineMap, tgt: &'a EngineMap) -> Mapping<'a> {
 
 fn pair_rows(mapping: &Mapping) -> Vec<FamilyGroup<PairRow>> {
     by_family(mapping.played().map(|(note, outcome)| {
-        let source = Drum::new(note, outcome.canon());
-        (source.entry.family, PairRow { source, outcome })
+        let row = PairRow::new(note, outcome);
+        (row.source().entry.family(), row)
     }))
 }
 
@@ -588,17 +617,17 @@ fn pair_page(
     let mapping = default_mapping(src, tgt);
     let groups = pair_rows(&mapping);
     let rows = || groups.iter().flat_map(|g| &g.rows);
-    let link = PairLink::of(src, tgt);
+    let slug = pair_slug(src.id(), tgt.id());
     let RackFile {
         file_name,
         xml,
         packing,
         ..
     } = rack_file(&mapping, None);
-    let href = rack_href(&link.slug);
+    let href = rack_href(&slug);
     let rack = (href.clone(), packing.pack(xml));
     let page = PairPage {
-        link,
+        slug,
         src: EngineLink::of(src),
         tgt: EngineLink::of(tgt),
         tally: Tally::of(rows()),
@@ -619,12 +648,12 @@ fn pair_page(
 }
 
 fn engine_row(map: &EngineMap, d: Drum) -> (Family, EngineRow) {
-    let role = if map.encode(d.entry.canon) == Some(d.note) {
+    let role = if map.encode(d.entry.canon()) == Some(d.note) {
         NoteRole::Main
     } else {
         NoteRole::Extra
     };
-    (d.entry.family, EngineRow { cell: d, role })
+    (d.entry.family(), EngineRow { cell: d, role })
 }
 
 fn family_groups(map: &EngineMap) -> Vec<FamilyGroup<EngineRow>> {
@@ -778,7 +807,7 @@ mod tests {
     };
 
     use flate2::read::GzDecoder;
-    use midiremap_core::{convert, ChannelScope, Variant};
+    use midiremap_core::{convert, ChannelScope, StandIn};
     use midiremap_testkit::{drums, engine_json, hit_keys, off, on};
 
     use super::*;
@@ -889,11 +918,7 @@ mod tests {
         let written: HashSet<String> = s.rack_files.iter().map(|(p, _)| p.to_string()).collect();
         assert_eq!(s.rack_files.len(), s.pairs.len());
         for p in &s.pairs {
-            assert!(
-                written.contains(&p.rack.href.to_string()),
-                "{}",
-                p.link.slug
-            );
+            assert!(written.contains(&p.rack.href.to_string()), "{}", p.slug);
         }
     }
 
@@ -937,7 +962,7 @@ mod tests {
     #[test]
     fn every_popular_conversion_links_its_pair_page() {
         let s = site();
-        let slugs: HashSet<_> = s.pairs.iter().map(|p| p.link.slug.as_str()).collect();
+        let slugs: HashSet<_> = s.pairs.iter().map(|p| p.slug.as_str()).collect();
         assert_eq!(s.popular.len(), POPULAR.len());
         assert!(s
             .popular
@@ -995,7 +1020,7 @@ mod tests {
     #[test]
     fn pair_slugs_are_distinct() {
         let s = site();
-        let slugs: HashSet<_> = s.pairs.iter().map(|p| p.link.slug.clone()).collect();
+        let slugs: HashSet<_> = s.pairs.iter().map(|p| p.slug.clone()).collect();
         assert_eq!(slugs.len(), s.pairs.len());
     }
 
@@ -1005,7 +1030,7 @@ mod tests {
         assert_eq!(
             s.pairs
                 .iter()
-                .find(|p| p.link.slug == "ggd-invasion-to-ezdrummer")
+                .find(|p| p.slug == "ggd-invasion-to-ezdrummer")
                 .map(|p| p.src.name.as_str()),
             Some("GetGood Drums Invasion")
         );
@@ -1067,10 +1092,10 @@ mod tests {
     #[test]
     fn a_reverse_link_names_a_pair_page_that_exists() {
         let s = site();
-        let slugs: HashSet<&str> = s.pairs.iter().map(|p| p.link.slug.as_str()).collect();
+        let slugs: HashSet<&str> = s.pairs.iter().map(|p| p.slug.as_str()).collect();
         for p in &s.pairs {
             if let Some(reverse) = &p.reverse {
-                assert!(slugs.contains(reverse.slug.as_str()), "{}", p.link.slug);
+                assert!(slugs.contains(reverse.slug.as_str()), "{}", p.slug);
             }
         }
     }
@@ -1078,20 +1103,20 @@ mod tests {
     #[test]
     fn only_a_pair_whose_other_direction_has_a_page_links_a_reverse_page() {
         let s = site();
-        let slugs: HashSet<&str> = s.pairs.iter().map(|p| p.link.slug.as_str()).collect();
+        let slugs: HashSet<&str> = s.pairs.iter().map(|p| p.slug.as_str()).collect();
         for p in &s.pairs {
             let other_way = pair_slug(&p.tgt.id, &p.src.id);
             assert_eq!(
                 p.reverse.is_some(),
                 slugs.contains(other_way.as_str()),
                 "{}",
-                p.link.slug
+                p.slug
             );
         }
     }
 
     fn pair(slug: &str) -> &'static PairPage {
-        site().pairs.iter().find(|p| p.link.slug == slug).unwrap()
+        site().pairs.iter().find(|p| p.slug == slug).unwrap()
     }
 
     fn rows(p: &PairPage) -> impl Iterator<Item = &PairRow> {
@@ -1107,18 +1132,14 @@ mod tests {
                 .copied()
                 .filter(|f| families.contains(f))
                 .collect();
-            assert_eq!(families, order, "{}", p.link.slug);
+            assert_eq!(families, order, "{}", p.slug);
         }
     }
 
     #[test]
     fn pair_groups_are_never_empty() {
         for p in &site().pairs {
-            assert!(
-                p.groups.iter().all(|g| !g.rows.is_empty()),
-                "{}",
-                p.link.slug
-            );
+            assert!(p.groups.iter().all(|g| !g.rows.is_empty()), "{}", p.slug);
         }
     }
 
@@ -1129,7 +1150,7 @@ mod tests {
                 assert!(
                     g.rows.is_sorted_by_key(|r| r.source.note),
                     "{}: {}",
-                    p.link.slug,
+                    p.slug,
                     g.family
                 );
             }
@@ -1140,30 +1161,25 @@ mod tests {
     fn merges_cover_every_approximated_row_once() {
         for p in &site().pairs {
             for row in rows(p) {
-                let Outcome::Fallback { note, .. } = row.outcome else {
+                let Outcome::Fallback(s) = row.outcome else {
                     continue;
                 };
+                let note = s.note();
                 let holding: Vec<&Merge> = p
                     .changes
                     .merges
                     .iter()
-                    .filter(|m| m.sources.contains(&row.source.entry.canon))
+                    .filter(|m| m.sources.contains(&row.source.entry.canon()))
                     .collect();
-                assert_eq!(
-                    holding.len(),
-                    1,
-                    "{}: {}",
-                    p.link.slug,
-                    row.source.entry.canon
-                );
-                assert_eq!(holding[0].target.note, note, "{}", p.link.slug);
+                assert_eq!(holding.len(), 1, "{}: {}", p.slug, row.source.entry.canon());
+                assert_eq!(holding[0].target.note, note, "{}", p.slug);
             }
             let approximated: HashSet<Canon> = rows(p)
-                .filter(|r| matches!(r.outcome, Outcome::Fallback { .. }))
-                .map(|r| r.source.entry.canon)
+                .filter(|r| matches!(r.outcome, Outcome::Fallback(_)))
+                .map(|r| r.source.entry.canon())
                 .collect();
             let merged: usize = p.changes.merges.iter().map(|m| m.sources.len()).sum();
-            assert_eq!(merged, approximated.len(), "{}", p.link.slug);
+            assert_eq!(merged, approximated.len(), "{}", p.slug);
         }
     }
 
@@ -1175,7 +1191,7 @@ mod tests {
                     .merges
                     .is_sorted_by_key(|m| (Reverse(m.sources.len()), m.target.note)),
                 "{}",
-                p.link.slug
+                p.slug
             );
         }
     }
@@ -1183,7 +1199,7 @@ mod tests {
     #[test]
     fn ggd_invasion_to_ezdrummer_merges_five_cymbals_into_crash_1() {
         let busiest = &pair("ggd-invasion-to-ezdrummer").changes.merges[0];
-        assert_eq!(busiest.target.entry.label, "Crash 1");
+        assert_eq!(busiest.target.entry.label(), "Crash 1");
         assert_eq!(busiest.sources.len(), 5, "{:?}", busiest.sources);
     }
 
@@ -1192,9 +1208,9 @@ mod tests {
         for p in &site().pairs {
             let dropped: BTreeSet<Canon> = rows(p)
                 .filter(|r| matches!(r.outcome, Outcome::Dropped { .. }))
-                .map(|r| r.source.entry.canon)
+                .map(|r| r.source.entry.canon())
                 .collect();
-            assert_eq!(p.changes.dropped, dropped, "{}", p.link.slug);
+            assert_eq!(p.changes.dropped, dropped, "{}", p.slug);
         }
     }
 
@@ -1339,8 +1355,8 @@ mod tests {
         for row in &s.index.matrix {
             for cell in row.cells.iter().flatten() {
                 let page = pair(&cell.link.slug);
-                assert_eq!(cell.tally, page.tally, "{}", page.link.slug);
-                assert_eq!(cell.link.tgt_name, page.tgt.name, "{}", page.link.slug);
+                assert_eq!(cell.tally, page.tally, "{}", page.slug);
+                assert_eq!(cell.link.tgt_name, page.tgt.name, "{}", page.slug);
             }
         }
     }
@@ -1430,10 +1446,12 @@ mod tests {
         let maps = Catalog::builtin();
         for v in site().index.listed.iter().flat_map(|e| &e.variants) {
             let variant = maps.get(&v.link.id).unwrap();
-            assert_eq!(
-                Some(v.label.as_str()),
-                variant.variant().map(Variant::label)
-            );
+            let base = maps.base_of(variant).unwrap();
+            let label = maps
+                .variants(base)
+                .find(|(_, m)| m.id() == variant.id())
+                .map(|(label, _)| label);
+            assert_eq!(Some(v.label.as_str()), label);
         }
     }
 
@@ -1517,22 +1535,13 @@ mod tests {
         assert_eq!(vendors, sorted);
     }
 
-    fn cell(note: u8) -> Drum {
-        Drum::new(Note::new(note).unwrap(), Canon::CORE_KIT[0])
-    }
-
     #[test]
     fn a_tally_counts_each_outcome_in_its_own_field() {
         let canon = Canon::CORE_KIT[0];
         let note = Note::new(36).unwrap();
         let rows = [
             Outcome::Direct { canon, note },
-            Outcome::Fallback {
-                canon,
-                stand_in: canon,
-                note,
-                other_drum: false,
-            },
+            Outcome::Fallback(StandIn::new(canon, canon, note)),
             Outcome::Dropped {
                 canon,
                 other_drum: false,
@@ -1542,10 +1551,7 @@ mod tests {
                 other_drum: true,
             },
         ]
-        .map(|outcome| PairRow {
-            source: cell(40),
-            outcome,
-        });
+        .map(|outcome| PairRow::new(note, outcome));
         assert_eq!(
             Tally::of(&rows),
             Tally {
@@ -1572,7 +1578,7 @@ mod tests {
         let pair = s
             .pairs
             .iter()
-            .find(|p| p.link.slug == "ggd-invasion-to-ezdrummer")
+            .find(|p| p.slug == "ggd-invasion-to-ezdrummer")
             .unwrap();
         assert_eq!(pair.siblings.len(), 6);
     }
@@ -1583,7 +1589,7 @@ mod tests {
         let pair = s
             .pairs
             .iter()
-            .find(|p| p.link.slug == "hertz-to-ezdrummer")
+            .find(|p| p.slug == "hertz-to-ezdrummer")
             .unwrap();
         assert_eq!(pair.siblings.len(), TARGETS.len() - 1);
     }
@@ -1594,7 +1600,7 @@ mod tests {
             assert!(
                 p.siblings.iter().all(|l| l.src_name == p.src.name),
                 "{}",
-                p.link.slug
+                p.slug
             );
         }
     }
@@ -1602,7 +1608,7 @@ mod tests {
     #[test]
     fn siblings_exclude_the_pair_itself() {
         for p in &site().pairs {
-            assert!(p.siblings.iter().all(|l| l.slug != p.link.slug));
+            assert!(p.siblings.iter().all(|l| l.slug != p.slug));
         }
     }
 
@@ -1618,7 +1624,7 @@ mod tests {
                     written(row.source.note, &mapping),
                     row.target().map(|t| t.note.get()),
                     "{} note {}",
-                    p.link.slug,
+                    p.slug,
                     row.source.note.get()
                 );
             }

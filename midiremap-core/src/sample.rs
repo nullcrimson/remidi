@@ -7,20 +7,13 @@ use midly::{
 use strum::VariantArray;
 
 use crate::{
-    canon::{
-        Canon, CymArtic, CymSlot, HatOpen, HatZone, KickKind, RideArtic, RideIdx, Slot, SnareArtic,
-        SnareIdx,
-    },
-    channel::Channel,
-    engine_map::EngineMap,
-    idx::Idx,
-    midi,
-    resolution::MissingDrums,
+    canon::Canon, channel::Channel, engine_map::EngineMap, midi, resolution::MissingDrums,
 };
 
 const TICKS_PER_BEAT: u16 = 480;
 const TICKS_PER_STEP: u32 = TICKS_PER_BEAT as u32 / 2;
 const TICKS_HELD: u32 = TICKS_PER_STEP / 2;
+const _: () = assert!(TICKS_HELD <= TICKS_PER_STEP);
 const STEPS_PER_BAR: u32 = 8;
 const BARS: u32 = 2;
 const STEPS: u32 = BARS * STEPS_PER_BAR;
@@ -38,16 +31,10 @@ enum Voice {
 impl Voice {
     fn drums(self) -> &'static [Canon] {
         match self {
-            Self::Crash => &[Canon(Slot::Cymbal(
-                CymSlot::Crash(Idx::FIRST),
-                CymArtic::Hit,
-            ))],
-            Self::Kick => &[Canon(Slot::Kick(KickKind::Main))],
-            Self::Snare => &[Canon(Slot::Snare(SnareIdx::FIRST, SnareArtic::Hit))],
-            Self::Hat => &[
-                Canon(Slot::Hat(HatOpen::Closed, HatZone::Plain)),
-                Canon(Slot::Ride(RideIdx::FIRST, RideArtic::Bow)),
-            ],
+            Self::Crash => &[Canon::CRASH],
+            Self::Kick => &[Canon::KICK],
+            Self::Snare => &[Canon::SNARE],
+            Self::Hat => &[Canon::CLOSED_HAT, Canon::RIDE],
         }
     }
 

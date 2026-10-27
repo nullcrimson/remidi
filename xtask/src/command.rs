@@ -34,8 +34,9 @@ impl Context {
 
 /// The site generator `Step::CompileSite` builds, from the repository root.
 pub fn site_program() -> String {
-    let dir = TargetDir::Site
-        .path()
+    let dir = Step::CompileSite
+        .target_dir(CargoPass::Shipped)
+        .and_then(TargetDir::path)
         .expect("the site generator builds into a directory of its own");
     format!("{dir}/debug/{SITE}{EXE_SUFFIX}")
 }

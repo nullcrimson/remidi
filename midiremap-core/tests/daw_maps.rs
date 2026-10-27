@@ -8,7 +8,7 @@ type Named = Vec<(u8, String)>;
 fn played(map: &EngineMap) -> Named {
     map.source_notes()
         .into_iter()
-        .map(|d| (d.note.get(), d.entry.label))
+        .map(|d| (d.note.get(), d.entry.label().to_owned()))
         .collect()
 }
 

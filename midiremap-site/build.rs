@@ -166,13 +166,23 @@ fn matcher<T>(name: &str, ret: &str, items: &[T], arm: impl Fn(&T) -> (String, S
     format!("    pub fn {name}(self) -> {ret} {{ match self {{ {arms} }} }}\n")
 }
 
-/// A `Copy` enum of `variants` with `ALL`, every variant in order, and `methods`.
+/// A `Copy` enum of `variants` with `methods`.
 fn enum_type(name: &str, variants: &[String], methods: &[String]) -> String {
-    let all = list(variants.iter().map(|v| format!("Self::{v}")));
     format!(
-        "#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]\npub enum {name} {{ {} }}\nimpl {name} {{\n    pub const ALL: &'static [Self] = &[{all}];\n{}}}\n",
+        "#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]\npub enum {name} {{ {} }}\nimpl {name} {{\n{}}}\n",
         variants.join(", "),
         methods.concat()
+    )
+}
+
+/// An enum, as `enum_type` writes it, with `ALL`, every variant in order.
+fn listed_enum_type(name: &str, variants: &[String], methods: &[String]) -> String {
+    let all = list(variants.iter().map(|v| format!("Self::{v}")));
+    let all = format!("    pub const ALL: &'static [Self] = &[{all}];\n");
+    enum_type(
+        name,
+        variants,
+        &[std::slice::from_ref(&all), methods].concat(),
     )
 }
 
@@ -227,7 +237,8 @@ fn locale_code(locales: &[LocaleEntry]) -> String {
         .iter()
         .map(|l| (l.code.to_snake_case(), l.code.to_upper_camel_case()))
         .collect();
-    enum_type("Locale", &variants, &methods) + &table("PerLocale", "<T>", "Locale", "T", &keys)
+    listed_enum_type("Locale", &variants, &methods)
+        + &table("PerLocale", "<T>", "Locale", "T", &keys)
 }
 
 fn section_code(sections: &[Section], plain: &[&str]) -> String {
@@ -261,7 +272,7 @@ fn section_code(sections: &[Section], plain: &[&str]) -> String {
             )
         }));
     }
-    enum_type("SectionKey", &variants, &methods)
+    listed_enum_type("SectionKey", &variants, &methods)
 }
 
 fn plain_texts(plain: &[&str]) -> String {
@@ -283,7 +294,7 @@ fn ftl_files() -> String {
     });
     format!(
         "/// One of a locale's message files; each message lives in the file English gives it.\n{}impl ::std::fmt::Display for FtlFile {{\n    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {{\n        write!(f, \"{{}}.ftl\", self.stem())\n    }}\n}}\n",
-        enum_type("FtlFile", &variants, &[stem])
+        listed_enum_type("FtlFile", &variants, &[stem])
     )
 }
 
@@ -333,7 +344,7 @@ fn message_code(messages: &[Message], plain: &[&str]) -> String {
             )
         }),
     ];
-    enum_type("MessageId", &variants, &methods)
+    listed_enum_type("MessageId", &variants, &methods)
         + &ftl_files()
         + &plain_texts(plain)
         + &phrases(messages)

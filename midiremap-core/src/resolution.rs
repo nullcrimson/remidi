@@ -24,15 +24,8 @@ pub enum Outcome {
         canon: Canon,
         note: Note,
     },
-    /// The drum `stand_in` plays it, on `note`; `other_drum` when the stand-in is another
-    /// drum.
-    Fallback {
-        #[serde(skip)]
-        canon: Canon,
-        stand_in: Canon,
-        note: Note,
-        other_drum: bool,
-    },
+    /// Another drum plays it.
+    Fallback(StandIn),
     /// Nothing plays it; `other_drum` when only another drum could have, so the
     /// [`MissingDrums`] setting decided it.
     Dropped {
@@ -42,22 +35,54 @@ pub enum Outcome {
     },
 }
 
+/// The drum `stand_in` playing `canon` on `note`; `other_drum` when the stand-in is another
+/// drum, not the same one played another way.
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify))]
+pub struct StandIn {
+    #[serde(skip)]
+    canon: Canon,
+    stand_in: Canon,
+    note: Note,
+    other_drum: bool,
+}
+
+impl StandIn {
+    pub fn new(canon: Canon, stand_in: Canon, note: Note) -> Self {
+        Self {
+            canon,
+            stand_in,
+            note,
+            other_drum: !canon.same_drum(stand_in),
+        }
+    }
+
+    pub fn stand_in(&self) -> Canon {
+        self.stand_in
+    }
+
+    pub fn note(&self) -> Note {
+        self.note
+    }
+}
+
 impl Outcome {
     /// Whether the target lacks the drum and its nearest stand-in is another drum, so the
     /// [`MissingDrums`] setting decides what plays it.
     pub fn moves_to_other_drum(&self) -> bool {
         match *self {
             Self::Direct { .. } => false,
-            Self::Fallback { other_drum, .. } | Self::Dropped { other_drum, .. } => other_drum,
+            Self::Fallback(s) => s.other_drum,
+            Self::Dropped { other_drum, .. } => other_drum,
         }
     }
 
     /// The drum it is about.
     pub fn canon(&self) -> Canon {
         match *self {
-            Self::Direct { canon, .. }
-            | Self::Fallback { canon, .. }
-            | Self::Dropped { canon, .. } => canon,
+            Self::Direct { canon, .. } | Self::Dropped { canon, .. } => canon,
+            Self::Fallback(s) => s.canon,
         }
     }
 
@@ -65,7 +90,7 @@ impl Outcome {
     pub fn played(&self) -> Option<(Canon, Note)> {
         match *self {
             Self::Direct { canon, note } => Some((canon, note)),
-            Self::Fallback { stand_in, note, .. } => Some((stand_in, note)),
+            Self::Fallback(s) => Some((s.stand_in, s.note)),
             Self::Dropped { .. } => None,
         }
     }
@@ -146,12 +171,7 @@ pub(crate) fn resolve(canon: Canon, encode: &Encoding, missing: MissingDrums) ->
             canon,
             other_drum: substitute(canon, encode, MissingDrums::Nearest).is_some(),
         },
-        |(stand_in, note)| Outcome::Fallback {
-            canon,
-            stand_in,
-            note,
-            other_drum: !canon.same_drum(stand_in),
-        },
+        |(stand_in, note)| Outcome::Fallback(StandIn::new(canon, stand_in, note)),
     )
 }
 
