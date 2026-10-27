@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use midly::{num::u28, MidiMessage, Smf, Track, TrackEvent, TrackEventKind};
+use midly::{num::u28, Smf, Track, TrackEvent, TrackEventKind};
 
 const MTHD_DIVISION: usize = 4;
 const SMPTE_MINUS_128: u8 = 0x80;
@@ -83,11 +83,6 @@ pub(crate) fn track_at<'a>(
             TrackEvent { delta, kind }
         })
         .collect()
-}
-
-/// Whether `message` sounds a note: a note-on with nonzero velocity.
-pub(crate) fn is_hit(message: &MidiMessage) -> bool {
-    matches!(message, MidiMessage::NoteOn { vel, .. } if vel.as_int() > 0)
 }
 
 #[cfg(test)]

@@ -16,7 +16,7 @@ const ALLOWED_USES: &Table = &[
     ),
     ("canon", &["family", "idx"]),
     ("catalog", &["engine_map"]),
-    ("channel", &["idx", "midi"]),
+    ("channel", &["idx", "note"]),
     (
         "conversion",
         &["channel", "midi", "report", "rewrite", "translate"],

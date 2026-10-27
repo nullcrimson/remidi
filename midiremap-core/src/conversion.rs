@@ -17,9 +17,7 @@ pub fn convert(
     mapping: &Mapping,
     scope: ChannelScope,
 ) -> Result<Converted, CodecError> {
-    let mut smf = midi::parse(midi)?;
-    let mut report = Report::default();
-    rewrite(&mut smf, mapping, scope, &mut report)?;
+    let (smf, report) = rewrite(midi::parse(midi)?, mapping, scope)?;
     let bytes = midi::write(&smf)?;
     Ok(Converted { bytes, report })
 }

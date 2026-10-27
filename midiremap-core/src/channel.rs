@@ -1,12 +1,9 @@
 use std::{fmt, str::FromStr};
 
-use midly::{
-    num::{u4, u7},
-    MidiMessage, Smf, Track, TrackEventKind,
-};
+use midly::{num::u4, MidiMessage, Smf, Track, TrackEventKind};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{idx::Idx, midi::is_hit};
+use crate::{idx::Idx, note::Note};
 
 type ChannelIdx = Idx<16>;
 
@@ -143,31 +140,37 @@ impl ChannelScope {
         }
     }
 
-    /// The key of every hit in `smf` that a conversion with this scope rewrites, track by
+    /// The note of every hit in `smf` that a conversion with this scope rewrites, track by
     /// track.
-    pub(crate) fn hit_keys<'a>(self, smf: &'a Smf<'a>) -> impl Iterator<Item = u7> + 'a {
+    pub(crate) fn hit_notes<'a>(self, smf: &'a Smf<'a>) -> impl Iterator<Item = Note> + 'a {
         smf.tracks
             .iter()
             .zip(self.resolve(smf))
             .flat_map(|(track, filter)| {
-                track.iter().filter_map(move |ev| match ev.kind {
-                    TrackEventKind::Midi {
-                        channel,
-                        message: message @ MidiMessage::NoteOn { key, .. },
-                    } if filter.accepts(Channel::of(channel)) && is_hit(&message) => Some(key),
-                    _ => None,
+                track.iter().filter_map(move |ev| {
+                    hit(&ev.kind)
+                        .filter(|&(channel, _)| filter.accepts(channel))
+                        .map(|(_, note)| note)
                 })
             })
     }
 }
 
+/// The channel and note of `kind` when it sounds a note: a note-on with a velocity.
+pub(crate) fn hit(kind: &TrackEventKind) -> Option<(Channel, Note)> {
+    match *kind {
+        TrackEventKind::Midi {
+            channel,
+            message: MidiMessage::NoteOn { key, vel },
+        } if vel.as_int() > 0 => Some((Channel::of(channel), Note::from_key(key))),
+        _ => None,
+    }
+}
+
 fn has_hits_on(track: &Track, channel: Channel) -> bool {
-    track.iter().any(|ev| {
-        matches!(
-            ev.kind,
-            TrackEventKind::Midi { channel: c, message } if Channel::of(c) == channel && is_hit(&message)
-        )
-    })
+    track
+        .iter()
+        .any(|ev| hit(&ev.kind).is_some_and(|(c, _)| c == channel))
 }
 
 /// The channels one track's conversion rewrites, resolved from a [`ChannelScope`].
