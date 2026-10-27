@@ -1,13 +1,13 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { RemapOutput, VoicePlan } from '../src/core/midiremap';
+import type { Converted, VoicePlan } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { addMidi, convert, pickEngines, startApp } from './eventSteps';
 import { typed, type Loose } from './typed';
 import { fakeUmami } from './umami';
 
-const reportOf = (report: Partial<Loose<RemapOutput['report']>>) => typed<RemapOutput>({
+const reportOf = (report: Partial<Loose<Converted['report']>>) => typed<Converted>({
   bytes: new Uint8Array([1]),
   report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 10, ...report },
 });

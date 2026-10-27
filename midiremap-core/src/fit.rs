@@ -1,9 +1,11 @@
 use std::{cmp::Reverse, iter::Sum, ops::AddAssign};
 
+use serde::Serialize;
+
 use crate::{
     catalog::Catalog,
     channel::ChannelScope,
-    engine_map::EngineMap,
+    engine_map::{EngineId, EngineMap},
     midi::{self, CodecError},
     note::Note,
 };
@@ -59,16 +61,21 @@ pub fn note_hits(midi: &[u8], scope: ChannelScope) -> Result<NoteHits, CodecErro
     Ok(hits)
 }
 
-/// How well one engine's layout covers a file's hits.
-#[derive(Debug, Clone, Copy)]
-pub struct SourceFit<'a> {
-    engine: &'a EngineMap,
+/// How many of the hits one engine's layout recognizes.
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
+pub struct SourceFit {
+    engine: EngineId,
     recognized: u32,
 }
 
-impl<'a> SourceFit<'a> {
-    pub fn engine(&self) -> &'a EngineMap {
-        self.engine
+impl SourceFit {
+    pub fn engine(&self) -> &EngineId {
+        &self.engine
     }
 
     /// The hits on notes the engine's map decodes: the ones converting from it keeps.
@@ -79,31 +86,36 @@ impl<'a> SourceFit<'a> {
 
 /// Every engine of a catalog fitted to the same hits, best first; no engine recognizes more
 /// than `hits`.
-#[derive(Debug, Clone)]
-pub struct SourceFits<'a> {
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
+pub struct SourceFits {
     hits: u32,
-    ranked: Vec<SourceFit<'a>>,
+    ranked: Vec<SourceFit>,
 }
 
-impl<'a> SourceFits<'a> {
+impl SourceFits {
     /// Every hit, on any note.
     pub fn hits(&self) -> u32 {
         self.hits
     }
 
     /// The fits, best first: the most recognized hits, ties in catalog order.
-    pub fn ranked(&self) -> &[SourceFit<'a>] {
+    pub fn ranked(&self) -> &[SourceFit] {
         &self.ranked
     }
 }
 
 /// Every engine of `catalog` fitted to `hits`, best first: the most recognized hits, ties in
 /// catalog order.
-pub fn source_fits<'a>(catalog: &'a Catalog, hits: &NoteHits) -> SourceFits<'a> {
-    let mut ranked: Vec<SourceFit<'a>> = catalog
+pub fn source_fits(catalog: &Catalog, hits: &NoteHits) -> SourceFits {
+    let mut ranked: Vec<SourceFit> = catalog
         .engines()
         .map(|engine| SourceFit {
-            engine,
+            engine: engine.into(),
             recognized: hits.recognized_by(engine),
         })
         .collect();
@@ -190,7 +202,7 @@ mod tests {
         let ranked = fits
             .ranked()
             .iter()
-            .map(|fit| (fit.engine().id().to_owned(), fit.recognized()))
+            .map(|fit| (fit.engine().as_str().to_owned(), fit.recognized()))
             .collect();
         (fits.hits(), ranked)
     }
@@ -238,7 +250,7 @@ mod tests {
         let fit = fits
             .ranked()
             .iter()
-            .find(|fit| fit.engine().id() == "ggd_invasion")
+            .find(|fit| fit.engine().as_str() == "ggd_invasion")
             .unwrap();
         let unmapped: u32 = report.unmapped_source().map(|(_, count)| count).sum();
         assert_eq!(

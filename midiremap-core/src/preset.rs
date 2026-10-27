@@ -3,24 +3,57 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{canon::Canon, non_blank::NonBlank, note::Note, overrides::Overrides};
+use crate::{
+    canon::Canon, catalog::Catalog, engine_map::EngineId, non_blank::NonBlank, note::Note,
+    overrides::Overrides,
+};
 
 const PRESET_FORMAT: &str = "drumverter-preset";
 const PRESET_VERSION: u64 = 1;
 
-/// A named set of note edits for one engine pair, as the web app saves and exports it.
-#[derive(Debug, PartialEq, Eq)]
+/// A preset's name: text that is not blank, its spacing kept.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[serde(transparent)]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(type = r#"string & { readonly __brand: "PresetName" }"#)
+)]
+pub struct PresetName(NonBlank);
+
+impl PresetName {
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+/// A named set of note edits for one engine pair, as the web app saves and exports it, its
+/// engines resolved to the catalog's current ids.
+#[derive(Serialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
 pub struct SavedPreset {
-    pub name: NonBlank,
-    pub src: NonBlank,
-    pub tgt: NonBlank,
+    pub name: PresetName,
+    pub src: EngineId,
+    pub tgt: EngineId,
     pub edits: BTreeMap<Canon, Note>,
+    #[serde(serialize_with = "Note::text_keys")]
     pub src_edits: BTreeMap<Note, Option<Canon>>,
 }
 
 /// A parsed preset and the edits it had to skip.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Serialize, Debug, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
 pub struct LoadedPreset {
+    #[serde(flatten)]
     pub preset: SavedPreset,
     pub skipped: Vec<SkippedEdit>,
 }
@@ -53,6 +86,10 @@ pub enum PresetError {
     Format(String),
     #[error("preset version {0} is not supported by this version of Drumverter")]
     Version(u64),
+    #[error("unknown source engine '{0}'")]
+    UnknownSource(String),
+    #[error("unknown target engine '{0}'")]
+    UnknownTarget(String),
 }
 
 #[derive(Deserialize)]
@@ -60,7 +97,7 @@ pub enum PresetError {
 struct RawPreset {
     format: String,
     version: u64,
-    name: NonBlank,
+    name: PresetName,
     src: NonBlank,
     tgt: NonBlank,
     #[serde(default)]
@@ -69,8 +106,9 @@ struct RawPreset {
     src_edits: BTreeMap<String, Value>,
 }
 
-/// Reads a preset file; an edit it cannot read is skipped and listed, never fatal.
-pub fn parse_preset(json: &str) -> Result<LoadedPreset, PresetError> {
+/// Reads a preset file, its engines resolved through `catalog`; an edit it cannot read is
+/// skipped and listed, never fatal.
+pub fn parse_preset(json: &str, catalog: &Catalog) -> Result<LoadedPreset, PresetError> {
     let raw: RawPreset = serde_json::from_str(json).map_err(PresetError::Parse)?;
     if raw.format != PRESET_FORMAT {
         return Err(PresetError::Format(raw.format));
@@ -78,6 +116,14 @@ pub fn parse_preset(json: &str) -> Result<LoadedPreset, PresetError> {
     if raw.version != PRESET_VERSION {
         return Err(PresetError::Version(raw.version));
     }
+    let engine = |id: NonBlank, unknown: fn(String) -> PresetError| {
+        catalog
+            .canonical_id(id.as_str())
+            .map(EngineId::new)
+            .ok_or_else(|| unknown(id.into()))
+    };
+    let src = engine(raw.src, PresetError::UnknownSource)?;
+    let tgt = engine(raw.tgt, PresetError::UnknownTarget)?;
     let mut skipped = Vec::new();
     let mut edits = BTreeMap::new();
     for (key, value) in raw.edits {
@@ -111,8 +157,8 @@ pub fn parse_preset(json: &str) -> Result<LoadedPreset, PresetError> {
     Ok(LoadedPreset {
         preset: SavedPreset {
             name: raw.name,
-            src: raw.src,
-            tgt: raw.tgt,
+            src,
+            tgt,
             edits,
             src_edits,
         },
@@ -132,12 +178,56 @@ impl SavedPreset {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use super::*;
     use crate::note::n;
 
     const FIXTURE: &str = include_str!("../tests/golden/my-kit.drumverter.json");
+
+    fn catalog() -> &'static Catalog {
+        Catalog::shared().unwrap()
+    }
+
+    #[test]
+    fn resolves_an_engine_alias_to_its_id() {
+        let catalog = Catalog::builtin()
+            .unwrap()
+            .with_user_json(
+                r#"{"id":"custom","name":"Custom","aliases":["old_kit"],"notes":[{"note":60,"canon":"kick.main","primary":true}]}"#,
+            )
+            .unwrap();
+        let json = FIXTURE.replace("ggd_invasion", "old_kit");
+        let p = parse_preset(&json, &catalog).unwrap().preset;
+        assert_eq!(p.src.as_str(), "custom");
+    }
+
+    #[test]
+    fn names_an_unknown_target_engine() {
+        let json = FIXTURE.replace("ezdrummer", "gone_engine");
+        assert!(matches!(
+            parse_preset(&json, catalog()),
+            Err(PresetError::UnknownTarget(id)) if id == "gone_engine"
+        ));
+    }
+
+    #[test]
+    fn serializes_as_the_app_reads_it() {
+        let loaded = parse_preset(
+            &FIXTURE.replace("\"kick.main\": 35", "\"bogus.drum\": 35"),
+            catalog(),
+        )
+        .unwrap();
+        assert_eq!(
+            serde_json::to_value(&loaded).unwrap(),
+            serde_json::json!({
+                "name": "My kit",
+                "src": "ggd_invasion",
+                "tgt": "ezdrummer",
+                "edits": { "china.1.hit": 52 },
+                "srcEdits": { "24": "snare1.hit", "60": null },
+                "skipped": [{ "kind": "unknownDrum", "key": "bogus.drum" }],
+            })
+        );
+    }
 
     fn k(s: &str) -> Canon {
         s.parse().unwrap()
@@ -145,13 +235,13 @@ mod tests {
 
     fn with(edits: &str, src_edits: &str) -> String {
         format!(
-            r#"{{"format":"drumverter-preset","version":1,"name":"N","src":"a","tgt":"b","edits":{edits},"srcEdits":{src_edits}}}"#
+            r#"{{"format":"drumverter-preset","version":1,"name":"N","src":"ggd_invasion","tgt":"ezdrummer","edits":{edits},"srcEdits":{src_edits}}}"#
         )
     }
 
     #[test]
     fn reads_the_file_the_app_exports() {
-        let loaded = parse_preset(FIXTURE).unwrap();
+        let loaded = parse_preset(FIXTURE, catalog()).unwrap();
         assert!(loaded.skipped.is_empty());
         let p = loaded.preset;
         assert_eq!(
@@ -170,26 +260,27 @@ mod tests {
 
     #[test]
     fn turns_into_target_overrides() {
-        let ov = parse_preset(FIXTURE).unwrap().preset.overrides();
+        let ov = parse_preset(FIXTURE, catalog()).unwrap().preset.overrides();
         assert_eq!(
             ov.target(),
-            HashMap::from([(k("kick.main"), n(35)), (k("china.1.hit"), n(52))])
+            &BTreeMap::from([(k("kick.main"), n(35)), (k("china.1.hit"), n(52))])
         );
     }
 
     #[test]
     fn turns_into_source_overrides() {
-        let ov = parse_preset(FIXTURE).unwrap().preset.overrides();
+        let ov = parse_preset(FIXTURE, catalog()).unwrap().preset.overrides();
         assert_eq!(
             ov.source(),
-            HashMap::from([(n(24), Some(k("snare1.hit"))), (n(60), None)])
+            &BTreeMap::from([(n(24), Some(k("snare1.hit"))), (n(60), None)])
         );
     }
 
     #[test]
     fn edits_default_to_empty() {
         let p = parse_preset(
-            r#"{"format":"drumverter-preset","version":1,"name":"N","src":"a","tgt":"b"}"#,
+            r#"{"format":"drumverter-preset","version":1,"name":"N","src":"ggd_invasion","tgt":"ezdrummer"}"#,
+            catalog(),
         )
         .unwrap()
         .preset;
@@ -199,7 +290,7 @@ mod tests {
     #[test]
     fn a_file_without_the_preset_fields_is_not_a_preset() {
         assert!(matches!(
-            parse_preset(r#"{"name":"N"}"#),
+            parse_preset(r#"{"name":"N"}"#, catalog()),
             Err(PresetError::Parse(_))
         ));
     }
@@ -207,7 +298,10 @@ mod tests {
     #[test]
     fn another_format_is_rejected_by_name() {
         assert!(matches!(
-            parse_preset(r#"{"format":"other","version":1,"name":"N","src":"a","tgt":"b"}"#),
+            parse_preset(
+                r#"{"format":"other","version":1,"name":"N","src":"ggd_invasion","tgt":"ezdrummer"}"#,
+                catalog()
+            ),
             Err(PresetError::Format(f)) if f == "other"
         ));
     }
@@ -216,7 +310,8 @@ mod tests {
     fn a_newer_version_is_rejected() {
         assert!(matches!(
             parse_preset(
-                r#"{"format":"drumverter-preset","version":2,"name":"N","src":"a","tgt":"b"}"#
+                r#"{"format":"drumverter-preset","version":2,"name":"N","src":"ggd_invasion","tgt":"ezdrummer"}"#,
+                catalog()
             ),
             Err(PresetError::Version(2))
         ));
@@ -226,7 +321,8 @@ mod tests {
     fn a_blank_name_is_rejected() {
         assert!(matches!(
             parse_preset(
-                r#"{"format":"drumverter-preset","version":1,"name":" ","src":"a","tgt":"b"}"#
+                r#"{"format":"drumverter-preset","version":1,"name":" ","src":"ggd_invasion","tgt":"ezdrummer"}"#,
+                catalog()
             ),
             Err(PresetError::Parse(_))
         ));
@@ -234,7 +330,7 @@ mod tests {
 
     #[test]
     fn an_unreadable_file_keeps_the_parse_cause() {
-        let err = parse_preset("nope").unwrap_err();
+        let err = parse_preset("nope", catalog()).unwrap_err();
         assert_eq!(err.to_string(), "not a preset file");
         assert!(std::error::Error::source(&err).is_some());
     }
@@ -258,10 +354,13 @@ mod tests {
     }
 
     fn load_with_unreadable_edits() -> LoadedPreset {
-        parse_preset(&with(
-            r#"{"kick.main":35,"bogus.drum":40,"snare1.hit":200,"hat.closed":"x"}"#,
-            r#"{"24":"snare1.hit","999":"kick.main","25":"nope.drum","26":7}"#,
-        ))
+        parse_preset(
+            &with(
+                r#"{"kick.main":35,"bogus.drum":40,"snare1.hit":200,"hat.closed":"x"}"#,
+                r#"{"24":"snare1.hit","999":"kick.main","25":"nope.drum","26":7}"#,
+            ),
+            catalog(),
+        )
         .unwrap()
     }
 
@@ -284,7 +383,7 @@ mod tests {
 
     #[test]
     fn accepts_a_drum_key_alias() {
-        let p = parse_preset(&with(r#"{"ride.1.bow":51}"#, "{}"))
+        let p = parse_preset(&with(r#"{"ride.1.bow":51}"#, "{}"), catalog())
             .unwrap()
             .preset;
         assert_eq!(p.edits, BTreeMap::from([(k("ride.1"), n(51))]));

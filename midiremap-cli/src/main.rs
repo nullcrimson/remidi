@@ -35,7 +35,7 @@ struct ConvertArgs {
     #[arg(long, value_name = "FILE")]
     user_map: Option<PathBuf>,
     /// Channels to convert: auto (tracks with channel-10 hits, else every track), all, or 1-16
-    #[arg(long, value_name = "CHANNEL", default_value = "auto")]
+    #[arg(long, value_name = "CHANNEL", default_value_t)]
     channel: ChannelScope,
     /// Note edits as JSON: {"tgt":[{"canon":"kick.main","note":35}],
     /// "src":[{"note":24,"canon":"snare1.hit"}]}; a null canon silences a source note
@@ -46,11 +46,11 @@ struct ConvertArgs {
     preset: Option<PathBuf>,
     /// Drums the target lacks: nearest (play on the closest drum) or drop (leave out;
     /// another way of playing the same drum still stands in)
-    #[arg(long, value_name = "MODE", default_value = "nearest")]
+    #[arg(long, value_name = "MODE", default_value_t)]
     missing: MissingDrums,
     /// Notes the source layout does not recognize: remove (leave out) or keep (write out
     /// unchanged); the report lists them either way
-    #[arg(long, value_name = "MODE", default_value = "remove")]
+    #[arg(long, value_name = "MODE", default_value_t)]
     unrecognized: Unrecognized,
 }
 
@@ -78,12 +78,11 @@ fn read_overrides(path: Option<PathBuf>) -> Result<Overrides> {
 fn read_preset(path: &Path, catalog: &Catalog, src: &str, tgt: &str) -> Result<Overrides> {
     let json = std::fs::read_to_string(path)
         .with_context(|| format!("cannot read preset {}", path.display()))?;
-    let loaded =
-        parse_preset(&json).with_context(|| format!("invalid preset {}", path.display()))?;
+    let loaded = parse_preset(&json, catalog)
+        .with_context(|| format!("invalid preset {}", path.display()))?;
     let preset = loaded.preset;
-    let resolve = |id: &str| catalog.canonical_id(id).unwrap_or(id).to_owned();
-    let (p_src, p_tgt) = (resolve(preset.src.as_str()), resolve(preset.tgt.as_str()));
-    if (p_src.as_str(), p_tgt.as_str()) != (src, tgt) {
+    let (p_src, p_tgt) = (preset.src.as_str(), preset.tgt.as_str());
+    if (p_src, p_tgt) != (src, tgt) {
         anyhow::bail!(
             "preset {} is for {p_src} → {p_tgt}, not {src} → {tgt}",
             path.display()

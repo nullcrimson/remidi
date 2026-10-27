@@ -53,7 +53,7 @@ const BASE_ROWS = typed<Wasm.VoicePlan[]>([
 ]);
 
 export const parse_preset_file = vi.fn<typeof Wasm.parse_preset_file>((json) => {
-  const p = JSON.parse(json) as Partial<Wasm.PresetView> & { name: string; src: string; tgt: string };
+  const p = JSON.parse(json) as Partial<Wasm.LoadedPreset> & { name: string; src: string; tgt: string };
   return { name: presetName(p.name), src: p.src, tgt: p.tgt, edits: p.edits ?? {}, srcEdits: p.srcEdits ?? {}, skipped: [] };
 });
 

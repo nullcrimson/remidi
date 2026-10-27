@@ -688,6 +688,7 @@ dependencies = [
  "quick-xml",
  "rayon",
  "serde",
+ "serde_bytes",
  "serde_json",
  "strum",
  "thiserror",

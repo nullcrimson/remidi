@@ -108,7 +108,7 @@ impl<'a> Mapping<'a> {
             source: src,
             target: tgt,
             missing,
-            edited: overrides.source().into_keys().collect(),
+            edited: overrides.source().keys().copied().collect(),
             notes: Note::ALL.map(|note| decode.get(&note).map(|canon| drums[canon])),
             drums,
             unrecognized: Unrecognized::default(),
@@ -193,7 +193,7 @@ impl<'a> Mapping<'a> {
 
 fn decoding(src: &EngineMap, overrides: &Overrides) -> Decoding {
     let mut decode: Decoding = src.decodings().collect();
-    for (note, canon) in overrides.source() {
+    for (&note, &canon) in overrides.source() {
         match canon {
             Some(canon) => decode.insert(note, canon),
             None => decode.remove(&note),
@@ -203,7 +203,14 @@ fn decoding(src: &EngineMap, overrides: &Overrides) -> Decoding {
 }
 
 fn encoding(tgt: &EngineMap, overrides: &Overrides) -> Encoding {
-    tgt.encodings().chain(overrides.target()).collect()
+    tgt.encodings()
+        .chain(
+            overrides
+                .target()
+                .iter()
+                .map(|(&canon, &note)| (canon, note)),
+        )
+        .collect()
 }
 
 #[cfg(test)]

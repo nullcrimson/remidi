@@ -8,7 +8,7 @@ import { failWrites } from './eventSteps';
 import { recordDownloads } from './downloads';
 import { WasmCallError } from '../src/core/errors';
 import { MAPPINGS_CAP } from '../src/presets/mappings';
-import type { PresetView, CanonEntry } from '../src/core/midiremap';
+import type { LoadedPreset, CanonEntry } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { presetName, typed } from './typed';
 import { storedName } from '../src/core/storage';
@@ -99,7 +99,7 @@ describe('App presets', () => {
   });
 
   it('imports a preset file as a new preset with a free name', async () => {
-    vi.mocked(stub.parse_preset_file).mockReturnValue(typed<PresetView>({
+    vi.mocked(stub.parse_preset_file).mockReturnValue(typed<LoadedPreset>({
       name: presetName('My kit'),
       src: 'ggd_invasion',
       tgt: 'ezdrummer',
@@ -202,7 +202,7 @@ describe('App presets', () => {
 
   it('refuses an import at the preset limit', async () => {
     vi.mocked(stub.parse_preset_file).mockReturnValue(
-      typed<PresetView>({ name: presetName('New'), src: 'ggd_invasion', tgt: 'ezdrummer', edits: {}, srcEdits: {}, skipped: [] }),
+      typed<LoadedPreset>({ name: presetName('New'), src: 'ggd_invasion', tgt: 'ezdrummer', edits: {}, srcEdits: {}, skipped: [] }),
     );
     const full = Array.from({ length: MAPPINGS_CAP }, (_, i) => ({ ...PRESET, id: `p${i}`, name: `P${i}`, edits: {}, srcEdits: {} }));
     await start(full);

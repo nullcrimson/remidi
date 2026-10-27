@@ -4,13 +4,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from '../src/App';
 import { RUNTIME } from './runtime';
-import type { Drum, MissingDrums, RemapOutput, CanonEntry, VoicePlan } from '../src/core/midiremap';
+import type { Drum, MissingDrums, Converted, CanonEntry, VoicePlan } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
 import { openSettings, pickFrom, pickTo } from './eventSteps';
 
 function remapFor(missing: MissingDrums | null | undefined) {
-  return typed<RemapOutput>({
+  return typed<Converted>({
     bytes: new Uint8Array([1]),
     report: {
       unmappedSource: {},

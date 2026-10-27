@@ -143,7 +143,7 @@ mod tests {
                 let fit = fits
                     .ranked()
                     .iter()
-                    .find(|fit| fit.engine().id() == engine.id())
+                    .find(|fit| fit.engine().as_str() == engine.id())
                     .expect("every engine of the catalog is fitted");
                 (fits.hits() != HITS_PER_GROOVE || fit.recognized() != fits.hits()).then(|| {
                     format!(

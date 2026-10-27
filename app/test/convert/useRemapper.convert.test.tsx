@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useRemapper } from '../../src/convert/useRemapper';
 import { RUNTIME } from '../runtime';
-import type { RemapOutput, VoicePlan } from '../../src/core/midiremap';
+import type { Converted, VoicePlan } from '../../src/core/midiremap';
 import init, * as stub from '../stubs/wasm';
 import { canon, engineId, note, typed } from '../typed';
 import { shownTgtPick } from '../picks';
@@ -14,7 +14,7 @@ const ROWS = typed<VoicePlan[]>([
 ]);
 
 const converted = () =>
-  typed<RemapOutput>({
+  typed<Converted>({
     bytes: new Uint8Array([1, 2, 3]),
     report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 },
   });

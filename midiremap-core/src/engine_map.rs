@@ -46,6 +46,32 @@ pub(crate) struct Variant {
     pub(crate) label: String,
 }
 
+/// An engine's id, as the catalog names it.
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
+#[serde(transparent)]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(type = r#"string & { readonly __brand: "EngineId" }"#)
+)]
+pub struct EngineId(String);
+
+impl EngineId {
+    pub(crate) fn new(id: &str) -> Self {
+        Self(id.to_owned())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<&EngineMap> for EngineId {
+    fn from(engine: &EngineMap) -> Self {
+        Self::new(engine.id())
+    }
+}
+
 /// One engine's note layout: which drum each note plays, and which note plays each drum.
 #[derive(Debug)]
 pub struct EngineMap {

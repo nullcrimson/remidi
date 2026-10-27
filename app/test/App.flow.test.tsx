@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App';
 import { RUNTIME } from './runtime';
 import { recordDownloads } from './downloads';
-import type { RemapOutput, CanonEntry, VoicePlan } from '../src/core/midiremap';
+import type { Converted, CanonEntry, VoicePlan } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
 import { pickFrom, pickTo } from './eventSteps';
@@ -48,7 +48,7 @@ describe('App convert flow', () => {
       { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
       { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals', srcNotes: [60], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
     ]));
-    vi.mocked(stub.remap).mockReturnValue(typed<RemapOutput>({
+    vi.mocked(stub.remap).mockReturnValue(typed<Converted>({
       bytes: new Uint8Array([1]),
       report: {
         unmappedSource: { 51: 3 },

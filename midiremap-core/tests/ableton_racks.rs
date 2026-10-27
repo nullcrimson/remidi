@@ -4,8 +4,8 @@ use std::{
 };
 
 use midiremap_core::{
-    convert, rack_file, Catalog, ChannelScope, Daw, FileStem, Mapping, MissingDrums, NonBlank,
-    Note, Overrides, Packing, Unrecognized,
+    convert, rack_file, Catalog, ChannelScope, Daw, FileStem, Mapping, MissingDrums, Note,
+    Overrides, Packing, PresetName, Unrecognized,
 };
 use midiremap_testkit::{every_note, every_note_keys, xml};
 use rayon::prelude::*;
@@ -123,7 +123,7 @@ fn rack_xml(mapping: &Mapping) -> String {
     rack_file(mapping, None).xml
 }
 
-fn preset(name: &str) -> NonBlank {
+fn preset(name: &str) -> PresetName {
     serde_json::from_value(serde_json::Value::from(name)).unwrap()
 }
 

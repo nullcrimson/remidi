@@ -9,9 +9,9 @@ use serde::Serialize;
 use crate::{
     engine_map::EngineMap,
     file::FileStem,
-    non_blank::NonBlank,
     note::Note,
     packing::Packing,
+    preset::PresetName,
     translate::{Destination, Mapping},
 };
 
@@ -53,7 +53,7 @@ pub struct RackFile {
 
 /// The remap rack for `mapping`, named after `preset` when it gives a file name, else
 /// after the mapping's engines.
-pub fn rack_file(mapping: &Mapping, preset: Option<&NonBlank>) -> RackFile {
+pub fn rack_file(mapping: &Mapping, preset: Option<&PresetName>) -> RackFile {
     RackFile {
         file_name: rack_file_name(mapping, preset),
         xml: remap_rack(mapping),
@@ -62,7 +62,7 @@ pub fn rack_file(mapping: &Mapping, preset: Option<&NonBlank>) -> RackFile {
     }
 }
 
-fn rack_file_name(mapping: &Mapping, preset: Option<&NonBlank>) -> String {
+fn rack_file_name(mapping: &Mapping, preset: Option<&PresetName>) -> String {
     preset
         .and_then(|p| FileStem::parse(p.as_str()))
         .unwrap_or_else(|| {

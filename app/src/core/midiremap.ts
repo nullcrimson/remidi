@@ -6,9 +6,9 @@ import type {
   MissingDrums,
   Overrides,
   PresetName,
-  PresetView,
+  LoadedPreset,
   RackFile,
-  RemapOutput,
+  Converted,
   SourceFits,
   Unrecognized,
   CanonEntry,
@@ -34,9 +34,9 @@ export type {
   Packing,
   Outcome,
   PresetName,
-  PresetView,
+  LoadedPreset,
   RackFile,
-  RemapOutput,
+  Converted,
   Report,
   SourceFit,
   SourceFits,
@@ -52,7 +52,7 @@ export interface Midiremap {
   engineNotes(srcId: string): Drum[];
   canonCatalog(): CanonEntry[];
   familyOrder(): Family[];
-  parsePresetFile(json: string): PresetView;
+  parsePresetFile(json: string): LoadedPreset;
   plan(pair: EnginePair, ov?: Overrides, missing?: MissingDrums): VoicePlan[];
   remap(
     mid: Uint8Array,
@@ -61,7 +61,7 @@ export interface Midiremap {
     channel?: ChannelScope,
     missing?: MissingDrums,
     unrecognized?: Unrecognized,
-  ): RemapOutput;
+  ): Converted;
   /** The Ableton rack that plays `pair.src` MIDI on `pair.tgt` as `remap` converts it, named after `presetName` when given. */
   remapRack(
     pair: EnginePair,

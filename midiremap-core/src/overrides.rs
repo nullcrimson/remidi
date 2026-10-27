@@ -1,22 +1,24 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 
 use crate::{canon::Canon, note::Note};
 
 /// Edits layered over a source and a target engine; the last entry for a note or canon
 /// wins.
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Debug, PartialEq, Eq)]
 #[cfg_attr(
     feature = "ts",
     derive(tsify::Tsify),
     tsify(missing_as_null, hashmap_as_object)
 )]
 pub struct Overrides {
-    #[serde(default)]
-    tgt: Vec<CanonNote>,
-    #[serde(default)]
-    src: Vec<SrcNote>,
+    #[serde(default, deserialize_with = "last_wins::<_, CanonNote, _, _>")]
+    #[cfg_attr(feature = "ts", tsify(type = "CanonNote[]"))]
+    tgt: BTreeMap<Canon, Note>,
+    #[serde(default, deserialize_with = "last_wins::<_, SrcNote, _, _>")]
+    #[cfg_attr(feature = "ts", tsify(type = "SrcNote[]"))]
+    src: BTreeMap<Note, Option<Canon>>,
 }
 
 impl Overrides {
@@ -25,24 +27,32 @@ impl Overrides {
         source: impl IntoIterator<Item = (Note, Option<Canon>)>,
     ) -> Self {
         Self {
-            tgt: target
-                .into_iter()
-                .map(|(canon, note)| CanonNote { canon, note })
-                .collect(),
-            src: source
-                .into_iter()
-                .map(|(note, canon)| SrcNote { note, canon })
-                .collect(),
+            tgt: target.into_iter().collect(),
+            src: source.into_iter().collect(),
         }
     }
 
-    pub(crate) fn target(&self) -> HashMap<Canon, Note> {
-        self.tgt.iter().map(|cn| (cn.canon, cn.note)).collect()
+    /// The note each edited target drum plays on.
+    pub(crate) fn target(&self) -> &BTreeMap<Canon, Note> {
+        &self.tgt
     }
 
-    pub(crate) fn source(&self) -> HashMap<Note, Option<Canon>> {
-        self.src.iter().map(|sn| (sn.note, sn.canon)).collect()
+    /// The drum each edited source note plays, or `None` for a note that plays none.
+    pub(crate) fn source(&self) -> &BTreeMap<Note, Option<Canon>> {
+        &self.src
     }
+}
+
+fn last_wins<'de, D, E, K, V>(d: D) -> Result<BTreeMap<K, V>, D::Error>
+where
+    D: Deserializer<'de>,
+    E: Deserialize<'de> + Into<(K, V)>,
+    K: Ord,
+{
+    Ok(Vec::<E>::deserialize(d)?
+        .into_iter()
+        .map(Into::into)
+        .collect())
 }
 
 #[derive(Deserialize)]
@@ -56,6 +66,12 @@ struct CanonNote {
     note: Note,
 }
 
+impl From<CanonNote> for (Canon, Note) {
+    fn from(CanonNote { canon, note }: CanonNote) -> Self {
+        (canon, note)
+    }
+}
+
 /// A source note played as `canon`, or no drum at all when `canon` is `None`.
 #[derive(Deserialize)]
 #[cfg_attr(
@@ -66,6 +82,12 @@ struct CanonNote {
 struct SrcNote {
     note: Note,
     canon: Option<Canon>,
+}
+
+impl From<SrcNote> for (Note, Option<Canon>) {
+    fn from(SrcNote { note, canon }: SrcNote) -> Self {
+        (note, canon)
+    }
 }
 
 #[cfg(test)]
@@ -98,7 +120,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             ov.source(),
-            HashMap::from([(n(36), Some(Canon::Kick(KickKind::Main)))])
+            &BTreeMap::from([(n(36), Some(Canon::Kick(KickKind::Main)))])
         );
     }
 
@@ -107,7 +129,7 @@ mod tests {
         let ov = with_duplicates();
         assert_eq!(
             ov.target(),
-            HashMap::from([(Canon::Kick(KickKind::Main), n(40))])
+            &BTreeMap::from([(Canon::Kick(KickKind::Main), n(40))])
         );
     }
 
@@ -126,7 +148,7 @@ mod tests {
         let ov = with_duplicates();
         assert_eq!(
             ov.source(),
-            HashMap::from([(n(99), Some(Canon::Snare(idx(1), SnareArtic::Hit)))])
+            &BTreeMap::from([(n(99), Some(Canon::Snare(idx(1), SnareArtic::Hit)))])
         );
     }
 }

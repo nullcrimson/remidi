@@ -8,9 +8,9 @@ const ALLOWED_USES: &Table = &[
         &[
             "engine_map",
             "file",
-            "non_blank",
             "note",
             "packing",
+            "preset",
             "translate",
         ],
     ),
@@ -33,7 +33,17 @@ const ALLOWED_USES: &Table = &[
     ("overrides", &["canon", "note"]),
     ("packing", &[]),
     ("plan", &["canon", "note", "resolution", "translate"]),
-    ("preset", &["canon", "non_blank", "note", "overrides"]),
+    (
+        "preset",
+        &[
+            "canon",
+            "catalog",
+            "engine_map",
+            "non_blank",
+            "note",
+            "overrides",
+        ],
+    ),
     ("report", &["canon", "note", "resolution"]),
     ("resolution", &["canon", "note"]),
     (

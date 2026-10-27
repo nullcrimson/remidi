@@ -1,3 +1,5 @@
+use serde::Serialize;
+
 use crate::{
     channel::ChannelScope,
     midi::{self, CodecError},
@@ -6,7 +8,16 @@ use crate::{
     translate::Mapping,
 };
 
+/// A converted file and what happened to its notes.
+#[derive(Serialize)]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
 pub struct Converted {
+    #[serde(with = "serde_bytes")]
+    #[cfg_attr(feature = "ts", tsify(type = "Uint8Array<ArrayBuffer>"))]
     pub bytes: Vec<u8>,
     pub report: Report,
 }

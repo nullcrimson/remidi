@@ -2,7 +2,7 @@ import type { Message } from '../generated/i18n';
 import { toAppError } from '../core/errors';
 import type { PresetText } from '../core/files';
 import { MAPPINGS_CAP, uniqueName, type SavedMapping } from './mappings';
-import type { PresetView } from '../core/midiremap';
+import type { LoadedPreset } from '../core/midiremap';
 import type { NoticeLine } from '../core/notice';
 import type { PresetContent } from './presetFile';
 
@@ -35,13 +35,13 @@ export interface ImportResult {
 export function importPresets(
   files: PresetText[],
   existing: SavedMapping[],
-  parse: (json: string) => PresetView,
+  parse: (json: string) => LoadedPreset,
   save: (p: PresetContent) => string | null,
 ): ImportResult {
   const taken = existing.map((m) => m.name);
   let count = existing.length;
   const outcomes = files.map((file): FileOutcome => {
-    let preset: PresetView;
+    let preset: LoadedPreset;
     try {
       preset = parse(file.text);
     } catch (err) {
