@@ -26,7 +26,7 @@ pub use catalog::Catalog;
 pub use channel::{Channel, ChannelScope, ChannelScopeError};
 pub use conversion::{convert, Converted};
 pub use daw::{rack_file, Daw, FileStem, Packing, RackFile};
-pub use engine_map::{Drum, EngineId, EngineMap, MapError};
+pub use engine_map::{Drum, EngineId, EngineMap, MapError, Variant};
 pub use family::Family;
 pub use fit::{note_hits, source_fits, NoteHits, SourceFit, SourceFits};
 pub use midi::CodecError;

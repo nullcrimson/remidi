@@ -2,12 +2,18 @@ use std::{collections::HashMap, fmt, str::FromStr, sync::LazyLock};
 
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-use super::{Canon, HatOpen, HatZone, RideArtic, RideIdx, TomPos, ALL};
+use super::{Canon, HatOpen, HatZone, RideArtic, RideIdx, Slot, TomPos};
 
 static BY_KEY: LazyLock<HashMap<String, Canon>> = LazyLock::new(|| {
-    ALL.iter()
+    Canon::all()
+        .iter()
         .map(|&c| (c.to_string(), c))
-        .chain(RideIdx::all().map(|i| (format!("ride.{i}.bow"), Canon::Ride(i, RideArtic::Bow))))
+        .chain(RideIdx::all().map(|i| {
+            (
+                format!("ride.{i}.bow"),
+                Canon(Slot::Ride(i, RideArtic::Bow)),
+            )
+        }))
         .collect()
 });
 
@@ -20,6 +26,15 @@ fn hat_open_key(o: HatOpen) -> String {
         | HatOpen::Cc
         | HatOpen::Pedal
         | HatOpen::PedalSplash => key(o).to_owned(),
+    }
+}
+fn hat_key(o: HatOpen, z: HatZone) -> String {
+    dotted(hat_open_key(o), hat_zone_key(z))
+}
+fn dotted(stem: String, tail: Option<&str>) -> String {
+    match tail {
+        Some(tail) => format!("{stem}.{tail}"),
+        None => stem,
     }
 }
 fn hat_zone_key(z: HatZone) -> Option<&'static str> {
@@ -40,31 +55,22 @@ fn tom_pos_key(p: TomPos) -> String {
 
 impl fmt::Display for Canon {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            Canon::Kick(k) => write!(f, "kick.{}", key(k)),
-            Canon::Snare(i, a) => write!(f, "snare{i}.{}", key(a)),
-            Canon::Tom(p, a) => write!(f, "tom.{}.{}", tom_pos_key(p), key(a)),
-            Canon::Hat(o, z) => match hat_zone_key(z) {
-                Some(zs) => write!(f, "hat.{}.{zs}", hat_open_key(o)),
-                None => write!(f, "hat.{}", hat_open_key(o)),
-            },
-            Canon::Aux(i, o, z) => match hat_zone_key(z) {
-                Some(zs) => write!(f, "aux{i}.{}.{zs}", hat_open_key(o)),
-                None => write!(f, "aux{i}.{}", hat_open_key(o)),
-            },
-            Canon::Cymbal(s, a) => write!(f, "{}.{}.{}", key(s), s.index(), key(a)),
-            Canon::Ride(i, a) => match ride_artic_key(a) {
-                Some(as_) => write!(f, "ride.{i}.{as_}"),
-                None => write!(f, "ride.{i}"),
-            },
-            Canon::Perc(k) => write!(f, "perc.{}", key(k)),
+        match self.0 {
+            Slot::Kick(k) => write!(f, "kick.{}", key(k)),
+            Slot::Snare(i, a) => write!(f, "snare{i}.{}", key(a)),
+            Slot::Tom(p, a) => write!(f, "tom.{}.{}", tom_pos_key(p), key(a)),
+            Slot::Hat(o, z) => write!(f, "hat.{}", hat_key(o, z)),
+            Slot::Aux(i, o, z) => write!(f, "aux{i}.{}", hat_key(o, z)),
+            Slot::Cymbal(s, a) => write!(f, "{}.{}.{}", key(s), s.index(), key(a)),
+            Slot::Ride(i, a) => f.write_str(&dotted(format!("ride.{i}"), ride_artic_key(a))),
+            Slot::Perc(k) => write!(f, "perc.{}", key(k)),
         }
     }
 }
 
 #[derive(thiserror::Error, Debug, PartialEq)]
 #[error("invalid canon key: {0}")]
-pub struct CanonParseError(pub String);
+pub struct CanonParseError(String);
 
 impl FromStr for Canon {
     type Err = CanonParseError;
@@ -110,51 +116,57 @@ mod tests {
 
     #[test]
     fn a_drum_prints_as_its_stable_key() {
-        assert_eq!(Canon::Kick(KickKind::Main).to_string(), "kick.main");
+        assert_eq!(Canon(Slot::Kick(KickKind::Main)).to_string(), "kick.main");
         assert_eq!(
-            Canon::Snare(idx(1), SnareArtic::Sidestick).to_string(),
+            Canon(Slot::Snare(idx(1), SnareArtic::Sidestick)).to_string(),
             "snare1.sidestick"
         );
         assert_eq!(
-            Canon::Tom(TomPos::Rack(idx(1)), TomArtic::Hit).to_string(),
+            Canon(Slot::Tom(TomPos::Rack(idx(1)), TomArtic::Hit)).to_string(),
             "tom.rack1.hit"
         );
         assert_eq!(
-            Canon::Hat(HatOpen::Closed, HatZone::Plain).to_string(),
+            Canon(Slot::Hat(HatOpen::Closed, HatZone::Plain)).to_string(),
             "hat.closed"
         );
         assert_eq!(
-            Canon::Hat(HatOpen::Open(idx(3)), HatZone::Edge).to_string(),
+            Canon(Slot::Hat(HatOpen::Open(idx(3)), HatZone::Edge)).to_string(),
             "hat.open3.edge"
         );
         assert_eq!(
-            Canon::Cymbal(CymSlot::Crash(idx(2)), CymArtic::Mute).to_string(),
+            Canon(Slot::Cymbal(CymSlot::Crash(idx(2)), CymArtic::Mute)).to_string(),
             "crash.2.mute"
         );
-        assert_eq!(Canon::Ride(idx(1), RideArtic::Bow).to_string(), "ride.1");
         assert_eq!(
-            Canon::Ride(idx(1), RideArtic::Bell).to_string(),
+            Canon(Slot::Ride(idx(1), RideArtic::Bow)).to_string(),
+            "ride.1"
+        );
+        assert_eq!(
+            Canon(Slot::Ride(idx(1), RideArtic::Bell)).to_string(),
             "ride.1.bell"
         );
-        assert_eq!(Canon::Perc(PercKind::Cowbell).to_string(), "perc.cowbell");
+        assert_eq!(
+            Canon(Slot::Perc(PercKind::Cowbell)).to_string(),
+            "perc.cowbell"
+        );
     }
 
     #[test]
     fn a_canon_serializes_as_its_key() {
-        let c = Canon::Cymbal(CymSlot::China(idx(1)), CymArtic::Hit);
+        let c = Canon(Slot::Cymbal(CymSlot::China(idx(1)), CymArtic::Hit));
         assert_eq!(serde_json::to_string(&c).unwrap(), "\"china.1.hit\"");
     }
 
     #[test]
     fn a_canon_deserializes_from_its_key() {
-        let c = Canon::Cymbal(CymSlot::China(idx(1)), CymArtic::Hit);
+        let c = Canon(Slot::Cymbal(CymSlot::China(idx(1)), CymArtic::Hit));
         assert_eq!(serde_json::from_str::<Canon>("\"china.1.hit\"").unwrap(), c);
     }
 
     #[test]
     fn parse_accepts_ride_bow_alias_only_as_ride() {
         assert_eq!(k("ride.1.bow"), k("ride.1"));
-        assert_eq!(k("ride.2.bow"), Canon::Ride(idx(2), RideArtic::Bow));
+        assert_eq!(k("ride.2.bow"), Canon(Slot::Ride(idx(2), RideArtic::Bow)));
     }
 
     fn assert_rejected(bad: &str) {

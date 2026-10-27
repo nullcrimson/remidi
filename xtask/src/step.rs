@@ -1,3 +1,7 @@
+use std::collections::BTreeSet;
+
+use strum::VariantArray;
+
 /// One check of the gate: what it needs, which build directories it locks and how soon it
 /// goes.
 #[derive(
@@ -55,6 +59,10 @@ impl TargetDir {
     }
 }
 
+/// The browser tests, the longest in the gate, and the unit tests, which run just before
+/// them: they and every step they need run at normal priority.
+const CHAIN_ENDS: [Step; 2] = [Step::E2e, Step::Vitest];
+
 /// What only one running step can have, so steps that want the same one take turns.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Hold {
@@ -75,30 +83,44 @@ pub enum Urgency {
     Background,
 }
 
-/// What a check reads: source files, as git pathspecs from the repository root, and the
-/// outputs of the builds it needs, which git ignores.
-#[derive(Debug, PartialEq, Eq)]
-pub struct Reads {
-    pub sources: &'static [&'static str],
-    pub built: &'static [&'static str],
+/// One of a cargo step's two passes, each building into a directory of its own.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, strum::VariantArray)]
+pub enum CargoPass {
+    /// The crates that ship in the CLI and the site generator.
+    Shipped,
+    /// The browser crate.
+    Browser,
 }
 
-const RUST: &[&str] = &[
-    "Cargo.toml",
-    "Cargo.lock",
-    "rust-toolchain.toml",
-    "nightly-toolchain",
-    "rustfmt.toml",
-    ".cargo",
-    "midiremap-cli",
-    "midiremap-core",
-    "midiremap-site",
-    "midiremap-testkit",
-    "midiremap-wasm",
-    "xtask",
-    "engines",
-    "locales",
-    "content",
+/// A path a check reads, from the repository root.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Input {
+    Path(&'static str),
+    /// The directory of every crate of the cargo workspace.
+    Crates,
+    /// The site generator `Step::CompileSite` builds.
+    SiteProgram,
+}
+
+/// What a check reads: source files, as git pathspecs, and the outputs of the builds it
+/// needs, which git ignores.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Reads {
+    pub sources: &'static [Input],
+    pub built: &'static [Input],
+}
+
+const RUST: &[Input] = &[
+    Input::Path("Cargo.toml"),
+    Input::Path("Cargo.lock"),
+    Input::Path("rust-toolchain.toml"),
+    Input::Path("nightly-toolchain"),
+    Input::Path("rustfmt.toml"),
+    Input::Path(".cargo"),
+    Input::Crates,
+    Input::Path("engines"),
+    Input::Path("locales"),
+    Input::Path("content"),
 ];
 
 const RUST_CHECK: Reads = Reads {
@@ -107,36 +129,41 @@ const RUST_CHECK: Reads = Reads {
 };
 
 const APP_CHECK: Reads = Reads {
-    sources: &["app", "locales", "content", ".nvmrc"],
-    built: &["app/src/generated", "app/src/wasm"],
+    sources: &[
+        Input::Path("app"),
+        Input::Path("locales"),
+        Input::Path("content"),
+        Input::Path(".nvmrc"),
+    ],
+    built: &[
+        Input::Path("app/src/generated"),
+        Input::Path("app/src/wasm"),
+    ],
 };
 
 /// The app's build directory: the app build writes it, then the site build adds its pages.
 pub const DIST: &str = "app/dist";
 
-/// The site generator `Step::CompileSite` builds, from the repository root.
-pub const SITE_PROGRAM: &str = if cfg!(windows) {
-    "target/site/debug/midiremap-site.exe"
-} else {
-    "target/site/debug/midiremap-site"
-};
-
 /// What the app build and the site build read together to write `DIST`.
 pub const DIST_BUILD: Reads = Reads {
     sources: &[
-        "app/src",
-        "app/public",
-        "app/index.html",
-        "app/vite.config.ts",
-        "app/tsconfig.json",
-        "app/scripts",
-        "app/package.json",
-        "app/package-lock.json",
-        "locales",
-        "content",
-        ".nvmrc",
+        Input::Path("app/src"),
+        Input::Path("app/public"),
+        Input::Path("app/index.html"),
+        Input::Path("app/vite.config.ts"),
+        Input::Path("app/tsconfig.json"),
+        Input::Path("app/scripts"),
+        Input::Path("app/package.json"),
+        Input::Path("app/package-lock.json"),
+        Input::Path("locales"),
+        Input::Path("content"),
+        Input::Path(".nvmrc"),
     ],
-    built: &["app/src/generated", "app/src/wasm", SITE_PROGRAM],
+    built: &[
+        Input::Path("app/src/generated"),
+        Input::Path("app/src/wasm"),
+        Input::SiteProgram,
+    ],
 };
 
 /// How the gate keeps a step's result between runs.
@@ -199,18 +226,32 @@ impl Step {
         }
     }
 
-    pub fn urgency(self) -> Urgency {
-        match self {
-            Step::GenI18n
-            | Step::BuildWasm
-            | Step::CompileSite
-            | Step::BuildApp
-            | Step::BuildSite
-            | Step::Vitest
-            | Step::E2e => Urgency::Chain,
-            Step::Fmt | Step::Clippy | Step::CargoTest | Step::Eslint | Step::Tsc | Step::Size => {
-                Urgency::Background
+    /// Every step this one needs, directly or through the needed steps `through` admits.
+    pub fn reach(self, through: impl Fn(Step) -> bool) -> BTreeSet<Step> {
+        let mut reached = BTreeSet::new();
+        let mut next: Vec<Step> = self.needs().to_vec();
+        while let Some(step) = next.pop() {
+            if reached.insert(step) && through(step) {
+                next.extend(step.needs());
             }
+        }
+        reached
+    }
+
+    /// Every step this one needs, directly or through the steps it needs.
+    pub fn needs_closure(self) -> BTreeSet<Step> {
+        self.reach(|_| true)
+    }
+
+    /// `Chain` for the chain ends and every step they need.
+    pub fn urgency(self) -> Urgency {
+        let on_chain = CHAIN_ENDS
+            .iter()
+            .any(|&end| end == self || end.needs_closure().contains(&self));
+        if on_chain {
+            Urgency::Chain
+        } else {
+            Urgency::Background
         }
     }
 
@@ -221,24 +262,24 @@ impl Step {
             Step::Eslint | Step::Tsc | Step::Vitest => Kept::Check(APP_CHECK),
             Step::Size => Kept::Check(Reads {
                 sources: &[
-                    "app/scripts",
-                    "app/package.json",
-                    "app/package-lock.json",
-                    ".nvmrc",
+                    Input::Path("app/scripts"),
+                    Input::Path("app/package.json"),
+                    Input::Path("app/package-lock.json"),
+                    Input::Path(".nvmrc"),
                 ],
-                built: &[DIST],
+                built: &[Input::Path(DIST)],
             }),
             Step::E2e => Kept::Check(Reads {
                 sources: &[
-                    "app/e2e",
-                    "app/playwright.config.ts",
-                    "app/vite.config.ts",
-                    "app/scripts",
-                    "app/package.json",
-                    "app/package-lock.json",
-                    ".nvmrc",
+                    Input::Path("app/e2e"),
+                    Input::Path("app/playwright.config.ts"),
+                    Input::Path("app/vite.config.ts"),
+                    Input::Path("app/scripts"),
+                    Input::Path("app/package.json"),
+                    Input::Path("app/package-lock.json"),
+                    Input::Path(".nvmrc"),
                 ],
-                built: &[DIST],
+                built: &[Input::Path(DIST)],
             }),
             Step::BuildApp => Kept::Dist { finishes: false },
             Step::BuildSite => Kept::Dist { finishes: true },
@@ -254,14 +295,21 @@ impl Step {
         matches!(self, Step::GenI18n | Step::CompileSite)
     }
 
-    /// The cargo build directories the step builds into: for the two cargo passes, the
-    /// shipped crates' first and the browser crate's second.
-    pub fn target_dirs(self) -> &'static [TargetDir] {
+    /// The cargo build directory the step's `pass` builds into, when the step builds that
+    /// pass: the wasm build builds only the browser crate, the site generator only shipped
+    /// code.
+    pub fn target_dir(self, pass: CargoPass) -> Option<TargetDir> {
         match self {
-            Step::Clippy => &[TargetDir::Clippy, TargetDir::ClippyBrowser],
-            Step::CargoTest => &[TargetDir::Main, TargetDir::Browser],
-            Step::BuildWasm => &[TargetDir::Main],
-            Step::CompileSite => &[TargetDir::Site],
+            Step::Clippy => Some(match pass {
+                CargoPass::Shipped => TargetDir::Clippy,
+                CargoPass::Browser => TargetDir::ClippyBrowser,
+            }),
+            Step::CargoTest => Some(match pass {
+                CargoPass::Shipped => TargetDir::Main,
+                CargoPass::Browser => TargetDir::Browser,
+            }),
+            Step::BuildWasm => (pass == CargoPass::Browser).then_some(TargetDir::Main),
+            Step::CompileSite => (pass == CargoPass::Shipped).then_some(TargetDir::Site),
             Step::Fmt
             | Step::GenI18n
             | Step::Eslint
@@ -270,8 +318,15 @@ impl Step {
             | Step::BuildApp
             | Step::BuildSite
             | Step::Size
-            | Step::E2e => &[],
+            | Step::E2e => None,
         }
+    }
+
+    /// The cargo build directories the step builds into, a pass at a time.
+    pub fn target_dirs(self) -> impl Iterator<Item = (CargoPass, TargetDir)> {
+        CargoPass::VARIANTS
+            .iter()
+            .filter_map(move |&pass| self.target_dir(pass).map(|dir| (pass, dir)))
     }
 
     /// What the step holds while it runs: its build directories, and for the unit and the
@@ -279,9 +334,7 @@ impl Step {
     pub fn holds(self) -> impl Iterator<Item = Hold> {
         let workers = matches!(self, Step::Vitest | Step::E2e).then_some(Hold::TestWorkers);
         self.target_dirs()
-            .iter()
-            .copied()
-            .map(Hold::Dir)
+            .map(|(_, dir)| Hold::Dir(dir))
             .chain(workers)
     }
 
@@ -308,8 +361,6 @@ impl Step {
 
 #[cfg(test)]
 mod tests {
-    use strum::VariantArray;
-
     use super::*;
 
     #[test]
@@ -339,6 +390,41 @@ mod tests {
     fn a_step_is_found_by_its_name() {
         assert_eq!("cargo-test".parse(), Ok(Step::CargoTest));
         assert!("lint".parse::<Step>().is_err());
+    }
+
+    #[test]
+    fn the_chain_to_the_browser_and_unit_tests_runs_at_normal_priority() {
+        let chain: Vec<&str> = Step::VARIANTS
+            .iter()
+            .filter(|s| s.urgency() == Urgency::Chain)
+            .map(|s| s.name())
+            .collect();
+        assert_eq!(
+            chain,
+            [
+                "gen-i18n",
+                "build-wasm",
+                "compile-site",
+                "vitest",
+                "build-app",
+                "build-site",
+                "e2e"
+            ]
+        );
+    }
+
+    #[test]
+    fn the_closure_follows_needs_to_the_end() {
+        assert_eq!(
+            Step::E2e.needs_closure(),
+            BTreeSet::from([
+                Step::GenI18n,
+                Step::BuildWasm,
+                Step::CompileSite,
+                Step::BuildApp,
+                Step::BuildSite
+            ])
+        );
     }
 
     #[test]

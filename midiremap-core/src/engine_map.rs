@@ -41,9 +41,21 @@ struct RawVariant {
 /// What makes an engine another mapping of a base engine: the base's id and how the mapping
 /// differs, such as `Mapping 'GM'`.
 #[derive(Debug)]
-pub(crate) struct Variant {
-    pub(crate) of: String,
-    pub(crate) label: String,
+pub struct Variant {
+    of: String,
+    label: String,
+}
+
+impl Variant {
+    /// The id of the engine this one is another mapping of.
+    pub fn of(&self) -> &str {
+        &self.of
+    }
+
+    /// How the mapping differs from the base engine's, such as `Mapping 'GM'`.
+    pub fn label(&self) -> &str {
+        &self.label
+    }
 }
 
 /// An engine's id, as the catalog names it.
@@ -162,20 +174,9 @@ impl EngineMap {
         &self.aliases
     }
 
-    /// The id of the engine this one is another mapping of, when it is one.
-    pub(crate) fn variant_of(&self) -> Option<&str> {
-        self.variant.as_ref().map(|v| v.of.as_str())
-    }
-
     /// What makes this engine another mapping of a base engine, when it is one.
-    pub(crate) fn variant(&self) -> Option<&Variant> {
+    pub fn variant(&self) -> Option<&Variant> {
         self.variant.as_ref()
-    }
-
-    /// How this engine's mapping differs from the engine it is a variant of, such as
-    /// `Mapping 'GM'`; `None` for an engine that is no variant.
-    pub fn variant_label(&self) -> Option<&str> {
-        self.variant.as_ref().map(|v| v.label.as_str())
     }
 
     pub fn drums(&self) -> Vec<Drum> {
@@ -284,7 +285,7 @@ pub(crate) fn many_from_json(s: &str) -> Result<Vec<EngineMap>, MapError> {
 mod tests {
     use super::*;
     use crate::{
-        canon::{idx, KickKind, SnareArtic},
+        canon::{idx, KickKind, Slot, SnareArtic},
         family::Family,
         note::n,
     };
@@ -302,9 +303,12 @@ mod tests {
     #[test]
     fn decodes_every_note() {
         let m = from_toml(SAMPLE).unwrap();
-        assert_eq!(m.decode(n(24)), Some(Canon::Kick(KickKind::Main)));
-        assert_eq!(m.decode(n(23)), Some(Canon::Kick(KickKind::Main)));
-        assert_eq!(m.decode(n(26)), Some(Canon::Snare(idx(1), SnareArtic::Hit)));
+        assert_eq!(m.decode(n(24)), Some(Canon(Slot::Kick(KickKind::Main))));
+        assert_eq!(m.decode(n(23)), Some(Canon(Slot::Kick(KickKind::Main))));
+        assert_eq!(
+            m.decode(n(26)),
+            Some(Canon(Slot::Snare(idx(1), SnareArtic::Hit)))
+        );
     }
 
     #[test]
@@ -316,8 +320,11 @@ mod tests {
     #[test]
     fn encode_uses_primary_note() {
         let m = from_toml(SAMPLE).unwrap();
-        assert_eq!(m.encode(Canon::Kick(KickKind::Main)), Some(n(24)));
-        assert_eq!(m.encode(Canon::Snare(idx(1), SnareArtic::Hit)), Some(n(26)));
+        assert_eq!(m.encode(Canon(Slot::Kick(KickKind::Main))), Some(n(24)));
+        assert_eq!(
+            m.encode(Canon(Slot::Snare(idx(1), SnareArtic::Hit))),
+            Some(n(26))
+        );
     }
 
     #[test]
@@ -349,8 +356,11 @@ mod tests {
             notes.iter().map(|d| d.note).collect::<Vec<_>>(),
             vec![n(23), n(24), n(26)]
         );
-        assert_eq!(notes[0].entry.canon, Canon::Kick(KickKind::Main));
-        assert_eq!(notes[2].entry.canon, Canon::Snare(idx(1), SnareArtic::Hit));
+        assert_eq!(notes[0].entry.canon, Canon(Slot::Kick(KickKind::Main)));
+        assert_eq!(
+            notes[2].entry.canon,
+            Canon(Slot::Snare(idx(1), SnareArtic::Hit))
+        );
     }
 
     #[test]
@@ -436,7 +446,9 @@ mod tests {
         "#;
         assert!(matches!(
             from_toml(bad),
-            Err(MapError::DuplicatePrimary(Canon::Kick(KickKind::Main)))
+            Err(MapError::DuplicatePrimary(Canon(Slot::Kick(
+                KickKind::Main
+            ))))
         ));
     }
 
@@ -472,7 +484,7 @@ mod tests {
     #[test]
     fn a_variants_label_is_the_parentheses_ending_its_name() {
         let m = variant_named("Kit (Default) (Mapping 'GM')").unwrap();
-        assert_eq!(m.variant_label(), Some("Mapping 'GM'"));
+        assert_eq!(m.variant().map(Variant::label), Some("Mapping 'GM'"));
     }
 
     #[test]
@@ -504,7 +516,7 @@ mod tests {
 
     #[test]
     fn an_engine_that_is_no_variant_has_no_label() {
-        assert_eq!(from_toml(SAMPLE).unwrap().variant_label(), None);
+        assert!(from_toml(SAMPLE).unwrap().variant().is_none());
     }
 
     #[test]

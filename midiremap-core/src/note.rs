@@ -96,7 +96,7 @@ impl Note {
     }
 
     /// How many semitones `to` lies above this note; negative when it lies below.
-    pub fn semitones_to(self, to: Note) -> i16 {
+    pub(crate) fn semitones_to(self, to: Note) -> i16 {
         i16::from(to.0) - i16::from(self.0)
     }
 
@@ -165,7 +165,10 @@ impl<'de> Deserialize<'de> for Note {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         let n = u64::deserialize(d)?;
         u8::try_from(n).ok().and_then(Self::new).ok_or_else(|| {
-            de::Error::invalid_value(de::Unexpected::Unsigned(n), &"a MIDI note in 0..=127")
+            de::Error::invalid_value(
+                de::Unexpected::Unsigned(n),
+                &format!("a MIDI note in 0..={}", Self::MAX).as_str(),
+            )
         })
     }
 }

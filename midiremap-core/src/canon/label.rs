@@ -1,6 +1,6 @@
 use super::{
-    Canon, CymArtic, CymSlot, HatOpen, HatZone, KickKind, PercKind, RideArtic, RideIdx, SnareArtic,
-    SnareIdx, TomArtic, TomPos,
+    Canon, CymArtic, CymSlot, HatOpen, HatZone, Idx, KickKind, PercKind, RideArtic, Slot,
+    SnareArtic, TomArtic, TomPos,
 };
 
 impl CymSlot {
@@ -34,19 +34,24 @@ fn hat_label(prefix: &str, o: HatOpen, z: HatZone) -> String {
     }
 }
 
+/// `name` for the first of its kind, `name` and its position for the others.
+fn numbered<const MAX: u8>(name: &str, i: Idx<MAX>) -> String {
+    if i == Idx::FIRST {
+        name.to_owned()
+    } else {
+        format!("{name} {i}")
+    }
+}
+
 impl Canon {
     /// The drum's name as people read it, such as `Crash 2 (Mute)`.
     pub fn label(self) -> String {
-        match self {
-            Canon::Kick(KickKind::Main) => "Kick".into(),
-            Canon::Kick(KickKind::Alt) => "Kick (Alt)".into(),
-            Canon::Kick(KickKind::Left) => "Kick (Left)".into(),
-            Canon::Snare(i, a) => {
-                let base = if i == SnareIdx::FIRST {
-                    "Snare".to_string()
-                } else {
-                    format!("Snare {i}")
-                };
+        match self.0 {
+            Slot::Kick(KickKind::Main) => "Kick".into(),
+            Slot::Kick(KickKind::Alt) => "Kick (Alt)".into(),
+            Slot::Kick(KickKind::Left) => "Kick (Left)".into(),
+            Slot::Snare(i, a) => {
+                let base = numbered("Snare", i);
                 match a {
                     SnareArtic::Hit => base,
                     SnareArtic::Rim => format!("{base} Rim"),
@@ -58,7 +63,7 @@ impl Canon {
                     SnareArtic::Side => format!("{base} (Side)"),
                 }
             }
-            Canon::Tom(p, a) => {
+            Slot::Tom(p, a) => {
                 let base = match p {
                     TomPos::Rack(n) => format!("Rack Tom {n}"),
                     TomPos::Floor(n) => format!("Floor Tom {n}"),
@@ -69,9 +74,9 @@ impl Canon {
                     TomArtic::Rimshot => format!("{base} Rimshot"),
                 }
             }
-            Canon::Hat(o, z) => hat_label("Hi-Hat", o, z),
-            Canon::Aux(i, o, z) => hat_label(&format!("Aux Hat {i}"), o, z),
-            Canon::Cymbal(s, a) => {
+            Slot::Hat(o, z) => hat_label("Hi-Hat", o, z),
+            Slot::Aux(i, o, z) => hat_label(&format!("Aux Hat {i}"), o, z),
+            Slot::Cymbal(s, a) => {
                 let base = format!("{} {}", s.label(), s.index());
                 match a {
                     CymArtic::Hit => base,
@@ -83,12 +88,8 @@ impl Canon {
                     CymArtic::Edge => format!("{base} Edge"),
                 }
             }
-            Canon::Ride(i, a) => {
-                let base = if i == RideIdx::FIRST {
-                    "Ride".to_string()
-                } else {
-                    format!("Ride {i}")
-                };
+            Slot::Ride(i, a) => {
+                let base = numbered("Ride", i);
                 match a {
                     RideArtic::Bow => base,
                     RideArtic::Bell => format!("{base} Bell"),
@@ -98,7 +99,7 @@ impl Canon {
                     RideArtic::Mute => format!("{base} (Mute)"),
                 }
             }
-            Canon::Perc(k) => match k {
+            Slot::Perc(k) => match k {
                 PercKind::Cowbell => "Cowbell",
                 PercKind::Clap => "Clap",
                 PercKind::Shaker => "Shaker",
@@ -115,12 +116,12 @@ impl Canon {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::canon::idx;
+    use crate::canon::{idx, Slot};
 
     #[test]
     fn an_open_hat_is_labelled_with_its_level() {
         assert_eq!(
-            Canon::Hat(HatOpen::Open(idx(1)), HatZone::Plain).label(),
+            Canon(Slot::Hat(HatOpen::Open(idx(1)), HatZone::Plain)).label(),
             "Hi-Hat Open 1"
         );
     }
@@ -128,7 +129,7 @@ mod tests {
     #[test]
     fn a_sidestick_is_labelled_side_stick() {
         assert_eq!(
-            Canon::Snare(idx(1), SnareArtic::Sidestick).label(),
+            Canon(Slot::Snare(idx(1), SnareArtic::Sidestick)).label(),
             "Side Stick"
         );
     }

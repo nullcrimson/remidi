@@ -77,7 +77,7 @@ impl Mapping<'_> {
 mod tests {
     use super::*;
     use crate::{
-        canon::{idx, KickKind, SnareArtic},
+        canon::{idx, KickKind, Slot, SnareArtic},
         catalog::Catalog,
         engine_map::from_toml,
         note::n,
@@ -156,7 +156,7 @@ mod tests {
         assert_eq!(
             find(&near, "kick.main").outcome,
             Outcome::Direct {
-                canon: Canon::Kick(KickKind::Main),
+                canon: Canon(Slot::Kick(KickKind::Main)),
                 note: n(36)
             }
         );
@@ -211,11 +211,11 @@ mod tests {
         .preview();
         let kick = rows
             .iter()
-            .position(|r| r.entry.canon == Canon::Kick(KickKind::Main))
+            .position(|r| r.entry.canon == Canon(Slot::Kick(KickKind::Main)))
             .unwrap();
         let snare = rows
             .iter()
-            .position(|r| r.entry.canon == Canon::Snare(idx(1), SnareArtic::Hit))
+            .position(|r| r.entry.canon == Canon(Slot::Snare(idx(1), SnareArtic::Hit)))
             .unwrap();
         assert!(kick < snare, "kick must precede snare");
     }

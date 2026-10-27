@@ -15,15 +15,15 @@ use std::{
     time::{Duration, Instant},
 };
 
-use anyhow::{bail, Context as _, Result};
+use anyhow::{Context as _, Result};
 use clap::{Parser, Subcommand};
 
 use crate::{
-    command::{Context, Invocation, Run, APP},
-    memo::{Passes, Policy},
+    command::{checked_output, site_program, Context, Invocation, Run, APP},
+    memo::{PassKey, Passes, Paths, Policy},
     plan::{BrowserTests, Mode, Plan, Selection, Target},
     schedule::{run_plan, Outcome, Verdict},
-    step::{Kept, Step, DIST, DIST_BUILD},
+    step::{Input, Kept, Step, DIST, DIST_BUILD},
 };
 
 #[derive(Parser)]
@@ -70,6 +70,7 @@ struct Gate {
     cx: Context,
     policy: Policy,
     toolchains: String,
+    crates: Vec<String>,
     passes: Mutex<Passes>,
 }
 
@@ -77,17 +78,34 @@ struct Gate {
 fn toolchains(root: &Path, nightly: &str) -> Result<String> {
     let mut versions = vec![nightly.to_owned()];
     for (program, args) in [("rustc", ["-vV"]), ("node", ["--version"])] {
-        let out = Command::new(program)
-            .args(args)
-            .current_dir(root)
-            .output()
-            .with_context(|| format!("cannot run {program}"))?;
-        if !out.status.success() {
-            bail!("{program} {} failed", args.join(" "));
-        }
-        versions.push(String::from_utf8_lossy(&out.stdout).trim().to_owned());
+        let out = checked_output(Command::new(program).args(args).current_dir(root))?;
+        versions.push(String::from_utf8_lossy(&out).trim().to_owned());
     }
     Ok(versions.join("\n"))
+}
+
+/// The directory of every crate of the cargo workspace at `root`, from the root.
+fn crates(root: &Path) -> Result<Vec<String>> {
+    let metadata = cargo_metadata::MetadataCommand::new()
+        .current_dir(root)
+        .no_deps()
+        .exec()
+        .context("cannot read the cargo workspace")?;
+    let root = metadata.workspace_root.clone();
+    metadata
+        .workspace_packages()
+        .into_iter()
+        .map(|package| {
+            let dir = package
+                .manifest_path
+                .parent()
+                .context("a manifest lies in a directory")?;
+            let relative = dir
+                .strip_prefix(&root)
+                .with_context(|| format!("{dir} lies outside the workspace"))?;
+            Ok(relative.as_str().replace('\\', "/"))
+        })
+        .collect()
 }
 
 impl Gate {
@@ -112,6 +130,7 @@ impl Gate {
         };
         Ok(Self {
             toolchains: toolchains(&root, &nightly)?,
+            crates: crates(&root)?,
             passes: Mutex::new(Passes::load(logs.join("passes.json"))),
             policy,
             cx: Context::new(nightly, plan),
@@ -119,6 +138,18 @@ impl Gate {
             logs,
             host,
         })
+    }
+
+    /// The paths `inputs` names, from the repository root.
+    fn paths(&self, inputs: &[Input]) -> Vec<String> {
+        inputs
+            .iter()
+            .flat_map(|input| match input {
+                Input::Path(path) => vec![(*path).to_owned()],
+                Input::Crates => self.crates.clone(),
+                Input::SiteProgram => vec![site_program()],
+            })
+            .collect()
     }
 
     /// Runs `step`, or finds it cached when it passed before with everything it reads
@@ -135,10 +166,14 @@ impl Gate {
         let (key, reads, dist) = match step.kept() {
             _ if self.policy == Policy::Off => return Ok(ran(self.run(step)?)),
             Kept::Never => return Ok(ran(self.run(step)?)),
-            Kept::Check(reads) => (step.name(), reads, None),
-            Kept::Dist { finishes } => (DIST, DIST_BUILD, Some(finishes)),
+            Kept::Check(reads) => (PassKey::Check(step), reads, None),
+            Kept::Dist { finishes } => (PassKey::Dist, DIST_BUILD, Some(finishes)),
         };
-        let read = memo::fingerprint(&self.root, key, &reads, &self.toolchains)?;
+        let paths = Paths {
+            sources: self.paths(reads.sources),
+            built: self.paths(reads.built),
+        };
+        let read = memo::fingerprint(&self.root, key, &paths, &self.toolchains)?;
         let left = || memo::left(&self.root, DIST);
         let passes = || {
             self.passes
@@ -228,8 +263,10 @@ impl Gate {
     fn report(&self, step: Step, outcome: Outcome) {
         let name = step.name();
         match outcome {
-            Outcome::Passed(span) => println!("ok      {name} {}s", span.took.as_secs()),
-            Outcome::Failed(span) => {
+            Outcome::Ran(Verdict::Passed, span) => {
+                println!("ok      {name} {}s", span.took.as_secs())
+            }
+            Outcome::Ran(Verdict::Failed, span) => {
                 let log = self.log(step);
                 let shown = log.strip_prefix(&self.root).unwrap_or(&log);
                 println!(
@@ -244,7 +281,7 @@ impl Gate {
                     }
                 }
             }
-            Outcome::Cached(_) => println!("cached  {name}"),
+            Outcome::Ran(Verdict::Cached, _) => println!("cached  {name}"),
             Outcome::Skipped(need) => println!("skipped {name}  (needs {})", need.name()),
         }
     }
@@ -253,7 +290,7 @@ impl Gate {
     fn summarize(&self, outcomes: &BTreeMap<Step, Outcome>) -> Result<()> {
         for (&step, _) in outcomes
             .iter()
-            .filter(|(_, o)| matches!(o, Outcome::Passed(_)))
+            .filter(|(_, o)| matches!(o, Outcome::Ran(Verdict::Passed, _)))
         {
             let log = self.log(step);
             let text = fs::read_to_string(&log)
@@ -270,9 +307,9 @@ impl Gate {
             .iter()
             .map(|(s, o)| {
                 let (result, span) = match o {
-                    Outcome::Passed(span) => ("ok", Some(span)),
-                    Outcome::Failed(span) => ("failed", Some(span)),
-                    Outcome::Cached(span) => ("cached", Some(span)),
+                    Outcome::Ran(Verdict::Passed, span) => ("ok", Some(span)),
+                    Outcome::Ran(Verdict::Failed, span) => ("failed", Some(span)),
+                    Outcome::Ran(Verdict::Cached, span) => ("cached", Some(span)),
                     Outcome::Skipped(_) => ("skipped", None),
                 };
                 serde_json::json!({
@@ -290,18 +327,12 @@ impl Gate {
 }
 
 fn browser_tests(root: &Path) -> Result<BrowserTests> {
-    let out = Command::new("git")
-        .args(["status", "--porcelain", "--", "e2e"])
-        .current_dir(root.join(APP))
-        .output()
-        .context("cannot run git status")?;
-    if !out.status.success() {
-        bail!(
-            "git status failed: {}",
-            String::from_utf8_lossy(&out.stderr).trim()
-        );
-    }
-    Ok(if out.stdout.is_empty() {
+    let out = checked_output(
+        Command::new("git")
+            .args(["status", "--porcelain", "--", "e2e"])
+            .current_dir(root.join(APP)),
+    )?;
+    Ok(if out.is_empty() {
         BrowserTests::Unchanged
     } else {
         BrowserTests::Changed
@@ -339,5 +370,25 @@ fn main() -> Result<ExitCode> {
         Task::Gate { quick: true, .. } => gate(&Selection::Quick(browser_tests(&root())?), false),
         Task::Gate { targets, fresh, .. } if targets.is_empty() => gate(&Selection::Whole, fresh),
         Task::Gate { targets, fresh, .. } => gate(&Selection::Partial(targets), fresh),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_rust_checks_read_every_crate_of_the_workspace() {
+        let crates = crates(&root()).unwrap();
+        for name in [
+            "midiremap-cli",
+            "midiremap-core",
+            "midiremap-site",
+            "midiremap-testkit",
+            "midiremap-wasm",
+            "xtask",
+        ] {
+            assert!(crates.iter().any(|c| c == name), "{name} in {crates:?}");
+        }
     }
 }

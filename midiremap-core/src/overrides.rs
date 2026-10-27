@@ -45,7 +45,7 @@ impl Overrides {
 mod tests {
     use super::*;
     use crate::{
-        canon::{Canon, KickKind},
+        canon::{Canon, KickKind, Slot},
         note::n,
     };
 
@@ -63,7 +63,7 @@ mod tests {
         let ov = read(r#"{"edits":{"kick.main":35},"srcEdits":{}}"#);
         assert_eq!(
             ov.target(),
-            &BTreeMap::from([(Canon::Kick(KickKind::Main), n(35))])
+            &BTreeMap::from([(Canon(Slot::Kick(KickKind::Main)), n(35))])
         );
     }
 
@@ -72,7 +72,10 @@ mod tests {
         let ov = read(r#"{"edits":{},"srcEdits":{"127":"kick.main","36":null}}"#);
         assert_eq!(
             ov.source(),
-            &BTreeMap::from([(n(36), None), (n(127), Some(Canon::Kick(KickKind::Main)))])
+            &BTreeMap::from([
+                (n(36), None),
+                (n(127), Some(Canon(Slot::Kick(KickKind::Main))))
+            ])
         );
     }
 

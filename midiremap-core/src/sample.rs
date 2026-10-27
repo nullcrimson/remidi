@@ -8,7 +8,7 @@ use strum::VariantArray;
 
 use crate::{
     canon::{
-        Canon, CymArtic, CymSlot, HatOpen, HatZone, KickKind, RideArtic, RideIdx, SnareArtic,
+        Canon, CymArtic, CymSlot, HatOpen, HatZone, KickKind, RideArtic, RideIdx, Slot, SnareArtic,
         SnareIdx,
     },
     channel::Channel,
@@ -38,12 +38,15 @@ enum Voice {
 impl Voice {
     fn drums(self) -> &'static [Canon] {
         match self {
-            Self::Crash => &[Canon::Cymbal(CymSlot::Crash(Idx::FIRST), CymArtic::Hit)],
-            Self::Kick => &[Canon::Kick(KickKind::Main)],
-            Self::Snare => &[Canon::Snare(SnareIdx::FIRST, SnareArtic::Hit)],
+            Self::Crash => &[Canon(Slot::Cymbal(
+                CymSlot::Crash(Idx::FIRST),
+                CymArtic::Hit,
+            ))],
+            Self::Kick => &[Canon(Slot::Kick(KickKind::Main))],
+            Self::Snare => &[Canon(Slot::Snare(SnareIdx::FIRST, SnareArtic::Hit))],
             Self::Hat => &[
-                Canon::Hat(HatOpen::Closed, HatZone::Plain),
-                Canon::Ride(RideIdx::FIRST, RideArtic::Bow),
+                Canon(Slot::Hat(HatOpen::Closed, HatZone::Plain)),
+                Canon(Slot::Ride(RideIdx::FIRST, RideArtic::Bow)),
             ],
         }
     }

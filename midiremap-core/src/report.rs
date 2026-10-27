@@ -108,16 +108,16 @@ impl Report {
 mod tests {
     use super::*;
     use crate::{
-        canon::{idx, HatOpen, HatZone, KickKind, SnareArtic},
+        canon::{idx, HatOpen, HatZone, KickKind, Slot, SnareArtic},
         note::n,
     };
 
     fn open3() -> Canon {
-        Canon::Hat(HatOpen::Open(idx(3)), HatZone::Plain)
+        Canon(Slot::Hat(HatOpen::Open(idx(3)), HatZone::Plain))
     }
 
     fn snare() -> Canon {
-        Canon::Snare(idx(1), SnareArtic::Hit)
+        Canon(Slot::Snare(idx(1), SnareArtic::Hit))
     }
 
     fn tallied_report() -> Report {
@@ -128,7 +128,7 @@ mod tests {
             n(11),
             Some(Outcome::Fallback {
                 canon: open3,
-                stand_in: Canon::Hat(HatOpen::Closed, HatZone::Plain),
+                stand_in: Canon(Slot::Hat(HatOpen::Closed, HatZone::Plain)),
                 note: n(60),
                 other_drum: false,
             }),
@@ -143,7 +143,7 @@ mod tests {
         r.record(
             n(12),
             Some(Outcome::Direct {
-                canon: Canon::Kick(KickKind::Main),
+                canon: Canon(Slot::Kick(KickKind::Main)),
                 note: n(50),
             }),
         );
@@ -164,7 +164,7 @@ mod tests {
             [(
                 open3(),
                 &FallbackTally {
-                    stand_in: Canon::Hat(HatOpen::Closed, HatZone::Plain),
+                    stand_in: Canon(Slot::Hat(HatOpen::Closed, HatZone::Plain)),
                     note: n(60),
                     count: 1
                 }

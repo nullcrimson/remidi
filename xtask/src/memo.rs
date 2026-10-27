@@ -6,11 +6,30 @@ use std::{
     process::Command,
 };
 
-use anyhow::{bail, Context as _, Result};
+use anyhow::{Context as _, Result};
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
-use crate::step::Reads;
+use crate::{
+    command::checked_output,
+    step::{Step, DIST},
+};
+
+/// What a pass is kept under: a check, or the builds that write `DIST`, which share one.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PassKey {
+    Check(Step),
+    Dist,
+}
+
+impl PassKey {
+    fn name(self) -> &'static str {
+        match self {
+            PassKey::Check(step) => step.name(),
+            PassKey::Dist => DIST,
+        }
+    }
+}
 
 /// A hash of files: what a step read (with the toolchains), or a build directory it wrote.
 /// Two runs with the same fingerprint read the same thing.
@@ -50,8 +69,7 @@ impl Policy {
     }
 }
 
-/// The passes kept between runs in `target/gate/passes.json`, by key: a check's step name,
-/// or the name of the build directory the builds that write it share.
+/// The passes kept between runs in `target/gate/passes.json`, by the name of their key.
 pub struct Passes {
     path: PathBuf,
     passed: BTreeMap<String, Pass>,
@@ -69,24 +87,25 @@ impl Passes {
     }
 
     /// Whether `key` passed having read `read` and, for a build, left `left`.
-    pub fn has(&self, key: &str, read: &Fingerprint, left: Option<&Fingerprint>) -> bool {
+    pub fn has(&self, key: PassKey, read: &Fingerprint, left: Option<&Fingerprint>) -> bool {
         self.passed
-            .get(key)
+            .get(key.name())
             .is_some_and(|p| p.read == *read && p.left.as_ref() == left)
     }
 
     /// Keeps `key`'s pass, or forgets it when the step failed.
     pub fn record(
         &mut self,
-        key: &str,
+        key: PassKey,
         read: Fingerprint,
         left: Option<Fingerprint>,
         passed: bool,
     ) -> Result<()> {
         if passed {
-            self.passed.insert(key.to_owned(), Pass { read, left });
+            self.passed
+                .insert(key.name().to_owned(), Pass { read, left });
         } else {
-            self.passed.remove(key);
+            self.passed.remove(key.name());
         }
         let json = serde_json::to_string_pretty(&self.passed)?;
         fs::write(&self.path, json + "\n")
@@ -96,30 +115,24 @@ impl Passes {
 
 /// The source files under `pathspecs` that git sees: tracked ones, deleted ones included,
 /// and untracked ones it does not ignore.
-fn sources(root: &Path, pathspecs: &[&str]) -> Result<Vec<String>> {
+fn sources(root: &Path, pathspecs: &[String]) -> Result<Vec<String>> {
     if pathspecs.is_empty() {
         return Ok(Vec::new());
     }
-    let out = Command::new("git")
-        .args([
-            "ls-files",
-            "-z",
-            "--cached",
-            "--others",
-            "--exclude-standard",
-            "--",
-        ])
-        .args(pathspecs)
-        .current_dir(root)
-        .output()
-        .context("cannot run git ls-files")?;
-    if !out.status.success() {
-        bail!(
-            "git ls-files failed: {}",
-            String::from_utf8_lossy(&out.stderr).trim()
-        );
-    }
-    let mut files: Vec<String> = String::from_utf8(out.stdout)
+    let out = checked_output(
+        Command::new("git")
+            .args([
+                "ls-files",
+                "-z",
+                "--cached",
+                "--others",
+                "--exclude-standard",
+                "--",
+            ])
+            .args(pathspecs)
+            .current_dir(root),
+    )?;
+    let mut files: Vec<String> = String::from_utf8(out)
         .context("git ls-files printed a path that is not UTF-8")?
         .split('\0')
         .filter(|f| !f.is_empty())
@@ -131,26 +144,26 @@ fn sources(root: &Path, pathspecs: &[&str]) -> Result<Vec<String>> {
 }
 
 /// Every file under the build outputs `paths`, a missing output being no files.
-fn built(root: &Path, paths: &[&str]) -> Result<Vec<String>> {
-    let mut files = Vec::new();
-    for path in paths {
-        for entry in WalkDir::new(root.join(path)) {
-            let entry = match entry {
-                Ok(entry) => entry,
-                Err(e) if e.io_error().map(io::Error::kind) == Some(ErrorKind::NotFound) => {
-                    continue
-                }
-                Err(e) => return Err(e).context(format!("cannot list {path}")),
-            };
-            if entry.file_type().is_file() {
+fn built(root: &Path, paths: &[String]) -> Result<Vec<String>> {
+    let mut files = paths
+        .iter()
+        .flat_map(|path| {
+            WalkDir::new(root.join(path))
+                .into_iter()
+                .map(move |e| (path, e))
+        })
+        .filter_map(|(path, entry)| match entry {
+            Ok(entry) => entry.file_type().is_file().then(|| {
                 let relative = entry
                     .path()
                     .strip_prefix(root)
                     .expect("a walked path lies under the root it started from");
-                files.push(relative.to_string_lossy().replace('\\', "/"));
-            }
-        }
-    }
+                Ok(relative.to_string_lossy().replace('\\', "/"))
+            }),
+            Err(e) if e.io_error().map(io::Error::kind) == Some(ErrorKind::NotFound) => None,
+            Err(e) => Some(Err(e).context(format!("cannot list {path}"))),
+        })
+        .collect::<Result<Vec<String>>>()?;
     files.sort();
     Ok(files)
 }
@@ -174,22 +187,34 @@ fn hash_file(hasher: &mut blake3::Hasher, root: &Path, file: &str) -> Result<()>
 /// What the files under the build directory `path` hold now.
 pub fn left(root: &Path, path: &str) -> Result<Fingerprint> {
     let mut hasher = blake3::Hasher::new();
-    for file in built(root, &[path])? {
+    for file in built(root, &[path.to_owned()])? {
         hash_file(&mut hasher, root, &file)?;
     }
     Ok(Fingerprint(hasher.finalize().to_hex().to_string()))
 }
 
-/// The fingerprint of what `key` reads (`reads` under `root`) with `toolchains`.
-pub fn fingerprint(root: &Path, key: &str, reads: &Reads, toolchains: &str) -> Result<Fingerprint> {
+/// The paths a pass reads, from the repository root: source pathspecs, and build outputs.
+#[derive(Debug, Default)]
+pub struct Paths {
+    pub sources: Vec<String>,
+    pub built: Vec<String>,
+}
+
+/// The fingerprint of what `key` reads (`paths` under `root`) with `toolchains`.
+pub fn fingerprint(
+    root: &Path,
+    key: PassKey,
+    paths: &Paths,
+    toolchains: &str,
+) -> Result<Fingerprint> {
     let mut hasher = blake3::Hasher::new();
-    hasher.update(key.as_bytes());
+    hasher.update(key.name().as_bytes());
     hasher.update(&[0]);
     hasher.update(toolchains.as_bytes());
     hasher.update(&[0]);
-    for file in sources(root, reads.sources)?
+    for file in sources(root, &paths.sources)?
         .iter()
-        .chain(&built(root, reads.built)?)
+        .chain(&built(root, &paths.built)?)
     {
         hash_file(&mut hasher, root, file)?;
     }
@@ -200,12 +225,15 @@ pub fn fingerprint(root: &Path, key: &str, reads: &Reads, toolchains: &str) -> R
 mod tests {
     use super::*;
 
+    const E2E: PassKey = PassKey::Check(Step::E2e);
+    const TSC: PassKey = PassKey::Check(Step::Tsc);
+
     fn print(root: &Path) -> Fingerprint {
-        let reads = Reads {
-            sources: &[],
-            built: &["out"],
+        let paths = Paths {
+            sources: Vec::new(),
+            built: vec!["out".to_owned()],
         };
-        fingerprint(root, "e2e", &reads, "tools").unwrap()
+        fingerprint(root, E2E, &paths, "tools").unwrap()
     }
 
     #[test]
@@ -234,13 +262,11 @@ mod tests {
     fn the_toolchains_are_part_of_the_fingerprint() {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
-        let reads = Reads {
-            sources: &[],
-            built: &[],
-        };
+        let paths = Paths::default();
+        let vitest = PassKey::Check(Step::Vitest);
         assert_ne!(
-            fingerprint(root, "vitest", &reads, "node 24").unwrap(),
-            fingerprint(root, "vitest", &reads, "node 25").unwrap()
+            fingerprint(root, vitest, &paths, "node 24").unwrap(),
+            fingerprint(root, vitest, &paths, "node 25").unwrap()
         );
     }
 
@@ -251,12 +277,12 @@ mod tests {
         let path = root.join("passes.json");
         let fp = Fingerprint("abc".to_owned());
         let mut passes = Passes::load(path.clone());
-        assert!(!passes.has("tsc", &fp, None));
-        passes.record("tsc", fp.clone(), None, true).unwrap();
-        assert!(Passes::load(path.clone()).has("tsc", &fp, None));
-        assert!(!Passes::load(path.clone()).has("tsc", &Fingerprint("abd".to_owned()), None));
-        passes.record("tsc", fp.clone(), None, false).unwrap();
-        assert!(!Passes::load(path).has("tsc", &fp, None));
+        assert!(!passes.has(TSC, &fp, None));
+        passes.record(TSC, fp.clone(), None, true).unwrap();
+        assert!(Passes::load(path.clone()).has(TSC, &fp, None));
+        assert!(!Passes::load(path.clone()).has(TSC, &Fingerprint("abd".to_owned()), None));
+        passes.record(TSC, fp.clone(), None, false).unwrap();
+        assert!(!Passes::load(path).has(TSC, &fp, None));
     }
 
     #[test]
@@ -269,15 +295,15 @@ mod tests {
         let mut passes = Passes::load(root.join("passes.json"));
         passes
             .record(
-                "dist",
+                PassKey::Dist,
                 read.clone(),
                 Some(left(root, "dist").unwrap()),
                 true,
             )
             .unwrap();
-        assert!(passes.has("dist", &read, Some(&left(root, "dist").unwrap())));
+        assert!(passes.has(PassKey::Dist, &read, Some(&left(root, "dist").unwrap())));
         fs::remove_file(root.join("dist/index.html")).unwrap();
-        assert!(!passes.has("dist", &read, Some(&left(root, "dist").unwrap())));
+        assert!(!passes.has(PassKey::Dist, &read, Some(&left(root, "dist").unwrap())));
     }
 
     #[test]

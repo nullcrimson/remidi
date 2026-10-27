@@ -98,7 +98,7 @@ impl Plan {
                     .collect();
                 let implied: Vec<Step> = steps
                     .iter()
-                    .flat_map(|s| s.needs().iter().copied())
+                    .flat_map(|s| s.reach(Step::implied))
                     .filter(|n| n.implied())
                     .collect();
                 steps.extend(implied);

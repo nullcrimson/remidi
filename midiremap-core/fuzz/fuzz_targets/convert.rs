@@ -3,14 +3,13 @@
 use std::sync::LazyLock;
 
 use libfuzzer_sys::fuzz_target;
-use midiremap_core::{
-    convert, Catalog, Channel, ChannelScope, EngineMap, Mapping, MissingDrums, Overrides,
-};
+use midiremap_core::{convert, Catalog, ChannelScope, EngineMap, Mapping, MissingDrums, Overrides};
 use midiremap_testkit::hits;
 use midly::Smf;
 
-static ENGINES: LazyLock<Vec<&EngineMap>> =
-    LazyLock::new(|| Catalog::shared().engines().collect());
+static ENGINES: LazyLock<Vec<&EngineMap>> = LazyLock::new(|| Catalog::shared().engines().collect());
+
+static SCOPES: LazyLock<Vec<ChannelScope>> = LazyLock::new(|| ChannelScope::all().collect());
 
 fn engine(pick: u8) -> &'static EngineMap {
     ENGINES[usize::from(pick) % ENGINES.len()]
@@ -22,10 +21,7 @@ fn setting(byte: u8) -> (MissingDrums, ChannelScope) {
     } else {
         MissingDrums::Drop
     };
-    let scope = match (byte >> 1) % 18 {
-        0 => ChannelScope::Auto,
-        n => Channel::new(n - 1).map_or(ChannelScope::All, ChannelScope::Only),
-    };
+    let scope = SCOPES[usize::from(byte >> 1) % SCOPES.len()];
     (missing, scope)
 }
 

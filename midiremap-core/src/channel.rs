@@ -19,10 +19,6 @@ impl Channel {
         ChannelIdx::new(n).map(Self)
     }
 
-    pub const fn get(self) -> u8 {
-        self.0.get()
-    }
-
     pub(crate) fn of(wire: u4) -> Self {
         Self(ChannelIdx::new(wire.as_int() + 1).expect("a 4-bit channel is 1..=16"))
     }
@@ -203,8 +199,8 @@ mod tests {
 
     #[test]
     fn a_channel_from_one_to_sixteen_is_accepted() {
-        assert_eq!(Channel::new(1).map(Channel::get), Some(1));
-        assert_eq!(Channel::new(16).map(Channel::get), Some(16));
+        assert_eq!(Channel::new(1).map(|c| c.to_string()), Some("1".into()));
+        assert_eq!(Channel::new(16).map(|c| c.to_string()), Some("16".into()));
     }
 
     #[test]
@@ -241,9 +237,9 @@ mod tests {
 
     #[test]
     fn a_channel_counts_from_one_on_the_wire() {
-        assert_eq!(Channel::of(u4::new(0)).get(), 1);
+        assert_eq!(Some(Channel::of(u4::new(0))), Channel::new(1));
         assert_eq!(Channel::of(u4::new(9)), Channel::DRUMS);
-        assert_eq!(Channel::of(u4::new(15)).get(), 16);
+        assert_eq!(Some(Channel::of(u4::new(15))), Channel::new(16));
     }
 
     #[test]

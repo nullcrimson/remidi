@@ -778,7 +778,7 @@ mod tests {
     };
 
     use flate2::read::GzDecoder;
-    use midiremap_core::{convert, ChannelScope};
+    use midiremap_core::{convert, ChannelScope, Variant};
     use midiremap_testkit::{drums, engine_json, hit_keys, off, on};
 
     use super::*;
@@ -1430,7 +1430,10 @@ mod tests {
         let maps = Catalog::builtin();
         for v in site().index.listed.iter().flat_map(|e| &e.variants) {
             let variant = maps.get(&v.link.id).unwrap();
-            assert_eq!(Some(v.label.as_str()), variant.variant_label());
+            assert_eq!(
+                Some(v.label.as_str()),
+                variant.variant().map(Variant::label)
+            );
         }
     }
 

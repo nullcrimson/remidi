@@ -219,7 +219,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        canon::{idx, HatOpen, HatZone, KickKind, SnareArtic},
+        canon::{idx, HatOpen, HatZone, KickKind, Slot, SnareArtic},
         catalog::Catalog,
         engine_map::from_toml,
         note::n,
@@ -621,7 +621,7 @@ notes = [ {} ]",
         assert_eq!(
             mapping().get(n(12)),
             Some(Outcome::Direct {
-                canon: Canon::Kick(KickKind::Main),
+                canon: Canon(Slot::Kick(KickKind::Main)),
                 note: n(50)
             })
         );
@@ -632,8 +632,8 @@ notes = [ {} ]",
         assert_eq!(
             mapping().get(n(11)),
             Some(Outcome::Fallback {
-                canon: Canon::Hat(HatOpen::Open(idx(3)), HatZone::Plain),
-                stand_in: Canon::Hat(HatOpen::Open(idx(1)), HatZone::Plain),
+                canon: Canon(Slot::Hat(HatOpen::Open(idx(3)), HatZone::Plain)),
+                stand_in: Canon(Slot::Hat(HatOpen::Open(idx(1)), HatZone::Plain)),
                 note: n(61),
                 other_drum: false
             })
@@ -676,7 +676,7 @@ notes = [ {} ]",
         assert_eq!(
             mapping().get(n(10)),
             Some(Outcome::Dropped {
-                canon: Canon::Snare(idx(1), SnareArtic::Hit),
+                canon: Canon(Slot::Snare(idx(1), SnareArtic::Hit)),
                 other_drum: false
             })
         );
@@ -706,7 +706,7 @@ notes = [ {} ]",
     fn resolve_canon_matches_translate_on_decoded_notes() {
         let t = mapping();
         assert_eq!(
-            Some(t.resolve_canon(Canon::Hat(HatOpen::Open(idx(3)), HatZone::Plain))),
+            Some(t.resolve_canon(Canon(Slot::Hat(HatOpen::Open(idx(3)), HatZone::Plain)))),
             t.get(n(11))
         );
     }

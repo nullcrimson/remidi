@@ -23,12 +23,16 @@ pub(crate) type OpenLevel = Idx<6>;
     derive(tsify::Tsify),
     tsify(type = r#"string & { readonly __brand: "Canon" }"#)
 )]
+pub struct Canon(pub(crate) Slot);
+
+/// What a canon names: the drum and the way it is played.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[cfg_attr(
     test,
     derive(strum::EnumDiscriminants),
     strum_discriminants(derive(Hash, VariantArray))
 )]
-pub enum Canon {
+pub(crate) enum Slot {
     Kick(KickKind),
     Snare(SnareIdx, SnareArtic),
     Tom(TomPos, TomArtic),
@@ -41,14 +45,14 @@ pub enum Canon {
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
-pub enum KickKind {
+pub(crate) enum KickKind {
     Main,
     Alt,
     Left,
 }
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
-pub enum SnareArtic {
+pub(crate) enum SnareArtic {
     Hit,
     Rim,
     Rimshot,
@@ -64,13 +68,13 @@ pub enum SnareArtic {
     derive(strum::EnumDiscriminants),
     strum_discriminants(derive(Hash, VariantArray))
 )]
-pub enum TomPos {
+pub(crate) enum TomPos {
     Rack(RackIdx),
     Floor(FloorIdx),
 }
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
-pub enum TomArtic {
+pub(crate) enum TomArtic {
     Hit,
     Rim,
     Rimshot,
@@ -82,7 +86,7 @@ pub enum TomArtic {
     derive(strum::EnumDiscriminants),
     strum_discriminants(derive(Hash, VariantArray))
 )]
-pub enum HatOpen {
+pub(crate) enum HatOpen {
     Tight,
     Closed,
     Loose,
@@ -93,7 +97,7 @@ pub enum HatOpen {
 }
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
-pub enum HatZone {
+pub(crate) enum HatZone {
     Plain,
     Tip,
     Edge,
@@ -107,7 +111,7 @@ pub enum HatZone {
     derive(strum::EnumDiscriminants),
     strum_discriminants(derive(Hash, VariantArray))
 )]
-pub enum CymSlot {
+pub(crate) enum CymSlot {
     Crash(Idx<6>),
     China(Idx<3>),
     Splash(Idx<3>),
@@ -116,7 +120,7 @@ pub enum CymSlot {
 }
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
-pub enum CymArtic {
+pub(crate) enum CymArtic {
     Hit,
     Mute,
     Bell,
@@ -127,7 +131,7 @@ pub enum CymArtic {
 }
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
-pub enum RideArtic {
+pub(crate) enum RideArtic {
     Bow,
     Bell,
     BellTip,
@@ -137,7 +141,7 @@ pub enum RideArtic {
 }
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
-pub enum PercKind {
+pub(crate) enum PercKind {
     Cowbell,
     Clap,
     Shaker,
@@ -190,14 +194,15 @@ fn tom_positions() -> impl Iterator<Item = TomPos> {
 
 fn build_all() -> Vec<Canon> {
     each::<KickKind>()
-        .map(Canon::Kick)
-        .chain(SnareIdx::all().flat_map(|i| each().map(move |a| Canon::Snare(i, a))))
-        .chain(tom_positions().flat_map(|p| each().map(move |a| Canon::Tom(p, a))))
-        .chain(hat_slots().map(|(o, z)| Canon::Hat(o, z)))
-        .chain(AuxIdx::all().flat_map(|i| hat_slots().map(move |(o, z)| Canon::Aux(i, o, z))))
-        .chain(CymSlot::all().flat_map(|s| each().map(move |a| Canon::Cymbal(s, a))))
-        .chain(RideIdx::all().flat_map(|i| each().map(move |a| Canon::Ride(i, a))))
-        .chain(each().map(Canon::Perc))
+        .map(Slot::Kick)
+        .chain(SnareIdx::all().flat_map(|i| each().map(move |a| Slot::Snare(i, a))))
+        .chain(tom_positions().flat_map(|p| each().map(move |a| Slot::Tom(p, a))))
+        .chain(hat_slots().map(|(o, z)| Slot::Hat(o, z)))
+        .chain(AuxIdx::all().flat_map(|i| hat_slots().map(move |(o, z)| Slot::Aux(i, o, z))))
+        .chain(CymSlot::all().flat_map(|s| each().map(move |a| Slot::Cymbal(s, a))))
+        .chain(RideIdx::all().flat_map(|i| each().map(move |a| Slot::Ride(i, a))))
+        .chain(each().map(Slot::Perc))
+        .map(Canon)
         .collect()
 }
 
@@ -206,22 +211,22 @@ static ALL: LazyLock<Vec<Canon>> = LazyLock::new(build_all);
 impl Canon {
     /// The drums a groove uses most, in kit order.
     pub const CORE_KIT: [Canon; 16] = [
-        Canon::Kick(KickKind::Main),
-        Canon::Snare(Idx::FIRST, SnareArtic::Hit),
-        Canon::Snare(Idx::FIRST, SnareArtic::Sidestick),
-        Canon::Snare(Idx::FIRST, SnareArtic::Rimshot),
-        Canon::Hat(HatOpen::Closed, HatZone::Plain),
-        Canon::Hat(HatOpen::Pedal, HatZone::Plain),
-        Canon::Hat(HatOpen::Open(Idx::FIRST), HatZone::Plain),
-        Canon::Tom(TomPos::Rack(Idx::FIRST), TomArtic::Hit),
-        Canon::Tom(TomPos::Rack(idx(2)), TomArtic::Hit),
-        Canon::Tom(TomPos::Rack(idx(3)), TomArtic::Hit),
-        Canon::Tom(TomPos::Floor(Idx::FIRST), TomArtic::Hit),
-        Canon::Tom(TomPos::Floor(idx(2)), TomArtic::Hit),
-        Canon::Cymbal(CymSlot::Crash(Idx::FIRST), CymArtic::Hit),
-        Canon::Cymbal(CymSlot::Crash(idx(2)), CymArtic::Hit),
-        Canon::Ride(Idx::FIRST, RideArtic::Bow),
-        Canon::Ride(Idx::FIRST, RideArtic::Bell),
+        Canon(Slot::Kick(KickKind::Main)),
+        Canon(Slot::Snare(Idx::FIRST, SnareArtic::Hit)),
+        Canon(Slot::Snare(Idx::FIRST, SnareArtic::Sidestick)),
+        Canon(Slot::Snare(Idx::FIRST, SnareArtic::Rimshot)),
+        Canon(Slot::Hat(HatOpen::Closed, HatZone::Plain)),
+        Canon(Slot::Hat(HatOpen::Pedal, HatZone::Plain)),
+        Canon(Slot::Hat(HatOpen::Open(Idx::FIRST), HatZone::Plain)),
+        Canon(Slot::Tom(TomPos::Rack(Idx::FIRST), TomArtic::Hit)),
+        Canon(Slot::Tom(TomPos::Rack(idx(2)), TomArtic::Hit)),
+        Canon(Slot::Tom(TomPos::Rack(idx(3)), TomArtic::Hit)),
+        Canon(Slot::Tom(TomPos::Floor(Idx::FIRST), TomArtic::Hit)),
+        Canon(Slot::Tom(TomPos::Floor(idx(2)), TomArtic::Hit)),
+        Canon(Slot::Cymbal(CymSlot::Crash(Idx::FIRST), CymArtic::Hit)),
+        Canon(Slot::Cymbal(CymSlot::Crash(idx(2)), CymArtic::Hit)),
+        Canon(Slot::Ride(Idx::FIRST, RideArtic::Bow)),
+        Canon(Slot::Ride(Idx::FIRST, RideArtic::Bell)),
     ];
 
     /// Every canonical slot, in declaration order.
@@ -231,27 +236,27 @@ impl Canon {
 
     /// Whether `other` is the same physical drum or cymbal, only played another way.
     pub fn same_drum(self, other: Canon) -> bool {
-        match (self, other) {
-            (Self::Kick(_), Self::Kick(_)) | (Self::Hat(..), Self::Hat(..)) => true,
-            (Self::Snare(a, _), Self::Snare(b, _)) | (Self::Ride(a, _), Self::Ride(b, _)) => a == b,
-            (Self::Tom(a, _), Self::Tom(b, _)) => a == b,
-            (Self::Aux(a, ..), Self::Aux(b, ..)) => a == b,
-            (Self::Cymbal(a, _), Self::Cymbal(b, _)) => a == b,
-            (Self::Perc(a), Self::Perc(b)) => a == b,
+        match (self.0, other.0) {
+            (Slot::Kick(_), Slot::Kick(_)) | (Slot::Hat(..), Slot::Hat(..)) => true,
+            (Slot::Snare(a, _), Slot::Snare(b, _)) | (Slot::Ride(a, _), Slot::Ride(b, _)) => a == b,
+            (Slot::Tom(a, _), Slot::Tom(b, _)) => a == b,
+            (Slot::Aux(a, ..), Slot::Aux(b, ..)) => a == b,
+            (Slot::Cymbal(a, _), Slot::Cymbal(b, _)) => a == b,
+            (Slot::Perc(a), Slot::Perc(b)) => a == b,
             _ => false,
         }
     }
 
     /// The group the app and the site list this drum under.
     pub fn family(self) -> Family {
-        match self {
-            Canon::Kick(_) => Family::Kick,
-            Canon::Snare(..) => Family::Snare,
-            Canon::Tom(..) => Family::Toms,
-            Canon::Hat(..) => Family::HiHat,
-            Canon::Aux(..) => Family::Aux,
-            Canon::Cymbal(..) | Canon::Ride(..) => Family::Cymbals,
-            Canon::Perc(_) => Family::Percussion,
+        match self.0 {
+            Slot::Kick(_) => Family::Kick,
+            Slot::Snare(..) => Family::Snare,
+            Slot::Tom(..) => Family::Toms,
+            Slot::Hat(..) => Family::HiHat,
+            Slot::Aux(..) => Family::Aux,
+            Slot::Cymbal(..) | Slot::Ride(..) => Family::Cymbals,
+            Slot::Perc(_) => Family::Percussion,
         }
     }
 }
@@ -301,14 +306,16 @@ mod tests {
     #[test]
     fn all_reaches_every_drum_kind() {
         let all = Canon::all().iter().copied();
-        assert_reaches_every(all.map(CanonDiscriminants::from));
+        assert_reaches_every(all.map(|c: Canon| SlotDiscriminants::from(c.0)));
     }
 
     #[test]
     fn all_reaches_every_hat_open_level() {
         let all = Canon::all().iter().copied();
         assert_reaches_every(all.filter_map(|c| match c {
-            Canon::Hat(o, _) | Canon::Aux(_, o, _) => Some(HatOpenDiscriminants::from(o)),
+            Canon(Slot::Hat(o, _)) | Canon(Slot::Aux(_, o, _)) => {
+                Some(HatOpenDiscriminants::from(o))
+            }
             _ => None,
         }));
     }
@@ -317,7 +324,7 @@ mod tests {
     fn all_reaches_every_tom_position() {
         let all = Canon::all().iter().copied();
         assert_reaches_every(all.filter_map(|c| match c {
-            Canon::Tom(p, _) => Some(TomPosDiscriminants::from(p)),
+            Canon(Slot::Tom(p, _)) => Some(TomPosDiscriminants::from(p)),
             _ => None,
         }));
     }
@@ -326,7 +333,7 @@ mod tests {
     fn all_reaches_every_cymbal_slot() {
         let all = Canon::all().iter().copied();
         assert_reaches_every(all.filter_map(|c| match c {
-            Canon::Cymbal(s, _) => Some(CymSlotDiscriminants::from(s)),
+            Canon(Slot::Cymbal(s, _)) => Some(CymSlotDiscriminants::from(s)),
             _ => None,
         }));
     }
@@ -343,7 +350,7 @@ mod tests {
     #[test]
     fn a_ride_belongs_to_the_cymbals() {
         assert_eq!(
-            Canon::Ride(idx(1), RideArtic::Bow).family(),
+            Canon(Slot::Ride(idx(1), RideArtic::Bow)).family(),
             Family::Cymbals
         );
     }
@@ -351,7 +358,7 @@ mod tests {
     #[test]
     fn an_aux_hat_belongs_to_the_aux_family() {
         assert_eq!(
-            Canon::Aux(idx(1), HatOpen::Closed, HatZone::Plain).family(),
+            Canon(Slot::Aux(idx(1), HatOpen::Closed, HatZone::Plain)).family(),
             Family::Aux
         );
     }
@@ -359,7 +366,7 @@ mod tests {
     #[test]
     fn a_tom_belongs_to_the_toms() {
         assert_eq!(
-            Canon::Tom(TomPos::Rack(idx(1)), TomArtic::Hit).family(),
+            Canon(Slot::Tom(TomPos::Rack(idx(1)), TomArtic::Hit)).family(),
             Family::Toms
         );
     }

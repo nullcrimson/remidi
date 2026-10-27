@@ -1,8 +1,10 @@
-use std::{path::Path, process::Command};
+use std::{env::consts::EXE_SUFFIX, path::Path, process::Command};
+
+use anyhow::{bail, Context as _, Result};
 
 use crate::{
     plan::{Mode, Plan},
-    step::{Step, Urgency, SITE_PROGRAM},
+    step::{CargoPass, Step, TargetDir, Urgency, DIST},
 };
 
 const SHIPPED: [&str; 3] = ["--workspace", "--exclude", "midiremap-wasm"];
@@ -30,35 +32,75 @@ impl Context {
     }
 }
 
-/// What an invocation starts: a tool found on the path, or a program the gate built, by
-/// its path from the repository root.
+/// The site generator `Step::CompileSite` builds, from the repository root.
+pub fn site_program() -> String {
+    let dir = TargetDir::Site
+        .path()
+        .expect("the site generator builds into a directory of its own");
+    format!("{dir}/debug/{SITE}{EXE_SUFFIX}")
+}
+
+/// What `command` prints when it runs and succeeds.
+pub fn checked_output(command: &mut Command) -> Result<Vec<u8>> {
+    let shown = std::iter::once(command.get_program())
+        .chain(command.get_args().take(1))
+        .map(|part| part.to_string_lossy())
+        .collect::<Vec<_>>()
+        .join(" ");
+    let out = command
+        .output()
+        .with_context(|| format!("cannot run {shown}"))?;
+    if !out.status.success() {
+        bail!(
+            "{shown} failed: {}",
+            String::from_utf8_lossy(&out.stderr).trim()
+        );
+    }
+    Ok(out.stdout)
+}
+
+/// What an invocation starts, and where.
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Program {
-    Tool(&'static str),
-    Built(String),
+    /// cargo from the repository root, building into the directory.
+    Cargo(TargetDir),
+    /// npm from the app directory.
+    Npm,
+    /// The site generator the gate built, from the repository root.
+    Site,
+}
+
+impl Program {
+    fn path(&self) -> String {
+        match self {
+            Program::Cargo(_) => "cargo".to_owned(),
+            Program::Npm => NPM.to_owned(),
+            Program::Site => site_program(),
+        }
+    }
 }
 
 /// One program a step runs.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Invocation {
-    in_app: bool,
     program: Program,
     args: Vec<String>,
     env: Vec<(&'static str, &'static str)>,
-    target_dir: Option<&'static str>,
     urgency: Urgency,
 }
 
 impl Invocation {
-    fn cargo(args: &[&str]) -> Self {
+    fn new(program: Program, args: &[&str]) -> Self {
         Self {
-            in_app: false,
-            program: Program::Tool("cargo"),
+            program,
             args: args.iter().map(|&a| a.to_owned()).collect(),
             env: Vec::new(),
-            target_dir: None,
             urgency: Urgency::Chain,
         }
+    }
+
+    fn cargo(args: &[&str]) -> Self {
+        Self::new(Program::Cargo(TargetDir::Main), args)
     }
 
     /// `npm run <script>` without the script's pre-hooks: the package's scripts own the
@@ -69,11 +111,7 @@ impl Invocation {
             args.push("--");
             args.extend(flags);
         }
-        Self {
-            in_app: true,
-            program: Program::Tool(NPM),
-            ..Self::cargo(&args)
-        }
+        Self::new(Program::Npm, &args)
     }
 
     fn with_env(mut self, key: &'static str, value: &'static str) -> Self {
@@ -83,21 +121,11 @@ impl Invocation {
 
     /// The site generator that `Step::CompileSite` built, run on the app's build.
     fn site() -> Self {
-        Self {
-            in_app: true,
-            program: Program::Built(SITE_PROGRAM.to_owned()),
-            args: vec!["dist".to_owned()],
-            env: Vec::new(),
-            target_dir: None,
-            urgency: Urgency::Chain,
-        }
+        Self::new(Program::Site, &[DIST])
     }
 
-    pub fn program(&self) -> &str {
-        match &self.program {
-            Program::Tool(name) => name,
-            Program::Built(path) => path,
-        }
+    pub fn program(&self) -> String {
+        self.program.path()
     }
 
     /// The process to start, from the repository `root`; a target directory of its own
@@ -105,22 +133,23 @@ impl Invocation {
     /// one.
     pub fn command(&self, root: &Path) -> Command {
         let mut command = match &self.program {
-            Program::Tool(name) => Command::new(name),
-            Program::Built(path) => Command::new(root.join(path)),
+            Program::Cargo(_) | Program::Npm => Command::new(self.program.path()),
+            Program::Site => Command::new(root.join(self.program.path())),
         };
         if self.urgency == Urgency::Background {
             lower_priority(&mut command);
         }
         command
             .args(&self.args)
-            .current_dir(if self.in_app {
-                root.join(APP)
-            } else {
-                root.to_path_buf()
+            .current_dir(match self.program {
+                Program::Npm => root.join(APP),
+                Program::Cargo(_) | Program::Site => root.to_path_buf(),
             })
             .envs(self.env.iter().copied());
-        if let Some(dir) = self.target_dir {
-            command.env("CARGO_TARGET_DIR", root.join(dir));
+        if let Program::Cargo(dir) = self.program {
+            if let Some(path) = dir.path() {
+                command.env("CARGO_TARGET_DIR", root.join(path));
+            }
         }
         command
     }
@@ -138,11 +167,12 @@ fn lower_priority(command: &mut Command) {
 #[cfg(unix)]
 fn lower_priority(command: &mut Command) {
     use std::os::unix::process::CommandExt;
+    const BELOW_NORMAL_NICENESS: libc::c_int = 10;
     // SAFETY: the closure runs in the forked child before exec and calls only `nice`, which
     // is async-signal-safe; it touches no memory shared with the parent.
     unsafe {
         command.pre_exec(|| {
-            libc::nice(10);
+            libc::nice(BELOW_NORMAL_NICENESS);
             Ok(())
         });
     }
@@ -156,25 +186,26 @@ pub enum Run {
     AtOnce(Vec<Invocation>),
 }
 
-/// A cargo command in `step`'s build directory: its only one, or for a two-pass step, the
-/// directory of the pass.
-fn cargo_in(step: Step, pass: usize, args: &[&str]) -> Invocation {
-    Invocation {
-        target_dir: step.target_dirs()[pass].path(),
-        ..Invocation::cargo(args)
-    }
+/// The cargo commands of `step`, one in each build directory it builds into, each with the
+/// arguments `args` gives its pass.
+fn cargo_passes(step: Step, args: impl Fn(CargoPass) -> Vec<&'static str>) -> Vec<Invocation> {
+    step.target_dirs()
+        .map(|(pass, dir)| Invocation::new(Program::Cargo(dir), &args(pass)))
+        .collect()
 }
 
 /// `command` over the shipped crates and over the browser crate, at once.
-fn both_passes(step: Step, command: &str, tail: &[&str]) -> Run {
-    let pass = |i, crates: &[&str]| {
-        let args: Vec<&str> = std::iter::once(command)
+fn both_passes(step: Step, command: &'static str, tail: &'static [&'static str]) -> Run {
+    Run::AtOnce(cargo_passes(step, |pass| {
+        let crates: &[&str] = match pass {
+            CargoPass::Shipped => &SHIPPED,
+            CargoPass::Browser => &BROWSER,
+        };
+        std::iter::once(command)
             .chain(crates.iter().copied())
             .chain(tail.iter().copied())
-            .collect();
-        cargo_in(step, i, &args)
-    };
-    Run::AtOnce(vec![pass(0, &SHIPPED), pass(1, &BROWSER)])
+            .collect()
+    }))
 }
 
 impl Run {
@@ -259,7 +290,9 @@ fn programs(step: Step, cx: &Context) -> Run {
             one(Invocation::npm("test", flags).with_env("VITEST_WORKERS", "100%"))
         }
         Step::BuildApp => one(Invocation::npm("build:app", &[])),
-        Step::CompileSite => one(cargo_in(step, 0, &["build", "-p", SITE, "--locked"])),
+        Step::CompileSite => Run::InTurn(cargo_passes(step, |_| {
+            vec!["build", "-p", SITE, "--locked"]
+        })),
         Step::BuildSite => one(Invocation::site()),
         Step::Size => one(Invocation::npm("size", &[])),
         Step::E2e => {
@@ -328,10 +361,9 @@ pub fn summary(step: Step, log: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use std::{env::consts::EXE_SUFFIX, ffi::OsStr, path::PathBuf};
+    use std::{ffi::OsStr, path::PathBuf};
 
     use super::*;
-    use crate::step::TargetDir;
 
     fn cx(mode: Mode) -> Context {
         Context {
@@ -487,8 +519,8 @@ mod tests {
         let site = &commands(Step::BuildSite, &full())[0];
         let program = root().join(format!("target/site/debug/{SITE}{EXE_SUFFIX}"));
         assert_eq!(site.get_program(), program.as_os_str());
-        assert_eq!(site.get_current_dir(), Some(root().join(APP).as_path()));
-        assert_eq!(args(site), ["dist"]);
+        assert_eq!(site.get_current_dir(), Some(root().as_path()));
+        assert_eq!(args(site), [DIST]);
     }
 
     #[test]

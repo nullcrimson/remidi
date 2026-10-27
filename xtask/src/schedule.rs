@@ -26,18 +26,23 @@ pub enum Verdict {
     Cached,
 }
 
+impl Verdict {
+    pub fn passed(self) -> bool {
+        matches!(self, Verdict::Passed | Verdict::Cached)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Outcome {
-    Passed(Span),
-    Failed(Span),
-    Cached(Span),
+    /// Started, and ended with the verdict.
+    Ran(Verdict, Span),
     /// Not run because a step it waits for did not pass.
     Skipped(Step),
 }
 
 impl Outcome {
     pub fn passed(self) -> bool {
-        matches!(self, Outcome::Passed(_) | Outcome::Cached(_))
+        matches!(self, Outcome::Ran(verdict, _) if verdict.passed())
     }
 }
 
@@ -175,12 +180,7 @@ pub fn run_plan(
                     start,
                     took: origin.elapsed() - start,
                 };
-                let outcome = match verdict {
-                    Verdict::Passed => Outcome::Passed(span),
-                    Verdict::Failed => Outcome::Failed(span),
-                    Verdict::Cached => Outcome::Cached(span),
-                };
-                tx.send((step, outcome)).ok();
+                tx.send((step, Outcome::Ran(verdict, span))).ok();
             });
         }
         if !schedule.is_running() {
@@ -219,7 +219,7 @@ mod tests {
     }
 
     fn passed() -> Outcome {
-        Outcome::Passed(Span::default())
+        Outcome::Ran(Verdict::Passed, Span::default())
     }
 
     /// Plays `plan` without threads: steps end in the order they started, the ones in
@@ -239,7 +239,7 @@ mod tests {
             };
             events.push(Event::End(step));
             let outcome = if fails.contains(&step) {
-                Outcome::Failed(Span::default())
+                Outcome::Ran(Verdict::Failed, Span::default())
             } else {
                 passed()
             };
@@ -341,7 +341,10 @@ mod tests {
         let plan = partial(&[Step::GenI18n, Step::Eslint]);
         let mut schedule = Schedule::new(&plan);
         assert_eq!(started(&mut schedule), [Step::GenI18n]);
-        schedule.finish(Step::GenI18n, Outcome::Cached(Span::default()));
+        schedule.finish(
+            Step::GenI18n,
+            Outcome::Ran(Verdict::Cached, Span::default()),
+        );
         assert_eq!(started(&mut schedule), [Step::Eslint]);
     }
 
@@ -393,7 +396,7 @@ mod tests {
             |_, _| {},
         );
         let span = |s| match outcomes[&s] {
-            Outcome::Passed(span) => span,
+            Outcome::Ran(Verdict::Passed, span) => span,
             o => panic!("{o:?}"),
         };
         assert!(

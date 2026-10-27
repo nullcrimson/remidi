@@ -3,7 +3,7 @@ use std::{
     sync::LazyLock,
 };
 
-use crate::engine_map::{many_from_json, EngineMap, MapError};
+use crate::engine_map::{many_from_json, EngineMap, MapError, Variant};
 
 const EMBEDDED: &str = include_str!(concat!(env!("OUT_DIR"), "/engines.json"));
 
@@ -42,14 +42,14 @@ impl Catalog {
             }
         }
         for (id, map) in &maps {
-            let Some(of) = map.variant_of() else {
+            let Some(of) = map.variant().map(Variant::of) else {
                 continue;
             };
             let base = maps.get(of).ok_or_else(|| MapError::UnknownVariantBase {
                 variant: id.clone(),
                 of: of.to_owned(),
             })?;
-            if base.variant_of().is_some() {
+            if base.variant().is_some() {
                 return Err(MapError::VariantOfVariant(id.clone()));
             }
         }
@@ -63,14 +63,14 @@ impl Catalog {
     ) -> impl Iterator<Item = (&'a str, &'a EngineMap)> {
         self.maps.values().filter_map(move |m| {
             m.variant()
-                .filter(|v| v.of == base.id())
-                .map(|v| (v.label.as_str(), m))
+                .filter(|v| v.of() == base.id())
+                .map(|v| (v.label(), m))
         })
     }
 
     /// The engine `map` is another mapping of, when it is a variant.
     pub fn base_of(&self, map: &EngineMap) -> Option<&EngineMap> {
-        map.variant_of().and_then(|of| self.maps.get(of))
+        map.variant().and_then(|v| self.maps.get(v.of()))
     }
 
     /// Adds a user map from JSON; it shadows a builtin with the same id.
@@ -112,7 +112,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        canon::{idx, Canon, HatOpen, HatZone, KickKind, SnareArtic},
+        canon::{idx, Canon, HatOpen, HatZone, KickKind, Slot, SnareArtic},
         note::n,
     };
 
@@ -129,7 +129,7 @@ mod tests {
         let b = Catalog::builtin();
         assert_eq!(
             b.get("general_midi").unwrap().decode(n(36)),
-            Some(Canon::Kick(KickKind::Main))
+            Some(Canon(Slot::Kick(KickKind::Main)))
         );
     }
 
@@ -138,7 +138,7 @@ mod tests {
         let b = Catalog::builtin();
         assert_eq!(
             b.get("general_midi").unwrap().decode(n(42)),
-            Some(Canon::Hat(HatOpen::Closed, HatZone::Plain))
+            Some(Canon(Slot::Hat(HatOpen::Closed, HatZone::Plain)))
         );
     }
 
@@ -147,7 +147,7 @@ mod tests {
         let b = Catalog::builtin();
         assert_eq!(
             b.get("guitar_pro").unwrap().decode(n(38)),
-            Some(Canon::Snare(idx(1), SnareArtic::Hit))
+            Some(Canon(Slot::Snare(idx(1), SnareArtic::Hit)))
         );
     }
 
@@ -179,9 +179,9 @@ mod tests {
         let ad2 = b.get("addictive_drums2").unwrap();
         assert_eq!(
             ad2.decode(n(49)),
-            Some(Canon::Hat(HatOpen::Tight, HatZone::Tip))
+            Some(Canon(Slot::Hat(HatOpen::Tight, HatZone::Tip)))
         );
-        assert_eq!(ad2.decode(n(36)), Some(Canon::Kick(KickKind::Main)));
+        assert_eq!(ad2.decode(n(36)), Some(Canon(Slot::Kick(KickKind::Main))));
     }
 
     #[test]
@@ -189,7 +189,7 @@ mod tests {
         let b = Catalog::builtin();
         let ad2 = b.get("addictive_drums2").unwrap();
         assert_eq!(
-            ad2.encode(Canon::Hat(HatOpen::Open(idx(1)), HatZone::Plain)),
+            ad2.encode(Canon(Slot::Hat(HatOpen::Open(idx(1)), HatZone::Plain))),
             Some(n(55))
         );
     }
@@ -200,7 +200,7 @@ mod tests {
         let p = Catalog::builtin().with_user_json(json).unwrap();
         let ezd = p.get("ezdrummer").unwrap();
         assert_eq!(ezd.name(), "Custom EZD");
-        assert_eq!(ezd.encode(Canon::Kick(KickKind::Main)), Some(n(35)));
+        assert_eq!(ezd.encode(Canon(Slot::Kick(KickKind::Main))), Some(n(35)));
     }
 
     #[test]
@@ -209,7 +209,7 @@ mod tests {
         let p = Catalog::builtin().with_user_json(json).unwrap();
         assert_eq!(
             p.get("ggd_invasion").unwrap().decode(n(24)),
-            Some(Canon::Kick(KickKind::Main))
+            Some(Canon(Slot::Kick(KickKind::Main)))
         );
     }
 

@@ -7,7 +7,7 @@ use std::{
 
 use super::{
     tom_positions, Canon, CymArtic, CymSlot, HatOpen, HatZone, Idx, KickKind, OpenLevel, RackIdx,
-    RideArtic, RideIdx, SnareArtic, SnareIdx, TomArtic, TomPos,
+    RideArtic, RideIdx, Slot, SnareArtic, SnareIdx, TomArtic, TomPos,
 };
 
 fn kick_order(k: KickKind) -> &'static [KickKind] {
@@ -82,14 +82,7 @@ fn opening_order(o: HatOpen) -> Vec<HatOpen> {
         Cc => vec![Closed, Tight],
         Pedal => Vec::new(),
         PedalSplash => vec![Pedal],
-        Loose | Open(_) => {
-            let mut others: Vec<HatOpen> = once(Loose)
-                .chain(OpenLevel::all().map(Open))
-                .filter(|&x| x != o)
-                .collect();
-            others.sort_by_key(|&x| (open_level(x).abs_diff(open_level(o)), open_level(x)));
-            others
-        }
+        Loose | Open(_) => nearest(o, once(Loose).chain(OpenLevel::all().map(Open)), open_level),
     }
 }
 
@@ -117,21 +110,36 @@ fn hat_order(o: HatOpen, z: HatZone) -> Vec<(HatOpen, HatZone)> {
 }
 
 fn variants(c: Canon) -> Vec<Canon> {
-    match c {
-        Canon::Kick(k) => kick_order(k).iter().map(|&b| Canon::Kick(b)).collect(),
-        Canon::Snare(i, a) => snare_order(a).iter().map(|&b| Canon::Snare(i, b)).collect(),
-        Canon::Tom(p, a) => tom_order(a).iter().map(|&b| Canon::Tom(p, b)).collect(),
-        Canon::Hat(o, z) => hat_order(o, z)
-            .into_iter()
-            .map(|(o, z)| Canon::Hat(o, z))
+    match c.0 {
+        Slot::Kick(k) => kick_order(k)
+            .iter()
+            .map(|&b| Canon(Slot::Kick(b)))
             .collect(),
-        Canon::Aux(i, o, z) => hat_order(o, z)
-            .into_iter()
-            .map(|(o, z)| Canon::Aux(i, o, z))
+        Slot::Snare(i, a) => snare_order(a)
+            .iter()
+            .map(|&b| Canon(Slot::Snare(i, b)))
             .collect(),
-        Canon::Cymbal(s, a) => cym_order(a).iter().map(|&b| Canon::Cymbal(s, b)).collect(),
-        Canon::Ride(i, a) => ride_order(a).iter().map(|&b| Canon::Ride(i, b)).collect(),
-        Canon::Perc(_) => Vec::new(),
+        Slot::Tom(p, a) => tom_order(a)
+            .iter()
+            .map(|&b| Canon(Slot::Tom(p, b)))
+            .collect(),
+        Slot::Hat(o, z) => hat_order(o, z)
+            .into_iter()
+            .map(|(o, z)| Canon(Slot::Hat(o, z)))
+            .collect(),
+        Slot::Aux(i, o, z) => hat_order(o, z)
+            .into_iter()
+            .map(|(o, z)| Canon(Slot::Aux(i, o, z)))
+            .collect(),
+        Slot::Cymbal(s, a) => cym_order(a)
+            .iter()
+            .map(|&b| Canon(Slot::Cymbal(s, b)))
+            .collect(),
+        Slot::Ride(i, a) => ride_order(a)
+            .iter()
+            .map(|&b| Canon(Slot::Ride(i, b)))
+            .collect(),
+        Slot::Perc(_) => Vec::new(),
     }
 }
 
@@ -142,46 +150,47 @@ fn tom_rank(p: TomPos) -> u8 {
     }
 }
 
-fn tom_neighbors(p: TomPos) -> Vec<TomPos> {
-    let mut others: Vec<TomPos> = tom_positions().filter(|&q| q != p).collect();
-    others.sort_by_key(|&q| (tom_rank(q).abs_diff(tom_rank(p)), tom_rank(q)));
-    others
-}
-
-fn cymbals_like(slot: CymSlot) -> Vec<CymSlot> {
-    let mut others: Vec<CymSlot> = CymSlot::all()
-        .filter(|&s| s != slot && discriminant(&s) == discriminant(&slot))
-        .collect();
-    others.sort_by_key(|&s| (s.index().abs_diff(slot.index()), s.index()));
+/// The members of `among` other than `from`, nearest by `rank` first, the lower rank first
+/// on a tie.
+fn nearest<T: Copy + PartialEq>(
+    from: T,
+    among: impl Iterator<Item = T>,
+    rank: impl Fn(T) -> u8,
+) -> Vec<T> {
+    let mut others: Vec<T> = among.filter(|&x| x != from).collect();
+    others.sort_by_key(|&x| (rank(x).abs_diff(rank(from)), rank(x)));
     others
 }
 
 fn neighbours(c: Canon) -> Vec<Canon> {
-    let crash = |a| Canon::Cymbal(CymSlot::Crash(Idx::FIRST), a);
-    match c {
-        Canon::Kick(_) | Canon::Hat(..) | Canon::Perc(_) => Vec::new(),
-        Canon::Snare(i, a) => SnareIdx::all()
+    let crash = |a| Canon(Slot::Cymbal(CymSlot::Crash(Idx::FIRST), a));
+    match c.0 {
+        Slot::Kick(_) | Slot::Hat(..) | Slot::Perc(_) => Vec::new(),
+        Slot::Snare(i, a) => SnareIdx::all()
             .filter(|&j| j != i)
-            .map(|j| Canon::Snare(j, a))
+            .map(|j| Canon(Slot::Snare(j, a)))
             .collect(),
-        Canon::Tom(p, a) => tom_neighbors(p)
+        Slot::Tom(p, a) => nearest(p, tom_positions(), tom_rank)
             .into_iter()
-            .map(|q| Canon::Tom(q, a))
+            .map(|q| Canon(Slot::Tom(q, a)))
             .collect(),
-        Canon::Aux(_, o, z) => vec![Canon::Hat(o, z)],
-        Canon::Cymbal(slot, a) => {
-            let same_kind = cymbals_like(slot).into_iter().map(|s| Canon::Cymbal(s, a));
+        Slot::Aux(_, o, z) => vec![Canon(Slot::Hat(o, z))],
+        Slot::Cymbal(slot, a) => {
+            let kind = CymSlot::all().filter(|s| discriminant(s) == discriminant(&slot));
+            let same_kind = nearest(slot, kind, CymSlot::index)
+                .into_iter()
+                .map(|s| Canon(Slot::Cymbal(s, a)));
             let next = match slot {
                 CymSlot::Crash(_) => None,
                 CymSlot::China(_) | CymSlot::Splash(_) | CymSlot::Stack(_) => Some(crash(a)),
-                CymSlot::Bell(_) => Some(Canon::Ride(RideIdx::FIRST, RideArtic::Bell)),
+                CymSlot::Bell(_) => Some(Canon(Slot::Ride(RideIdx::FIRST, RideArtic::Bell))),
             };
             same_kind.chain(next).collect()
         }
-        Canon::Ride(i, a) => {
+        Slot::Ride(i, a) => {
             let other = RideIdx::all()
                 .filter(|&j| j != i)
-                .map(|j| Canon::Ride(j, a));
+                .map(|j| Canon(Slot::Ride(j, a)));
             let crash_for_edge = (a == RideArtic::Edge).then(|| crash(CymArtic::Hit));
             other.chain(crash_for_edge).collect()
         }
@@ -261,7 +270,7 @@ mod tests {
     fn no_kick_or_main_hat_stands_in_with_another_drum() {
         for &c in Canon::all()
             .iter()
-            .filter(|c| matches!(c, Canon::Kick(_) | Canon::Hat(..)))
+            .filter(|c| matches!(c.0, Slot::Kick(_) | Slot::Hat(..)))
         {
             assert!(c.fallback_chain().iter().all(|&o| c.same_drum(o)), "{c}");
         }
@@ -388,7 +397,7 @@ mod tests {
     #[test]
     fn no_percussion_has_a_stand_in() {
         for &p in PercKind::VARIANTS {
-            assert!(Canon::Perc(p).fallback_chain().is_empty(), "{p:?}");
+            assert!(Canon(Slot::Perc(p)).fallback_chain().is_empty(), "{p:?}");
         }
     }
 }

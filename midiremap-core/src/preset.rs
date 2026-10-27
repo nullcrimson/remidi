@@ -123,36 +123,9 @@ pub fn parse_preset(json: &str, catalog: &Catalog) -> Result<LoadedPreset, Prese
     };
     let src = engine(raw.src, PresetError::UnknownSource)?;
     let tgt = engine(raw.tgt, PresetError::UnknownTarget)?;
-    let mut skipped = Vec::new();
-    let mut edits = BTreeMap::new();
-    for (key, value) in raw.edits {
-        match (key.parse::<Canon>(), Note::deserialize(&value)) {
-            (Err(_), _) => skipped.push(SkippedEdit::UnknownDrum { key }),
-            (Ok(_), Err(_)) => skipped.push(SkippedEdit::NotANote {
-                key,
-                value: value.to_string(),
-            }),
-            (Ok(canon), Ok(note)) => {
-                edits.insert(canon, note);
-            }
-        }
-    }
-    let mut src_edits = BTreeMap::new();
-    for (key, value) in raw.src_edits {
-        let Ok(note) = key.parse::<Note>() else {
-            skipped.push(SkippedEdit::NotASourceNote { key });
-            continue;
-        };
-        match Option::<Canon>::deserialize(&value) {
-            Ok(canon) => {
-                src_edits.insert(note, canon);
-            }
-            Err(_) => skipped.push(SkippedEdit::NotADrum {
-                note,
-                value: value.to_string(),
-            }),
-        }
-    }
+    let (edits, mut skipped) = read_edits(raw.edits, drum_edit);
+    let (src_edits, src_skipped) = read_edits(raw.src_edits, source_edit);
+    skipped.extend(src_skipped);
     Ok(LoadedPreset {
         preset: SavedPreset {
             name: raw.name,
@@ -162,6 +135,47 @@ pub fn parse_preset(json: &str, catalog: &Catalog) -> Result<LoadedPreset, Prese
         },
         skipped,
     })
+}
+
+/// The edits in `raw` that `entry` reads, and the ones it skips.
+fn read_edits<K: Ord, V>(
+    raw: BTreeMap<String, Value>,
+    entry: fn(String, Value) -> Result<(K, V), SkippedEdit>,
+) -> (BTreeMap<K, V>, Vec<SkippedEdit>) {
+    raw.into_iter().fold(
+        (BTreeMap::new(), Vec::new()),
+        |(mut read, mut skipped), (key, value)| {
+            match entry(key, value) {
+                Ok((k, v)) => {
+                    read.insert(k, v);
+                }
+                Err(skip) => skipped.push(skip),
+            }
+            (read, skipped)
+        },
+    )
+}
+
+fn drum_edit(key: String, value: Value) -> Result<(Canon, Note), SkippedEdit> {
+    let Ok(canon) = key.parse::<Canon>() else {
+        return Err(SkippedEdit::UnknownDrum { key });
+    };
+    let note = Note::deserialize(&value).map_err(|_| SkippedEdit::NotANote {
+        key,
+        value: value.to_string(),
+    })?;
+    Ok((canon, note))
+}
+
+fn source_edit(key: String, value: Value) -> Result<(Note, Option<Canon>), SkippedEdit> {
+    let Ok(note) = key.parse::<Note>() else {
+        return Err(SkippedEdit::NotASourceNote { key });
+    };
+    let canon = Option::<Canon>::deserialize(&value).map_err(|_| SkippedEdit::NotADrum {
+        note,
+        value: value.to_string(),
+    })?;
+    Ok((note, canon))
 }
 
 #[cfg(test)]
