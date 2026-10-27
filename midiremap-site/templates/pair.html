@@ -17,19 +17,19 @@
 {% endfor -%}
 </ol>
 <div class="sticky top-0 z-10 -my-3 bg-card py-3 sm:static">
-  {% call macros::converter_link(Some(page.src.id.as_str()), Some(page.tgt.id.as_str()), "cta", texts.pair(MessageId::MapsPairConvert, page.src.name.as_str(), page.tgt.name.as_str())?) %}{% endcall %}
+  {% call macros::converter_link(Some(page.src.id.as_str()), Some(page.tgt.id.as_str()), "cta", texts.say(Phrase::maps_pair_convert(page.src.name.as_str(), page.tgt.name.as_str()))) %}{% endcall %}
 </div>
-<p class="text-ui/relaxed text-t3">{{ texts.get(Plain::MapsPairRackLead) }} <span class="contents" data-umami-event="rack-downloaded" data-umami-event-where="pair"><a href="{{ page.rack.href }}" download="{{ page.rack.file_name }}" class="prose-link" aria-label="{{ texts.pair(MessageId::SummaryRackLabel, page.src.name.as_str(), page.tgt.name.as_str())? }}">{{ texts.get(Plain::MapsPairRackLink) }}</a></span> {{ rack }}{% if !page.changes.dropped.is_empty() %} {{ texts.pair(MessageId::MapsPairRackDropped, page.src.name.as_str(), page.tgt.name.as_str())? }}{% endif %}</p>
+<p class="text-ui/relaxed text-t3">{{ texts.get(Plain::MapsPairRackLead) }} <span class="contents" data-umami-event="rack-downloaded" data-umami-event-where="pair"><a href="{{ page.rack.href }}" download="{{ page.rack.file_name }}" class="prose-link" aria-label="{{ texts.say(Phrase::summary_rack_label(page.src.name.as_str(), page.tgt.name.as_str())) }}">{{ texts.get(Plain::MapsPairRackLink) }}</a></span> {{ rack }}{% if !page.changes.dropped.is_empty() %} {{ texts.say(Phrase::maps_pair_rack_dropped(page.tgt.name.as_str())) }}{% endif %}</p>
 
 <div class="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
-  <span class="tag" data-tone="neutral">{{ texts.count(MessageId::MapsExactCount, page.tally.exact)? }}</span>
-  {% if page.tally.approximated > 0 %}<span class="tag" data-tone="bright">{{ texts.count(MessageId::MapsApproximatedCount, page.tally.approximated)? }}</span>{% endif %}
-  {% if page.tally.dropped > 0 %}<span class="tag" data-tone="danger">{{ texts.count(MessageId::MapsDroppedCount, page.tally.dropped)? }}</span>{% endif %}
+  <span class="tag" data-tone="neutral">{{ texts.say(Phrase::maps_exact_count(page.tally.exact)) }}</span>
+  {% if page.tally.approximated > 0 %}<span class="tag" data-tone="bright">{{ texts.say(Phrase::maps_approximated_count(page.tally.approximated)) }}</span>{% endif %}
+  {% if page.tally.dropped > 0 %}<span class="tag" data-tone="danger">{{ texts.say(Phrase::maps_dropped_count(page.tally.dropped)) }}</span>{% endif %}
   <span aria-hidden="true" class="basis-full sm:basis-0 sm:grow"></span>
   {% if page.tally.changes() > 0 %}
   <div role="radiogroup" aria-label="{{ texts.get(Plain::MapsRows) }}" class="inline-flex gap-1">
-    {% call macros::chip("rows", "show-all", true, texts.count(MessageId::EditShowAll, page.tally.total())?) %}{% endcall %}
-    {% call macros::chip("rows", "show-changes", false, texts.count(MessageId::MapsRowsChanges, page.tally.changes())?) %}{% endcall %}
+    {% call macros::chip("rows", "show-all", true, texts.say(Phrase::edit_show_all(page.tally.total()))) %}{% endcall %}
+    {% call macros::chip("rows", "show-changes", false, texts.say(Phrase::maps_rows_changes(page.tally.changes()))) %}{% endcall %}
   </div>
   {% endif %}
   {% call macros::octave_choice("inline-flex gap-1") %}{% endcall %}
@@ -37,24 +37,24 @@
 
 <section class="flex flex-col gap-3">
   <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::MapsChangesHeading) }}</h2>
-  {% if page.tally.changes() == 0 %}<p class="text-ui/relaxed text-t3">{{ texts.pair(MessageId::MapsChangesNone, page.src.name.as_str(), page.tgt.name.as_str())? }}</p>{% endif %}
+  {% if page.tally.changes() == 0 %}<p class="text-ui/relaxed text-t3">{{ texts.say(Phrase::maps_changes_none(page.src.name.as_str(), page.tgt.name.as_str())) }}</p>{% endif %}
   {% if !page.changes.merges.is_empty() %}<ul class="merge-list">
 {% for m in page.changes.merges -%}
-<li><b>{{ m.target.entry.label }}</b> {% call macros::note_label(m.target) %}{% endcall %} <span>{{ texts.plays(m.sources)? }}</span></li>
+<li><b>{{ m.target.entry.label }}</b> {% call macros::note_label(m.target) %}{% endcall %} <span>{{ texts.plays(m.sources) }}</span></li>
 {% endfor -%}
 </ul>{% endif %}
-  {% if !page.changes.dropped.is_empty() %}<p class="text-ui/relaxed text-t3">{{ texts.no_drum_for(page.tgt.name.as_str(), page.changes.dropped)? }}</p>{% endif %}
+  {% if !page.changes.dropped.is_empty() %}<p class="text-ui/relaxed text-t3">{{ texts.no_drum_for(page.tgt.name.as_str(), page.changes.dropped) }}</p>{% endif %}
 </section>
 
 <h2 class="border-t border-hairline pt-5 font-display text-title font-semibold text-t1">{{ texts.get(Plain::MapsTableHeading) }}</h2>
 <table class="pair-table w-full border-collapse text-left">
   <thead class="hidden sm:table-header-group">
     <tr class="font-mono text-caption tracking-[0.1em] text-t5 uppercase">
-      <th scope="col" class="px-1 pb-2 font-normal">{{ texts.engine(MessageId::MapsColumnEngineNote, page.src.name.as_str())? }}</th>
-      <th scope="col" class="pr-3 pb-2 font-normal">{{ texts.engine(MessageId::MapsColumnEngineDrum, page.src.name.as_str())? }}</th>
+      <th scope="col" class="px-1 pb-2 font-normal">{{ texts.say(Phrase::maps_column_engine_note(page.src.name.as_str())) }}</th>
+      <th scope="col" class="pr-3 pb-2 font-normal">{{ texts.say(Phrase::maps_column_engine_drum(page.src.name.as_str())) }}</th>
       <th scope="col" class="pr-3 pb-2 font-normal"><span class="sr-only">{{ texts.get(Plain::MapsColumnTo) }}</span></th>
-      <th scope="col" class="pr-3 pb-2 font-normal">{{ texts.engine(MessageId::MapsColumnEngineNote, page.tgt.name.as_str())? }}</th>
-      <th scope="col" class="pr-3 pb-2 font-normal">{{ texts.engine(MessageId::MapsColumnEngineDrum, page.tgt.name.as_str())? }}</th>
+      <th scope="col" class="pr-3 pb-2 font-normal">{{ texts.say(Phrase::maps_column_engine_note(page.tgt.name.as_str())) }}</th>
+      <th scope="col" class="pr-3 pb-2 font-normal">{{ texts.say(Phrase::maps_column_engine_drum(page.tgt.name.as_str())) }}</th>
       <th scope="col" class="pb-2 font-normal">{{ texts.get(Plain::MapsColumnResult) }}</th>
     </tr>
   </thead>
@@ -69,7 +69,7 @@
 </table>
 
 <div class="flex flex-col gap-3 border-t border-hairline pt-5">
-  <h2 class="font-display text-title font-semibold text-t1">{{ texts.engine(MessageId::MapsMoreFrom, page.src.name.as_str())? }}</h2>
+  <h2 class="font-display text-title font-semibold text-t1">{{ texts.say(Phrase::maps_more_from(page.src.name.as_str())) }}</h2>
   <ul class="link-chips">
 {% for l in page.siblings -%}
 <li><a href="{{ texts.path(l.href()) }}">→ {{ l.tgt_name }}</a></li>

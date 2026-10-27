@@ -8,7 +8,7 @@ use crate::{
 };
 
 static SITE: LazyLock<Site> = LazyLock::new(|| Site::build(&Catalog::builtin()).unwrap());
-static MESSAGES: LazyLock<Messages> = LazyLock::new(|| Messages::load().unwrap());
+static MESSAGES: LazyLock<Messages> = LazyLock::new(Messages::load);
 static DOCS: LazyLock<Docs> = LazyLock::new(|| Docs::load().unwrap());
 
 /// The site built from the builtin catalog, once for every test.

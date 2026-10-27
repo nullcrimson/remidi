@@ -1,5 +1,5 @@
 use crate::{
-    i18n::{Docs, I18nError, Locale, Messages, Plain, SectionKey},
+    i18n::{Docs, Locale, Messages, Plain, SectionKey},
     pages::Site,
     render::{drum_maps_meta, engine_meta, index_meta, section_meta, summary_meta, Meta, Texts},
     routes::{home, SITE_NAME},
@@ -9,14 +9,13 @@ fn line(name: &str, url: &str, description: &str) -> String {
     format!("- [{name}]({url}): {description}\n")
 }
 
-fn entry(meta: Result<Meta, I18nError>) -> Result<String, I18nError> {
-    let meta = meta?;
-    Ok(line(&meta.name, &meta.canonical, &meta.description))
+fn entry(meta: Meta) -> String {
+    line(&meta.name, &meta.canonical, &meta.description)
 }
 
 /// `/llms.txt` (llmstxt.org): what Drumverter is and where its English pages are, for
 /// language models that answer with links.
-pub fn llms_txt(site: &Site, messages: &Messages, docs: &Docs) -> Result<String, I18nError> {
+pub fn llms_txt(site: &Site, messages: &Messages, docs: &Docs) -> String {
     let texts = Texts {
         messages,
         docs,
@@ -25,26 +24,25 @@ pub fn llms_txt(site: &Site, messages: &Messages, docs: &Docs) -> Result<String,
     let sections = SectionKey::ALL
         .iter()
         .filter(|&&k| docs.has(texts.locale, k))
-        .map(|&k| entry(Ok(section_meta(k, &texts))))
-        .collect::<Result<String, _>>()?;
+        .map(|&k| entry(section_meta(k, &texts)))
+        .collect::<String>();
     let popular = site
         .popular
         .iter()
         .map(|p| entry(summary_meta(p, &texts)))
-        .collect::<Result<String, _>>()?;
+        .collect::<String>();
     let engines = site
         .engines
         .iter()
         .map(|p| entry(engine_meta(p, &texts)))
-        .collect::<Result<String, _>>()?;
+        .collect::<String>();
     let converter = line(
         texts.get(Plain::ConverterTitle),
         &home(texts.locale).url(),
         texts.get(Plain::ConverterOgDescription),
     );
-    let maps =
-        entry(index_meta(&site.index, &texts))? + &entry(drum_maps_meta(&site.index, &texts))?;
-    Ok([
+    let maps = entry(index_meta(&site.index, &texts)) + &entry(drum_maps_meta(&site.index, &texts));
+    [
         format!(
             "# {SITE_NAME}\n\n> {}\n\n{}\n",
             texts.get(Plain::ConverterDescription),
@@ -56,7 +54,7 @@ pub fn llms_txt(site: &Site, messages: &Messages, docs: &Docs) -> Result<String,
         section("Popular conversions", &popular),
         section("Engine note maps", &engines),
     ]
-    .join("\n"))
+    .join("\n")
 }
 
 fn section(heading: &str, entries: &str) -> String {
@@ -69,7 +67,7 @@ mod tests {
     use crate::fixtures::site;
 
     fn text() -> String {
-        llms_txt(site(), crate::fixtures::messages(), crate::fixtures::docs()).unwrap()
+        llms_txt(site(), crate::fixtures::messages(), crate::fixtures::docs())
     }
 
     fn links(text: &str) -> Vec<&str> {

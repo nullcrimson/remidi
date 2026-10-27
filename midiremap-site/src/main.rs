@@ -76,7 +76,7 @@ fn run(out_dir: &Path) -> Result<usize, SiteError> {
         manifest,
     } = AppBuild::read(out_dir)?;
     let site = Site::build(Catalog::shared())?;
-    let messages = Messages::load()?;
+    let messages = Messages::load();
     let docs = Docs::load()?;
     let pages = render::render_site(&site, &manifest, &messages, &docs)?;
     let written = pages.len();
@@ -97,7 +97,7 @@ fn run(out_dir: &Path) -> Result<usize, SiteError> {
     write(out_dir.join("robots.txt"), sitemap::robots())?;
     write(
         out_dir.join("llms.txt"),
-        &llms::llms_txt(&site, &messages, &docs)?,
+        llms::llms_txt(&site, &messages, &docs),
     )?;
     Ok(written)
 }

@@ -1,13 +1,12 @@
 use std::{borrow::Borrow, collections::BTreeSet};
 
 use askama::Template;
-use fluent_bundle::{FluentArgs, FluentValue};
 use midiremap_core::{Canon, Daw, Outcome};
 
 use crate::{
     content::{breadcrumb_schema, faq_schema, how_to_schema, Block, Closing, ContentPage},
     converter_step::{converter_steps, shown_steps, ConverterStep, ShownStep},
-    i18n::{Docs, I18nError, Locale, MessageId, Messages, Plain, SectionKey, TIP_HREF},
+    i18n::{Docs, Locale, Messages, Phrase, Plain, SectionKey, TIP_HREF},
     manifest::{AnalyticsScript, LocaleScript, SiteManifest},
     pages::{EnginePage, IndexPage, NoteCell, NoteRole, PairPage, PairSummary, Site, Tally},
     routes::{
@@ -40,8 +39,6 @@ const TITLE_NAME_MAX: usize = 40;
 pub enum RenderError {
     #[error(transparent)]
     Template(#[from] askama::Error),
-    #[error(transparent)]
-    Message(#[from] I18nError),
 }
 
 fn fit(first: &str, fallbacks: &[String], rest: &[String], max: usize) -> String {
@@ -86,105 +83,71 @@ fn drum_list(drums: &BTreeSet<Canon>) -> String {
         .join(LIST_SEPARATOR)
 }
 
-fn args<'a>(pairs: impl IntoIterator<Item = (&'a str, FluentValue<'a>)>) -> FluentArgs<'a> {
-    pairs.into_iter().collect()
-}
-
-pub fn engine_meta(p: &EnginePage, texts: &Texts) -> Result<Meta, I18nError> {
+pub fn engine_meta(p: &EnginePage, texts: &Texts) -> Meta {
     let n = p.engine.name.as_str();
     let midi = with_midi(n);
     let name = if n.chars().count() <= TITLE_NAME_MAX {
-        texts.format(
-            MessageId::MapsEngineTitle,
-            args([("engineMidi", midi.as_str().into())]),
-        )?
+        texts.say(Phrase::maps_engine_title(midi.as_str()))
     } else {
-        texts.format(
-            MessageId::MapsEngineTitleLongName,
-            args([("engine", n.into())]),
-        )?
+        texts.say(Phrase::maps_engine_title_long_name(n))
     };
-    Ok(Meta {
+    Meta {
         name,
         description: fit(
-            &texts.format(
-                MessageId::MapsEngineDescription,
-                args([("engine", n.into()), ("total", p.total.into())]),
-            )?,
-            &[texts.format(
-                MessageId::MapsEngineDescriptionShort,
-                args([("engine", n.into())]),
-            )?],
+            &texts.say(Phrase::maps_engine_description(n, p.total)),
+            &[texts.say(Phrase::maps_engine_description_short(n))],
             &[
                 texts.get(Plain::MapsEngineDescriptionDrumMaps).to_owned(),
-                texts.format(
-                    MessageId::MapsEngineDescriptionMore,
-                    args([("engineMidi", midi.as_str().into())]),
-                )?,
+                texts.say(Phrase::maps_engine_description_more(midi.as_str())),
             ],
             DESCRIPTION_MAX,
         ),
         canonical: p.engine.href().in_locale(texts.locale).url(),
-    })
+    }
 }
 
-fn pair_summary(texts: &Texts, src: &str, tgt: &str, tally: Tally) -> Result<String, I18nError> {
-    texts.format(
-        MessageId::MapsPairSummary,
-        args([
-            ("total", tally.total().into()),
-            ("source", src.into()),
-            ("exact", tally.exact.into()),
-            ("target", tgt.into()),
-            ("approximated", tally.approximated.into()),
-            ("dropped", tally.dropped.into()),
-        ]),
-    )
+fn pair_summary(texts: &Texts, src: &str, tgt: &str, tally: Tally) -> String {
+    texts.say(Phrase::maps_pair_summary(
+        tally.approximated,
+        tally.dropped,
+        tally.exact,
+        src,
+        tgt,
+        tally.total(),
+    ))
 }
 
-fn pair_args<'a>(src: &'a str, tgt: &'a str, tally: Tally) -> FluentArgs<'a> {
-    args([
-        ("sourceMidi", with_midi(src).into()),
-        ("source", src.into()),
-        ("target", tgt.into()),
-        ("exact", tally.exact.into()),
-        ("approximated", tally.approximated.into()),
-        ("dropped", tally.dropped.into()),
-    ])
+fn pair_heading(p: &PairPage, texts: &Texts) -> String {
+    texts.say(Phrase::maps_pair_heading(
+        with_midi(&p.src.name),
+        &p.tgt.name,
+    ))
 }
 
-fn pair_heading(p: &PairPage, texts: &Texts) -> Result<String, I18nError> {
-    texts.format(
-        MessageId::MapsPairHeading,
-        pair_args(&p.src.name, &p.tgt.name, p.tally),
-    )
-}
-
-fn conversion_meta(
-    src: &str,
-    tgt: &str,
-    tally: Tally,
-    path: SitePath,
-    texts: &Texts,
-) -> Result<Meta, I18nError> {
-    let format = |id| texts.format(id, pair_args(src, tgt, tally));
-    Ok(Meta {
-        name: format(MessageId::MapsPairTitle)?,
+fn conversion_meta(src: &str, tgt: &str, tally: Tally, path: SitePath, texts: &Texts) -> Meta {
+    Meta {
+        name: texts.say(Phrase::maps_pair_title(with_midi(src), tgt)),
         description: fit(
-            &format(MessageId::MapsPairDescription)?,
-            &[format(MessageId::MapsPairDescriptionShort)?],
+            &texts.say(Phrase::maps_pair_description(
+                tally.approximated,
+                tally.dropped,
+                tally.exact,
+                src,
+                tgt,
+            )),
+            &[texts.say(Phrase::maps_pair_description_short(src, tgt))],
             &[texts.get(Plain::MapsPairDescriptionMore).to_owned()],
             DESCRIPTION_MAX,
         ),
         canonical: path.in_locale(texts.locale).url(),
-    })
+    }
 }
 
-pub fn pair_meta(p: &PairPage, texts: &Texts) -> Result<Meta, I18nError> {
+pub fn pair_meta(p: &PairPage, texts: &Texts) -> Meta {
     conversion_meta(&p.src.name, &p.tgt.name, p.tally, p.href(), texts)
 }
 
-pub fn summary_meta(p: &PairSummary, texts: &Texts) -> Result<Meta, I18nError> {
+pub fn summary_meta(p: &PairSummary, texts: &Texts) -> Meta {
     conversion_meta(
         &p.link.src_name,
         &p.link.tgt_name,
@@ -194,32 +157,30 @@ pub fn summary_meta(p: &PairSummary, texts: &Texts) -> Result<Meta, I18nError> {
     )
 }
 
-pub fn index_meta(p: &IndexPage, texts: &Texts) -> Result<Meta, I18nError> {
-    let count = || args([("count", p.all.len().into())]);
-    Ok(Meta {
-        name: texts.format(MessageId::MapsIndexTitle, count())?,
+pub fn index_meta(p: &IndexPage, texts: &Texts) -> Meta {
+    Meta {
+        name: texts.say(Phrase::maps_index_title(p.all.len())),
         description: fit(
-            &texts.format(MessageId::MapsIndexDescription, count())?,
+            &texts.say(Phrase::maps_index_description(p.all.len())),
             &[],
             &[],
             DESCRIPTION_MAX,
         ),
         canonical: NOTE_MAPS.in_locale(texts.locale).url(),
-    })
+    }
 }
 
-pub fn drum_maps_meta(p: &IndexPage, texts: &Texts) -> Result<Meta, I18nError> {
-    let count = || args([("count", p.all.len().into())]);
-    Ok(Meta {
-        name: texts.format(MessageId::DrumMapsTitle, count())?,
+pub fn drum_maps_meta(p: &IndexPage, texts: &Texts) -> Meta {
+    Meta {
+        name: texts.say(Phrase::drum_maps_title(p.all.len())),
         description: fit(
-            &texts.format(MessageId::DrumMapsDescription, count())?,
+            &texts.say(Phrase::drum_maps_description(p.all.len())),
             &[],
             &[],
             DESCRIPTION_MAX,
         ),
         canonical: DRUM_MAPS.in_locale(texts.locale).url(),
-    })
+    }
 }
 
 /// A step of the drum maps page.
@@ -321,38 +282,8 @@ impl<'a> Texts<'a> {
         })
     }
 
-    fn format(&self, id: MessageId, args: FluentArgs) -> Result<String, I18nError> {
-        self.messages.format(self.locale, id, &args)
-    }
-
-    fn engine(&self, id: MessageId, engine: &str) -> Result<String, I18nError> {
-        self.format(id, args([("engine", engine.into())]))
-    }
-
-    fn count(&self, id: MessageId, count: impl Borrow<usize>) -> Result<String, I18nError> {
-        self.format(id, args([("count", (*count.borrow()).into())]))
-    }
-
-    fn total(&self, id: MessageId, total: impl Borrow<usize>) -> Result<String, I18nError> {
-        self.format(id, args([("total", (*total.borrow()).into())]))
-    }
-
-    fn pair(&self, id: MessageId, source: &str, target: &str) -> Result<String, I18nError> {
-        self.format(
-            id,
-            args([("source", source.into()), ("target", target.into())]),
-        )
-    }
-
-    fn share(&self, id: MessageId, cell: &PairSummary) -> Result<String, I18nError> {
-        self.format(
-            id,
-            args([
-                ("source", cell.link.src_name.as_str().into()),
-                ("target", cell.link.tgt_name.as_str().into()),
-                ("percent", cell.tally.exact_percent().into()),
-            ]),
-        )
+    pub fn say(&self, phrase: Phrase) -> String {
+        self.messages.say(self.locale, phrase)
     }
 
     /// How the pair table names the outcome of a row.
@@ -364,28 +295,12 @@ impl<'a> Texts<'a> {
         })
     }
 
-    fn plays(&self, sources: &BTreeSet<Canon>) -> Result<String, I18nError> {
-        self.format(
-            MessageId::MapsChangesPlays,
-            args([("sources", drum_list(sources).into())]),
-        )
+    fn plays(&self, sources: &BTreeSet<Canon>) -> String {
+        self.say(Phrase::maps_changes_plays(drum_list(sources)))
     }
 
-    fn no_drum_for(&self, target: &str, sources: &BTreeSet<Canon>) -> Result<String, I18nError> {
-        self.format(
-            MessageId::MapsChangesDropped,
-            args([
-                ("target", target.into()),
-                ("sources", drum_list(sources).into()),
-            ]),
-        )
-    }
-
-    fn drum_map_label(&self, engine: &str, daw: &str) -> Result<String, I18nError> {
-        self.format(
-            MessageId::DrumMapsDownloadLabel,
-            args([("engine", engine.into()), ("daw", daw.into())]),
-        )
+    fn no_drum_for(&self, target: &str, sources: &BTreeSet<Canon>) -> String {
+        self.say(Phrase::maps_changes_dropped(drum_list(sources), target))
     }
 
     fn path(&self, english: SitePath) -> LocalPath {
@@ -655,7 +570,7 @@ fn render_note_maps(
     let mut out = vec![(
         NOTE_MAPS.in_locale(texts.locale).file(),
         IndexHtml {
-            meta: index_meta(&site.index, texts)?,
+            meta: index_meta(&site.index, texts),
             frame: frame(Page::Everywhere(NOTE_MAPS), PageKind::Index, None),
             texts,
             page: &site.index,
@@ -666,7 +581,7 @@ fn render_note_maps(
     out.push((
         DRUM_MAPS.in_locale(texts.locale).file(),
         DrumMapsHtml {
-            meta: drum_maps_meta(&site.index, texts)?,
+            meta: drum_maps_meta(&site.index, texts),
             frame: Frame::new(
                 manifest,
                 texts,
@@ -687,20 +602,14 @@ fn render_note_maps(
         out.push((
             path.in_locale(texts.locale).file(),
             EngineHtml {
-                meta: engine_meta(p, texts)?,
+                meta: engine_meta(p, texts),
                 frame: frame(
                     Page::Everywhere(path.clone()),
                     PageKind::Engine,
                     trail(&p.engine.name, &path),
                 ),
                 texts,
-                intro: texts.format(
-                    MessageId::MapsEngineIntro,
-                    args([
-                        ("engine", p.engine.name.as_str().into()),
-                        ("total", p.total.into()),
-                    ]),
-                )?,
+                intro: texts.say(Phrase::maps_engine_intro(&p.engine.name, p.total)),
                 page: p,
             }
             .render()?,
@@ -711,19 +620,16 @@ fn render_note_maps(
         out.push((
             path.in_locale(texts.locale).file(),
             PairHtml {
-                meta: pair_meta(p, texts)?,
+                meta: pair_meta(p, texts),
                 frame: frame(
                     Page::Pair(path.clone()),
                     PageKind::Pair,
                     trail(&format!("{} → {}", p.src.name, p.tgt.name), &path),
                 ),
                 texts,
-                heading: pair_heading(p, texts)?,
-                summary: pair_summary(texts, &p.src.name, &p.tgt.name, p.tally)?,
-                rack: texts.format(
-                    MessageId::MapsPairRack,
-                    pair_args(&p.src.name, &p.tgt.name, p.tally),
-                )?,
+                heading: pair_heading(p, texts),
+                summary: pair_summary(texts, &p.src.name, &p.tgt.name, p.tally),
+                rack: texts.say(Phrase::maps_pair_rack(with_midi(&p.src.name), &p.tgt.name)),
                 steps: converter_steps(&[ConverterStep::Engines]),
                 page: p,
             }
@@ -1683,7 +1589,7 @@ mod tests {
     fn engine_titles_lead_with_the_keyword() {
         let site = crate::fixtures::site();
         for p in &site.engines {
-            let title = in_locale(Locale::En, |t| engine_meta(p, t).unwrap().title());
+            let title = in_locale(Locale::En, |t| engine_meta(p, t).title());
             let head: String = title.chars().take(60).collect();
             assert!(head.contains("MIDI Note Map"), "{title}");
         }
@@ -1697,15 +1603,9 @@ mod tests {
                 let descriptions = site
                     .engines
                     .iter()
-                    .map(|p| engine_meta(p, t).unwrap().description)
-                    .chain(
-                        site.pairs
-                            .iter()
-                            .map(|p| pair_meta(p, t).unwrap().description),
-                    )
-                    .chain(std::iter::once(
-                        index_meta(&site.index, t).unwrap().description,
-                    ));
+                    .map(|p| engine_meta(p, t).description)
+                    .chain(site.pairs.iter().map(|p| pair_meta(p, t).description))
+                    .chain(std::iter::once(index_meta(&site.index, t).description));
                 for d in descriptions {
                     assert!(d.ends_with(['.', '。']), "{d}");
                 }
@@ -1773,7 +1673,7 @@ mod tests {
     }
 
     fn english_summary(counts: Tally) -> String {
-        in_locale(Locale::En, |t| pair_summary(t, "A", "B", counts).unwrap())
+        in_locale(Locale::En, |t| pair_summary(t, "A", "B", counts))
     }
 
     #[test]
@@ -1884,7 +1784,7 @@ mod tests {
             assert!(site
                 .engines
                 .iter()
-                .all(|p| description_fits(engine_meta(p, t).unwrap().description)));
+                .all(|p| description_fits(engine_meta(p, t).description)));
         });
     }
 
@@ -1895,7 +1795,7 @@ mod tests {
             let long: Vec<String> = site
                 .pairs
                 .iter()
-                .map(|p| pair_meta(p, t).unwrap().description)
+                .map(|p| pair_meta(p, t).description)
                 .filter(|d| d.chars().count() > DESCRIPTION_MAX)
                 .collect();
             assert_eq!(long, Vec::<String>::new());
@@ -1906,9 +1806,7 @@ mod tests {
     fn the_index_description_fits() {
         let site = crate::fixtures::site();
         in_locale(Locale::En, |t| {
-            assert!(description_fits(
-                index_meta(&site.index, t).unwrap().description
-            ));
+            assert!(description_fits(index_meta(&site.index, t).description));
         });
     }
 
@@ -1971,21 +1869,14 @@ mod tests {
         assert!(html.contains(r#"href="/pl/engines/ezdrummer/" hreflang="pl""#));
     }
 
-    fn polish(id: MessageId, arg: (&str, &str)) -> String {
-        let mut args = FluentArgs::new();
-        args.set(arg.0, arg.1);
-        crate::fixtures::messages()
-            .format(Locale::Pl, id, &args)
-            .unwrap()
+    fn polish(phrase: Phrase) -> String {
+        crate::fixtures::messages().say(Locale::Pl, phrase)
     }
 
     #[test]
     fn polish_engine_pages_have_a_polish_heading() {
         let html = page("pl/engines/ezdrummer/index.html");
-        assert!(html.contains(&polish(
-            MessageId::MapsEngineHeading,
-            ("engine", "EZdrummer 3")
-        )));
+        assert!(html.contains(&polish(Phrase::maps_engine_heading("EZdrummer 3"))));
     }
 
     #[test]
@@ -2319,10 +2210,7 @@ mod tests {
     #[test]
     fn polish_pair_pages_head_their_sibling_pairs_in_polish() {
         let html = page("pl/convert/addictive-drums2-to-ezdrummer/index.html");
-        assert!(html.contains(&polish(
-            MessageId::MapsMoreFrom,
-            ("engine", "Addictive Drums 2")
-        )));
+        assert!(html.contains(&polish(Phrase::maps_more_from("Addictive Drums 2"))));
     }
 
     fn alternate_link(tag: &str, path: &str) -> String {

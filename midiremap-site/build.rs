@@ -2,12 +2,12 @@
 mod ftl_vars;
 
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     env, fs,
     path::{Path, PathBuf},
 };
 
-use heck::{ToSnakeCase, ToUpperCamelCase};
+use heck::{ToShoutySnakeCase, ToSnakeCase, ToUpperCamelCase};
 use serde::Deserialize;
 
 #[derive(Copy, Clone, Debug)]
@@ -44,18 +44,11 @@ struct LocaleEntry {
     reviewed: bool,
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "lowercase")]
-enum Closing {
-    Panel,
-    Link,
-}
-
 #[derive(Deserialize)]
 struct Section {
     key: String,
     slug: String,
-    closing: Closing,
+    closing: String,
 }
 
 #[derive(Deserialize)]
@@ -71,35 +64,88 @@ struct Tip {
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct Routes {
-    converter: String,
-    note_maps: String,
-    drum_maps: String,
-}
-
-#[derive(Deserialize)]
 struct Structure {
-    routes: Routes,
+    routes: BTreeMap<String, String>,
     sections: Vec<Section>,
     nav: Vec<Target>,
     footer: Vec<Target>,
     popular: Vec<(String, String)>,
 }
 
-fn target(t: &Target, keys: &BTreeSet<&str>) -> String {
-    match t {
-        Target::Route { route } if route == "converter" => "NavTarget::Converter".into(),
-        Target::Route { route } if route == "noteMaps" => "NavTarget::NoteMaps".into(),
-        Target::Route { route } if route == "drumMaps" => "NavTarget::DrumMaps".into(),
-        Target::Route { route } => panic!("structure.json: unknown route '{route}'"),
-        Target::Section { section } if keys.contains(section.as_str()) => {
-            format!(
-                "NavTarget::Section(SectionKey::{})",
-                section.to_upper_camel_case()
-            )
+impl Structure {
+    fn target(&self, t: &Target) -> String {
+        match t {
+            Target::Route { route } if self.routes.contains_key(route) => {
+                format!("NavTarget::{}", route.to_upper_camel_case())
+            }
+            Target::Route { route } => panic!("structure.json: unknown route '{route}'"),
+            Target::Section { section } if self.sections.iter().any(|s| &s.key == section) => {
+                format!(
+                    "NavTarget::Section(SectionKey::{})",
+                    section.to_upper_camel_case()
+                )
+            }
+            Target::Section { section } => panic!("structure.json: unknown section '{section}'"),
         }
-        Target::Section { section } => panic!("structure.json: unknown section '{section}'"),
+    }
+}
+
+/// What the site's code is generated from: the locales, the site's structure, the tip link
+/// and English's message files.
+struct Inputs {
+    locales: Vec<LocaleEntry>,
+    structure: Structure,
+    tip: Tip,
+    english: Vec<(FtlFile, String)>,
+}
+
+impl Inputs {
+    fn read(root: &Path) -> Self {
+        let json = |rel: &str| read(&root.join(rel));
+        let locales: Vec<LocaleEntry> =
+            serde_json::from_str(&json("locales/locales.json")).unwrap();
+        assert!(
+            locales.iter().any(|l| l.code == "en" && l.reviewed),
+            "locales.json: en must be reviewed, since x-default points at it"
+        );
+        for l in &locales {
+            for file in FtlFile::ALL {
+                json(&format!("locales/{}/{}.ftl", l.code, file.stem()));
+            }
+            json(&format!("locales/{}/docs.json", l.code));
+        }
+        Self {
+            structure: serde_json::from_str(&json("content/structure.json")).unwrap(),
+            tip: serde_json::from_str(&json("content/tip.json")).unwrap(),
+            english: FtlFile::ALL
+                .into_iter()
+                .map(|file| (file, json(&format!("locales/en/{}.ftl", file.stem()))))
+                .collect(),
+            locales,
+        }
+    }
+
+    /// English's messages, in file order, each defined once.
+    fn messages(&self) -> Vec<Message<'_>> {
+        let messages: Vec<Message> = self
+            .english
+            .iter()
+            .flat_map(|&(file, ref ftl)| {
+                ftl_vars::message_vars(ftl)
+                    .unwrap_or_else(|e| panic!("en/{}.ftl: {e:?}", file.stem()))
+                    .into_iter()
+                    .map(move |(id, vars)| Message {
+                        id,
+                        vars: vars.into_iter().collect(),
+                        file,
+                    })
+            })
+            .collect();
+        let mut ids = BTreeSet::new();
+        for m in &messages {
+            assert!(ids.insert(m.id), "locales/en: '{}' is defined twice", m.id);
+        }
+        messages
     }
 }
 
@@ -120,17 +166,13 @@ fn matcher<T>(name: &str, ret: &str, items: &[T], arm: impl Fn(&T) -> (String, S
     format!("    pub fn {name}(self) -> {ret} {{ match self {{ {arms} }} }}\n")
 }
 
-fn enumeration(name: &str, variants: &[String]) -> String {
+/// A `Copy` enum of `variants` with `ALL`, every variant in order, and `methods`.
+fn enum_type(name: &str, variants: &[String], methods: &[String]) -> String {
+    let all = list(variants.iter().map(|v| format!("Self::{v}")));
     format!(
-        "#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]\npub enum {name} {{ {} }}\n",
-        variants.join(", ")
-    )
-}
-
-fn all(variants: &[String]) -> String {
-    format!(
-        "    pub const ALL: &'static [Self] = &[{}];\n",
-        list(variants.iter().map(|v| format!("Self::{v}")))
+        "#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]\npub enum {name} {{ {} }}\nimpl {name} {{\n    pub const ALL: &'static [Self] = &[{all}];\n{}}}\n",
+        variants.join(", "),
+        methods.concat()
     )
 }
 
@@ -147,48 +189,15 @@ fn table(name: &str, generics: &str, key: &str, value: &str, keys: &[(String, St
     )
 }
 
-fn per_locale(locales: &[LocaleEntry]) -> String {
-    let keys: Vec<(String, String)> = locales
+fn locale_code(locales: &[LocaleEntry]) -> String {
+    let variants: Vec<String> = locales
         .iter()
-        .map(|l| (l.code.to_snake_case(), l.code.to_upper_camel_case()))
+        .map(|l| l.code.to_upper_camel_case())
         .collect();
-    table("PerLocale", "<T>", "Locale", "T", &keys)
-}
-
-fn plain_texts(plain: &[&str]) -> String {
-    let variants: Vec<String> = plain.iter().map(|id| id.to_upper_camel_case()).collect();
-    let mut out = enumeration("Plain", &variants);
-    out += "impl Plain {\n";
-    out += &all(&variants);
-    out += &matcher("id", "&'static str", plain, |id| {
-        (id.to_upper_camel_case(), format!("{id:?}"))
-    });
-    out += "}\n";
-    let keys: Vec<(String, String)> = plain
-        .iter()
-        .map(|id| (id.to_snake_case(), id.to_upper_camel_case()))
-        .collect();
-    out + &table("PlainTexts", "", "Plain", "String", &keys)
-}
-
-fn ftl_files() -> String {
-    let variants: Vec<String> = FtlFile::ALL.iter().map(|f| f.variant()).collect();
-    let mut out =
-        "/// One of a locale's message files; each message lives in the file English gives it.\n"
-            .to_owned();
-    out += &enumeration("FtlFile", &variants);
-    out += "impl FtlFile {\n";
-    out += &all(&variants);
-    out += &matcher("stem", "&'static str", &FtlFile::ALL, |f| {
-        (f.variant(), format!("{:?}", f.stem()))
-    });
-    out += "}\n";
-    out += "impl ::std::fmt::Display for FtlFile {\n    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {\n        write!(f, \"{}.ftl\", self.stem())\n    }\n}\n";
-    out
-}
-
-fn locale_ftl(locales: &[LocaleEntry]) -> String {
-    let arms = list(locales.iter().flat_map(|l| {
+    let field = |f: fn(&LocaleEntry) -> &str| {
+        move |l: &LocaleEntry| (l.code.to_upper_camel_case(), format!("{:?}", f(l)))
+    };
+    let ftl_arms = list(locales.iter().flat_map(|l| {
         FtlFile::ALL.map(|file| {
             format!(
                 "(Self::{}, FtlFile::{}) => {}",
@@ -198,113 +207,49 @@ fn locale_ftl(locales: &[LocaleEntry]) -> String {
             )
         })
     }));
-    format!("    pub fn ftl(self, file: FtlFile) -> &'static str {{ match (self, file) {{ {arms} }} }}\n")
+    let methods = [
+        matcher("code", "&'static str", locales, field(|l| &l.code)),
+        matcher("prefix", "&'static str", locales, field(|l| &l.prefix)),
+        matcher("lang_tag", "&'static str", locales, field(|l| &l.lang_tag)),
+        matcher("native_name", "&'static str", locales, field(|l| &l.native_name)),
+        matcher("reviewed", "bool", locales, |l| {
+            (l.code.to_upper_camel_case(), l.reviewed.to_string())
+        }),
+        format!("    pub fn ftl(self, file: FtlFile) -> &'static str {{ match (self, file) {{ {ftl_arms} }} }}\n"),
+        matcher("docs", "&'static str", locales, |l| {
+            (
+                l.code.to_upper_camel_case(),
+                source(&format!("locales/{}/docs.json", l.code)),
+            )
+        }),
+    ];
+    let keys: Vec<(String, String)> = locales
+        .iter()
+        .map(|l| (l.code.to_snake_case(), l.code.to_upper_camel_case()))
+        .collect();
+    enum_type("Locale", &variants, &methods) + &table("PerLocale", "<T>", "Locale", "T", &keys)
 }
 
-fn main() {
-    let root = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("..");
-    let locales: Vec<LocaleEntry> =
-        serde_json::from_str(&read(&root.join("locales/locales.json"))).unwrap();
-    let structure: Structure =
-        serde_json::from_str(&read(&root.join("content/structure.json"))).unwrap();
-    let tip: Tip = serde_json::from_str(&read(&root.join("content/tip.json"))).unwrap();
-    let en: Vec<(FtlFile, String)> = FtlFile::ALL
-        .into_iter()
-        .map(|file| {
-            (
-                file,
-                read(&root.join(format!("locales/en/{}.ftl", file.stem()))),
-            )
-        })
-        .collect();
-    let messages: Vec<Message> = en
-        .iter()
-        .flat_map(|&(file, ref ftl)| {
-            ftl_vars::message_vars(ftl)
-                .unwrap_or_else(|e| panic!("en/{}.ftl: {e:?}", file.stem()))
-                .into_iter()
-                .map(move |(id, vars)| Message {
-                    id,
-                    vars: vars.into_iter().collect(),
-                    file,
-                })
-        })
-        .collect();
-    let mut ids = BTreeSet::new();
-    for m in &messages {
-        assert!(ids.insert(m.id), "locales/en: '{}' is defined twice", m.id);
-    }
-    let plain: Vec<&str> = messages
-        .iter()
-        .filter(|m| m.vars.is_empty())
-        .map(|m| m.id)
-        .collect();
-    for l in &locales {
-        for file in FtlFile::ALL {
-            read(&root.join(format!("locales/{}/{}.ftl", l.code, file.stem())));
-        }
-        read(&root.join(format!("locales/{}/docs.json", l.code)));
-    }
-    assert!(
-        locales.iter().any(|l| l.code == "en" && l.reviewed),
-        "locales.json: en must be reviewed, since x-default points at it"
-    );
-    let keys: BTreeSet<&str> = structure.sections.iter().map(|s| s.key.as_str()).collect();
-
-    let locale_variants: Vec<String> = locales
-        .iter()
-        .map(|l| l.code.to_upper_camel_case())
-        .collect();
-    let mut out = enumeration("Locale", &locale_variants);
-    out += "impl Locale {\n";
-    out += &all(&locale_variants);
-    let field = |f: fn(&LocaleEntry) -> &str| {
-        move |l: &LocaleEntry| (l.code.to_upper_camel_case(), format!("{:?}", f(l)))
-    };
-    out += &matcher("code", "&'static str", &locales, field(|l| &l.code));
-    out += &matcher("prefix", "&'static str", &locales, field(|l| &l.prefix));
-    out += &matcher("lang_tag", "&'static str", &locales, field(|l| &l.lang_tag));
-    out += &matcher(
-        "native_name",
-        "&'static str",
-        &locales,
-        field(|l| &l.native_name),
-    );
-    out += &matcher("reviewed", "bool", &locales, |l| {
-        (l.code.to_upper_camel_case(), l.reviewed.to_string())
-    });
-    out += &locale_ftl(&locales);
-    out += &matcher("docs", "&'static str", &locales, |l| {
-        (
-            l.code.to_upper_camel_case(),
-            source(&format!("locales/{}/docs.json", l.code)),
-        )
-    });
-    out += "}\n";
-    out += &per_locale(&locales);
-
-    let section_variants: Vec<String> = structure
-        .sections
+fn section_code(sections: &[Section], plain: &[&str]) -> String {
+    let variants: Vec<String> = sections
         .iter()
         .map(|s| s.key.to_upper_camel_case())
         .collect();
-    out += &enumeration("SectionKey", &section_variants);
-    out += "impl SectionKey {\n";
-    out += &all(&section_variants);
-    out += &matcher("key", "&'static str", &structure.sections, |s| {
-        (s.key.to_upper_camel_case(), format!("{:?}", s.key))
-    });
-    out += &matcher("slug", "&'static str", &structure.sections, |s| {
-        (s.key.to_upper_camel_case(), format!("{:?}", s.slug))
-    });
-    out += &matcher("closing", "Closing", &structure.sections, |s| {
-        (
-            s.key.to_upper_camel_case(),
-            format!("Closing::{:?}", s.closing),
-        )
-    });
+    let text = |f: fn(&Section) -> &str| {
+        move |s: &Section| (s.key.to_upper_camel_case(), format!("{:?}", f(s)))
+    };
+    let mut methods = vec![
+        matcher("key", "&'static str", sections, text(|s| &s.key)),
+        matcher("slug", "&'static str", sections, text(|s| &s.slug)),
+        matcher("closing", "Closing", sections, |s| {
+            (
+                s.key.to_upper_camel_case(),
+                format!("Closing::{}", s.closing.to_upper_camel_case()),
+            )
+        }),
+    ];
     for part in ["label", "heading", "title", "description"] {
-        out += &matcher(part, "Plain", &structure.sections, |s| {
+        methods.push(matcher(part, "Plain", sections, |s| {
             let id = format!("section-{}-{part}", s.key);
             assert!(
                 plain.contains(&id.as_str()),
@@ -314,63 +259,140 @@ fn main() {
                 s.key.to_upper_camel_case(),
                 format!("Plain::{}", id.to_upper_camel_case()),
             )
-        });
+        }));
     }
-    out += "}\n";
+    enum_type("SectionKey", &variants, &methods)
+}
 
-    let mut routes = format!(
-        "pub const CONVERTER: SitePath = SitePath::fixed({:?});\npub const NOTE_MAPS: SitePath = SitePath::fixed({:?});\npub const DRUM_MAPS: SitePath = SitePath::fixed({:?});\n",
-        structure.routes.converter, structure.routes.note_maps, structure.routes.drum_maps
-    );
-    routes += "#[derive(Copy, Clone, Debug, PartialEq, Eq)]\npub enum NavTarget { Converter, NoteMaps, DrumMaps, Section(SectionKey) }\n";
-    routes += &format!(
-        "pub const NAV: &[NavTarget] = &[{}];\n",
-        list(structure.nav.iter().map(|t| target(t, &keys)))
-    );
-    routes += &format!(
-        "pub const FOOTER: &[NavTarget] = &[{}];\n",
-        list(structure.footer.iter().map(|t| target(t, &keys)))
-    );
-    routes += &format!(
-        "pub const POPULAR: &[(&str, &str)] = &[{}];\n",
-        list(
-            structure
-                .popular
-                .iter()
-                .map(|(src, tgt)| format!("({src:?}, {tgt:?})"))
-        )
-    );
+fn plain_texts(plain: &[&str]) -> String {
+    let variants: Vec<String> = plain.iter().map(|id| id.to_upper_camel_case()).collect();
+    let id = matcher("id", "&'static str", plain, |id| {
+        (id.to_upper_camel_case(), format!("{id:?}"))
+    });
+    let keys: Vec<(String, String)> = plain
+        .iter()
+        .map(|id| (id.to_snake_case(), id.to_upper_camel_case()))
+        .collect();
+    enum_type("Plain", &variants, &[id]) + &table("PlainTexts", "", "Plain", "String", &keys)
+}
 
-    out += &format!(
-        "pub const TIP_HREF: &str = {:?};
-",
-        tip.other
-    );
+fn ftl_files() -> String {
+    let variants: Vec<String> = FtlFile::ALL.iter().map(|f| f.variant()).collect();
+    let stem = matcher("stem", "&'static str", &FtlFile::ALL, |f| {
+        (f.variant(), format!("{:?}", f.stem()))
+    });
+    format!(
+        "/// One of a locale's message files; each message lives in the file English gives it.\n{}impl ::std::fmt::Display for FtlFile {{\n    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {{\n        write!(f, \"{{}}.ftl\", self.stem())\n    }}\n}}\n",
+        enum_type("FtlFile", &variants, &[stem])
+    )
+}
 
-    let message_variants: Vec<String> = messages
+/// One constructor per message with variables, taking each variable, in name order, under its
+/// snake-case name; the site uses some of them, the app's messages among them none.
+fn phrases(messages: &[Message]) -> String {
+    let constructors: String = messages
+        .iter()
+        .filter(|m| !m.vars.is_empty())
+        .map(|m| {
+            let params = list(
+                m.vars
+                    .iter()
+                    .map(|v| format!("{}: impl Into<Arg<'a>>", v.to_snake_case())),
+            );
+            let args = list(
+                m.vars
+                    .iter()
+                    .map(|v| format!("({v:?}, {}.into())", v.to_snake_case())),
+            );
+            format!(
+                "    pub fn {}({params}) -> Self {{ Self::new(MessageId::{}, [{args}]) }}\n",
+                m.id.to_snake_case(),
+                m.id.to_upper_camel_case()
+            )
+        })
+        .collect();
+    format!("#[allow(dead_code)]\nimpl<'a> Phrase<'a> {{\n{constructors}}}\n")
+}
+
+fn message_code(messages: &[Message], plain: &[&str]) -> String {
+    let variants: Vec<String> = messages
         .iter()
         .map(|m| m.id.to_upper_camel_case())
         .collect();
-    out += &enumeration("MessageId", &message_variants);
-    out += "impl MessageId {\n";
-    out += &all(&message_variants);
-    out += &matcher("id", "&'static str", &messages, |m| {
-        (m.id.to_upper_camel_case(), format!("{:?}", m.id))
-    });
-    out += &matcher("vars", "&'static [&'static str]", &messages, |m| {
-        (m.id.to_upper_camel_case(), format!("&{:?}", m.vars))
-    });
-    out += &matcher("file", "FtlFile", &messages, |m| {
-        (
-            m.id.to_upper_camel_case(),
-            format!("FtlFile::{}", m.file.variant()),
-        )
-    });
-    out += "}\n";
-    out += &ftl_files();
-    out += &plain_texts(&plain);
+    let methods = [
+        matcher("id", "&'static str", messages, |m| {
+            (m.id.to_upper_camel_case(), format!("{:?}", m.id))
+        }),
+        matcher("vars", "&'static [&'static str]", messages, |m| {
+            (m.id.to_upper_camel_case(), format!("&{:?}", m.vars))
+        }),
+        matcher("file", "FtlFile", messages, |m| {
+            (
+                m.id.to_upper_camel_case(),
+                format!("FtlFile::{}", m.file.variant()),
+            )
+        }),
+    ];
+    enum_type("MessageId", &variants, &methods)
+        + &ftl_files()
+        + &plain_texts(plain)
+        + &phrases(messages)
+}
 
+fn routes_code(structure: &Structure) -> String {
+    let paths: String = structure
+        .routes
+        .iter()
+        .map(|(route, path)| {
+            format!(
+                "pub const {}: SitePath = SitePath::fixed({path:?});\n",
+                route.to_shouty_snake_case()
+            )
+        })
+        .collect();
+    let targets = list(
+        structure
+            .routes
+            .keys()
+            .map(|route| route.to_upper_camel_case())
+            .chain(["Section(SectionKey)".to_owned()]),
+    );
+    let nav = |name: &str, targets: &[Target]| {
+        format!(
+            "pub const {name}: &[NavTarget] = &[{}];\n",
+            list(targets.iter().map(|t| structure.target(t)))
+        )
+    };
+    let popular = list(
+        structure
+            .popular
+            .iter()
+            .map(|(src, tgt)| format!("({src:?}, {tgt:?})")),
+    );
+    format!(
+        "{paths}#[derive(Copy, Clone, Debug, PartialEq, Eq)]\npub enum NavTarget {{ {targets} }}\n{}{}pub const POPULAR: &[(&str, &str)] = &[{popular}];\n",
+        nav("NAV", &structure.nav),
+        nav("FOOTER", &structure.footer)
+    )
+}
+
+fn main() {
+    let root = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("..");
+    let inputs = Inputs::read(&root);
+    let messages = inputs.messages();
+    let plain: Vec<&str> = messages
+        .iter()
+        .filter(|m| m.vars.is_empty())
+        .map(|m| m.id)
+        .collect();
+    let i18n = [
+        locale_code(&inputs.locales),
+        section_code(&inputs.structure.sections, &plain),
+        format!("pub const TIP_HREF: &str = {:?};\n", inputs.tip.other),
+        message_code(&messages, &plain),
+    ]
+    .concat();
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-    fs::write(out_dir.join("i18n.rs"), out).unwrap();
-    fs::write(out_dir.join("routes.rs"), routes).unwrap();
+    fs::write(out_dir.join("i18n.rs"), i18n).unwrap();
+    fs::write(out_dir.join("routes.rs"), routes_code(&inputs.structure)).unwrap();
 }

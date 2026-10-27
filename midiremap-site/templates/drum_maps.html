@@ -6,7 +6,7 @@
 {% block content %}
 <div class="flex flex-col gap-2.5">
   <h1 class="font-display text-display/tight font-bold text-t1">{{ texts.get(Plain::DrumMapsHeading) }}</h1>
-  <p class="text-body/relaxed text-t3">{{ texts.count(MessageId::DrumMapsIntro, page.all.len())? }}</p>
+  <p class="text-body/relaxed text-t3">{{ texts.say(Phrase::drum_maps_intro(page.all.len())) }}</p>
 </div>
 
 {% for s in steps %}
@@ -29,7 +29,7 @@
   </dl>
   <p class="text-ui/relaxed text-t4">{{ texts.get(Plain::DrumMapsOther) }}</p>
   {% when DrumMapStep::Download %}
-  {% call step_heading(s, texts.count(MessageId::DrumMapsListHeading, page.all.len())?) %}{% endcall %}
+  {% call step_heading(s, texts.say(Phrase::drum_maps_list_heading(page.all.len()))) %}{% endcall %}
   <input
     type="search"
     hidden
@@ -49,7 +49,7 @@
       </ul>
     </li>
     <li data-group>
-      {% call group_heading(texts.count(MessageId::MapsAllEngines, page.all.len())?) %}{% endcall %}
+      {% call group_heading(texts.say(Phrase::maps_all_engines(page.all.len()))) %}{% endcall %}
       <ul class="flex flex-col">
 {% for e in page.listed -%}
 <li data-q="{{ e.search() }}" class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5 border-t border-white/5 py-2"><a href="{{ texts.path(e.link.href()) }}" class="text-ui text-t2 transition-colors hover:text-accent">{{ e.link.name }}</a>{% call downloads(e.link) %}{% endcall %}{% for v in e.variants %}<span class="flex basis-full flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5 pl-3"><a href="{{ texts.path(v.link.href()) }}" class="text-label text-t4 transition-colors hover:text-accent">{{ v.label }}</a>{% call downloads(v.link) %}{% endcall %}</span>{% endfor %}</li>

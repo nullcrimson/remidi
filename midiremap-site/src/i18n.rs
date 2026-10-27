@@ -1,6 +1,8 @@
 use std::collections::{BTreeSet, HashMap};
 
-use fluent_bundle::{concurrent::FluentBundle, FluentArgs, FluentError, FluentResource};
+use fluent_bundle::{
+    concurrent::FluentBundle, FluentArgs, FluentError, FluentResource, FluentValue,
+};
 use fluent_syntax::parser::ParserError;
 
 use crate::{
@@ -9,6 +11,58 @@ use crate::{
 };
 
 include!(concat!(env!("OUT_DIR"), "/i18n.rs"));
+
+/// The value of one of a message's variables.
+pub struct Arg<'a>(FluentValue<'a>);
+
+impl<'a> From<&'a str> for Arg<'a> {
+    fn from(text: &'a str) -> Self {
+        Self(text.into())
+    }
+}
+
+impl<'a> From<&'a String> for Arg<'a> {
+    fn from(text: &'a String) -> Self {
+        Self(text.as_str().into())
+    }
+}
+
+impl From<String> for Arg<'_> {
+    fn from(text: String) -> Self {
+        Self(text.into())
+    }
+}
+
+impl From<usize> for Arg<'_> {
+    fn from(number: usize) -> Self {
+        Self(number.into())
+    }
+}
+
+impl From<&usize> for Arg<'_> {
+    fn from(number: &usize) -> Self {
+        Self((*number).into())
+    }
+}
+
+/// A message with variables and the value of each. Only the constructors build.rs writes
+/// from English's messages make one, so it gives exactly the variables its message uses.
+pub struct Phrase<'a> {
+    id: MessageId,
+    args: FluentArgs<'a>,
+}
+
+impl<'a> Phrase<'a> {
+    fn new<const N: usize>(id: MessageId, args: [(&'static str, Arg<'a>); N]) -> Self {
+        Self {
+            id,
+            args: args
+                .into_iter()
+                .map(|(name, Arg(value))| (name, value))
+                .collect(),
+        }
+    }
+}
 
 #[derive(thiserror::Error, Debug)]
 pub enum I18nError {
@@ -221,23 +275,24 @@ impl Messages {
         Ok(Translation { plain, bundle })
     }
 
-    pub fn load() -> Result<Self, I18nError> {
+    fn checked() -> Result<Self, I18nError> {
         PerLocale::try_new(|l| Self::check(l, |file| l.ftl(file))).map(Self)
+    }
+
+    /// Every locale's messages, embedded at build time.
+    pub fn load() -> Self {
+        Self::checked().expect("every locale's messages load, as every_locale_loads proves")
     }
 
     pub fn get(&self, locale: Locale, id: Plain) -> &str {
         self.0.get(locale).plain.get(id)
     }
 
-    /// `id` in `locale` with `args`; an argument the message needs but `args` lacks, or
-    /// names differently, is an error.
-    pub fn format(
-        &self,
-        locale: Locale,
-        id: MessageId,
-        args: &FluentArgs,
-    ) -> Result<String, I18nError> {
-        format(&self.0.get(locale).bundle, locale, id.id(), args)
+    /// `phrase` in `locale`.
+    pub fn say(&self, locale: Locale, phrase: Phrase) -> String {
+        format(&self.0.get(locale).bundle, locale, phrase.id.id(), &phrase.args).expect(
+            "a phrase gives its message's variables, which every locale's message uses, as every_locale_loads proves",
+        )
     }
 }
 
@@ -438,36 +493,15 @@ mod tests {
     }
 
     #[test]
-    fn messages_format_with_their_arguments() {
-        let mut args = FluentArgs::new();
-        args.set("engine", "EZdrummer 3");
+    fn every_locale_loads() {
+        assert!(Messages::checked().is_ok());
+    }
+
+    #[test]
+    fn a_phrase_formats_with_its_variables() {
         assert_eq!(
-            crate::fixtures::messages()
-                .format(Locale::En, MessageId::MapsConvertTo, &args)
-                .unwrap(),
+            crate::fixtures::messages().say(Locale::En, Phrase::maps_convert_to("EZdrummer 3")),
             "Convert to EZdrummer 3"
         );
-    }
-
-    #[test]
-    fn a_message_formatted_with_a_misnamed_argument_is_an_error() {
-        let mut args = FluentArgs::new();
-        args.set("engin", "EZdrummer 3");
-        assert!(matches!(
-            crate::fixtures::messages().format(Locale::En, MessageId::MapsConvertTo, &args),
-            Err(I18nError::Formatting { .. })
-        ));
-    }
-
-    #[test]
-    fn a_message_formatted_without_its_argument_is_an_error() {
-        assert!(matches!(
-            crate::fixtures::messages().format(
-                Locale::En,
-                MessageId::MapsConvertTo,
-                &FluentArgs::new()
-            ),
-            Err(I18nError::Formatting { .. })
-        ));
     }
 }

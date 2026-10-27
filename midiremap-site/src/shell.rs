@@ -1,10 +1,9 @@
 use askama::Template;
-use fluent_bundle::FluentArgs;
 use serde_json::json;
 
 use crate::{
     content::script_json,
-    i18n::{Docs, I18nError, Locale, MessageId, Messages, Plain},
+    i18n::{Docs, Locale, Messages, Phrase, Plain},
     pages::PairSummary,
     routes::{
         alternates, home, logo_url, og_image_url, Alternate, LocalPath, CONVERTER_PAGE, NOTE_MAPS,
@@ -19,8 +18,6 @@ pub enum ShellError {
     MissingMarker(&'static str),
     #[error(transparent)]
     Render(#[from] askama::Error),
-    #[error(transparent)]
-    I18n(#[from] I18nError),
 }
 
 const HEAD: (&str, &str) = ("<!--app-head-->", "<!--/app-head-->");
@@ -43,24 +40,18 @@ struct AppTitle<'a> {
     links: Vec<ShellLink>,
 }
 
-fn popular_links(
-    locale: Locale,
-    m: &Messages,
-    popular: &[PairSummary],
-) -> Result<Vec<ShellLink>, I18nError> {
-    let pairs = popular.iter().map(|PairSummary { link, .. }| {
-        let mut args = FluentArgs::new();
-        args.set("source", link.src_name.as_str());
-        args.set("target", link.tgt_name.as_str());
-        Ok(ShellLink {
-            href: link.href().in_locale(locale),
-            label: m.format(locale, MessageId::MapsPairLink, &args)?,
-        })
+fn popular_links(locale: Locale, m: &Messages, popular: &[PairSummary]) -> Vec<ShellLink> {
+    let pairs = popular.iter().map(|PairSummary { link, .. }| ShellLink {
+        href: link.href().in_locale(locale),
+        label: m.say(
+            locale,
+            Phrase::maps_pair_link(&link.src_name, &link.tgt_name),
+        ),
     });
-    let note_maps = std::iter::once(Ok(ShellLink {
+    let note_maps = std::iter::once(ShellLink {
         href: NOTE_MAPS.in_locale(locale),
         label: m.get(locale, Plain::NavNoteMaps).to_owned(),
-    }));
+    });
     pairs.chain(note_maps).collect()
 }
 
@@ -156,7 +147,7 @@ pub fn localize_shell(
     let title = AppTitle {
         title: get(Plain::ConverterTitle),
         heading: get(Plain::MapsPopular),
-        links: popular_links(locale, m, popular)?,
+        links: popular_links(locale, m, popular),
     }
     .render()?;
     let html = replace_region(&html, TITLE, &title).ok_or(ShellError::MissingMarker(TITLE.0))?;

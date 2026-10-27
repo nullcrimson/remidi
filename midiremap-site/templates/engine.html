@@ -7,17 +7,17 @@
   {{ page.engine.name }}
 </nav>
 <div class="flex flex-col gap-2.5">
-  <h1 class="font-display text-display/tight font-bold text-t1">{{ texts.engine(MessageId::MapsEngineHeading, page.engine.name.as_str())? }}</h1>
+  <h1 class="font-display text-display/tight font-bold text-t1">{{ texts.say(Phrase::maps_engine_heading(page.engine.name.as_str())) }}</h1>
   <p class="text-body/relaxed text-t3">{{ intro }}</p>
 </div>
 <div class="flex flex-col gap-5 sm:flex-row sm:items-start">
   <div class="flex flex-wrap gap-3 sm:flex-col">
-    {% call macros::converter_link(None, Some(page.engine.id.as_str()), "cta", texts.engine(MessageId::MapsConvertTo, page.engine.name.as_str())?) %}{% endcall %}
-    {% call macros::converter_link(Some(page.engine.id.as_str()), None, "inline-flex items-center justify-center rounded-panel border border-accent/40 px-5 py-3 font-display text-body font-semibold text-accent transition hover:border-accent hover:bg-accent/8 pointer-coarse:min-h-11", texts.engine(MessageId::MapsConvertFrom, page.engine.name.as_str())?) %}{% endcall %}
+    {% call macros::converter_link(None, Some(page.engine.id.as_str()), "cta", texts.say(Phrase::maps_convert_to(page.engine.name.as_str()))) %}{% endcall %}
+    {% call macros::converter_link(Some(page.engine.id.as_str()), None, "inline-flex items-center justify-center rounded-panel border border-accent/40 px-5 py-3 font-display text-body font-semibold text-accent transition hover:border-accent hover:bg-accent/8 pointer-coarse:min-h-11", texts.say(Phrase::maps_convert_from(page.engine.name.as_str()))) %}{% endcall %}
   </div>
   <aside class="flex flex-col gap-3 rounded-panel border border-hairline p-4 sm:grow">
     <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::MapsDawHeading) }}</h2>
-    <p class="text-ui/relaxed text-t3">{{ texts.engine(MessageId::MapsDawIntro, page.engine.name.as_str())? }}</p>
+    <p class="text-ui/relaxed text-t3">{{ texts.say(Phrase::maps_daw_intro(page.engine.name.as_str())) }}</p>
     <ul class="link-chips">{% for d in page.engine.drum_maps() %}<li>{% call macros::drum_map_download(page.engine, d) %}{% endcall %}</li>{% endfor %}</ul>
     <p class="text-label text-t5"><a href="{{ texts.path(DRUM_MAPS) }}" class="prose-link">{{ texts.get(Plain::MapsDawHow) }}</a></p>
   </aside>
@@ -31,7 +31,7 @@
 {% endif %}
 
 <div class="flex flex-col gap-2 border-t border-hairline pt-5">
-  <h2 class="font-display text-title font-semibold text-t1">{{ texts.total(MessageId::MapsAllNotes, page.total)? }}</h2>
+  <h2 class="font-display text-title font-semibold text-t1">{{ texts.say(Phrase::maps_all_notes(page.total)) }}</h2>
   {% if page.has_extra() %}<p class="text-ui/relaxed text-t4">{{ texts.get(Plain::MapsExtraHint) }}</p>{% endif %}
 </div>
 <div class="sticky top-0 z-10 -my-3 flex flex-col gap-3 bg-card py-3">
@@ -68,14 +68,14 @@
 {% if !page.pairs_from.is_empty() %}
 <div class="flex flex-col gap-3 border-t border-hairline pt-5">
   <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::MapsConversionTables) }}</h2>
-  <h3 id="pairs-from" class="font-display text-body font-semibold text-t1">{{ texts.engine(MessageId::MapsPairsFrom, page.engine.name.as_str())? }}</h3>
+  <h3 id="pairs-from" class="font-display text-body font-semibold text-t1">{{ texts.say(Phrase::maps_pairs_from(page.engine.name.as_str())) }}</h3>
   <ul aria-labelledby="pairs-from" class="link-chips">
 {% for l in page.pairs_from -%}
 <li><a href="{{ texts.path(l.href()) }}">{{ l.tgt_name }}</a></li>
 {% endfor -%}
 </ul>
   {% if !page.pairs_to.is_empty() -%}
-<h3 id="pairs-to" class="font-display text-body font-semibold text-t1">{{ texts.engine(MessageId::MapsPairsTo, page.engine.name.as_str())? }}</h3>
+<h3 id="pairs-to" class="font-display text-body font-semibold text-t1">{{ texts.say(Phrase::maps_pairs_to(page.engine.name.as_str())) }}</h3>
 <ul aria-labelledby="pairs-to" class="link-list">
 {% for l in page.pairs_to -%}
 <li><a href="{{ texts.path(l.href()) }}">{{ l.src_name }}</a></li>
