@@ -1,109 +1,29 @@
-use std::{borrow::Borrow, collections::BTreeSet};
-
 use askama::Template;
-use midiremap_core::{Canon, Daw, Outcome};
+use midiremap_core::Daw;
 
 use crate::{
-    content::{breadcrumb_schema, faq_schema, how_to_schema, Block, Closing, ContentPage},
+    content::{Block, Closing, ContentPage},
     converter_step::{converter_steps, shown_steps, ConverterStep, ShownStep},
     i18n::{Docs, Locale, Messages, Phrase, Plain, SectionKey, TIP_HREF},
     manifest::{AnalyticsScript, LocaleScript, SiteManifest},
+    meta::{
+        content_meta, drum_maps_meta, engine_meta, index_meta, pair_meta, section_meta, with_midi,
+        Meta,
+    },
     pages::{EnginePage, IndexPage, NoteCell, NoteRole, PairPage, PairSummary, Site, Tally},
     routes::{
-        alternates, home, href, label, local_href, og_image_url, page_in, Alternate, LocalPath,
-        NavTarget, Page, SitePath, DRUM_MAPS, FOOTER, NAV, NOTE_MAPS, SITE_NAME, THANKS,
+        alternates, home, href, og_image_url, page_in, Alternate, LocalPath, NavTarget, Page,
+        SitePath, DRUM_MAPS, FOOTER, NAV, NOTE_MAPS, THANKS,
     },
+    schema::{breadcrumb_schema, section_schema},
+    texts::{NavItem, Texts},
 };
-
-const DESCRIPTION_MAX: usize = 155;
-const LIST_SEPARATOR: &str = ", ";
-
-/// A page's name, search snippet and canonical address.
-pub struct Meta {
-    pub name: String,
-    pub description: String,
-    pub canonical: String,
-}
-
-impl Meta {
-    /// The page's title: its name and the site's.
-    pub fn title(&self) -> String {
-        format!("{} | {SITE_NAME}", self.name)
-    }
-}
-
-const TITLE_NAME_MAX: usize = 40;
 
 /// What stops the static pages from being rendered.
 #[derive(thiserror::Error, Debug)]
 pub enum RenderError {
     #[error(transparent)]
     Template(#[from] askama::Error),
-}
-
-fn fit(first: &str, fallbacks: &[String], rest: &[String], max: usize) -> String {
-    let Some(mut out) = std::iter::once(first)
-        .chain(fallbacks.iter().map(String::as_str))
-        .find(|s| s.chars().count() <= max)
-        .map(str::to_owned)
-    else {
-        return fallbacks
-            .iter()
-            .map(String::as_str)
-            .fold(first, |shortest, s| {
-                if s.chars().count() < shortest.chars().count() {
-                    s
-                } else {
-                    shortest
-                }
-            })
-            .to_owned();
-    };
-    for sentence in rest {
-        if out.chars().count() + 1 + sentence.chars().count() <= max {
-            out = format!("{out} {sentence}");
-        }
-    }
-    out
-}
-
-fn with_midi(name: &str) -> String {
-    if name.ends_with("MIDI") {
-        name.to_string()
-    } else {
-        format!("{name} MIDI")
-    }
-}
-
-fn drum_list(drums: &BTreeSet<Canon>) -> String {
-    drums
-        .iter()
-        .map(|drum| drum.label())
-        .collect::<Vec<_>>()
-        .join(LIST_SEPARATOR)
-}
-
-pub fn engine_meta(p: &EnginePage, texts: &Texts) -> Meta {
-    let n = p.engine.name.as_str();
-    let midi = with_midi(n);
-    let name = if n.chars().count() <= TITLE_NAME_MAX {
-        texts.say(Phrase::maps_engine_title(midi.as_str()))
-    } else {
-        texts.say(Phrase::maps_engine_title_long_name(n))
-    };
-    Meta {
-        name,
-        description: fit(
-            &texts.say(Phrase::maps_engine_description(n, p.total)),
-            &[texts.say(Phrase::maps_engine_description_short(n))],
-            &[
-                texts.get(Plain::MapsEngineDescriptionDrumMaps).to_owned(),
-                texts.say(Phrase::maps_engine_description_more(midi.as_str())),
-            ],
-            DESCRIPTION_MAX,
-        ),
-        canonical: p.engine.href().in_locale(texts.locale).url(),
-    }
 }
 
 fn pair_summary(texts: &Texts, src: &str, tgt: &str, tally: Tally) -> String {
@@ -122,65 +42,6 @@ fn pair_heading(p: &PairPage, texts: &Texts) -> String {
         with_midi(&p.src.name),
         &p.tgt.name,
     ))
-}
-
-fn conversion_meta(src: &str, tgt: &str, tally: Tally, path: SitePath, texts: &Texts) -> Meta {
-    Meta {
-        name: texts.say(Phrase::maps_pair_title(with_midi(src), tgt)),
-        description: fit(
-            &texts.say(Phrase::maps_pair_description(
-                tally.approximated,
-                tally.dropped,
-                tally.exact,
-                src,
-                tgt,
-            )),
-            &[texts.say(Phrase::maps_pair_description_short(src, tgt))],
-            &[texts.get(Plain::MapsPairDescriptionMore).to_owned()],
-            DESCRIPTION_MAX,
-        ),
-        canonical: path.in_locale(texts.locale).url(),
-    }
-}
-
-pub fn pair_meta(p: &PairPage, texts: &Texts) -> Meta {
-    conversion_meta(&p.src.name, &p.tgt.name, p.tally, p.href(), texts)
-}
-
-pub fn summary_meta(p: &PairSummary, texts: &Texts) -> Meta {
-    conversion_meta(
-        &p.link.src_name,
-        &p.link.tgt_name,
-        p.tally,
-        p.link.href(),
-        texts,
-    )
-}
-
-pub fn index_meta(p: &IndexPage, texts: &Texts) -> Meta {
-    Meta {
-        name: texts.say(Phrase::maps_index_title(p.all.len())),
-        description: fit(
-            &texts.say(Phrase::maps_index_description(p.all.len())),
-            &[],
-            &[],
-            DESCRIPTION_MAX,
-        ),
-        canonical: NOTE_MAPS.in_locale(texts.locale).url(),
-    }
-}
-
-pub fn drum_maps_meta(p: &IndexPage, texts: &Texts) -> Meta {
-    Meta {
-        name: texts.say(Phrase::drum_maps_title(p.all.len())),
-        description: fit(
-            &texts.say(Phrase::drum_maps_description(p.all.len())),
-            &[],
-            &[],
-            DESCRIPTION_MAX,
-        ),
-        canonical: DRUM_MAPS.in_locale(texts.locale).url(),
-    }
 }
 
 /// A step of the drum maps page.
@@ -217,29 +78,6 @@ fn how_to_load(daw: Daw) -> Plain {
         )
 }
 
-pub fn section_meta(k: SectionKey, texts: &Texts) -> Meta {
-    content_meta(
-        texts.get(k.title()).to_owned(),
-        texts.get(k.description()).to_owned(),
-        &href(NavTarget::Section(k), texts.locale, texts.docs),
-    )
-}
-
-fn content_meta(name: String, description: String, path: &LocalPath) -> Meta {
-    Meta {
-        name,
-        description,
-        canonical: path.url(),
-    }
-}
-
-struct NavItem<'a> {
-    label: &'a str,
-    href: LocalPath,
-    current: bool,
-    converter: bool,
-}
-
 #[derive(Clone, Copy)]
 enum PageKind {
     Index,
@@ -258,69 +96,6 @@ impl std::fmt::Display for PageKind {
             Self::DrumMaps => "drum-maps",
             Self::Doc => "doc",
         })
-    }
-}
-
-/// The site's messages and documents in one locale.
-pub struct Texts<'a> {
-    pub messages: &'a Messages,
-    pub docs: &'a Docs,
-    pub locale: Locale,
-}
-
-impl<'a> Texts<'a> {
-    pub fn get(&self, id: Plain) -> &'a str {
-        self.messages.get(self.locale, id)
-    }
-
-    /// A converter step's title, the converter's own.
-    fn step(&self, step: impl Borrow<ConverterStep>) -> &'a str {
-        self.get(match step.borrow() {
-            ConverterStep::File => Plain::StepFile,
-            ConverterStep::Engines => Plain::StepEngines,
-            ConverterStep::Convert => Plain::StepConvert,
-        })
-    }
-
-    pub fn say(&self, phrase: Phrase) -> String {
-        self.messages.say(self.locale, phrase)
-    }
-
-    /// How the pair table names the outcome of a row.
-    fn status(&self, outcome: &Outcome) -> &'a str {
-        self.get(match outcome {
-            Outcome::Direct { .. } => Plain::MapsStatusExact,
-            Outcome::Fallback { .. } => Plain::MapsStatusApproximated,
-            Outcome::Dropped { .. } => Plain::MapsStatusDropped,
-        })
-    }
-
-    fn plays(&self, sources: &BTreeSet<Canon>) -> String {
-        self.say(Phrase::maps_changes_plays(drum_list(sources)))
-    }
-
-    fn no_drum_for(&self, target: &str, sources: &BTreeSet<Canon>) -> String {
-        self.say(Phrase::maps_changes_dropped(drum_list(sources), target))
-    }
-
-    fn path(&self, english: SitePath) -> LocalPath {
-        english.in_locale(self.locale)
-    }
-
-    fn link(&self, english: &str) -> LocalPath {
-        local_href(english, self.locale, self.docs)
-    }
-
-    fn links(&self, targets: &[NavTarget], current: Option<NavTarget>) -> Vec<NavItem<'a>> {
-        targets
-            .iter()
-            .map(|&t| NavItem {
-                label: self.get(label(t)),
-                href: href(t, self.locale, self.docs),
-                current: current == Some(t),
-                converter: t == NavTarget::Converter,
-            })
-            .collect()
     }
 }
 
@@ -427,19 +202,6 @@ impl<'a> Frame<'a> {
 
 const IN_NOTE_MAPS: Option<NavTarget> = Some(NavTarget::NoteMaps);
 
-fn section_schema(key: SectionKey, page: &ContentPage, texts: &Texts) -> Option<String> {
-    match key {
-        SectionKey::Faq => Some(faq_schema(page.blocks)),
-        SectionKey::Guide => Some(how_to_schema(
-            page.heading,
-            page.blocks,
-            &converter_steps(&[]).map(|s| s.step),
-            |step| texts.step(step),
-        )),
-        SectionKey::Issue | SectionKey::Contact | SectionKey::Terms => None,
-    }
-}
-
 #[derive(Template)]
 #[template(path = "engine.html")]
 struct EngineHtml<'a> {
@@ -541,7 +303,7 @@ fn render_thanks(
             texts,
             None,
             None,
-            &Page::Everywhere(THANKS),
+            &Page::Unlisted(THANKS),
             PageKind::Doc,
         ),
         texts,
@@ -616,7 +378,7 @@ fn render_note_maps(
         ));
     }
     for p in &site.pairs {
-        let path = p.href();
+        let path = p.link.href();
         out.push((
             path.in_locale(texts.locale).file(),
             PairHtml {
@@ -624,7 +386,7 @@ fn render_note_maps(
                 frame: frame(
                     Page::Pair(path.clone()),
                     PageKind::Pair,
-                    trail(&format!("{} → {}", p.src.name, p.tgt.name), &path),
+                    trail(&p.link.title(), &path),
                 ),
                 texts,
                 heading: pair_heading(p, texts),
@@ -685,7 +447,11 @@ mod tests {
     use scraper::{ElementRef, Html, Selector};
 
     use super::*;
-    use crate::{pages::MAJORS, routes::pair_href};
+    use crate::{
+        meta::{fit, DESCRIPTION_MAX},
+        pages::MAJORS,
+        routes::pair_href,
+    };
 
     const ORIGIN: &str = "https://drumverter.com";
 
@@ -1329,19 +1095,19 @@ mod tests {
     #[test]
     fn pair_counts_use_the_tag_utility() {
         for p in &crate::fixtures::site().pairs {
-            let html = page(&p.href().in_locale(Locale::En).file());
+            let html = page(&p.link.href().in_locale(Locale::En).file());
             let shown =
                 1 + usize::from(p.tally.approximated > 0) + usize::from(p.tally.dropped > 0);
             let tags = attrs(html, "span.tag", "data-tone");
-            assert_eq!(tags.len(), shown, "{}", p.slug);
-            assert_eq!(tags[0], "neutral", "{}", p.slug);
+            assert_eq!(tags.len(), shown, "{}", p.link.slug);
+            assert_eq!(tags[0], "neutral", "{}", p.link.slug);
             assert!(
                 tags.iter()
                     .all(|t| ["neutral", "bright", "danger"].contains(&t.as_str())),
                 "{}",
-                p.slug
+                p.link.slug
             );
-            assert!(!html.contains(r#"data-tone="gold""#), "{}", p.slug);
+            assert!(!html.contains(r#"data-tone="gold""#), "{}", p.link.slug);
         }
     }
 
@@ -1364,7 +1130,7 @@ mod tests {
     }
 
     fn pair_page(p: &PairPage) -> &'static str {
-        page(&p.href().in_locale(Locale::En).file())
+        page(&p.link.href().in_locale(Locale::En).file())
     }
 
     #[test]
@@ -1378,7 +1144,7 @@ mod tests {
                 page_text(pair_page(p)).contains(&none),
                 p.tally.changes() == 0,
                 "{}",
-                p.slug
+                p.link.slug
             );
         }
     }
@@ -1390,7 +1156,7 @@ mod tests {
                 !texts(pair_page(p), "ul.merge-list").is_empty(),
                 p.tally.approximated > 0,
                 "{}",
-                p.slug
+                p.link.slug
             );
         }
     }
@@ -1402,7 +1168,7 @@ mod tests {
                 page_text(pair_page(p)).contains(&format!("{} has no drum for ", p.tgt.name)),
                 p.tally.dropped > 0,
                 "{}",
-                p.slug
+                p.link.slug
             );
         }
     }
@@ -1410,7 +1176,7 @@ mod tests {
     #[test]
     fn an_all_exact_group_hides_with_the_exact_rows() {
         for p in &crate::fixtures::site().pairs {
-            let html = page(&p.href().in_locale(Locale::En).file());
+            let html = page(&p.link.href().in_locale(Locale::En).file());
             let groups: Vec<(bool, &str)> = html
                 .split("<tbody")
                 .skip(1)
@@ -1419,16 +1185,16 @@ mod tests {
                     (open == r#" data-outcome="exact""#, body)
                 })
                 .collect();
-            assert_eq!(groups.len(), p.groups.len(), "{}", p.slug);
+            assert_eq!(groups.len(), p.groups.len(), "{}", p.link.slug);
             for ((hidden, body), g) in groups.iter().zip(&p.groups) {
-                assert_eq!(*hidden, g.all_exact(), "{}: {}", p.slug, g.family);
+                assert_eq!(*hidden, g.all_exact(), "{}: {}", p.link.slug, g.family);
                 assert!(
                     body.starts_with(&format!(
                         "\n<tr><th scope=\"rowgroup\" colspan=\"6\">{}</th></tr>",
                         g.family
                     )),
                     "{}",
-                    p.slug
+                    p.link.slug
                 );
             }
         }
@@ -1446,8 +1212,13 @@ mod tests {
     #[test]
     fn pair_pages_mark_the_engine_step_done() {
         for p in &crate::fixtures::site().pairs {
-            let html = page(&p.href().in_locale(Locale::En).file());
-            assert_eq!(badges(html), ["current", "done", "later"], "{}", p.slug);
+            let html = page(&p.link.href().in_locale(Locale::En).file());
+            assert_eq!(
+                badges(html),
+                ["current", "done", "later"],
+                "{}",
+                p.link.slug
+            );
             let steps = html.split(r#"<ol class="step-list""#).nth(1).unwrap();
             let engines = steps.split("<li>").nth(2).unwrap();
             assert!(
@@ -1455,7 +1226,7 @@ mod tests {
                     "From one drum layout to another<span class=\"sr-only\"> · done</span>"
                 ),
                 "{}",
-                p.slug
+                p.link.slug
             );
         }
     }

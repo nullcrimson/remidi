@@ -6,13 +6,16 @@ mod ftl_vars;
 mod i18n;
 mod llms;
 mod manifest;
+mod meta;
 mod pages;
 #[cfg(test)]
 mod parity;
 mod render;
 mod routes;
+mod schema;
 mod shell;
 mod sitemap;
+mod texts;
 
 use std::{
     fs,

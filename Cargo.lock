@@ -710,6 +710,7 @@ dependencies = [
  "heck",
  "midiremap-core",
  "midiremap-testkit",
+ "quick-xml",
  "roxmltree",
  "scraper",
  "serde",

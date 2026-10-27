@@ -164,6 +164,8 @@ pub enum Page {
     /// A conversion pair page, by its English path: every locale has it, but search engines
     /// index it only in reviewed locales.
     Pair(SitePath),
+    /// A page every locale has and search engines index in none, by its English path.
+    Unlisted(SitePath),
 }
 
 impl Page {
@@ -173,7 +175,9 @@ impl Page {
             Page::Section(k) => docs
                 .has(locale, *k)
                 .then(|| section_path(*k).in_locale(locale)),
-            Page::Everywhere(path) | Page::Pair(path) => Some(path.in_locale(locale)),
+            Page::Everywhere(path) | Page::Pair(path) | Page::Unlisted(path) => {
+                Some(path.in_locale(locale))
+            }
         }
     }
 
@@ -182,7 +186,19 @@ impl Page {
         match self {
             Page::Section(_) | Page::Everywhere(_) => true,
             Page::Pair(_) => locale.reviewed(),
+            Page::Unlisted(_) => false,
         }
+    }
+
+    /// The page's versions search engines may index, by locale.
+    pub fn versions<'a>(
+        &'a self,
+        docs: &'a Docs,
+    ) -> impl Iterator<Item = (Locale, LocalPath)> + 'a {
+        Locale::ALL
+            .iter()
+            .filter(move |&&l| self.indexed_in(l))
+            .filter_map(move |&l| self.in_locale(l, docs).map(|path| (l, path)))
     }
 }
 
@@ -205,23 +221,23 @@ impl Alternate {
     }
 }
 
-/// The versions of `page` for `hreflang`: each locale that has it and may be indexed, then
-/// `x-default`.
+/// The versions of `page` for `hreflang`: each version search engines may index, then
+/// `x-default`; none for a page indexed nowhere.
 pub fn alternates(page: &Page, docs: &Docs) -> Vec<Alternate> {
-    Locale::ALL
-        .iter()
-        .filter(|&&l| page.indexed_in(l))
-        .filter_map(|&l| {
-            page.in_locale(l, docs).map(|path| Alternate {
-                tag: l.lang_tag(),
-                path,
-            })
+    let mut versions: Vec<Alternate> = page
+        .versions(docs)
+        .map(|(l, path)| Alternate {
+            tag: l.lang_tag(),
+            path,
         })
-        .chain([Alternate {
+        .collect();
+    if !versions.is_empty() {
+        versions.push(Alternate {
             tag: "x-default",
             path: page_in(page, Locale::En, docs),
-        }])
-        .collect()
+        });
+    }
+    versions
 }
 
 /// A document's internal link, pointed at the same page in `locale`.

@@ -4,7 +4,7 @@
 <nav aria-label="{{ texts.get(Plain::MapsBreadcrumb) }}" class="font-mono text-caption tracking-[0.14em] text-t5 uppercase">
   <a href="{{ texts.path(NOTE_MAPS) }}" class="tap text-t4 transition-colors hover:text-t1">{{ texts.get(Plain::NavNoteMaps) }}</a>
   <span aria-hidden="true" class="text-decor">/</span>
-  {{ page.src.name }} → {{ page.tgt.name }}
+  {{ page.link.title() }}
 </nav>
 <div class="flex flex-col gap-2.5">
   <h1 class="font-display text-display/tight font-bold text-t1">{{ heading }}</h1>
@@ -13,7 +13,7 @@
 <ol class="step-list" aria-label="{{ texts.get(Plain::MapsStepsLabel) }}">
 {% for s in steps -%}
 <li>{% call macros::step_badge(s.number, s.state) %}{{ texts.step(s.step) }}{% endcall %}
-{%- if s.step == ConverterStep::Engines %}<span class="basis-full font-sans text-ui font-normal text-t3">{{ page.src.name }} → {{ page.tgt.name }} · {% if let Some(reverse) = page.reverse %}<a href="{{ texts.path(reverse.href()) }}" class="prose-link whitespace-nowrap">{{ texts.get(Plain::MapsReverse) }}</a>{% else %}{% call macros::converter_link(Some(page.tgt.id.as_str()), Some(page.src.id.as_str()), "prose-link whitespace-nowrap", texts.get(Plain::MapsReverse)) %}{% endcall %}{% endif %}</span>{% endif %}</li>
+{%- if s.step == ConverterStep::Engines %}<span class="basis-full font-sans text-ui font-normal text-t3">{{ page.link.title() }} · {% if let Some(reverse) = page.reverse %}<a href="{{ texts.path(reverse.href()) }}" class="prose-link whitespace-nowrap">{{ texts.get(Plain::MapsReverse) }}</a>{% else %}{% call macros::converter_link(Some(page.tgt.id.as_str()), Some(page.src.id.as_str()), "prose-link whitespace-nowrap", texts.get(Plain::MapsReverse)) %}{% endcall %}{% endif %}</span>{% endif %}</li>
 {% endfor -%}
 </ol>
 <div class="sticky top-0 z-10 -my-3 bg-card py-3 sm:static">

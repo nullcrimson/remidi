@@ -8,9 +8,10 @@ const ALLOWED_USES: &Table = &[
     ("fixtures", &["i18n", "pages"]),
     ("ftl_vars", &[]),
     ("i18n", &["content", "ftl_vars"]),
-    ("llms", &["i18n", "pages", "render", "routes"]),
+    ("llms", &["i18n", "meta", "pages", "routes", "texts"]),
     ("manifest", &[]),
-    ("pages", &["routes"]),
+    ("meta", &["i18n", "pages", "routes", "texts"]),
+    ("pages", &["i18n", "routes"]),
     ("parity", &["content", "fixtures", "i18n"]),
     (
         "render",
@@ -19,13 +20,21 @@ const ALLOWED_USES: &Table = &[
             "converter_step",
             "i18n",
             "manifest",
+            "meta",
             "pages",
             "routes",
+            "schema",
+            "texts",
         ],
     ),
     ("routes", &["i18n"]),
-    ("shell", &["content", "i18n", "pages", "routes"]),
+    (
+        "schema",
+        &["content", "converter_step", "i18n", "routes", "texts"],
+    ),
+    ("shell", &["i18n", "pages", "routes", "schema", "texts"]),
     ("sitemap", &["i18n", "pages", "routes"]),
+    ("texts", &["converter_step", "i18n", "routes"]),
 ];
 
 #[test]

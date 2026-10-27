@@ -1,63 +1,54 @@
+use quick_xml::{
+    events::{BytesDecl, BytesText, Event},
+    Writer,
+};
+
 use crate::{
-    i18n::{Docs, Locale, SectionKey},
+    i18n::Docs,
     pages::Site,
-    routes::{
-        alternates, drum_map_files, home, href, sitemap_url, NavTarget, Page, CONVERTER_PAGE,
-        DRUM_MAPS, NOTE_MAPS,
-    },
+    routes::{alternates, drum_map_files, sitemap_url},
 };
 
 /// Every indexed page's address, each with `xhtml:link`s to its indexed versions.
 pub fn sitemap(site: &Site, docs: &Docs) -> String {
-    let converters = Locale::ALL
-        .iter()
-        .map(|&l| (home(l), alternates(&CONVERTER_PAGE, docs)));
-    let pages: Vec<Page> = [NOTE_MAPS, DRUM_MAPS]
-        .into_iter()
-        .chain(site.engines.iter().map(|p| p.engine.href()))
-        .map(Page::Everywhere)
-        .chain(site.pairs.iter().map(|p| Page::Pair(p.href())))
-        .collect();
-    let note_maps = Locale::ALL.iter().flat_map(|&l| {
-        pages
-            .iter()
-            .filter(move |page| page.indexed_in(l))
-            .filter_map(move |page| {
-                page.in_locale(l, docs)
-                    .map(|path| (path, alternates(page, docs)))
-            })
-    });
-    let sections = Locale::ALL.iter().flat_map(|&l| {
-        SectionKey::ALL
-            .iter()
-            .filter(move |&&k| docs.has(l, k))
-            .map(move |&k| {
-                (
-                    href(NavTarget::Section(k), l, docs),
-                    alternates(&Page::Section(k), docs),
-                )
-            })
-    });
-    let urls: String = converters
-        .chain(note_maps)
-        .chain(sections)
-        .map(|(path, versions)| {
-            let links: String = versions
-                .iter()
-                .map(|version| {
-                    format!(
-                        r#"<xhtml:link rel="alternate" hreflang="{}" href="{}"/>"#,
-                        version.tag,
-                        version.url()
-                    )
+    let mut w = Writer::new_with_indent(Vec::new(), b' ', 2);
+    w.write_event(Event::Decl(BytesDecl::new("1.0", Some("UTF-8"), None)))
+        .and_then(|()| {
+            w.create_element("urlset")
+                .with_attributes([
+                    ("xmlns", "http://www.sitemaps.org/schemas/sitemap/0.9"),
+                    ("xmlns:xhtml", "http://www.w3.org/1999/xhtml"),
+                ])
+                .write_inner_content(|w| {
+                    site.pages().iter().try_for_each(|page| {
+                        let links = alternates(page, docs);
+                        page.versions(docs).try_for_each(|(_, path)| {
+                            w.create_element("url")
+                                .write_inner_content(|w| {
+                                    w.create_element("loc")
+                                        .write_text_content(BytesText::new(&path.url()))?;
+                                    links.iter().try_for_each(|link| {
+                                        w.create_element("xhtml:link")
+                                            .with_attributes([
+                                                ("rel", "alternate"),
+                                                ("hreflang", link.tag),
+                                                ("href", link.url().as_str()),
+                                            ])
+                                            .write_empty()
+                                            .map(drop)
+                                    })
+                                })
+                                .map(drop)
+                        })
+                    })
                 })
-                .collect();
-            format!("  <url><loc>{}</loc>{links}</url>\n", path.url())
+                .map(drop)
         })
-        .collect();
-    format!(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" xmlns:xhtml=\"http://www.w3.org/1999/xhtml\">\n{urls}</urlset>\n"
-    )
+        .expect("writing into memory cannot fail");
+    let mut xml =
+        String::from_utf8(w.into_inner()).expect("the writer emits the UTF-8 it is given");
+    xml.push('\n');
+    xml
 }
 
 pub fn robots() -> String {
@@ -76,8 +67,9 @@ mod tests {
 
     use super::*;
     use crate::{
+        i18n::{Locale, SectionKey},
         pages::{EXCLUDED_IDS, MAJORS, TARGETS},
-        routes::pair_href,
+        routes::{pair_href, Page, DRUM_MAPS},
     };
 
     #[test]

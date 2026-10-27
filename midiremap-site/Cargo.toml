@@ -6,6 +6,7 @@ license = "MIT"
 publish = false
 
 [dependencies]
+quick-xml = "0.42"
 midiremap-core = { path = "../midiremap-core", features = ["gzip"] }
 askama = { version = "0.16", default-features = false, features = ["derive", "std", "urlencode"] }
 clap = { version = "4", features = ["derive"] }

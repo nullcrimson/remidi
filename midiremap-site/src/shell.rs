@@ -1,14 +1,11 @@
 use askama::Template;
-use serde_json::json;
 
 use crate::{
-    content::script_json,
     i18n::{Docs, Locale, Messages, Phrase, Plain},
     pages::PairSummary,
-    routes::{
-        alternates, home, logo_url, og_image_url, Alternate, LocalPath, CONVERTER_PAGE, NOTE_MAPS,
-        SITE_NAME,
-    },
+    routes::{alternates, home, og_image_url, Alternate, LocalPath, CONVERTER_PAGE, NOTE_MAPS},
+    schema::converter_schema,
+    texts::Texts,
 };
 
 /// What stops the built `index.html` from being localized.
@@ -40,17 +37,14 @@ struct AppTitle<'a> {
     links: Vec<ShellLink>,
 }
 
-fn popular_links(locale: Locale, m: &Messages, popular: &[PairSummary]) -> Vec<ShellLink> {
+fn popular_links(texts: &Texts, popular: &[PairSummary]) -> Vec<ShellLink> {
     let pairs = popular.iter().map(|PairSummary { link, .. }| ShellLink {
-        href: link.href().in_locale(locale),
-        label: m.say(
-            locale,
-            Phrase::maps_pair_link(&link.src_name, &link.tgt_name),
-        ),
+        href: texts.path(link.href()),
+        label: texts.say(Phrase::maps_pair_link(&link.src_name, &link.tgt_name)),
     });
     let note_maps = std::iter::once(ShellLink {
-        href: NOTE_MAPS.in_locale(locale),
-        label: m.get(locale, Plain::NavNoteMaps).to_owned(),
+        href: texts.path(NOTE_MAPS),
+        label: texts.get(Plain::NavNoteMaps).to_owned(),
     });
     pairs.chain(note_maps).collect()
 }
@@ -99,7 +93,12 @@ pub fn localize_shell(
     docs: &Docs,
     popular: &[PairSummary],
 ) -> Result<String, ShellError> {
-    let get = |id| m.get(locale, id);
+    let texts = Texts {
+        messages: m,
+        docs,
+        locale,
+    };
+    let get = |id| texts.get(id);
     let canonical = home(locale).url();
     let site_root = home(Locale::En).url();
     let head = AppHead {
@@ -110,27 +109,7 @@ pub fn localize_shell(
         image_alt: get(Plain::ConverterImageAlt),
         og_image: og_image_url(),
         alternates: alternates(&CONVERTER_PAGE, docs),
-        json_ld: script_json(&json!({
-            "@context": "https://schema.org",
-            "@graph": [
-                {
-                    "@type": "SoftwareApplication",
-                    "name": SITE_NAME,
-                    "description": get(Plain::ConverterAppDescription),
-                    "url": canonical,
-                    "applicationCategory": "MultimediaApplication",
-                    "operatingSystem": "Web",
-                    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-                },
-                { "@type": "WebSite", "name": SITE_NAME, "url": site_root },
-                {
-                    "@type": "Organization",
-                    "name": SITE_NAME,
-                    "url": site_root,
-                    "logo": logo_url(),
-                },
-            ],
-        })),
+        json_ld: converter_schema(get(Plain::ConverterAppDescription), &canonical, &site_root),
         canonical,
     }
     .render()?;
@@ -147,7 +126,7 @@ pub fn localize_shell(
     let title = AppTitle {
         title: get(Plain::ConverterTitle),
         heading: get(Plain::MapsPopular),
-        links: popular_links(locale, m, popular),
+        links: popular_links(&texts, popular),
     }
     .render()?;
     let html = replace_region(&html, TITLE, &title).ok_or(ShellError::MissingMarker(TITLE.0))?;

@@ -1,8 +1,9 @@
 use crate::{
     i18n::{Docs, Locale, Messages, Plain, SectionKey},
+    meta::{drum_maps_meta, engine_meta, index_meta, section_meta, summary_meta, Meta},
     pages::Site,
-    render::{drum_maps_meta, engine_meta, index_meta, section_meta, summary_meta, Meta, Texts},
     routes::{home, SITE_NAME},
+    texts::Texts,
 };
 
 fn line(name: &str, url: &str, description: &str) -> String {
