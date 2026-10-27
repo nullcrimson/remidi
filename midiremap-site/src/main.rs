@@ -7,6 +7,7 @@ mod i18n;
 mod llms;
 mod manifest;
 mod meta;
+mod note_map_pdf;
 mod pages;
 #[cfg(test)]
 mod parity;
@@ -55,6 +56,8 @@ pub enum SiteError {
     Render(#[from] RenderError),
     #[error(transparent)]
     I18n(#[from] I18nError),
+    #[error(transparent)]
+    NoteMap(#[from] note_map_pdf::NoteMapError),
     #[error("cannot write {path}: {source}")]
     Write {
         path: PathBuf,
@@ -93,6 +96,9 @@ fn run(out_dir: &Path) -> Result<usize, SiteError> {
         )?;
     }
     for (path, file) in site.files() {
+        write(out_dir.join(path.to_string().trim_start_matches('/')), file)?;
+    }
+    for (path, file) in note_map_pdf::note_map_files(&site)? {
         write(out_dir.join(path.to_string().trim_start_matches('/')), file)?;
     }
     write(out_dir.join("filter.js"), FILTER_JS)?;

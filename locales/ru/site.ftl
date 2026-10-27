@@ -140,8 +140,10 @@ maps-full-maps = Полные маппинги нот:
 maps-index-drum-maps = Драм-карты для DAW для каждого плагина: Cubase, Reaper, Studio One, Ableton Live и Logic Pro
 maps-engine-description-drum-maps = Бесплатные драм-карты для Cubase, Reaper, Studio One, Ableton и Logic.
 maps-daw-heading = Драм-карты для DAW
-maps-daw-intro = Загрузите один из этих файлов в DAW, чтобы видеть названия барабанов { $engine } на клавишах пиано-ролла.
+maps-daw-intro = Загрузите один из этих файлов в DAW, чтобы видеть названия барабанов { $engine } на клавишах пиано-ролла, или распечатайте маппинг.
 maps-daw-how = Как загрузить драм-карту в Reaper, Cubase, Studio One, Ableton Live или Logic Pro
+maps-note-map-pdf = Маппинг
+maps-note-map-pdf-label = Маппинг { $engine } (PDF)
 drum-maps-title =
     { $count ->
         [one] Драм-карты для Cubase, Reaper, Studio One, Ableton и Logic: { $count } плагин
@@ -168,6 +170,7 @@ drum-maps-cubase = Откройте MIDI → Drum Map Setup, нажмите Load
 drum-maps-studio-one = В окне Edit нажмите значок гаечного ключа, чтобы показать названия нот, и перетащите на них файл .pitchlist. Сохраните его через меню Pitch Names, чтобы использовать снова.
 drum-maps-ableton = Перетащите файл .adg на барабанную дорожку в Live 11 или 12, перед плагином. Откройте клип: каждая строка MIDI-редактора показывает название своего барабана. Ноты звучат без изменений.
 drum-maps-logic = Скопируйте файл .pattern на Mac в папку ~/Music/Audio Music Apps/Step Sequencer Settings/Patterns. В Logic Pro откройте Step Sequencer барабанной дорожки и Pattern Browser (⌥⇧B), выберите Patterns → User и щёлкните по шаблону. Каждая строка показывает название своего барабана и играет его ноту.
+drum-maps-pdf = Откройте .pdf в любой программе для PDF: в нём каждая нота по барабанам, с номером и названием. Распечатайте его или держите рядом с DAW.
 drum-maps-other = FL Studio и Bitwig Studio не умеют загружать файлы с названиями нот. Найдите нужный барабан по маппингу плагина или сконвертируйте MIDI под плагин, на котором играете.
 drum-maps-list-heading = Драм-карты всех плагинов ({ $count })
 drum-maps-download-label = Драм-карта { $engine } для { $daw }

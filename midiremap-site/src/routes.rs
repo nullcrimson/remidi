@@ -107,6 +107,11 @@ pub fn drum_map_href(slug: &str, daw: Daw) -> SitePath {
     SitePath::new(format!("{}{slug}.{}", drum_map_files(), daw.extension()))
 }
 
+/// An engine's printable note map's address.
+pub fn note_map_href(slug: &str) -> SitePath {
+    SitePath::new(format!("{}{slug}-note-map.pdf", drum_map_files()))
+}
+
 /// The address of a pair's Ableton rack with the converter's defaults.
 pub fn rack_href(pair_slug: &str) -> SitePath {
     SitePath::new(format!(

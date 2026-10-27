@@ -1401,6 +1401,12 @@ mod tests {
                 .files()
                 .map(|(path, _)| path.to_string()),
         );
+        known.extend(
+            crate::fixtures::site()
+                .engines
+                .iter()
+                .map(|p| p.engine.note_map().href.to_string()),
+        );
         for (path, html) in pages {
             for href in html
                 .split("href=\"")
@@ -1715,6 +1721,53 @@ mod tests {
     }
 
     #[test]
+    fn an_engine_page_links_its_note_map_pdf() {
+        let html = page("engines/ggd-invasion/index.html");
+        let href = "/drum-maps/files/ggd-invasion-note-map.pdf";
+        let stats = download_wrapper(html, href);
+        assert!(stats.contains(r#"data-umami-event="note-map-downloaded""#));
+        assert!(stats.contains(r#"data-umami-event-engine="ggd_invasion""#));
+        assert!(html.contains(&format!(
+            r#"href="{href}" download="GetGood Drums Invasion note map (Drumverter).pdf" aria-label="GetGood Drums Invasion note map (PDF)""#
+        )));
+        assert!(page("pl/engines/ggd-invasion/index.html")
+            .contains(r#"href="/drum-maps/files/ggd-invasion-note-map.pdf""#));
+    }
+
+    #[test]
+    fn the_drum_maps_page_offers_each_note_map_pdf_beside_the_daw_files() {
+        let html = page("drum-maps/index.html");
+        let href = "/drum-maps/files/ggd-invasion-note-map.pdf";
+        let stats = download_wrapper(html, href);
+        assert!(stats.contains(r#"data-umami-event-page="drum-maps""#));
+        assert!(stats.contains(r#"data-daw="pdf""#));
+        let picked: Vec<String> = attrs(html, r#"input[name="daw"]"#, "id");
+        assert_eq!(picked.last().map(String::as_str), Some("daw-pdf"));
+        let after_logic = html
+            .split(r#"href="/drum-maps/files/ggd-invasion.pattern""#)
+            .nth(1)
+            .unwrap();
+        let next_link = after_logic.find("href=").unwrap();
+        assert!(after_logic[next_link..].starts_with(&format!(r#"href="{href}""#)));
+    }
+
+    #[test]
+    fn every_download_chip_shows_the_download_icon() {
+        for path in ["engines/ggd-invasion/index.html", "drum-maps/index.html"] {
+            let html = Html::parse_document(page(path));
+            let chips = select(html.root_element(), ".link-chips a[download]");
+            assert!(chips.len() > Daw::ALL.len(), "{path}");
+            for chip in chips {
+                assert!(
+                    !select(chip, r#"svg[aria-hidden="true"]"#).is_empty(),
+                    "{}",
+                    chip.html()
+                );
+            }
+        }
+    }
+
+    #[test]
     fn the_unsupported_daws_line_names_fl_studio_and_bitwig() {
         assert!(page("drum-maps/index.html")
             .contains("FL Studio and Bitwig Studio cannot load note-name files."));
@@ -1770,8 +1823,9 @@ mod tests {
             "dl > div[data-daw]",
             "data-daw",
         );
-        let daws: Vec<&str> = Daw::ALL.iter().map(|daw| daw.key()).collect();
-        assert_eq!(explained, daws);
+        let mut options: Vec<&str> = Daw::ALL.iter().map(|daw| daw.key()).collect();
+        options.push("pdf");
+        assert_eq!(explained, options);
     }
 
     #[test]

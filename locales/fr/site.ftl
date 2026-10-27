@@ -161,8 +161,10 @@ maps-full-maps = Mappings complets :
 maps-index-drum-maps = Drum maps pour votre DAW, pour chaque plugin : Cubase, Reaper, Studio One, Ableton Live et Logic Pro
 maps-engine-description-drum-maps = Drum maps gratuites pour Cubase, Reaper, Studio One, Ableton et Logic.
 maps-daw-heading = Drum maps pour votre DAW
-maps-daw-intro = Chargez l’un de ces fichiers dans votre DAW pour voir sur les touches du piano roll les noms des éléments ({ $engine }).
+maps-daw-intro = Chargez l’un de ces fichiers dans votre DAW pour voir sur les touches du piano roll les noms des éléments ({ $engine }), ou imprimez le mapping.
 maps-daw-how = Charger une drum map dans Reaper, Cubase, Studio One, Ableton Live ou Logic Pro
+maps-note-map-pdf = Mapping
+maps-note-map-pdf-label = Mapping de { $engine } (PDF)
 drum-maps-title =
     { $count ->
         [one] Drum maps pour Cubase, Reaper, Studio One, Ableton et Logic : { $count } plugin
@@ -187,6 +189,7 @@ drum-maps-cubase = Ouvrez MIDI → Configuration des Drum Maps (Drum Map Setup),
 drum-maps-studio-one = Dans la vue Edit, cliquez sur l’icône de clé pour afficher les noms de notes, puis glissez le fichier .pitchlist dessus. Enregistrez-le depuis le menu Pitch Names pour le réutiliser.
 drum-maps-ableton = Glissez le fichier .adg sur la piste de batterie dans Live 11 ou 12, devant le plugin. Ouvrez un clip : chaque ligne de l’éditeur MIDI affiche le nom de son élément. Les notes jouent telles quelles.
 drum-maps-logic = Copiez le fichier .pattern sur votre Mac dans ~/Music/Audio Music Apps/Step Sequencer Settings/Patterns. Dans Logic Pro, ouvrez le Step Sequencer de la piste de batterie puis le Pattern Browser (⌥⇧B), choisissez Patterns → User et cliquez sur le modèle. Chaque ligne affiche le nom de son élément et joue sa note.
+drum-maps-pdf = Ouvrez le .pdf dans n’importe quel lecteur PDF : il montre chaque note par élément, avec son numéro et son nom. Imprimez-le ou gardez-le à côté de votre DAW.
 drum-maps-other = FL Studio et Bitwig Studio ne savent pas charger de fichiers de noms de notes. Servez-vous du mapping du plugin pour trouver chaque élément, ou convertissez votre MIDI vers le plugin que vous utilisez.
 drum-maps-list-heading =
     { $count ->

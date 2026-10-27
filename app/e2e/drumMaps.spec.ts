@@ -58,6 +58,20 @@ test('Logic Pro downloads a Step Sequencer template', async ({ page }) => {
   expect(await textOf(download)).toContain('<key>kStepSequenceRowsKey</key>');
 });
 
+test('picking PDF shows only the note maps and downloads one', async ({ page }) => {
+  await page.goto('/drum-maps/');
+  const pdf = page.getByRole('link', { name: 'GetGood Drums Invasion note map (PDF)' }).first();
+  await expect(pdf).toBeHidden();
+  await pickDaw(page, 'PDF');
+  await expect(pdf).toBeVisible();
+  for (const daw of ['Reaper', 'Cubase', 'Studio One', 'Ableton Live', 'Logic Pro']) {
+    await expect(page.getByRole('link', { name: `GetGood Drums Invasion drum map for ${daw}` }).first()).toBeHidden();
+  }
+  await expect(page.getByText('Open the .pdf in any PDF viewer', { exact: false })).toBeVisible();
+  const download = await downloadOf(page, 'GetGood Drums Invasion note map (PDF)');
+  expect(download.suggestedFilename()).toBe('GetGood Drums Invasion note map (Drumverter).pdf');
+});
+
 test('an engine page links the guide to loading drum maps', async ({ page }) => {
   await page.goto('/engines/ggd-invasion/');
   await press(page.getByRole('link', { name: 'How to load a drum map in Reaper, Cubase, Studio One, Ableton Live or Logic Pro' }));

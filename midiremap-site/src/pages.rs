@@ -11,8 +11,8 @@ use midiremap_core::{
 use crate::{
     i18n::SectionKey,
     routes::{
-        drum_map_href, engine_href, pair_href, rack_href, Page, SitePath, CONVERTER_PAGE, DOMAIN,
-        DRUM_MAPS_PAGE, NOTE_MAPS_PAGE, POPULAR, SITE_NAME, THANKS_PAGE,
+        drum_map_href, engine_href, note_map_href, pair_href, rack_href, Page, SitePath,
+        CONVERTER_PAGE, DOMAIN, DRUM_MAPS_PAGE, NOTE_MAPS_PAGE, POPULAR, SITE_NAME, THANKS_PAGE,
     },
 };
 
@@ -101,6 +101,16 @@ impl EngineLink {
                 },
             })
             .collect()
+    }
+
+    /// The engine's printable note map.
+    pub fn note_map(&self) -> Download {
+        Download {
+            href: note_map_href(&self.slug),
+            file_name: FileStem::parse(&format!("{} note map ({SITE_NAME})", self.name))
+                .expect("a name with the site's name after it is never blank")
+                .with_extension("pdf"),
+        }
     }
 
     /// Lower-case text the index filter matches against.

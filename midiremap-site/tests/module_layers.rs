@@ -11,6 +11,7 @@ const ALLOWED_USES: &Table = &[
     ("llms", &["i18n", "meta", "pages", "routes", "texts"]),
     ("manifest", &[]),
     ("meta", &["i18n", "pages", "routes", "texts"]),
+    ("note_map_pdf", &["pages", "routes"]),
     ("pages", &["i18n", "routes"]),
     ("parity", &["content", "fixtures", "i18n"]),
     (

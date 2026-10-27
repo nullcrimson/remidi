@@ -18,7 +18,7 @@
   <aside class="flex flex-col gap-3 rounded-panel border border-hairline p-4 sm:grow">
     <h2 class="font-display text-title font-semibold text-t1">{{ texts.get(Plain::MapsDawHeading) }}</h2>
     <p class="text-ui/relaxed text-t3">{{ texts.say(Phrase::maps_daw_intro(page.engine.name.as_str())) }}</p>
-    <ul class="link-chips">{% for d in page.engine.drum_maps() %}<li>{% call macros::drum_map_download(page.engine, d) %}{% endcall %}</li>{% endfor %}</ul>
+    <ul class="link-chips">{% for d in page.engine.drum_maps() %}<li>{% call macros::drum_map_download(page.engine, d) %}{% endcall %}</li>{% endfor %}<li>{% call macros::note_map_download(page.engine) %}{% endcall %}</li></ul>
     <p class="text-label text-t5"><a href="{{ texts.path(DRUM_MAPS) }}" class="prose-link">{{ texts.get(Plain::MapsDawHow) }}</a></p>
   </aside>
 </div>

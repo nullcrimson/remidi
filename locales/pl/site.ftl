@@ -129,8 +129,10 @@ maps-full-maps = Pełne mapy nut:
 maps-index-drum-maps = Mapy perkusji do DAW dla każdej wtyczki: Cubase, Reaper, Studio One, Ableton Live i Logic Pro
 maps-engine-description-drum-maps = Darmowe mapy perkusji do Cubase, Reapera, Studio One, Abletona i Logica.
 maps-daw-heading = Mapy perkusji do DAW
-maps-daw-intro = Wczytaj jeden z tych plików do DAW, a na klawiszach piano rolla zobaczysz nazwy instrumentów { $engine }.
+maps-daw-intro = Wczytaj jeden z tych plików do DAW, a na klawiszach piano rolla zobaczysz nazwy instrumentów { $engine }. Mapę nut możesz też wydrukować.
 maps-daw-how = Jak wczytać mapę perkusji w Reaperze, Cubase, Studio One, Ableton Live lub Logic Pro
+maps-note-map-pdf = Mapa nut
+maps-note-map-pdf-label = Mapa nut { $engine } (PDF)
 drum-maps-title =
     { $count ->
         [one] Mapy perkusji do Cubase, Reapera, Studio One, Abletona i Logica: { $count } wtyczka
@@ -156,6 +158,7 @@ drum-maps-cubase = Otwórz MIDI → Drum Map Setup, kliknij Load i wskaż plik .
 drum-maps-studio-one = W widoku Edit kliknij ikonę klucza, żeby pokazać nazwy nut, i przeciągnij na nie plik .pitchlist. Zapisz go z menu Pitch Names, żeby używać go ponownie.
 drum-maps-ableton = Przeciągnij plik .adg na ścieżkę perkusji w Live 11 lub 12, przed wtyczkę. Otwórz klip: każdy wiersz edytora MIDI pokazuje nazwę swojego instrumentu. Nuty grają bez zmian.
 drum-maps-logic = Skopiuj plik .pattern na Macu do ~/Music/Audio Music Apps/Step Sequencer Settings/Patterns. W Logic Pro otwórz Step Sequencer ścieżki perkusji i Pattern Browser (⌥⇧B), wybierz Patterns → User i kliknij szablon. Każdy wiersz pokazuje nazwę swojego instrumentu i gra jego nutę.
+drum-maps-pdf = Otwórz plik .pdf w dowolnej przeglądarce PDF: pokazuje każdą nutę według elementu zestawu, z numerem i nazwą. Wydrukuj go albo trzymaj obok DAW.
 drum-maps-other = FL Studio i Bitwig Studio nie wczytują plików z nazwami nut. Znajdź instrument na mapie nut wtyczki albo przekonwertuj MIDI na wtyczkę, której używasz.
 drum-maps-list-heading =
     { $count ->

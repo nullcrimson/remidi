@@ -16,6 +16,7 @@ export interface StatEvents {
   'converter-opened': { page: 'index' | 'engine' | 'pair' | 'doc'; from?: string; to?: string };
   'maps-filtered': { page: 'index' | 'engine' | 'drum-maps' };
   'drum-map-downloaded': { engine: string; daw: 'reaper' | 'cubase' | 'studio-one' | 'ableton' | 'logic'; page: 'engine' | 'drum-maps' };
+  'note-map-downloaded': { engine: string; page: 'engine' | 'drum-maps' };
   'rack-downloaded': { where: 'summary' | 'preset'; edited: boolean } | { where: 'pair' };
   'language-offered': { to: Locale };
   'language-offer-answered': { to: Locale; answer: 'accepted' | 'dismissed' };
@@ -89,7 +90,7 @@ export interface StatEvents {
 export type StatEvent = keyof StatEvents;
 
 /** The events only the static pages send, which never pass through the tier switch. */
-export type StaticOnlyEvent = 'converter-opened' | 'maps-filtered' | 'drum-map-downloaded' | 'language-offered' | 'language-offer-answered';
+export type StaticOnlyEvent = 'converter-opened' | 'maps-filtered' | 'drum-map-downloaded' | 'note-map-downloaded' | 'language-offered' | 'language-offer-answered';
 
 /** The events the app sends through `track`. */
 export type AppEvent = Exclude<StatEvent, StaticOnlyEvent>;

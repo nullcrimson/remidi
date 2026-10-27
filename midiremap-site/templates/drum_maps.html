@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% import "macros.html" as macros %}
-{% macro downloads(e) %}<span class="link-chips">{% for d in e.drum_maps() %}{% call macros::drum_map_download(e, d) %}{% endcall %}{% endfor %}</span>{% endmacro %}
+{% macro downloads(e) %}<span class="link-chips">{% for d in e.drum_maps() %}{% call macros::drum_map_download(e, d) %}{% endcall %}{% endfor %}{% call macros::note_map_download(e) %}{% endcall %}</span>{% endmacro %}
 {% macro group_heading(heading) %}<h3 class="pt-4 pb-1.5 font-mono text-caption tracking-[0.14em] text-t5 uppercase">{{ heading }}</h3>{% endmacro %}
 {% macro step_heading(s, text) %}<div class="flex items-center gap-2.5">{% call macros::step_badge(s.number, s.state) %}<h2 class="font-display text-title font-semibold text-t1">{{ text }}</h2>{% endcall %}</div>{% endmacro %}
 {% block content %}
@@ -15,7 +15,7 @@
   {% when DrumMapStep::PickDaw %}
   {% call step_heading(s, texts.get(Plain::DrumMapsPickDaw)) %}{% endcall %}
   <div role="radiogroup" aria-label="{{ texts.get(Plain::DrumMapsPickDaw) }}" class="inline-flex flex-wrap gap-1">
-    {% for (daw, _) in daws %}{% let id = format!("daw-{}", daw.key()) %}{% call macros::chip("daw", id, *daw == Daw::Reaper, daw.name()) %}{% endcall %}{% endfor %}
+    {% for (daw, _) in daws %}{% let id = format!("daw-{}", daw.key()) %}{% call macros::chip("daw", id, *daw == Daw::Reaper, daw.name()) %}{% endcall %}{% endfor %}{% call macros::chip("daw", "daw-pdf", false, "PDF") %}{% endcall %}
   </div>
   {% when DrumMapStep::Load %}
   {% call step_heading(s, texts.get(Plain::DrumMapsHowHeading)) %}{% endcall %}
@@ -26,6 +26,10 @@
       <dd class="text-ui/relaxed text-t3">{{ how }}</dd>
     </div>
     {% endfor %}
+    <div data-daw="pdf" class="flex flex-col gap-1">
+      <dt class="font-display text-body font-semibold text-t1">{{ texts.get(Plain::MapsNoteMapPdf) }} <span class="font-mono text-caption font-normal text-t5">.pdf</span></dt>
+      <dd class="text-ui/relaxed text-t3">{{ texts.get(Plain::DrumMapsPdf) }}</dd>
+    </div>
   </dl>
   <p class="text-ui/relaxed text-t4">{{ texts.get(Plain::DrumMapsOther) }}</p>
   {% when DrumMapStep::Download %}

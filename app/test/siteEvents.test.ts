@@ -56,7 +56,7 @@ const trackCalls = SCRIPTS.flatMap(({ name, text }) =>
 
 describe('the events the static pages send', () => {
   it('reads the event map from its source', () => {
-    expect(EVENTS.size).toBe(43);
+    expect(EVENTS.size).toBe(44);
   });
 
   it('finds links marked for Umami in the templates', () => {

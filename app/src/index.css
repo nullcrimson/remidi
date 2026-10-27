@@ -435,6 +435,7 @@ body {
 :root:has(#daw-studio-one:checked) [data-daw]:not([data-daw='studio-one']),
 :root:has(#daw-ableton:checked) [data-daw]:not([data-daw='ableton']),
 :root:has(#daw-logic:checked) [data-daw]:not([data-daw='logic']),
+:root:has(#daw-pdf:checked) [data-daw]:not([data-daw='pdf']),
 :root:has([data-filter='engines']:not(:placeholder-shown)) [data-filtering-hides] {
   display: none;
 }
