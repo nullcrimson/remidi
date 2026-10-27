@@ -1,7 +1,9 @@
 use std::{collections::BTreeSet, sync::LazyLock};
 
 use midiremap_core::{Catalog, Daw, EngineMap};
-use midiremap_testkit::xml::{self, Element};
+use roxmltree::{Document, Node};
+
+mod xml_path;
 
 type Named = Vec<(u8, String)>;
 
@@ -12,13 +14,25 @@ fn played(map: &EngineMap) -> Named {
         .collect()
 }
 
-fn elements(text: &str) -> Vec<Element> {
-    xml::elements(text, |name, attrs| {
-        match attrs.iter().find(|(k, _)| k == "name") {
-            Some((_, v)) if name != "Music.PitchName" => format!("{name}[{v}]"),
-            _ => name.to_owned(),
-        }
-    })
+fn step(node: Node) -> String {
+    let name = node.tag_name().name();
+    match node.attribute("name") {
+        Some(v) if name != "Music.PitchName" => format!("{name}[{v}]"),
+        _ => name.to_owned(),
+    }
+}
+
+fn path(node: Node) -> String {
+    xml_path::path(node, step)
+}
+
+/// The attribute `key` of every element at `at`, in document order.
+fn values(xml: &str, at: &str, key: &str) -> Vec<String> {
+    let doc = Document::parse(xml).unwrap();
+    doc.descendants()
+        .filter(|n| n.is_element() && path(*n) == at)
+        .map(|n| n.attribute(key).unwrap().to_owned())
+        .collect()
 }
 
 fn reaper_notes(text: &str) -> Named {
@@ -32,24 +46,16 @@ fn reaper_notes(text: &str) -> Named {
 }
 
 fn studio_one_notes(xml: &str) -> Named {
-    elements(xml)
-        .iter()
-        .filter(|e| e.path == "Music.PitchNameList/Music.PitchName")
-        .map(|e| {
-            (
-                e.attr("pitch").unwrap().parse().unwrap(),
-                e.attr("name").unwrap().to_owned(),
-            )
-        })
+    let at = "Music.PitchNameList/Music.PitchName";
+    values(xml, at, "pitch")
+        .into_iter()
+        .map(|pitch| pitch.parse().unwrap())
+        .zip(values(xml, at, "name"))
         .collect()
 }
 
-fn cubase_values(xml: &str, path: &str) -> Vec<String> {
-    elements(xml)
-        .iter()
-        .filter(|e| e.path == path)
-        .map(|e| e.attr("value").unwrap().to_owned())
-        .collect()
+fn cubase_values(xml: &str, at: &str) -> Vec<String> {
+    values(xml, at, "value")
 }
 
 fn cubase_notes(xml: &str) -> Named {
@@ -64,14 +70,11 @@ fn cubase_notes(xml: &str) -> Named {
 }
 
 fn chain_values(xml: &str, field: &str) -> Vec<String> {
-    elements(xml)
-        .iter()
-        .filter(|e| {
-            e.path
-                == format!("Ableton/GroupDevicePreset/BranchPresets/MidiEffectBranchPreset/{field}")
-        })
-        .map(|e| e.attr("Value").unwrap().to_owned())
-        .collect()
+    values(
+        xml,
+        &format!("Ableton/GroupDevicePreset/BranchPresets/MidiEffectBranchPreset/{field}"),
+        "Value",
+    )
 }
 
 fn ableton_notes(xml: &str) -> Named {
@@ -148,12 +151,14 @@ fn the_cubase_order_puts_played_notes_first_and_holds_every_note_once() {
 #[test]
 fn the_cubase_map_has_the_shape_cubase_saves() {
     let file = Daw::Cubase.drum_map(invasion(), CREDIT);
-    let shape: BTreeSet<String> = elements(&file)
-        .iter()
-        .map(|e| {
-            let mut keys: Vec<&str> = e.attrs.iter().map(|(k, _)| k.as_str()).collect();
+    let doc = Document::parse(&file).unwrap();
+    let shape: BTreeSet<String> = doc
+        .descendants()
+        .filter(Node::is_element)
+        .map(|n| {
+            let mut keys: Vec<&str> = n.attributes().map(|a| a.name()).collect();
             keys.sort_unstable();
-            format!("{} {{{}}}", e.path, keys.join(","))
+            format!("{} {{{}}}", path(n), keys.join(","))
         })
         .collect();
     let reference: BTreeSet<String> = include_str!("golden/cubase-skeleton.txt")

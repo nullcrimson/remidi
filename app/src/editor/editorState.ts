@@ -1,4 +1,4 @@
-import type { Canon, Note } from '../core/midiremap';
+import type { Canon, Note, Overrides } from '../core/midiremap';
 import { byNote } from '../core/notes';
 import type { Edits, KnownEdits, SrcEdits } from '../core/overrides';
 import { changesPair, type SelectionEvent } from '../core/selection';
@@ -32,9 +32,7 @@ export interface Notice {
 /** What the editor shows over its rows: an open picker, or the notice a pick left behind. */
 export type Overlay = Pick | Notice;
 
-export interface EditorState {
-  edits: Edits;
-  srcEdits: SrcEdits;
+export interface EditorState extends Overrides {
   overlay: Overlay | null;
 }
 

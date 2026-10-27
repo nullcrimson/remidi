@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { closingProps, EMPTY_TALLY, tallyReducer } from '../../src/editor/editorTally';
 import { typed } from '../typed';
-import type { EditSet } from '../../src/core/overrides';
+import type { Overrides } from '../../src/core/midiremap';
 
-const NO_EDITS: EditSet = { edits: {}, srcEdits: {} };
+const NO_EDITS: Overrides = { edits: {}, srcEdits: {} };
 
 describe('tallyReducer', () => {
   it('starts every session with no counts', () => {
@@ -12,7 +12,7 @@ describe('tallyReducer', () => {
   });
 
   it('keeps the edits a session opened with', () => {
-    const opening = typed<EditSet>({ edits: { 'kick.main': 40 }, srcEdits: { 24: null } });
+    const opening = typed<Overrides>({ edits: { 'kick.main': 40 }, srcEdits: { 24: null } });
     expect(tallyReducer(EMPTY_TALLY, { type: 'open', edits: opening }).opening).toBe(opening);
   });
 
@@ -40,8 +40,8 @@ describe('tallyReducer', () => {
 });
 
 describe('closingProps', () => {
-  const opened = typed<EditSet>({ edits: { 'kick.main': 40 }, srcEdits: { 24: 'kick.main' } });
-  const sessionOpenedWith = (opening: EditSet) => ({ ...EMPTY_TALLY, opening });
+  const opened = typed<Overrides>({ edits: { 'kick.main': 40 }, srcEdits: { 24: 'kick.main' } });
+  const sessionOpenedWith = (opening: Overrides) => ({ ...EMPTY_TALLY, opening });
 
   it('counts no target edit when nothing changed after opening a preset with edits', () => {
     expect(closingProps('done', opened, sessionOpenedWith(opened)).targets).toBe(0);
@@ -52,12 +52,12 @@ describe('closingProps', () => {
   });
 
   it('counts a target edit added since opening', () => {
-    const now = typed<EditSet>({ edits: { 'kick.main': 40, 'snare1.hit': 41 }, srcEdits: opened.srcEdits });
+    const now = typed<Overrides>({ edits: { 'kick.main': 40, 'snare1.hit': 41 }, srcEdits: opened.srcEdits });
     expect(closingProps('done', now, sessionOpenedWith(opened)).targets).toBe(1);
   });
 
   it('counts a target edit changed since opening', () => {
-    const now = typed<EditSet>({ edits: { 'kick.main': 41 }, srcEdits: opened.srcEdits });
+    const now = typed<Overrides>({ edits: { 'kick.main': 41 }, srcEdits: opened.srcEdits });
     expect(closingProps('done', now, sessionOpenedWith(opened)).targets).toBe(1);
   });
 
@@ -66,12 +66,12 @@ describe('closingProps', () => {
   });
 
   it('counts a source edit added since opening', () => {
-    const now = typed<EditSet>({ edits: opened.edits, srcEdits: { 24: 'kick.main', 26: null } });
+    const now = typed<Overrides>({ edits: opened.edits, srcEdits: { 24: 'kick.main', 26: null } });
     expect(closingProps('done', now, sessionOpenedWith(opened)).sources).toBe(1);
   });
 
   it('counts a source edit changed since opening', () => {
-    const now = typed<EditSet>({ edits: opened.edits, srcEdits: { 24: 'snare1.hit' } });
+    const now = typed<Overrides>({ edits: opened.edits, srcEdits: { 24: 'snare1.hit' } });
     expect(closingProps('done', now, sessionOpenedWith(opened)).sources).toBe(1);
   });
 

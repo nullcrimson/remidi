@@ -1,10 +1,10 @@
 import type { Vocabulary } from './canon';
-import type { Canon, Note } from './midiremap';
+import type { Note, Overrides } from './midiremap';
 import { byNote, parseNote } from './notes';
 
-export type Edits = Record<Canon, Note>;
+export type Edits = Overrides['edits'];
 /** Source note → canon it plays, or null when the note is unassigned. */
-export type SrcEdits = Record<Note, Canon | null>;
+export type SrcEdits = Overrides['srcEdits'];
 
 /**
  * Note edits as they are stored or read back from a file: the drum keys are text nobody
@@ -19,7 +19,7 @@ export interface StoredEdits {
  * Edits whose drums were checked against the vocabulary, and how many stored edits that
  * left out. Only `knownEdits` makes one, and the note editor takes edits in no other form.
  */
-export type KnownEdits = EditSet & { readonly skipped: number; readonly __brand: 'KnownEdits' };
+export type KnownEdits = Overrides & { readonly skipped: number; readonly __brand: 'KnownEdits' };
 
 /** The stored edits whose drums this version knows, and how many were left out. */
 export function knownEdits(stored: StoredEdits, vocabulary: Vocabulary): KnownEdits {
@@ -62,23 +62,17 @@ export function parseSrcEdits(value: unknown): StoredEdits['srcEdits'] | null {
   return out;
 }
 
-/** The two kinds of note edit, taken together. */
-export interface EditSet {
-  edits: Edits;
-  srcEdits: SrcEdits;
-}
-
 function sameRecord(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
   const keys = Object.keys(a);
   return keys.length === Object.keys(b).length && keys.every((k) => k in b && a[k] === b[k]);
 }
 
 /** How many note edits `edits` holds, target and source together. */
-export function editCount({ edits, srcEdits }: EditSet): number {
+export function editCount({ edits, srcEdits }: Overrides): number {
   return Object.keys(edits).length + Object.keys(srcEdits).length;
 }
 
 /** Whether two sets of note edits change the same drums the same way. */
-export function sameEdits(a: EditSet, b: EditSet): boolean {
+export function sameEdits(a: Overrides, b: Overrides): boolean {
   return sameRecord(a.edits, b.edits) && sameRecord(a.srcEdits, b.srcEdits);
 }

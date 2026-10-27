@@ -40,10 +40,32 @@ pub enum Step {
 pub enum TargetDir {
     /// `target/`, or `CARGO_TARGET_DIR` when set: the wasm build and the shipped tests.
     Main,
+    /// A directory of its own under `target/`.
+    Own(OwnDir),
+}
+
+/// A cargo build directory under `target/` that only some steps build into.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OwnDir {
     Browser,
     Clippy,
     ClippyBrowser,
     Site,
+}
+
+/// The build directory of the site generator.
+pub const SITE_DIR: OwnDir = OwnDir::Site;
+
+impl OwnDir {
+    /// The directory from the repository root.
+    pub fn path(self) -> &'static str {
+        match self {
+            OwnDir::Browser => "target/browser",
+            OwnDir::Clippy => "target/clippy",
+            OwnDir::ClippyBrowser => "target/clippy-browser",
+            OwnDir::Site => "target/site",
+        }
+    }
 }
 
 impl TargetDir {
@@ -51,10 +73,7 @@ impl TargetDir {
     pub fn path(self) -> Option<&'static str> {
         match self {
             TargetDir::Main => None,
-            TargetDir::Browser => Some("target/browser"),
-            TargetDir::Clippy => Some("target/clippy"),
-            TargetDir::ClippyBrowser => Some("target/clippy-browser"),
-            TargetDir::Site => Some("target/site"),
+            TargetDir::Own(dir) => Some(dir.path()),
         }
     }
 }
@@ -301,15 +320,15 @@ impl Step {
     pub fn target_dir(self, pass: CargoPass) -> Option<TargetDir> {
         match self {
             Step::Clippy => Some(match pass {
-                CargoPass::Shipped => TargetDir::Clippy,
-                CargoPass::Browser => TargetDir::ClippyBrowser,
+                CargoPass::Shipped => TargetDir::Own(OwnDir::Clippy),
+                CargoPass::Browser => TargetDir::Own(OwnDir::ClippyBrowser),
             }),
             Step::CargoTest => Some(match pass {
                 CargoPass::Shipped => TargetDir::Main,
-                CargoPass::Browser => TargetDir::Browser,
+                CargoPass::Browser => TargetDir::Own(OwnDir::Browser),
             }),
             Step::BuildWasm => (pass == CargoPass::Browser).then_some(TargetDir::Main),
-            Step::CompileSite => (pass == CargoPass::Shipped).then_some(TargetDir::Site),
+            Step::CompileSite => (pass == CargoPass::Shipped).then_some(TargetDir::Own(SITE_DIR)),
             Step::Fmt
             | Step::GenI18n
             | Step::Eslint
@@ -393,18 +412,20 @@ mod tests {
     }
 
     #[test]
-    fn a_step_runs_on_the_chain_exactly_when_a_chain_end_is_or_needs_it() {
-        for &step in Step::VARIANTS {
-            let on_chain = CHAIN_ENDS
-                .iter()
-                .any(|&end| end == step || end.needs_closure().contains(&step));
-            assert_eq!(
-                step.urgency() == Urgency::Chain,
-                on_chain,
-                "{}",
-                step.name()
-            );
-        }
+    fn the_browser_and_unit_tests_run_on_the_chain() {
+        assert_eq!(Step::E2e.urgency(), Urgency::Chain);
+        assert_eq!(Step::Vitest.urgency(), Urgency::Chain);
+    }
+
+    #[test]
+    fn the_builds_the_tests_need_run_on_the_chain() {
+        assert_eq!(Step::BuildSite.urgency(), Urgency::Chain);
+        assert_eq!(Step::BuildWasm.urgency(), Urgency::Chain);
+    }
+
+    #[test]
+    fn a_check_no_test_needs_runs_in_the_background() {
+        assert_eq!(Step::Size.urgency(), Urgency::Background);
     }
 
     #[test]

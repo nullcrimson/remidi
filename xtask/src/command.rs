@@ -4,7 +4,7 @@ use anyhow::{bail, Context as _, Result};
 
 use crate::{
     plan::{Mode, Plan},
-    step::{CargoPass, Step, TargetDir, Urgency, DIST},
+    step::{CargoPass, Step, TargetDir, Urgency, DIST, SITE_DIR},
 };
 
 const SHIPPED: [&str; 3] = ["--workspace", "--exclude", "midiremap-wasm"];
@@ -34,11 +34,7 @@ impl Context {
 
 /// The site generator `Step::CompileSite` builds, from the repository root.
 pub fn site_program() -> String {
-    let dir = Step::CompileSite
-        .target_dir(CargoPass::Shipped)
-        .and_then(TargetDir::path)
-        .expect("the site generator builds into a directory of its own");
-    format!("{dir}/debug/{SITE}{EXE_SUFFIX}")
+    format!("{}/debug/{SITE}{EXE_SUFFIX}", SITE_DIR.path())
 }
 
 /// What `command` prints when it runs and succeeds.
@@ -365,6 +361,7 @@ mod tests {
     use std::{ffi::OsStr, path::PathBuf};
 
     use super::*;
+    use crate::step::OwnDir;
 
     fn cx(mode: Mode) -> Context {
         Context {
@@ -446,8 +443,14 @@ mod tests {
     #[test]
     fn clippy_builds_in_directories_of_its_own() {
         let passes = commands(Step::Clippy, &full());
-        assert_eq!(target_dir(&passes[0]), under_root(TargetDir::Clippy));
-        assert_eq!(target_dir(&passes[1]), under_root(TargetDir::ClippyBrowser));
+        assert_eq!(
+            target_dir(&passes[0]),
+            under_root(TargetDir::Own(OwnDir::Clippy))
+        );
+        assert_eq!(
+            target_dir(&passes[1]),
+            under_root(TargetDir::Own(OwnDir::ClippyBrowser))
+        );
     }
 
     #[test]
@@ -458,7 +461,10 @@ mod tests {
     #[test]
     fn the_browser_tests_build_in_a_directory_of_their_own() {
         let passes = commands(Step::CargoTest, &full());
-        assert_eq!(target_dir(&passes[1]), under_root(TargetDir::Browser));
+        assert_eq!(
+            target_dir(&passes[1]),
+            under_root(TargetDir::Own(OwnDir::Browser))
+        );
     }
 
     #[test]
@@ -512,7 +518,7 @@ mod tests {
     fn the_site_generator_compiles_in_its_own_target_directory() {
         let compile = &commands(Step::CompileSite, &full())[0];
         assert_eq!(args(compile), ["build", "-p", SITE, "--locked"]);
-        assert_eq!(target_dir(compile), under_root(TargetDir::Site));
+        assert_eq!(target_dir(compile), under_root(TargetDir::Own(SITE_DIR)));
     }
 
     #[test]

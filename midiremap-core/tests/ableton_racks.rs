@@ -7,8 +7,11 @@ use midiremap_core::{
     convert, rack_file, Catalog, ChannelScope, Daw, FileStem, Mapping, MissingDrums, Note,
     Overrides, Packing, PresetName, Unrecognized,
 };
-use midiremap_testkit::{every_note, every_note_keys, xml};
+use midiremap_testkit::{every_note, every_note_keys};
 use rayon::prelude::*;
+use roxmltree::{Document, Node};
+
+mod xml_path;
 
 const ENGINES: [&str; 5] = [
     "ggd_invasion",
@@ -44,31 +47,31 @@ struct Read {
 fn read(xml: &str) -> Read {
     let mut chains: Vec<Chain> = Vec::new();
     let mut ids = Vec::new();
-    for e in xml::elements(xml, |name, _| name.to_owned()) {
-        let value = e.attr("Value").map(str::to_owned);
-        if matches!(
-            e.name.as_str(),
-            "AutomationTarget" | "ModulationTarget" | "Pointee"
-        ) {
-            ids.push(e.attr("Id").unwrap().to_owned());
+    let doc = Document::parse(xml).unwrap();
+    for e in doc.descendants().filter(Node::is_element) {
+        let name = e.tag_name().name();
+        let path = xml_path::path(e, |n| n.tag_name().name().to_owned());
+        let value = e.attribute("Value").map(str::to_owned);
+        if matches!(name, "AutomationTarget" | "ModulationTarget" | "Pointee") {
+            ids.push(e.attribute("Id").unwrap().to_owned());
         }
-        if e.name == "MidiEffectBranchPreset" {
+        if name == "MidiEffectBranchPreset" {
             chains.push(Chain {
-                id: e.attr("Id").unwrap().to_owned(),
+                id: e.attribute("Id").unwrap().to_owned(),
                 ..Chain::default()
             });
         }
         if let Some(chain) = chains.last_mut() {
-            if e.path.ends_with("MidiEffectBranchPreset/Name") {
+            if path.ends_with("MidiEffectBranchPreset/Name") {
                 chain.name = value.clone().unwrap();
             }
-            if e.path.contains("ZoneSettings/KeyRange/") {
-                chain.keys.push((e.name.clone(), value.clone().unwrap()));
+            if path.contains("ZoneSettings/KeyRange/") {
+                chain.keys.push((name.to_owned(), value.clone().unwrap()));
             }
-            if e.path.ends_with("DevicePresets/AbletonDevicePreset/Device") {
+            if path.ends_with("DevicePresets/AbletonDevicePreset/Device") {
                 chain.devices += 1;
             }
-            if e.path.ends_with("MidiPitcher/Pitch/Manual") {
+            if path.ends_with("MidiPitcher/Pitch/Manual") {
                 chain.pitch = Some(value.unwrap().parse().unwrap());
             }
         }

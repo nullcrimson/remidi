@@ -1,9 +1,6 @@
 //! Builds and reads small Standard MIDI Files for tests, and the engine maps they play
 //! on. Channels are numbered `1..=16` as people count them.
 
-pub mod layers;
-pub mod xml;
-
 use std::collections::BTreeMap;
 
 use midly::{

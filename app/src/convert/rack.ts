@@ -1,7 +1,7 @@
 import { engineName, type EnginePair } from '../core/enginePair';
-import type { Midiremap, MissingDrums, PresetName, RackFile, Unrecognized } from '../core/midiremap';
+import type { Midiremap, MissingDrums, Overrides, PresetName, RackFile, Unrecognized } from '../core/midiremap';
 import type { Notice, NoticeLine } from '../core/notice';
-import { editCount, knownEdits, type EditSet, type KnownEdits } from '../core/overrides';
+import { editCount, knownEdits, type KnownEdits } from '../core/overrides';
 import type { SavedMapping } from '../presets/mappings';
 import type { Remapper } from './useRemapper';
 import { saveBlob } from '../core/download';
@@ -19,7 +19,7 @@ interface RackSettings {
 
 /** What an Ableton rack is made from: the open mapping of step 2, or a saved preset with its checked edits. */
 export type RackRequest = RackSettings & (
-  | { where: 'summary'; edits: EditSet; presetName?: PresetName }
+  | { where: 'summary'; edits: Overrides; presetName?: PresetName }
   | { where: 'preset'; edits: KnownEdits; presetName: PresetName }
 );
 

@@ -1,9 +1,9 @@
 import type { Message } from '../generated/i18n';
 import type { SavedMapping } from '../presets/mappings';
-import type { Canon, Drum, Note, VoicePlan } from '../core/midiremap';
+import type { Canon, Drum, Note, Overrides, VoicePlan } from '../core/midiremap';
 import { noteName, type OctaveBase } from '../core/notes';
 import type { Vocabulary } from '../core/canon';
-import { knownEdits, sameEdits, type EditSet } from '../core/overrides';
+import { knownEdits, sameEdits } from '../core/overrides';
 import { playedNote } from '../core/outcome';
 
 /** How the current edits relate to the preset that is open, if any. */
@@ -58,7 +58,7 @@ export function previewLines(lines: Message[]): Message[] {
  */
 export function presetMatch(
   preset: SavedMapping | undefined,
-  current: EditSet,
+  current: Overrides,
   vocabulary: Vocabulary,
 ): PresetMatch {
   if (!preset) return { kind: 'none' };

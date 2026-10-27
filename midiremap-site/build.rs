@@ -298,12 +298,24 @@ fn ftl_files() -> String {
     )
 }
 
-/// One constructor per message with variables, taking each variable, in name order, under its
-/// snake-case name; the site uses some of them, the app's messages among them none.
+/// The app's messages with variables that the site formats too.
+const APP_PHRASES: [&str; 3] = ["edit-show-all", "maps-pair-link", "summary-rack-label"];
+
+/// One constructor per message with variables the site formats (each of `site.ftl`, and
+/// `APP_PHRASES`), taking each variable, in name order, under its snake-case name.
 fn phrases(messages: &[Message]) -> String {
+    for id in APP_PHRASES {
+        assert!(
+            messages
+                .iter()
+                .any(|m| m.id == id && matches!(m.file, FtlFile::App) && !m.vars.is_empty()),
+            "{id} is no app message with variables"
+        );
+    }
     let constructors: String = messages
         .iter()
         .filter(|m| !m.vars.is_empty())
+        .filter(|m| matches!(m.file, FtlFile::Site) || APP_PHRASES.contains(&m.id))
         .map(|m| {
             let params = list(
                 m.vars
@@ -322,7 +334,7 @@ fn phrases(messages: &[Message]) -> String {
             )
         })
         .collect();
-    format!("#[allow(dead_code)]\nimpl<'a> Phrase<'a> {{\n{constructors}}}\n")
+    format!("impl<'a> Phrase<'a> {{\n{constructors}}}\n")
 }
 
 fn message_code(messages: &[Message], plain: &[&str]) -> String {

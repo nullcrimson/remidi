@@ -2,7 +2,6 @@ mod ableton;
 mod file;
 mod formats;
 mod packing;
-mod xml;
 
 use strum::VariantArray;
 

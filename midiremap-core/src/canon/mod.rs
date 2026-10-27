@@ -289,6 +289,10 @@ impl CanonEntry {
         &self.label
     }
 
+    pub(crate) fn into_label(self) -> String {
+        self.label
+    }
+
     pub fn family(&self) -> Family {
         self.family
     }

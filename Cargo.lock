@@ -716,11 +716,13 @@ name = "midiremap-core"
 version = "0.1.0"
 dependencies = [
  "flate2",
+ "midiremap-layers",
  "midiremap-testkit",
  "midly",
  "proptest",
  "quick-xml",
  "rayon",
+ "roxmltree",
  "serde",
  "serde_bytes",
  "serde_json",
@@ -729,6 +731,15 @@ dependencies = [
  "toml",
  "tsify",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "midiremap-layers"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "syn 2.0.118",
+ "walkdir",
 ]
 
 [[package]]
@@ -742,8 +753,8 @@ dependencies = [
  "fluent-syntax",
  "heck",
  "midiremap-core",
+ "midiremap-layers",
  "midiremap-testkit",
- "quick-xml",
  "roxmltree",
  "scraper",
  "serde",
@@ -757,10 +768,7 @@ name = "midiremap-testkit"
 version = "0.1.0"
 dependencies = [
  "midly",
- "proc-macro2",
- "quick-xml",
  "serde_json",
- "syn 2.0.118",
 ]
 
 [[package]]

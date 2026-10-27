@@ -49,7 +49,7 @@ pub struct StandIn {
 }
 
 impl StandIn {
-    pub fn new(canon: Canon, stand_in: Canon, note: Note) -> Self {
+    pub(crate) fn new(canon: Canon, stand_in: Canon, note: Note) -> Self {
         Self {
             canon,
             stand_in,

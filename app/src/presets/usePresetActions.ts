@@ -1,7 +1,7 @@
 import type { EnginePair } from '../core/enginePair';
 import { uniqueName, type SavedMapping } from './mappings';
-import type { PresetName } from '../core/midiremap';
-import { editCount, type Edits, type SrcEdits } from '../core/overrides';
+import type { Overrides, PresetName } from '../core/midiremap';
+import { editCount } from '../core/overrides';
 import type { NoticeLine } from '../core/notice';
 import { skippedNotice } from './presetImport';
 import type { SavedMappings } from './useSavedMappings';
@@ -9,9 +9,7 @@ import { track } from '../core/stats';
 import type { StatEvents } from '../core/umami';
 
 /** What the preset actions read from and change on the screen. */
-export interface PresetSetup {
-  edits: Edits;
-  srcEdits: SrcEdits;
+export interface PresetSetup extends Overrides {
   loadMapping: (m: SavedMapping) => number;
   setPreset: (id: string | null) => void;
   openEditor: () => void;
@@ -36,7 +34,7 @@ export function usePresetActions(
     apply(m);
   };
   const reportSaved = (how: StatEvents['preset-saved']['how']) => (stored: boolean) =>
-    track('preset-saved', { how, stored, edits: editCount({ edits, srcEdits }) });
+    track('preset-saved', { how, stored, edits: editCount(setup) });
   return {
     open: (id: string | null) => saved.mappings.find((m) => m.id === id),
     save: (pair: EnginePair, name: PresetName) => {

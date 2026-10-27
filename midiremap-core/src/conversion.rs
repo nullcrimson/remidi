@@ -40,7 +40,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        canon::Canon, catalog::Catalog, note::n, overrides::Overrides, report::FallbackTally,
+        canon::k, catalog::Catalog, note::n, overrides::Overrides, report::FallbackTally,
         resolution::MissingDrums, translate::Unrecognized,
     };
 
@@ -96,7 +96,7 @@ mod tests {
     #[test]
     fn drop_reports_the_swapped_china_as_dropped() {
         let out = drop_a_swapped_china();
-        let china = "china.1.hit".parse::<Canon>().unwrap();
+        let china = k("china.1.hit");
         assert_eq!(out.report.dropped().collect::<Vec<_>>(), [(china, 1)]);
     }
 
@@ -142,9 +142,9 @@ mod tests {
         assert_eq!(
             out.report.fallback_used().collect::<Vec<_>>(),
             [(
-                "china.1.hit".parse::<Canon>().unwrap(),
+                k("china.1.hit"),
                 &FallbackTally {
-                    stand_in: "crash.1.hit".parse::<Canon>().unwrap(),
+                    stand_in: k("crash.1.hit"),
                     note: n(86),
                     count: 1
                 }

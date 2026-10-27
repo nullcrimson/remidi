@@ -1,4 +1,4 @@
-import type { EditSet } from '../core/overrides';
+import type { Overrides } from '../core/midiremap';
 import type { StatEvents } from '../core/umami';
 
 /** Which of the two ways to pick a target note a pick was made on. */
@@ -13,13 +13,13 @@ export interface Tally {
   list: number;
   filtered: boolean;
   resets: number;
-  opening: EditSet;
+  opening: Overrides;
 }
 
 export const EMPTY_TALLY: Tally = { keyboard: 0, list: 0, filtered: false, resets: 0, opening: { edits: {}, srcEdits: {} } };
 
 export type TallyAction
-  = | { type: 'open'; edits: EditSet }
+  = | { type: 'open'; edits: Overrides }
     | { type: 'pick'; via: PickVia }
     | { type: 'filter' }
     | { type: 'rowReset' };
@@ -43,7 +43,7 @@ function changedCount<V>(then: Record<string, V>, now: Record<string, V>): numbe
 }
 
 /** The properties of the event that closes a session: what changed since it opened, and the tally. */
-export function closingProps(how: CloseHow, { edits, srcEdits }: EditSet, { opening, keyboard, list, filtered, resets }: Tally): StatEvents['editor-closed'] {
+export function closingProps(how: CloseHow, { edits, srcEdits }: Overrides, { opening, keyboard, list, filtered, resets }: Tally): StatEvents['editor-closed'] {
   return {
     how,
     targets: changedCount(opening.edits, edits),

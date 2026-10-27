@@ -123,6 +123,12 @@ pub fn pair_href(slug: &str) -> SitePath {
 
 /// The converter as a page, for the language menu and `hreflang`.
 pub const CONVERTER_PAGE: Page = Page::Everywhere(CONVERTER);
+/// The note-map index as a page.
+pub const NOTE_MAPS_PAGE: Page = Page::Everywhere(NOTE_MAPS);
+/// The drum-map index as a page.
+pub const DRUM_MAPS_PAGE: Page = Page::Everywhere(DRUM_MAPS);
+/// The thank-you page, which no index lists.
+pub const THANKS_PAGE: Page = Page::Unlisted(THANKS);
 
 fn section_path(key: SectionKey) -> SitePath {
     SitePath::new(format!("/{}/", key.slug()))
@@ -360,7 +366,7 @@ mod tests {
     fn a_note_map_page_lists_every_locale_and_the_default() {
         let docs = crate::fixtures::docs();
         assert_eq!(
-            alternates(&Page::Everywhere(NOTE_MAPS), docs).len(),
+            alternates(&NOTE_MAPS_PAGE, docs).len(),
             Locale::ALL.len() + 1
         );
     }
@@ -375,9 +381,10 @@ mod tests {
 
     #[test]
     fn every_other_page_is_indexed_in_every_locale() {
-        for page in [Page::Everywhere(NOTE_MAPS), Page::Section(SectionKey::Faq)] {
-            assert!(Locale::ALL.iter().all(|&l| page.indexed_in(l)));
-        }
+        assert!(Locale::ALL.iter().all(|&l| NOTE_MAPS_PAGE.indexed_in(l)));
+        assert!(Locale::ALL
+            .iter()
+            .all(|&l| Page::Section(SectionKey::Faq).indexed_in(l)));
     }
 
     #[test]

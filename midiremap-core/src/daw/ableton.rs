@@ -2,16 +2,13 @@ use std::io;
 
 use serde::Serialize;
 
-use super::{
-    file::FileStem,
-    packing::Packing,
-    xml::{self, nest, Xml},
-};
+use super::{file::FileStem, packing::Packing};
 use crate::{
     engine_map::EngineMap,
     note::Note,
     preset::PresetName,
     translate::{Destination, Mapping},
+    xml::{self, nest, Indent, Xml},
 };
 
 const PROTECTION: &str = "2818";
@@ -117,7 +114,7 @@ pub(crate) fn note_name_rack(map: &EngineMap) -> String {
         .into_iter()
         .map(|d| Chain {
             note: d.note,
-            name: d.entry.label().to_owned(),
+            name: d.entry.into_label(),
             shift: None,
         })
         .collect();
@@ -136,7 +133,7 @@ impl Ids {
 
 fn rack(title: &str, chains: &[Chain]) -> String {
     let mut ids = Ids::default();
-    xml::document((b'\t', 1), "UTF-8", |w| {
+    xml::document(Indent::Tab, "UTF-8", |w| {
         xml::element(
             w,
             "Ableton",

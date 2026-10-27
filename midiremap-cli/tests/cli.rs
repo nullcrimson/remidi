@@ -14,10 +14,10 @@ fn one_note_smf(note: u8) -> Vec<u8> {
 
 const PAIR: [&str; 2] = ["ggd_invasion", "ezdrummer"];
 
-/// Runs `convert` on `input` from one engine to the other, with an edits file passed after
-/// its flag, and returns the run and the file it wrote.
 const EDITS_FILE: &str = "edits.drumverter.json";
 
+/// Runs `convert` on `input` from one engine to the other, with an edits file passed after
+/// its flag, and returns the run and the file it wrote.
 fn run(
     input: &[u8],
     engines: [&str; 2],

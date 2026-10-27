@@ -150,11 +150,7 @@ mod tests {
         let near = ggd_to_ezd(NO_EDITS);
         assert_eq!(
             find(&near, "china.1.hit").outcome,
-            Outcome::Fallback(StandIn::new(
-                "china.1.hit".parse().unwrap(),
-                "crash.1.hit".parse().unwrap(),
-                n(86)
-            ))
+            Outcome::Fallback(StandIn::new(k("china.1.hit"), k("crash.1.hit"), n(86)))
         );
     }
 
@@ -193,7 +189,7 @@ mod tests {
         assert_eq!(
             find(&rows, "china.1.hit").outcome,
             Outcome::Direct {
-                canon: "china.1.hit".parse().unwrap(),
+                canon: k("china.1.hit"),
                 note: n(52)
             }
         );

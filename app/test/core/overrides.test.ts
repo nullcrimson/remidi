@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import type { Overrides } from '../../src/core/midiremap';
 import { sameEdits, type Edits, type SrcEdits } from '../../src/core/overrides';
 import { typed } from '../typed';
 
 describe('sameEdits', () => {
-  const a = typed<{ edits: Edits; srcEdits: SrcEdits }>({ edits: { 'kick.main': 35, 'china.1.hit': 52 }, srcEdits: { 24: 'snare1.hit', 60: null } });
-  const b = typed<{ edits: Edits; srcEdits: SrcEdits }>({ edits: { 'china.1.hit': 52, 'kick.main': 35 }, srcEdits: { 60: null, 24: 'snare1.hit' } });
+  const a = typed<Overrides>({ edits: { 'kick.main': 35, 'china.1.hit': 52 }, srcEdits: { 24: 'snare1.hit', 60: null } });
+  const b = typed<Overrides>({ edits: { 'china.1.hit': 52, 'kick.main': 35 }, srcEdits: { 60: null, 24: 'snare1.hit' } });
 
   it('compares target and source edits regardless of key order', () => {
     expect(sameEdits(a, b)).toBe(true);

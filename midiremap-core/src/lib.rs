@@ -20,6 +20,7 @@ mod resolution;
 mod rewrite;
 mod sample;
 mod translate;
+pub mod xml;
 
 pub use canon::{Canon, CanonEntry, CanonParseError};
 pub use catalog::Catalog;

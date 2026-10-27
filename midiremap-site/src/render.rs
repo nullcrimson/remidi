@@ -13,7 +13,8 @@ use crate::{
     pages::{EnginePage, IndexPage, NoteCell, NoteRole, PairPage, PairSummary, Site, Tally},
     routes::{
         alternates, home, href, og_image_url, page_in, Alternate, LocalPath, NavTarget, Page,
-        SitePath, DRUM_MAPS, FOOTER, NAV, NOTE_MAPS, THANKS,
+        SitePath, DRUM_MAPS, DRUM_MAPS_PAGE, FOOTER, NAV, NOTE_MAPS, NOTE_MAPS_PAGE, THANKS,
+        THANKS_PAGE,
     },
     schema::{breadcrumb_schema, section_schema},
     texts::{NavItem, Texts},
@@ -296,14 +297,7 @@ fn render_thanks(
             texts.get(Plain::ThanksDescription).to_owned(),
             &path,
         ),
-        frame: Frame::new(
-            manifest,
-            texts,
-            None,
-            None,
-            &Page::Unlisted(THANKS),
-            PageKind::Doc,
-        ),
+        frame: Frame::new(manifest, texts, None, None, &THANKS_PAGE, PageKind::Doc),
         texts,
     }
     .render()?;
@@ -331,7 +325,7 @@ fn render_note_maps(
         NOTE_MAPS.in_locale(texts.locale).file(),
         IndexHtml {
             meta: index_meta(&site.index, texts),
-            frame: frame(Page::Everywhere(NOTE_MAPS), PageKind::Index, None),
+            frame: frame(NOTE_MAPS_PAGE, PageKind::Index, None),
             texts,
             page: &site.index,
             popular: &site.popular,
@@ -347,7 +341,7 @@ fn render_note_maps(
                 texts,
                 Some(NavTarget::DrumMaps),
                 None,
-                &Page::Everywhere(DRUM_MAPS),
+                &DRUM_MAPS_PAGE,
                 PageKind::DrumMaps,
             ),
             texts,
@@ -363,11 +357,7 @@ fn render_note_maps(
             path.in_locale(texts.locale).file(),
             EngineHtml {
                 meta: engine_meta(p, texts),
-                frame: frame(
-                    Page::Everywhere(path.clone()),
-                    PageKind::Engine,
-                    trail(&p.engine.name, &path),
-                ),
+                frame: frame(p.page(), PageKind::Engine, trail(&p.engine.name, &path)),
                 texts,
                 intro: texts.say(Phrase::maps_engine_intro(&p.engine.name, p.total)),
                 page: p,
@@ -381,11 +371,7 @@ fn render_note_maps(
             path.in_locale(texts.locale).file(),
             PairHtml {
                 meta: pair_meta(p, texts),
-                frame: frame(
-                    Page::Pair(path.clone()),
-                    PageKind::Pair,
-                    trail(&p.link().title(), &path),
-                ),
+                frame: frame(p.page(), PageKind::Pair, trail(&p.title(), &path)),
                 texts,
                 heading: pair_heading(p, texts),
                 summary: pair_summary(texts, &p.src.name, &p.tgt.name, p.tally),
@@ -1089,15 +1075,15 @@ mod tests {
             let shown =
                 1 + usize::from(p.tally.approximated > 0) + usize::from(p.tally.dropped > 0);
             let tags = attrs(html, "span.tag", "data-tone");
-            assert_eq!(tags.len(), shown, "{}", p.slug);
-            assert_eq!(tags[0], "neutral", "{}", p.slug);
+            assert_eq!(tags.len(), shown, "{}", p.slug());
+            assert_eq!(tags[0], "neutral", "{}", p.slug());
             assert!(
                 tags.iter()
                     .all(|t| ["neutral", "bright", "danger"].contains(&t.as_str())),
                 "{}",
-                p.slug
+                p.slug()
             );
-            assert!(!html.contains(r#"data-tone="gold""#), "{}", p.slug);
+            assert!(!html.contains(r#"data-tone="gold""#), "{}", p.slug());
         }
     }
 
@@ -1134,7 +1120,7 @@ mod tests {
                 page_text(pair_page(p)).contains(&none),
                 p.tally.changes() == 0,
                 "{}",
-                p.slug
+                p.slug()
             );
         }
     }
@@ -1146,7 +1132,7 @@ mod tests {
                 !texts(pair_page(p), "ul.merge-list").is_empty(),
                 p.tally.approximated > 0,
                 "{}",
-                p.slug
+                p.slug()
             );
         }
     }
@@ -1158,7 +1144,7 @@ mod tests {
                 page_text(pair_page(p)).contains(&format!("{} has no drum for ", p.tgt.name)),
                 p.tally.dropped > 0,
                 "{}",
-                p.slug
+                p.slug()
             );
         }
     }
@@ -1175,16 +1161,16 @@ mod tests {
                     (open == r#" data-outcome="exact""#, body)
                 })
                 .collect();
-            assert_eq!(groups.len(), p.groups.len(), "{}", p.slug);
+            assert_eq!(groups.len(), p.groups.len(), "{}", p.slug());
             for ((hidden, body), g) in groups.iter().zip(&p.groups) {
-                assert_eq!(*hidden, g.all_exact(), "{}: {}", p.slug, g.family);
+                assert_eq!(*hidden, g.all_exact(), "{}: {}", p.slug(), g.family);
                 assert!(
                     body.starts_with(&format!(
                         "\n<tr><th scope=\"rowgroup\" colspan=\"6\">{}</th></tr>",
                         g.family
                     )),
                     "{}",
-                    p.slug
+                    p.slug()
                 );
             }
         }
@@ -1203,7 +1189,7 @@ mod tests {
     fn pair_pages_mark_the_engine_step_done() {
         for p in &crate::fixtures::site().pairs {
             let html = page(&p.href().in_locale(Locale::En).file());
-            assert_eq!(badges(html), ["current", "done", "later"], "{}", p.slug);
+            assert_eq!(badges(html), ["current", "done", "later"], "{}", p.slug());
             let steps = html.split(r#"<ol class="step-list""#).nth(1).unwrap();
             let engines = steps.split("<li>").nth(2).unwrap();
             assert!(
@@ -1211,7 +1197,7 @@ mod tests {
                     "From one drum layout to another<span class=\"sr-only\"> · done</span>"
                 ),
                 "{}",
-                p.slug
+                p.slug()
             );
         }
     }

@@ -1,14 +1,18 @@
 use std::io;
 
-use super::xml::{self, element, empty, nest, Xml};
-use crate::{channel::Channel, engine_map::EngineMap, note::Note};
+use crate::{
+    channel::Channel,
+    engine_map::EngineMap,
+    note::Note,
+    xml::{self, element, empty, nest, Indent, Xml},
+};
 
 const UNNAMED: &str = "---";
 
 fn named_notes(map: &EngineMap) -> Vec<(Note, String)> {
     map.source_notes()
         .into_iter()
-        .map(|d| (d.note, d.entry.label().to_owned()))
+        .map(|d| (d.note, d.entry.into_label()))
         .collect()
 }
 
@@ -69,7 +73,7 @@ pub(super) fn cubase(map: &EngineMap) -> String {
             .find(|&&(note, _)| note == n)
             .map_or(UNNAMED, |(_, name)| name.as_str())
     };
-    xml::document((b' ', 3), "utf-8", |w| {
+    xml::document(Indent::Spaces(3), "utf-8", |w| {
         nest(w, "DrumMap", |w| {
             wide_string(w, "Name", map.display_name())?;
             list(w, "Quantize", "list", |w| {
@@ -116,7 +120,7 @@ pub(super) fn cubase(map: &EngineMap) -> String {
 
 /// A Studio One pitch list naming each played note after its drum.
 pub(super) fn studio_one(map: &EngineMap) -> String {
-    xml::document((b'\t', 1), "UTF-8", |w| {
+    xml::document(Indent::Tab, "UTF-8", |w| {
         nest(w, "Music.PitchNameList", |w| {
             named_notes(map).iter().try_for_each(|(note, name)| {
                 empty(

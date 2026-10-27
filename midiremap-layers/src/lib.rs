@@ -12,6 +12,7 @@ use syn::{
     visit::{self, Visit},
     Attribute, Item, ItemUse, Macro, Meta, UseTree,
 };
+use walkdir::WalkDir;
 
 /// The modules each module may use.
 pub type Table = [(&'static str, &'static [&'static str])];
@@ -29,8 +30,6 @@ pub enum Breach {
     NoModule { module: String },
     /// A module the table lets reach itself through others.
     Circular { module: String },
-    /// A use the table allows that the module does not make.
-    Unused { module: String, name: String },
     /// A use the table does not allow.
     Outside { module: String, name: String },
 }
@@ -51,9 +50,6 @@ impl fmt::Display for Breach {
                 write!(f, "the table has a row for {module}, which is no module")
             }
             Self::Circular { module } => write!(f, "{module} uses itself through others"),
-            Self::Unused { module, name } => {
-                write!(f, "{module} -> {name} is allowed but never used")
-            }
             Self::Outside { module, name } => write!(f, "{module} -> {name} is outside the table"),
         }
     }
@@ -75,23 +71,20 @@ impl Layers {
     /// Reads every module under `src`: a file, or a folder taken as one module. The crate
     /// roots `lib.rs` and `main.rs` are left out, and so is every `#[cfg(test)]` item.
     pub fn read(src: &Path) -> Self {
-        let mut layers = Self::default();
-        for entry in fs::read_dir(src).expect("the source folder is readable") {
-            let path = entry.expect("a source entry is readable").path();
-            let stem = path
-                .file_stem()
-                .and_then(|s| s.to_str())
-                .expect("a source name is UTF-8")
-                .to_owned();
-            if path.is_dir() {
-                for file in rust_files(&path) {
-                    layers.add(&stem, true, &read(&file));
-                }
-            } else if path.extension().is_some_and(|e| e == "rs") && !ROOTS.contains(&&*stem) {
-                layers.add(&stem, false, &read(&path));
-            }
-        }
-        layers
+        WalkDir::new(src)
+            .min_depth(1)
+            .into_iter()
+            .map(|entry| entry.expect("a source entry is readable").into_path())
+            .filter(|path| path.extension().is_some_and(|e| e == "rs"))
+            .filter_map(|path| Some((module_of(src, &path)?, path)))
+            .fold(
+                Self::default(),
+                |mut layers, ((module, in_folder), path)| {
+                    let code = fs::read_to_string(path).expect("a source file is readable");
+                    layers.add(&module, in_folder, &code);
+                    layers
+                },
+            )
     }
 
     /// Adds the code of one file of `module`; a file in the module's own folder may write
@@ -172,42 +165,29 @@ impl Layers {
                 let (module, name) = owned(name);
                 Breach::Outside { module, name }
             });
-        let unused = row
-            .into_iter()
-            .flatten()
-            .filter(|name| !uses.contains(*name))
-            .map(|name| {
-                let (module, name) = owned(name);
-                Breach::Unused { module, name }
-            });
         through_root
             .chain(through_super)
             .chain(unlisted)
             .chain(outside)
-            .chain(unused)
             .collect()
     }
 }
 
 const ROOTS: [&str; 2] = ["lib", "main"];
 
-fn read(path: &Path) -> String {
-    fs::read_to_string(path).expect("a source file is readable")
-}
-
-fn rust_files(dir: &Path) -> Vec<std::path::PathBuf> {
-    fs::read_dir(dir)
-        .expect("a module folder is readable")
-        .map(|entry| entry.expect("a source entry is readable").path())
-        .flat_map(|path| {
-            if path.is_dir() {
-                rust_files(&path)
-            } else {
-                vec![path]
-            }
-        })
-        .filter(|path| path.extension().is_some_and(|e| e == "rs"))
-        .collect()
+/// The module the source file `file` under `src` belongs to, and whether the file is in the
+/// module's own folder; `None` for a crate root.
+fn module_of(src: &Path, file: &Path) -> Option<(String, bool)> {
+    let mut steps = file
+        .strip_prefix(src)
+        .expect("a source file is under its source folder")
+        .iter();
+    let module = Path::new(steps.next()?)
+        .file_stem()?
+        .to_str()
+        .expect("a source name is UTF-8");
+    let in_folder = steps.next().is_some();
+    (in_folder || !ROOTS.contains(&module)).then(|| (module.to_owned(), in_folder))
 }
 
 fn reaches(table: &BTreeMap<&str, BTreeSet<&str>>, from: &str, to: &str) -> bool {
@@ -349,46 +329,81 @@ mod tests {
         (module.to_owned(), name.to_owned())
     }
 
+    fn module_of_file(file: &str) -> Option<(String, bool)> {
+        module_of(Path::new("src"), &Path::new("src").join(file))
+    }
+
+    #[test]
+    fn a_file_is_its_own_module() {
+        assert_eq!(module_of_file("note.rs"), Some(("note".to_owned(), false)));
+    }
+
+    #[test]
+    fn a_file_in_a_folder_belongs_to_the_folder() {
+        assert_eq!(
+            module_of_file("daw/formats/cubase.rs"),
+            Some(("daw".to_owned(), true))
+        );
+    }
+
+    #[test]
+    fn a_crate_root_is_no_module() {
+        assert_eq!(module_of_file("lib.rs"), None);
+    }
+
     #[test]
     fn a_crate_inside_its_table_has_no_breach() {
         let found = layers(&[("a", false, "use crate::b::X;"), ("b", false, "")]);
         assert_eq!(found.check(&[("a", &["b"]), ("b", &[])]), []);
     }
 
-    #[test]
-    fn uses_in_groups_renames_paths_and_macros_are_all_seen() {
-        let found = layers(&[
-            (
-                "a",
-                false,
-                "use crate::{b::X, c as d}; fn f() { crate::e::g(); println!(\"{}\", crate::h::I); }",
-            ),
-            ("b", false, ""),
-            ("c", false, ""),
-            ("e", false, ""),
-            ("h", false, ""),
-        ]);
-        let table: &Table = &[
-            ("a", &["b", "c", "e", "h"]),
-            ("b", &[]),
-            ("c", &[]),
-            ("e", &[]),
-            ("h", &[]),
-        ];
-        assert_eq!(found.check(table), []);
+    /// The breaches of a module `a` with the code `code` that may use nothing, beside a
+    /// module `b`.
+    fn uses_of_b(code: &str) -> Vec<Breach> {
+        layers(&[("a", false, code), ("b", false, "")]).check(&[("a", &[]), ("b", &[])])
+    }
+
+    fn outside_b() -> [Breach; 1] {
+        let (module, name) = breach("a", "b");
+        [Breach::Outside { module, name }]
     }
 
     #[test]
-    fn test_items_and_strings_are_not_uses() {
-        let found = layers(&[
-            (
-                "a",
-                false,
-                "const S: &str = \"crate::b\"; #[cfg(test)] mod tests { use crate::b; } #[cfg(test)] fn t() { crate::b::f(); }",
+    fn a_use_in_a_group_is_seen() {
+        assert_eq!(uses_of_b("use crate::{b::X};"), outside_b());
+    }
+
+    #[test]
+    fn a_renamed_use_is_seen() {
+        assert_eq!(uses_of_b("use crate::b as d;"), outside_b());
+    }
+
+    #[test]
+    fn a_path_in_code_is_seen() {
+        assert_eq!(uses_of_b("fn f() { crate::b::g(); }"), outside_b());
+    }
+
+    #[test]
+    fn a_path_in_a_macro_is_seen() {
+        assert_eq!(
+            uses_of_b(r#"fn f() { println!("{}", crate::b::I); }"#),
+            outside_b()
+        );
+    }
+
+    #[test]
+    fn a_string_naming_a_module_is_no_use() {
+        assert_eq!(uses_of_b(r#"const S: &str = "crate::b";"#), []);
+    }
+
+    #[test]
+    fn a_test_item_is_no_use() {
+        assert_eq!(
+            uses_of_b(
+                "#[cfg(test)] mod tests { use crate::b; } #[cfg(test)] fn t() { crate::b::f(); }"
             ),
-            ("b", false, ""),
-        ]);
-        assert_eq!(found.check(&[("a", &[]), ("b", &[])]), []);
+            []
+        );
     }
 
     #[test]
@@ -398,16 +413,6 @@ mod tests {
         assert_eq!(
             found.check(&[("a", &[]), ("b", &[])]),
             [Breach::Outside { module, name }]
-        );
-    }
-
-    #[test]
-    fn an_allowed_use_no_module_makes_is_a_breach() {
-        let found = layers(&[("a", false, ""), ("b", false, "")]);
-        let (module, name) = breach("a", "b");
-        assert_eq!(
-            found.check(&[("a", &["b"]), ("b", &[])]),
-            [Breach::Unused { module, name }]
         );
     }
 

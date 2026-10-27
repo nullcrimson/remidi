@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use midiremap_testkit::layers::{Layers, Table};
+use midiremap_layers::{Layers, Table};
 
 const ALLOWED_USES: &Table = &[
     ("content", &["converter_step"]),

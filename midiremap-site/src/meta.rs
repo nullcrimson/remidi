@@ -32,11 +32,7 @@ pub fn fit(first: &str, fallbacks: &[String], rest: &[String], max: usize) -> St
             .iter()
             .map(String::as_str)
             .fold(first, |shortest, s| {
-                if s.chars().count() < shortest.chars().count() {
-                    s
-                } else {
-                    shortest
-                }
+                std::cmp::min_by_key(shortest, s, |s| s.chars().count())
             })
             .to_owned();
     };

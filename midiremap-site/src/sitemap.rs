@@ -1,7 +1,4 @@
-use quick_xml::{
-    events::{BytesDecl, BytesText, Event},
-    Writer,
-};
+use midiremap_core::xml::{self, empty, nest, Indent};
 
 use crate::{
     i18n::Docs,
@@ -11,44 +8,37 @@ use crate::{
 
 /// Every indexed page's address, each with `xhtml:link`s to its indexed versions.
 pub fn sitemap(site: &Site, docs: &Docs) -> String {
-    let mut w = Writer::new_with_indent(Vec::new(), b' ', 2);
-    w.write_event(Event::Decl(BytesDecl::new("1.0", Some("UTF-8"), None)))
-        .and_then(|()| {
-            w.create_element("urlset")
-                .with_attributes([
-                    ("xmlns", "http://www.sitemaps.org/schemas/sitemap/0.9"),
-                    ("xmlns:xhtml", "http://www.w3.org/1999/xhtml"),
-                ])
-                .write_inner_content(|w| {
-                    site.pages().iter().try_for_each(|page| {
-                        let links = alternates(page, docs);
-                        page.versions(docs).try_for_each(|(_, path)| {
-                            w.create_element("url")
-                                .write_inner_content(|w| {
-                                    w.create_element("loc")
-                                        .write_text_content(BytesText::new(&path.url()))?;
-                                    links.iter().try_for_each(|link| {
-                                        w.create_element("xhtml:link")
-                                            .with_attributes([
-                                                ("rel", "alternate"),
-                                                ("hreflang", link.tag),
-                                                ("href", link.url().as_str()),
-                                            ])
-                                            .write_empty()
-                                            .map(drop)
-                                    })
-                                })
-                                .map(drop)
+    xml::document(Indent::Spaces(2), "UTF-8", |w| {
+        xml::element(
+            w,
+            "urlset",
+            [
+                ("xmlns", "http://www.sitemaps.org/schemas/sitemap/0.9"),
+                ("xmlns:xhtml", "http://www.w3.org/1999/xhtml"),
+            ],
+            |w| {
+                site.pages().iter().try_for_each(|page| {
+                    let links = alternates(page, docs);
+                    page.versions(docs).try_for_each(|(_, path)| {
+                        nest(w, "url", |w| {
+                            xml::text(w, "loc", &path.url())?;
+                            links.iter().try_for_each(|link| {
+                                empty(
+                                    w,
+                                    "xhtml:link",
+                                    [
+                                        ("rel", "alternate"),
+                                        ("hreflang", link.tag),
+                                        ("href", link.url().as_str()),
+                                    ],
+                                )
+                            })
                         })
                     })
                 })
-                .map(drop)
-        })
-        .expect("writing into memory cannot fail");
-    let mut xml =
-        String::from_utf8(w.into_inner()).expect("the writer emits the UTF-8 it is given");
-    xml.push('\n');
-    xml
+            },
+        )
+    })
 }
 
 pub fn robots() -> String {

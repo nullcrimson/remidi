@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["midiremap-core", "midiremap-cli", "midiremap-wasm", "midiremap-site", "midiremap-testkit", "xtask"]
+members = ["midiremap-core", "midiremap-cli", "midiremap-wasm", "midiremap-site", "midiremap-testkit", "midiremap-layers", "xtask"]
 
 [profile.wasm]
 inherits = "release"

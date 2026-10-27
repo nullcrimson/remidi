@@ -33,7 +33,7 @@ drum (a China on a crash, Tom 4 on Tom 3); `Drop` keeps only entries on the same
 
 ## Workspace
 
-Six crates, a web app, and embedded engine presets:
+Seven crates, a web app, and embedded engine presets:
 
 | Component | Role | Depends on |
 |-------|------|------------|
@@ -41,8 +41,9 @@ Six crates, a web app, and embedded engine presets:
 | `midiremap-cli` | Offline `convert` / `list` binary. | core, `clap`, `anyhow` |
 | `midiremap-wasm` | Browser bindings for the web app. | core (feature `ts`), `wasm-bindgen`, `tsify`, `serde`, `serde_bytes`, `console_error_panic_hook` |
 | `app/` | Vite + React + TypeScript converter UI over the WASM bindings. | Vite, React, Tailwind, Vitest |
-| `midiremap-site` | Static SEO pages (engine note maps, pair tables, drum maps, FAQ / guide / legal pages) in the app's style. | core (feature `gzip`), `askama`, `fluent-bundle`, `fluent-syntax`, `clap`, `quick-xml`, `serde`, `serde_json`, `thiserror` (`fluent-syntax`, `heck`, `serde` in `build.rs`) |
-| `midiremap-testkit` | Test-only: builds and reads small SMFs (channels `1..=16`) for the other crates' tests, checks a crate's modules against a layer table (`layers`, on `syn`), and reads XML for core's DAW tests; a key, channel or delta out of range panics. | `midly`, `serde_json`, `syn`, `proc-macro2`, `quick-xml` |
+| `midiremap-site` | Static SEO pages (engine note maps, pair tables, drum maps, FAQ / guide / legal pages) in the app's style. | core (feature `gzip`), `askama`, `fluent-bundle`, `fluent-syntax`, `clap`, `serde`, `serde_json`, `thiserror` (`fluent-syntax`, `heck`, `serde` in `build.rs`) |
+| `midiremap-testkit` | Test-only: builds and reads small SMFs (channels `1..=16`) and engine maps for the other crates' tests; a key, channel or delta out of range panics. | `midly`, `serde_json` |
+| `midiremap-layers` | Test-only: reads which module of a crate uses which (on `syn`) and lists every use outside a table of allowed uses; core and the site check themselves with it. | `syn`, `proc-macro2`, `walkdir` |
 | `xtask` | `cargo xtask gate`: every check, scheduled over the steps' needs. | `cargo_metadata`, `clap`, `anyhow`, `blake3`, `walkdir`, `serde`, `strum` |
 | `engines/*.toml` | Preset note↔canon maps; core's `build.rs` converts them to one embedded JSON table. | — |
 
@@ -54,7 +55,7 @@ all real-world I/O and presentation.
 
 The dependency direction runs top to bottom; nothing lower depends on anything
 higher. `tests/module_layers.rs` holds the table of which module may use which, and
-fails on any other use.
+fails on any use outside it (an allowed use a module does not make is no failure).
 
 ```
 conversion   ── convert(bytes, &Mapping, ChannelScope) → Converted { bytes, report }
@@ -80,12 +81,13 @@ plan        ── Mapping::preview: per-drum rows for the editor, no MIDI
 preset      ── the preset file the app exports and the CLI reads
 sample      ── sample_file: a two-bar groove on the notes one engine plays, written by midi
 daw/        ── Daw and its Format registry: drum-map files, the Ableton rack (rack_file),
-               one XML writer, FileStem, Packing { Text | Gzip }
+               FileStem, Packing { Text | Gzip }
+xml         ── the one XML writer (quick-xml), public: the site writes its sitemap with it
 ```
 
 Every concept is one concrete type or function; the core defines no traits.
 
-**Public surface.** Every module is private; the crate root re-exports the API the
+**Public surface.** Every module but `xml` is private; the crate root re-exports the API the
 CLI, the WASM and the site use (`Canon`, `Catalog`, `EngineMap`, `Mapping`, `Outcome`,
 `convert`, `Report`, `Channel`, `ChannelScope`, `Daw`, the preset and error types).
 `#![warn(unreachable_pub)]` keeps anything else from becoming public by accident, and
@@ -342,8 +344,9 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
 - `rack_file(&Mapping, Option<&PresetName>) → RackFile { file_name, xml, packing, dropped }`
   is the Ableton Live MIDI Effect Rack that plays a mapping: one chain per source note,
   shifted onto where the conversion puts it.
-- One XML writer (`xml`: `document`, `element`, `nest`, `empty`) writes every XML file the
-  core makes.
+- They write their XML with the core's one XML writer (`xml`: `document`, `element`, `nest`,
+  `empty`, `text`), which the site's sitemap uses too. The tests read the files back with
+  `roxmltree`.
   `FileStem` cleans a name into a file name every system accepts. `Packing { Text | Gzip }`
   says how a file is stored; `Packing::pack` is behind the feature `gzip`, which the site
   enables (the app packs with `fflate`), so the core writes text only by default.
@@ -452,8 +455,8 @@ way. `list` prints available engine ids. The exit code is 0 when the file was wr
 - A `start` function installs `console_error_panic_hook`, so a panic prints its message.
 
 The browser build uses the `wasm` Cargo profile (release with LTO and one codegen
-unit), then `wasm-opt -Oz` (npm `binaryen`) on the bindgen output: about 587 KB, 180.5 KB
-gzipped, against a 181 KB budget (`scripts/check-size.ts`); the rack writer (`quick-xml`)
+unit), then `wasm-opt -Oz` (npm `binaryen`) on the bindgen output: about 613 KB, 189.4 KB
+gzipped, against a 192 KB budget (`scripts/check-size.ts`); the rack writer (`quick-xml`)
 is about 14 KB of it. `opt-level` s / z made it
 larger — a quarter of the module is the embedded engine table.
 

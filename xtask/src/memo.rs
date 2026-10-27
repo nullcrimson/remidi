@@ -270,31 +270,31 @@ mod tests {
         );
     }
 
-    fn recorded(passed: bool) -> (tempfile::TempDir, PathBuf, Fingerprint) {
+    fn recorded() -> (tempfile::TempDir, PathBuf, Fingerprint) {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("passes.json");
         let fp = Fingerprint("abc".to_owned());
         Passes::load(path.clone())
-            .record(TSC, fp.clone(), None, passed)
+            .record(TSC, fp.clone(), None, true)
             .unwrap();
         (dir, path, fp)
     }
 
     #[test]
     fn a_recorded_pass_is_kept_across_loads() {
-        let (_dir, path, fp) = recorded(true);
+        let (_dir, path, fp) = recorded();
         assert!(Passes::load(path).has(TSC, &fp, None));
     }
 
     #[test]
     fn a_pass_holds_only_for_its_fingerprint() {
-        let (_dir, path, _) = recorded(true);
+        let (_dir, path, _) = recorded();
         assert!(!Passes::load(path).has(TSC, &Fingerprint("abd".to_owned()), None));
     }
 
     #[test]
     fn a_failure_forgets_the_pass() {
-        let (_dir, path, fp) = recorded(true);
+        let (_dir, path, fp) = recorded();
         Passes::load(path.clone())
             .record(TSC, fp.clone(), None, false)
             .unwrap();

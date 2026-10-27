@@ -22,9 +22,11 @@ gzip = ["dep:flate2"]
 ts = ["dep:tsify", "dep:wasm-bindgen"]
 
 [dev-dependencies]
+midiremap-layers = { path = "../midiremap-layers" }
 midiremap-testkit = { path = "../midiremap-testkit" }
 proptest = "1"
 rayon = "1"
+roxmltree = "0.21"
 toml = "1.1"
 
 [build-dependencies]

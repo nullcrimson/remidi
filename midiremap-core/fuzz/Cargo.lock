@@ -138,10 +138,7 @@ name = "midiremap-testkit"
 version = "0.1.0"
 dependencies = [
  "midly",
- "proc-macro2",
- "quick-xml",
  "serde_json",
- "syn 2.0.119",
 ]
 
 [[package]]

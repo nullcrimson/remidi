@@ -111,10 +111,7 @@ mod tests {
     use midiremap_testkit::engine_json;
 
     use super::*;
-    use crate::{
-        canon::{k, Canon},
-        note::n,
-    };
+    use crate::{canon::k, note::n};
 
     #[test]
     fn every_builtin_names_its_vendor() {
@@ -155,22 +152,10 @@ mod tests {
     fn ggd_cymbal_layout_is_fixed() {
         let b = Catalog::builtin();
         let ggd = b.get("ggd_invasion").unwrap();
-        assert_eq!(
-            ggd.decode(n(54)),
-            Some("crash.2.hit".parse::<Canon>().unwrap())
-        );
-        assert_eq!(
-            ggd.decode(n(67)),
-            Some("china.2.hit".parse::<Canon>().unwrap())
-        );
-        assert_eq!(
-            ggd.decode(n(75)),
-            Some("splash.2.hit".parse::<Canon>().unwrap())
-        );
-        assert_eq!(
-            ggd.decode(n(53)),
-            Some("crash.1.mute".parse::<Canon>().unwrap())
-        );
+        assert_eq!(ggd.decode(n(54)), Some(k("crash.2.hit")));
+        assert_eq!(ggd.decode(n(67)), Some(k("china.2.hit")));
+        assert_eq!(ggd.decode(n(75)), Some(k("splash.2.hit")));
+        assert_eq!(ggd.decode(n(53)), Some(k("crash.1.mute")));
     }
 
     #[test]
