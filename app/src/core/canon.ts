@@ -1,10 +1,10 @@
-import type { Canon, VocabularyDrum } from './midiremap';
+import type { Canon, CanonEntry } from './midiremap';
 
 /** The drums this version of the core knows, by the key each is stored under. */
 export type Vocabulary = ReadonlyMap<string, Canon>;
 
 /** The vocabulary of the core's drum catalog. */
-export function vocabularyOf(drums: VocabularyDrum[]): Vocabulary {
+export function vocabularyOf(drums: CanonEntry[]): Vocabulary {
   return new Map(drums.map((d) => [d.canon, d.canon]));
 }
 

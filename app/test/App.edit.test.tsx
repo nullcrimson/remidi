@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App';
 import { RUNTIME } from './runtime';
-import type { VocabularyDrum, VoiceRow } from '../src/core/midiremap';
+import type { CanonEntry, VoicePlan } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
 import { storedName } from '../src/core/storage';
@@ -16,11 +16,11 @@ describe('App edit view', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.mocked(stub.engine_drums).mockReturnValue([]);
-    vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
+    vi.mocked(stub.canon_catalog).mockReturnValue(typed<CanonEntry[]>([
       { canon: 'KickMain', label: 'Kick', family: 'Aux' },
       { canon: 'China', label: 'China', family: 'Aux' },
     ]));
-    vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
+    vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([
       { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
       { canon: 'China', label: 'China', family: 'Cymbals', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
     ]));

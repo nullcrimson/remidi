@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
-use crate::{canon::Canon, note::Note, resolution::CanonResolution, translate::Resolution};
+use crate::{canon::Canon, note::Note, resolution::Outcome, translate::Resolution};
 
 /// How a drum the target lacks was played: on which stand-in drum, on which note, how often.
 #[derive(Serialize, Debug, PartialEq, Eq)]
@@ -82,10 +82,11 @@ impl Report {
     pub(crate) fn record(&mut self, source_note: Note, resolution: &Resolution) {
         match resolution {
             Resolution::Unmapped => *self.unmapped_source.entry(source_note).or_default() += 1,
-            Resolution::Resolved(CanonResolution::Fallback {
+            Resolution::Resolved(Outcome::Fallback {
                 canon,
                 stand_in,
                 note,
+                ..
             }) => {
                 self.converted += 1;
                 self.fallback_used
@@ -97,10 +98,10 @@ impl Report {
                     })
                     .count += 1
             }
-            Resolution::Resolved(CanonResolution::Dropped { canon, .. }) => {
+            Resolution::Resolved(Outcome::Dropped { canon, .. }) => {
                 *self.dropped.entry(*canon).or_default() += 1
             }
-            Resolution::Resolved(CanonResolution::Direct { .. }) => self.converted += 1,
+            Resolution::Resolved(Outcome::Direct { .. }) => self.converted += 1,
         }
     }
 }
@@ -127,22 +128,23 @@ mod tests {
         r.record(n(99), &Resolution::Unmapped);
         r.record(
             n(11),
-            &Resolution::Resolved(CanonResolution::Fallback {
+            &Resolution::Resolved(Outcome::Fallback {
                 canon: open3,
                 stand_in: Canon::Hat(HatOpen::Closed, HatZone::Plain),
                 note: n(60),
+                other_drum: false,
             }),
         );
         r.record(
             n(10),
-            &Resolution::Resolved(CanonResolution::Dropped {
+            &Resolution::Resolved(Outcome::Dropped {
                 canon: snare,
                 other_drum: false,
             }),
         );
         r.record(
             n(12),
-            &Resolution::Resolved(CanonResolution::Direct {
+            &Resolution::Resolved(Outcome::Direct {
                 canon: Canon::Kick(KickKind::Main),
                 note: n(50),
             }),
@@ -223,7 +225,7 @@ mod tests {
         for key in ["splash.1.hit", "china.1.hit"] {
             r.record(
                 n(1),
-                &Resolution::Resolved(CanonResolution::Dropped {
+                &Resolution::Resolved(Outcome::Dropped {
                     canon: key.parse().unwrap(),
                     other_drum: false,
                 }),

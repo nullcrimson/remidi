@@ -2,9 +2,9 @@ use std::{collections::BTreeMap, error::Error};
 
 use midiremap_core::{
     convert, note_hits, parse_preset, plan as core_plan, rack_file,
-    sample_file as core_sample_file, source_fits as core_source_fits, Canon, Catalog, ChannelScope,
-    Drum, EngineMap, Family, LoadedPreset, Mapping, MissingDrums, NonBlank, Note, NoteHits,
-    OctaveBase, Overrides, RackFile, Report, SkippedEdit, Unrecognized, VoicePlan,
+    sample_file as core_sample_file, source_fits as core_source_fits, Canon, CanonEntry, Catalog,
+    ChannelScope, Drum, EngineMap, Family, LoadedPreset, Mapping, MissingDrums, NonBlank, Note,
+    NoteHits, OctaveBase, Overrides, RackFile, Report, SkippedEdit, Unrecognized, VoicePlan,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -188,39 +188,16 @@ pub fn remap_rack(
     Ok(rack_file(&mapping, preset.as_ref().map(|PresetName(name)| name)).into_ts()?)
 }
 
-/// One drum of the edit preview with its display label.
-#[derive(Serialize, Tsify)]
-#[tsify(missing_as_null, hashmap_as_object)]
-pub struct VoiceRow {
-    #[serde(flatten)]
-    plan: VoicePlan,
-    label: String,
-    family: Family,
-}
-
-impl From<VoicePlan> for VoiceRow {
-    fn from(plan: VoicePlan) -> Self {
-        Self {
-            label: plan.canon.label(),
-            family: plan.canon.family(),
-            plan,
-        }
-    }
-}
-
 fn voice_rows(
     catalog: &Catalog,
     src_id: &str,
     tgt_id: &str,
     ov: &Overrides,
     missing: MissingDrums,
-) -> Result<Vec<VoiceRow>, WasmError> {
+) -> Result<Vec<VoicePlan>, WasmError> {
     let src = engine(catalog, src_id, Role::Source)?;
     let tgt = engine(catalog, tgt_id, Role::Target)?;
-    Ok(core_plan(src, tgt, ov, missing)
-        .into_iter()
-        .map(VoiceRow::from)
-        .collect())
+    Ok(core_plan(src, tgt, ov, missing))
 }
 
 #[wasm_bindgen]
@@ -229,7 +206,7 @@ pub fn plan(
     tgt_id: &str,
     overrides: Option<Ts<Overrides>>,
     missing: Option<Ts<MissingDrums>>,
-) -> Result<Vec<Ts<VoiceRow>>, WasmError> {
+) -> Result<Vec<Ts<VoicePlan>>, WasmError> {
     let ov = from_js(overrides, |detail| WasmError::BadOverrides { detail })?;
     let missing = from_js(missing, |detail| WasmError::BadMissing { detail })?;
     to_js_all(&voice_rows(catalog()?, src_id, tgt_id, &ov, missing)?)
@@ -314,26 +291,10 @@ pub fn engine_notes(src_id: &str) -> Result<Vec<Ts<Drum>>, WasmError> {
     to_js_all(&drums_of(catalog()?, src_id, Role::Source)?)
 }
 
-/// One entry of the canonical drum vocabulary.
-#[derive(Serialize, Tsify)]
-#[tsify(missing_as_null, hashmap_as_object)]
-pub struct VocabularyDrum {
-    canon: Canon,
-    label: String,
-    family: Family,
-}
-
 #[wasm_bindgen]
-pub fn canon_catalog() -> Result<Vec<Ts<VocabularyDrum>>, WasmError> {
-    let items: Vec<VocabularyDrum> = Canon::all()
-        .iter()
-        .map(|&c| VocabularyDrum {
-            canon: c,
-            label: c.label(),
-            family: c.family(),
-        })
-        .collect();
-    to_js_all(&items)
+pub fn canon_catalog() -> Result<Vec<Ts<CanonEntry>>, WasmError> {
+    let entries: Vec<CanonEntry> = Canon::all().iter().map(|&c| c.into()).collect();
+    to_js_all(&entries)
 }
 
 /// Every drum family, in the order the app lists them.
@@ -752,51 +713,6 @@ mod tests {
             detail.starts_with("not a preset file: EOF while parsing"),
             "{detail}"
         );
-    }
-
-    fn ggd_to_ezd_rows_under_drop() -> Vec<VoiceRow> {
-        voice_rows(
-            &Catalog::builtin().unwrap(),
-            "ggd_invasion",
-            "ezdrummer",
-            &Overrides::default(),
-            MissingDrums::Drop,
-        )
-        .unwrap()
-    }
-
-    fn row<'a>(rows: &'a [VoiceRow], key: &str) -> &'a VoiceRow {
-        rows.iter()
-            .find(|r| r.plan.canon.to_string() == key)
-            .unwrap()
-    }
-
-    #[test]
-    fn voice_rows_flatten_the_plan() {
-        let rows = ggd_to_ezd_rows_under_drop();
-        let json = serde_json::to_value(row(&rows, "china.1.hit")).unwrap();
-        assert_eq!(
-            json["outcome"],
-            serde_json::json!({ "status": "dropped", "otherDrum": true })
-        );
-    }
-
-    #[test]
-    fn voice_rows_add_the_label() {
-        let rows = ggd_to_ezd_rows_under_drop();
-        let china = row(&rows, "china.1.hit");
-        let json = serde_json::to_value(china).unwrap();
-        assert_eq!(json["label"], china.plan.canon.label());
-    }
-
-    #[test]
-    fn a_voice_row_carries_the_family_of_its_drum() {
-        let rows = ggd_to_ezd_rows_under_drop();
-        assert!(!rows.is_empty());
-        for row in &rows {
-            let json = serde_json::to_value(row).unwrap();
-            assert_eq!(json["family"], serde_json::json!(row.plan.canon.family()));
-        }
     }
 
     fn ggd_fit(mids: &[&[u8]]) -> (u32, u32) {

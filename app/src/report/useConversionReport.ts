@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { FileResult } from '../core/files';
-import type { Drum, MissingDrums, VocabularyDrum, VoiceRow } from '../core/midiremap';
+import type { Drum, MissingDrums, CanonEntry, VoicePlan } from '../core/midiremap';
 import { swappedCanons } from '../core/missing';
 import type { OctaveBase } from '../core/notes';
 import { buildReport } from './report';
@@ -20,9 +20,9 @@ export function useConversionReport({
   dropMissingAndConvert,
 }: {
   results: FileResult[];
-  canonOptions: VocabularyDrum[];
+  canonOptions: CanonEntry[];
   targetDrums: Drum[];
-  rows: VoiceRow[];
+  rows: VoicePlan[];
   oct: OctaveBase;
   missing: MissingDrums;
   dropMissingAndConvert: () => Promise<void>;

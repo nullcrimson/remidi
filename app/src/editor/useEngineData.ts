@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { vocabularyOf } from '../core/canon';
 import type { EnginePair } from '../core/enginePair';
 import { toAppError, type AppError } from '../core/errors';
-import type { Drum, Family, Midiremap, VocabularyDrum } from '../core/midiremap';
+import type { Drum, Family, Midiremap, CanonEntry } from '../core/midiremap';
 
 type Looked<T> = { data: T; error: null } | { data: null; error: AppError };
 
@@ -14,7 +14,7 @@ function look<T>(read: () => T): Looked<T> {
   }
 }
 
-const NO_VOCABULARY: { canonOptions: VocabularyDrum[]; families: Family[] } = { canonOptions: [], families: [] };
+const NO_VOCABULARY: { canonOptions: CanonEntry[]; families: Family[] } = { canonOptions: [], families: [] };
 const NO_DRUMS: { targetDrums: Drum[]; sourceNotes: Drum[] } = { targetDrums: [], sourceNotes: [] };
 
 /**

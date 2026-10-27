@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { buildReport, entryText, lossCounts } from '../../src/report/report';
 import type { FileResult } from '../../src/core/files';
-import type { VocabularyDrum, Drum } from '../../src/core/midiremap';
+import type { CanonEntry, Drum } from '../../src/core/midiremap';
 import { typed, type Loose } from '../typed';
 
-const canons = typed<VocabularyDrum[]>([
+const canons = typed<CanonEntry[]>([
   { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
   { canon: 'ride.1.bell', label: 'Ride Bell', family: 'Cymbals' },
   { canon: 'splash.2.hit', label: 'Splash 2', family: 'Cymbals' },

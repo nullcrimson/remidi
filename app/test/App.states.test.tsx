@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import App from '../src/App';
-import type { Midiremap, VoiceRow } from '../src/core/midiremap';
+import type { Midiremap, VoicePlan } from '../src/core/midiremap';
 import type { Runtime } from '../src/convert/runtime';
 import { RUNTIME } from './runtime';
 import * as stub from './stubs/wasm';
@@ -27,7 +27,7 @@ describe('App states', () => {
 
   it('shows the conversion error banner when a file fails to convert', async () => {
     vi.mocked(stub.engine_drums).mockReturnValue([]);
-    vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
+    vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([
       { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
     ]));
     vi.mocked(stub.remap).mockImplementation(() => {

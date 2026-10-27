@@ -34,7 +34,7 @@ export const engine_notes = vi.fn<typeof Wasm.engine_notes>(() => typed<Wasm.Dru
   { note: 60, canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
 ]));
 
-export const canon_catalog = vi.fn<typeof Wasm.canon_catalog>(() => typed<Wasm.VocabularyDrum[]>([
+export const canon_catalog = vi.fn<typeof Wasm.canon_catalog>(() => typed<Wasm.CanonEntry[]>([
   { canon: 'kick.main', label: 'Kick', family: 'Kick' },
   { canon: 'snare1.hit', label: 'Snare', family: 'Snare' },
   { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
@@ -44,7 +44,7 @@ export const family_order = vi.fn<typeof Wasm.family_order>(() => [
   'Kick', 'Snare', 'Toms', 'Hi-Hat', 'Cymbals', 'Percussion', 'Aux',
 ]);
 
-const BASE_ROWS = typed<Wasm.VoiceRow[]>([
+const BASE_ROWS = typed<Wasm.VoicePlan[]>([
   { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
   { canon: 'snare1.hit', label: 'Snare', family: 'Snare', srcNotes: [26], defaultTgtNote: 38, outcome: { status: 'direct', tgtNote: 38 } },
   { canon: 'hat.open3', label: 'Hi-Hat Open 3', family: 'Hi-Hat', srcNotes: [47], defaultTgtNote: 46, outcome: { status: 'fallback', standIn: 'hat.open1', tgtNote: 46, otherDrum: false } },

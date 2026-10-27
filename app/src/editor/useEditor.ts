@@ -3,7 +3,7 @@ import { closingProps, EMPTY_TALLY, tallyReducer, type CloseHow, type PickVia } 
 import { track } from '../core/stats';
 import { EDITOR_START, editorReducer, type Pick, type SrcPick, type TgtPick } from './editorState';
 import { toAppError, type AppError } from '../core/errors';
-import type { Canon, Midiremap, MissingDrums, Note, VoiceRow } from '../core/midiremap';
+import type { Canon, Midiremap, MissingDrums, Note, VoicePlan } from '../core/midiremap';
 import type { EnginePair } from '../core/enginePair';
 import { byCanon } from '../core/canon';
 import { byNote, octaveIndexOf } from '../core/notes';
@@ -26,7 +26,7 @@ export function useEditor(
   const { targetDrums, sourceNotes, canonOptions, vocabulary, families, error: dataError }
     = useEngineData(core, pair);
 
-  const { rows, planError } = useMemo<{ rows: VoiceRow[]; planError: AppError | null }>(() => {
+  const { rows, planError } = useMemo<{ rows: VoicePlan[]; planError: AppError | null }>(() => {
     if (!core) return { rows: [], planError: null };
     if (dataError !== null) return { rows: [], planError: dataError };
     if (!pair) return { rows: [], planError: null };

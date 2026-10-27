@@ -1,6 +1,6 @@
 import type { Message } from '../generated/i18n';
 import type { SavedMapping } from '../presets/mappings';
-import type { Canon, Drum, Note, VoiceRow } from '../core/midiremap';
+import type { Canon, Drum, Note, VoicePlan } from '../core/midiremap';
 import { noteName, type OctaveBase } from '../core/notes';
 import type { Vocabulary } from '../core/canon';
 import { knownEdits, sameEdits, type EditSet } from '../core/overrides';
@@ -29,7 +29,7 @@ function target(note: Note | null, oct: OctaveBase): string {
  * default (`Kick: C1 → B1 (default C1 → C2)`).
  */
 export function editLines(
-  rows: VoiceRow[],
+  rows: VoicePlan[],
   changed: Set<Canon>,
   defaultSrc: Map<Canon, Note[]>,
   oct: OctaveBase,

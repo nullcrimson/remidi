@@ -1,7 +1,7 @@
 use crate::{
     canon::Canon,
     note::Note,
-    resolution::CanonResolution,
+    resolution::Outcome,
     translate::{Mapping, Resolution, Unrecognized},
 };
 
@@ -49,12 +49,12 @@ impl NoteTable {
     pub(crate) fn destination(&self, note: Note) -> Option<Destination> {
         match *self.get(note) {
             Resolution::Resolved(
-                CanonResolution::Direct { canon, note: to }
-                | CanonResolution::Fallback {
+                Outcome::Direct { canon, note: to }
+                | Outcome::Fallback {
                     canon, note: to, ..
                 },
             ) => Some(Destination::Drum { canon, note: to }),
-            Resolution::Resolved(CanonResolution::Dropped { .. }) => None,
+            Resolution::Resolved(Outcome::Dropped { .. }) => None,
             Resolution::Unmapped => self
                 .unrecognized()
                 .keeps()

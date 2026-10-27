@@ -2,14 +2,14 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { SourceEditor } from '../../src/editor/SourceEditor';
-import type { Drum, VocabularyDrum } from '../../src/core/midiremap';
+import type { Drum, CanonEntry } from '../../src/core/midiremap';
 import type { SrcEdits } from '../../src/core/overrides';
 import { family_order } from '../stubs/wasm';
 import { typed } from '../typed';
 
 const notes = typed<Drum[]>([{ note: 24, canon: 'kick.main', label: 'Kick', family: 'Kick' as const }]);
 
-const options = typed<VocabularyDrum[]>([
+const options = typed<CanonEntry[]>([
   { canon: 'kick.main', label: 'Kick', family: 'Kick' as const },
   { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' as const },
 ]);

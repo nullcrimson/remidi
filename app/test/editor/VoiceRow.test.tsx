@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { PickerShell } from '../../src/editor/PickerShell';
 import { VoiceRow } from '../../src/editor/VoiceRow';
-import type { VoiceRow as VoiceRowData } from '../../src/core/midiremap';
+import type { VoicePlan } from '../../src/core/midiremap';
 import { typed, type Loose } from '../typed';
 
 const base = {
@@ -17,7 +17,7 @@ const base = {
 };
 
 const kickFixture = { canon: 'KickMain', label: 'Kick', family: 'Kick' as const, srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } };
-const rowOf = (extra: Partial<Loose<VoiceRowData>> = {}) => typed<VoiceRowData>({ ...kickFixture, ...extra });
+const rowOf = (extra: Partial<Loose<VoicePlan>> = {}) => typed<VoicePlan>({ ...kickFixture, ...extra });
 const kick = rowOf();
 
 describe('VoiceRow', () => {
@@ -45,7 +45,7 @@ describe('VoiceRow', () => {
   it('shows a dash for a dropped target but keeps the source chip', () => {
     render(
       <VoiceRow
-        row={typed<VoiceRowData>({ canon: 'China', label: 'China', family: 'Cymbals', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } })}
+        row={typed<VoicePlan>({ canon: 'China', label: 'China', family: 'Cymbals', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } })}
         {...base}
       />,
     );

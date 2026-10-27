@@ -1,7 +1,7 @@
 import type { Translate } from '../locale/i18n';
 import { useT } from '../locale/localeContext';
 import { useId, useState, type ReactNode } from 'react';
-import type { VoiceRow as VoiceRowData } from '../core/midiremap';
+import type { VoicePlan } from '../core/midiremap';
 import { noteName, type OctaveBase } from '../core/notes';
 import { leadNote, playedNote } from '../core/outcome';
 import { IconButton } from '../ui/IconButton';
@@ -45,7 +45,7 @@ export function VoiceRow({
   onReset,
   children,
 }: {
-  row: VoiceRowData;
+  row: VoicePlan;
   base: OctaveBase;
   srcChanged: boolean;
   tgtChanged: boolean;

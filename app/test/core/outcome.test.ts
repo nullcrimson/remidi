@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Drum, VoiceRow } from '../../src/core/midiremap';
+import type { Drum, VoicePlan } from '../../src/core/midiremap';
 import { playedOn } from '../../src/core/outcome';
 import { typed, type Loose } from '../typed';
 
@@ -8,8 +8,8 @@ const DRUMS = typed<Drum[]>([
   { note: 51, canon: 'ride.1.bowtip', label: 'Ride', family: 'Cymbals' },
 ]);
 
-function china(outcome: Loose<VoiceRow>['outcome']): VoiceRow {
-  return typed<VoiceRow>({ canon: 'china.1.hit', label: 'China', family: 'Cymbals', srcNotes: [52], defaultTgtNote: null, outcome });
+function china(outcome: Loose<VoicePlan>['outcome']): VoicePlan {
+  return typed<VoicePlan>({ canon: 'china.1.hit', label: 'China', family: 'Cymbals', srcNotes: [52], defaultTgtNote: null, outcome });
 }
 
 describe('playedOn', () => {

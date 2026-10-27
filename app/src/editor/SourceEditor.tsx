@@ -1,6 +1,6 @@
 import { useT } from '../locale/localeContext';
 import { useId, useMemo, useState } from 'react';
-import type { Canon, Drum, Family, Note, VocabularyDrum } from '../core/midiremap';
+import type { Canon, Drum, Family, Note, CanonEntry } from '../core/midiremap';
 import type { SrcEdits } from '../core/overrides';
 import { ascending, byNote, noteName, parseNote, type OctaveBase } from '../core/notes';
 import { Button } from '../ui/Button';
@@ -27,7 +27,7 @@ function SourceEditorRow({
   current: Canon | null;
   changed: boolean;
   label: string;
-  options: VocabularyDrum[];
+  options: CanonEntry[];
   families: readonly Family[];
   base: OctaveBase;
   open: boolean;
@@ -111,7 +111,7 @@ export function SourceEditor({
 }: {
   notes: Drum[];
   srcEdits: SrcEdits;
-  options: VocabularyDrum[];
+  options: CanonEntry[];
   families: readonly Family[];
   base: OctaveBase;
   initialNote?: Note | null;

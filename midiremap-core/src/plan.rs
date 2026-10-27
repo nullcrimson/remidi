@@ -3,80 +3,13 @@ use std::collections::HashMap;
 use serde::Serialize;
 
 use crate::{
-    canon::Canon,
+    canon::{Canon, CanonEntry},
     engine_map::EngineMap,
     note::Note,
     overrides::Overrides,
-    resolution::{CanonResolution, MissingDrums},
+    resolution::{MissingDrums, Outcome},
     translate::Mapping,
 };
-
-#[derive(Debug, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum PlanStatus {
-    Direct,
-    Fallback,
-    Dropped,
-}
-
-impl From<&CanonResolution> for PlanStatus {
-    fn from(r: &CanonResolution) -> Self {
-        match r {
-            CanonResolution::Direct { .. } => Self::Direct,
-            CanonResolution::Fallback { .. } => Self::Fallback,
-            CanonResolution::Dropped { .. } => Self::Dropped,
-        }
-    }
-}
-
-/// Where a drum of the edit preview lands, tagged by `status`.
-#[derive(Debug, PartialEq, Eq, Serialize)]
-#[serde(
-    tag = "status",
-    rename_all = "lowercase",
-    rename_all_fields = "camelCase"
-)]
-#[cfg_attr(
-    feature = "ts",
-    derive(tsify::Tsify),
-    tsify(missing_as_null, hashmap_as_object)
-)]
-pub enum PlanOutcome {
-    /// The target has the drum.
-    Direct { tgt_note: Note },
-    /// The drum `stand_in` plays it, on `tgt_note`; `other_drum` when the stand-in is another drum.
-    Fallback {
-        stand_in: Canon,
-        tgt_note: Note,
-        other_drum: bool,
-    },
-    /// Nothing plays it; `other_drum` when only another drum could have, so the
-    /// [`MissingDrums`] setting decided it.
-    Dropped { other_drum: bool },
-}
-
-impl PlanOutcome {
-    fn of(resolved: CanonResolution) -> Self {
-        let other_drum = resolved.moves_to_other_drum();
-        match resolved {
-            CanonResolution::Direct { note, .. } => Self::Direct { tgt_note: note },
-            CanonResolution::Fallback { stand_in, note, .. } => Self::Fallback {
-                stand_in,
-                tgt_note: note,
-                other_drum,
-            },
-            CanonResolution::Dropped { .. } => Self::Dropped { other_drum },
-        }
-    }
-
-    /// The note that plays the drum, if any.
-    pub fn tgt_note(&self) -> Option<Note> {
-        match *self {
-            Self::Direct { tgt_note } | Self::Fallback { tgt_note, .. } => Some(tgt_note),
-            Self::Dropped { .. } => None,
-        }
-    }
-}
 
 /// One drum of the edit preview, derived from the same [`Mapping`] the converter uses.
 #[derive(Debug, PartialEq, Eq, Serialize)]
@@ -87,13 +20,14 @@ impl PlanOutcome {
     tsify(missing_as_null, hashmap_as_object)
 )]
 pub struct VoicePlan {
-    pub canon: Canon,
+    #[serde(flatten)]
+    pub entry: CanonEntry,
     /// Source notes that play this drum: overridden notes, then the engine's primary note,
     /// then the rest, each group ascending. Empty when no source note plays it.
     pub src_notes: Vec<Note>,
     /// Target note without target overrides.
     pub(crate) default_tgt_note: Option<Note>,
-    pub outcome: PlanOutcome,
+    pub outcome: Outcome,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
@@ -137,10 +71,10 @@ pub fn plan(
             }
             src_notes.sort_by_key(|&n| (SrcNoteRank::of(n, &edited, primary), n));
             Some(VoicePlan {
-                canon,
+                entry: canon.into(),
                 src_notes,
                 default_tgt_note: unedited.resolve_canon(canon).note(),
-                outcome: PlanOutcome::of(mapping.resolve_canon(canon)),
+                outcome: mapping.resolve_canon(canon),
             })
         })
         .collect()
@@ -159,7 +93,7 @@ mod tests {
 
     fn find<'a>(rows: &'a [VoicePlan], name: &str) -> &'a VoicePlan {
         rows.iter()
-            .find(|r| r.canon.to_string() == name)
+            .find(|r| r.entry.canon.to_string() == name)
             .unwrap_or_else(|| panic!("no voice {name}"))
     }
 
@@ -186,6 +120,8 @@ mod tests {
             json,
             serde_json::json!({
                 "canon": "china.1.hit",
+                "label": "China 1",
+                "family": "Cymbals",
                 "srcNotes": json["srcNotes"],
                 "defaultTgtNote": null,
                 "outcome": { "status": "dropped", "otherDrum": true },
@@ -209,9 +145,10 @@ mod tests {
         let near = ggd_to_ezd("{}");
         assert_eq!(
             find(&near, "china.1.hit").outcome,
-            PlanOutcome::Fallback {
+            Outcome::Fallback {
+                canon: "china.1.hit".parse().unwrap(),
                 stand_in: "crash.1.hit".parse().unwrap(),
-                tgt_note: n(86),
+                note: n(86),
                 other_drum: true
             }
         );
@@ -222,7 +159,10 @@ mod tests {
         let near = ggd_to_ezd("{}");
         assert_eq!(
             find(&near, "kick.main").outcome,
-            PlanOutcome::Direct { tgt_note: n(36) }
+            Outcome::Direct {
+                canon: Canon::Kick(KickKind::Main),
+                note: n(36)
+            }
         );
     }
 
@@ -230,7 +170,13 @@ mod tests {
     fn a_swapped_drum_is_marked_and_dropped_under_drop() {
         let drop = ggd_to_ezd_with("{}", MissingDrums::Drop);
         let china = find(&drop, "china.1.hit");
-        assert_eq!(china.outcome, PlanOutcome::Dropped { other_drum: true });
+        assert_eq!(
+            china.outcome,
+            Outcome::Dropped {
+                canon: china.entry.canon,
+                other_drum: true
+            }
+        );
         assert_eq!(china.default_tgt_note, None);
     }
 
@@ -242,7 +188,10 @@ mod tests {
         );
         assert_eq!(
             find(&rows, "china.1.hit").outcome,
-            PlanOutcome::Direct { tgt_note: n(52) }
+            Outcome::Direct {
+                canon: "china.1.hit".parse().unwrap(),
+                note: n(52)
+            }
         );
     }
 
@@ -262,11 +211,11 @@ mod tests {
         );
         let kick = rows
             .iter()
-            .position(|r| r.canon == Canon::Kick(KickKind::Main))
+            .position(|r| r.entry.canon == Canon::Kick(KickKind::Main))
             .unwrap();
         let snare = rows
             .iter()
-            .position(|r| r.canon == Canon::Snare(idx(1), SnareArtic::Hit))
+            .position(|r| r.entry.canon == Canon::Snare(idx(1), SnareArtic::Hit))
             .unwrap();
         assert!(kick < snare, "kick must precede snare");
     }
@@ -275,7 +224,7 @@ mod tests {
     fn tgt_override_flips_a_row() {
         let rows = ggd_to_ezd(r#"{"tgt":[{"canon":"kick.main","note":35}]}"#);
         let kick = find(&rows, "kick.main");
-        assert_eq!(kick.outcome.tgt_note(), Some(n(35)));
+        assert_eq!(kick.outcome.note(), Some(n(35)));
         assert_eq!(kick.default_tgt_note, Some(n(36)));
     }
 
@@ -310,7 +259,7 @@ mod tests {
         let rows = ggd_to_ezd(r#"{"src":[{"canon":"snare1.hit","note":24}]}"#);
         let kick = find(&rows, "kick.main");
         assert_eq!(
-            kick.outcome.tgt_note(),
+            kick.outcome.note(),
             Some(n(36)),
             "a silent row still resolves its target"
         );
@@ -336,7 +285,7 @@ mod tests {
         let rows = ggd_to_ezd(
             r#"{"tgt":[{"canon":"kick.main","note":35},{"canon":"kick.main","note":40}]}"#,
         );
-        assert_eq!(find(&rows, "kick.main").outcome.tgt_note(), Some(n(40)));
+        assert_eq!(find(&rows, "kick.main").outcome.note(), Some(n(40)));
     }
 
     #[test]
@@ -388,6 +337,6 @@ mod tests {
         let rows = plan(&src, &tgt, &ov, MissingDrums::Nearest);
         let snare = find(&rows, "snare1.hit");
         assert_eq!(snare.src_notes, vec![n(60)]);
-        assert_eq!(snare.outcome.tgt_note(), Some(n(38)));
+        assert_eq!(snare.outcome.note(), Some(n(38)));
     }
 }

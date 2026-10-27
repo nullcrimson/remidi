@@ -5,7 +5,7 @@ import { EditView } from '../../src/editor/EditView';
 import type { Editor, Notice, Pick as EditorPick } from '../../src/editor/useEditor';
 import { vocabularyOf } from '../../src/core/canon';
 import type { SavedMapping } from '../../src/presets/mappings';
-import type { Canon, Drum, VocabularyDrum, VoiceRow } from '../../src/core/midiremap';
+import type { Canon, Drum, CanonEntry, VoicePlan } from '../../src/core/midiremap';
 import type { Edits } from '../../src/core/overrides';
 import { family_order } from '../stubs/wasm';
 import { enginePair, presetName, typed } from '../typed';
@@ -19,7 +19,7 @@ const editor = typed<Editor>({
   targetDrums: [],
   sourceNotes: [{ note: 24, canon: 'kick.main', label: 'Kick', family: 'Kick' as const }],
   canonOptions: [{ canon: 'kick.main', label: 'Kick', family: 'Kick' as const }],
-  vocabulary: vocabularyOf(typed<VocabularyDrum[]>([{ canon: 'kick.main', label: 'Kick', family: 'Kick' }])),
+  vocabulary: vocabularyOf(typed<CanonEntry[]>([{ canon: 'kick.main', label: 'Kick', family: 'Kick' }])),
   families: family_order(),
   remappedCount: 0,
   changed: new Set<Canon>(),
@@ -192,7 +192,7 @@ describe('EditView', () => {
         editor={{
           ...editor,
           changedSrc: new Set(typed<Canon[]>(['KickMain'])),
-          rows: typed<VoiceRow[]>([{ canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } }]),
+          rows: typed<VoicePlan[]>([{ canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } }]),
         }}
       />,
     );
@@ -205,9 +205,9 @@ describe('EditView', () => {
         {...props}
         editor={{
           ...editor,
-          canonOptions: typed<VocabularyDrum[]>([{ canon: 'China', label: 'China', family: 'Cymbals' }]),
+          canonOptions: typed<CanonEntry[]>([{ canon: 'China', label: 'China', family: 'Cymbals' }]),
           overlay: typed<EditorPick>({ kind: 'tgt', canon: 'China', octIndex: 3, defaultNote: null }),
-          rows: typed<VoiceRow[]>([{ canon: 'China', label: 'China', family: 'Cymbals', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped' as const, otherDrum: false } }]),
+          rows: typed<VoicePlan[]>([{ canon: 'China', label: 'China', family: 'Cymbals', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped' as const, otherDrum: false } }]),
         }}
       />,
     );
@@ -215,14 +215,14 @@ describe('EditView', () => {
     expect(picker).toHaveTextContent('TARGET · China—');
   });
 
-  const CATALOG = typed<VocabularyDrum[]>([
+  const CATALOG = typed<CanonEntry[]>([
     { canon: 'kick.main', label: 'Kick', family: 'Kick' as const },
     { canon: 'snare.main', label: 'Snare', family: 'Snare' as const },
     { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals' as const },
     { canon: 'china.1', label: 'China 1', family: 'Cymbals' as const },
     { canon: 'hat.cc', label: 'Hi-Hat CC', family: 'Hi-Hat' as const },
   ]);
-  const ROWS = typed<VoiceRow[]>([
+  const ROWS = typed<VoicePlan[]>([
     { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback' as const, standIn: 'ride.1', tgtNote: 51, otherDrum: false } },
     { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct' as const, tgtNote: 36 } },
     { canon: 'china.1', label: 'China 1', family: 'Cymbals', srcNotes: [52], defaultTgtNote: null, outcome: { status: 'dropped' as const, otherDrum: false } },
@@ -280,7 +280,7 @@ describe('EditView', () => {
     });
 
     it('names the stand-in the converter chose, then the stock drum on the note an edit gave it', () => {
-      const standInMoved = typed<VoiceRow[]>([
+      const standInMoved = typed<VoicePlan[]>([
         { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback', standIn: 'snare.rim', tgtNote: 51, otherDrum: true } },
       ]);
       render(<EditView {...props} editor={{ ...full, targetDrums, rows: standInMoved }} />);
@@ -288,7 +288,7 @@ describe('EditView', () => {
     });
 
     it('explains a moved stand-in when the mouse is over its line', async () => {
-      const standInMoved = typed<VoiceRow[]>([
+      const standInMoved = typed<VoicePlan[]>([
         { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback', standIn: 'snare.rim', tgtNote: 51, otherDrum: true } },
       ]);
       render(<EditView {...props} editor={{ ...full, targetDrums, rows: standInMoved }} />);
@@ -298,7 +298,7 @@ describe('EditView', () => {
       );
     });
 
-    const causeAndEffect = typed<VoiceRow[]>([
+    const causeAndEffect = typed<VoicePlan[]>([
       { canon: 'ride.bell', label: 'Ride Bell', family: 'Cymbals', srcNotes: [53], defaultTgtNote: 51, outcome: { status: 'fallback', standIn: 'snare.rim', tgtNote: 51, otherDrum: true } },
       { canon: 'snare.rim', label: 'Snare Rimshot', family: 'Snare', srcNotes: [40], defaultTgtNote: 40, outcome: { status: 'direct', tgtNote: 51 } },
     ]);

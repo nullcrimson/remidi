@@ -5,36 +5,52 @@ use serde::{Deserialize, Serialize};
 use crate::{canon::Canon, note::Note};
 
 /// Where a drum lands on the target: on its own note, on the note of the drum that stands
-/// in for it, or nowhere.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum CanonResolution {
+/// in for it, or nowhere. Serialized tagged by `status`, without the drum itself.
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize)]
+#[serde(
+    tag = "status",
+    rename_all = "lowercase",
+    rename_all_fields = "camelCase"
+)]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
+pub enum Outcome {
+    /// The target has the drum.
     Direct {
+        #[serde(skip)]
         canon: Canon,
+        #[serde(rename = "tgtNote")]
         note: Note,
     },
+    /// The drum `stand_in` plays it, on `note`; `other_drum` when the stand-in is another
+    /// drum.
     Fallback {
+        #[serde(skip)]
         canon: Canon,
         stand_in: Canon,
+        #[serde(rename = "tgtNote")]
         note: Note,
+        other_drum: bool,
     },
     /// Nothing plays it; `other_drum` when only another drum could have, so the
     /// [`MissingDrums`] setting decided it.
     Dropped {
+        #[serde(skip)]
         canon: Canon,
         other_drum: bool,
     },
 }
 
-impl CanonResolution {
+impl Outcome {
     /// Whether the target lacks the drum and its nearest stand-in is another drum, so the
     /// [`MissingDrums`] setting decides what plays it.
     pub fn moves_to_other_drum(&self) -> bool {
         match *self {
             Self::Direct { .. } => false,
-            Self::Fallback {
-                canon, stand_in, ..
-            } => !canon.same_drum(stand_in),
-            Self::Dropped { other_drum, .. } => other_drum,
+            Self::Fallback { other_drum, .. } | Self::Dropped { other_drum, .. } => other_drum,
         }
     }
 
@@ -114,19 +130,20 @@ fn substitute(canon: Canon, encode: &Encoding, missing: MissingDrums) -> Option<
         .find_map(|alt| encode.get(&alt).map(|&note| (alt, note)))
 }
 
-pub(crate) fn resolve(canon: Canon, encode: &Encoding, missing: MissingDrums) -> CanonResolution {
+pub(crate) fn resolve(canon: Canon, encode: &Encoding, missing: MissingDrums) -> Outcome {
     if let Some(&note) = encode.get(&canon) {
-        return CanonResolution::Direct { canon, note };
+        return Outcome::Direct { canon, note };
     }
     substitute(canon, encode, missing).map_or_else(
-        || CanonResolution::Dropped {
+        || Outcome::Dropped {
             canon,
             other_drum: substitute(canon, encode, MissingDrums::Nearest).is_some(),
         },
-        |(stand_in, note)| CanonResolution::Fallback {
+        |(stand_in, note)| Outcome::Fallback {
             canon,
             stand_in,
             note,
+            other_drum: !canon.same_drum(stand_in),
         },
     )
 }

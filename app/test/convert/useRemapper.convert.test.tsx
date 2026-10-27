@@ -3,12 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useRemapper } from '../../src/convert/useRemapper';
 import { RUNTIME } from '../runtime';
-import type { RemapOutput, VoiceRow } from '../../src/core/midiremap';
+import type { RemapOutput, VoicePlan } from '../../src/core/midiremap';
 import init, * as stub from '../stubs/wasm';
 import { canon, engineId, note, typed } from '../typed';
 import { shownTgtPick } from '../picks';
 
-const ROWS = typed<VoiceRow[]>([
+const ROWS = typed<VoicePlan[]>([
   { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
   { canon: 'China', label: 'China', family: 'Cymbals', srcNotes: [59], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
 ]);

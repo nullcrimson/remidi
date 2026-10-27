@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { Drum, VoiceRow } from '../../src/core/midiremap';
+import type { Drum, VoicePlan } from '../../src/core/midiremap';
 import { planBreakdown } from '../../src/convert/planBreakdown';
 import { typed, type Loose } from '../typed';
 
-function row(label: string, extra: Partial<Loose<VoiceRow>>): VoiceRow {
-  return typed<VoiceRow>({
+function row(label: string, extra: Partial<Loose<VoicePlan>>): VoicePlan {
+  return typed<VoicePlan>({
     canon: label.toLowerCase(),
     label,
     family: 'Kick',

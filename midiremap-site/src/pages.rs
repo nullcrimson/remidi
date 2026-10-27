@@ -6,8 +6,8 @@ use std::{
 
 use flate2::{write::GzEncoder, Compression};
 use midiremap_core::{
-    rack_file, Canon, CanonResolution, Catalog, Daw, Drum, EngineMap, Family, FileStem, Mapping,
-    MissingDrums, Note, OctaveBase, Overrides, Packing, RackFile,
+    rack_file, Canon, Catalog, Daw, Drum, EngineMap, Family, FileStem, Mapping, MissingDrums, Note,
+    OctaveBase, Outcome, Overrides, Packing, RackFile,
 };
 
 use crate::routes::{
@@ -139,35 +139,30 @@ impl PairLink {
     }
 }
 
-/// A drum on a note, as a table cell shows it.
-#[derive(Clone)]
-pub struct NoteCell {
-    pub note: Note,
-    pub canon: Canon,
+/// A drum on its note, as a table cell shows it.
+pub trait NoteCell {
+    fn name_c1(&self) -> String;
+    fn name_c2(&self) -> String;
+    /// Lower-case text the engine page filter matches against.
+    fn search(&self) -> String;
 }
 
-impl NoteCell {
-    /// The name of the drum the note plays.
-    pub fn drum(&self) -> String {
-        self.canon.label()
-    }
-
-    pub fn name_c1(&self) -> String {
+impl NoteCell for Drum {
+    fn name_c1(&self) -> String {
         self.note.name(OctaveBase::C1)
     }
 
-    pub fn name_c2(&self) -> String {
+    fn name_c2(&self) -> String {
         self.note.name(OctaveBase::C2)
     }
 
-    /// Lower-case text the engine page filter matches against.
-    pub fn search(&self) -> String {
+    fn search(&self) -> String {
         format!(
             "{} {} {} {}",
             self.note,
             self.name_c1(),
             self.name_c2(),
-            self.drum()
+            self.entry.label
         )
         .to_lowercase()
     }
@@ -207,39 +202,31 @@ pub enum NoteRole {
 
 /// A row of an engine page's note table.
 pub struct EngineRow {
-    pub cell: NoteCell,
+    pub cell: Drum,
     pub role: NoteRole,
 }
 
-/// Where a source note lands on the target, as the core decides it.
-pub enum Landing {
-    Exact(NoteCell),
-    Approximated(NoteCell),
-    Dropped,
-}
-
-impl Landing {
-    /// The word the page shows for the outcome.
-    pub fn label(&self) -> &'static str {
-        match self {
-            Landing::Exact(_) => "exact",
-            Landing::Approximated(_) => "approximated",
-            Landing::Dropped => "dropped",
-        }
-    }
-
-    /// Where the note lands; `None` when it is dropped.
-    pub fn target(&self) -> Option<&NoteCell> {
-        match self {
-            Landing::Exact(cell) | Landing::Approximated(cell) => Some(cell),
-            Landing::Dropped => None,
-        }
-    }
-}
-
 pub struct PairRow {
-    pub source: NoteCell,
-    pub landing: Landing,
+    pub source: Drum,
+    pub outcome: Outcome,
+}
+
+impl PairRow {
+    /// The word the page marks the outcome with.
+    pub fn outcome_word(&self) -> &'static str {
+        match self.outcome {
+            Outcome::Direct { .. } => "exact",
+            Outcome::Fallback { .. } => "approximated",
+            Outcome::Dropped { .. } => "dropped",
+        }
+    }
+
+    /// The target drum the note lands on; `None` when it is dropped.
+    pub fn target(&self) -> Option<Drum> {
+        self.outcome
+            .played()
+            .map(|(canon, note)| Drum::new(note, canon))
+    }
 }
 
 impl FamilyGroup<PairRow> {
@@ -247,13 +234,13 @@ impl FamilyGroup<PairRow> {
     pub fn all_exact(&self) -> bool {
         self.rows
             .iter()
-            .all(|r| matches!(r.landing, Landing::Exact(_)))
+            .all(|r| matches!(r.outcome, Outcome::Direct { .. }))
     }
 }
 
 /// A target drum that plays source drums it has no exact equivalent for.
 pub struct Merge {
-    pub target: NoteCell,
+    pub target: Drum,
     /// The source drums it plays.
     pub sources: BTreeSet<Canon>,
 }
@@ -267,12 +254,14 @@ pub struct Changes {
 }
 
 /// Each approximated source drum with the target note that plays it.
-fn approximated<'a>(
-    rows: impl IntoIterator<Item = &'a PairRow>,
-) -> impl Iterator<Item = (&'a NoteCell, Canon)> {
-    rows.into_iter().filter_map(|row| match &row.landing {
-        Landing::Approximated(target) => Some((target, row.source.canon)),
-        Landing::Exact(_) | Landing::Dropped => None,
+fn approximated<'a, I: IntoIterator<Item = &'a PairRow>>(
+    rows: I,
+) -> impl Iterator<Item = (Drum, Canon)> + use<'a, I> {
+    rows.into_iter().filter_map(|row| match row.outcome {
+        Outcome::Fallback { stand_in, note, .. } => {
+            Some((Drum::new(note, stand_in), row.source.entry.canon))
+        }
+        Outcome::Direct { .. } | Outcome::Dropped { .. } => None,
     })
 }
 
@@ -283,7 +272,7 @@ fn merges_by_target<'a>(rows: impl IntoIterator<Item = &'a PairRow>) -> Vec<Merg
         by_note
             .entry(target.note)
             .or_insert_with(|| Merge {
-                target: target.clone(),
+                target,
                 sources: BTreeSet::new(),
             })
             .sources
@@ -314,10 +303,10 @@ pub struct Tally {
 impl Tally {
     fn of<'a>(rows: impl IntoIterator<Item = &'a PairRow>) -> Self {
         rows.into_iter().fold(Self::default(), |mut tally, row| {
-            match row.landing {
-                Landing::Exact(_) => tally.exact += 1,
-                Landing::Approximated(_) => tally.approximated += 1,
-                Landing::Dropped => tally.dropped += 1,
+            match row.outcome {
+                Outcome::Direct { .. } => tally.exact += 1,
+                Outcome::Fallback { .. } => tally.approximated += 1,
+                Outcome::Dropped { .. } => tally.dropped += 1,
             }
             tally
         })
@@ -349,7 +338,7 @@ pub struct EnginePage {
     pub engine: EngineLink,
     pub total: usize,
     /// The notes of the drums a groove uses most, as the converter writes them.
-    pub core: Vec<NoteCell>,
+    pub core: Vec<Drum>,
     pub groups: Vec<FamilyGroup<EngineRow>>,
     pub pairs_from: Vec<PairLink>,
     pub pairs_to: Vec<PairLink>,
@@ -529,17 +518,6 @@ fn lookup<'a>(catalog: &'a Catalog, id: &str) -> Result<&'a EngineMap, BuildErro
         .ok_or_else(|| BuildError::UnknownEngine(id.to_string()))
 }
 
-fn landing(resolution: CanonResolution) -> Landing {
-    let cell = |canon, note| NoteCell { note, canon };
-    match resolution {
-        CanonResolution::Direct { canon, note } => Landing::Exact(cell(canon, note)),
-        CanonResolution::Fallback { stand_in, note, .. } => {
-            Landing::Approximated(cell(stand_in, note))
-        }
-        CanonResolution::Dropped { .. } => Landing::Dropped,
-    }
-}
-
 /// `text` as the bytes of a file that stores it the `packing` way.
 fn packed(packing: Packing, text: String) -> Vec<u8> {
     match packing {
@@ -561,13 +539,10 @@ fn default_mapping(src: &EngineMap, tgt: &EngineMap) -> Mapping {
 fn pair_rows(src: &EngineMap, mapping: &Mapping) -> Vec<FamilyGroup<PairRow>> {
     by_family(src.source_notes().into_iter().map(|d| {
         (
-            d.family,
+            d.entry.family,
             PairRow {
-                landing: landing(mapping.resolve_canon(d.canon)),
-                source: NoteCell {
-                    note: d.note,
-                    canon: d.canon,
-                },
+                outcome: mapping.resolve_canon(d.entry.canon),
+                source: d,
             },
         )
     }))
@@ -613,21 +588,12 @@ fn pair_page(
 }
 
 fn engine_row(map: &EngineMap, d: Drum) -> (Family, EngineRow) {
-    let role = if map.encode(d.canon) == Some(d.note) {
+    let role = if map.encode(d.entry.canon) == Some(d.note) {
         NoteRole::Main
     } else {
         NoteRole::Extra
     };
-    (
-        d.family,
-        EngineRow {
-            cell: NoteCell {
-                note: d.note,
-                canon: d.canon,
-            },
-            role,
-        },
-    )
+    (d.entry.family, EngineRow { cell: d, role })
 }
 
 fn family_groups(map: &EngineMap) -> Vec<FamilyGroup<EngineRow>> {
@@ -636,7 +602,7 @@ fn family_groups(map: &EngineMap) -> Vec<FamilyGroup<EngineRow>> {
 
 /// The notes the converter writes for the core drums on this engine, each note once; a
 /// drum the engine plays only on another drum is left out.
-fn core_notes(map: &EngineMap) -> Vec<NoteCell> {
+fn core_notes(map: &EngineMap) -> Vec<Drum> {
     let mut shown = HashSet::new();
     Canon::CORE_KIT
         .iter()
@@ -644,7 +610,7 @@ fn core_notes(map: &EngineMap) -> Vec<NoteCell> {
         .filter(|r| !r.moves_to_other_drum())
         .filter_map(|r| r.played())
         .filter(|&(_, note)| shown.insert(note))
-        .map(|(canon, note)| NoteCell { note, canon })
+        .map(|(canon, note)| Drum::new(note, canon))
         .collect()
 }
 
@@ -1149,21 +1115,21 @@ mod tests {
     fn merges_cover_every_approximated_row_once() {
         for p in &site().pairs {
             for row in rows(p) {
-                let Landing::Approximated(target) = &row.landing else {
+                let Outcome::Fallback { note, .. } = row.outcome else {
                     continue;
                 };
                 let holding: Vec<&Merge> = p
                     .changes
                     .merges
                     .iter()
-                    .filter(|m| m.sources.contains(&row.source.canon))
+                    .filter(|m| m.sources.contains(&row.source.entry.canon))
                     .collect();
-                assert_eq!(holding.len(), 1, "{}: {}", p.slug, row.source.canon);
-                assert_eq!(holding[0].target.note, target.note, "{}", p.slug);
+                assert_eq!(holding.len(), 1, "{}: {}", p.slug, row.source.entry.canon);
+                assert_eq!(holding[0].target.note, note, "{}", p.slug);
             }
             let approximated: HashSet<Canon> = rows(p)
-                .filter(|r| matches!(r.landing, Landing::Approximated(_)))
-                .map(|r| r.source.canon)
+                .filter(|r| matches!(r.outcome, Outcome::Fallback { .. }))
+                .map(|r| r.source.entry.canon)
                 .collect();
             let merged: usize = p.changes.merges.iter().map(|m| m.sources.len()).sum();
             assert_eq!(merged, approximated.len(), "{}", p.slug);
@@ -1186,7 +1152,7 @@ mod tests {
     #[test]
     fn ggd_invasion_to_ezdrummer_merges_five_cymbals_into_crash_1() {
         let busiest = &pair("ggd-invasion-to-ezdrummer").changes.merges[0];
-        assert_eq!(busiest.target.drum(), "Crash 1");
+        assert_eq!(busiest.target.entry.label, "Crash 1");
         assert_eq!(busiest.sources.len(), 5, "{:?}", busiest.sources);
     }
 
@@ -1194,8 +1160,8 @@ mod tests {
     fn dropped_lists_every_dropped_row() {
         for p in &site().pairs {
             let dropped: BTreeSet<Canon> = rows(p)
-                .filter(|r| matches!(r.landing, Landing::Dropped))
-                .map(|r| r.source.canon)
+                .filter(|r| matches!(r.outcome, Outcome::Dropped { .. }))
+                .map(|r| r.source.entry.canon)
                 .collect();
             assert_eq!(p.changes.dropped, dropped, "{}", p.slug);
         }
@@ -1517,24 +1483,34 @@ mod tests {
         assert_eq!(vendors, sorted);
     }
 
-    fn cell(note: u8) -> NoteCell {
-        NoteCell {
-            note: Note::new(note).unwrap(),
-            canon: Canon::CORE_KIT[0],
-        }
+    fn cell(note: u8) -> Drum {
+        Drum::new(Note::new(note).unwrap(), Canon::CORE_KIT[0])
     }
 
     #[test]
-    fn a_tally_counts_each_landing_in_its_own_field() {
+    fn a_tally_counts_each_outcome_in_its_own_field() {
+        let canon = Canon::CORE_KIT[0];
+        let note = Note::new(36).unwrap();
         let rows = [
-            Landing::Exact(cell(36)),
-            Landing::Approximated(cell(38)),
-            Landing::Dropped,
-            Landing::Dropped,
+            Outcome::Direct { canon, note },
+            Outcome::Fallback {
+                canon,
+                stand_in: canon,
+                note,
+                other_drum: false,
+            },
+            Outcome::Dropped {
+                canon,
+                other_drum: false,
+            },
+            Outcome::Dropped {
+                canon,
+                other_drum: true,
+            },
         ]
-        .map(|landing| PairRow {
+        .map(|outcome| PairRow {
             source: cell(40),
-            landing,
+            outcome,
         });
         assert_eq!(
             Tally::of(&rows),
@@ -1606,7 +1582,7 @@ mod tests {
             for row in rows(p) {
                 assert_eq!(
                     written(row.source.note, &mapping),
-                    row.landing.target().map(|t| t.note.get()),
+                    row.target().map(|t| t.note.get()),
                     "{} note {}",
                     p.slug,
                     row.source.note.get()

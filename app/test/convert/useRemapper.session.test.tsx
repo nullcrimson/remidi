@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useRemapper } from '../../src/convert/useRemapper';
 import { RUNTIME } from '../runtime';
-import type { Engine, VocabularyDrum } from '../../src/core/midiremap';
+import type { Engine, CanonEntry } from '../../src/core/midiremap';
 import { loadSession, saveSession, type Session } from '../../src/convert/session';
 import * as stub from '../stubs/wasm';
 import { engineId, typed } from '../typed';
@@ -35,7 +35,7 @@ describe('useRemapper session memory', () => {
     ]));
     vi.mocked(stub.engine_drums).mockReturnValue([]);
     vi.mocked(stub.engine_notes).mockReturnValue([]);
-    vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
+    vi.mocked(stub.canon_catalog).mockReturnValue(typed<CanonEntry[]>([
       { canon: 'kick.main', label: 'Kick', family: 'Kick' },
       { canon: 'snare1.hit', label: 'Snare', family: 'Snare' },
     ]));

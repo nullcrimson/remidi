@@ -6,14 +6,14 @@ import App from '../src/App';
 import { useRemapper } from '../src/convert/useRemapper';
 import { RUNTIME } from './runtime';
 import type { StoredEdits } from '../src/core/overrides';
-import type { Overrides, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
+import type { Overrides, CanonEntry, VoicePlan } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { engineId, typed } from './typed';
 import { storedName } from '../src/core/storage';
 
 const MAPPINGS_KEY = storedName('mappings');
 
-const ROW = typed<VoiceRow>({ canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } });
+const ROW = typed<VoicePlan>({ canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } });
 
 function planThatRejectsBogus(_s: string, _t: string, ov?: Overrides | null) {
   if (ov?.tgt?.some((e) => e.canon === 'bogus.canon')) throw new Error('unknown canon bogus.canon');
@@ -38,7 +38,7 @@ describe('plan errors', () => {
     vi.mocked(stub.engine_drums).mockReturnValue([]);
     vi.mocked(stub.engine_notes).mockReturnValue([]);
     vi.mocked(stub.canon_catalog).mockReturnValue(
-      typed<VocabularyDrum[]>([{ canon: 'bogus.canon', label: 'Bogus', family: 'Kick' }]),
+      typed<CanonEntry[]>([{ canon: 'bogus.canon', label: 'Bogus', family: 'Kick' }]),
     );
     vi.mocked(stub.plan).mockImplementation(planThatRejectsBogus);
   });

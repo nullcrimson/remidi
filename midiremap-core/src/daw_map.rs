@@ -74,7 +74,7 @@ impl Daw {
         let notes = || -> Vec<(Note, String)> {
             map.source_notes()
                 .into_iter()
-                .map(|d| (d.note, d.label))
+                .map(|d| (d.note, d.entry.label))
                 .collect()
         };
         let title = map.display_name();

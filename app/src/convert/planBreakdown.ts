@@ -1,4 +1,4 @@
-import type { Drum, VoiceRow } from '../core/midiremap';
+import type { Drum, VoicePlan } from '../core/midiremap';
 import { swapList } from '../core/missing';
 import type { OctaveBase } from '../core/notes';
 import { isPlayed, leadNote, movesToOtherDrum, playedNote, playedOn, type PlayedOn } from '../core/outcome';
@@ -20,7 +20,7 @@ export interface PlanBreakdown {
 }
 
 /** Sorts the plan's drums into the groups behind the "N of M drums remapped" summary. */
-export function planBreakdown(rows: VoiceRow[], targetDrums: Drum[], oct: OctaveBase): PlanBreakdown {
+export function planBreakdown(rows: VoicePlan[], targetDrums: Drum[], oct: OctaveBase): PlanBreakdown {
   const played = rows.filter(isPlayed);
   const kept = played.filter((r) => r.outcome.status !== 'dropped' && !movesToOtherDrum(r.outcome));
   const exact = kept.filter((r) => r.outcome.status === 'direct');

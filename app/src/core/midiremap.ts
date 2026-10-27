@@ -11,8 +11,8 @@ import type {
   RemapOutput,
   SourceFits,
   Unrecognized,
-  VocabularyDrum,
-  VoiceRow,
+  CanonEntry,
+  VoicePlan,
 } from '@wasm';
 import type { EnginePair } from './enginePair';
 import { isWasmError, WasmCallError } from './errors';
@@ -32,7 +32,7 @@ export type {
   OctaveBase,
   Overrides,
   Packing,
-  PlanOutcome,
+  Outcome,
   PresetName,
   PresetView,
   RackFile,
@@ -41,8 +41,8 @@ export type {
   SourceFit,
   SourceFits,
   Unrecognized,
-  VocabularyDrum,
-  VoiceRow,
+  CanonEntry,
+  VoicePlan,
 } from '@wasm';
 
 /** The loaded converter module. A call the module refuses throws a `WasmCallError`. */
@@ -50,10 +50,10 @@ export interface Midiremap {
   engines(): Engine[];
   engineDrums(tgtId: string): Drum[];
   engineNotes(srcId: string): Drum[];
-  canonCatalog(): VocabularyDrum[];
+  canonCatalog(): CanonEntry[];
   familyOrder(): Family[];
   parsePresetFile(json: string): PresetView;
-  plan(pair: EnginePair, ov?: Overrides, missing?: MissingDrums): VoiceRow[];
+  plan(pair: EnginePair, ov?: Overrides, missing?: MissingDrums): VoicePlan[];
   remap(
     mid: Uint8Array,
     pair: EnginePair,

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from '../src/App';
 import { RUNTIME } from './runtime';
-import type { Drum, MissingDrums, RemapOutput, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
+import type { Drum, MissingDrums, RemapOutput, CanonEntry, VoicePlan } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
 import { openSettings, pickFrom, pickTo } from './eventSteps';
@@ -41,10 +41,10 @@ describe('App missing drums', () => {
       { note: 49, canon: 'crash.1.hit', label: 'Crash 1', family: 'Cymbals' },
     ]));
     vi.mocked(stub.engine_notes).mockReturnValue([]);
-    vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
+    vi.mocked(stub.canon_catalog).mockReturnValue(typed<CanonEntry[]>([
       { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
     ]));
-    vi.mocked(stub.plan).mockImplementation((_src, _tgt, _overrides, missing) => typed<VoiceRow[]>([
+    vi.mocked(stub.plan).mockImplementation((_src, _tgt, _overrides, missing) => typed<VoicePlan[]>([
       missing === 'drop'
         ? { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals', srcNotes: [60], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: true } }
         : { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals', srcNotes: [60], defaultTgtNote: 49, outcome: { status: 'fallback', standIn: 'crash.1.hit', tgtNote: 49, otherDrum: true } },

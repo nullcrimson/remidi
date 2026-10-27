@@ -5,12 +5,12 @@ import App from '../src/App';
 import { RUNTIME } from './runtime';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
-import type { VoiceRow } from '../src/core/midiremap';
+import type { VoicePlan } from '../src/core/midiremap';
 import { pickFrom, pickTo } from './eventSteps';
 
 describe('App convert view', () => {
   beforeEach(() => {
-    vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
+    vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([
       { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
     ]));
   });

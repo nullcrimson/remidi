@@ -8,7 +8,7 @@ import { failWrites } from './eventSteps';
 import { recordDownloads } from './downloads';
 import { WasmCallError } from '../src/core/errors';
 import { MAPPINGS_CAP } from '../src/presets/mappings';
-import type { PresetView, VocabularyDrum } from '../src/core/midiremap';
+import type { PresetView, CanonEntry } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { presetName, typed } from './typed';
 import { storedName } from '../src/core/storage';
@@ -42,7 +42,7 @@ describe('App presets', () => {
   beforeEach(() => {
     vi.mocked(stub.engine_drums).mockReturnValue([]);
     vi.mocked(stub.engine_notes).mockReturnValue([]);
-    vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
+    vi.mocked(stub.canon_catalog).mockReturnValue(typed<CanonEntry[]>([
       { canon: 'kick.main', label: 'Kick', family: 'Kick' },
     ]));
     vi.mocked(stub.plan).mockReturnValue([]);

@@ -3,11 +3,10 @@ use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    canon::Canon,
-    family::Family,
+    canon::{Canon, CanonEntry},
     non_blank::NonBlank,
     note::Note,
-    resolution::{self, CanonResolution, MissingDrums},
+    resolution::{self, MissingDrums, Outcome},
 };
 
 #[derive(Deserialize)]
@@ -68,9 +67,18 @@ pub struct EngineMap {
 )]
 pub struct Drum {
     pub note: Note,
-    pub canon: Canon,
-    pub label: String,
-    pub family: Family,
+    #[serde(flatten)]
+    pub entry: CanonEntry,
+}
+
+impl Drum {
+    /// The drum `canon` on `note`.
+    pub fn new(note: Note, canon: Canon) -> Self {
+        Self {
+            note,
+            entry: canon.into(),
+        }
+    }
 }
 
 impl EngineMap {
@@ -100,7 +108,7 @@ impl EngineMap {
     }
 
     /// Where a drum lands on this engine with no edits: what the converter writes for it.
-    pub fn resolve(&self, canon: Canon, missing: MissingDrums) -> CanonResolution {
+    pub fn resolve(&self, canon: Canon, missing: MissingDrums) -> Outcome {
         resolution::resolve(canon, &self.from_canon, missing)
     }
 
@@ -154,14 +162,7 @@ impl EngineMap {
 }
 
 fn listing(pairs: impl Iterator<Item = (Note, Canon)>) -> Vec<Drum> {
-    let mut out: Vec<Drum> = pairs
-        .map(|(note, canon)| Drum {
-            note,
-            canon,
-            label: canon.label(),
-            family: canon.family(),
-        })
-        .collect();
+    let mut out: Vec<Drum> = pairs.map(|(note, canon)| Drum::new(note, canon)).collect();
     out.sort_by_key(|d| d.note);
     out
 }
@@ -258,6 +259,7 @@ mod tests {
     use super::*;
     use crate::{
         canon::{idx, KickKind, SnareArtic},
+        family::Family,
         note::n,
     };
 
@@ -298,10 +300,10 @@ mod tests {
         let d = m.drums();
         assert_eq!(d.len(), 2);
         assert_eq!(d[0].note, n(24));
-        assert_eq!(d[0].label, "Kick");
-        assert_eq!(d[0].family, Family::Kick);
+        assert_eq!(d[0].entry.label, "Kick");
+        assert_eq!(d[0].entry.family, Family::Kick);
         assert_eq!(d[1].note, n(26));
-        assert_eq!(d[1].family, Family::Snare);
+        assert_eq!(d[1].entry.family, Family::Snare);
     }
 
     #[test]
@@ -321,8 +323,8 @@ mod tests {
             notes.iter().map(|d| d.note).collect::<Vec<_>>(),
             vec![n(23), n(24), n(26)]
         );
-        assert_eq!(notes[0].canon, Canon::Kick(KickKind::Main));
-        assert_eq!(notes[2].canon, Canon::Snare(idx(1), SnareArtic::Hit));
+        assert_eq!(notes[0].entry.canon, Canon::Kick(KickKind::Main));
+        assert_eq!(notes[2].entry.canon, Canon::Snare(idx(1), SnareArtic::Hit));
     }
 
     #[test]

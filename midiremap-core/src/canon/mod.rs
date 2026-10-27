@@ -256,6 +256,29 @@ impl Canon {
     }
 }
 
+/// A drum as people read it: its key, its name and the family it is listed under.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
+pub struct CanonEntry {
+    pub canon: Canon,
+    pub label: String,
+    pub family: Family,
+}
+
+impl From<Canon> for CanonEntry {
+    fn from(canon: Canon) -> Self {
+        Self {
+            canon,
+            label: canon.label(),
+            family: canon.family(),
+        }
+    }
+}
+
 pub(crate) const fn idx<const MAX: u8>(n: u8) -> Idx<MAX> {
     Idx::new(n).expect("a constant index is in range")
 }

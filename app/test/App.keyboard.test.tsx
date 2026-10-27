@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from '../src/App';
 import { RUNTIME } from './runtime';
-import type { RemapOutput, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
+import type { RemapOutput, CanonEntry, VoicePlan } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
 import { convertButton, engineCard, pickFrom, pickTo } from './eventSteps';
@@ -29,10 +29,10 @@ describe('keyboard use', () => {
     document.body.focus();
     vi.mocked(stub.engine_drums).mockReturnValue([]);
     vi.mocked(stub.engine_notes).mockReturnValue([]);
-    vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
+    vi.mocked(stub.canon_catalog).mockReturnValue(typed<CanonEntry[]>([
       { canon: 'kick.main', label: 'Kick', family: 'Kick' },
     ]));
-    vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
+    vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([
       { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
     ]));
     vi.mocked(stub.remap).mockReturnValue(typed<RemapOutput>({

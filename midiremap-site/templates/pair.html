@@ -40,7 +40,7 @@
   {% if page.tally.changes() == 0 %}<p class="text-ui/relaxed text-t3">{{ texts.pair(MessageId::MapsChangesNone, page.src.name.as_str(), page.tgt.name.as_str())? }}</p>{% endif %}
   {% if !page.changes.merges.is_empty() %}<ul class="merge-list">
 {% for m in page.changes.merges -%}
-<li><b>{{ m.target.drum() }}</b> {% call macros::note_label(m.target) %}{% endcall %} <span>{{ texts.plays(m.sources)? }}</span></li>
+<li><b>{{ m.target.entry.label }}</b> {% call macros::note_label(m.target) %}{% endcall %} <span>{{ texts.plays(m.sources)? }}</span></li>
 {% endfor -%}
 </ul>{% endif %}
   {% if !page.changes.dropped.is_empty() %}<p class="text-ui/relaxed text-t3">{{ texts.no_drum_for(page.tgt.name.as_str(), page.changes.dropped)? }}</p>{% endif %}
@@ -62,7 +62,7 @@
 <tbody{% if g.all_exact() %} data-outcome="exact"{% endif %}>
 <tr><th scope="rowgroup" colspan="6">{{ g.family }}</th></tr>
 {% for r in g.rows -%}
-<tr data-outcome="{{ r.landing.label() }}"><td>{% call macros::note_label(r.source) %}{% endcall %}</td><td>{{ r.source.drum() }}</td><td aria-hidden="true">→</td>{% if let Some(t) = r.landing.target() %}<td>{% call macros::note_label(t) %}{% endcall %}</td><td>{{ t.drum() }}</td>{% else %}<td>—</td><td>{{ texts.get(Plain::MapsNoEquivalent) }}</td>{% endif %}<td>{% match r.landing %}{% when Landing::Exact(_) %}{{ texts.get(Plain::MapsStatusExact) }}{% when Landing::Approximated(_) %}{{ texts.get(Plain::MapsStatusApproximated) }}{% when Landing::Dropped %}{{ texts.get(Plain::MapsStatusDropped) }}{% endmatch %}</td></tr>
+<tr data-outcome="{{ r.outcome_word() }}"><td>{% call macros::note_label(r.source) %}{% endcall %}</td><td>{{ r.source.entry.label }}</td><td aria-hidden="true">→</td>{% if let Some(t) = r.target() %}<td>{% call macros::note_label(t) %}{% endcall %}</td><td>{{ t.entry.label }}</td>{% else %}<td>—</td><td>{{ texts.get(Plain::MapsNoEquivalent) }}</td>{% endif %}<td>{{ texts.status(r.outcome) }}</td></tr>
 {% endfor -%}
 </tbody>
 {% endfor -%}

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from '../src/App';
 import { RUNTIME } from './runtime';
-import type { RemapOutput, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
+import type { RemapOutput, CanonEntry, VoicePlan } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
 import { openSettings, pickFrom, pickTo } from './eventSteps';
@@ -40,10 +40,10 @@ describe('App loss report', () => {
   beforeEach(() => {
     vi.mocked(stub.engine_drums).mockReturnValue([]);
     vi.mocked(stub.engine_notes).mockReturnValue([]);
-    vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
+    vi.mocked(stub.canon_catalog).mockReturnValue(typed<CanonEntry[]>([
       { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
     ]));
-    vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
+    vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([
       { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals', srcNotes: [60], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
     ]));
     vi.mocked(stub.remap).mockReturnValue(reportWith(0));

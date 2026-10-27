@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { Drum, VoiceRow } from '../../src/core/midiremap';
+import type { Drum, VoicePlan } from '../../src/core/midiremap';
 import { MISSING_OPTIONS, missingHint, swapList, swappedCanons } from '../../src/core/missing';
 import { ENGLISH } from '../../src/locale/i18n';
 import { typed, type Loose } from '../typed';
 
 const { t } = ENGLISH;
 
-function row(canon: string, extra: Partial<Loose<VoiceRow>>): VoiceRow {
-  return typed<VoiceRow>({
+function row(canon: string, extra: Partial<Loose<VoicePlan>>): VoicePlan {
+  return typed<VoicePlan>({
     canon,
     label: canon,
     family: 'Kick',

@@ -3,12 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useRemapper } from '../../src/convert/useRemapper';
 import { RUNTIME } from '../runtime';
-import type { Drum, VoiceRow } from '../../src/core/midiremap';
+import type { Drum, VoicePlan } from '../../src/core/midiremap';
 import * as stub from '../stubs/wasm';
 import { canon, engineId, note, typed } from '../typed';
 import { shownTgtPick } from '../picks';
 
-const ROWS = typed<VoiceRow[]>([
+const ROWS = typed<VoicePlan[]>([
   { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
 ]);
 
@@ -101,7 +101,7 @@ describe('useRemapper edit path', () => {
   });
 
   it('takes the reset note from the row default, not the edited target', async () => {
-    vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
+    vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([
       { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 50 } },
     ]));
     const { result } = renderHook(() => useRemapper(RUNTIME));
@@ -114,7 +114,7 @@ describe('useRemapper edit path', () => {
   });
 
   async function withSilentRows() {
-    vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
+    vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([
       { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
       { canon: 'China', label: 'China', family: 'Cymbals', srcNotes: [], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
     ]));
@@ -143,7 +143,7 @@ describe('useRemapper edit path', () => {
   });
 
   it('counts a row as remapped only when its shown source note moves', async () => {
-    vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
+    vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([
       { canon: 'KickMain', label: 'Kick', family: 'Kick', srcNotes: [36, 35], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
       { canon: 'Snare', label: 'Snare', family: 'Snare', srcNotes: [26], defaultTgtNote: 38, outcome: { status: 'direct', tgtNote: 38 } },
     ]));

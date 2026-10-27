@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useRemapper } from '../../src/convert/useRemapper';
 import { RUNTIME } from '../runtime';
-import type { Overrides, VoiceRow } from '../../src/core/midiremap';
+import type { Overrides, VoicePlan } from '../../src/core/midiremap';
 import * as stub from '../stubs/wasm';
 import { canon, engineId, note, typed } from '../typed';
 import { shownSrcPick } from '../picks';
@@ -13,7 +13,7 @@ const LABELS: Record<string, string> = { 'kick.main': 'Kick', 'snare1.hit': 'Sna
 function fakePlan(_src: string, _tgt: string, ov?: Overrides | null) {
   const decode: Record<number, string | null> = { ...DEFAULTS };
   for (const s of ov?.src ?? []) decode[s.note] = s.canon;
-  return typed<VoiceRow[]>(Object.keys(LABELS).map((canon) => ({
+  return typed<VoicePlan[]>(Object.keys(LABELS).map((canon) => ({
     canon,
     label: LABELS[canon],
     family: 'Kick' as const,

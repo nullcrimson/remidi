@@ -1,5 +1,5 @@
 import type { FileResult } from '../core/files';
-import type { Canon, Drum, MissingDrums, Note, Report, VocabularyDrum } from '../core/midiremap';
+import type { Canon, Drum, MissingDrums, Note, Report, CanonEntry } from '../core/midiremap';
 import type { EnginePair } from '../core/enginePair';
 import type { StatEvents } from '../core/umami';
 import { drumLabels, standInText } from '../core/drums';
@@ -62,7 +62,7 @@ function sortEntries<E extends ReportEntry>(entries: E[]): E[] {
 
 export function buildReport(
   results: FileResult[],
-  canons: VocabularyDrum[],
+  canons: CanonEntry[],
   targetDrums: Drum[],
   oct: OctaveBase,
 ): ReportView {

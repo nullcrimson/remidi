@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App';
 import { RUNTIME } from './runtime';
 import { recordDownloads } from './downloads';
-import type { RemapOutput, VocabularyDrum, VoiceRow } from '../src/core/midiremap';
+import type { RemapOutput, CanonEntry, VoicePlan } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
 import { pickFrom, pickTo } from './eventSteps';
@@ -40,11 +40,11 @@ describe('App convert flow', () => {
   beforeEach(() => {
     vi.mocked(stub.engine_drums).mockReturnValue([]);
     vi.mocked(stub.engine_notes).mockReturnValue([]);
-    vi.mocked(stub.canon_catalog).mockReturnValue(typed<VocabularyDrum[]>([
+    vi.mocked(stub.canon_catalog).mockReturnValue(typed<CanonEntry[]>([
       { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' },
       { canon: 'kick.main', label: 'Kick', family: 'Kick' },
     ]));
-    vi.mocked(stub.plan).mockReturnValue(typed<VoiceRow[]>([
+    vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([
       { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', tgtNote: 36 } },
       { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals', srcNotes: [60], defaultTgtNote: null, outcome: { status: 'dropped', otherDrum: false } },
     ]));

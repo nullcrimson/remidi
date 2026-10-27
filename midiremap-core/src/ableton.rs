@@ -118,7 +118,7 @@ pub fn note_name_rack(map: &EngineMap) -> String {
         .into_iter()
         .map(|d| Chain {
             note: d.note,
-            name: d.label,
+            name: d.entry.label,
             shift: None,
         })
         .collect();

@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { editLines, previewLines } from '../../src/editor/editSummary';
-import type { Canon, Note, VoiceRow } from '../../src/core/midiremap';
+import type { Canon, Note, VoicePlan } from '../../src/core/midiremap';
 import { typed } from '../typed';
 import { ENGLISH } from '../../src/locale/i18n';
 import type { Message } from '../../src/generated/i18n';
 
 const { t } = ENGLISH;
 
-const row = (canon: string, label: string, srcNotes: number[], tgtNote: number | null, defaultTgtNote: number | null): VoiceRow =>
-  typed<VoiceRow>({
+const row = (canon: string, label: string, srcNotes: number[], tgtNote: number | null, defaultTgtNote: number | null): VoicePlan =>
+  typed<VoicePlan>({
     canon,
     label,
     family: 'Kick',

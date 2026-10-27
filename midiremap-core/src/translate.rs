@@ -7,12 +7,12 @@ use crate::{
     engine_map::EngineMap,
     note::Note,
     overrides::Overrides,
-    resolution::{resolve, CanonResolution, Encoding, MissingDrums},
+    resolution::{resolve, Encoding, MissingDrums, Outcome},
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) enum Resolution {
-    Resolved(CanonResolution),
+    Resolved(Outcome),
     Unmapped,
 }
 
@@ -73,7 +73,7 @@ pub struct Mapping {
     source_name: String,
     target_name: String,
     decode: Decoding,
-    drums: HashMap<Canon, CanonResolution>,
+    drums: HashMap<Canon, Outcome>,
     unrecognized: Unrecognized,
 }
 
@@ -131,7 +131,7 @@ impl Mapping {
             })
     }
 
-    pub fn resolve_canon(&self, canon: Canon) -> CanonResolution {
+    pub fn resolve_canon(&self, canon: Canon) -> Outcome {
         self.drums[&canon]
     }
 
@@ -150,7 +150,7 @@ impl Mapping {
     pub fn dropped_drums(&self) -> impl Iterator<Item = Canon> + '_ {
         self.played_drums()
             .into_keys()
-            .filter(|&canon| matches!(self.resolve_canon(canon), CanonResolution::Dropped { .. }))
+            .filter(|&canon| matches!(self.resolve_canon(canon), Outcome::Dropped { .. }))
     }
 }
 
@@ -242,7 +242,7 @@ notes = [ {} ]",
     }
 
     fn kick_on(note: u8) -> Resolution {
-        Resolution::Resolved(CanonResolution::Direct {
+        Resolution::Resolved(Outcome::Direct {
             canon: k("kick.main"),
             note: n(note),
         })
@@ -298,10 +298,11 @@ notes = [ {} ]",
     fn drop_keeps_a_same_drum_articulation_fallback() {
         let tgt = target(&[(38, "snare1.hit")]);
         let canon = k("snare1.rimshot");
-        let expected = CanonResolution::Fallback {
+        let expected = Outcome::Fallback {
             canon,
             stand_in: k("snare1.hit"),
             note: n(38),
+            other_drum: false,
         };
         assert_eq!(
             onto(&tgt, MissingDrums::Drop).resolve_canon(canon),
@@ -313,10 +314,11 @@ notes = [ {} ]",
     fn nearest_keeps_a_same_drum_articulation_fallback() {
         let tgt = target(&[(38, "snare1.hit")]);
         let canon = k("snare1.rimshot");
-        let expected = CanonResolution::Fallback {
+        let expected = Outcome::Fallback {
             canon,
             stand_in: k("snare1.hit"),
             note: n(38),
+            other_drum: false,
         };
         assert_eq!(
             onto(&tgt, MissingDrums::Nearest).resolve_canon(canon),
@@ -330,10 +332,11 @@ notes = [ {} ]",
         let canon = k("china.1.hit");
         assert_eq!(
             onto(&tgt, MissingDrums::Nearest).resolve_canon(canon),
-            CanonResolution::Fallback {
+            Outcome::Fallback {
                 canon,
                 stand_in: k("crash.1.hit"),
-                note: n(49)
+                note: n(49),
+                other_drum: true
             }
         );
     }
@@ -344,7 +347,7 @@ notes = [ {} ]",
         let canon = k("china.1.hit");
         assert_eq!(
             onto(&tgt, MissingDrums::Drop).resolve_canon(canon),
-            CanonResolution::Dropped {
+            Outcome::Dropped {
                 canon,
                 other_drum: true
             }
@@ -383,13 +386,13 @@ notes = [ {} ]",
             for &canon in Canon::all() {
                 let near = nearest.resolve_canon(canon);
                 let drop = dropping.resolve_canon(canon);
-                if let CanonResolution::Fallback { stand_in, .. } = drop {
+                if let Outcome::Fallback { stand_in, .. } = drop {
                     assert!(canon.same_drum(stand_in), "{id}: {canon} -> {stand_in}");
                 }
                 match near {
-                    CanonResolution::Direct { .. } => assert_eq!(drop, near, "{id}: {canon}"),
-                    CanonResolution::Dropped { .. } => assert_eq!(drop, near, "{id}: {canon}"),
-                    CanonResolution::Fallback { stand_in, .. } => {
+                    Outcome::Direct { .. } => assert_eq!(drop, near, "{id}: {canon}"),
+                    Outcome::Dropped { .. } => assert_eq!(drop, near, "{id}: {canon}"),
+                    Outcome::Fallback { stand_in, .. } => {
                         if canon.same_drum(stand_in) {
                             assert_eq!(drop, near, "{id}: {canon}");
                         }
@@ -426,7 +429,7 @@ notes = [ {} ]",
         let mapping = Mapping::new(&src, &tgt, &ov, MissingDrums::Drop);
         assert_eq!(
             mapping.translate(n(60)),
-            Resolution::Resolved(CanonResolution::Direct {
+            Resolution::Resolved(Outcome::Direct {
                 canon: k("china.1.hit"),
                 note: n(55)
             })
@@ -567,7 +570,7 @@ notes = [ {} ]",
     fn a_drum_the_target_has_plays_on_its_note() {
         assert_eq!(
             mapping().translate(n(12)),
-            Resolution::Resolved(CanonResolution::Direct {
+            Resolution::Resolved(Outcome::Direct {
                 canon: Canon::Kick(KickKind::Main),
                 note: n(50)
             })
@@ -578,10 +581,11 @@ notes = [ {} ]",
     fn fallback_walks_chain() {
         assert_eq!(
             mapping().translate(n(11)),
-            Resolution::Resolved(CanonResolution::Fallback {
+            Resolution::Resolved(Outcome::Fallback {
                 canon: Canon::Hat(HatOpen::Open(idx(3)), HatZone::Plain),
                 stand_in: Canon::Hat(HatOpen::Open(idx(1)), HatZone::Plain),
-                note: n(61)
+                note: n(61),
+                other_drum: false
             })
         );
     }
@@ -592,7 +596,7 @@ notes = [ {} ]",
         let canon = k("hat.open3");
         assert_eq!(
             onto(&tgt, MissingDrums::Nearest).resolve_canon(canon),
-            CanonResolution::Dropped {
+            Outcome::Dropped {
                 canon,
                 other_drum: false
             }
@@ -605,7 +609,7 @@ notes = [ {} ]",
         let canon = k("hat.open3");
         assert_eq!(
             onto(&tgt, MissingDrums::Drop).resolve_canon(canon),
-            CanonResolution::Dropped {
+            Outcome::Dropped {
                 canon,
                 other_drum: false
             }
@@ -621,7 +625,7 @@ notes = [ {} ]",
     fn dropped_when_target_and_chain_empty() {
         assert_eq!(
             mapping().translate(n(10)),
-            Resolution::Resolved(CanonResolution::Dropped {
+            Resolution::Resolved(Outcome::Dropped {
                 canon: Canon::Snare(idx(1), SnareArtic::Hit),
                 other_drum: false
             })

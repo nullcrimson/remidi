@@ -2,7 +2,7 @@ import type { Translate } from '../locale/i18n';
 import { useT } from '../locale/localeContext';
 import { Fragment } from 'react';
 import type { Editor } from './useEditor';
-import type { Canon, Drum, Family, VoiceRow as VoiceRowData } from '../core/midiremap';
+import type { Canon, Drum, Family, VoicePlan } from '../core/midiremap';
 import { drumLabels, type DrumLabels } from '../core/drums';
 import { noteName, type OctaveBase } from '../core/notes';
 import { MonoLabel } from '../ui/MonoLabel';
@@ -33,7 +33,7 @@ interface PlaysContext {
   t: Translate;
 }
 
-function playsOf(row: VoiceRowData, changed: boolean, { labels, oct, target, onReveal, t }: PlaysContext): RowResult {
+function playsOf(row: VoicePlan, changed: boolean, { labels, oct, target, onReveal, t }: PlaysContext): RowResult {
   if (!isPlayed(row)) return { text: t({ id: 'row-no-source' }), tone: 'faint' };
   const { outcome } = row;
   if (outcome.status === 'dropped') return { text: t({ id: 'row-dropped' }), tone: 'danger' };
@@ -90,7 +90,7 @@ export function FamilyRows({
   actions,
   onReveal,
 }: {
-  groups: { family: Family; items: VoiceRowData[] }[];
+  groups: { family: Family; items: VoicePlan[] }[];
   overlay: Editor['overlay'];
   edits: Editor['edits'];
   changed: ReadonlySet<Canon>;

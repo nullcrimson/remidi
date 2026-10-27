@@ -23,10 +23,7 @@ const ALLOWED_USES: &Table = &[
         &["channel", "midi", "report", "rewrite", "table", "translate"],
     ),
     ("daw_map", &["ableton", "engine_map", "note", "packing"]),
-    (
-        "engine_map",
-        &["canon", "family", "non_blank", "note", "resolution"],
-    ),
+    ("engine_map", &["canon", "non_blank", "note", "resolution"]),
     ("family", &[]),
     ("file", &[]),
     ("fit", &["catalog", "channel", "engine_map", "midi", "note"]),

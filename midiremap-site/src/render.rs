@@ -2,14 +2,14 @@ use std::{borrow::Borrow, collections::BTreeSet};
 
 use askama::Template;
 use fluent_bundle::{FluentArgs, FluentValue};
-use midiremap_core::{Canon, Daw};
+use midiremap_core::{Canon, Daw, Outcome};
 
 use crate::{
     content::{breadcrumb_schema, faq_schema, how_to_schema, Block, Closing, ContentPage},
     converter_step::{converter_steps, shown_steps, ConverterStep, ShownStep},
     i18n::{Docs, I18nError, Locale, MessageId, Messages, Plain, SectionKey, TIP_HREF},
     manifest::{AnalyticsScript, LocaleScript, SiteManifest},
-    pages::{EnginePage, IndexPage, Landing, NoteRole, PairPage, PairSummary, Site, Tally},
+    pages::{EnginePage, IndexPage, NoteCell, NoteRole, PairPage, PairSummary, Site, Tally},
     routes::{
         alternates, home, href, label, local_href, og_image_url, page_in, Alternate, LocalPath,
         NavTarget, Page, SitePath, DRUM_MAPS, FOOTER, NAV, NOTE_MAPS, SITE_NAME, THANKS,
@@ -349,6 +349,15 @@ impl<'a> Texts<'a> {
                 ("percent", cell.tally.exact_percent().into()),
             ]),
         )
+    }
+
+    /// How the pair table names the outcome of a row.
+    fn status(&self, outcome: &Outcome) -> &'a str {
+        self.get(match outcome {
+            Outcome::Direct { .. } => Plain::MapsStatusExact,
+            Outcome::Fallback { .. } => Plain::MapsStatusApproximated,
+            Outcome::Dropped { .. } => Plain::MapsStatusDropped,
+        })
     }
 
     fn plays(&self, sources: &BTreeSet<Canon>) -> Result<String, I18nError> {
