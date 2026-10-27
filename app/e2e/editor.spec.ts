@@ -151,7 +151,7 @@ test('octave naming renames the notes in the editor', async ({ page }) => {
   await openSettings(page);
   await page.getByRole('radiogroup', { name: 'Octaves start at' }).getByText('C-2').click();
   await expect(page.getByRole('radio', { name: 'C-2' })).toBeChecked();
-  await expect(page.getByText('Studio One · Cubase · FL Studio')).toBeVisible();
+  await expect(page.getByText('Ableton Live · Logic Pro · Cubase · Studio One')).toBeVisible();
   await openEditor(page);
   await expect(noteButtons(page, 'Kick')).toHaveText(['C0', 'C1']);
 });
@@ -161,7 +161,7 @@ test('octave naming does not change the notes in the file', async ({ page }) => 
   await addFiles(page, kickFile());
   await openSettings(page);
   await page.getByRole('radiogroup', { name: 'Octaves start at' }).getByText('C-2').click();
-  await page.getByText('Studio One · Cubase · FL Studio').waitFor();
+  await page.getByText('Ableton Live · Logic Pro · Cubase · Studio One').waitFor();
 
   expect(await convertAndDownload(page)).toEqual([36]);
 });

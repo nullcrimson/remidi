@@ -65,7 +65,7 @@
         {
           "q": "Ça marche avec mon DAW ?",
           "a": [
-            "Oui, avec tous. Les DAW ne numérotent simplement pas les octaves de la même façon : basculez entre C-1 (Reaper, Logic, Ableton, Guitar Pro) et C-2 (Studio One, Cubase, FL Studio) pour que les noms de notes correspondent à ceux de votre DAW. Reaper, Cubase et Studio One peuvent aussi charger une ",
+            "Oui, avec tous. Les DAW ne numérotent simplement pas les octaves de la même façon : basculez entre C-1 (Reaper) et C-2 (Ableton Live, Logic Pro, Cubase, Studio One) pour que les noms de notes correspondent à ceux de votre DAW. Reaper, Cubase et Studio One peuvent aussi charger une ",
             {
               "text": "drum map",
               "href": "/drum-maps/"

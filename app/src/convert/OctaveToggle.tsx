@@ -6,8 +6,8 @@ import { SettingRow } from './SettingRow';
 const OCTAVES = (['c1', 'c2'] as const).map((value) => ({ value, label: octaveName(value) }));
 
 const DAWS: Record<OctaveBase, string> = {
-  c1: 'Reaper · Logic · Ableton · Guitar Pro',
-  c2: 'Studio One · Cubase · FL Studio',
+  c1: 'Reaper',
+  c2: 'Ableton Live · Logic Pro · Cubase · Studio One',
 };
 
 export function OctaveToggle({

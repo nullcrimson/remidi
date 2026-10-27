@@ -65,7 +65,7 @@
         {
           "q": "Funciona com a minha DAW? E as oitavas, C-1 ou C-2?",
           "a": [
-            "Funciona com as duas convenções de oitava mais comuns — alterne entre C-1 (Reaper, Logic, Ableton, Guitar Pro) e C-2 (Studio One, Cubase, FL Studio) para os nomes das notas baterem com os da sua DAW. Reaper, Cubase e Studio One também carregam um ",
+            "Funciona com as duas convenções de oitava mais comuns — alterne entre C-1 (Reaper) e C-2 (Ableton Live, Logic Pro, Cubase, Studio One) para os nomes das notas baterem com os da sua DAW. Reaper, Cubase e Studio One também carregam um ",
             {
               "text": "mapa de bateria",
               "href": "/drum-maps/"

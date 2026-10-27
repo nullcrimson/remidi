@@ -65,7 +65,7 @@
         {
           "q": "어떤 DAW와 옥타브 표기를 지원하나요?",
           "a": [
-            "많이 쓰는 두 가지 옥타브 표기를 모두 지원합니다. C-1 방식(Reaper, Logic, Ableton, Guitar Pro)과 C-2 방식(Studio One, Cubase, FL Studio) 중 하나를 고르면 노트 이름이 사용하는 DAW와 같아집니다. Reaper, Cubase, Studio One에서는 모든 노트에 이름을 붙여 주는 ",
+            "많이 쓰는 두 가지 옥타브 표기를 모두 지원합니다. C-1 방식(Reaper)과 C-2 방식(Ableton Live, Logic Pro, Cubase, Studio One) 중 하나를 고르면 노트 이름이 사용하는 DAW와 같아집니다. Reaper, Cubase, Studio One에서는 모든 노트에 이름을 붙여 주는 ",
             {
               "text": "드럼 맵",
               "href": "/drum-maps/"

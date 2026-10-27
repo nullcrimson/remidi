@@ -65,7 +65,7 @@
         {
           "q": "Funktioniert das mit meiner DAW?",
           "a": [
-            "Ja, mit jeder. DAWs zählen die Oktaven nur unterschiedlich: C-1 (Reaper, Logic, Ableton, Guitar Pro) oder C-2 (Studio One, Cubase, FL Studio). Stellen Sie die passende Variante ein, dann stimmen die Notennamen mit Ihrer DAW überein. Reaper, Cubase und Studio One können außerdem eine ",
+            "Ja, mit jeder. DAWs zählen die Oktaven nur unterschiedlich: C-1 (Reaper) oder C-2 (Ableton Live, Logic Pro, Cubase, Studio One). Stellen Sie die passende Variante ein, dann stimmen die Notennamen mit Ihrer DAW überein. Reaper, Cubase und Studio One können außerdem eine ",
             {
               "text": "Drum-Map",
               "href": "/drum-maps/"

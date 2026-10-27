@@ -78,10 +78,10 @@ maps-engine-description-more = Конвертируйте { $engineMidi } в л�
 maps-engine-heading = MIDI-маппинг ударных { $engine }
 maps-engine-intro =
     { $total ->
-        [one] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } нота), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper, Logic, Ableton, Guitar Pro) или C-2 (Studio One, Cubase, FL Studio).
-        [few] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } ноты), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper, Logic, Ableton, Guitar Pro) или C-2 (Studio One, Cubase, FL Studio).
-        [many] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } нот), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper, Logic, Ableton, Guitar Pro) или C-2 (Studio One, Cubase, FL Studio).
-       *[other] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } ноты), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper, Logic, Ableton, Guitar Pro) или C-2 (Studio One, Cubase, FL Studio).
+        [one] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } нота), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper) или C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
+        [few] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } ноты), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper) или C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
+        [many] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } нот), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper) или C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
+       *[other] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } ноты), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper) или C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
     }
 maps-convert-to = Конвертировать в { $engine }
 maps-convert-from = Конвертировать из { $engine }

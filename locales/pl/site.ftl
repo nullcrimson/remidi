@@ -74,9 +74,9 @@ maps-engine-description-more = Konwertuj { $engineMidi } na dowolną wtyczkę za
 maps-engine-heading = Mapa nut MIDI perkusji { $engine }
 maps-engine-intro =
     { $total ->
-        [one] Nuta MIDI, na którą reaguje { $engine }, pogrupowana według instrumentu — { $total } nuta w sumie. Nazwy nut są zgodne z konwencją oktaw: C-1 (Reaper, Logic, Ableton, Guitar Pro) albo C-2 (Studio One, Cubase, FL Studio).
-        [few] Wszystkie nuty MIDI, na które reaguje { $engine }, pogrupowane według instrumentu — { $total } nuty w sumie. Nazwy nut są zgodne z konwencją oktaw: C-1 (Reaper, Logic, Ableton, Guitar Pro) albo C-2 (Studio One, Cubase, FL Studio).
-       *[many] Wszystkie nuty MIDI, na które reaguje { $engine }, pogrupowane według instrumentu — { $total } nut w sumie. Nazwy nut są zgodne z konwencją oktaw: C-1 (Reaper, Logic, Ableton, Guitar Pro) albo C-2 (Studio One, Cubase, FL Studio).
+        [one] Nuta MIDI, na którą reaguje { $engine }, pogrupowana według instrumentu — { $total } nuta w sumie. Nazwy nut są zgodne z konwencją oktaw: C-1 (Reaper) albo C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
+        [few] Wszystkie nuty MIDI, na które reaguje { $engine }, pogrupowane według instrumentu — { $total } nuty w sumie. Nazwy nut są zgodne z konwencją oktaw: C-1 (Reaper) albo C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
+       *[many] Wszystkie nuty MIDI, na które reaguje { $engine }, pogrupowane według instrumentu — { $total } nut w sumie. Nazwy nut są zgodne z konwencją oktaw: C-1 (Reaper) albo C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
     }
 maps-convert-to = Konwertuj na { $engine }
 maps-convert-from = Konwertuj z { $engine }

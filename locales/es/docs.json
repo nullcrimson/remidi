@@ -65,7 +65,7 @@
         {
           "q": "¿Con qué DAW y qué numeración de octavas funciona?",
           "a": [
-            "Con las dos convenciones de octava más comunes: cambia entre C-1 (Reaper, Logic, Ableton, Guitar Pro) y C-2 (Studio One, Cubase, FL Studio) para que los nombres de las notas coincidan con los de tu DAW. Reaper, Cubase y Studio One también pueden cargar un ",
+            "Con las dos convenciones de octava más comunes: cambia entre C-1 (Reaper) y C-2 (Ableton Live, Logic Pro, Cubase, Studio One) para que los nombres de las notas coincidan con los de tu DAW. Reaper, Cubase y Studio One también pueden cargar un ",
             {
               "text": "mapa de batería",
               "href": "/drum-maps/"

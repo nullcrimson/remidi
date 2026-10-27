@@ -65,7 +65,7 @@
         {
           "q": "Это работает с моей DAW?",
           "a": [
-            "Да, с любой. DAW по-разному нумеруют октавы: C-1 (Reaper, Logic, Ableton, Guitar Pro) или C-2 (Studio One, Cubase, FL Studio). Переключите нумерацию — и названия нот совпадут с вашей DAW. Reaper, Cubase и Studio One могут также загрузить ",
+            "Да, с любой. DAW по-разному нумеруют октавы: C-1 (Reaper) или C-2 (Ableton Live, Logic Pro, Cubase, Studio One). Переключите нумерацию — и названия нот совпадут с вашей DAW. Reaper, Cubase и Studio One могут также загрузить ",
             {
               "text": "драм-карту",
               "href": "/drum-maps/"

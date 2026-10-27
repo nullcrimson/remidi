@@ -65,7 +65,7 @@
         {
           "q": "支持哪些 DAW？八度按 C-1 还是 C-2 算？",
           "a": [
-            "两种常见的八度标记都支持：可以在 C-1（Reaper、Logic、Ableton、Guitar Pro）和 C-2（Studio One、Cubase、FL Studio）之间切换，让音名和 DAW 里显示的一致。Reaper、Cubase 和 Studio One 还可以载入为每个音符命名的",
+            "两种常见的八度标记都支持：可以在 C-1（Reaper）和 C-2（Ableton Live、Logic Pro、Cubase、Studio One）之间切换，让音名和 DAW 里显示的一致。Reaper、Cubase 和 Studio One 还可以载入为每个音符命名的",
             {
               "text": "鼓映射文件",
               "href": "/drum-maps/"

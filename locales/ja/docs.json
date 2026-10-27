@@ -65,7 +65,7 @@
         {
           "q": "どのDAWのオクターブ表記に対応していますか？",
           "a": [
-            "よく使われる2つのオクターブ表記に両方対応しています。C-1（Reaper、Logic、Ableton、Guitar Pro）とC-2（Studio One、Cubase、FL Studio）を切り替えれば、ノート名がお使いのDAWと同じになります。Reaper、Cubase、Studio Oneでは、すべてのノートに名前を付ける",
+            "よく使われる2つのオクターブ表記に両方対応しています。C-1（Reaper）とC-2（Ableton Live、Logic Pro、Cubase、Studio One）を切り替えれば、ノート名がお使いのDAWと同じになります。Reaper、Cubase、Studio Oneでは、すべてのノートに名前を付ける",
             {
               "text": "ドラムマップ",
               "href": "/drum-maps/"

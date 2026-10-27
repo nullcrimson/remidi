@@ -74,7 +74,7 @@ maps-engine-intro =
     { $total ->
         [one] { $engine } répond à { $total } note MIDI, présentée ici avec son élément.
        *[other] { $engine } répond à { $total } notes MIDI, regroupées ici par élément.
-    } Les noms de notes peuvent s’afficher en C-1 (Reaper, Logic, Ableton, Guitar Pro) ou en C-2 (Studio One, Cubase, FL Studio).
+    } Les noms de notes peuvent s’afficher en C-1 (Reaper) ou en C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
 maps-convert-to = Convertir vers { $engine }
 maps-convert-from = Convertir depuis { $engine }
 maps-filter-drums-label = Filtrer les éléments

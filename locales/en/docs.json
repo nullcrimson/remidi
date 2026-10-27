@@ -65,7 +65,7 @@
         {
           "q": "Which DAWs and octave conventions are supported?",
           "a": [
-            "Both common note-octave conventions are covered — toggle between C-1 (Reaper, Logic, Ableton, Guitar Pro) and C-2 (Studio One, Cubase, FL Studio) so note names match your DAW. Reaper, Cubase and Studio One can also load a ",
+            "Both common note-octave conventions are covered — toggle between C-1 (Reaper) and C-2 (Ableton Live, Logic Pro, Cubase, Studio One) so note names match your DAW. Reaper, Cubase and Studio One can also load a ",
             {
               "text": "drum map",
               "href": "/drum-maps/"

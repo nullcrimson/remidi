@@ -65,7 +65,7 @@
         {
           "q": "Funziona con la mia DAW?",
           "a": [
-            "Sì, con qualsiasi DAW. Cambia solo il modo di numerare le ottave: C-1 (Reaper, Logic, Ableton, Guitar Pro) o C-2 (Studio One, Cubase, FL Studio). Scegli quello giusto e i nomi delle note saranno gli stessi della tua DAW. Reaper, Cubase e Studio One possono anche caricare una ",
+            "Sì, con qualsiasi DAW. Cambia solo il modo di numerare le ottave: C-1 (Reaper) o C-2 (Ableton Live, Logic Pro, Cubase, Studio One). Scegli quello giusto e i nomi delle note saranno gli stessi della tua DAW. Reaper, Cubase e Studio One possono anche caricare una ",
             {
               "text": "drum map",
               "href": "/drum-maps/"

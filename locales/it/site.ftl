@@ -60,8 +60,8 @@ maps-engine-description-more = Converti { $engineMidi } in qualsiasi altro plugi
 maps-engine-heading = Mappa delle note MIDI di { $engine }
 maps-engine-intro =
     { $total ->
-        [one] { $engine } risponde a { $total } nota MIDI, mostrata con il suo strumento. Puoi vedere i nomi delle note in C-1 (Reaper, Logic, Ableton, Guitar Pro) o in C-2 (Studio One, Cubase, FL Studio).
-       *[other] { $engine } risponde a { $total } note MIDI, raggruppate per strumento. Puoi vedere i nomi delle note in C-1 (Reaper, Logic, Ableton, Guitar Pro) o in C-2 (Studio One, Cubase, FL Studio).
+        [one] { $engine } risponde a { $total } nota MIDI, mostrata con il suo strumento. Puoi vedere i nomi delle note in C-1 (Reaper) o in C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
+       *[other] { $engine } risponde a { $total } note MIDI, raggruppate per strumento. Puoi vedere i nomi delle note in C-1 (Reaper) o in C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
     }
 maps-convert-to = Converti in { $engine }
 maps-convert-from = Converti da { $engine }

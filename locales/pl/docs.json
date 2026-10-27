@@ -65,7 +65,7 @@
         {
           "q": "Jakie DAW i konwencje oktaw są obsługiwane?",
           "a": [
-            "Obie popularne konwencje oktaw — przełączaj między C-1 (Reaper, Logic, Ableton, Guitar Pro) a C-2 (Studio One, Cubase, FL Studio), aby nazwy nut zgadzały się z DAW. Reaper, Cubase i Studio One mogą też wczytać ",
+            "Obie popularne konwencje oktaw — przełączaj między C-1 (Reaper) a C-2 (Ableton Live, Logic Pro, Cubase, Studio One), aby nazwy nut zgadzały się z DAW. Reaper, Cubase i Studio One mogą też wczytać ",
             {
               "text": "mapę perkusji",
               "href": "/drum-maps/"

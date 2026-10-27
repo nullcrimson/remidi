@@ -10,8 +10,8 @@ const NAMES: [&str; SEMITONES as usize] = [
     "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
 ];
 
-/// Which octave number middle C (note 60) gets: `C1` calls it C4 (Reaper, Logic, Ableton,
-/// Guitar Pro), `C2` calls it C3 (Cubase, FL Studio, Studio One).
+/// Which octave number middle C (note 60) gets: `C1` calls it C4 (Reaper), `C2` calls it C3
+/// (Ableton Live, Logic Pro, Cubase, Studio One).
 #[derive(
     Copy,
     Clone,
