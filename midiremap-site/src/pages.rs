@@ -532,19 +532,14 @@ fn packed(packing: Packing, text: String) -> Vec<u8> {
 }
 
 /// The conversion as the converter makes it before any edit or setting change.
-fn default_mapping(src: &EngineMap, tgt: &EngineMap) -> Mapping {
+fn default_mapping<'a>(src: &'a EngineMap, tgt: &'a EngineMap) -> Mapping<'a> {
     Mapping::new(src, tgt, &Overrides::default(), MissingDrums::default())
 }
 
-fn pair_rows(src: &EngineMap, mapping: &Mapping) -> Vec<FamilyGroup<PairRow>> {
-    by_family(src.source_notes().into_iter().map(|d| {
-        (
-            d.entry.family,
-            PairRow {
-                outcome: mapping.resolve_canon(d.entry.canon),
-                source: d,
-            },
-        )
+fn pair_rows(mapping: &Mapping) -> Vec<FamilyGroup<PairRow>> {
+    by_family(mapping.played().map(|(note, outcome)| {
+        let source = Drum::new(note, outcome.canon());
+        (source.entry.family, PairRow { source, outcome })
     }))
 }
 
@@ -555,7 +550,7 @@ fn pair_page(
     routes: &[Route],
 ) -> (PairPage, (SitePath, Vec<u8>)) {
     let mapping = default_mapping(src, tgt);
-    let groups = pair_rows(src, &mapping);
+    let groups = pair_rows(&mapping);
     let rows = || groups.iter().flat_map(|g| &g.rows);
     let slug = pair_slug(src.id(), tgt.id());
     let RackFile {

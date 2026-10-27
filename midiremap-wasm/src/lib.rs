@@ -1,10 +1,10 @@
 use std::{collections::BTreeMap, error::Error};
 
 use midiremap_core::{
-    convert, note_hits, parse_preset, plan as core_plan, rack_file,
-    sample_file as core_sample_file, source_fits as core_source_fits, Canon, CanonEntry, Catalog,
-    ChannelScope, Drum, EngineMap, Family, LoadedPreset, Mapping, MissingDrums, NonBlank, Note,
-    NoteHits, OctaveBase, Overrides, RackFile, Report, SkippedEdit, Unrecognized, VoicePlan,
+    convert, note_hits, parse_preset, rack_file, sample_file as core_sample_file,
+    source_fits as core_source_fits, Canon, CanonEntry, Catalog, ChannelScope, Drum, EngineMap,
+    Family, LoadedPreset, Mapping, MissingDrums, NonBlank, Note, NoteHits, OctaveBase, Overrides,
+    RackFile, Report, SkippedEdit, Unrecognized, VoicePlan,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -107,14 +107,14 @@ struct Settings {
 }
 
 /// The mapping a conversion and a rack read their settings through, the one way both do.
-fn mapping(
-    catalog: &Catalog,
+fn mapping<'c>(
+    catalog: &'c Catalog,
     src_id: &str,
     tgt_id: &str,
     ov: &Overrides,
     missing: MissingDrums,
     unrecognized: Unrecognized,
-) -> Result<Mapping, WasmError> {
+) -> Result<Mapping<'c>, WasmError> {
     let src = engine(catalog, src_id, Role::Source)?;
     let tgt = engine(catalog, tgt_id, Role::Target)?;
     Ok(Mapping::new(src, tgt, ov, missing).with_unrecognized(unrecognized))
@@ -195,9 +195,8 @@ fn voice_rows(
     ov: &Overrides,
     missing: MissingDrums,
 ) -> Result<Vec<VoicePlan>, WasmError> {
-    let src = engine(catalog, src_id, Role::Source)?;
-    let tgt = engine(catalog, tgt_id, Role::Target)?;
-    Ok(core_plan(src, tgt, ov, missing))
+    let unrecognized = Unrecognized::default();
+    Ok(mapping(catalog, src_id, tgt_id, ov, missing, unrecognized)?.preview())
 }
 
 #[wasm_bindgen]
@@ -420,8 +419,7 @@ pub fn source_fits(
 }
 
 fn sample_of(catalog: &Catalog, engine_id: &str) -> Result<Vec<u8>, WasmError> {
-    core_sample_file(engine(catalog, engine_id, Role::Source)?)
-        .map_err(|e| WasmError::Internal { detail: chain(&e) })
+    Ok(core_sample_file(engine(catalog, engine_id, Role::Source)?))
 }
 
 /// A two-bar groove of kick, snare, closed hi-hat and crash on the notes `engine` plays them

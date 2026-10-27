@@ -54,6 +54,15 @@ impl Outcome {
         }
     }
 
+    /// The drum it is about.
+    pub fn canon(&self) -> Canon {
+        match *self {
+            Self::Direct { canon, .. }
+            | Self::Fallback { canon, .. }
+            | Self::Dropped { canon, .. } => canon,
+        }
+    }
+
     /// The target drum that plays it and that drum's note, when anything plays it.
     pub fn played(&self) -> Option<(Canon, Note)> {
         match *self {

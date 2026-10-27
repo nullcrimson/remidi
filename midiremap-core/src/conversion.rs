@@ -3,7 +3,6 @@ use crate::{
     midi::{self, CodecError},
     report::Report,
     rewrite::rewrite,
-    table::NoteTable,
     translate::Mapping,
 };
 
@@ -20,7 +19,7 @@ pub fn convert(
 ) -> Result<Converted, CodecError> {
     let mut smf = midi::parse(midi)?;
     let mut report = Report::default();
-    rewrite(&mut smf, &NoteTable::compile(mapping), scope, &mut report)?;
+    rewrite(&mut smf, mapping, scope, &mut report)?;
     let bytes = midi::write(&smf)?;
     Ok(Converted { bytes, report })
 }

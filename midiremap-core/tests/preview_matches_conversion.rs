@@ -1,8 +1,6 @@
 use std::collections::BTreeMap;
 
-use midiremap_core::{
-    convert, plan, Catalog, ChannelScope, EngineMap, Mapping, MissingDrums, Overrides,
-};
+use midiremap_core::{convert, Catalog, ChannelScope, EngineMap, Mapping, MissingDrums, Overrides};
 use midiremap_testkit::{every_note, every_note_keys};
 use rayon::prelude::*;
 
@@ -26,7 +24,7 @@ fn previewed_by_source_note(
 ) -> BTreeMap<u8, u8> {
     let mut out = BTreeMap::new();
     let mut seen = BTreeMap::new();
-    for row in plan(src, tgt, ov, missing) {
+    for row in Mapping::new(src, tgt, ov, missing).preview() {
         for &note in &row.src_notes {
             if let Some(prev) = seen.insert(note, row.entry.canon) {
                 panic!(

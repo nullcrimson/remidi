@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
@@ -9,12 +9,6 @@ use crate::{
     overrides::Overrides,
     resolution::{resolve, Encoding, MissingDrums, Outcome},
 };
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub(crate) enum Resolution {
-    Resolved(Outcome),
-    Unmapped,
-}
 
 /// What happens to a note the source layout does not recognize.
 #[derive(
@@ -67,34 +61,56 @@ impl UnrecognizedParseError {
     }
 }
 
-/// A source and a target engine with overrides applied: the hub-and-spoke pipeline for
-/// one conversion.
-pub struct Mapping {
-    source_name: String,
-    target_name: String,
-    decode: Decoding,
+/// Where a source note plays on the target: on the note of the drum it decodes to, or
+/// unchanged, when the source does not recognize it and the mapping keeps such notes.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub(crate) enum Destination {
+    Drum { canon: Canon, note: Note },
+    Kept(Note),
+}
+
+impl Destination {
+    pub(crate) fn note(&self) -> Note {
+        match *self {
+            Self::Drum { note, .. } | Self::Kept(note) => note,
+        }
+    }
+}
+
+/// A source and a target engine with overrides applied: the one product every conversion,
+/// preview, rack and pair page reads, holding where each source note and each drum lands.
+pub struct Mapping<'a> {
+    source: &'a EngineMap,
+    target: &'a EngineMap,
+    missing: MissingDrums,
+    edited: HashSet<Note>,
+    notes: [Option<Outcome>; Note::COUNT],
     drums: HashMap<Canon, Outcome>,
     unrecognized: Unrecognized,
 }
 
 type Decoding = HashMap<Note, Canon>;
 
-impl Mapping {
+impl<'a> Mapping<'a> {
     pub fn new(
-        src: &EngineMap,
-        tgt: &EngineMap,
+        src: &'a EngineMap,
+        tgt: &'a EngineMap,
         overrides: &Overrides,
         missing: MissingDrums,
     ) -> Self {
         let encode = encoding(tgt, overrides);
+        let drums: HashMap<Canon, Outcome> = Canon::all()
+            .iter()
+            .map(|&canon| (canon, resolve(canon, &encode, missing)))
+            .collect();
+        let decode = decoding(src, overrides);
         Self {
-            source_name: src.display_name().to_owned(),
-            target_name: tgt.display_name().to_owned(),
-            decode: decoding(src, overrides),
-            drums: Canon::all()
-                .iter()
-                .map(|&canon| (canon, resolve(canon, &encode, missing)))
-                .collect(),
+            source: src,
+            target: tgt,
+            missing,
+            edited: overrides.source().into_keys().collect(),
+            notes: Note::ALL.map(|note| decode.get(&note).map(|canon| drums[canon])),
+            drums,
             unrecognized: Unrecognized::default(),
         }
     }
@@ -109,26 +125,49 @@ impl Mapping {
         }
     }
 
-    pub(crate) fn unrecognized(&self) -> Unrecognized {
-        self.unrecognized
+    pub(crate) fn source(&self) -> &'a EngineMap {
+        self.source
     }
 
-    /// The source engine's display name.
-    pub(crate) fn source_name(&self) -> &str {
-        &self.source_name
+    pub(crate) fn target(&self) -> &'a EngineMap {
+        self.target
     }
 
-    /// The target engine's display name.
-    pub(crate) fn target_name(&self) -> &str {
-        &self.target_name
+    pub(crate) fn missing(&self) -> MissingDrums {
+        self.missing
     }
 
-    pub(crate) fn translate(&self, note: Note) -> Resolution {
-        self.decode
-            .get(&note)
-            .map_or(Resolution::Unmapped, |&canon| {
-                Resolution::Resolved(self.resolve_canon(canon))
-            })
+    /// The source notes the overrides reassign or unassign.
+    pub(crate) fn edited(&self) -> &HashSet<Note> {
+        &self.edited
+    }
+
+    /// Where the drum `note` decodes to lands; `None` when the source does not recognize the
+    /// note.
+    pub(crate) fn get(&self, note: Note) -> Option<Outcome> {
+        self.notes[note.index()]
+    }
+
+    /// Every source note the source recognizes, ascending, with where its drum lands.
+    pub fn played(&self) -> impl Iterator<Item = (Note, Outcome)> + '_ {
+        Note::ALL
+            .into_iter()
+            .filter_map(|note| self.get(note).map(|outcome| (note, outcome)))
+    }
+
+    /// Where `note` plays, or `None` when nothing plays it: its drum is dropped, or the source
+    /// does not recognize it and the mapping removes such notes.
+    pub(crate) fn destination(&self, note: Note) -> Option<Destination> {
+        match self.get(note) {
+            Some(
+                Outcome::Direct { canon, note: to }
+                | Outcome::Fallback {
+                    canon, note: to, ..
+                },
+            ) => Some(Destination::Drum { canon, note: to }),
+            Some(Outcome::Dropped { .. }) => None,
+            None => self.unrecognized.keeps().then_some(Destination::Kept(note)),
+        }
     }
 
     pub fn resolve_canon(&self, canon: Canon) -> Outcome {
@@ -138,10 +177,8 @@ impl Mapping {
     /// Each drum some source note decodes to, edits applied, with those notes ascending.
     pub(crate) fn played_drums(&self) -> HashMap<Canon, Vec<Note>> {
         let mut played: HashMap<Canon, Vec<Note>> = HashMap::new();
-        for note in Note::ALL {
-            if let Some(&canon) = self.decode.get(&note) {
-                played.entry(canon).or_default().push(note);
-            }
+        for (note, outcome) in self.played() {
+            played.entry(outcome.canon()).or_default().push(note);
         }
         played
     }
@@ -171,6 +208,8 @@ fn encoding(tgt: &EngineMap, overrides: &Overrides) -> Encoding {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::LazyLock;
+
     use super::*;
     use crate::{
         canon::{idx, HatOpen, HatZone, KickKind, SnareArtic},
@@ -198,10 +237,15 @@ mod tests {
         ]
     "#;
 
-    fn mapping() -> Mapping {
+    static SRC_MAP: LazyLock<EngineMap> = LazyLock::new(|| from_toml(SRC).unwrap());
+    static TGT_MAP: LazyLock<EngineMap> = LazyLock::new(|| from_toml(TGT).unwrap());
+    static KIT: LazyLock<EngineMap> =
+        LazyLock::new(|| target(&[(36, "kick.main"), (38, "snare1.hit")]));
+
+    fn mapping() -> Mapping<'static> {
         Mapping::new(
-            &from_toml(SRC).unwrap(),
-            &from_toml(TGT).unwrap(),
+            &SRC_MAP,
+            &TGT_MAP,
             &Overrides::default(),
             MissingDrums::Nearest,
         )
@@ -227,22 +271,21 @@ notes = [ {} ]",
         .unwrap()
     }
 
-    fn onto(tgt: &EngineMap, missing: MissingDrums) -> Mapping {
+    fn onto(tgt: &EngineMap, missing: MissingDrums) -> Mapping<'_> {
         Mapping::new(tgt, tgt, &Overrides::default(), missing)
     }
 
-    fn kick_and_snare_edited(edits: &str) -> Mapping {
-        let kit = target(&[(36, "kick.main"), (38, "snare1.hit")]);
+    fn kick_and_snare_edited(edits: &str) -> Mapping<'static> {
         Mapping::new(
-            &kit,
-            &kit,
+            &KIT,
+            &KIT,
             &serde_json::from_str(edits).unwrap(),
             MissingDrums::Nearest,
         )
     }
 
-    fn kick_on(note: u8) -> Resolution {
-        Resolution::Resolved(Outcome::Direct {
+    fn kick_on(note: u8) -> Option<Outcome> {
+        Some(Outcome::Direct {
             canon: k("kick.main"),
             note: n(note),
         })
@@ -265,7 +308,7 @@ notes = [ {} ]",
         let mapping = kick_and_snare_edited(
             r#"{"src":[{"note":36,"canon":null},{"note":40,"canon":"kick.main"}]}"#,
         );
-        assert_eq!(mapping.translate(n(36)), Resolution::Unmapped);
+        assert_eq!(mapping.get(n(36)), None);
     }
 
     #[test]
@@ -273,25 +316,25 @@ notes = [ {} ]",
         let mapping = kick_and_snare_edited(
             r#"{"src":[{"note":36,"canon":null},{"note":40,"canon":"kick.main"}]}"#,
         );
-        assert_eq!(mapping.translate(n(40)), kick_on(36));
+        assert_eq!(mapping.get(n(40)), kick_on(36));
     }
 
     #[test]
     fn source_override_rescues_a_note() {
         let mapping = kick_and_snare_edited(r#"{"src":[{"note":99,"canon":"kick.main"}]}"#);
-        assert_eq!(mapping.translate(n(99)), kick_on(36));
+        assert_eq!(mapping.get(n(99)), kick_on(36));
     }
 
     #[test]
     fn source_override_leaves_a_base_note_mapped() {
         let mapping = kick_and_snare_edited(r#"{"src":[{"note":99,"canon":"kick.main"}]}"#);
-        assert_eq!(mapping.translate(n(36)), kick_on(36));
+        assert_eq!(mapping.get(n(36)), kick_on(36));
     }
 
     #[test]
     fn source_override_leaves_another_note_unmapped() {
         let mapping = kick_and_snare_edited(r#"{"src":[{"note":99,"canon":"kick.main"}]}"#);
-        assert_eq!(mapping.translate(n(50)), Resolution::Unmapped);
+        assert_eq!(mapping.get(n(50)), None);
     }
 
     #[test]
@@ -428,8 +471,8 @@ notes = [ {} ]",
             serde_json::from_str(r#"{"tgt":[{"canon":"china.1.hit","note":55}]}"#).unwrap();
         let mapping = Mapping::new(&src, &tgt, &ov, MissingDrums::Drop);
         assert_eq!(
-            mapping.translate(n(60)),
-            Resolution::Resolved(Outcome::Direct {
+            mapping.get(n(60)),
+            Some(Outcome::Direct {
                 canon: k("china.1.hit"),
                 note: n(55)
             })
@@ -448,10 +491,12 @@ notes = [ {} ]",
             .moves_to_other_drum());
     }
 
-    fn swap_mapping(missing: MissingDrums) -> Mapping {
-        let src = target(&[(1, "kick.main")]);
-        let tgt = target(&[(36, "kick.main"), (38, "snare1.hit"), (49, "crash.1.hit")]);
-        Mapping::new(&src, &tgt, &Overrides::default(), missing)
+    static SWAP_SRC: LazyLock<EngineMap> = LazyLock::new(|| target(&[(1, "kick.main")]));
+    static SWAP_TGT: LazyLock<EngineMap> =
+        LazyLock::new(|| target(&[(36, "kick.main"), (38, "snare1.hit"), (49, "crash.1.hit")]));
+
+    fn swap_mapping(missing: MissingDrums) -> Mapping<'static> {
+        Mapping::new(&SWAP_SRC, &SWAP_TGT, &Overrides::default(), missing)
     }
 
     #[test]
@@ -551,26 +596,26 @@ notes = [ {} ]",
 
     #[test]
     fn a_mapping_removes_unrecognized_notes_unless_told_to_keep_them() {
-        assert_eq!(mapping().unrecognized(), Unrecognized::Remove);
+        assert_eq!(mapping().destination(n(99)), None);
     }
 
     #[test]
     fn a_mapping_keeps_unrecognized_notes_when_told_to() {
         let kept = mapping().with_unrecognized(Unrecognized::Keep);
-        assert_eq!(kept.unrecognized(), Unrecognized::Keep);
+        assert_eq!(kept.destination(n(99)), Some(Destination::Kept(n(99))));
     }
 
     #[test]
     fn keeping_unrecognized_notes_leaves_their_resolution_unmapped() {
         let kept = mapping().with_unrecognized(Unrecognized::Keep);
-        assert_eq!(kept.translate(n(99)), Resolution::Unmapped);
+        assert_eq!(kept.get(n(99)), None);
     }
 
     #[test]
     fn a_drum_the_target_has_plays_on_its_note() {
         assert_eq!(
-            mapping().translate(n(12)),
-            Resolution::Resolved(Outcome::Direct {
+            mapping().get(n(12)),
+            Some(Outcome::Direct {
                 canon: Canon::Kick(KickKind::Main),
                 note: n(50)
             })
@@ -580,8 +625,8 @@ notes = [ {} ]",
     #[test]
     fn fallback_walks_chain() {
         assert_eq!(
-            mapping().translate(n(11)),
-            Resolution::Resolved(Outcome::Fallback {
+            mapping().get(n(11)),
+            Some(Outcome::Fallback {
                 canon: Canon::Hat(HatOpen::Open(idx(3)), HatZone::Plain),
                 stand_in: Canon::Hat(HatOpen::Open(idx(1)), HatZone::Plain),
                 note: n(61),
@@ -618,14 +663,14 @@ notes = [ {} ]",
 
     #[test]
     fn unmapped_when_source_lacks_note() {
-        assert_eq!(mapping().translate(n(99)), Resolution::Unmapped);
+        assert_eq!(mapping().get(n(99)), None);
     }
 
     #[test]
     fn dropped_when_target_and_chain_empty() {
         assert_eq!(
-            mapping().translate(n(10)),
-            Resolution::Resolved(Outcome::Dropped {
+            mapping().get(n(10)),
+            Some(Outcome::Dropped {
                 canon: Canon::Snare(idx(1), SnareArtic::Hit),
                 other_drum: false
             })
@@ -656,10 +701,8 @@ notes = [ {} ]",
     fn resolve_canon_matches_translate_on_decoded_notes() {
         let t = mapping();
         assert_eq!(
-            Resolution::Resolved(
-                t.resolve_canon(Canon::Hat(HatOpen::Open(idx(3)), HatZone::Plain))
-            ),
-            t.translate(n(11))
+            Some(t.resolve_canon(Canon::Hat(HatOpen::Open(idx(3)), HatZone::Plain))),
+            t.get(n(11))
         );
     }
 }

@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
-use crate::{canon::Canon, note::Note, resolution::Outcome, translate::Resolution};
+use crate::{canon::Canon, note::Note, resolution::Outcome};
 
 /// How a drum the target lacks was played: on which stand-in drum, on which note, how often.
 #[derive(Serialize, Debug, PartialEq, Eq)]
@@ -79,10 +79,10 @@ impl Report {
     }
 
     /// Tallies one source hit; direct hits only count as converted.
-    pub(crate) fn record(&mut self, source_note: Note, resolution: &Resolution) {
-        match resolution {
-            Resolution::Unmapped => *self.unmapped_source.entry(source_note).or_default() += 1,
-            Resolution::Resolved(Outcome::Fallback {
+    pub(crate) fn record(&mut self, source_note: Note, outcome: Option<Outcome>) {
+        match outcome {
+            None => *self.unmapped_source.entry(source_note).or_default() += 1,
+            Some(Outcome::Fallback {
                 canon,
                 stand_in,
                 note,
@@ -90,18 +90,16 @@ impl Report {
             }) => {
                 self.converted += 1;
                 self.fallback_used
-                    .entry(*canon)
+                    .entry(canon)
                     .or_insert(FallbackTally {
-                        stand_in: *stand_in,
-                        note: *note,
+                        stand_in,
+                        note,
                         count: 0,
                     })
                     .count += 1
             }
-            Resolution::Resolved(Outcome::Dropped { canon, .. }) => {
-                *self.dropped.entry(*canon).or_default() += 1
-            }
-            Resolution::Resolved(Outcome::Direct { .. }) => self.converted += 1,
+            Some(Outcome::Dropped { canon, .. }) => *self.dropped.entry(canon).or_default() += 1,
+            Some(Outcome::Direct { .. }) => self.converted += 1,
         }
     }
 }
@@ -125,10 +123,10 @@ mod tests {
     fn tallied_report() -> Report {
         let (open3, snare) = (open3(), snare());
         let mut r = Report::default();
-        r.record(n(99), &Resolution::Unmapped);
+        r.record(n(99), None);
         r.record(
             n(11),
-            &Resolution::Resolved(Outcome::Fallback {
+            Some(Outcome::Fallback {
                 canon: open3,
                 stand_in: Canon::Hat(HatOpen::Closed, HatZone::Plain),
                 note: n(60),
@@ -137,14 +135,14 @@ mod tests {
         );
         r.record(
             n(10),
-            &Resolution::Resolved(Outcome::Dropped {
+            Some(Outcome::Dropped {
                 canon: snare,
                 other_drum: false,
             }),
         );
         r.record(
             n(12),
-            &Resolution::Resolved(Outcome::Direct {
+            Some(Outcome::Direct {
                 canon: Canon::Kick(KickKind::Main),
                 note: n(50),
             }),
@@ -220,12 +218,12 @@ mod tests {
     fn report_serializes_sorted_with_string_note_keys() {
         let mut r = Report::default();
         for note in [99, 5, 12, 5] {
-            r.record(n(note), &Resolution::Unmapped);
+            r.record(n(note), None);
         }
         for key in ["splash.1.hit", "china.1.hit"] {
             r.record(
                 n(1),
-                &Resolution::Resolved(Outcome::Dropped {
+                Some(Outcome::Dropped {
                     canon: key.parse().unwrap(),
                     other_drum: false,
                 }),

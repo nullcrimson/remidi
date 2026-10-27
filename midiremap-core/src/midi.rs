@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use midly::{MidiMessage, Smf};
+use midly::{num::u28, MidiMessage, Smf, Track, TrackEvent, TrackEventKind};
 
 const MTHD_DIVISION: usize = 4;
 const SMPTE_MINUS_128: u8 = 0x80;
@@ -68,6 +68,21 @@ pub(crate) fn write(smf: &Smf) -> Result<Vec<u8>, CodecError> {
     let mut bytes = Vec::new();
     smf.write_std(&mut bytes).map_err(CodecError::Write)?;
     Ok(bytes)
+}
+
+/// A track of `events` given at their absolute ticks, which never decrease.
+pub(crate) fn track_at<'a>(
+    events: impl IntoIterator<Item = (u32, TrackEventKind<'a>)>,
+) -> Track<'a> {
+    let mut last = 0;
+    events
+        .into_iter()
+        .map(|(tick, kind)| {
+            let delta = u28::new(tick - last);
+            last = tick;
+            TrackEvent { delta, kind }
+        })
+        .collect()
 }
 
 /// Whether `message` sounds a note: a note-on with nonzero velocity.

@@ -8,7 +8,7 @@ use crate::{
     midi::{is_hit, CodecError},
     note::Note,
     report::Report,
-    table::NoteTable,
+    translate::Mapping,
 };
 
 #[derive(Default)]
@@ -31,12 +31,12 @@ impl DeltaFold {
     }
 }
 
-/// Rewrites every note event the scope accepts through `table`, removing dropped notes and,
-/// unless the table keeps them unchanged, unmapped ones (a removed event's delta folds into
+/// Rewrites every note event the scope accepts through `mapping`, removing dropped notes and,
+/// unless the mapping keeps them unchanged, unmapped ones (a removed event's delta folds into
 /// the next kept event), and tallying `report`.
 pub(crate) fn rewrite(
     smf: &mut Smf,
-    table: &NoteTable,
+    mapping: &Mapping,
     scope: ChannelScope,
     report: &mut Report,
 ) -> Result<(), CodecError> {
@@ -55,12 +55,12 @@ pub(crate) fn rewrite(
                         MidiMessage::NoteOn { key, .. } => {
                             let note = Note::from_key(*key);
                             if hit {
-                                report.record(note, table.get(note));
+                                report.record(note, mapping.get(note));
                             }
-                            apply(table, key)
+                            apply(mapping, key)
                         }
                         MidiMessage::NoteOff { key, .. } | MidiMessage::Aftertouch { key, .. } => {
-                            apply(table, key)
+                            apply(mapping, key)
                         }
                         _ => true,
                     }
@@ -85,8 +85,8 @@ pub(crate) fn rewrite(
     Ok(())
 }
 
-fn apply(table: &NoteTable, key: &mut u7) -> bool {
-    match table.destination(Note::from_key(*key)) {
+fn apply(mapping: &Mapping, key: &mut u7) -> bool {
+    match mapping.destination(Note::from_key(*key)) {
         Some(to) => {
             *key = to.note().key();
             true

@@ -144,11 +144,11 @@ struct Pair {
 }
 
 impl Pair {
-    fn mapping(&self) -> Mapping {
+    fn mapping(&self) -> Mapping<'static> {
         self.mapping_with(self.unrecognized)
     }
 
-    fn mapping_with(&self, unrecognized: Unrecognized) -> Mapping {
+    fn mapping_with(&self, unrecognized: Unrecognized) -> Mapping<'static> {
         let engine = |id| Catalog::shared().unwrap().get(id).unwrap();
         Mapping::new(
             engine(self.src),

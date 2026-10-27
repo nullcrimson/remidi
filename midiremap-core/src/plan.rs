@@ -1,13 +1,11 @@
-use std::collections::HashMap;
+use std::collections::HashSet;
 
 use serde::Serialize;
 
 use crate::{
     canon::{Canon, CanonEntry},
-    engine_map::EngineMap,
     note::Note,
-    overrides::Overrides,
-    resolution::{MissingDrums, Outcome},
+    resolution::Outcome,
     translate::Mapping,
 };
 
@@ -38,8 +36,8 @@ enum SrcNoteRank {
 }
 
 impl SrcNoteRank {
-    fn of(note: Note, edited: &HashMap<Note, Option<Canon>>, primary: Option<Note>) -> Self {
-        if edited.contains_key(&note) {
+    fn of(note: Note, edited: &HashSet<Note>, primary: Option<Note>) -> Self {
+        if edited.contains(&note) {
             Self::Overridden
         } else if Some(note) == primary {
             Self::Primary
@@ -49,35 +47,30 @@ impl SrcNoteRank {
     }
 }
 
-/// Duplicate overrides resolve last-wins, exactly as in conversion.
-pub fn plan(
-    src: &EngineMap,
-    tgt: &EngineMap,
-    ov: &Overrides,
-    missing: MissingDrums,
-) -> Vec<VoicePlan> {
-    let mapping = Mapping::new(src, tgt, ov, missing);
-    let unedited = Mapping::new(src, tgt, &Overrides::default(), missing);
-    let edited = ov.source();
-    let mut notes_by_canon = mapping.played_drums();
-
-    Canon::all()
-        .iter()
-        .filter_map(|&canon| {
-            let primary = src.encode(canon);
-            let mut src_notes = notes_by_canon.remove(&canon).unwrap_or_default();
-            if primary.is_none() && src_notes.is_empty() {
-                return None;
-            }
-            src_notes.sort_by_key(|&n| (SrcNoteRank::of(n, &edited, primary), n));
-            Some(VoicePlan {
-                entry: canon.into(),
-                src_notes,
-                default_tgt_note: unedited.resolve_canon(canon).note(),
-                outcome: mapping.resolve_canon(canon),
+impl Mapping<'_> {
+    /// The edit preview: one row per drum the source plays or names, in canon order, with
+    /// where it lands. Duplicate overrides resolve last-wins, exactly as in conversion.
+    pub fn preview(&self) -> Vec<VoicePlan> {
+        let src = self.source();
+        let mut notes_by_canon = self.played_drums();
+        Canon::all()
+            .iter()
+            .filter_map(|&canon| {
+                let primary = src.encode(canon);
+                let mut src_notes = notes_by_canon.remove(&canon).unwrap_or_default();
+                if primary.is_none() && src_notes.is_empty() {
+                    return None;
+                }
+                src_notes.sort_by_key(|&n| (SrcNoteRank::of(n, self.edited(), primary), n));
+                Some(VoicePlan {
+                    entry: canon.into(),
+                    src_notes,
+                    default_tgt_note: self.target().resolve(canon, self.missing()).note(),
+                    outcome: self.resolve_canon(canon),
+                })
             })
-        })
-        .collect()
+            .collect()
+    }
 }
 
 #[cfg(test)]
@@ -104,12 +97,13 @@ mod tests {
     fn ggd_to_ezd_with(ov: &str, missing: MissingDrums) -> Vec<VoicePlan> {
         let b = Catalog::builtin().unwrap();
         let ov: Overrides = serde_json::from_str(ov).unwrap();
-        plan(
+        Mapping::new(
             b.get("ggd_invasion").unwrap(),
             b.get("ezdrummer").unwrap(),
             &ov,
             missing,
         )
+        .preview()
     }
 
     #[test]
@@ -203,12 +197,13 @@ mod tests {
     #[test]
     fn rows_follow_canon_declaration_order() {
         let b = Catalog::builtin().unwrap();
-        let rows = plan(
+        let rows = Mapping::new(
             b.get("ggd_invasion").unwrap(),
             b.get("ggd_invasion").unwrap(),
             &Overrides::default(),
             MissingDrums::Nearest,
-        );
+        )
+        .preview();
         let kick = rows
             .iter()
             .position(|r| r.entry.canon == Canon::Kick(KickKind::Main))
@@ -304,7 +299,7 @@ mod tests {
         .unwrap();
         let ov: Overrides =
             serde_json::from_str(r#"{"src":[{"canon":"kick.main","note":30}]}"#).unwrap();
-        let rows = plan(&src, &src, &ov, MissingDrums::Nearest);
+        let rows = Mapping::new(&src, &src, &ov, MissingDrums::Nearest).preview();
         assert_eq!(
             find(&rows, "kick.main").src_notes,
             vec![n(30), n(10), n(5), n(12)]
@@ -334,7 +329,7 @@ mod tests {
         .unwrap();
         let ov: Overrides =
             serde_json::from_str(r#"{"src":[{"canon":"snare1.hit","note":60}]}"#).unwrap();
-        let rows = plan(&src, &tgt, &ov, MissingDrums::Nearest);
+        let rows = Mapping::new(&src, &tgt, &ov, MissingDrums::Nearest).preview();
         let snare = find(&rows, "snare1.hit");
         assert_eq!(snare.src_notes, vec![n(60)]);
         assert_eq!(snare.outcome.note(), Some(n(38)));

@@ -4,8 +4,8 @@ use std::{
 };
 
 use midiremap_core::{
-    convert, note_name_rack, rack_file, Catalog, ChannelScope, FileStem, Mapping, MissingDrums,
-    NonBlank, Note, Overrides, Packing, Unrecognized,
+    convert, rack_file, Catalog, ChannelScope, Daw, FileStem, Mapping, MissingDrums, NonBlank,
+    Note, Overrides, Packing, Unrecognized,
 };
 use midiremap_testkit::{every_note, every_note_keys, xml};
 use rayon::prelude::*;
@@ -106,7 +106,7 @@ fn through_rack(xml: &str) -> BTreeMap<u8, u8> {
     out
 }
 
-fn mapping(src: &str, tgt: &str, ov: &Overrides, missing: MissingDrums) -> Mapping {
+fn mapping(src: &str, tgt: &str, ov: &Overrides, missing: MissingDrums) -> Mapping<'static> {
     Mapping::new(
         CATALOG.get(src).unwrap(),
         CATALOG.get(tgt).unwrap(),
@@ -115,7 +115,7 @@ fn mapping(src: &str, tgt: &str, ov: &Overrides, missing: MissingDrums) -> Mappi
     )
 }
 
-fn unedited(src: &str, tgt: &str, unrecognized: Unrecognized) -> Mapping {
+fn unedited(src: &str, tgt: &str, unrecognized: Unrecognized) -> Mapping<'static> {
     mapping(src, tgt, &Overrides::default(), MissingDrums::Nearest).with_unrecognized(unrecognized)
 }
 
@@ -212,7 +212,7 @@ fn a_remap_rack_names_each_chain_after_its_drum_and_the_note_it_lands_on() {
 #[test]
 fn a_note_name_rack_names_every_note_an_engine_plays_and_moves_none() {
     for map in CATALOG.engines() {
-        let rack = read(&note_name_rack(map));
+        let rack = read(&Daw::AbletonLive.drum_map(map));
         let named: Vec<(u8, String)> = rack
             .chains
             .iter()
@@ -312,7 +312,7 @@ fn every_engine_pair_has_a_file_stem() {
 
 #[test]
 fn a_rack_is_a_live_11_preset_down_to_every_protection_number() {
-    let xml = note_name_rack(CATALOG.get("ggd_invasion").unwrap());
+    let xml = Daw::AbletonLive.drum_map(CATALOG.get("ggd_invasion").unwrap());
     assert!(xml.contains(r#"MinorVersion="11.0_11202""#));
     let protections = xml.matches("<OverwriteProtectionNumber ").count();
     assert!(protections > 1);
@@ -342,6 +342,6 @@ fn a_rack_writes_no_setting_only_live_12_reads() {
 
 #[test]
 fn a_rack_asks_live_to_name_the_midi_editor_rows_after_its_chains() {
-    let xml = note_name_rack(CATALOG.get("ggd_invasion").unwrap());
+    let xml = Daw::AbletonLive.drum_map(CATALOG.get("ggd_invasion").unwrap());
     assert!(xml.contains(r#"<ShowsZonesInsteadOfNoteNames Value="true"/>"#));
 }

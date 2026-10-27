@@ -25,6 +25,8 @@ pub enum Breach {
     ThroughSuper { module: String },
     /// A module the table has no row for.
     Unlisted { module: String },
+    /// A row of the table for a module the crate does not have.
+    NoModule { module: String },
     /// A module the table lets reach itself through others.
     Circular { module: String },
     /// A use the table allows that the module does not make.
@@ -45,6 +47,9 @@ impl fmt::Display for Breach {
                 "{module} writes super::; write crate::, so the table sees the use"
             ),
             Self::Unlisted { module } => write!(f, "{module} has no row in the table"),
+            Self::NoModule { module } => {
+                write!(f, "the table has a row for {module}, which is no module")
+            }
             Self::Circular { module } => write!(f, "{module} uses itself through others"),
             Self::Unused { module, name } => {
                 write!(f, "{module} -> {name} is allowed but never used")
@@ -111,6 +116,14 @@ impl Layers {
             .modules
             .iter()
             .flat_map(|(module, found)| self.module_breaches(module, found, &allowed))
+            .chain(
+                allowed
+                    .keys()
+                    .filter(|module| !self.modules.contains_key(**module))
+                    .map(|module| Breach::NoModule {
+                        module: (*module).to_owned(),
+                    }),
+            )
             .chain(
                 allowed
                     .keys()
@@ -426,6 +439,17 @@ mod tests {
             found.check(&[]),
             [Breach::Unlisted {
                 module: "a".to_owned()
+            }]
+        );
+    }
+
+    #[test]
+    fn a_row_for_a_module_the_crate_lacks_is_a_breach() {
+        let found = layers(&[("a", false, "")]);
+        assert_eq!(
+            found.check(&[("a", &[]), ("gone", &[])]),
+            [Breach::NoModule {
+                module: "gone".to_owned()
             }]
         );
     }

@@ -1,8 +1,8 @@
 use std::iter::once;
 
 use midly::{
-    num::{u15, u24, u28, u7},
-    Format, Header, MetaMessage, MidiMessage, Smf, Timing, Track, TrackEvent, TrackEventKind,
+    num::{u15, u24, u7},
+    Format, Header, MetaMessage, MidiMessage, Smf, Timing, TrackEventKind,
 };
 use strum::VariantArray;
 
@@ -14,7 +14,8 @@ use crate::{
     channel::Channel,
     engine_map::EngineMap,
     idx::Idx,
-    midi::{self, CodecError},
+    midi,
+    resolution::MissingDrums,
 };
 
 const TICKS_PER_BEAT: u16 = 480;
@@ -64,58 +65,52 @@ impl Voice {
 /// eighth notes on the closed hi-hat (the ride on an engine without one) over kick and snare,
 /// and a crash on the first beat. Each drum plays on the note `engine` plays it on, or on its
 /// nearest stand-in's; a drum with neither is left out.
-pub fn sample_file(engine: &EngineMap) -> Result<Vec<u8>, CodecError> {
+pub fn sample_file(engine: &EngineMap) -> Vec<u8> {
     let voices: Vec<(Voice, u7)> = Voice::VARIANTS
         .iter()
         .filter_map(|&voice| {
             let note = voice
                 .drums()
                 .iter()
-                .flat_map(|&drum| once(drum).chain(drum.fallback_chain().iter().copied()))
-                .find_map(|drum| engine.encode(drum))?;
+                .find_map(|&drum| engine.resolve(drum, MissingDrums::Nearest).note())?;
             Some((voice, note.key()))
         })
         .collect();
-    let channel = Channel::DRUMS.wire();
-    let mut track = Track::new();
-    let mut last = 0;
-    let mut add = |tick: u32, kind| {
-        track.push(TrackEvent {
-            delta: u28::new(tick - last),
-            kind,
-        });
-        last = tick;
+    let note = |message| TrackEventKind::Midi {
+        channel: Channel::DRUMS.wire(),
+        message,
     };
-    for meta in [TEMPO_120_BPM, FOUR_FOUR] {
-        add(0, TrackEventKind::Meta(meta));
-    }
-    for step in 0..STEPS {
+    let steps = (0..STEPS).flat_map(|step| {
         let tick = step * TICKS_PER_STEP;
-        for &(voice, key) in &voices {
-            if let Some(vel) = voice.velocity_at(step) {
-                let message = MidiMessage::NoteOn { key, vel };
-                add(tick, TrackEventKind::Midi { channel, message });
-            }
-        }
-        for &(voice, key) in &voices {
-            if voice.velocity_at(step).is_some() {
-                let vel = u7::new(0);
-                let message = MidiMessage::NoteOff { key, vel };
-                add(tick + TICKS_HELD, TrackEventKind::Midi { channel, message });
-            }
-        }
-    }
-    add(
-        STEPS * TICKS_PER_STEP,
-        TrackEventKind::Meta(MetaMessage::EndOfTrack),
-    );
+        let playing: Vec<(u7, u7)> = voices
+            .iter()
+            .filter_map(|&(voice, key)| voice.velocity_at(step).map(|vel| (key, vel)))
+            .collect();
+        let ons = playing
+            .iter()
+            .map(|&(key, vel)| (tick, note(MidiMessage::NoteOn { key, vel })));
+        let offs = playing.iter().map(|&(key, _)| {
+            let vel = u7::new(0);
+            (tick + TICKS_HELD, note(MidiMessage::NoteOff { key, vel }))
+        });
+        ons.chain(offs).collect::<Vec<_>>()
+    });
+    let events = [TEMPO_120_BPM, FOUR_FOUR]
+        .map(|meta| (0, TrackEventKind::Meta(meta)))
+        .into_iter()
+        .chain(steps)
+        .chain(once((
+            STEPS * TICKS_PER_STEP,
+            TrackEventKind::Meta(MetaMessage::EndOfTrack),
+        )));
     midi::write(&Smf {
         header: Header::new(
             Format::SingleTrack,
             Timing::Metrical(u15::new(TICKS_PER_BEAT)),
         ),
-        tracks: vec![track],
+        tracks: vec![midi::track_at(events)],
     })
+    .expect("writing one short track into memory cannot fail")
 }
 
 #[cfg(test)]
@@ -143,7 +138,7 @@ mod tests {
         let unrecognized: Vec<String> = catalog
             .engines()
             .filter_map(|engine| {
-                let hits = note_hits(&sample_file(engine).unwrap(), ChannelScope::Auto).unwrap();
+                let hits = note_hits(&sample_file(engine), ChannelScope::Auto).unwrap();
                 let fits = source_fits(&catalog, &hits);
                 let fit = fits
                     .ranked()
@@ -167,7 +162,7 @@ mod tests {
     fn the_sample_plays_the_engines_own_kick_snare_closed_hat_and_crash() {
         let catalog = Catalog::builtin().unwrap();
         let gm = catalog.get("general_midi").unwrap();
-        let keys: BTreeSet<u8> = hit_keys(&sample_file(gm).unwrap()).into_iter().collect();
+        let keys: BTreeSet<u8> = hit_keys(&sample_file(gm)).into_iter().collect();
         let own: BTreeSet<u8> = Voice::VARIANTS
             .iter()
             .map(|voice| gm.encode(voice.drums()[0]).unwrap().get())
@@ -183,13 +178,13 @@ mod tests {
             (42, "hat.closed"),
             (49, "crash.1.hit"),
         ]);
-        assert_eq!(hit_keys(&sample_file(&kit).unwrap())[..3], [49, 36, 42]);
+        assert_eq!(hit_keys(&sample_file(&kit))[..3], [49, 36, 42]);
     }
 
     #[test]
     fn the_sample_is_on_the_drum_channel() {
         let kit = engine(&[(36, "kick.main"), (38, "snare1.hit")]);
-        let bytes = sample_file(&kit).unwrap();
+        let bytes = sample_file(&kit);
         assert!(events(&bytes, 0)
             .iter()
             .all(|&(_, channel, _)| channel == DRUMS));
@@ -198,7 +193,7 @@ mod tests {
     #[test]
     fn the_sample_is_two_bars_of_four_four_at_120_bpm() {
         let kit = engine(&[(36, "kick.main")]);
-        let bytes = sample_file(&kit).unwrap();
+        let bytes = sample_file(&kit);
         let smf = midi::parse(&bytes).unwrap();
         let track = &smf.tracks[0];
         let ticks: u32 = track.iter().map(|ev| ev.delta.as_int()).sum();
@@ -226,20 +221,20 @@ mod tests {
     #[test]
     fn a_drum_the_engine_lacks_plays_on_its_nearest_stand_in() {
         let kit = engine(&[(36, "kick.main"), (57, "crash.2.hit")]);
-        let keys: BTreeSet<u8> = hit_keys(&sample_file(&kit).unwrap()).into_iter().collect();
+        let keys: BTreeSet<u8> = hit_keys(&sample_file(&kit)).into_iter().collect();
         assert_eq!(keys, BTreeSet::from([36, 57]));
     }
 
     #[test]
     fn the_ride_keeps_time_on_an_engine_without_a_closed_hi_hat() {
         let kit = engine(&[(36, "kick.main"), (45, "hat.open1"), (51, "ride.1")]);
-        let keys: BTreeSet<u8> = hit_keys(&sample_file(&kit).unwrap()).into_iter().collect();
+        let keys: BTreeSet<u8> = hit_keys(&sample_file(&kit)).into_iter().collect();
         assert_eq!(keys, BTreeSet::from([36, 51]));
     }
 
     #[test]
     fn a_drum_with_no_stand_in_is_left_out() {
         let kit = engine(&[(36, "kick.main")]);
-        assert_eq!(hit_keys(&sample_file(&kit).unwrap()), [36; 6]);
+        assert_eq!(hit_keys(&sample_file(&kit)), [36; 6]);
     }
 }

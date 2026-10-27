@@ -12,8 +12,7 @@ use crate::{
     non_blank::NonBlank,
     note::Note,
     packing::Packing,
-    table::{Destination, NoteTable},
-    translate::Mapping,
+    translate::{Destination, Mapping},
 };
 
 type Xml = Writer<Vec<u8>>;
@@ -69,8 +68,8 @@ fn rack_file_name(mapping: &Mapping, preset: Option<&NonBlank>) -> String {
         .unwrap_or_else(|| {
             FileStem::parse(&format!(
                 "{} to {}",
-                mapping.source_name(),
-                mapping.target_name()
+                mapping.source().display_name(),
+                mapping.target().display_name()
             ))
             .expect("two engine names with a word between are never blank")
         })
@@ -84,11 +83,10 @@ fn rack_file_name(mapping: &Mapping, preset: Option<&NonBlank>) -> String {
 /// mapping keeps those. Notes that nothing plays have no chain, so the rack drops them, as the
 /// converter does.
 fn remap_rack(mapping: &Mapping) -> String {
-    let table = NoteTable::compile(mapping);
     let chains = Note::ALL
         .into_iter()
         .filter_map(|note| {
-            table.destination(note).map(|to| match to {
+            mapping.destination(note).map(|to| match to {
                 Destination::Drum { canon, note: to } => {
                     let shift = note.semitones_to(to);
                     Chain {
@@ -105,14 +103,18 @@ fn remap_rack(mapping: &Mapping) -> String {
             })
         })
         .collect::<Vec<_>>();
-    let title = format!("{} → {}", mapping.source_name(), mapping.target_name());
+    let title = format!(
+        "{} → {}",
+        mapping.source().display_name(),
+        mapping.target().display_name()
+    );
     rack(&title, &chains)
 }
 
 /// An Ableton Live 11 MIDI Effect Rack preset, which Live 12 also opens (the XML a `.adg`
 /// file holds, before gzip), with one empty chain per note `map` plays, named after its drum, so Live can show the
 /// drum names in the MIDI editor. Notes pass through unchanged.
-pub fn note_name_rack(map: &EngineMap) -> String {
+pub(crate) fn note_name_rack(map: &EngineMap) -> String {
     let chains: Vec<Chain> = map
         .source_notes()
         .into_iter()
