@@ -1,21 +1,18 @@
 use std::io;
 
-use quick_xml::{
-    events::{BytesDecl, Event},
-    Writer,
-};
 use serde::Serialize;
 
+use super::{
+    file::FileStem,
+    packing::Packing,
+    xml::{self, nest, Xml},
+};
 use crate::{
     engine_map::EngineMap,
-    file::FileStem,
     note::Note,
-    packing::Packing,
     preset::PresetName,
     translate::{Destination, Mapping},
 };
-
-type Xml = Writer<Vec<u8>>;
 
 const PROTECTION: &str = "2818";
 const MACROS: usize = 16;
@@ -139,42 +136,33 @@ impl Ids {
 
 fn rack(title: &str, chains: &[Chain]) -> String {
     let mut ids = Ids::default();
-    let mut w = Writer::new_with_indent(Vec::new(), b'\t', 1);
-    w.write_event(Event::Decl(BytesDecl::new("1.0", Some("UTF-8"), None)))
-        .and_then(|()| {
-            w.create_element("Ableton")
-                .with_attributes([
-                    ("MajorVersion", "5"),
-                    ("MinorVersion", "11.0_11202"),
-                    ("SchemaChangeCount", "17"),
-                    ("Creator", "Ableton Live 11.2.10"),
-                    ("Revision", "a70e3f18ac1d93094ec19c7ca1ea7cfc1a1a7543"),
-                ])
-                .write_inner_content(|w| {
-                    nest(w, "GroupDevicePreset", |w| {
-                        value(w, "OverwriteProtectionNumber", PROTECTION)?;
-                        nest(w, "Device", |w| group_device(w, title, &mut ids))?;
-                        default_preset_ref(w, "MidiEffectGroupDevice")?;
-                        nest(w, "BranchPresets", |w| {
-                            chains
-                                .iter()
-                                .enumerate()
-                                .try_for_each(|(i, c)| chain(w, i, c, &mut ids))
-                        })?;
-                        empty(w, "ReturnBranchPresets")
-                    })
+    xml::document((b'\t', 1), "UTF-8", |w| {
+        xml::element(
+            w,
+            "Ableton",
+            [
+                ("MajorVersion", "5"),
+                ("MinorVersion", "11.0_11202"),
+                ("SchemaChangeCount", "17"),
+                ("Creator", "Ableton Live 11.2.10"),
+                ("Revision", "a70e3f18ac1d93094ec19c7ca1ea7cfc1a1a7543"),
+            ],
+            |w| {
+                nest(w, "GroupDevicePreset", |w| {
+                    value(w, "OverwriteProtectionNumber", PROTECTION)?;
+                    nest(w, "Device", |w| group_device(w, title, &mut ids))?;
+                    default_preset_ref(w, "MidiEffectGroupDevice")?;
+                    nest(w, "BranchPresets", |w| {
+                        chains
+                            .iter()
+                            .enumerate()
+                            .try_for_each(|(i, c)| chain(w, i, c, &mut ids))
+                    })?;
+                    empty(w, "ReturnBranchPresets")
                 })
-                .map(drop)
-        })
-        .expect("writing into memory cannot fail");
-    let mut out =
-        String::from_utf8(w.into_inner()).expect("the writer emits the UTF-8 it is given");
-    out.push('\n');
-    out
-}
-
-fn nest(w: &mut Xml, tag: &str, inner: impl FnOnce(&mut Xml) -> io::Result<()>) -> io::Result<()> {
-    w.create_element(tag).write_inner_content(inner).map(drop)
+            },
+        )
+    })
 }
 
 fn with_id(
@@ -183,21 +171,15 @@ fn with_id(
     id: &str,
     inner: impl FnOnce(&mut Xml) -> io::Result<()>,
 ) -> io::Result<()> {
-    w.create_element(tag)
-        .with_attribute(("Id", id))
-        .write_inner_content(inner)
-        .map(drop)
+    xml::element(w, tag, [("Id", id)], inner)
 }
 
 fn empty(w: &mut Xml, tag: &str) -> io::Result<()> {
-    w.create_element(tag).write_empty().map(drop)
+    xml::empty(w, tag, [])
 }
 
 fn value(w: &mut Xml, tag: &str, v: impl ToString) -> io::Result<()> {
-    w.create_element(tag)
-        .with_attribute(("Value", v.to_string().as_str()))
-        .write_empty()
-        .map(drop)
+    xml::empty(w, tag, [("Value", v.to_string().as_str())])
 }
 
 fn flag(w: &mut Xml, tag: &str, on: bool) -> io::Result<()> {
@@ -255,12 +237,8 @@ fn device_head(w: &mut Xml, name: &str, show_preset_name: bool, ids: &mut Ids) -
     flag(w, "IsExpanded", true)?;
     switch(w, "On", ids)?;
     value(w, "ModulationSourceCount", 0)?;
-    w.create_element("ParametersListWrapper")
-        .with_attribute(("LomId", "0"))
-        .write_empty()?;
-    w.create_element("Pointee")
-        .with_attribute(("Id", ids.next().as_str()))
-        .write_empty()?;
+    xml::empty(w, "ParametersListWrapper", [("LomId", "0")])?;
+    xml::empty(w, "Pointee", [("Id", ids.next().as_str())])?;
     value(w, "LastSelectedTimeableIndex", 0)?;
     value(w, "LastSelectedClipEnvelopeIndex", 0)?;
     nest(w, "LastPresetRef", |w| empty(w, "Value"))?;
@@ -302,12 +280,8 @@ fn group_device(w: &mut Xml, title: &str, ids: &mut Ids) -> io::Result<()> {
         numbered(w, "MacroColor", |_| "-1".to_owned())?;
         value(w, "LockId", 0)?;
         value(w, "LockSeal", 0)?;
-        w.create_element("ChainsListWrapper")
-            .with_attribute(("LomId", "0"))
-            .write_empty()?;
-        w.create_element("ReturnChainsListWrapper")
-            .with_attribute(("LomId", "0"))
-            .write_empty()?;
+        xml::empty(w, "ChainsListWrapper", [("LomId", "0")])?;
+        xml::empty(w, "ReturnChainsListWrapper", [("LomId", "0")])?;
         nest(w, "MacroVariations", |w| empty(w, "MacroSnapshots"))?;
         numbered(w, "ExcludeMacroFromRandomization", |_| "false".to_owned())?;
         numbered(w, "ExcludeMacroFromSnapshots", |_| "false".to_owned())?;
@@ -331,10 +305,7 @@ fn default_preset_ref(w: &mut Xml, device: &str) -> io::Result<()> {
                 value(w, "OriginalFileSize", 0)?;
                 value(w, "OriginalCrc", 0)
             })?;
-            w.create_element("DeviceId")
-                .with_attribute(("Name", device))
-                .write_empty()
-                .map(drop)
+            xml::empty(w, "DeviceId", [("Name", device)])
         })
     })
 }

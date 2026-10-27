@@ -267,8 +267,8 @@ pub struct NoteNamings(BTreeMap<OctaveBase, NoteNaming>);
 fn note_namings() -> NoteNamings {
     NoteNamings(
         OctaveBase::ALL
-            .into_iter()
-            .map(|base| {
+            .iter()
+            .map(|&base| {
                 let naming = NoteNaming {
                     names: Note::ALL.map(|n| n.name(base)).to_vec(),
                     octaves: Note::ALL.map(|n| n.octave(base)).to_vec(),

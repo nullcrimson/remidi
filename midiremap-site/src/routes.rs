@@ -6,7 +6,8 @@ use crate::i18n::{Docs, Locale, Plain, SectionKey};
 
 include!(concat!(env!("OUT_DIR"), "/routes.rs"));
 
-const ORIGIN: &str = "https://drumverter.com";
+/// The site's domain, which its drum map files credit.
+pub const DOMAIN: &str = "drumverter.com";
 
 /// The site's name, as page titles, social cards, schema and `/llms.txt` carry it.
 pub const SITE_NAME: &str = "Drumverter";
@@ -57,7 +58,7 @@ pub struct LocalPath(String);
 impl LocalPath {
     /// The full URL search engines and social cards see.
     pub fn url(&self) -> String {
-        format!("{ORIGIN}{}", self.0)
+        format!("https://{DOMAIN}{}", self.0)
     }
 
     /// The file the address is served from, relative to the site root.

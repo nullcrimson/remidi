@@ -3,17 +3,6 @@ use std::path::Path;
 use midiremap_testkit::layers::{Layers, Table};
 
 const ALLOWED_USES: &Table = &[
-    (
-        "ableton",
-        &[
-            "engine_map",
-            "file",
-            "note",
-            "packing",
-            "preset",
-            "translate",
-        ],
-    ),
     ("canon", &["family", "idx"]),
     ("catalog", &["engine_map"]),
     ("channel", &["idx", "note"]),
@@ -21,17 +10,18 @@ const ALLOWED_USES: &Table = &[
         "conversion",
         &["channel", "midi", "report", "rewrite", "translate"],
     ),
-    ("daw_map", &["ableton", "engine_map", "note", "packing"]),
+    (
+        "daw",
+        &["channel", "engine_map", "note", "preset", "translate"],
+    ),
     ("engine_map", &["canon", "non_blank", "note", "resolution"]),
     ("family", &[]),
-    ("file", &[]),
     ("fit", &["catalog", "channel", "engine_map", "midi", "note"]),
     ("idx", &[]),
     ("midi", &[]),
     ("non_blank", &[]),
     ("note", &[]),
     ("overrides", &["canon", "note"]),
-    ("packing", &[]),
     ("plan", &["canon", "note", "resolution", "translate"]),
     (
         "preset",

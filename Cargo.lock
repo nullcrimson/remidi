@@ -682,6 +682,7 @@ dependencies = [
 name = "midiremap-core"
 version = "0.1.0"
 dependencies = [
+ "flate2",
  "midiremap-testkit",
  "midly",
  "proptest",

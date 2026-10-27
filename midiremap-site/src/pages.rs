@@ -1,17 +1,15 @@
 use std::{
     cmp::Reverse,
     collections::{BTreeMap, BTreeSet, HashSet},
-    io::Write,
 };
 
-use flate2::{write::GzEncoder, Compression};
 use midiremap_core::{
     rack_file, Canon, Catalog, Daw, Drum, EngineMap, Family, FileStem, Mapping, MissingDrums, Note,
-    OctaveBase, Outcome, Overrides, Packing, RackFile,
+    OctaveBase, Outcome, Overrides, RackFile,
 };
 
 use crate::routes::{
-    drum_map_href, engine_href, pair_href, rack_href, SitePath, POPULAR, SITE_NAME,
+    drum_map_href, engine_href, pair_href, rack_href, SitePath, DOMAIN, POPULAR, SITE_NAME,
 };
 
 /// What stops the site's pages from being planned.
@@ -518,19 +516,6 @@ fn lookup<'a>(catalog: &'a Catalog, id: &str) -> Result<&'a EngineMap, BuildErro
         .ok_or_else(|| BuildError::UnknownEngine(id.to_string()))
 }
 
-/// `text` as the bytes of a file that stores it the `packing` way.
-fn packed(packing: Packing, text: String) -> Vec<u8> {
-    match packing {
-        Packing::Text => text.into_bytes(),
-        Packing::Gzip => {
-            let mut gz = GzEncoder::new(Vec::new(), Compression::best());
-            gz.write_all(text.as_bytes())
-                .and_then(|()| gz.finish())
-                .expect("compressing into memory cannot fail")
-        }
-    }
-}
-
 /// The conversion as the converter makes it before any edit or setting change.
 fn default_mapping<'a>(src: &'a EngineMap, tgt: &'a EngineMap) -> Mapping<'a> {
     Mapping::new(src, tgt, &Overrides::default(), MissingDrums::default())
@@ -560,7 +545,7 @@ fn pair_page(
         ..
     } = rack_file(&mapping, None);
     let href = rack_href(&slug);
-    let rack = (href.clone(), packed(packing, xml));
+    let rack = (href.clone(), packing.pack(xml));
     let page = PairPage {
         slug,
         src: EngineLink::of(src),
@@ -708,7 +693,7 @@ impl Site {
                 Daw::ALL.iter().map(|&daw| {
                     (
                         drum_map_href(&slug(m.id()), daw),
-                        packed(daw.packing(), daw.drum_map(m)),
+                        daw.packing().pack(daw.drum_map(m, DOMAIN)),
                     )
                 })
             })
@@ -843,7 +828,7 @@ mod tests {
         let maps = Catalog::builtin().unwrap();
         assert_eq!(
             xml,
-            Daw::AbletonLive.drum_map(maps.get("ggd_invasion").unwrap())
+            Daw::AbletonLive.drum_map(maps.get("ggd_invasion").unwrap(), DOMAIN)
         );
     }
 
@@ -854,7 +839,7 @@ mod tests {
         for daw in [Daw::Reaper, Daw::Cubase, Daw::StudioOne] {
             assert_eq!(
                 drum_map_file("ggd_invasion", daw),
-                daw.drum_map(invasion).as_bytes(),
+                daw.drum_map(invasion, DOMAIN).as_bytes(),
                 "{}",
                 daw.key()
             );

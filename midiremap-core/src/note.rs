@@ -2,6 +2,7 @@ use std::{collections::BTreeMap, fmt, str::FromStr};
 
 use midly::num::u7;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use strum::VariantArray;
 
 const SEMITONES: u8 = 12;
 
@@ -11,7 +12,19 @@ const NAMES: [&str; SEMITONES as usize] = [
 
 /// Which octave number middle C (note 60) gets: `C1` calls it C4 (Reaper, Logic, Ableton,
 /// Guitar Pro), `C2` calls it C3 (Cubase, FL Studio, Studio One).
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Copy,
+    Clone,
+    Debug,
+    Default,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    VariantArray,
+)]
 #[serde(rename_all = "lowercase")]
 #[cfg_attr(feature = "ts", derive(tsify::Tsify))]
 pub enum OctaveBase {
@@ -22,7 +35,7 @@ pub enum OctaveBase {
 
 impl OctaveBase {
     /// Every octave convention.
-    pub const ALL: [Self; 2] = [Self::C1, Self::C2];
+    pub const ALL: &[Self] = Self::VARIANTS;
 
     const fn offset(self) -> i8 {
         match self {

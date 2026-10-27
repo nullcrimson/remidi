@@ -92,6 +92,7 @@ fn read_back(daw: Daw, file: &str) -> Named {
 }
 
 static CATALOG: LazyLock<Catalog> = LazyLock::new(|| Catalog::builtin().unwrap());
+const CREDIT: &str = "drumverter.com";
 
 fn invasion() -> &'static EngineMap {
     CATALOG.get("ggd_invasion").unwrap()
@@ -100,9 +101,9 @@ fn invasion() -> &'static EngineMap {
 #[test]
 fn every_file_names_exactly_the_notes_each_engine_plays() {
     for map in CATALOG.engines() {
-        for daw in Daw::ALL {
+        for &daw in Daw::ALL {
             assert_eq!(
-                read_back(daw, &daw.drum_map(map)),
+                read_back(daw, &daw.drum_map(map, CREDIT)),
                 played(map),
                 "{} {}",
                 map.id(),
@@ -114,7 +115,7 @@ fn every_file_names_exactly_the_notes_each_engine_plays() {
 
 #[test]
 fn the_cubase_map_lists_all_128_notes() {
-    let file = Daw::Cubase.drum_map(invasion());
+    let file = Daw::Cubase.drum_map(invasion(), CREDIT);
     let notes = cubase_values(&file, "DrumMap/list[Map]/item/int[INote]");
     let expected: Vec<String> = (0..=127).map(|n: u8| n.to_string()).collect();
     assert_eq!(notes, expected);
@@ -122,7 +123,7 @@ fn the_cubase_map_lists_all_128_notes() {
 
 #[test]
 fn the_cubase_map_sends_each_note_out_unchanged() {
-    let file = Daw::Cubase.drum_map(invasion());
+    let file = Daw::Cubase.drum_map(invasion(), CREDIT);
     assert_eq!(
         cubase_values(&file, "DrumMap/list[Map]/item/int[INote]"),
         cubase_values(&file, "DrumMap/list[Map]/item/int[ONote]")
@@ -132,10 +133,13 @@ fn the_cubase_map_sends_each_note_out_unchanged() {
 #[test]
 fn the_cubase_order_puts_played_notes_first_and_holds_every_note_once() {
     let map = invasion();
-    let order: Vec<u8> = cubase_values(&Daw::Cubase.drum_map(map), "DrumMap/list[Order]/item")
-        .iter()
-        .map(|v| v.parse().unwrap())
-        .collect();
+    let order: Vec<u8> = cubase_values(
+        &Daw::Cubase.drum_map(map, CREDIT),
+        "DrumMap/list[Order]/item",
+    )
+    .iter()
+    .map(|v| v.parse().unwrap())
+    .collect();
     let played: Vec<u8> = played(map).into_iter().map(|(n, _)| n).collect();
     assert_eq!(&order[..played.len()], played.as_slice());
     assert_eq!(order.iter().collect::<BTreeSet<_>>().len(), 128);
@@ -143,7 +147,7 @@ fn the_cubase_order_puts_played_notes_first_and_holds_every_note_once() {
 
 #[test]
 fn the_cubase_map_has_the_shape_cubase_saves() {
-    let file = Daw::Cubase.drum_map(invasion());
+    let file = Daw::Cubase.drum_map(invasion(), CREDIT);
     let shape: BTreeSet<String> = elements(&file)
         .iter()
         .map(|e| {
@@ -161,7 +165,7 @@ fn the_cubase_map_has_the_shape_cubase_saves() {
 
 #[test]
 fn the_cubase_map_is_named_after_the_engine() {
-    let file = Daw::Cubase.drum_map(invasion());
+    let file = Daw::Cubase.drum_map(invasion(), CREDIT);
     assert_eq!(
         cubase_values(&file, "DrumMap/string[Name]"),
         ["GetGood Drums Invasion"]
@@ -174,13 +178,13 @@ fn names_survive_markup_characters() {
         r#"{"id":"odd","name":"Odd","short_name":"Rock & <Roll> \"Kit\"","notes":[{"note":36,"canon":"kick.main","primary":true}]}"#,
     )
     .unwrap();
-    let file = Daw::Cubase.drum_map(&map);
+    let file = Daw::Cubase.drum_map(&map, CREDIT);
     assert_eq!(
         cubase_values(&file, "DrumMap/string[Name]"),
         [r#"Rock & <Roll> "Kit""#]
     );
     assert!(Daw::Reaper
-        .drum_map(&map)
+        .drum_map(&map, CREDIT)
         .contains("# Rock & <Roll> \"Kit\" (drumverter.com)"));
 }
 
@@ -188,15 +192,15 @@ fn names_survive_markup_characters() {
 fn files_match_the_recorded_invasion_maps() {
     let map = invasion();
     assert_eq!(
-        Daw::Reaper.drum_map(map),
+        Daw::Reaper.drum_map(map, CREDIT),
         include_str!("golden/ggd_invasion.txt")
     );
     assert_eq!(
-        Daw::Cubase.drum_map(map),
+        Daw::Cubase.drum_map(map, CREDIT),
         include_str!("golden/ggd_invasion.drm")
     );
     assert_eq!(
-        Daw::StudioOne.drum_map(map),
+        Daw::StudioOne.drum_map(map, CREDIT),
         include_str!("golden/ggd_invasion.pitchlist")
     );
 }

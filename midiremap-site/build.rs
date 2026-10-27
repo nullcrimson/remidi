@@ -159,6 +159,7 @@ fn plain_texts(plain: &[&str]) -> String {
     let variants: Vec<String> = plain.iter().map(|id| id.to_upper_camel_case()).collect();
     let mut out = enumeration("Plain", &variants);
     out += "impl Plain {\n";
+    out += &all(&variants);
     out += &matcher("id", "&'static str", plain, |id| {
         (id.to_upper_camel_case(), format!("{id:?}"))
     });

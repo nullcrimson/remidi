@@ -240,16 +240,20 @@ const DRUM_MAP_STEPS: [DrumMapStep; 3] = [
 fn daw_steps<'a>(texts: &Texts<'a>) -> Vec<(Daw, &'a str)> {
     Daw::ALL
         .iter()
-        .map(|&daw| {
-            let how = match daw {
-                Daw::Reaper => Plain::DrumMapsReaper,
-                Daw::Cubase => Plain::DrumMapsCubase,
-                Daw::StudioOne => Plain::DrumMapsStudioOne,
-                Daw::AbletonLive => Plain::DrumMapsAbleton,
-            };
-            (daw, texts.get(how))
-        })
+        .map(|&daw| (daw, texts.get(how_to_load(daw))))
         .collect()
+}
+
+/// The message telling how `daw` loads its drum map, `drum-maps-<key>`.
+fn how_to_load(daw: Daw) -> Plain {
+    let id = format!("drum-maps-{}", daw.key());
+    Plain::ALL
+        .iter()
+        .copied()
+        .find(|message| message.id() == id)
+        .expect(
+            "every DAW has its drum-maps message, as every_daw_has_its_how_to_load_message proves",
+        )
 }
 
 pub fn section_meta(k: SectionKey, texts: &Texts) -> Meta {
@@ -778,6 +782,14 @@ mod tests {
     use crate::{pages::MAJORS, routes::pair_href};
 
     const ORIGIN: &str = "https://drumverter.com";
+
+    #[test]
+    fn every_daw_has_its_how_to_load_message() {
+        for &daw in Daw::ALL {
+            let id = format!("drum-maps-{}", daw.key());
+            assert!(Plain::ALL.iter().any(|m| m.id() == id), "no {id} message");
+        }
+    }
 
     const STATIC_ASSETS: [&str; 6] = [
         "/favicon.ico",

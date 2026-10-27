@@ -81,9 +81,9 @@ pub enum SkippedEdit {
 pub enum PresetError {
     #[error("not a preset file")]
     Parse(#[source] serde_json::Error),
-    #[error("not a Drumverter preset (format is '{0}')")]
+    #[error("not a preset (format is '{0}')")]
     Format(String),
-    #[error("preset version {0} is not supported by this version of Drumverter")]
+    #[error("preset version {0} is not supported")]
     Version(u64),
     #[error("unknown source engine '{0}'")]
     UnknownSource(String),
