@@ -47,6 +47,7 @@ maps-engine-description-short = { $engine }のドラムMIDIノートマップ（
 maps-engine-description-more = { $engineMidi }をほかのドラム音源用に無料で変換できます。
 maps-engine-heading = { $engine }のドラムMIDIノートマップ
 maps-engine-intro = { $engine }が反応するMIDIノート（全{ $total }個）を、パーツ別にまとめました。ノート名は、C-1（Reaper）とC-2（Ableton Live、Logic Pro、Cubase、Studio One）のどちらのオクターブ表記でも表示できます。
+maps-engine-grooves = { $engine }は{ $note }より下のノートで個々のパーツを鳴らし、ノート{ $note }以上で独自のグルーヴを再生します。変換したファイルは打音を1つずつ鳴らすため、{ $engine }のグルーヴや、そのスウィング・フィールの設定は使えません。
 maps-convert-to = { $engine }に変換
 maps-convert-from = { $engine }から変換
 maps-filter-drums-label = パーツを絞り込み

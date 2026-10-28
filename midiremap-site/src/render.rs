@@ -2384,6 +2384,16 @@ mod tests {
     }
 
     #[test]
+    fn an_engine_with_groove_keys_says_where_they_start() {
+        assert!(page("engines/ujam-heavy/index.html").contains("its own grooves from note 60 up"));
+    }
+
+    #[test]
+    fn an_engine_without_groove_keys_says_nothing_of_grooves() {
+        assert!(!page("engines/ggd-invasion/index.html").contains("own grooves"));
+    }
+
+    #[test]
     fn engine_pages_head_the_note_table() {
         let html = page("engines/ezdrummer/index.html");
         let total = crate::fixtures::site()

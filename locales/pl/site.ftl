@@ -78,6 +78,7 @@ maps-engine-intro =
         [few] Wszystkie nuty MIDI, na które reaguje { $engine }, pogrupowane według instrumentu — { $total } nuty w sumie. Nazwy nut są zgodne z konwencją oktaw: C-1 (Reaper) albo C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
        *[many] Wszystkie nuty MIDI, na które reaguje { $engine }, pogrupowane według instrumentu — { $total } nut w sumie. Nazwy nut są zgodne z konwencją oktaw: C-1 (Reaper) albo C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
     }
+maps-engine-grooves = { $engine } gra pojedyncze instrumenty na nutach poniżej { $note }, a od nuty { $note } w górę własne groove'y. Przekonwertowany plik gra swoje uderzenia jedno po drugim: nie może korzystać z groove'ów { $engine } ani ich ustawień swingu i feelu.
 maps-convert-to = Konwertuj na { $engine }
 maps-convert-from = Konwertuj z { $engine }
 maps-filter-drums-label = Filtruj instrumenty

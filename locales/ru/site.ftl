@@ -83,6 +83,7 @@ maps-engine-intro =
         [many] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } нот), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper) или C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
        *[other] Все MIDI-ноты, на которые реагирует плагин { $engine } (всего { $total } ноты), по инструментам. Названия нот можно показать в нумерации C-1 (Reaper) или C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
     }
+maps-engine-grooves = Плагин { $engine } играет отдельные инструменты на нотах ниже { $note }, а с ноты { $note } и выше — собственные грувы. Сконвертированный файл играет удары по одному: грувы { $engine } и их настройки свинга и фила ему недоступны.
 maps-convert-to = Конвертировать в { $engine }
 maps-convert-from = Конвертировать из { $engine }
 maps-filter-drums-label = Фильтр инструментов

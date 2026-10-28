@@ -1,11 +1,14 @@
 id = "ujam_heavy"
-name = "ujam Virtual Drummer - Heavy"
+name = "UJAM Virtual Drummer (BRUTE, DEEP, HEAVY, HOT, LEGEND, NEON, PHAT, SOLID)"
+short_name = "UJAM Virtual Drummer"
 vendor = "UJAM"
+grooves_from = 60
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.sidestick", primary = true },
   { note = 38, canon = "snare1.hit", primary = true },
-  { note = 40, canon = "snare1.rim", primary = true },
+  { note = 39, canon = "perc.clap", primary = true },
+  { note = 40, canon = "snare1.rimshot", primary = true },
   { note = 41, canon = "tom.rack2.hit", primary = true },
   { note = 42, canon = "hat.closed", primary = true },
   { note = 43, canon = "tom.floor1.hit", primary = true },
@@ -17,5 +20,4 @@ notes = [
   { note = 53, canon = "ride.1.bell", primary = true },
   { note = 54, canon = "hat.open1", primary = true },
   { note = 57, canon = "crash.2.hit", primary = true },
-  { note = 58, canon = "crash.2.mute", primary = true },
 ]

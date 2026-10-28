@@ -5,7 +5,6 @@ notes = [
   { note = 17, canon = "hat.cc", primary = true },
   { note = 24, canon = "kick.main", primary = true },
   { note = 26, canon = "snare1.hit", primary = true },
-  { note = 28, canon = "snare1.hit" },
   { note = 30, canon = "snare1.sidestick", primary = true },
   { note = 35, canon = "tom.rack1.hit", primary = true },
   { note = 36, canon = "tom.floor1.hit", primary = true },

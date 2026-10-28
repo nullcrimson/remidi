@@ -31,10 +31,10 @@ enum Voice {
 impl Voice {
     fn drums(self) -> &'static [Canon] {
         match self {
-            Self::Crash => &[Canon::CRASH],
-            Self::Kick => &[Canon::KICK],
-            Self::Snare => &[Canon::SNARE],
-            Self::Hat => &[Canon::CLOSED_HAT, Canon::RIDE],
+            Self::Crash => &[Canon::CRASH, Canon::RACK_TOM],
+            Self::Kick => &[Canon::KICK, Canon::FLOOR_TOM],
+            Self::Snare => &[Canon::SNARE, Canon::RACK_TOM],
+            Self::Hat => &[Canon::CLOSED_HAT, Canon::RIDE, Canon::SECOND_RACK_TOM],
         }
     }
 
@@ -54,7 +54,8 @@ impl Voice {
 /// A short groove to try the converter with: two bars of 4/4 at 120 bpm on the drum channel,
 /// eighth notes on the closed hi-hat (the ride on an engine without one) over kick and snare,
 /// and a crash on the first beat. Each drum plays on the note `engine` plays it on, or on its
-/// nearest stand-in's; a drum with neither is left out.
+/// nearest stand-in's; a kit of toms alone plays the groove on its toms; a drum with none of
+/// these is left out.
 pub fn sample_file(engine: &EngineMap) -> Vec<u8> {
     let voices: Vec<(Voice, u7)> = Voice::VARIANTS
         .iter()
@@ -220,6 +221,18 @@ mod tests {
         let kit = engine(&[(36, "kick.main"), (45, "hat.open1"), (51, "ride.1")]);
         let keys: BTreeSet<u8> = hit_keys(&sample_file(&kit)).into_iter().collect();
         assert_eq!(keys, BTreeSet::from([36, 51]));
+    }
+
+    #[test]
+    fn a_kit_of_toms_plays_the_groove_on_its_toms() {
+        let kit = engine(&[
+            (41, "tom.floor1.hit"),
+            (45, "tom.rack2.hit"),
+            (48, "tom.rack1.hit"),
+        ]);
+        let keys = hit_keys(&sample_file(&kit));
+        assert_eq!(keys[..3], [48, 41, 45]);
+        assert_eq!(keys.len(), HITS_PER_GROOVE as usize);
     }
 
     #[test]

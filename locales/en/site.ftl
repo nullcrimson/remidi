@@ -51,6 +51,7 @@ maps-engine-description-short = { $engine } drum MIDI note map with C-1 and C-2 
 maps-engine-description-more = Convert { $engineMidi } to any engine, free.
 maps-engine-heading = { $engine } drum MIDI note map
 maps-engine-intro = Every MIDI note { $engine } responds to — { $total } in total — grouped by drum. Note names follow either octave convention: C-1 (Reaper) or C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
+maps-engine-grooves = { $engine } plays single drums on the notes below { $note } and its own grooves from note { $note } up. A converted file plays its drums hit by hit: it cannot use { $engine }'s grooves or their swing and feel controls.
 maps-convert-to = Convert to { $engine }
 maps-convert-from = Convert from { $engine }
 maps-filter-drums-label = Filter drums

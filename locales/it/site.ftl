@@ -63,6 +63,7 @@ maps-engine-intro =
         [one] { $engine } risponde a { $total } nota MIDI, mostrata con il suo strumento. Puoi vedere i nomi delle note in C-1 (Reaper) o in C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
        *[other] { $engine } risponde a { $total } note MIDI, raggruppate per strumento. Puoi vedere i nomi delle note in C-1 (Reaper) o in C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
     }
+maps-engine-grooves = { $engine } suona singoli strumenti sulle note sotto { $note } e i propri groove dalla nota { $note } in su. Un file convertito suona i colpi uno per uno: non può usare i groove di { $engine } né i loro controlli di swing e feel.
 maps-convert-to = Converti in { $engine }
 maps-convert-from = Converti da { $engine }
 maps-filter-drums-label = Filtra strumenti

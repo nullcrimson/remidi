@@ -51,6 +51,7 @@ maps-engine-description-short = Mapa de notas MIDI de batería de { $engine } co
 maps-engine-description-more = Convierte { $engineMidi } a cualquier plugin, gratis.
 maps-engine-heading = Mapa de notas MIDI de batería de { $engine }
 maps-engine-intro = Todas las notas MIDI a las que responde { $engine } ({ $total } en total), agrupadas por pieza. Los nombres de las notas siguen cualquiera de las dos convenciones de octava: C-1 (Reaper) o C-2 (Ableton Live, Logic Pro, Cubase, Studio One).
+maps-engine-grooves = { $engine } toca piezas sueltas en las notas por debajo de { $note } y sus propios grooves a partir de la nota { $note }. Un archivo convertido toca sus golpes uno a uno: no puede usar los grooves de { $engine } ni sus controles de swing y feel.
 maps-convert-to = Convertir a { $engine }
 maps-convert-from = Convertir desde { $engine }
 maps-filter-drums-label = Filtrar piezas

@@ -191,7 +191,7 @@ test('a conversion table says up front which drums stand in for the ones the tar
 
 test('a conversion table says up front which drums the target has none for', async ({ page }) => {
   await page.goto('/convert/addictive-drums2-to-ezdrummer/');
-  await expect(changes(page)).toContainText('EZdrummer 3 has no drum for Cowbell, Sticks.');
+  await expect(changes(page)).toContainText('EZdrummer 3 has no drum for Cowbell, Sticks, Percussion.');
 });
 
 test('a conversion table that changes nothing says every note keeps its drum', async ({ page }) => {

@@ -1,0 +1,14 @@
+id = "alanvista_royotoms"
+name = "Royotoms (Alan ViSTa)"
+short_name = "Royotoms"
+vendor = "Alan ViSTa"
+notes = [
+  { note = 62, canon = "tom.floor3.hit", primary = true },
+  { note = 63, canon = "tom.floor2.hit", primary = true },
+  { note = 64, canon = "tom.floor1.hit", primary = true },
+  { note = 65, canon = "tom.rack5.hit", primary = true },
+  { note = 66, canon = "tom.rack4.hit", primary = true },
+  { note = 67, canon = "tom.rack3.hit", primary = true },
+  { note = 68, canon = "tom.rack1.hit", primary = true },
+  { note = 69, canon = "tom.rack2.hit", primary = true },
+]

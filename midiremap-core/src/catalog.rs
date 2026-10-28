@@ -111,7 +111,10 @@ mod tests {
     use midiremap_testkit::engine_json;
 
     use super::*;
-    use crate::{canon::k, note::n};
+    use crate::{
+        canon::{k, Canon},
+        note::n,
+    };
 
     #[test]
     fn every_builtin_names_its_vendor() {
@@ -121,49 +124,213 @@ mod tests {
         }
     }
 
+    fn decoded(engine: &str, note: u8) -> Option<Canon> {
+        Catalog::builtin().get(engine).unwrap().decode(n(note))
+    }
+
+    #[test]
+    fn ujam_plays_no_drum_on_its_mute_keys() {
+        assert_eq!(decoded("ujam_heavy", 58), None);
+        assert_eq!(decoded("ujam_heavy", 59), None);
+    }
+
+    #[test]
+    fn ujam_plays_a_clap_on_39() {
+        assert_eq!(decoded("ujam_heavy", 39), Some(k("perc.clap")));
+    }
+
+    #[test]
+    fn ujam_plays_the_rimshot_on_40() {
+        assert_eq!(decoded("ujam_heavy", 40), Some(k("snare1.rimshot")));
+    }
+
+    #[test]
+    fn perfect_drums_plays_ghost_notes_on_39() {
+        assert_eq!(decoded("perfectdrums", 39), Some(k("snare1.ghost")));
+    }
+
+    #[test]
+    fn perfect_drums_plays_the_splash_tip_on_54() {
+        assert_eq!(decoded("perfectdrums", 54), Some(k("splash.1.bowtip")));
+    }
+
+    #[test]
+    fn perfect_drums_repeats_its_hats_on_62_64_67() {
+        assert_eq!(decoded("perfectdrums", 62), Some(k("hat.pedal")));
+        assert_eq!(decoded("perfectdrums", 64), Some(k("hat.closed.edge")));
+        assert_eq!(decoded("perfectdrums", 67), Some(k("hat.open4")));
+    }
+
+    #[test]
+    fn royotoms_plays_its_highest_drum_on_68_and_its_lowest_on_62() {
+        assert_eq!(decoded("alanvista_royotoms", 68), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("alanvista_royotoms", 62), Some(k("tom.floor3.hit")));
+    }
+
+    #[test]
+    fn bfd3_plays_its_ride_on_60() {
+        assert_eq!(decoded("bfd3", 60), Some(k("ride.1")));
+    }
+
+    #[test]
+    fn bfd3_plays_cymbal_1_as_crash_3_on_76() {
+        assert_eq!(decoded("bfd3", 76), Some(k("crash.3.hit")));
+    }
+
+    #[test]
+    fn bfd3_has_no_drum_on_its_unmapped_hat_keys() {
+        assert_eq!(decoded("bfd3", 18), None);
+        assert_eq!(decoded("bfd3", 20), None);
+        assert_eq!(decoded("bfd3", 22), None);
+    }
+
+    #[test]
+    fn bfd3_plays_the_open_hat_shank_on_39() {
+        assert_eq!(decoded("bfd3", 39), Some(k("hat.open3.edge")));
+    }
+
+    #[test]
+    fn guitar_pro_plays_sticks_on_31() {
+        assert_eq!(decoded("guitar_pro", 31), Some(k("perc.sticks")));
+    }
+
+    #[test]
+    fn guitar_pro_plays_the_second_ride_edge_on_59() {
+        assert_eq!(decoded("guitar_pro", 59), Some(k("ride.2.edge")));
+    }
+
+    #[test]
+    fn guitar_pro_plays_the_second_kick_on_35() {
+        assert_eq!(decoded("guitar_pro", 35), Some(k("kick.alt")));
+    }
+
+    #[test]
+    fn guitar_pro_plays_the_second_snare_on_40() {
+        assert_eq!(decoded("guitar_pro", 40), Some(k("snare2.hit")));
+    }
+
+    #[test]
+    fn addictive_drums2_plays_a_flexi_slot_on_101() {
+        assert_eq!(decoded("addictive_drums2", 101), Some(k("perc.misc")));
+    }
+
+    #[test]
+    fn abbey_road_plays_its_high_crash_as_crash_1_on_49() {
+        assert_eq!(decoded("ni_abbeyroad_modern", 49), Some(k("crash.1.hit")));
+    }
+
+    #[test]
+    fn general_midi_plays_a_hand_clap_on_39() {
+        assert_eq!(decoded("general_midi", 39), Some(k("perc.clap")));
+    }
+
+    #[test]
+    fn general_midi_plays_the_electric_snare_on_40() {
+        assert_eq!(decoded("general_midi", 40), Some(k("snare2.hit")));
+    }
+
+    #[test]
+    fn modern_massive_plays_floor_tom_1_on_its_second_key_35() {
+        assert_eq!(decoded("ggd_modernmassive", 35), Some(k("tom.floor1.hit")));
+    }
+
+    #[test]
+    fn modern_massive_plays_the_hat_ching_on_44() {
+        assert_eq!(decoded("ggd_modernmassive", 44), Some(k("hat.pedalsplash")));
+    }
+
+    #[test]
+    fn modern_massive_ggd_counts_its_openings_like_the_base_map() {
+        assert_eq!(decoded("ggd_modernmassive_ggd", 52), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_modernmassive_ggd", 54), Some(k("hat.open4")));
+    }
+
+    #[test]
+    fn modern_massive_gm_plays_the_hat_ching_on_56() {
+        assert_eq!(
+            decoded("ggd_modernmassive_gm", 56),
+            Some(k("hat.pedalsplash"))
+        );
+    }
+
+    #[test]
+    fn modern_massive_gm_plays_floor_tom_1_on_its_second_key_48() {
+        assert_eq!(
+            decoded("ggd_modernmassive_gm", 48),
+            Some(k("tom.floor1.hit"))
+        );
+    }
+
+    #[test]
+    fn dry_and_funky_reads_the_second_keys_of_its_invasion_preset() {
+        assert_eq!(decoded("ggd_dryfunky", 36), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("ggd_dryfunky", 55), Some(k("crash.1.mute")));
+        assert_eq!(decoded("ggd_dryfunky", 54), Some(k("ride.1.edge")));
+    }
+
+    #[test]
+    fn invasion_ggd_plays_floor_tom_1_on_45() {
+        assert_eq!(decoded("ggd_invasion_ggd", 45), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("ggd_invasion_ggd", 46), Some(k("tom.floor3.hit")));
+    }
+
+    #[test]
+    fn invasion_ggd_plays_the_main_left_crash_as_crash_1_on_58() {
+        assert_eq!(decoded("ggd_invasion_ggd", 58), Some(k("crash.1.hit")));
+    }
+
+    #[test]
+    fn invasion_ggd_plays_the_right_china_choke_on_72() {
+        assert_eq!(decoded("ggd_invasion_ggd", 72), Some(k("china.2.mute")));
+    }
+
+    #[test]
+    fn architects_has_no_drum_on_28() {
+        assert_eq!(decoded("ggd_architects", 28), None);
+    }
+
+    #[test]
+    fn ezdrummer_plays_a_snare_ruff_on_39() {
+        assert_eq!(decoded("ezdrummer", 39), Some(k("snare1.ruff")));
+    }
+
+    #[test]
+    fn ezdrummer_plays_a_snare_flam_on_69() {
+        assert_eq!(decoded("ezdrummer", 69), Some(k("snare1.flam")));
+    }
+
+    #[test]
+    fn superior_drummer3_plays_a_snare_ruff_on_39() {
+        assert_eq!(decoded("superior_drummer3", 39), Some(k("snare1.ruff")));
+    }
+
     #[test]
     fn general_midi_decodes_36_as_the_main_kick() {
-        let b = Catalog::builtin();
-        assert_eq!(
-            b.get("general_midi").unwrap().decode(n(36)),
-            Some(k("kick.main"))
-        );
+        assert_eq!(decoded("general_midi", 36), Some(k("kick.main")));
     }
 
     #[test]
     fn general_midi_decodes_42_as_the_closed_hat() {
-        let b = Catalog::builtin();
-        assert_eq!(
-            b.get("general_midi").unwrap().decode(n(42)),
-            Some(k("hat.closed"))
-        );
+        assert_eq!(decoded("general_midi", 42), Some(k("hat.closed")));
     }
 
     #[test]
     fn guitar_pro_decodes_38_as_the_first_snare() {
-        let b = Catalog::builtin();
-        assert_eq!(
-            b.get("guitar_pro").unwrap().decode(n(38)),
-            Some(k("snare1.hit"))
-        );
+        assert_eq!(decoded("guitar_pro", 38), Some(k("snare1.hit")));
     }
 
     #[test]
     fn ggd_cymbal_layout_is_fixed() {
-        let b = Catalog::builtin();
-        let ggd = b.get("ggd_invasion").unwrap();
-        assert_eq!(ggd.decode(n(54)), Some(k("crash.2.hit")));
-        assert_eq!(ggd.decode(n(67)), Some(k("china.2.hit")));
-        assert_eq!(ggd.decode(n(75)), Some(k("splash.2.hit")));
-        assert_eq!(ggd.decode(n(53)), Some(k("crash.1.mute")));
+        assert_eq!(decoded("ggd_invasion", 54), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_invasion", 67), Some(k("china.2.hit")));
+        assert_eq!(decoded("ggd_invasion", 75), Some(k("splash.2.hit")));
+        assert_eq!(decoded("ggd_invasion", 53), Some(k("crash.1.mute")));
     }
 
     #[test]
     fn addictive_drums2_decodes_its_native_layout() {
-        let b = Catalog::builtin();
-        let ad2 = b.get("addictive_drums2").unwrap();
-        assert_eq!(ad2.decode(n(49)), Some(k("hat.tight.tip")));
-        assert_eq!(ad2.decode(n(36)), Some(k("kick.main")));
+        assert_eq!(decoded("addictive_drums2", 49), Some(k("hat.tight.tip")));
+        assert_eq!(decoded("addictive_drums2", 36), Some(k("kick.main")));
     }
 
     #[test]

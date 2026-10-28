@@ -3,12 +3,12 @@ name = "Guitar Pro"
 short_name = "Guitar Pro"
 vendor = "Standards"
 notes = [
-  { note = 31, canon = "snare1.sidestick", primary = true },
-  { note = 35, canon = "kick.left", primary = true },
+  { note = 31, canon = "perc.sticks", primary = true },
+  { note = 35, canon = "kick.alt", primary = true },
   { note = 36, canon = "kick.main", primary = true },
-  { note = 37, canon = "snare1.sidestick" },
+  { note = 37, canon = "snare1.sidestick", primary = true },
   { note = 38, canon = "snare1.hit", primary = true },
-  { note = 40, canon = "snare1.hit" },
+  { note = 40, canon = "snare2.hit", primary = true },
   # PATCH: mapping.js guitarpro toms are inconsistent (50=Floortom1); standard GM used.
   { note = 41, canon = "tom.floor3.hit", primary = true },
   { note = 42, canon = "hat.closed", primary = true },
@@ -26,10 +26,10 @@ notes = [
   { note = 55, canon = "splash.1.hit", primary = true },
   { note = 56, canon = "perc.cowbell", primary = true },
   { note = 57, canon = "crash.2.hit", primary = true },
-  { note = 59, canon = "ride.1.edge", primary = true },
+  { note = 59, canon = "ride.2.edge", primary = true },
   { note = 91, canon = "snare1.rimshot", primary = true },
   { note = 92, canon = "hat.open1", primary = true },
-  { note = 93, canon = "ride.1.edge" },
+  { note = 93, canon = "ride.1.edge", primary = true },
   { note = 94, canon = "ride.1.mute", primary = true },
   { note = 95, canon = "splash.1.mute", primary = true },
   { note = 96, canon = "china.1.mute", primary = true },

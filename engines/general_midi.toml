@@ -7,6 +7,8 @@ notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.sidestick", primary = true },
   { note = 38, canon = "snare1.hit", primary = true },
+  { note = 39, canon = "perc.clap", primary = true },
+  { note = 40, canon = "snare2.hit", primary = true },
   { note = 41, canon = "tom.floor2.hit", primary = true },
   { note = 42, canon = "hat.closed", primary = true },
   { note = 43, canon = "tom.floor1.hit", primary = true },
@@ -26,4 +28,6 @@ notes = [
   { note = 57, canon = "crash.2.hit", primary = true },
   { note = 58, canon = "perc.vibraslap", primary = true },
   { note = 59, canon = "ride.2", primary = true },
+  { note = 69, canon = "perc.shaker" },
+  { note = 70, canon = "perc.shaker", primary = true },
 ]

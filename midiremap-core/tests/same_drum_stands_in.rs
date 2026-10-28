@@ -91,7 +91,7 @@ fn agreed(c: Canon) -> Vec<String> {
         [snare, stroke] if snare.starts_with("snare") => {
             let order: &[&str] = match *stroke {
                 "hit" => &["side"],
-                "side" | "rimshot" | "flam" | "off" => &["hit"],
+                "side" | "rimshot" | "flam" | "off" | "ghost" => &["hit"],
                 "rim" => &["sidestick"],
                 "sidestick" => &["rim"],
                 "ruff" => &["flam", "hit"],

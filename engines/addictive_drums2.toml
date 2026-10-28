@@ -56,5 +56,5 @@ notes = [
   { note = 92, canon = "china.1.mute", primary = true },
   { note = 93, canon = "crash.6.hit", primary = true },
   { note = 94, canon = "crash.6.mute", primary = true },
-  { note = 101, canon = "snare1.hit" },
+  { note = 101, canon = "perc.misc", primary = true },
 ]

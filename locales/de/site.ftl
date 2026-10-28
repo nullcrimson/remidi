@@ -51,6 +51,7 @@ maps-engine-description-short = { $engine }: Drum-MIDI-Notenbelegung mit Notenna
 maps-engine-description-more = { $engineMidi } kostenlos für jedes andere Plugin konvertieren.
 maps-engine-heading = { $engine }: Drum-MIDI-Notenbelegung
 maps-engine-intro = Alle { $total } MIDI-Noten, auf die { $engine } reagiert, nach Instrument sortiert. Die Notennamen können Sie wahlweise nach C-1 (Reaper) oder C-2 (Ableton Live, Logic Pro, Cubase, Studio One) anzeigen.
+maps-engine-grooves = { $engine } spielt auf den Noten unter { $note } einzelne Instrumente und ab Note { $note } eigene Grooves. Eine konvertierte Datei spielt ihre Schläge einzeln: Die Grooves von { $engine } und deren Swing- und Feel-Regler kann sie nicht nutzen.
 maps-convert-to = Nach { $engine } konvertieren
 maps-convert-from = Von { $engine } konvertieren
 maps-filter-drums-label = Instrumente filtern

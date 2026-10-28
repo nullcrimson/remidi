@@ -23,7 +23,7 @@ fn snare_order(a: SnareArtic) -> &'static [SnareArtic] {
     use SnareArtic::*;
     match a {
         Hit => &[Side],
-        Side | Rimshot | Flam | Off => &[Hit],
+        Side | Rimshot | Flam | Off | Ghost => &[Hit],
         Rim => &[Sidestick],
         Sidestick => &[Rim],
         Ruff => &[Flam, Hit],

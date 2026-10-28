@@ -54,6 +54,7 @@ impl Canon {
                 let base = numbered("Snare", i);
                 match a {
                     SnareArtic::Hit => base,
+                    SnareArtic::Ghost => format!("{base} Ghost Note"),
                     SnareArtic::Rim => format!("{base} Rim"),
                     SnareArtic::Rimshot => format!("{base} Rimshot"),
                     SnareArtic::Sidestick => "Side Stick".into(),
@@ -116,7 +117,7 @@ impl Canon {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::canon::{idx, Slot};
+    use crate::canon::{idx, k, Slot};
 
     #[test]
     fn an_open_hat_is_labelled_with_its_level() {
@@ -132,5 +133,11 @@ mod tests {
             Canon(Slot::Snare(idx(1), SnareArtic::Sidestick)).label(),
             "Side Stick"
         );
+    }
+
+    #[test]
+    fn a_ghost_note_reads_as_a_ghost_note() {
+        assert_eq!(k("snare1.ghost").label(), "Snare Ghost Note");
+        assert_eq!(k("snare2.ghost").label(), "Snare 2 Ghost Note");
     }
 }

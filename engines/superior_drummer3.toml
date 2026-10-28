@@ -36,7 +36,7 @@ notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.sidestick", primary = true },
   { note = 38, canon = "snare1.hit", primary = true },
-  { note = 39, canon = "snare1.hit" },
+  { note = 39, canon = "snare1.ruff", primary = true },
   { note = 40, canon = "snare1.rimshot", primary = true },
   { note = 41, canon = "tom.floor2.hit", primary = true },
   { note = 42, canon = "hat.closed.tip" },

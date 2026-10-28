@@ -29,6 +29,8 @@ struct RawMap {
     aliases: Vec<String>,
     #[serde(default)]
     variant: Option<RawVariant>,
+    #[serde(default)]
+    grooves_from: Option<Note>,
     notes: Vec<RawEntry>,
 }
 
@@ -93,6 +95,7 @@ pub struct EngineMap {
     vendor: Option<NonBlank>,
     aliases: Vec<String>,
     variant: Option<Variant>,
+    grooves_from: Option<Note>,
     to_canon: HashMap<Note, Canon>,
     from_canon: HashMap<Canon, Note>,
 }
@@ -169,6 +172,12 @@ impl EngineMap {
         self.vendor.as_ref().map(NonBlank::as_str)
     }
 
+    /// The first note that starts the engine's own grooves instead of a drum, when it has
+    /// such keys.
+    pub fn grooves_from(&self) -> Option<Note> {
+        self.grooves_from
+    }
+
     /// Former ids that still find this engine.
     pub(crate) fn aliases(&self) -> &[String] {
         &self.aliases
@@ -200,6 +209,8 @@ pub enum MapError {
     DuplicatePrimary(Canon),
     #[error("engine {engine} lists note {note} twice")]
     DuplicateNote { engine: String, note: Note },
+    #[error("engine {engine} plays a drum on {note}, where its grooves start")]
+    DrumAtGrooveKey { engine: String, note: Note },
     #[error("parse error")]
     Parse(#[source] serde_json::Error),
     #[error("alias {0} is already an engine id or another engine's alias")]
@@ -241,6 +252,12 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
 
     for e in raw.notes {
         let note = e.note;
+        if raw.grooves_from.is_some_and(|from| note >= from) {
+            return Err(MapError::DrumAtGrooveKey {
+                engine: raw.id,
+                note,
+            });
+        }
         if to_canon.insert(note, e.canon).is_some() {
             return Err(MapError::DuplicateNote {
                 engine: raw.id,
@@ -265,6 +282,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
         vendor: raw.vendor,
         aliases: raw.aliases,
         variant,
+        grooves_from: raw.grooves_from,
         to_canon,
         from_canon,
     })
@@ -453,6 +471,41 @@ mod tests {
             MapError::DuplicateNote { engine, note } if engine == "x" && *note == n(36)
         ));
         assert_eq!(err.to_string(), "engine x lists note 36 twice");
+    }
+
+    fn grooving(grooves_from: &str, drum_note: u8) -> Result<EngineMap, MapError> {
+        from_toml(&format!(
+            r#"
+            id = "x"
+            name = "X"
+            {grooves_from}
+            notes = [{{ note = {drum_note}, canon = "kick.main", primary = true }}]
+            "#
+        ))
+    }
+
+    #[test]
+    fn an_engine_names_the_note_its_grooves_start_on() {
+        let map = grooving("grooves_from = 60", 36).unwrap();
+        assert_eq!(map.grooves_from(), Some(n(60)));
+    }
+
+    #[test]
+    fn an_engine_without_groove_keys_has_none() {
+        assert_eq!(grooving("", 36).unwrap().grooves_from(), None);
+    }
+
+    #[test]
+    fn a_drum_on_a_groove_key_is_error() {
+        let err = grooving("grooves_from = 60", 60).unwrap_err();
+        assert!(matches!(
+            &err,
+            MapError::DrumAtGrooveKey { engine, note } if engine == "x" && *note == n(60)
+        ));
+        assert_eq!(
+            err.to_string(),
+            "engine x plays a drum on 60, where its grooves start"
+        );
     }
 
     fn variant_named(name: &str) -> Result<EngineMap, MapError> {

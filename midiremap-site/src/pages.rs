@@ -376,6 +376,8 @@ fn rounded_percent(part: usize, whole: usize) -> Option<usize> {
 pub struct EnginePage {
     pub engine: EngineLink,
     pub total: usize,
+    /// The first note that starts the engine's own grooves, when it has such keys.
+    pub grooves_from: Option<Note>,
     /// The notes of the drums a groove uses most, as the converter writes them.
     pub core: Vec<Drum>,
     pub groups: Vec<FamilyGroup<EngineRow>>,
@@ -710,6 +712,7 @@ fn engine_page(map: &EngineMap, routes: &[Route]) -> EnginePage {
     EnginePage {
         engine: EngineLink::of(map),
         total: map.source_notes().len(),
+        grooves_from: map.grooves_from(),
         core: core_notes(map),
         groups: family_groups(map),
         pairs_from: links(&|(s, _)| s.id() == map.id()),

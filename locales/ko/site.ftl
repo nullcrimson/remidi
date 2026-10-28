@@ -47,6 +47,7 @@ maps-engine-description-short = C-1, C-2 노트 이름으로 보는 { $engine } 
 maps-engine-description-more = { $engineMidi }를 다른 음원용으로 무료 변환하세요.
 maps-engine-heading = { $engine } 드럼 MIDI 노트 맵
 maps-engine-intro = { $engine }에서 소리가 나는 모든 MIDI 노트(총 { $total }개)를 악기별로 정리했습니다. 노트 이름은 C-1 방식(Reaper)과 C-2 방식(Ableton Live, Logic Pro, Cubase, Studio One) 중 원하는 옥타브 표기로 볼 수 있습니다.
+maps-engine-grooves = { $engine }에서는 { $note }보다 낮은 노트가 개별 악기를, { $note }번 노트부터는 자체 그루브를 재생합니다. 변환한 파일은 타격을 하나씩 재생하므로 { $engine }의 그루브와 스윙·필 컨트롤은 쓸 수 없습니다.
 maps-convert-to = { $engine }용으로 변환
 maps-convert-from = { $engine }에서 변환
 maps-filter-drums-label = 악기 검색

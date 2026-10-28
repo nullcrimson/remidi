@@ -342,3 +342,5 @@ perc.sticks
 perc.tambourine
 perc.vibraslap
 perc.misc
+snare1.ghost
+snare2.ghost

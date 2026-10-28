@@ -47,6 +47,7 @@ maps-engine-description-short = { $engine } 鼓 MIDI 音符映射表，含 C-1 �
 maps-engine-description-more = 免费将 { $engineMidi } 转换到任意鼓音源。
 maps-engine-heading = { $engine } 鼓 MIDI 音符映射表
 maps-engine-intro = { $engine } 能响应的全部 MIDI 音符（共 { $total } 个），按鼓件分组。音名可以按任一种八度标记显示：C-1（Reaper）或 C-2（Ableton Live、Logic Pro、Cubase、Studio One）。
+maps-engine-grooves = { $engine } 在 { $note } 以下的音符上演奏单个鼓件，从音符 { $note } 起播放自带的律动。转换后的文件逐个演奏每一击：无法使用 { $engine } 的律动及其摇摆（swing）和律动感（feel）控制。
 maps-convert-to = 转换为 { $engine }
 maps-convert-from = 从 { $engine } 转换
 maps-filter-drums-label = 筛选鼓件
