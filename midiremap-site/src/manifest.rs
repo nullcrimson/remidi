@@ -37,8 +37,8 @@ pub struct LocaleScript {
 }
 
 /// What the static pages take from the app's build, which writes it to `site.json`: the
-/// stylesheet's address, the content security policy text, the analytics scripts and the
-/// locale script.
+/// stylesheet's address, the content security policy text, the analytics scripts, the
+/// locale script and the latin font files a page in the web fonts preloads.
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SiteManifest {
@@ -46,6 +46,7 @@ pub struct SiteManifest {
     pub content_security_policy: String,
     pub analytics: Vec<AnalyticsScript>,
     pub locale_script: LocaleScript,
+    pub font_preloads: Vec<String>,
 }
 
 fn read_file(path: &Path) -> Result<String, ManifestError> {
@@ -95,7 +96,8 @@ mod tests {
     { "src": "https://static.cloudflareinsights.com/beacon.min.js", "attrs": { "data-cf-beacon": "{\"token\": \"t\"}" } },
     { "src": "https://cloud.umami.is/script.js", "attrs": { "data-website-id": "w", "data-domains": "example.com" } }
   ],
-  "localeScript": { "src": "/assets/site-locale-x1.js", "preload": ["/assets/storage-y2.js", "/assets/language-z3.js"] }
+  "localeScript": { "src": "/assets/site-locale-x1.js", "preload": ["/assets/storage-y2.js", "/assets/language-z3.js"] },
+  "fontPreloads": ["/assets/plex-a1.woff2"]
 }"#;
 
     fn parsed() -> SiteManifest {

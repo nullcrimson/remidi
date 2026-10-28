@@ -1,3 +1,5 @@
+import { latinFont } from './latinFonts.ts';
+
 /** A third-party `<script defer>` every page loads: its address and its other attributes. */
 export interface AnalyticsScript {
   src: string;
@@ -16,6 +18,7 @@ export interface SiteManifest {
   contentSecurityPolicy: string;
   analytics: readonly AnalyticsScript[];
   localeScript: LocaleScript;
+  fontPreloads: readonly string[];
 }
 
 /** The part of an emitted chunk the manifest reads. */
@@ -34,6 +37,12 @@ export function stylesheetOf(files: readonly string[]): string {
     throw new Error(`expected exactly one stylesheet in the bundle, found ${sheets.length}`);
   }
   return `/${sheet}`;
+}
+
+function fontPreloadsOf(files: readonly string[]): string[] {
+  const fonts = files.filter((file) => latinFont(file)?.weight === 'variable').sort();
+  if (fonts.length === 0) throw new Error('expected the latin text fonts in the bundle, found 0');
+  return fonts.map((file) => `/${file}`);
 }
 
 /** The entry named `entry` and every chunk it imports statically, directly or through another chunk. */
@@ -66,5 +75,6 @@ export function siteManifest(
     contentSecurityPolicy,
     analytics,
     localeScript: localeScriptOf(chunks, localeEntry),
+    fontPreloads: fontPreloadsOf(files),
   };
 }

@@ -8,6 +8,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { builtFile } from './scripts/devStatic.ts';
 import { localeChunkName } from './scripts/localeChunk.ts';
 import { siteManifest, type AnalyticsScript } from './scripts/siteManifest.ts';
+import { steadyFonts } from './scripts/steadyFonts.ts';
 import { LOCALES } from './src/generated/i18n.ts';
 
 const BEACON = 'https://static.cloudflareinsights.com';
@@ -100,6 +101,7 @@ function builtStaticPages(): Plugin {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), contentSecurityPolicy(), analyticsScripts(), siteData(), builtStaticPages()],
+  css: { postcss: { plugins: [steadyFonts()] } },
   worker: { format: 'es' },
   build: {
     rollupOptions: {

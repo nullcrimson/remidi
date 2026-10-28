@@ -42,6 +42,7 @@ struct LocaleEntry {
     lang_tag: String,
     native_name: String,
     reviewed: bool,
+    fonts: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -224,6 +225,9 @@ fn locale_code(locales: &[LocaleEntry]) -> String {
         matcher("native_name", "&'static str", locales, field(|l| &l.native_name)),
         matcher("reviewed", "bool", locales, |l| {
             (l.code.to_upper_camel_case(), l.reviewed.to_string())
+        }),
+        matcher("draws_text_with_web_fonts", "bool", locales, |l| {
+            (l.code.to_upper_camel_case(), l.fonts.is_none().to_string())
         }),
         format!("    pub fn ftl(self, file: FtlFile) -> &'static str {{ match (self, file) {{ {ftl_arms} }} }}\n"),
         matcher("docs", "&'static str", locales, |l| {

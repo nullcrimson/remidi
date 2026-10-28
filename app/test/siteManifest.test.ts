@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { localeScriptOf, siteManifest, stylesheetOf, type EmittedChunk } from '../scripts/siteManifest';
 
-const FILES = ['index.html', 'assets/index-AbC123.js', 'assets/index-XyZ789.css', 'assets/site-locale-Lo1.js'];
+const FILES = ['index.html', 'assets/index-AbC123.js', 'assets/index-XyZ789.css', 'assets/site-locale-Lo1.js', 'assets/ibm-plex-sans-latin-wght-normal-Pl1.woff2'];
 
 const chunk = (fileName: string, imports: string[] = [], isEntry = false): EmittedChunk => ({
   fileName,
@@ -54,6 +54,26 @@ describe('site manifest', () => {
       contentSecurityPolicy: `default-src 'self'`,
       analytics,
       localeScript: { src: '/assets/site-locale-Lo1.js', preload: ['/assets/language-L1.js', '/assets/storage-S1.js'] },
+      fontPreloads: ['/assets/ibm-plex-sans-latin-wght-normal-Pl1.woff2'],
     });
+  });
+
+  it('preloads the latin text fonts and no other subset or single weight', () => {
+    const files = [
+      'assets/index-XyZ789.css',
+      'assets/space-grotesk-latin-wght-normal-Gh4.woff2',
+      'assets/ibm-plex-sans-latin-wght-normal-Ab1.woff2',
+      'assets/ibm-plex-sans-latin-ext-wght-normal-Cd2.woff2',
+      'assets/ibm-plex-mono-latin-400-normal-Ef3.woff2',
+    ];
+    expect(siteManifest(files, CHUNKS, 'site-locale', `default-src 'self'`, []).fontPreloads).toEqual([
+      '/assets/ibm-plex-sans-latin-wght-normal-Ab1.woff2',
+      '/assets/space-grotesk-latin-wght-normal-Gh4.woff2',
+    ]);
+  });
+
+  it('refuses a bundle without latin text fonts', () => {
+    const files = ['assets/index-XyZ789.css', 'assets/ibm-plex-sans-latin-ext-wght-normal-Cd2.woff2', 'assets/ibm-plex-mono-latin-400-normal-Ef3.woff2'];
+    expect(() => siteManifest(files, CHUNKS, 'site-locale', `default-src 'self'`, [])).toThrow();
   });
 });

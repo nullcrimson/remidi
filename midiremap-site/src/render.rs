@@ -128,6 +128,7 @@ struct Frame<'a> {
     csp: &'a str,
     analytics: &'a [AnalyticsScript],
     locale_script: &'a LocaleScript,
+    font_preloads: &'a [String],
     skip: &'a str,
     nav_main: &'a str,
     nav_site: &'a str,
@@ -185,6 +186,11 @@ impl<'a> Frame<'a> {
             csp: &manifest.content_security_policy,
             analytics: &manifest.analytics,
             locale_script: &manifest.locale_script,
+            font_preloads: if here.draws_text_with_web_fonts() {
+                &manifest.font_preloads
+            } else {
+                &[]
+            },
             skip: texts.get(Plain::SkipToContent),
             nav_main: texts.get(Plain::NavMain),
             nav_site: texts.get(Plain::NavSite),
@@ -456,6 +462,7 @@ mod tests {
         r#"<script type="module" src="/assets/site-locale-test.js" blocking="render"></script>"#;
     const PRELOAD_TAG: &str = r#"<link rel="modulepreload" href="/assets/storage-test.js" />"#;
     const FILTER_TAG: &str = r#"<script src="/filter.js" defer></script>"#;
+    const FONT_TAG: &str = r#"<link rel="preload" href="/assets/plex-test.woff2" as="font" type="font/woff2" crossorigin />"#;
 
     fn manifest() -> SiteManifest {
         let attrs = |pairs: &[(&str, &str)]| {
@@ -481,6 +488,7 @@ mod tests {
                 src: "/assets/site-locale-test.js".to_owned(),
                 preload: vec!["/assets/storage-test.js".to_owned()],
             },
+            font_preloads: vec!["/assets/plex-test.woff2".to_owned()],
         }
     }
 
@@ -496,7 +504,7 @@ mod tests {
     #[test]
     fn every_page_carries_the_policy_from_the_manifest() {
         for (path, html) in rendered() {
-            let head = html.split("</head>").next().unwrap();
+            let head = head_of(html);
             assert!(
                 head.contains(
                     r#"<meta http-equiv="Content-Security-Policy" content="default-src &#39;self&#39;" />"#
@@ -551,10 +559,22 @@ mod tests {
     #[test]
     fn the_locale_script_decides_the_language_offer_before_the_first_paint() {
         for (path, html) in rendered() {
-            let head = &html[..html.find("</head>").unwrap()];
+            let head = head_of(html);
             assert!(head.contains(LOCALE_TAG), "{path}");
             assert!(head.contains(PRELOAD_TAG), "{path}");
         }
+    }
+
+    #[test]
+    fn a_page_in_the_web_fonts_preloads_them_in_its_head() {
+        assert_eq!(head("engines/index.html").matches(FONT_TAG).count(), 1);
+        assert_eq!(head("pl/engines/index.html").matches(FONT_TAG).count(), 1);
+    }
+
+    #[test]
+    fn a_page_in_system_fonts_preloads_no_font() {
+        assert!(!page("ja/engines/index.html").contains(r#"as="font""#));
+        assert!(!page("zh/engines/index.html").contains(r#"as="font""#));
     }
 
     #[test]
@@ -822,7 +842,7 @@ mod tests {
         let pages = rendered();
         for &l in Locale::ALL {
             let (file, html) = thanks_page(pages, l);
-            let head = html.split("</head>").next().unwrap();
+            let head = head_of(html);
             assert!(
                 head.contains(r#"<meta name="robots" content="noindex" />"#),
                 "{file}"
@@ -1405,6 +1425,7 @@ mod tests {
         known.extend(Locale::ALL.iter().map(|&l| home(l).to_string()));
         known.insert(manifest().stylesheet);
         known.extend(manifest().locale_script.preload);
+        known.extend(manifest().font_preloads);
         known.extend(STATIC_ASSETS.iter().map(|s| s.to_string()));
         known.extend(
             crate::fixtures::site()
@@ -2053,8 +2074,12 @@ mod tests {
 
     const NOINDEX: &str = r#"<meta name="robots" content="noindex,follow" />"#;
 
+    fn head_of(html: &str) -> &str {
+        html.split("</head>").next().unwrap()
+    }
+
     fn head(path: &str) -> &'static str {
-        page(path).split("</head>").next().unwrap()
+        head_of(page(path))
     }
 
     #[test]
