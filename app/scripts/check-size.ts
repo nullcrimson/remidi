@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
+import { latinFont } from './latinFonts.ts';
 import { reachable } from './reachable.ts';
 
 /**
@@ -47,7 +48,7 @@ export function kindOf(name: string): FileKind | undefined {
   if (/^locale-.+\.js$/.test(name)) return 'locale';
   if (name.endsWith('.js')) return 'js';
   if (name.endsWith('.css')) return 'css';
-  if (/-latin-(wght|\d+)-normal-[^.]+\.woff2$/.test(name)) return 'fonts';
+  if (latinFont(name)) return 'fonts';
   return undefined;
 }
 

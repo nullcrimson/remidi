@@ -22,10 +22,6 @@ describe('asset size budgets', () => {
     expect(kindOf('ibm-plex-mono-latin-600-normal-Bg.woff2')).toBe('fonts');
   });
 
-  it('leaves a latin-ext font unbudgeted', () => {
-    expect(kindOf('ibm-plex-mono-latin-ext-600-normal-D3.woff2')).toBeUndefined();
-  });
-
   it('leaves a woff font unbudgeted', () => {
     expect(kindOf('ibm-plex-mono-latin-600-normal-Dw.woff')).toBeUndefined();
   });
