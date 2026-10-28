@@ -30,6 +30,8 @@ are never uploaded.
   ready-made with the defaults on each pair's page.
 - **Drum maps**: every engine's note names for Reaper, Cubase, Studio One and Ableton Live,
   on [drumverter.com/drum-maps/](https://drumverter.com/drum-maps/) and each engine's page.
+  How each map was checked, and which still need a recheck:
+  [docs/engine-verification.md](docs/engine-verification.md).
 - Batch conversion, drum-channel selection, 11 languages, and a command-line tool for
   offline use.
 
