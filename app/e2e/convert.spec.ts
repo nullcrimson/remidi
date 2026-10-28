@@ -46,7 +46,8 @@ test('the Convert tooltip follows the mouse', async ({ page, isMobile }) => {
   const box = await hoverDisabledConvert(page);
   await page.getByRole('tooltip').waitFor();
   await page.mouse.move(box.x + 80, box.y + box.height / 2);
-  await expect(page.getByRole('tooltip')).toHaveCSS('left', `${Math.round(box.x + 80 + 14)}px`);
+  await expect.poll(async () => parseFloat(await page.getByRole('tooltip').evaluate((el) => getComputedStyle(el).left)))
+    .toBeCloseTo(box.x + 80 + 14, 0);
 });
 
 test('the Convert tooltip goes when the mouse leaves the button', async ({ page, isMobile }) => {

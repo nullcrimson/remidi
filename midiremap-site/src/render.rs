@@ -452,7 +452,8 @@ mod tests {
     const BEACON_TAG: &str = r#"<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon="{&#34;token&#34;: &#34;t&#34;}"></script>"#;
     const STATS_TAG: &str = r#"<script defer src="https://cloud.umami.is/script.js" data-domains="example.com" data-website-id="w"></script>"#;
 
-    const LOCALE_TAG: &str = r#"<script type="module" src="/assets/site-locale-test.js"></script>"#;
+    const LOCALE_TAG: &str =
+        r#"<script type="module" src="/assets/site-locale-test.js" blocking="render"></script>"#;
     const PRELOAD_TAG: &str = r#"<link rel="modulepreload" href="/assets/storage-test.js" />"#;
     const FILTER_TAG: &str = r#"<script src="/filter.js" defer></script>"#;
 
@@ -544,6 +545,15 @@ mod tests {
     fn every_static_page_loads_the_locale_script() {
         for (path, html) in rendered() {
             assert_eq!(html.matches(LOCALE_TAG).count(), 1, "{path}");
+        }
+    }
+
+    #[test]
+    fn the_locale_script_decides_the_language_offer_before_the_first_paint() {
+        for (path, html) in rendered() {
+            let head = &html[..html.find("</head>").unwrap()];
+            assert!(head.contains(LOCALE_TAG), "{path}");
+            assert!(head.contains(PRELOAD_TAG), "{path}");
         }
     }
 
@@ -1765,6 +1775,12 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn the_language_button_names_the_code_it_shows() {
+        assert!(page("drum-maps/index.html").contains(r#"aria-label="Language (EN)""#));
+        assert!(page("pl/drum-maps/index.html").contains(r#"aria-label="Język (PL)""#));
     }
 
     #[test]

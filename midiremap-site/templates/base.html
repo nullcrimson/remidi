@@ -22,6 +22,8 @@
     <meta name="twitter:image" content="{{ frame.og_image }}" />
     <link rel="stylesheet" href="{{ frame.css }}" />
     {% if let Some(ld) = frame.json_ld %}<script type="application/ld+json">{{ ld|safe }}</script>{% endif %}
+{% for href in frame.locale_script.preload %}    <link rel="modulepreload" href="{{ href }}" />
+{% endfor %}    <script type="module" src="{{ frame.locale_script.src }}" blocking="render"></script>
   </head>
   <body class="text-t3">
     <div class="flex min-h-screen flex-col items-center px-5 pt-[6vh] pb-16">
@@ -67,8 +69,6 @@
       </div>
     </div>
     {% block script %}{% endblock %}
-{% for href in frame.locale_script.preload %}    <link rel="modulepreload" href="{{ href }}" />
-{% endfor %}    <script type="module" src="{{ frame.locale_script.src }}"></script>
 {% for script in frame.analytics %}    <script defer src="{{ script.src }}"{% for (name, value) in script.attrs %} {{ name }}="{{ value }}"{% endfor %}></script>
 {% endfor %}  </body>
 </html>

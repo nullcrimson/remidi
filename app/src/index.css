@@ -59,6 +59,14 @@
 }
 
 @layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  body[style*='--floating-ui-scrollbar-width'] {
+    padding-inline: 0 !important;
+  }
+
   :where(a, button, input, select, textarea, [tabindex]):focus-visible {
     outline: 2px solid color-mix(in oklab, var(--color-accent) 60%, transparent);
     outline-offset: 2px;

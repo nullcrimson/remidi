@@ -25,7 +25,7 @@ describe('LanguageMenu', () => {
 
   it('shows the current code on its trigger', () => {
     render(<LanguageMenu />);
-    expect(screen.getByRole('button', { name: 'Language' })).toHaveTextContent('EN');
+    expect(screen.getByRole('button', { name: 'Language (EN)' })).toHaveTextContent('EN');
   });
 
   it('switches in place on a plain click', async () => {

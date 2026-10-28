@@ -194,7 +194,12 @@ export default function App({ runtime }: { runtime: Runtime }) {
   };
 
   return (
-    <Page wide onSkip={() => request('main')} after={<PopularConversions engines={remapper.engines} />}>
+    <Page
+      wide
+      loading={remapper.catalog.status === 'loading'}
+      onSkip={() => request('main')}
+      after={<PopularConversions engines={remapper.engines} />}
+    >
       <Card mainRef={focus.ref('main')}>
         <CardDropzone onFiles={dropFiles}>
           <div className="
@@ -205,8 +210,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
             <Intro />
 
             {remapper.catalog.status === 'loading' && (
-              <p className="text-ui text-t3">{t({ id: 'app-loading' })}
-              </p>
+              <p className="text-ui text-t3">{t({ id: 'app-loading' })}</p>
             )}
 
             {remapper.catalog.status === 'error' && (

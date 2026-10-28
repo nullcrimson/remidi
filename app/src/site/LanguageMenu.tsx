@@ -24,7 +24,7 @@ export function LanguageMenu() {
         id="language-trigger"
         type="button"
         popoverTarget="language-menu"
-        aria-label={translator.t({ id: 'lang-menu-label' })}
+        aria-label={`${translator.t({ id: 'lang-menu-label' })} (${translator.locale.toUpperCase()})`}
         className="nav-link lang-trigger"
       >
         <GlobeIcon />

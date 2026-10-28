@@ -6,14 +6,20 @@ import { SiteHeader } from './SiteHeader';
 
 const MAIN_ID = 'main';
 
-/** The page column with the skip link, the site header, the footer and what comes `after` it. */
+/**
+ * The page column with the skip link, the site header, the footer and what comes `after` it.
+ * While the page is `loading` the footer and `after` wait, so nothing below the content moves
+ * when it grows.
+ */
 export function Page({
   wide = false,
+  loading = false,
   onSkip,
   after,
   children,
 }: {
   wide?: boolean;
+  loading?: boolean;
   onSkip: () => void;
   after?: ReactNode;
   children: ReactNode;
@@ -49,8 +55,12 @@ export function Page({
           <SiteHeader />
         </div>
         {children}
-        <SiteFooter />
-        {after}
+        {!loading && (
+          <>
+            <SiteFooter />
+            {after}
+          </>
+        )}
       </div>
     </div>
   );
