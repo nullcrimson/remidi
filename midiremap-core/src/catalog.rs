@@ -229,20 +229,22 @@ mod tests {
 
     #[test]
     fn guitar_pro_plays_its_tambourines_as_a_tambourine() {
-        for key in [54, 111, 112, 113] {
-            assert_eq!(
-                decoded("guitar_pro", key),
-                Some(k("perc.tambourine")),
-                "{key}"
-            );
-        }
+        assert_eq!(decoded("guitar_pro", 54), Some(k("perc.tambourine")));
+        assert_eq!(decoded("guitar_pro", 111), Some(k("perc.tambourine")));
+        assert_eq!(decoded("guitar_pro", 112), Some(k("perc.tambourine")));
+        assert_eq!(decoded("guitar_pro", 113), Some(k("perc.tambourine")));
     }
 
     #[test]
     fn guitar_pro_plays_its_shakers_maracas_and_cabasa_as_a_shaker() {
-        for key in [69, 70, 82, 117, 118, 119, 120, 122] {
-            assert_eq!(decoded("guitar_pro", key), Some(k("perc.shaker")), "{key}");
-        }
+        assert_eq!(decoded("guitar_pro", 69), Some(k("perc.shaker")));
+        assert_eq!(decoded("guitar_pro", 70), Some(k("perc.shaker")));
+        assert_eq!(decoded("guitar_pro", 82), Some(k("perc.shaker")));
+        assert_eq!(decoded("guitar_pro", 117), Some(k("perc.shaker")));
+        assert_eq!(decoded("guitar_pro", 118), Some(k("perc.shaker")));
+        assert_eq!(decoded("guitar_pro", 119), Some(k("perc.shaker")));
+        assert_eq!(decoded("guitar_pro", 120), Some(k("perc.shaker")));
+        assert_eq!(decoded("guitar_pro", 122), Some(k("perc.shaker")));
     }
 
     #[test]
@@ -320,41 +322,24 @@ mod tests {
         assert_eq!(decoded("ggd_invasion_ggd", 72), Some(k("china.2.mute")));
     }
 
-    fn plays_what_the_default_plays(variant: &str, base: &str, keys: &[(u8, u8)]) {
-        for &(key, base_key) in keys {
-            assert_eq!(
-                decoded(variant, key),
-                decoded(base, base_key),
-                "{variant} {key} against {base} {base_key}"
-            );
-            assert!(decoded(variant, key).is_some(), "{variant} {key}");
-        }
-    }
-
     #[test]
     fn invasion_gm_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_invasion_gm",
-            "ggd_invasion",
-            &[
-                (38, 26),
-                (50, 33),
-                (43, 36),
-                (48, 37),
-                (41, 38),
-                (49, 52),
-                (57, 54),
-                (52, 65),
-                (53, 61),
-                (51, 62),
-                (42, 41),
-                (54, 43),
-                (46, 46),
-                (58, 47),
-                (44, 48),
-                (55, 73),
-            ],
-        );
+        assert_eq!(decoded("ggd_invasion_gm", 38), Some(k("snare1.hit")));
+        assert_eq!(decoded("ggd_invasion_gm", 50), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("ggd_invasion_gm", 43), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("ggd_invasion_gm", 48), Some(k("tom.floor2.hit")));
+        assert_eq!(decoded("ggd_invasion_gm", 41), Some(k("tom.floor3.hit")));
+        assert_eq!(decoded("ggd_invasion_gm", 49), Some(k("crash.1.hit")));
+        assert_eq!(decoded("ggd_invasion_gm", 57), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_invasion_gm", 52), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_invasion_gm", 53), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_invasion_gm", 51), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_invasion_gm", 42), Some(k("hat.tight.tip")));
+        assert_eq!(decoded("ggd_invasion_gm", 54), Some(k("hat.closed.tip")));
+        assert_eq!(decoded("ggd_invasion_gm", 46), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_invasion_gm", 58), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_invasion_gm", 44), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_invasion_gm", 55), Some(k("splash.1.hit")));
     }
 
     #[test]
@@ -364,40 +349,64 @@ mod tests {
 
     #[test]
     fn invasion_halpern_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_invasion_halpern",
-            "ggd_invasion",
-            &[
-                (26, 26),
-                (27, 27),
-                (28, 28),
-                (29, 29),
-                (30, 30),
-                (33, 33),
-                (37, 36),
-                (35, 37),
-                (39, 38),
-                (62, 52),
-                (64, 53),
-                (67, 54),
-                (69, 55),
-                (76, 65),
-                (77, 68),
-                (74, 61),
-                (72, 62),
-                (73, 63),
-                (45, 41),
-                (58, 42),
-                (47, 43),
-                (48, 44),
-                (53, 45),
-                (54, 46),
-                (56, 47),
-                (44, 47),
-                (43, 48),
-                (83, 73),
-                (82, 74),
-            ],
+        assert_eq!(decoded("ggd_invasion_halpern", 26), Some(k("snare1.hit")));
+        assert_eq!(decoded("ggd_invasion_halpern", 27), Some(k("snare1.flam")));
+        assert_eq!(decoded("ggd_invasion_halpern", 28), Some(k("snare1.ruff")));
+        assert_eq!(decoded("ggd_invasion_halpern", 29), Some(k("snare1.off")));
+        assert_eq!(
+            decoded("ggd_invasion_halpern", 30),
+            Some(k("snare1.sidestick"))
+        );
+        assert_eq!(
+            decoded("ggd_invasion_halpern", 33),
+            Some(k("tom.rack1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_invasion_halpern", 37),
+            Some(k("tom.floor1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_invasion_halpern", 35),
+            Some(k("tom.floor2.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_invasion_halpern", 39),
+            Some(k("tom.floor3.hit"))
+        );
+        assert_eq!(decoded("ggd_invasion_halpern", 62), Some(k("crash.1.hit")));
+        assert_eq!(decoded("ggd_invasion_halpern", 64), Some(k("crash.1.mute")));
+        assert_eq!(decoded("ggd_invasion_halpern", 67), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_invasion_halpern", 69), Some(k("crash.2.mute")));
+        assert_eq!(decoded("ggd_invasion_halpern", 76), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_invasion_halpern", 77), Some(k("china.2.mute")));
+        assert_eq!(decoded("ggd_invasion_halpern", 74), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_invasion_halpern", 72), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_invasion_halpern", 73), Some(k("ride.1.edge")));
+        assert_eq!(
+            decoded("ggd_invasion_halpern", 45),
+            Some(k("hat.tight.tip"))
+        );
+        assert_eq!(
+            decoded("ggd_invasion_halpern", 58),
+            Some(k("hat.tight.edge"))
+        );
+        assert_eq!(
+            decoded("ggd_invasion_halpern", 47),
+            Some(k("hat.closed.tip"))
+        );
+        assert_eq!(
+            decoded("ggd_invasion_halpern", 48),
+            Some(k("hat.closed.edge"))
+        );
+        assert_eq!(decoded("ggd_invasion_halpern", 53), Some(k("hat.open1")));
+        assert_eq!(decoded("ggd_invasion_halpern", 54), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_invasion_halpern", 56), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_invasion_halpern", 44), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_invasion_halpern", 43), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_invasion_halpern", 83), Some(k("splash.1.hit")));
+        assert_eq!(
+            decoded("ggd_invasion_halpern", 82),
+            Some(k("splash.1.mute"))
         );
     }
 
@@ -408,706 +417,978 @@ mod tests {
 
     #[test]
     fn brutal_gm_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_brutal_gm",
-            "ggd_brutal",
-            &[
-                (36, 24),
-                (38, 26),
-                (50, 33),
-                (43, 34),
-                (48, 35),
-                (42, 41),
-                (54, 43),
-                (46, 46),
-                (58, 47),
-                (44, 48),
-                (53, 61),
-                (51, 62),
-                (55, 73),
-                (49, 52),
-                (52, 65),
-                (57, 75),
-            ],
-        );
+        assert_eq!(decoded("ggd_brutal_gm", 36), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_brutal_gm", 38), Some(k("snare1.hit")));
+        assert_eq!(decoded("ggd_brutal_gm", 50), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("ggd_brutal_gm", 43), Some(k("tom.rack2.hit")));
+        assert_eq!(decoded("ggd_brutal_gm", 48), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("ggd_brutal_gm", 42), Some(k("hat.tight.tip")));
+        assert_eq!(decoded("ggd_brutal_gm", 54), Some(k("hat.closed.tip")));
+        assert_eq!(decoded("ggd_brutal_gm", 46), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_brutal_gm", 58), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_brutal_gm", 44), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_brutal_gm", 53), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_brutal_gm", 51), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_brutal_gm", 55), Some(k("crash.1.hit")));
+        assert_eq!(decoded("ggd_brutal_gm", 49), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_brutal_gm", 52), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_brutal_gm", 57), Some(k("stack.1.hit")));
     }
 
     #[test]
     fn brutal_halpern_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_brutal_halpern",
-            "ggd_brutal",
-            &[
-                (24, 24),
-                (26, 26),
-                (30, 30),
-                (33, 33),
-                (37, 34),
-                (35, 35),
-                (45, 41),
-                (58, 42),
-                (47, 43),
-                (48, 44),
-                (53, 45),
-                (54, 46),
-                (56, 47),
-                (44, 47),
-                (43, 48),
-                (74, 61),
-                (72, 62),
-                (83, 73),
-                (82, 74),
-                (62, 52),
-                (64, 53),
-                (76, 65),
-                (77, 66),
-                (67, 75),
-            ],
+        assert_eq!(decoded("ggd_brutal_halpern", 24), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_brutal_halpern", 26), Some(k("snare1.hit")));
+        assert_eq!(
+            decoded("ggd_brutal_halpern", 30),
+            Some(k("snare1.sidestick"))
         );
+        assert_eq!(decoded("ggd_brutal_halpern", 33), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("ggd_brutal_halpern", 37), Some(k("tom.rack2.hit")));
+        assert_eq!(decoded("ggd_brutal_halpern", 35), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("ggd_brutal_halpern", 45), Some(k("hat.tight.tip")));
+        assert_eq!(decoded("ggd_brutal_halpern", 58), Some(k("hat.tight.edge")));
+        assert_eq!(decoded("ggd_brutal_halpern", 47), Some(k("hat.closed.tip")));
+        assert_eq!(
+            decoded("ggd_brutal_halpern", 48),
+            Some(k("hat.closed.edge"))
+        );
+        assert_eq!(decoded("ggd_brutal_halpern", 53), Some(k("hat.open1")));
+        assert_eq!(decoded("ggd_brutal_halpern", 54), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_brutal_halpern", 56), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_brutal_halpern", 44), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_brutal_halpern", 43), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_brutal_halpern", 74), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_brutal_halpern", 72), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_brutal_halpern", 83), Some(k("crash.1.hit")));
+        assert_eq!(decoded("ggd_brutal_halpern", 82), Some(k("crash.1.mute")));
+        assert_eq!(decoded("ggd_brutal_halpern", 62), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_brutal_halpern", 64), Some(k("crash.2.mute")));
+        assert_eq!(decoded("ggd_brutal_halpern", 76), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_brutal_halpern", 77), Some(k("china.1.mute")));
+        assert_eq!(decoded("ggd_brutal_halpern", 67), Some(k("stack.1.hit")));
     }
 
     #[test]
     fn brutal_ggd_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_brutal_ggd",
-            "ggd_brutal",
-            &[
-                (36, 24),
-                (37, 26),
-                (40, 30),
-                (42, 33),
-                (45, 34),
-                (43, 35),
-                (48, 41),
-                (54, 42),
-                (49, 43),
-                (52, 45),
-                (53, 46),
-                (57, 47),
-                (55, 48),
-                (74, 61),
-                (73, 62),
-                (77, 73),
-                (83, 74),
-                (58, 52),
-                (59, 53),
-                (71, 65),
-                (72, 66),
-                (61, 75),
-            ],
-        );
+        assert_eq!(decoded("ggd_brutal_ggd", 36), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_brutal_ggd", 37), Some(k("snare1.hit")));
+        assert_eq!(decoded("ggd_brutal_ggd", 40), Some(k("snare1.sidestick")));
+        assert_eq!(decoded("ggd_brutal_ggd", 42), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("ggd_brutal_ggd", 45), Some(k("tom.rack2.hit")));
+        assert_eq!(decoded("ggd_brutal_ggd", 43), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("ggd_brutal_ggd", 48), Some(k("hat.tight.tip")));
+        assert_eq!(decoded("ggd_brutal_ggd", 54), Some(k("hat.tight.edge")));
+        assert_eq!(decoded("ggd_brutal_ggd", 49), Some(k("hat.closed.tip")));
+        assert_eq!(decoded("ggd_brutal_ggd", 52), Some(k("hat.open1")));
+        assert_eq!(decoded("ggd_brutal_ggd", 53), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_brutal_ggd", 57), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_brutal_ggd", 55), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_brutal_ggd", 74), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_brutal_ggd", 73), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_brutal_ggd", 77), Some(k("crash.1.hit")));
+        assert_eq!(decoded("ggd_brutal_ggd", 83), Some(k("crash.1.mute")));
+        assert_eq!(decoded("ggd_brutal_ggd", 58), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_brutal_ggd", 59), Some(k("crash.2.mute")));
+        assert_eq!(decoded("ggd_brutal_ggd", 71), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_brutal_ggd", 72), Some(k("china.1.mute")));
+        assert_eq!(decoded("ggd_brutal_ggd", 61), Some(k("stack.1.hit")));
     }
 
     #[test]
     fn modern_fusion_gm_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_modernfusion_gm",
-            "ggd_modernfusion",
-            &[
-                (36, 24),
-                (38, 26),
-                (37, 30),
-                (50, 33),
-                (48, 34),
-                (43, 35),
-                (53, 61),
-                (51, 62),
-                (49, 52),
-                (66, 53),
-                (57, 54),
-                (95, 55),
-                (41, 41),
-                (42, 42),
-                (10, 43),
-                (54, 44),
-                (58, 45),
-                (46, 46),
-                (56, 47),
-                (44, 48),
-                (55, 73),
-                (64, 74),
-                (52, 65),
-                (74, 66),
-                (69, 78),
-            ],
+        assert_eq!(decoded("ggd_modernfusion_gm", 36), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_modernfusion_gm", 38), Some(k("snare1.hit")));
+        assert_eq!(
+            decoded("ggd_modernfusion_gm", 37),
+            Some(k("snare1.sidestick"))
         );
+        assert_eq!(decoded("ggd_modernfusion_gm", 50), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("ggd_modernfusion_gm", 48), Some(k("tom.rack2.hit")));
+        assert_eq!(
+            decoded("ggd_modernfusion_gm", 43),
+            Some(k("tom.floor1.hit"))
+        );
+        assert_eq!(decoded("ggd_modernfusion_gm", 53), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_modernfusion_gm", 51), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_modernfusion_gm", 49), Some(k("crash.1.hit")));
+        assert_eq!(decoded("ggd_modernfusion_gm", 66), Some(k("crash.1.mute")));
+        assert_eq!(decoded("ggd_modernfusion_gm", 57), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_modernfusion_gm", 95), Some(k("crash.2.mute")));
+        assert_eq!(decoded("ggd_modernfusion_gm", 41), Some(k("hat.tight.tip")));
+        assert_eq!(
+            decoded("ggd_modernfusion_gm", 42),
+            Some(k("hat.tight.edge"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_gm", 10),
+            Some(k("hat.closed.tip"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_gm", 54),
+            Some(k("hat.closed.edge"))
+        );
+        assert_eq!(decoded("ggd_modernfusion_gm", 58), Some(k("hat.open1")));
+        assert_eq!(decoded("ggd_modernfusion_gm", 46), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_modernfusion_gm", 56), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_modernfusion_gm", 44), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_modernfusion_gm", 55), Some(k("splash.1.hit")));
+        assert_eq!(decoded("ggd_modernfusion_gm", 64), Some(k("splash.1.mute")));
+        assert_eq!(decoded("ggd_modernfusion_gm", 52), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_modernfusion_gm", 74), Some(k("china.1.mute")));
+        assert_eq!(decoded("ggd_modernfusion_gm", 69), Some(k("stack.1.hit")));
     }
 
     #[test]
     fn modern_fusion_halpern_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_modernfusion_halpern",
-            "ggd_modernfusion",
-            &[
-                (24, 24),
-                (26, 26),
-                (30, 30),
-                (33, 33),
-                (37, 34),
-                (35, 35),
-                (74, 61),
-                (72, 62),
-                (62, 52),
-                (64, 53),
-                (67, 54),
-                (69, 55),
-                (45, 41),
-                (58, 42),
-                (47, 43),
-                (48, 44),
-                (53, 45),
-                (54, 46),
-                (56, 47),
-                (44, 47),
-                (43, 48),
-                (83, 73),
-                (82, 74),
-                (76, 65),
-                (77, 66),
-            ],
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 24),
+            Some(k("kick.main"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 26),
+            Some(k("snare1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 30),
+            Some(k("snare1.sidestick"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 33),
+            Some(k("tom.rack1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 37),
+            Some(k("tom.rack2.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 35),
+            Some(k("tom.floor1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 74),
+            Some(k("ride.1.bell"))
+        );
+        assert_eq!(decoded("ggd_modernfusion_halpern", 72), Some(k("ride.1")));
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 62),
+            Some(k("crash.1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 64),
+            Some(k("crash.1.mute"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 67),
+            Some(k("crash.2.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 69),
+            Some(k("crash.2.mute"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 45),
+            Some(k("hat.tight.tip"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 58),
+            Some(k("hat.tight.edge"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 47),
+            Some(k("hat.closed.tip"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 48),
+            Some(k("hat.closed.edge"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 53),
+            Some(k("hat.open1"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 54),
+            Some(k("hat.open2"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 56),
+            Some(k("hat.open3"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 44),
+            Some(k("hat.open3"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 43),
+            Some(k("hat.pedal"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 83),
+            Some(k("splash.1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 82),
+            Some(k("splash.1.mute"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 76),
+            Some(k("china.1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_halpern", 77),
+            Some(k("china.1.mute"))
         );
     }
 
     #[test]
     fn modern_fusion_ggd_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_modernfusion_ggd",
-            "ggd_modernfusion",
-            &[
-                (36, 24),
-                (37, 26),
-                (40, 30),
-                (42, 33),
-                (45, 34),
-                (43, 35),
-                (74, 61),
-                (73, 62),
-                (58, 52),
-                (59, 53),
-                (61, 54),
-                (62, 55),
-                (48, 41),
-                (54, 42),
-                (49, 43),
-                (52, 45),
-                (53, 46),
-                (57, 47),
-                (55, 48),
-                (77, 73),
-                (83, 74),
-                (71, 65),
-                (72, 66),
-            ],
+        assert_eq!(decoded("ggd_modernfusion_ggd", 36), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_modernfusion_ggd", 37), Some(k("snare1.hit")));
+        assert_eq!(
+            decoded("ggd_modernfusion_ggd", 40),
+            Some(k("snare1.sidestick"))
         );
+        assert_eq!(
+            decoded("ggd_modernfusion_ggd", 42),
+            Some(k("tom.rack1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_ggd", 45),
+            Some(k("tom.rack2.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_ggd", 43),
+            Some(k("tom.floor1.hit"))
+        );
+        assert_eq!(decoded("ggd_modernfusion_ggd", 74), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_modernfusion_ggd", 73), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_modernfusion_ggd", 58), Some(k("crash.1.hit")));
+        assert_eq!(decoded("ggd_modernfusion_ggd", 59), Some(k("crash.1.mute")));
+        assert_eq!(decoded("ggd_modernfusion_ggd", 61), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_modernfusion_ggd", 62), Some(k("crash.2.mute")));
+        assert_eq!(
+            decoded("ggd_modernfusion_ggd", 48),
+            Some(k("hat.tight.tip"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_ggd", 54),
+            Some(k("hat.tight.edge"))
+        );
+        assert_eq!(
+            decoded("ggd_modernfusion_ggd", 49),
+            Some(k("hat.closed.tip"))
+        );
+        assert_eq!(decoded("ggd_modernfusion_ggd", 52), Some(k("hat.open1")));
+        assert_eq!(decoded("ggd_modernfusion_ggd", 53), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_modernfusion_ggd", 57), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_modernfusion_ggd", 55), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_modernfusion_ggd", 77), Some(k("splash.1.hit")));
+        assert_eq!(
+            decoded("ggd_modernfusion_ggd", 83),
+            Some(k("splash.1.mute"))
+        );
+        assert_eq!(decoded("ggd_modernfusion_ggd", 71), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_modernfusion_ggd", 72), Some(k("china.1.mute")));
     }
 
     #[test]
     fn pop_punk_gm_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_poppunk_gm",
-            "ggd_poppunk",
-            &[
-                (36, 24),
-                (38, 26),
-                (50, 33),
-                (48, 35),
-                (53, 61),
-                (51, 62),
-                (55, 73),
-                (42, 41),
-                (54, 43),
-                (46, 46),
-                (58, 47),
-                (44, 48),
-                (52, 65),
-                (49, 52),
-                (57, 58),
-            ],
-        );
+        assert_eq!(decoded("ggd_poppunk_gm", 36), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_poppunk_gm", 38), Some(k("snare1.hit")));
+        assert_eq!(decoded("ggd_poppunk_gm", 50), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("ggd_poppunk_gm", 48), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("ggd_poppunk_gm", 53), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_poppunk_gm", 51), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_poppunk_gm", 55), Some(k("splash.1.hit")));
+        assert_eq!(decoded("ggd_poppunk_gm", 42), Some(k("hat.tight.tip")));
+        assert_eq!(decoded("ggd_poppunk_gm", 54), Some(k("hat.closed.tip")));
+        assert_eq!(decoded("ggd_poppunk_gm", 46), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_poppunk_gm", 58), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_poppunk_gm", 44), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_poppunk_gm", 52), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_poppunk_gm", 49), Some(k("crash.1.hit")));
+        assert_eq!(decoded("ggd_poppunk_gm", 57), Some(k("crash.2.hit")));
     }
 
     #[test]
     fn pop_punk_halpern_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_poppunk_halpern",
-            "ggd_poppunk",
-            &[
-                (24, 24),
-                (26, 26),
-                (30, 30),
-                (33, 33),
-                (35, 35),
-                (74, 61),
-                (72, 62),
-                (83, 73),
-                (82, 74),
-                (45, 41),
-                (58, 42),
-                (47, 43),
-                (48, 44),
-                (53, 45),
-                (54, 46),
-                (56, 47),
-                (44, 47),
-                (43, 48),
-                (76, 65),
-                (77, 66),
-                (62, 52),
-                (64, 53),
-                (67, 58),
-                (69, 59),
-            ],
+        assert_eq!(decoded("ggd_poppunk_halpern", 24), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_poppunk_halpern", 26), Some(k("snare1.hit")));
+        assert_eq!(
+            decoded("ggd_poppunk_halpern", 30),
+            Some(k("snare1.sidestick"))
         );
+        assert_eq!(decoded("ggd_poppunk_halpern", 33), Some(k("tom.rack1.hit")));
+        assert_eq!(
+            decoded("ggd_poppunk_halpern", 35),
+            Some(k("tom.floor1.hit"))
+        );
+        assert_eq!(decoded("ggd_poppunk_halpern", 74), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_poppunk_halpern", 72), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_poppunk_halpern", 83), Some(k("splash.1.hit")));
+        assert_eq!(decoded("ggd_poppunk_halpern", 82), Some(k("splash.1.mute")));
+        assert_eq!(decoded("ggd_poppunk_halpern", 45), Some(k("hat.tight.tip")));
+        assert_eq!(
+            decoded("ggd_poppunk_halpern", 58),
+            Some(k("hat.tight.edge"))
+        );
+        assert_eq!(
+            decoded("ggd_poppunk_halpern", 47),
+            Some(k("hat.closed.tip"))
+        );
+        assert_eq!(
+            decoded("ggd_poppunk_halpern", 48),
+            Some(k("hat.closed.edge"))
+        );
+        assert_eq!(decoded("ggd_poppunk_halpern", 53), Some(k("hat.open1")));
+        assert_eq!(decoded("ggd_poppunk_halpern", 54), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_poppunk_halpern", 56), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_poppunk_halpern", 44), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_poppunk_halpern", 43), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_poppunk_halpern", 76), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_poppunk_halpern", 77), Some(k("china.1.mute")));
+        assert_eq!(decoded("ggd_poppunk_halpern", 62), Some(k("crash.1.hit")));
+        assert_eq!(decoded("ggd_poppunk_halpern", 64), Some(k("crash.1.mute")));
+        assert_eq!(decoded("ggd_poppunk_halpern", 67), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_poppunk_halpern", 69), Some(k("crash.2.mute")));
     }
 
     #[test]
     fn pop_punk_ggd_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_poppunk_ggd",
-            "ggd_poppunk",
-            &[
-                (36, 24),
-                (37, 26),
-                (40, 30),
-                (42, 33),
-                (43, 35),
-                (74, 61),
-                (73, 62),
-                (77, 73),
-                (83, 74),
-                (48, 41),
-                (54, 42),
-                (49, 43),
-                (52, 45),
-                (53, 46),
-                (57, 47),
-                (55, 48),
-                (71, 65),
-                (72, 66),
-                (58, 52),
-                (59, 53),
-                (61, 58),
-                (62, 59),
-            ],
-        );
+        assert_eq!(decoded("ggd_poppunk_ggd", 36), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 37), Some(k("snare1.hit")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 40), Some(k("snare1.sidestick")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 42), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 43), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 74), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 73), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 77), Some(k("splash.1.hit")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 83), Some(k("splash.1.mute")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 48), Some(k("hat.tight.tip")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 54), Some(k("hat.tight.edge")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 49), Some(k("hat.closed.tip")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 52), Some(k("hat.open1")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 53), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 57), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 55), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 71), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 72), Some(k("china.1.mute")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 58), Some(k("crash.1.hit")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 59), Some(k("crash.1.mute")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 61), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_poppunk_ggd", 62), Some(k("crash.2.mute")));
     }
 
     #[test]
     fn architects_gm_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_architects_gm",
-            "ggd_architects",
-            &[
-                (36, 24),
-                (38, 26),
-                (50, 35),
-                (43, 36),
-                (48, 37),
-                (41, 37),
-                (53, 61),
-                (51, 62),
-                (49, 52),
-                (57, 54),
-                (42, 41),
-                (54, 43),
-                (46, 46),
-                (58, 47),
-                (44, 48),
-                (52, 67),
-                (55, 73),
-            ],
-        );
+        assert_eq!(decoded("ggd_architects_gm", 36), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_architects_gm", 38), Some(k("snare1.hit")));
+        assert_eq!(decoded("ggd_architects_gm", 50), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("ggd_architects_gm", 43), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("ggd_architects_gm", 48), Some(k("tom.floor2.hit")));
+        assert_eq!(decoded("ggd_architects_gm", 41), Some(k("tom.floor2.hit")));
+        assert_eq!(decoded("ggd_architects_gm", 53), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_architects_gm", 51), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_architects_gm", 49), Some(k("crash.1.hit")));
+        assert_eq!(decoded("ggd_architects_gm", 57), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_architects_gm", 42), Some(k("hat.tight.tip")));
+        assert_eq!(decoded("ggd_architects_gm", 54), Some(k("hat.closed.tip")));
+        assert_eq!(decoded("ggd_architects_gm", 46), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_architects_gm", 58), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_architects_gm", 44), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_architects_gm", 52), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_architects_gm", 55), Some(k("splash.1.hit")));
     }
 
     #[test]
     fn architects_halpern_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_architects_halpern",
-            "ggd_architects",
-            &[
-                (24, 24),
-                (28, 26),
-                (30, 30),
-                (33, 35),
-                (37, 36),
-                (35, 37),
-                (74, 61),
-                (72, 62),
-                (73, 63),
-                (62, 52),
-                (64, 53),
-                (67, 54),
-                (69, 55),
-                (45, 41),
-                (58, 42),
-                (47, 43),
-                (48, 44),
-                (53, 45),
-                (54, 46),
-                (56, 47),
-                (44, 47),
-                (43, 48),
-                (76, 67),
-                (77, 68),
-                (83, 73),
-                (82, 74),
-            ],
+        assert_eq!(decoded("ggd_architects_halpern", 24), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_architects_halpern", 28), Some(k("snare1.hit")));
+        assert_eq!(
+            decoded("ggd_architects_halpern", 30),
+            Some(k("snare1.sidestick"))
+        );
+        assert_eq!(
+            decoded("ggd_architects_halpern", 33),
+            Some(k("tom.rack1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_architects_halpern", 37),
+            Some(k("tom.floor1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_architects_halpern", 35),
+            Some(k("tom.floor2.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_architects_halpern", 74),
+            Some(k("ride.1.bell"))
+        );
+        assert_eq!(decoded("ggd_architects_halpern", 72), Some(k("ride.1")));
+        assert_eq!(
+            decoded("ggd_architects_halpern", 73),
+            Some(k("ride.1.edge"))
+        );
+        assert_eq!(
+            decoded("ggd_architects_halpern", 62),
+            Some(k("crash.1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_architects_halpern", 64),
+            Some(k("crash.1.mute"))
+        );
+        assert_eq!(
+            decoded("ggd_architects_halpern", 67),
+            Some(k("crash.2.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_architects_halpern", 69),
+            Some(k("crash.2.mute"))
+        );
+        assert_eq!(
+            decoded("ggd_architects_halpern", 45),
+            Some(k("hat.tight.tip"))
+        );
+        assert_eq!(
+            decoded("ggd_architects_halpern", 58),
+            Some(k("hat.tight.edge"))
+        );
+        assert_eq!(
+            decoded("ggd_architects_halpern", 47),
+            Some(k("hat.closed.tip"))
+        );
+        assert_eq!(
+            decoded("ggd_architects_halpern", 48),
+            Some(k("hat.closed.edge"))
+        );
+        assert_eq!(decoded("ggd_architects_halpern", 53), Some(k("hat.open1")));
+        assert_eq!(decoded("ggd_architects_halpern", 54), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_architects_halpern", 56), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_architects_halpern", 44), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_architects_halpern", 43), Some(k("hat.pedal")));
+        assert_eq!(
+            decoded("ggd_architects_halpern", 76),
+            Some(k("china.1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_architects_halpern", 77),
+            Some(k("china.1.mute"))
+        );
+        assert_eq!(
+            decoded("ggd_architects_halpern", 83),
+            Some(k("splash.1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_architects_halpern", 82),
+            Some(k("splash.1.mute"))
         );
     }
 
     #[test]
     fn architects_ggd_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_architects_ggd",
-            "ggd_architects",
-            &[
-                (36, 24),
-                (39, 26),
-                (40, 30),
-                (42, 35),
-                (45, 36),
-                (43, 37),
-                (74, 61),
-                (73, 62),
-                (76, 63),
-                (58, 52),
-                (59, 53),
-                (61, 54),
-                (62, 55),
-                (48, 41),
-                (54, 42),
-                (49, 43),
-                (52, 45),
-                (53, 46),
-                (57, 47),
-                (55, 48),
-                (71, 67),
-                (72, 68),
-                (77, 73),
-                (83, 74),
-            ],
+        assert_eq!(decoded("ggd_architects_ggd", 36), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_architects_ggd", 39), Some(k("snare1.hit")));
+        assert_eq!(
+            decoded("ggd_architects_ggd", 40),
+            Some(k("snare1.sidestick"))
         );
+        assert_eq!(decoded("ggd_architects_ggd", 42), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("ggd_architects_ggd", 45), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("ggd_architects_ggd", 43), Some(k("tom.floor2.hit")));
+        assert_eq!(decoded("ggd_architects_ggd", 74), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_architects_ggd", 73), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_architects_ggd", 76), Some(k("ride.1.edge")));
+        assert_eq!(decoded("ggd_architects_ggd", 58), Some(k("crash.1.hit")));
+        assert_eq!(decoded("ggd_architects_ggd", 59), Some(k("crash.1.mute")));
+        assert_eq!(decoded("ggd_architects_ggd", 61), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_architects_ggd", 62), Some(k("crash.2.mute")));
+        assert_eq!(decoded("ggd_architects_ggd", 48), Some(k("hat.tight.tip")));
+        assert_eq!(decoded("ggd_architects_ggd", 54), Some(k("hat.tight.edge")));
+        assert_eq!(decoded("ggd_architects_ggd", 49), Some(k("hat.closed.tip")));
+        assert_eq!(decoded("ggd_architects_ggd", 52), Some(k("hat.open1")));
+        assert_eq!(decoded("ggd_architects_ggd", 53), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_architects_ggd", 57), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_architects_ggd", 55), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_architects_ggd", 71), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_architects_ggd", 72), Some(k("china.1.mute")));
+        assert_eq!(decoded("ggd_architects_ggd", 77), Some(k("splash.1.hit")));
+        assert_eq!(decoded("ggd_architects_ggd", 83), Some(k("splash.1.mute")));
     }
 
     #[test]
     fn aggressive_rock_gm_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_aggressiverock_gm",
-            "ggd_aggressiverock",
-            &[
-                (36, 24),
-                (38, 26),
-                (37, 30),
-                (50, 33),
-                (48, 34),
-                (41, 41),
-                (42, 42),
-                (10, 43),
-                (54, 44),
-                (58, 45),
-                (46, 46),
-                (56, 47),
-                (44, 48),
-                (53, 61),
-                (51, 62),
-                (49, 52),
-                (66, 53),
-                (57, 54),
-                (95, 55),
-                (55, 73),
-                (64, 74),
-                (52, 65),
-                (74, 66),
-            ],
+        assert_eq!(decoded("ggd_aggressiverock_gm", 36), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_aggressiverock_gm", 38), Some(k("snare1.hit")));
+        assert_eq!(
+            decoded("ggd_aggressiverock_gm", 37),
+            Some(k("snare1.sidestick"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_gm", 50),
+            Some(k("tom.rack1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_gm", 48),
+            Some(k("tom.floor1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_gm", 41),
+            Some(k("hat.tight.tip"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_gm", 42),
+            Some(k("hat.tight.edge"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_gm", 10),
+            Some(k("hat.closed.tip"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_gm", 54),
+            Some(k("hat.closed.edge"))
+        );
+        assert_eq!(decoded("ggd_aggressiverock_gm", 58), Some(k("hat.open1")));
+        assert_eq!(decoded("ggd_aggressiverock_gm", 46), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_aggressiverock_gm", 56), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_aggressiverock_gm", 44), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_aggressiverock_gm", 53), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_aggressiverock_gm", 51), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_aggressiverock_gm", 49), Some(k("crash.1.hit")));
+        assert_eq!(
+            decoded("ggd_aggressiverock_gm", 66),
+            Some(k("crash.1.mute"))
+        );
+        assert_eq!(decoded("ggd_aggressiverock_gm", 57), Some(k("crash.2.hit")));
+        assert_eq!(
+            decoded("ggd_aggressiverock_gm", 95),
+            Some(k("crash.2.mute"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_gm", 55),
+            Some(k("splash.1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_gm", 64),
+            Some(k("splash.1.mute"))
+        );
+        assert_eq!(decoded("ggd_aggressiverock_gm", 52), Some(k("china.1.hit")));
+        assert_eq!(
+            decoded("ggd_aggressiverock_gm", 74),
+            Some(k("china.1.mute"))
         );
     }
 
     #[test]
     fn aggressive_rock_halpern_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_aggressiverock_halpern",
-            "ggd_aggressiverock",
-            &[
-                (24, 24),
-                (26, 26),
-                (30, 30),
-                (33, 33),
-                (37, 34),
-                (45, 41),
-                (58, 42),
-                (47, 43),
-                (48, 44),
-                (53, 45),
-                (54, 46),
-                (56, 47),
-                (44, 47),
-                (43, 48),
-                (74, 61),
-                (72, 62),
-                (62, 52),
-                (64, 53),
-                (67, 54),
-                (69, 55),
-                (83, 73),
-                (82, 74),
-                (76, 65),
-                (77, 66),
-            ],
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 24),
+            Some(k("kick.main"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 26),
+            Some(k("snare1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 30),
+            Some(k("snare1.sidestick"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 33),
+            Some(k("tom.rack1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 37),
+            Some(k("tom.floor1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 45),
+            Some(k("hat.tight.tip"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 58),
+            Some(k("hat.tight.edge"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 47),
+            Some(k("hat.closed.tip"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 48),
+            Some(k("hat.closed.edge"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 53),
+            Some(k("hat.open1"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 54),
+            Some(k("hat.open2"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 56),
+            Some(k("hat.open3"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 44),
+            Some(k("hat.open3"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 43),
+            Some(k("hat.pedal"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 74),
+            Some(k("ride.1.bell"))
+        );
+        assert_eq!(decoded("ggd_aggressiverock_halpern", 72), Some(k("ride.1")));
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 62),
+            Some(k("crash.1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 64),
+            Some(k("crash.1.mute"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 67),
+            Some(k("crash.2.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 69),
+            Some(k("crash.2.mute"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 83),
+            Some(k("splash.1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 82),
+            Some(k("splash.1.mute"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 76),
+            Some(k("china.1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_halpern", 77),
+            Some(k("china.1.mute"))
         );
     }
 
     #[test]
     fn aggressive_rock_ggd_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_aggressiverock_ggd",
-            "ggd_aggressiverock",
-            &[
-                (36, 24),
-                (37, 26),
-                (40, 30),
-                (42, 33),
-                (45, 34),
-                (48, 41),
-                (54, 42),
-                (49, 43),
-                (52, 45),
-                (53, 46),
-                (57, 47),
-                (55, 48),
-                (74, 61),
-                (73, 62),
-                (58, 52),
-                (59, 53),
-                (61, 54),
-                (62, 55),
-                (77, 73),
-                (83, 74),
-                (71, 65),
-                (72, 66),
-            ],
+        assert_eq!(decoded("ggd_aggressiverock_ggd", 36), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_aggressiverock_ggd", 37), Some(k("snare1.hit")));
+        assert_eq!(
+            decoded("ggd_aggressiverock_ggd", 40),
+            Some(k("snare1.sidestick"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_ggd", 42),
+            Some(k("tom.rack1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_ggd", 45),
+            Some(k("tom.floor1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_ggd", 48),
+            Some(k("hat.tight.tip"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_ggd", 54),
+            Some(k("hat.tight.edge"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_ggd", 49),
+            Some(k("hat.closed.tip"))
+        );
+        assert_eq!(decoded("ggd_aggressiverock_ggd", 52), Some(k("hat.open1")));
+        assert_eq!(decoded("ggd_aggressiverock_ggd", 53), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_aggressiverock_ggd", 57), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_aggressiverock_ggd", 55), Some(k("hat.pedal")));
+        assert_eq!(
+            decoded("ggd_aggressiverock_ggd", 74),
+            Some(k("ride.1.bell"))
+        );
+        assert_eq!(decoded("ggd_aggressiverock_ggd", 73), Some(k("ride.1")));
+        assert_eq!(
+            decoded("ggd_aggressiverock_ggd", 58),
+            Some(k("crash.1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_ggd", 59),
+            Some(k("crash.1.mute"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_ggd", 61),
+            Some(k("crash.2.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_ggd", 62),
+            Some(k("crash.2.mute"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_ggd", 77),
+            Some(k("splash.1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_ggd", 83),
+            Some(k("splash.1.mute"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_ggd", 71),
+            Some(k("china.1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_aggressiverock_ggd", 72),
+            Some(k("china.1.mute"))
         );
     }
 
     #[test]
     fn p5_halpern_gm_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_p5_halpern_gm",
-            "ggd_p5_halpern",
-            &[
-                (36, 24),
-                (38, 26),
-                (50, 33),
-                (43, 34),
-                (48, 35),
-                (42, 41),
-                (54, 43),
-                (46, 46),
-                (58, 47),
-                (44, 48),
-                (53, 61),
-                (51, 62),
-                (52, 65),
-                (49, 52),
-                (57, 54),
-                (55, 73),
-            ],
-        );
+        assert_eq!(decoded("ggd_p5_halpern_gm", 36), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_p5_halpern_gm", 38), Some(k("snare1.hit")));
+        assert_eq!(decoded("ggd_p5_halpern_gm", 50), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("ggd_p5_halpern_gm", 43), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("ggd_p5_halpern_gm", 48), Some(k("tom.floor2.hit")));
+        assert_eq!(decoded("ggd_p5_halpern_gm", 42), Some(k("hat.tight.tip")));
+        assert_eq!(decoded("ggd_p5_halpern_gm", 54), Some(k("hat.closed.tip")));
+        assert_eq!(decoded("ggd_p5_halpern_gm", 46), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_p5_halpern_gm", 58), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_p5_halpern_gm", 44), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_p5_halpern_gm", 53), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_p5_halpern_gm", 51), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_p5_halpern_gm", 52), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_p5_halpern_gm", 49), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_p5_halpern_gm", 57), Some(k("crash.3.hit")));
+        assert_eq!(decoded("ggd_p5_halpern_gm", 55), Some(k("splash.1.hit")));
     }
 
     #[test]
     fn p5_halpern_halpern_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_p5_halpern_halpern",
-            "ggd_p5_halpern",
-            &[
-                (24, 24),
-                (26, 26),
-                (30, 30),
-                (29, 29),
-                (33, 33),
-                (37, 34),
-                (35, 35),
-                (45, 41),
-                (58, 42),
-                (47, 43),
-                (48, 44),
-                (53, 45),
-                (54, 46),
-                (56, 47),
-                (44, 47),
-                (43, 48),
-                (62, 52),
-                (64, 53),
-                (67, 54),
-                (69, 55),
-                (83, 73),
-                (82, 74),
-                (74, 61),
-                (72, 62),
-                (76, 65),
-                (77, 66),
-            ],
+        assert_eq!(decoded("ggd_p5_halpern_halpern", 24), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_p5_halpern_halpern", 26), Some(k("snare1.hit")));
+        assert_eq!(
+            decoded("ggd_p5_halpern_halpern", 30),
+            Some(k("snare1.sidestick"))
+        );
+        assert_eq!(decoded("ggd_p5_halpern_halpern", 29), Some(k("snare1.off")));
+        assert_eq!(
+            decoded("ggd_p5_halpern_halpern", 33),
+            Some(k("tom.rack1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_p5_halpern_halpern", 37),
+            Some(k("tom.floor1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_p5_halpern_halpern", 35),
+            Some(k("tom.floor2.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_p5_halpern_halpern", 45),
+            Some(k("hat.tight.tip"))
+        );
+        assert_eq!(
+            decoded("ggd_p5_halpern_halpern", 58),
+            Some(k("hat.tight.edge"))
+        );
+        assert_eq!(
+            decoded("ggd_p5_halpern_halpern", 47),
+            Some(k("hat.closed.tip"))
+        );
+        assert_eq!(
+            decoded("ggd_p5_halpern_halpern", 48),
+            Some(k("hat.closed.edge"))
+        );
+        assert_eq!(decoded("ggd_p5_halpern_halpern", 53), Some(k("hat.open1")));
+        assert_eq!(decoded("ggd_p5_halpern_halpern", 54), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_p5_halpern_halpern", 56), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_p5_halpern_halpern", 44), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_p5_halpern_halpern", 43), Some(k("hat.pedal")));
+        assert_eq!(
+            decoded("ggd_p5_halpern_halpern", 62),
+            Some(k("crash.2.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_p5_halpern_halpern", 64),
+            Some(k("crash.2.mute"))
+        );
+        assert_eq!(
+            decoded("ggd_p5_halpern_halpern", 67),
+            Some(k("crash.3.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_p5_halpern_halpern", 69),
+            Some(k("crash.3.mute"))
+        );
+        assert_eq!(
+            decoded("ggd_p5_halpern_halpern", 83),
+            Some(k("splash.1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_p5_halpern_halpern", 82),
+            Some(k("splash.1.mute"))
+        );
+        assert_eq!(
+            decoded("ggd_p5_halpern_halpern", 74),
+            Some(k("ride.1.bell"))
+        );
+        assert_eq!(decoded("ggd_p5_halpern_halpern", 72), Some(k("ride.1")));
+        assert_eq!(
+            decoded("ggd_p5_halpern_halpern", 76),
+            Some(k("china.1.hit"))
+        );
+        assert_eq!(
+            decoded("ggd_p5_halpern_halpern", 77),
+            Some(k("china.1.mute"))
         );
     }
 
     #[test]
     fn p5_halpern_ggd_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_p5_halpern_ggd",
-            "ggd_p5_halpern",
-            &[
-                (36, 24),
-                (37, 26),
-                (40, 30),
-                (41, 29),
-                (42, 33),
-                (45, 34),
-                (43, 35),
-                (48, 41),
-                (54, 42),
-                (49, 43),
-                (52, 45),
-                (53, 46),
-                (57, 47),
-                (55, 48),
-                (58, 52),
-                (59, 53),
-                (61, 54),
-                (62, 55),
-                (77, 73),
-                (83, 74),
-                (74, 61),
-                (73, 62),
-                (71, 65),
-                (72, 66),
-            ],
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 36), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 37), Some(k("snare1.hit")));
+        assert_eq!(
+            decoded("ggd_p5_halpern_ggd", 40),
+            Some(k("snare1.sidestick"))
         );
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 41), Some(k("snare1.off")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 42), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 45), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 43), Some(k("tom.floor2.hit")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 48), Some(k("hat.tight.tip")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 54), Some(k("hat.tight.edge")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 49), Some(k("hat.closed.tip")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 52), Some(k("hat.open1")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 53), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 57), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 55), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 58), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 59), Some(k("crash.2.mute")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 61), Some(k("crash.3.hit")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 62), Some(k("crash.3.mute")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 77), Some(k("splash.1.hit")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 83), Some(k("splash.1.mute")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 74), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 73), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 71), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_p5_halpern_ggd", 72), Some(k("china.1.mute")));
     }
 
     #[test]
     fn metal_gm_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_metal_gm",
-            "ggd_metal",
-            &[
-                (38, 26),
-                (50, 33),
-                (43, 34),
-                (48, 35),
-                (41, 36),
-                (42, 41),
-                (54, 43),
-                (46, 46),
-                (58, 47),
-                (44, 48),
-                (53, 61),
-                (51, 62),
-                (49, 52),
-                (57, 54),
-                (52, 65),
-                (55, 73),
-            ],
-        );
+        assert_eq!(decoded("ggd_metal_gm", 38), Some(k("snare1.hit")));
+        assert_eq!(decoded("ggd_metal_gm", 50), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("ggd_metal_gm", 43), Some(k("tom.rack2.hit")));
+        assert_eq!(decoded("ggd_metal_gm", 48), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("ggd_metal_gm", 41), Some(k("tom.floor2.hit")));
+        assert_eq!(decoded("ggd_metal_gm", 42), Some(k("hat.tight.tip")));
+        assert_eq!(decoded("ggd_metal_gm", 54), Some(k("hat.closed.tip")));
+        assert_eq!(decoded("ggd_metal_gm", 46), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_metal_gm", 58), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_metal_gm", 44), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_metal_gm", 53), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_metal_gm", 51), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_metal_gm", 49), Some(k("crash.1.hit")));
+        assert_eq!(decoded("ggd_metal_gm", 57), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_metal_gm", 52), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_metal_gm", 55), Some(k("splash.1.hit")));
         assert_eq!(decoded("ggd_metal_gm", 36), Some(k("kick.main")));
     }
 
     #[test]
     fn metal_halpern_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_metal_halpern",
-            "ggd_metal",
-            &[
-                (26, 26),
-                (30, 30),
-                (33, 33),
-                (37, 34),
-                (35, 35),
-                (39, 36),
-                (45, 41),
-                (58, 42),
-                (47, 43),
-                (48, 44),
-                (53, 45),
-                (54, 46),
-                (56, 47),
-                (44, 47),
-                (43, 48),
-                (74, 61),
-                (72, 62),
-                (62, 52),
-                (64, 53),
-                (67, 54),
-                (69, 55),
-                (76, 65),
-                (77, 66),
-                (83, 73),
-                (82, 74),
-            ],
+        assert_eq!(decoded("ggd_metal_halpern", 26), Some(k("snare1.hit")));
+        assert_eq!(
+            decoded("ggd_metal_halpern", 30),
+            Some(k("snare1.sidestick"))
         );
+        assert_eq!(decoded("ggd_metal_halpern", 33), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("ggd_metal_halpern", 37), Some(k("tom.rack2.hit")));
+        assert_eq!(decoded("ggd_metal_halpern", 35), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("ggd_metal_halpern", 39), Some(k("tom.floor2.hit")));
+        assert_eq!(decoded("ggd_metal_halpern", 45), Some(k("hat.tight.tip")));
+        assert_eq!(decoded("ggd_metal_halpern", 58), Some(k("hat.tight.edge")));
+        assert_eq!(decoded("ggd_metal_halpern", 47), Some(k("hat.closed.tip")));
+        assert_eq!(decoded("ggd_metal_halpern", 48), Some(k("hat.closed.edge")));
+        assert_eq!(decoded("ggd_metal_halpern", 53), Some(k("hat.open1")));
+        assert_eq!(decoded("ggd_metal_halpern", 54), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_metal_halpern", 56), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_metal_halpern", 44), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_metal_halpern", 43), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_metal_halpern", 74), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_metal_halpern", 72), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_metal_halpern", 62), Some(k("crash.1.hit")));
+        assert_eq!(decoded("ggd_metal_halpern", 64), Some(k("crash.1.mute")));
+        assert_eq!(decoded("ggd_metal_halpern", 67), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_metal_halpern", 69), Some(k("crash.2.mute")));
+        assert_eq!(decoded("ggd_metal_halpern", 76), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_metal_halpern", 77), Some(k("china.1.mute")));
+        assert_eq!(decoded("ggd_metal_halpern", 83), Some(k("splash.1.hit")));
+        assert_eq!(decoded("ggd_metal_halpern", 82), Some(k("splash.1.mute")));
         assert_eq!(decoded("ggd_metal_halpern", 24), Some(k("kick.main")));
     }
 
     #[test]
     fn metal_ggd_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_metal_ggd",
-            "ggd_metal",
-            &[
-                (37, 26),
-                (40, 30),
-                (42, 33),
-                (45, 34),
-                (43, 35),
-                (46, 36),
-                (48, 41),
-                (54, 42),
-                (49, 43),
-                (52, 45),
-                (53, 46),
-                (57, 47),
-                (55, 48),
-                (74, 61),
-                (73, 62),
-                (58, 52),
-                (59, 53),
-                (61, 54),
-                (62, 55),
-                (71, 65),
-                (72, 66),
-                (77, 73),
-                (83, 74),
-            ],
-        );
+        assert_eq!(decoded("ggd_metal_ggd", 37), Some(k("snare1.hit")));
+        assert_eq!(decoded("ggd_metal_ggd", 40), Some(k("snare1.sidestick")));
+        assert_eq!(decoded("ggd_metal_ggd", 42), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("ggd_metal_ggd", 45), Some(k("tom.rack2.hit")));
+        assert_eq!(decoded("ggd_metal_ggd", 43), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("ggd_metal_ggd", 46), Some(k("tom.floor2.hit")));
+        assert_eq!(decoded("ggd_metal_ggd", 48), Some(k("hat.tight.tip")));
+        assert_eq!(decoded("ggd_metal_ggd", 54), Some(k("hat.tight.edge")));
+        assert_eq!(decoded("ggd_metal_ggd", 49), Some(k("hat.closed.tip")));
+        assert_eq!(decoded("ggd_metal_ggd", 52), Some(k("hat.open1")));
+        assert_eq!(decoded("ggd_metal_ggd", 53), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_metal_ggd", 57), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_metal_ggd", 55), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_metal_ggd", 74), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_metal_ggd", 73), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_metal_ggd", 58), Some(k("crash.1.hit")));
+        assert_eq!(decoded("ggd_metal_ggd", 59), Some(k("crash.1.mute")));
+        assert_eq!(decoded("ggd_metal_ggd", 61), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_metal_ggd", 62), Some(k("crash.2.mute")));
+        assert_eq!(decoded("ggd_metal_ggd", 71), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_metal_ggd", 72), Some(k("china.1.mute")));
+        assert_eq!(decoded("ggd_metal_ggd", 77), Some(k("splash.1.hit")));
+        assert_eq!(decoded("ggd_metal_ggd", 83), Some(k("splash.1.mute")));
         assert_eq!(decoded("ggd_metal_ggd", 36), Some(k("kick.main")));
     }
 
     #[test]
     fn ml_drums_plays_the_ride_edge_on_60_and_the_bell_on_72() {
-        for engine in ["ml_drums", "ml_drums_free"] {
-            assert_eq!(decoded(engine, 60), Some(k("ride.1.edge")), "{engine}");
-        }
+        assert_eq!(decoded("ml_drums", 60), Some(k("ride.1.edge")));
+        assert_eq!(decoded("ml_drums_free", 60), Some(k("ride.1.edge")));
         assert_eq!(decoded("ml_drums", 72), Some(k("bell.1.hit")));
         assert_eq!(decoded("ml_drums_free", 72), None);
     }
 
     #[test]
     fn ml_drums_plays_rack_tom_3_on_45() {
-        for engine in ["ml_drums", "ml_drums_free"] {
-            assert_eq!(decoded(engine, 45), Some(k("tom.rack3.hit")), "{engine}");
-        }
+        assert_eq!(decoded("ml_drums", 45), Some(k("tom.rack3.hit")));
+        assert_eq!(decoded("ml_drums_free", 45), Some(k("tom.rack3.hit")));
         assert_eq!(decoded("ml_drums_free", 47), None);
     }
 
     #[test]
     fn ml_drums_opens_its_hats_from_semi_open_1_to_open() {
-        for engine in ["ml_drums", "ml_drums_free"] {
-            assert_eq!(decoded(engine, 68), Some(k("hat.open1")), "{engine}");
-            assert_eq!(decoded(engine, 69), Some(k("hat.open2")), "{engine}");
-            assert_eq!(decoded(engine, 70), Some(k("hat.open3")), "{engine}");
-            assert_eq!(decoded(engine, 46), Some(k("hat.open4")), "{engine}");
-            assert_eq!(decoded(engine, 71), Some(k("hat.open4")), "{engine}");
-            assert_eq!(decoded(engine, 67), Some(k("hat.closed.edge")), "{engine}");
-        }
+        assert_eq!(decoded("ml_drums", 68), Some(k("hat.open1")));
+        assert_eq!(decoded("ml_drums", 69), Some(k("hat.open2")));
+        assert_eq!(decoded("ml_drums", 70), Some(k("hat.open3")));
+        assert_eq!(decoded("ml_drums", 46), Some(k("hat.open4")));
+        assert_eq!(decoded("ml_drums", 71), Some(k("hat.open4")));
+        assert_eq!(decoded("ml_drums", 67), Some(k("hat.closed.edge")));
+        assert_eq!(decoded("ml_drums_free", 68), Some(k("hat.open1")));
+        assert_eq!(decoded("ml_drums_free", 69), Some(k("hat.open2")));
+        assert_eq!(decoded("ml_drums_free", 70), Some(k("hat.open3")));
+        assert_eq!(decoded("ml_drums_free", 46), Some(k("hat.open4")));
+        assert_eq!(decoded("ml_drums_free", 71), Some(k("hat.open4")));
+        assert_eq!(decoded("ml_drums_free", 67), Some(k("hat.closed.edge")));
     }
 
     #[test]
@@ -1145,19 +1426,15 @@ mod tests {
 
     #[test]
     fn ssd5_plays_its_percussion_on_74_to_82() {
-        for (key, drum) in [
-            (74, "perc.cowbell"),
-            (75, "perc.cowbell"),
-            (76, "perc.clap"),
-            (77, "perc.tambourine"),
-            (78, "perc.tambourine"),
-            (79, "perc.tambourine"),
-            (80, "perc.shaker"),
-            (81, "perc.shaker"),
-            (82, "perc.shaker"),
-        ] {
-            assert_eq!(decoded("ssd5", key), Some(k(drum)), "{key}");
-        }
+        assert_eq!(decoded("ssd5", 74), Some(k("perc.cowbell")));
+        assert_eq!(decoded("ssd5", 75), Some(k("perc.cowbell")));
+        assert_eq!(decoded("ssd5", 76), Some(k("perc.clap")));
+        assert_eq!(decoded("ssd5", 77), Some(k("perc.tambourine")));
+        assert_eq!(decoded("ssd5", 78), Some(k("perc.tambourine")));
+        assert_eq!(decoded("ssd5", 79), Some(k("perc.tambourine")));
+        assert_eq!(decoded("ssd5", 80), Some(k("perc.shaker")));
+        assert_eq!(decoded("ssd5", 81), Some(k("perc.shaker")));
+        assert_eq!(decoded("ssd5", 82), Some(k("perc.shaker")));
     }
 
     #[test]
@@ -1186,109 +1463,102 @@ mod tests {
 
     #[test]
     fn nu_metal_gm_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_numetal_gm",
-            "ggd_numetal",
-            &[
-                (36, 24),
-                (38, 26),
-                (50, 33),
-                (43, 34),
-                (48, 35),
-                (42, 41),
-                (54, 43),
-                (46, 46),
-                (58, 47),
-                (44, 48),
-                (53, 61),
-                (51, 62),
-                (49, 52),
-                (57, 58),
-                (52, 65),
-                (55, 75),
-            ],
-        );
+        assert_eq!(decoded("ggd_numetal_gm", 36), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_numetal_gm", 38), Some(k("snare1.hit")));
+        assert_eq!(decoded("ggd_numetal_gm", 50), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("ggd_numetal_gm", 43), Some(k("tom.rack2.hit")));
+        assert_eq!(decoded("ggd_numetal_gm", 48), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("ggd_numetal_gm", 42), Some(k("hat.tight.tip")));
+        assert_eq!(decoded("ggd_numetal_gm", 54), Some(k("hat.closed.tip")));
+        assert_eq!(decoded("ggd_numetal_gm", 46), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_numetal_gm", 58), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_numetal_gm", 44), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_numetal_gm", 53), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_numetal_gm", 51), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_numetal_gm", 49), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_numetal_gm", 57), Some(k("crash.3.hit")));
+        assert_eq!(decoded("ggd_numetal_gm", 52), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_numetal_gm", 55), Some(k("splash.1.hit")));
     }
 
     #[test]
     fn nu_metal_halpern_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_numetal_halpern",
-            "ggd_numetal",
-            &[
-                (24, 24),
-                (26, 26),
-                (30, 30),
-                (33, 33),
-                (37, 34),
-                (35, 35),
-                (45, 41),
-                (58, 42),
-                (47, 43),
-                (48, 44),
-                (53, 45),
-                (54, 46),
-                (56, 47),
-                (43, 48),
-                (74, 61),
-                (72, 62),
-                (62, 52),
-                (64, 53),
-                (67, 58),
-                (69, 59),
-                (76, 65),
-                (77, 66),
-                (83, 75),
-                (82, 76),
-            ],
+        assert_eq!(decoded("ggd_numetal_halpern", 24), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_numetal_halpern", 26), Some(k("snare1.hit")));
+        assert_eq!(
+            decoded("ggd_numetal_halpern", 30),
+            Some(k("snare1.sidestick"))
         );
+        assert_eq!(decoded("ggd_numetal_halpern", 33), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("ggd_numetal_halpern", 37), Some(k("tom.rack2.hit")));
+        assert_eq!(
+            decoded("ggd_numetal_halpern", 35),
+            Some(k("tom.floor1.hit"))
+        );
+        assert_eq!(decoded("ggd_numetal_halpern", 45), Some(k("hat.tight.tip")));
+        assert_eq!(
+            decoded("ggd_numetal_halpern", 58),
+            Some(k("hat.tight.edge"))
+        );
+        assert_eq!(
+            decoded("ggd_numetal_halpern", 47),
+            Some(k("hat.closed.tip"))
+        );
+        assert_eq!(
+            decoded("ggd_numetal_halpern", 48),
+            Some(k("hat.closed.edge"))
+        );
+        assert_eq!(decoded("ggd_numetal_halpern", 53), Some(k("hat.open1")));
+        assert_eq!(decoded("ggd_numetal_halpern", 54), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_numetal_halpern", 56), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_numetal_halpern", 43), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_numetal_halpern", 74), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_numetal_halpern", 72), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_numetal_halpern", 62), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_numetal_halpern", 64), Some(k("crash.2.mute")));
+        assert_eq!(decoded("ggd_numetal_halpern", 67), Some(k("crash.3.hit")));
+        assert_eq!(decoded("ggd_numetal_halpern", 69), Some(k("crash.3.mute")));
+        assert_eq!(decoded("ggd_numetal_halpern", 76), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_numetal_halpern", 77), Some(k("china.1.mute")));
+        assert_eq!(decoded("ggd_numetal_halpern", 83), Some(k("splash.1.hit")));
+        assert_eq!(decoded("ggd_numetal_halpern", 82), Some(k("splash.1.mute")));
     }
 
     #[test]
     fn nu_metal_ggd_plays_each_drum_the_default_map_plays() {
-        plays_what_the_default_plays(
-            "ggd_numetal_ggd",
-            "ggd_numetal",
-            &[
-                (36, 24),
-                (37, 26),
-                (40, 30),
-                (42, 33),
-                (45, 34),
-                (43, 35),
-                (48, 41),
-                (54, 42),
-                (49, 43),
-                (52, 45),
-                (53, 46),
-                (57, 47),
-                (55, 48),
-                (74, 61),
-                (73, 62),
-                (58, 52),
-                (59, 53),
-                (61, 58),
-                (62, 59),
-                (71, 65),
-                (72, 66),
-                (77, 75),
-                (83, 76),
-            ],
-        );
+        assert_eq!(decoded("ggd_numetal_ggd", 36), Some(k("kick.main")));
+        assert_eq!(decoded("ggd_numetal_ggd", 37), Some(k("snare1.hit")));
+        assert_eq!(decoded("ggd_numetal_ggd", 40), Some(k("snare1.sidestick")));
+        assert_eq!(decoded("ggd_numetal_ggd", 42), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("ggd_numetal_ggd", 45), Some(k("tom.rack2.hit")));
+        assert_eq!(decoded("ggd_numetal_ggd", 43), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("ggd_numetal_ggd", 48), Some(k("hat.tight.tip")));
+        assert_eq!(decoded("ggd_numetal_ggd", 54), Some(k("hat.tight.edge")));
+        assert_eq!(decoded("ggd_numetal_ggd", 49), Some(k("hat.closed.tip")));
+        assert_eq!(decoded("ggd_numetal_ggd", 52), Some(k("hat.open1")));
+        assert_eq!(decoded("ggd_numetal_ggd", 53), Some(k("hat.open2")));
+        assert_eq!(decoded("ggd_numetal_ggd", 57), Some(k("hat.open3")));
+        assert_eq!(decoded("ggd_numetal_ggd", 55), Some(k("hat.pedal")));
+        assert_eq!(decoded("ggd_numetal_ggd", 74), Some(k("ride.1.bell")));
+        assert_eq!(decoded("ggd_numetal_ggd", 73), Some(k("ride.1")));
+        assert_eq!(decoded("ggd_numetal_ggd", 58), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_numetal_ggd", 59), Some(k("crash.2.mute")));
+        assert_eq!(decoded("ggd_numetal_ggd", 61), Some(k("crash.3.hit")));
+        assert_eq!(decoded("ggd_numetal_ggd", 62), Some(k("crash.3.mute")));
+        assert_eq!(decoded("ggd_numetal_ggd", 71), Some(k("china.1.hit")));
+        assert_eq!(decoded("ggd_numetal_ggd", 72), Some(k("china.1.mute")));
+        assert_eq!(decoded("ggd_numetal_ggd", 77), Some(k("splash.1.hit")));
+        assert_eq!(decoded("ggd_numetal_ggd", 83), Some(k("splash.1.mute")));
     }
 
     #[test]
     fn mangini_plays_its_second_hi_hat_as_a_second_hat() {
-        for (key, drum) in [
-            (108, "aux2.closed.tip"),
-            (109, "aux2.closed.edge"),
-            (110, "aux2.open1"),
-            (111, "aux2.open2"),
-            (112, "aux2.open3"),
-            (34, "aux2.cc"),
-        ] {
-            assert_eq!(decoded("mixwave_mangini", key), Some(k(drum)), "{key}");
-        }
+        assert_eq!(decoded("mixwave_mangini", 108), Some(k("aux2.closed.tip")));
+        assert_eq!(decoded("mixwave_mangini", 109), Some(k("aux2.closed.edge")));
+        assert_eq!(decoded("mixwave_mangini", 110), Some(k("aux2.open1")));
+        assert_eq!(decoded("mixwave_mangini", 111), Some(k("aux2.open2")));
+        assert_eq!(decoded("mixwave_mangini", 112), Some(k("aux2.open3")));
+        assert_eq!(decoded("mixwave_mangini", 34), Some(k("aux2.cc")));
     }
 
     const LATIN_GM: [(u8, &str); 20] = [
