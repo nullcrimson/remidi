@@ -13,9 +13,6 @@ opt-level = 2
 [profile.dev]
 debug = "line-tables-only"
 
-[profile.dev.package.midiremap-site]
-opt-level = 2
-
 [profile.dev.package.midiremap-testkit]
 opt-level = 2
 
