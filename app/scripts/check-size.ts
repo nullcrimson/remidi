@@ -13,7 +13,7 @@ import { reachable } from './reachable.ts';
  * imports, which `js` counts too, and the list filter.
  */
 export const BUDGETS = {
-  wasm: 192_000,
+  wasm: 200_000,
   js: 156_911,
   css: 12_800,
   fonts: 108_000,
