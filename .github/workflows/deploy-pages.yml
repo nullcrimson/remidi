@@ -48,7 +48,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.site-bin
-          key: site-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-site/**', 'engines/**', 'locales/**', 'content/**') }}
+          key: site-dev-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-site/**', 'engines/**', 'locales/**', 'content/**') }}
 
       - uses: ./.github/actions/app-with-wasm
 
@@ -58,9 +58,9 @@ jobs:
       - name: Build site generator
         if: steps.site.outputs.cache-hit != 'true'
         run: |
-          cargo build -p midiremap-site --release --locked
+          cargo build -p midiremap-site --locked
           mkdir -p ~/.site-bin
-          cp target/release/midiremap-site ~/.site-bin/
+          cp target/debug/midiremap-site ~/.site-bin/
 
       - name: Generate engine and conversion pages
         run: ~/.site-bin/midiremap-site app/dist
