@@ -1508,6 +1508,22 @@ mod tests {
     }
 
     #[test]
+    fn p4_halpern_plays_mini_hats_on_77_and_a_stick_click_on_79() {
+        assert_eq!(decoded("ggd_p4_halpern", 77), Some(k("aux1.closed")));
+        assert_eq!(decoded("ggd_p4_halpern", 79), Some(k("perc.sticks")));
+    }
+
+    #[test]
+    fn p4_halpern_numbers_its_crashes_as_invasion_does() {
+        assert_eq!(decoded("ggd_p4_halpern", 52), Some(k("crash.1.hit")));
+        assert_eq!(decoded("ggd_p4_halpern", 53), Some(k("crash.1.mute")));
+        assert_eq!(decoded("ggd_p4_halpern", 54), Some(k("crash.2.hit")));
+        assert_eq!(decoded("ggd_p4_halpern", 55), Some(k("crash.2.mute")));
+        assert_eq!(decoded("ggd_p4_halpern", 56), Some(k("crash.3.hit")));
+        assert_eq!(decoded("ggd_p4_halpern", 57), Some(k("crash.3.mute")));
+    }
+
+    #[test]
     fn nu_metal_reads_the_second_keys_of_its_invasion_preset() {
         assert_eq!(decoded("ggd_numetal", 27), Some(k("snare2.hit")));
         assert_eq!(decoded("ggd_numetal", 56), Some(k("crash.1.hit")));
