@@ -382,3 +382,17 @@ fn logic_draws_each_tom_with_its_own_picture() {
         [4541, 4542, 4543]
     );
 }
+
+#[test]
+fn logic_draws_latin_percussion_with_the_percussion_picture() {
+    let rows = logic_rows(&Daw::Logic.drum_map(CATALOG.get("general_midi").unwrap(), CREDIT));
+    let bongo = rows
+        .iter()
+        .find(|row| {
+            row.get("kStepSequenceRowNameKey")
+                .and_then(Value::as_string)
+                == Some("Bongo High")
+        })
+        .map(|row| int(row, "kStepSequenceInstrumentIconKey"));
+    assert_eq!(bongo, Some(4535));
+}

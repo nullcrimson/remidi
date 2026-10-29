@@ -2,7 +2,9 @@ use std::{collections::HashMap, fmt, str::FromStr, sync::LazyLock};
 
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-use super::{Canon, HatOpen, HatZone, RideArtic, RideIdx, Slot, TomPos};
+use super::{
+    Canon, HandDrum, HandPart, HandStroke, HatOpen, HatZone, RideArtic, RideIdx, Slot, TomPos,
+};
 
 static BY_KEY: LazyLock<HashMap<String, Canon>> = LazyLock::new(|| {
     Canon::all()
@@ -43,6 +45,19 @@ fn hat_zone_key(z: HatZone) -> Option<&'static str> {
 fn ride_artic_key(a: RideArtic) -> Option<&'static str> {
     (a != RideArtic::Bow).then(|| a.into())
 }
+fn hand_part_key(p: HandPart) -> &'static str {
+    match p {
+        HandPart::Pitch(p) => p.into(),
+        HandPart::Length(l) => l.into(),
+    }
+}
+fn hand_key(d: HandDrum) -> String {
+    let stroke = d.stroke();
+    dotted(
+        dotted(format!("perc.{}", key(d)), d.part().map(hand_part_key)),
+        (stroke != HandStroke::Open).then(|| stroke.into()),
+    )
+}
 fn key(part: impl Into<&'static str>) -> &'static str {
     part.into()
 }
@@ -64,6 +79,7 @@ impl fmt::Display for Canon {
             Slot::Cymbal(s, a) => write!(f, "{}.{}.{}", key(s), s.index(), key(a)),
             Slot::Ride(i, a) => f.write_str(&dotted(format!("ride.{i}"), ride_artic_key(a))),
             Slot::Perc(k) => write!(f, "perc.{}", key(k)),
+            Slot::Hand(d) => f.write_str(&hand_key(d)),
         }
     }
 }
@@ -99,7 +115,9 @@ impl<'de> Deserialize<'de> for Canon {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::canon::{idx, k, CymArtic, CymSlot, KickKind, PercKind, SnareArtic, TomArtic};
+    use crate::canon::{
+        idx, k, CongaPitch, CymArtic, CymSlot, HandLength, KickKind, PercKind, SnareArtic, TomArtic,
+    };
 
     #[test]
     fn key_round_trips_over_all() {
@@ -144,6 +162,25 @@ mod tests {
         assert_eq!(
             Canon(Slot::Perc(PercKind::Cowbell)).to_string(),
             "perc.cowbell"
+        );
+    }
+
+    #[test]
+    fn a_latin_drum_prints_as_its_dotted_key() {
+        assert_eq!(
+            Canon(Slot::Hand(HandDrum::Conga(CongaPitch::High(
+                HandStroke::Mute
+            ))))
+            .to_string(),
+            "perc.conga.high.mute"
+        );
+        assert_eq!(
+            Canon(Slot::Hand(HandDrum::Whistle(HandLength::Short))).to_string(),
+            "perc.whistle.short"
+        );
+        assert_eq!(
+            Canon(Slot::Hand(HandDrum::Claves)).to_string(),
+            "perc.claves"
         );
     }
 
@@ -247,6 +284,22 @@ mod tests {
     #[test]
     fn parse_rejects_a_kick_with_an_articulation() {
         assert_rejected("kick.main.hit");
+    }
+
+    #[test]
+    fn parse_rejects_a_mute_on_a_drum_without_one() {
+        assert_rejected("perc.bongo.high.mute");
+        assert_rejected("perc.conga.low.mute");
+    }
+
+    #[test]
+    fn parse_rejects_an_explicit_open_stroke() {
+        assert_rejected("perc.triangle.open");
+    }
+
+    #[test]
+    fn parse_rejects_a_pitched_drum_without_its_pitch() {
+        assert_rejected("perc.bongo");
     }
 
     #[test]

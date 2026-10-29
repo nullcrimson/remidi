@@ -2,6 +2,10 @@ id = "mixwave_duplantier"
 name = "MixWave Gojira - Mario Duplantier"
 vendor = "MixWave"
 notes = [
+  { note = 12, canon = "perc.timbale.high", primary = true },
+  { note = 13, canon = "perc.timbale.high" },
+  { note = 14, canon = "perc.timbale.low", primary = true },
+  { note = 15, canon = "perc.timbale.low" },
   { note = 19, canon = "tom.floor1.rim", primary = true },
   { note = 21, canon = "tom.rack2.rim", primary = true },
   { note = 23, canon = "tom.rack1.rim", primary = true },

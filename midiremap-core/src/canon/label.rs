@@ -1,6 +1,6 @@
 use super::{
-    Canon, CymArtic, CymSlot, HatOpen, HatZone, Idx, KickKind, PercKind, RideArtic, Slot,
-    SnareArtic, TomArtic, TomPos,
+    Canon, CymArtic, CymSlot, HandDrum, HandLength, HandPart, HandPitch, HandStroke, HatOpen,
+    HatZone, Idx, KickKind, PercKind, RideArtic, Slot, SnareArtic, TomArtic, TomPos,
 };
 
 impl CymSlot {
@@ -11,6 +11,45 @@ impl CymSlot {
             Self::Splash(_) => "Splash",
             Self::Stack(_) => "Stack",
             Self::Bell(_) => "Bell",
+        }
+    }
+}
+
+impl HandPart {
+    fn label(self) -> &'static str {
+        match self {
+            Self::Pitch(HandPitch::High) => "High",
+            Self::Pitch(HandPitch::Low) => "Low",
+            Self::Length(HandLength::Short) => "Short",
+            Self::Length(HandLength::Long) => "Long",
+        }
+    }
+}
+
+impl HandDrum {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Bongo(_) => "Bongo",
+            Self::Conga(_) => "Conga",
+            Self::Timbale(_) => "Timbale",
+            Self::Agogo(_) => "Agogo",
+            Self::Whistle(_) => "Whistle",
+            Self::Guiro(_) => "Guiro",
+            Self::Claves => "Claves",
+            Self::Woodblock(_) => "Wood Block",
+            Self::Cuica(_) => "Cuica",
+            Self::Triangle(_) => "Triangle",
+        }
+    }
+
+    fn label(self) -> String {
+        let named = match self.part() {
+            Some(part) => format!("{} {}", self.name(), part.label()),
+            None => self.name().to_owned(),
+        };
+        match self.stroke() {
+            HandStroke::Open => named,
+            HandStroke::Mute => format!("{named} (Mute)"),
         }
     }
 }
@@ -110,6 +149,7 @@ impl Canon {
                 PercKind::Misc => "Percussion",
             }
             .into(),
+            Slot::Hand(d) => d.label(),
         }
     }
 }
@@ -139,5 +179,12 @@ mod tests {
     fn a_ghost_note_reads_as_a_ghost_note() {
         assert_eq!(k("snare1.ghost").label(), "Snare Ghost Note");
         assert_eq!(k("snare2.ghost").label(), "Snare 2 Ghost Note");
+    }
+
+    #[test]
+    fn latin_percussion_reads_drum_first() {
+        assert_eq!(k("perc.conga.high.mute").label(), "Conga High (Mute)");
+        assert_eq!(k("perc.woodblock.low").label(), "Wood Block Low");
+        assert_eq!(k("perc.triangle").label(), "Triangle");
     }
 }

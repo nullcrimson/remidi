@@ -1291,6 +1291,107 @@ mod tests {
         }
     }
 
+    const LATIN_GM: [(u8, &str); 20] = [
+        (60, "perc.bongo.high"),
+        (61, "perc.bongo.low"),
+        (62, "perc.conga.high.mute"),
+        (63, "perc.conga.high"),
+        (64, "perc.conga.low"),
+        (65, "perc.timbale.high"),
+        (66, "perc.timbale.low"),
+        (67, "perc.agogo.high"),
+        (68, "perc.agogo.low"),
+        (71, "perc.whistle.short"),
+        (72, "perc.whistle.long"),
+        (73, "perc.guiro.short"),
+        (74, "perc.guiro.long"),
+        (75, "perc.claves"),
+        (76, "perc.woodblock.high"),
+        (77, "perc.woodblock.low"),
+        (78, "perc.cuica.mute"),
+        (79, "perc.cuica"),
+        (80, "perc.triangle.mute"),
+        (81, "perc.triangle"),
+    ];
+
+    fn assert_plays_latin_gm(engine: &str) {
+        let catalog = Catalog::builtin();
+        let map = catalog.get(engine).unwrap();
+        for (note, key) in LATIN_GM {
+            assert_eq!(decoded(engine, note), Some(k(key)), "{engine} {note}");
+            assert_eq!(map.encode(k(key)), Some(n(note)), "{engine} {key}");
+        }
+    }
+
+    #[test]
+    fn general_midi_plays_its_latin_percussion_on_60_to_81() {
+        assert_plays_latin_gm("general_midi");
+    }
+
+    #[test]
+    fn guitar_pro_plays_its_latin_percussion_where_general_midi_does() {
+        assert_plays_latin_gm("guitar_pro");
+    }
+
+    #[test]
+    fn guitar_pro_folds_its_extra_bongo_and_conga_strokes_into_the_drum() {
+        assert_eq!(decoded("guitar_pro", 104), Some(k("perc.bongo.high")));
+        assert_eq!(decoded("guitar_pro", 105), Some(k("perc.bongo.high")));
+        assert_eq!(decoded("guitar_pro", 106), Some(k("perc.bongo.low")));
+        assert_eq!(decoded("guitar_pro", 107), Some(k("perc.bongo.low")));
+        assert_eq!(decoded("guitar_pro", 108), Some(k("perc.conga.low")));
+        assert_eq!(decoded("guitar_pro", 109), Some(k("perc.conga.low")));
+        assert_eq!(decoded("guitar_pro", 110), Some(k("perc.conga.high")));
+    }
+
+    #[test]
+    fn guitar_pro_leaves_its_orchestral_and_bell_percussion_unrecognized() {
+        assert_eq!(decoded("guitar_pro", 83), None);
+        assert_eq!(decoded("guitar_pro", 84), None);
+        assert_eq!(decoded("guitar_pro", 85), None);
+        assert_eq!(decoded("guitar_pro", 86), None);
+        assert_eq!(decoded("guitar_pro", 87), None);
+        assert_eq!(decoded("guitar_pro", 114), None);
+        assert_eq!(decoded("guitar_pro", 115), None);
+        assert_eq!(decoded("guitar_pro", 116), None);
+        assert_eq!(decoded("guitar_pro", 123), None);
+        assert_eq!(decoded("guitar_pro", 124), None);
+        assert_eq!(decoded("guitar_pro", 125), None);
+    }
+
+    #[test]
+    fn goran_grooves_handy_plays_its_triangles_on_80_and_81() {
+        assert_eq!(
+            decoded("goran_grooves_handy", 80),
+            Some(k("perc.triangle.mute"))
+        );
+        assert_eq!(decoded("goran_grooves_handy", 81), Some(k("perc.triangle")));
+    }
+
+    #[test]
+    fn duplantier_plays_its_timbales_on_12_to_15() {
+        assert_eq!(
+            decoded("mixwave_duplantier", 12),
+            Some(k("perc.timbale.high"))
+        );
+        assert_eq!(
+            decoded("mixwave_duplantier", 13),
+            Some(k("perc.timbale.high"))
+        );
+        assert_eq!(
+            decoded("mixwave_duplantier", 14),
+            Some(k("perc.timbale.low"))
+        );
+        assert_eq!(
+            decoded("mixwave_duplantier", 15),
+            Some(k("perc.timbale.low"))
+        );
+        let catalog = Catalog::builtin();
+        let duplantier = catalog.get("mixwave_duplantier").unwrap();
+        assert_eq!(duplantier.encode(k("perc.timbale.high")), Some(n(12)));
+        assert_eq!(duplantier.encode(k("perc.timbale.low")), Some(n(14)));
+    }
+
     #[test]
     fn architects_has_no_drum_on_28() {
         assert_eq!(decoded("ggd_architects", 28), None);

@@ -6,8 +6,8 @@ use std::{
 };
 
 use super::{
-    tom_positions, Canon, CymArtic, CymSlot, HatOpen, HatZone, Idx, KickKind, OpenLevel, RackIdx,
-    RideArtic, RideIdx, Slot, SnareArtic, SnareIdx, TomArtic, TomPos,
+    tom_positions, Canon, CymArtic, CymSlot, HandStroke, HatOpen, HatZone, Idx, KickKind,
+    OpenLevel, RackIdx, RideArtic, RideIdx, Slot, SnareArtic, SnareIdx, TomArtic, TomPos,
 };
 
 fn kick_order(k: KickKind) -> &'static [KickKind] {
@@ -34,6 +34,13 @@ fn tom_order(a: TomArtic) -> &'static [TomArtic] {
     match a {
         TomArtic::Rimshot => &[TomArtic::Hit],
         TomArtic::Hit | TomArtic::Rim => &[],
+    }
+}
+
+fn hand_order(s: HandStroke) -> &'static [HandStroke] {
+    match s {
+        HandStroke::Mute => &[HandStroke::Open],
+        HandStroke::Open => &[],
     }
 }
 
@@ -140,6 +147,10 @@ fn variants(c: Canon) -> Vec<Canon> {
             .map(|&b| Canon(Slot::Ride(i, b)))
             .collect(),
         Slot::Perc(_) => Vec::new(),
+        Slot::Hand(d) => hand_order(d.stroke())
+            .iter()
+            .map(|&b| Canon(Slot::Hand(d.played(b))))
+            .collect(),
     }
 }
 
@@ -165,7 +176,7 @@ fn nearest<T: Copy + PartialEq>(
 fn neighbours(c: Canon) -> Vec<Canon> {
     let crash = |a| Canon(Slot::Cymbal(CymSlot::Crash(Idx::FIRST), a));
     match c.0 {
-        Slot::Kick(_) | Slot::Hat(..) | Slot::Perc(_) => Vec::new(),
+        Slot::Kick(_) | Slot::Hat(..) | Slot::Perc(_) | Slot::Hand(..) => Vec::new(),
         Slot::Snare(i, a) => SnareIdx::all()
             .filter(|&j| j != i)
             .map(|j| Canon(Slot::Snare(j, a)))
@@ -302,6 +313,23 @@ mod tests {
             chain("snare2.rimshot"),
             keys(&["snare2.hit", "snare1.rimshot", "snare1.hit"])
         );
+    }
+
+    #[test]
+    fn a_muted_hand_drum_falls_to_its_open_stroke_only() {
+        assert_eq!(chain("perc.conga.high.mute"), keys(&["perc.conga.high"]));
+        assert_eq!(chain("perc.cuica.mute"), keys(&["perc.cuica"]));
+        assert_eq!(chain("perc.triangle.mute"), keys(&["perc.triangle"]));
+    }
+
+    #[test]
+    fn an_open_hand_drum_has_no_stand_in() {
+        for &c in Canon::all()
+            .iter()
+            .filter(|c| matches!(c.0, Slot::Hand(d) if d.stroke() == HandStroke::Open))
+        {
+            assert!(c.fallback_chain().is_empty(), "{c}");
+        }
     }
 
     #[test]

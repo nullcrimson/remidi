@@ -130,6 +130,9 @@ fn agreed(c: Canon) -> Vec<String> {
         }
         [drum @ ("hat" | "aux1" | "aux2"), opening] => hat_allowed(drum, opening, ""),
         [drum @ ("hat" | "aux1" | "aux2"), opening, zone] => hat_allowed(drum, opening, zone),
+        ["perc", drum @ ("cuica" | "triangle"), "mute"] => keys(&format!("perc.{drum}"), &[""]),
+        ["perc", "conga", "high", "mute"] => keys("perc.conga.high", &[""]),
+        ["perc", _, "high" | "low" | "short" | "long"] => vec![],
         ["perc", _] => vec![],
         other => panic!("unknown slot {other:?}"),
     }

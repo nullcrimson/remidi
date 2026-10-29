@@ -644,6 +644,48 @@ notes = [ {} ]",
     }
 
     #[test]
+    fn a_muted_conga_plays_the_open_conga_under_drop() {
+        let tgt = target(&[(60, "perc.conga.high")]);
+        assert_eq!(
+            onto(&tgt, MissingDrums::Drop).resolve_canon(k("perc.conga.high.mute")),
+            Outcome::Fallback(StandIn::new(
+                k("perc.conga.high.mute"),
+                k("perc.conga.high"),
+                n(60)
+            ))
+        );
+    }
+
+    #[test]
+    fn a_muted_conga_never_plays_another_drum_under_nearest() {
+        let tgt = target(&[(60, "perc.bongo.high"), (61, "perc.conga.low")]);
+        assert_eq!(
+            onto(&tgt, MissingDrums::Nearest).resolve_canon(k("perc.conga.high.mute")),
+            Outcome::Dropped {
+                canon: k("perc.conga.high.mute"),
+                other_drum: false
+            }
+        );
+    }
+
+    #[test]
+    fn a_general_midi_bongo_is_dropped_on_a_kit_without_one_even_when_keeping_unrecognized_notes() {
+        let catalog = Catalog::builtin();
+        let gm = catalog.get("general_midi").unwrap();
+        let sd3 = catalog.get("superior_drummer3").unwrap();
+        let mapping = Mapping::new(gm, sd3, &Overrides::default(), MissingDrums::Nearest)
+            .with_unrecognized(Unrecognized::Keep);
+        assert_eq!(
+            mapping.get(n(60)),
+            Some(Outcome::Dropped {
+                canon: k("perc.bongo.high"),
+                other_drum: false
+            })
+        );
+        assert_eq!(mapping.destination(n(60)), None);
+    }
+
+    #[test]
     fn unmapped_when_source_lacks_note() {
         assert_eq!(mapping().get(n(99)), None);
     }

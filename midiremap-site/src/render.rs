@@ -1065,6 +1065,18 @@ mod tests {
     }
 
     #[test]
+    fn a_general_midi_pair_page_names_the_latin_drums_its_target_lacks() {
+        let text = page_text(page("convert/general-midi-to-superior-drummer3/index.html"));
+        let lacks = text
+            .split_once("Superior Drummer 3 has no drum for ")
+            .and_then(|(_, rest)| rest.split_once('.'))
+            .map(|(drums, _)| drums)
+            .expect("the page names the drums the target lacks");
+        assert!(lacks.contains("Bongo High"), "{lacks}");
+        assert!(lacks.contains("Triangle (Mute)"), "{lacks}");
+    }
+
+    #[test]
     fn pair_pages_carry_exact_outcome_rows() {
         let html = page("convert/addictive-drums2-to-ezdrummer/index.html");
         let needle = r#"data-outcome="exact""#;

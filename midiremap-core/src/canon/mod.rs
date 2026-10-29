@@ -2,7 +2,7 @@ mod fallback;
 mod key;
 mod label;
 
-use std::sync::LazyLock;
+use std::{iter::once, sync::LazyLock};
 
 use strum::{IntoStaticStr, VariantArray};
 
@@ -41,6 +41,7 @@ pub(crate) enum Slot {
     Cymbal(CymSlot, CymArtic),
     Ride(RideIdx, RideArtic),
     Perc(PercKind),
+    Hand(HandDrum),
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
@@ -151,6 +152,57 @@ pub(crate) enum PercKind {
     Vibraslap,
     Misc,
 }
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
+pub(crate) enum HandPitch {
+    High,
+    Low,
+}
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
+pub(crate) enum HandLength {
+    Short,
+    Long,
+}
+/// The pitch or length a hand drum comes in, where it comes in two.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub(crate) enum HandPart {
+    Pitch(HandPitch),
+    Length(HandLength),
+}
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
+pub(crate) enum HandStroke {
+    Open,
+    Mute,
+}
+/// The high conga, the one conga that can also be played muted.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub(crate) enum CongaPitch {
+    High(HandStroke),
+    Low,
+}
+/// A hand or Latin percussion drum, with its pitch or length where it comes in two and its
+/// stroke where it can be played muted.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
+#[cfg_attr(
+    test,
+    derive(strum::EnumDiscriminants),
+    strum_discriminants(derive(Hash, VariantArray))
+)]
+pub(crate) enum HandDrum {
+    Bongo(HandPitch),
+    Conga(CongaPitch),
+    Timbale(HandPitch),
+    Agogo(HandPitch),
+    Whistle(HandLength),
+    Guiro(HandLength),
+    Claves,
+    Woodblock(HandPitch),
+    Cuica(HandStroke),
+    Triangle(HandStroke),
+}
 
 impl CymSlot {
     fn all() -> impl Iterator<Item = Self> {
@@ -168,6 +220,67 @@ impl CymSlot {
             Self::China(i) | Self::Splash(i) => i.get(),
             Self::Stack(i) => i.get(),
             Self::Bell(i) => i.get(),
+        }
+    }
+}
+
+impl HandDrum {
+    fn all() -> impl Iterator<Item = Self> {
+        let pitched = |drum: fn(HandPitch) -> Self| each().map(drum);
+        let lengths = |drum: fn(HandLength) -> Self| each().map(drum);
+        let stroked = |drum: fn(HandStroke) -> Self| each().map(drum);
+        pitched(Self::Bongo)
+            .chain(stroked(|s| Self::Conga(CongaPitch::High(s))))
+            .chain(once(Self::Conga(CongaPitch::Low)))
+            .chain(pitched(Self::Timbale))
+            .chain(pitched(Self::Agogo))
+            .chain(lengths(Self::Whistle))
+            .chain(lengths(Self::Guiro))
+            .chain(once(Self::Claves))
+            .chain(pitched(Self::Woodblock))
+            .chain(stroked(Self::Cuica))
+            .chain(stroked(Self::Triangle))
+    }
+
+    fn part(self) -> Option<HandPart> {
+        match self {
+            Self::Bongo(p) | Self::Timbale(p) | Self::Agogo(p) | Self::Woodblock(p) => {
+                Some(HandPart::Pitch(p))
+            }
+            Self::Conga(CongaPitch::High(_)) => Some(HandPart::Pitch(HandPitch::High)),
+            Self::Conga(CongaPitch::Low) => Some(HandPart::Pitch(HandPitch::Low)),
+            Self::Whistle(l) | Self::Guiro(l) => Some(HandPart::Length(l)),
+            Self::Claves | Self::Cuica(_) | Self::Triangle(_) => None,
+        }
+    }
+
+    fn stroke(self) -> HandStroke {
+        match self {
+            Self::Conga(CongaPitch::High(s)) | Self::Cuica(s) | Self::Triangle(s) => s,
+            Self::Bongo(_)
+            | Self::Conga(CongaPitch::Low)
+            | Self::Timbale(_)
+            | Self::Agogo(_)
+            | Self::Whistle(_)
+            | Self::Guiro(_)
+            | Self::Claves
+            | Self::Woodblock(_) => HandStroke::Open,
+        }
+    }
+
+    fn played(self, s: HandStroke) -> Self {
+        match self {
+            Self::Conga(CongaPitch::High(_)) => Self::Conga(CongaPitch::High(s)),
+            Self::Cuica(_) => Self::Cuica(s),
+            Self::Triangle(_) => Self::Triangle(s),
+            Self::Bongo(_)
+            | Self::Conga(CongaPitch::Low)
+            | Self::Timbale(_)
+            | Self::Agogo(_)
+            | Self::Whistle(_)
+            | Self::Guiro(_)
+            | Self::Claves
+            | Self::Woodblock(_) => self,
         }
     }
 }
@@ -203,6 +316,7 @@ fn build_all() -> Vec<Canon> {
         .chain(CymSlot::all().flat_map(|s| each().map(move |a| Slot::Cymbal(s, a))))
         .chain(RideIdx::all().flat_map(|i| each().map(move |a| Slot::Ride(i, a))))
         .chain(each().map(Slot::Perc))
+        .chain(HandDrum::all().map(Slot::Hand))
         .map(Canon)
         .collect()
 }
@@ -253,6 +367,9 @@ impl Canon {
             (Slot::Aux(a, ..), Slot::Aux(b, ..)) => a == b,
             (Slot::Cymbal(a, _), Slot::Cymbal(b, _)) => a == b,
             (Slot::Perc(a), Slot::Perc(b)) => a == b,
+            (Slot::Hand(a), Slot::Hand(b)) => {
+                a.played(HandStroke::Open) == b.played(HandStroke::Open)
+            }
             _ => false,
         }
     }
@@ -266,7 +383,7 @@ impl Canon {
             Slot::Hat(..) => Family::HiHat,
             Slot::Aux(..) => Family::Aux,
             Slot::Cymbal(..) | Slot::Ride(..) => Family::Cymbals,
-            Slot::Perc(_) => Family::Percussion,
+            Slot::Perc(_) | Slot::Hand(..) => Family::Percussion,
         }
     }
 
@@ -287,6 +404,7 @@ impl Canon {
             Slot::Cymbal(..) => Piece::OtherCymbal,
             Slot::Ride(..) => Piece::Ride,
             Slot::Perc(kind) => Piece::Perc(kind),
+            Slot::Hand(..) => Piece::Hand,
         }
     }
 }
@@ -306,6 +424,8 @@ pub(crate) enum Piece {
     /// A china, splash, stack or cymbal bell.
     OtherCymbal,
     Perc(PercKind),
+    /// A hand or Latin percussion drum.
+    Hand,
 }
 
 /// A drum as people read it: its key, its name and the family it is listed under.
@@ -406,11 +526,67 @@ mod tests {
     }
 
     #[test]
+    fn all_reaches_every_hand_drum() {
+        let all = Canon::all().iter().copied();
+        assert_reaches_every(all.filter_map(|c| match c {
+            Canon(Slot::Hand(d)) => Some(HandDrumDiscriminants::from(d)),
+            _ => None,
+        }));
+    }
+
+    #[test]
+    fn only_a_high_conga_a_cuica_and_a_triangle_are_played_muted() {
+        let muted: Vec<String> = Canon::all()
+            .iter()
+            .filter(|c| matches!(c.0, Slot::Hand(d) if d.stroke() == HandStroke::Mute))
+            .map(Canon::to_string)
+            .collect();
+        assert_eq!(
+            muted,
+            [
+                "perc.conga.high.mute",
+                "perc.cuica.mute",
+                "perc.triangle.mute"
+            ]
+        );
+    }
+
+    #[test]
+    fn same_drum_a_muted_conga_is_its_conga() {
+        assert_same_drum("perc.conga.high.mute", "perc.conga.high");
+    }
+
+    #[test]
+    fn same_drum_two_bongos_are_different_drums() {
+        assert_different_drums("perc.bongo.high", "perc.bongo.low");
+    }
+
+    #[test]
+    fn same_drum_a_triangle_is_not_a_cowbell() {
+        assert_different_drums("perc.triangle", "perc.cowbell");
+    }
+
+    #[test]
+    fn latin_percussion_belongs_to_the_percussion_family() {
+        assert_eq!(k("perc.bongo.high").family(), Family::Percussion);
+    }
+
+    #[test]
+    fn the_hand_drums_follow_the_kit_percussion() {
+        let all = Canon::all();
+        let misc = all
+            .iter()
+            .position(|&c| c == k("perc.misc"))
+            .expect("perc.misc is a canon");
+        assert_eq!(all[misc + 1], k("perc.bongo.high"));
+    }
+
+    #[test]
     fn all_keeps_its_order() {
         let all = Canon::all();
         assert_eq!(all[0], k("kick.main"));
         assert_eq!(all[3], k("snare1.hit"));
-        assert_eq!(all.last(), Some(&k("perc.misc")));
+        assert_eq!(all.last(), Some(&k("perc.triangle.mute")));
     }
 
     #[test]

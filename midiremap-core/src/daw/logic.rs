@@ -56,7 +56,7 @@ fn instrument_icon(piece: Piece) -> i64 {
         Piece::Perc(PercKind::Clap) => 4534,
         Piece::Perc(PercKind::Cowbell) => 4536,
         Piece::Perc(PercKind::Sticks) => 4537,
-        Piece::Perc(PercKind::Misc) => 4535,
+        Piece::Perc(PercKind::Misc) | Piece::Hand => 4535,
     }
 }
 
