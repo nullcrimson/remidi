@@ -1455,6 +1455,59 @@ mod tests {
     }
 
     #[test]
+    fn room_sound_ballou_vol1_is_named_for_volume_1() {
+        let b = Catalog::builtin();
+        let ballou = b.get("roomsound_ballou_vol1").unwrap();
+        assert!(ballou.name().ends_with("Vol. 1"), "{}", ballou.name());
+        assert!(
+            ballou.display_name().ends_with("Vol. 1"),
+            "{}",
+            ballou.display_name()
+        );
+    }
+
+    #[test]
+    fn room_sound_ballou_vol1_plays_its_splash_and_china_below_92() {
+        assert_eq!(
+            decoded("roomsound_ballou_vol1", 85),
+            Some(k("splash.1.mute"))
+        );
+        assert_eq!(
+            decoded("roomsound_ballou_vol1", 86),
+            Some(k("splash.1.mute"))
+        );
+        assert_eq!(
+            decoded("roomsound_ballou_vol1", 87),
+            Some(k("splash.1.hit"))
+        );
+        assert_eq!(
+            decoded("roomsound_ballou_vol1", 89),
+            Some(k("china.1.mute"))
+        );
+        assert_eq!(
+            decoded("roomsound_ballou_vol1", 90),
+            Some(k("china.1.mute"))
+        );
+        assert_eq!(decoded("roomsound_ballou_vol1", 91), Some(k("china.1.hit")));
+        assert_eq!(decoded("roomsound_ballou_vol1", 88), None);
+        assert_eq!(decoded("roomsound_ballou_vol1", 92), None);
+    }
+
+    #[test]
+    fn room_sound_ballou_vol1_has_two_rack_toms_and_no_stick_clicks() {
+        assert_eq!(
+            decoded("roomsound_ballou_vol1", 48),
+            Some(k("tom.rack1.hit"))
+        );
+        assert_eq!(
+            decoded("roomsound_ballou_vol1", 47),
+            Some(k("tom.rack2.hit"))
+        );
+        assert_eq!(decoded("roomsound_ballou_vol1", 45), None);
+        assert_eq!(decoded("roomsound_ballou_vol1", 31), None);
+    }
+
+    #[test]
     fn nu_metal_reads_the_second_keys_of_its_invasion_preset() {
         assert_eq!(decoded("ggd_numetal", 27), Some(k("snare2.hit")));
         assert_eq!(decoded("ggd_numetal", 56), Some(k("crash.1.hit")));

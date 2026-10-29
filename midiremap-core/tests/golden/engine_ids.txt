@@ -101,6 +101,7 @@ prenc_kinglake
 redpack_dsdrum
 roland_td17
 roomsound_ballou
+roomsound_ballou_vol1
 roomsound_blastingroom
 rsdrums_fairview
 rsdrums_monarch
