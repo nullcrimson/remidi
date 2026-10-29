@@ -1503,7 +1503,7 @@ mod tests {
     }
 
     #[test]
-    fn ggd_invasion_lists_its_ggd_mapping_beside_it() {
+    fn ggd_invasion_lists_its_other_mappings_beside_it() {
         let invasion = site()
             .index
             .listed
@@ -1515,7 +1515,14 @@ mod tests {
             .iter()
             .map(|v| (v.link.id.as_str(), v.label.as_str()))
             .collect();
-        assert_eq!(variants, [("ggd_invasion_ggd", "Mapping 'GGD'")]);
+        assert_eq!(
+            variants,
+            [
+                ("ggd_invasion_ggd", "Mapping 'GGD'"),
+                ("ggd_invasion_gm", "Mapping 'GM'"),
+                ("ggd_invasion_halpern", "Mapping 'Halpern'"),
+            ]
+        );
     }
 
     #[test]

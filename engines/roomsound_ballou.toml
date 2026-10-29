@@ -1,5 +1,6 @@
 id = "roomsound_ballou"
-name = "Room Sound - Kurt Ballou"
+name = "Room Sound - Kurt Ballou Signature Series Drums Vol. 2"
+short_name = "Room Sound - Kurt Ballou Vol. 2"
 vendor = "Room Sound"
 notes = [
   { note = 31, canon = "perc.sticks", primary = true },

@@ -190,23 +190,59 @@ mod tests {
     }
 
     #[test]
-    fn guitar_pro_plays_sticks_on_31() {
-        assert_eq!(decoded("guitar_pro", 31), Some(k("perc.sticks")));
+    fn guitar_pro_plays_a_side_stick_on_31_and_33() {
+        assert_eq!(decoded("guitar_pro", 31), Some(k("snare1.sidestick")));
+        assert_eq!(decoded("guitar_pro", 33), Some(k("snare1.sidestick")));
     }
 
     #[test]
-    fn guitar_pro_plays_the_second_ride_edge_on_59() {
-        assert_eq!(decoded("guitar_pro", 59), Some(k("ride.2.edge")));
+    fn guitar_pro_plays_the_ride_edge_on_59() {
+        assert_eq!(decoded("guitar_pro", 59), Some(k("ride.1.edge")));
     }
 
     #[test]
-    fn guitar_pro_plays_the_second_kick_on_35() {
-        assert_eq!(decoded("guitar_pro", 35), Some(k("kick.alt")));
+    fn guitar_pro_plays_the_kick_on_35() {
+        assert_eq!(decoded("guitar_pro", 35), Some(k("kick.main")));
     }
 
     #[test]
-    fn guitar_pro_plays_the_second_snare_on_40() {
-        assert_eq!(decoded("guitar_pro", 40), Some(k("snare2.hit")));
+    fn guitar_pro_plays_the_snare_on_34_and_40() {
+        assert_eq!(decoded("guitar_pro", 34), Some(k("snare1.hit")));
+        assert_eq!(decoded("guitar_pro", 40), Some(k("snare1.hit")));
+    }
+
+    #[test]
+    fn guitar_pro_plays_the_ride_choke_on_29() {
+        assert_eq!(decoded("guitar_pro", 29), Some(k("ride.1.mute")));
+    }
+
+    #[test]
+    fn guitar_pro_plays_the_main_ride_on_126_and_127() {
+        assert_eq!(decoded("guitar_pro", 126), Some(k("ride.1")));
+        assert_eq!(decoded("guitar_pro", 127), Some(k("ride.1.bell")));
+    }
+
+    #[test]
+    fn guitar_pro_plays_a_hand_clap_on_39() {
+        assert_eq!(decoded("guitar_pro", 39), Some(k("perc.clap")));
+    }
+
+    #[test]
+    fn guitar_pro_plays_its_tambourines_as_a_tambourine() {
+        for key in [54, 111, 112, 113] {
+            assert_eq!(
+                decoded("guitar_pro", key),
+                Some(k("perc.tambourine")),
+                "{key}"
+            );
+        }
+    }
+
+    #[test]
+    fn guitar_pro_plays_its_shakers_maracas_and_cabasa_as_a_shaker() {
+        for key in [69, 70, 82, 117, 118, 119, 120, 122] {
+            assert_eq!(decoded("guitar_pro", key), Some(k("perc.shaker")), "{key}");
+        }
     }
 
     #[test]
@@ -282,6 +318,977 @@ mod tests {
     #[test]
     fn invasion_ggd_plays_the_right_china_choke_on_72() {
         assert_eq!(decoded("ggd_invasion_ggd", 72), Some(k("china.2.mute")));
+    }
+
+    fn plays_what_the_default_plays(variant: &str, base: &str, keys: &[(u8, u8)]) {
+        for &(key, base_key) in keys {
+            assert_eq!(
+                decoded(variant, key),
+                decoded(base, base_key),
+                "{variant} {key} against {base} {base_key}"
+            );
+            assert!(decoded(variant, key).is_some(), "{variant} {key}");
+        }
+    }
+
+    #[test]
+    fn invasion_gm_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_invasion_gm",
+            "ggd_invasion",
+            &[
+                (38, 26),
+                (50, 33),
+                (43, 36),
+                (48, 37),
+                (41, 38),
+                (49, 52),
+                (57, 54),
+                (52, 65),
+                (53, 61),
+                (51, 62),
+                (42, 41),
+                (54, 43),
+                (46, 46),
+                (58, 47),
+                (44, 48),
+                (55, 73),
+            ],
+        );
+    }
+
+    #[test]
+    fn invasion_gm_plays_the_kick_on_36() {
+        assert_eq!(decoded("ggd_invasion_gm", 36), Some(k("kick.main")));
+    }
+
+    #[test]
+    fn invasion_halpern_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_invasion_halpern",
+            "ggd_invasion",
+            &[
+                (26, 26),
+                (27, 27),
+                (28, 28),
+                (29, 29),
+                (30, 30),
+                (33, 33),
+                (37, 36),
+                (35, 37),
+                (39, 38),
+                (62, 52),
+                (64, 53),
+                (67, 54),
+                (69, 55),
+                (76, 65),
+                (77, 68),
+                (74, 61),
+                (72, 62),
+                (73, 63),
+                (45, 41),
+                (58, 42),
+                (47, 43),
+                (48, 44),
+                (53, 45),
+                (54, 46),
+                (56, 47),
+                (44, 47),
+                (43, 48),
+                (83, 73),
+                (82, 74),
+            ],
+        );
+    }
+
+    #[test]
+    fn invasion_halpern_plays_the_kick_on_24() {
+        assert_eq!(decoded("ggd_invasion_halpern", 24), Some(k("kick.main")));
+    }
+
+    #[test]
+    fn brutal_gm_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_brutal_gm",
+            "ggd_brutal",
+            &[
+                (36, 24),
+                (38, 26),
+                (50, 33),
+                (43, 34),
+                (48, 35),
+                (42, 41),
+                (54, 43),
+                (46, 46),
+                (58, 47),
+                (44, 48),
+                (53, 61),
+                (51, 62),
+                (55, 73),
+                (49, 52),
+                (52, 65),
+                (57, 75),
+            ],
+        );
+    }
+
+    #[test]
+    fn brutal_halpern_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_brutal_halpern",
+            "ggd_brutal",
+            &[
+                (24, 24),
+                (26, 26),
+                (30, 30),
+                (33, 33),
+                (37, 34),
+                (35, 35),
+                (45, 41),
+                (58, 42),
+                (47, 43),
+                (48, 44),
+                (53, 45),
+                (54, 46),
+                (56, 47),
+                (44, 47),
+                (43, 48),
+                (74, 61),
+                (72, 62),
+                (83, 73),
+                (82, 74),
+                (62, 52),
+                (64, 53),
+                (76, 65),
+                (77, 66),
+                (67, 75),
+            ],
+        );
+    }
+
+    #[test]
+    fn brutal_ggd_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_brutal_ggd",
+            "ggd_brutal",
+            &[
+                (36, 24),
+                (37, 26),
+                (40, 30),
+                (42, 33),
+                (45, 34),
+                (43, 35),
+                (48, 41),
+                (54, 42),
+                (49, 43),
+                (52, 45),
+                (53, 46),
+                (57, 47),
+                (55, 48),
+                (74, 61),
+                (73, 62),
+                (77, 73),
+                (83, 74),
+                (58, 52),
+                (59, 53),
+                (71, 65),
+                (72, 66),
+                (61, 75),
+            ],
+        );
+    }
+
+    #[test]
+    fn modern_fusion_gm_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_modernfusion_gm",
+            "ggd_modernfusion",
+            &[
+                (36, 24),
+                (38, 26),
+                (37, 30),
+                (50, 33),
+                (48, 34),
+                (43, 35),
+                (53, 61),
+                (51, 62),
+                (49, 52),
+                (66, 53),
+                (57, 54),
+                (95, 55),
+                (41, 41),
+                (42, 42),
+                (10, 43),
+                (54, 44),
+                (58, 45),
+                (46, 46),
+                (56, 47),
+                (44, 48),
+                (55, 73),
+                (64, 74),
+                (52, 65),
+                (74, 66),
+                (69, 78),
+            ],
+        );
+    }
+
+    #[test]
+    fn modern_fusion_halpern_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_modernfusion_halpern",
+            "ggd_modernfusion",
+            &[
+                (24, 24),
+                (26, 26),
+                (30, 30),
+                (33, 33),
+                (37, 34),
+                (35, 35),
+                (74, 61),
+                (72, 62),
+                (62, 52),
+                (64, 53),
+                (67, 54),
+                (69, 55),
+                (45, 41),
+                (58, 42),
+                (47, 43),
+                (48, 44),
+                (53, 45),
+                (54, 46),
+                (56, 47),
+                (44, 47),
+                (43, 48),
+                (83, 73),
+                (82, 74),
+                (76, 65),
+                (77, 66),
+            ],
+        );
+    }
+
+    #[test]
+    fn modern_fusion_ggd_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_modernfusion_ggd",
+            "ggd_modernfusion",
+            &[
+                (36, 24),
+                (37, 26),
+                (40, 30),
+                (42, 33),
+                (45, 34),
+                (43, 35),
+                (74, 61),
+                (73, 62),
+                (58, 52),
+                (59, 53),
+                (61, 54),
+                (62, 55),
+                (48, 41),
+                (54, 42),
+                (49, 43),
+                (52, 45),
+                (53, 46),
+                (57, 47),
+                (55, 48),
+                (77, 73),
+                (83, 74),
+                (71, 65),
+                (72, 66),
+            ],
+        );
+    }
+
+    #[test]
+    fn pop_punk_gm_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_poppunk_gm",
+            "ggd_poppunk",
+            &[
+                (36, 24),
+                (38, 26),
+                (50, 33),
+                (48, 35),
+                (53, 61),
+                (51, 62),
+                (55, 73),
+                (42, 41),
+                (54, 43),
+                (46, 46),
+                (58, 47),
+                (44, 48),
+                (52, 65),
+                (49, 52),
+                (57, 58),
+            ],
+        );
+    }
+
+    #[test]
+    fn pop_punk_halpern_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_poppunk_halpern",
+            "ggd_poppunk",
+            &[
+                (24, 24),
+                (26, 26),
+                (30, 30),
+                (33, 33),
+                (35, 35),
+                (74, 61),
+                (72, 62),
+                (83, 73),
+                (82, 74),
+                (45, 41),
+                (58, 42),
+                (47, 43),
+                (48, 44),
+                (53, 45),
+                (54, 46),
+                (56, 47),
+                (44, 47),
+                (43, 48),
+                (76, 65),
+                (77, 66),
+                (62, 52),
+                (64, 53),
+                (67, 58),
+                (69, 59),
+            ],
+        );
+    }
+
+    #[test]
+    fn pop_punk_ggd_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_poppunk_ggd",
+            "ggd_poppunk",
+            &[
+                (36, 24),
+                (37, 26),
+                (40, 30),
+                (42, 33),
+                (43, 35),
+                (74, 61),
+                (73, 62),
+                (77, 73),
+                (83, 74),
+                (48, 41),
+                (54, 42),
+                (49, 43),
+                (52, 45),
+                (53, 46),
+                (57, 47),
+                (55, 48),
+                (71, 65),
+                (72, 66),
+                (58, 52),
+                (59, 53),
+                (61, 58),
+                (62, 59),
+            ],
+        );
+    }
+
+    #[test]
+    fn architects_gm_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_architects_gm",
+            "ggd_architects",
+            &[
+                (36, 24),
+                (38, 26),
+                (50, 35),
+                (43, 36),
+                (48, 37),
+                (41, 37),
+                (53, 61),
+                (51, 62),
+                (49, 52),
+                (57, 54),
+                (42, 41),
+                (54, 43),
+                (46, 46),
+                (58, 47),
+                (44, 48),
+                (52, 67),
+                (55, 73),
+            ],
+        );
+    }
+
+    #[test]
+    fn architects_halpern_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_architects_halpern",
+            "ggd_architects",
+            &[
+                (24, 24),
+                (28, 26),
+                (30, 30),
+                (33, 35),
+                (37, 36),
+                (35, 37),
+                (74, 61),
+                (72, 62),
+                (73, 63),
+                (62, 52),
+                (64, 53),
+                (67, 54),
+                (69, 55),
+                (45, 41),
+                (58, 42),
+                (47, 43),
+                (48, 44),
+                (53, 45),
+                (54, 46),
+                (56, 47),
+                (44, 47),
+                (43, 48),
+                (76, 67),
+                (77, 68),
+                (83, 73),
+                (82, 74),
+            ],
+        );
+    }
+
+    #[test]
+    fn architects_ggd_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_architects_ggd",
+            "ggd_architects",
+            &[
+                (36, 24),
+                (39, 26),
+                (40, 30),
+                (42, 35),
+                (45, 36),
+                (43, 37),
+                (74, 61),
+                (73, 62),
+                (76, 63),
+                (58, 52),
+                (59, 53),
+                (61, 54),
+                (62, 55),
+                (48, 41),
+                (54, 42),
+                (49, 43),
+                (52, 45),
+                (53, 46),
+                (57, 47),
+                (55, 48),
+                (71, 67),
+                (72, 68),
+                (77, 73),
+                (83, 74),
+            ],
+        );
+    }
+
+    #[test]
+    fn aggressive_rock_gm_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_aggressiverock_gm",
+            "ggd_aggressiverock",
+            &[
+                (36, 24),
+                (38, 26),
+                (37, 30),
+                (50, 33),
+                (48, 34),
+                (41, 41),
+                (42, 42),
+                (10, 43),
+                (54, 44),
+                (58, 45),
+                (46, 46),
+                (56, 47),
+                (44, 48),
+                (53, 61),
+                (51, 62),
+                (49, 52),
+                (66, 53),
+                (57, 54),
+                (95, 55),
+                (55, 73),
+                (64, 74),
+                (52, 65),
+                (74, 66),
+            ],
+        );
+    }
+
+    #[test]
+    fn aggressive_rock_halpern_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_aggressiverock_halpern",
+            "ggd_aggressiverock",
+            &[
+                (24, 24),
+                (26, 26),
+                (30, 30),
+                (33, 33),
+                (37, 34),
+                (45, 41),
+                (58, 42),
+                (47, 43),
+                (48, 44),
+                (53, 45),
+                (54, 46),
+                (56, 47),
+                (44, 47),
+                (43, 48),
+                (74, 61),
+                (72, 62),
+                (62, 52),
+                (64, 53),
+                (67, 54),
+                (69, 55),
+                (83, 73),
+                (82, 74),
+                (76, 65),
+                (77, 66),
+            ],
+        );
+    }
+
+    #[test]
+    fn aggressive_rock_ggd_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_aggressiverock_ggd",
+            "ggd_aggressiverock",
+            &[
+                (36, 24),
+                (37, 26),
+                (40, 30),
+                (42, 33),
+                (45, 34),
+                (48, 41),
+                (54, 42),
+                (49, 43),
+                (52, 45),
+                (53, 46),
+                (57, 47),
+                (55, 48),
+                (74, 61),
+                (73, 62),
+                (58, 52),
+                (59, 53),
+                (61, 54),
+                (62, 55),
+                (77, 73),
+                (83, 74),
+                (71, 65),
+                (72, 66),
+            ],
+        );
+    }
+
+    #[test]
+    fn p5_halpern_gm_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_p5_halpern_gm",
+            "ggd_p5_halpern",
+            &[
+                (36, 24),
+                (38, 26),
+                (50, 33),
+                (43, 34),
+                (48, 35),
+                (42, 41),
+                (54, 43),
+                (46, 46),
+                (58, 47),
+                (44, 48),
+                (53, 61),
+                (51, 62),
+                (52, 65),
+                (49, 52),
+                (57, 54),
+                (55, 73),
+            ],
+        );
+    }
+
+    #[test]
+    fn p5_halpern_halpern_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_p5_halpern_halpern",
+            "ggd_p5_halpern",
+            &[
+                (24, 24),
+                (26, 26),
+                (30, 30),
+                (29, 29),
+                (33, 33),
+                (37, 34),
+                (35, 35),
+                (45, 41),
+                (58, 42),
+                (47, 43),
+                (48, 44),
+                (53, 45),
+                (54, 46),
+                (56, 47),
+                (44, 47),
+                (43, 48),
+                (62, 52),
+                (64, 53),
+                (67, 54),
+                (69, 55),
+                (83, 73),
+                (82, 74),
+                (74, 61),
+                (72, 62),
+                (76, 65),
+                (77, 66),
+            ],
+        );
+    }
+
+    #[test]
+    fn p5_halpern_ggd_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_p5_halpern_ggd",
+            "ggd_p5_halpern",
+            &[
+                (36, 24),
+                (37, 26),
+                (40, 30),
+                (41, 29),
+                (42, 33),
+                (45, 34),
+                (43, 35),
+                (48, 41),
+                (54, 42),
+                (49, 43),
+                (52, 45),
+                (53, 46),
+                (57, 47),
+                (55, 48),
+                (58, 52),
+                (59, 53),
+                (61, 54),
+                (62, 55),
+                (77, 73),
+                (83, 74),
+                (74, 61),
+                (73, 62),
+                (71, 65),
+                (72, 66),
+            ],
+        );
+    }
+
+    #[test]
+    fn metal_gm_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_metal_gm",
+            "ggd_metal",
+            &[
+                (38, 26),
+                (50, 33),
+                (43, 34),
+                (48, 35),
+                (41, 36),
+                (42, 41),
+                (54, 43),
+                (46, 46),
+                (58, 47),
+                (44, 48),
+                (53, 61),
+                (51, 62),
+                (49, 52),
+                (57, 54),
+                (52, 65),
+                (55, 73),
+            ],
+        );
+        assert_eq!(decoded("ggd_metal_gm", 36), Some(k("kick.main")));
+    }
+
+    #[test]
+    fn metal_halpern_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_metal_halpern",
+            "ggd_metal",
+            &[
+                (26, 26),
+                (30, 30),
+                (33, 33),
+                (37, 34),
+                (35, 35),
+                (39, 36),
+                (45, 41),
+                (58, 42),
+                (47, 43),
+                (48, 44),
+                (53, 45),
+                (54, 46),
+                (56, 47),
+                (44, 47),
+                (43, 48),
+                (74, 61),
+                (72, 62),
+                (62, 52),
+                (64, 53),
+                (67, 54),
+                (69, 55),
+                (76, 65),
+                (77, 66),
+                (83, 73),
+                (82, 74),
+            ],
+        );
+        assert_eq!(decoded("ggd_metal_halpern", 24), Some(k("kick.main")));
+    }
+
+    #[test]
+    fn metal_ggd_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_metal_ggd",
+            "ggd_metal",
+            &[
+                (37, 26),
+                (40, 30),
+                (42, 33),
+                (45, 34),
+                (43, 35),
+                (46, 36),
+                (48, 41),
+                (54, 42),
+                (49, 43),
+                (52, 45),
+                (53, 46),
+                (57, 47),
+                (55, 48),
+                (74, 61),
+                (73, 62),
+                (58, 52),
+                (59, 53),
+                (61, 54),
+                (62, 55),
+                (71, 65),
+                (72, 66),
+                (77, 73),
+                (83, 74),
+            ],
+        );
+        assert_eq!(decoded("ggd_metal_ggd", 36), Some(k("kick.main")));
+    }
+
+    #[test]
+    fn ml_drums_plays_the_ride_edge_on_60_and_the_bell_on_72() {
+        for engine in ["ml_drums", "ml_drums_free"] {
+            assert_eq!(decoded(engine, 60), Some(k("ride.1.edge")), "{engine}");
+        }
+        assert_eq!(decoded("ml_drums", 72), Some(k("bell.1.hit")));
+        assert_eq!(decoded("ml_drums_free", 72), None);
+    }
+
+    #[test]
+    fn ml_drums_plays_rack_tom_3_on_45() {
+        for engine in ["ml_drums", "ml_drums_free"] {
+            assert_eq!(decoded(engine, 45), Some(k("tom.rack3.hit")), "{engine}");
+        }
+        assert_eq!(decoded("ml_drums_free", 47), None);
+    }
+
+    #[test]
+    fn ml_drums_opens_its_hats_from_semi_open_1_to_open() {
+        for engine in ["ml_drums", "ml_drums_free"] {
+            assert_eq!(decoded(engine, 68), Some(k("hat.open1")), "{engine}");
+            assert_eq!(decoded(engine, 69), Some(k("hat.open2")), "{engine}");
+            assert_eq!(decoded(engine, 70), Some(k("hat.open3")), "{engine}");
+            assert_eq!(decoded(engine, 46), Some(k("hat.open4")), "{engine}");
+            assert_eq!(decoded(engine, 71), Some(k("hat.open4")), "{engine}");
+            assert_eq!(decoded(engine, 67), Some(k("hat.closed.edge")), "{engine}");
+        }
+    }
+
+    #[test]
+    fn ml_drums_free_plays_china_r_on_57_and_65() {
+        assert_eq!(decoded("ml_drums_free", 57), Some(k("china.2.hit")));
+        assert_eq!(decoded("ml_drums_free", 65), Some(k("china.2.mute")));
+    }
+
+    #[test]
+    fn ssd5_plays_its_extra_cymbals_as_crash_3_and_4() {
+        assert_eq!(decoded("ssd5", 28), Some(k("crash.3.hit")));
+        assert_eq!(decoded("ssd5", 27), Some(k("crash.3.mute")));
+        assert_eq!(decoded("ssd5", 95), Some(k("crash.3.bowtip")));
+        assert_eq!(decoded("ssd5", 29), Some(k("crash.4.hit")));
+        assert_eq!(decoded("ssd5", 30), Some(k("crash.4.mute")));
+        assert_eq!(decoded("ssd5", 94), Some(k("crash.4.bowtip")));
+    }
+
+    #[test]
+    fn ssd5_plays_its_bells_on_83_and_84() {
+        assert_eq!(decoded("ssd5", 83), Some(k("bell.1.hit")));
+        assert_eq!(decoded("ssd5", 84), Some(k("bell.2.hit")));
+    }
+
+    #[test]
+    fn ssd5_plays_the_splash_tip_on_90() {
+        assert_eq!(decoded("ssd5", 90), Some(k("splash.1.bowtip")));
+    }
+
+    #[test]
+    fn ssd5_controls_its_hat_shank_on_26_and_tip_on_46() {
+        assert_eq!(decoded("ssd5", 26), Some(k("hat.cc.edge")));
+        assert_eq!(decoded("ssd5", 46), Some(k("hat.cc.tip")));
+    }
+
+    #[test]
+    fn ssd5_plays_its_percussion_on_74_to_82() {
+        for (key, drum) in [
+            (74, "perc.cowbell"),
+            (75, "perc.cowbell"),
+            (76, "perc.clap"),
+            (77, "perc.tambourine"),
+            (78, "perc.tambourine"),
+            (79, "perc.tambourine"),
+            (80, "perc.shaker"),
+            (81, "perc.shaker"),
+            (82, "perc.shaker"),
+        ] {
+            assert_eq!(decoded("ssd5", key), Some(k(drum)), "{key}");
+        }
+    }
+
+    #[test]
+    fn guitar_pro_plays_a_vibraslap_on_58() {
+        assert_eq!(decoded("guitar_pro", 58), Some(k("perc.vibraslap")));
+    }
+
+    #[test]
+    fn room_sound_ballou_is_named_for_volume_2() {
+        let b = Catalog::builtin();
+        let ballou = b.get("roomsound_ballou").unwrap();
+        assert!(ballou.name().ends_with("Vol. 2"), "{}", ballou.name());
+        assert!(
+            ballou.display_name().ends_with("Vol. 2"),
+            "{}",
+            ballou.display_name()
+        );
+    }
+
+    #[test]
+    fn nu_metal_reads_the_second_keys_of_its_invasion_preset() {
+        assert_eq!(decoded("ggd_numetal", 27), Some(k("snare2.hit")));
+        assert_eq!(decoded("ggd_numetal", 56), Some(k("crash.1.hit")));
+        assert_eq!(decoded("ggd_numetal", 57), Some(k("crash.1.mute")));
+    }
+
+    #[test]
+    fn nu_metal_gm_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_numetal_gm",
+            "ggd_numetal",
+            &[
+                (36, 24),
+                (38, 26),
+                (50, 33),
+                (43, 34),
+                (48, 35),
+                (42, 41),
+                (54, 43),
+                (46, 46),
+                (58, 47),
+                (44, 48),
+                (53, 61),
+                (51, 62),
+                (49, 52),
+                (57, 58),
+                (52, 65),
+                (55, 75),
+            ],
+        );
+    }
+
+    #[test]
+    fn nu_metal_halpern_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_numetal_halpern",
+            "ggd_numetal",
+            &[
+                (24, 24),
+                (26, 26),
+                (30, 30),
+                (33, 33),
+                (37, 34),
+                (35, 35),
+                (45, 41),
+                (58, 42),
+                (47, 43),
+                (48, 44),
+                (53, 45),
+                (54, 46),
+                (56, 47),
+                (43, 48),
+                (74, 61),
+                (72, 62),
+                (62, 52),
+                (64, 53),
+                (67, 58),
+                (69, 59),
+                (76, 65),
+                (77, 66),
+                (83, 75),
+                (82, 76),
+            ],
+        );
+    }
+
+    #[test]
+    fn nu_metal_ggd_plays_each_drum_the_default_map_plays() {
+        plays_what_the_default_plays(
+            "ggd_numetal_ggd",
+            "ggd_numetal",
+            &[
+                (36, 24),
+                (37, 26),
+                (40, 30),
+                (42, 33),
+                (45, 34),
+                (43, 35),
+                (48, 41),
+                (54, 42),
+                (49, 43),
+                (52, 45),
+                (53, 46),
+                (57, 47),
+                (55, 48),
+                (74, 61),
+                (73, 62),
+                (58, 52),
+                (59, 53),
+                (61, 58),
+                (62, 59),
+                (71, 65),
+                (72, 66),
+                (77, 75),
+                (83, 76),
+            ],
+        );
+    }
+
+    #[test]
+    fn mangini_plays_its_second_hi_hat_as_a_second_hat() {
+        for (key, drum) in [
+            (108, "aux2.closed.tip"),
+            (109, "aux2.closed.edge"),
+            (110, "aux2.open1"),
+            (111, "aux2.open2"),
+            (112, "aux2.open3"),
+            (34, "aux2.cc"),
+        ] {
+            assert_eq!(decoded("mixwave_mangini", key), Some(k(drum)), "{key}");
+        }
     }
 
     #[test]
