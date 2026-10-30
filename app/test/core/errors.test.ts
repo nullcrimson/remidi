@@ -1,21 +1,9 @@
-import { crashSummary, errorDetail, errorMessage, kindCounts, toAppError, WasmCallError } from '../../src/core/errors';
+import { errorDetail, errorMessage, kindCounts, toAppError, WasmCallError } from '../../src/core/errors';
 import { ENGLISH } from '../../src/locale/i18n';
 
 const { t } = ENGLISH;
 
 describe('errors', () => {
-  it('sums up a crash by the error kind and the first line of its message', () => {
-    expect(crashSummary(new TypeError('x is undefined\n    at render'))).toBe('TypeError: x is undefined');
-  });
-
-  it('caps a crash summary at 100 characters', () => {
-    expect(crashSummary(new Error('y'.repeat(300)))).toHaveLength(100);
-  });
-
-  it('sums up a thrown value that is not an error by its text', () => {
-    expect(crashSummary('plain failure')).toBe('plain failure');
-  });
-
   it('keeps the detail in the message of a WASM call error, for logs', () => {
     expect(new WasmCallError({ kind: 'badMidi', detail: 'invalid midi: truncated' }).message).toBe('badMidi: invalid midi: truncated');
   });

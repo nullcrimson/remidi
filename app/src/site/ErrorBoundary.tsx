@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { ProseLink } from '../ui/ProseLink';
 import { TextButton } from '../ui/TextButton';
 import { ISSUES_URL } from '../core/contact';
-import { crashSummary } from '../core/errors';
+import { crashReport } from '../core/crash';
 import { clearStored } from '../core/storage';
 import { track } from '../core/stats';
 
@@ -71,7 +71,7 @@ export class ErrorBoundary extends Component<Props, { error: unknown }> {
   }
 
   componentDidCatch(error: unknown, info: ErrorInfo) {
-    track('crashed', { error: crashSummary(error) });
+    track('crashed', crashReport(error, info.componentStack));
     console.error(error, info.componentStack);
   }
 

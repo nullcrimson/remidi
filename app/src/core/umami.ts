@@ -82,7 +82,7 @@ export interface StatEvents {
   'tip-asked': undefined;
   'tip-answered': { answer: '3' | '5' | '10' | 'other' | 'closed'; where: 'toast' | 'footer' };
   'load-failed': { kind: ErrorKind | 'locale' };
-  crashed: { error: string };
+  crashed: { error: string; thrown: string; components: string };
   'storage-cleared': undefined;
 }
 

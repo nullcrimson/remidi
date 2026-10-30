@@ -1,9 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { unzipSync } from 'fflate';
 import type { Page } from '@playwright/test';
-import { addFiles, DRUMS, expect, hitKeys, midFile, openPair, test } from './fixtures';
-
-const kick = (name: string) => midFile(name, [{ channel: DRUMS, key: 24 }]);
+import { addFiles, expect, hitKeys, kick, openPair, test } from './fixtures';
 
 test('converts a kick through the real engine and downloads the file', async ({ page }) => {
   await openPair(page);

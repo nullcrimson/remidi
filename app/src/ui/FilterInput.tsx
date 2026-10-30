@@ -50,7 +50,7 @@ export function FilterInput({
         placeholder={placeholder}
         className="w-full pr-6 pl-6.5"
       />
-      {value && (
+      {value !== '' && (
         <span className="absolute top-1/2 right-1 -translate-y-1/2">
           <IconButton label={t({ id: 'filter-clear' })} size="sm" tabbable={false} onClick={() => onChange('')}>
             ×

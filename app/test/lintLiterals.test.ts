@@ -1,22 +1,11 @@
-import { readFileSync } from 'node:fs';
-import { ESLint } from 'eslint';
-import tseslint from 'typescript-eslint';
 import { literalStringRule } from '../eslint.literals.ts';
+import { componentRules, LINT_TIMEOUT_MS, ruleIds as lint } from './lintRule';
 
-const eslint = new ESLint({
-  cwd: process.cwd(),
-  overrideConfigFile: true,
-  overrideConfig: [literalStringRule, { files: ['**/*.tsx'], languageOptions: { parser: tseslint.parser } }],
-});
+const ruleIds = (code: string) => lint(literalStringRule, code);
 
-const ruleIds = async (code: string) => {
-  const [r] = await eslint.lintText(code, { filePath: 'src/components/X.tsx' });
-  return r.messages.map((m) => m.ruleId);
-};
-
-describe('the literal-string lint rule', () => {
-  it('is a block of the project lint config', () => {
-    expect(readFileSync('eslint.config.js', 'utf8')).toMatch(/^ {2}literalStringRule,$/m);
+describe('the literal-string lint rule', { timeout: LINT_TIMEOUT_MS }, () => {
+  it('applies to every app component', async () => {
+    expect(await componentRules()).toMatchObject({ 'i18next/no-literal-string': [2, expect.anything()] });
   });
 
   it('rejects a literal UI string in a component', async () => {

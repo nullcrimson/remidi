@@ -37,7 +37,7 @@ export function CloserSourcesNotice({ remapper }: { remapper: Remapper }) {
   if (closer === null) return null;
   const suggestions = closer.better.map((fit, i) => (
     <Fragment key={fit.engine}>
-      {i > 0 && ' · '}
+      {i > 0 && <span>{' · '}</span>}
       <Suggestion fit={fit} name={engineName(engines, fit.engine)} onChoose={chooseSrc} />
     </Fragment>
   ));

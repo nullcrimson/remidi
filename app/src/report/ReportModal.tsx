@@ -59,7 +59,8 @@ function Group<E extends LineEntry>({
   return (
     <div className="flex flex-col gap-1">
       <MonoLabel tone={color} className="uppercase">
-        {title} <span className="tracking-normal text-t5 normal-case">· {hint}</span>
+        <span>{`${title} `}</span>
+        <span className="tracking-normal text-t5 normal-case">{`· ${hint}`}</span>
       </MonoLabel>
       {entries.map((e) => {
         const fix = fixOf(e);
@@ -72,7 +73,7 @@ function Group<E extends LineEntry>({
           >
             <span>{entryText(e)}</span>
             <span className="flex shrink-0 items-center gap-3">
-              <span className="font-mono text-t5">×{e.count}</span>
+              <span className="font-mono text-t5">{`×${e.count}`}</span>
               {fix && <TextButton onClick={fix.run}>{fix.label}</TextButton>}
             </span>
           </div>
@@ -149,8 +150,7 @@ function Headline({ view, targetName }: { view: ReportView; targetName: string }
     return (
       <p>
         <span className="font-semibold text-t1">{t({ id: 'report-nothing' })}</span>
-        {' '}
-        {t({ id: view.totals.untouched > 0 ? 'report-nothing-channel' : 'report-nothing-notes' })}
+        <span>{` ${t({ id: view.totals.untouched > 0 ? 'report-nothing-channel' : 'report-nothing-notes' })}`}</span>
       </p>
     );
   }
@@ -158,8 +158,7 @@ function Headline({ view, targetName }: { view: ReportView; targetName: string }
     return (
       <p>
         <span className="font-semibold text-t1">{t({ id: 'report-clean' })}</span>
-        {' '}
-        {t({ id: 'report-clean-detail', args: { target: targetName } })}
+        <span>{` ${t({ id: 'report-clean-detail', args: { target: targetName } })}`}</span>
       </p>
     );
   }

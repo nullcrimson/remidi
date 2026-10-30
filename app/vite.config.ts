@@ -104,6 +104,7 @@ export default defineConfig({
   css: { postcss: { plugins: [steadyFonts()] } },
   worker: { format: 'es' },
   build: {
+    sourcemap: 'hidden',
     rollupOptions: {
       input: { index: 'index.html', [LOCALE_ENTRY]: 'src/locale/staticPagesEntry.ts' },
       output: {

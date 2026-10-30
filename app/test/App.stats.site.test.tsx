@@ -121,7 +121,11 @@ describe('the events of language, navigation, tips and failures', () => {
 
     it('sends crashed when the error screen appears', () => {
       render(<ErrorBoundary onReload={vi.fn()}><Boom /></ErrorBoundary>);
-      expect(umami).toHaveBeenCalledWith('crashed', { error: 'Error: render exploded' });
+      expect(umami).toHaveBeenCalledWith('crashed', {
+        error: 'Error: render exploded',
+        thrown: expect.stringMatching(/^Boom@/),
+        components: expect.stringMatching(/^Boom@/),
+      });
     });
 
     it('sends storage-cleared when the reset is confirmed', async () => {

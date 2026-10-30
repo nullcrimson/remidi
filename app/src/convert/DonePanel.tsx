@@ -89,11 +89,10 @@ export function DonePanel({
               font-display text-title font-semibold text-t1 outline-none
             "
           >
-            {t({ id: 'done-heading', args: { count: results.length, target: names.target } })}
+            <span>{t({ id: 'done-heading', args: { count: results.length, target: names.target } })}</span>
             {editedDrums > 0 && (
               <span className="font-normal text-t4">
-                {' · '}
-                {t({ id: 'done-edited', args: { count: editedDrums } })}
+                {` · ${t({ id: 'done-edited', args: { count: editedDrums } })}`}
               </span>
             )}
           </h3>

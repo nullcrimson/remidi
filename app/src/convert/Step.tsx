@@ -1,6 +1,7 @@
-import { useId, type ReactNode } from 'react';
+import { useId } from 'react';
 import { useT } from '../locale/localeContext';
 import { CheckIcon } from '../ui/CheckIcon';
+import type { ElementChildren } from '../ui/elementChildren';
 import type { StepState } from './stepState';
 
 /** One numbered step of the converter: its heading, a badge that turns into a check once done, and its controls. */
@@ -8,7 +9,7 @@ export function Step({ number, title, state, children }: {
   number: number;
   title: string;
   state: StepState;
-  children: ReactNode;
+  children: ElementChildren;
 }) {
   const t = useT();
   const headingId = useId();
@@ -26,7 +27,7 @@ export function Step({ number, title, state, children }: {
           id={headingId}
           className="font-display text-body font-semibold text-t1"
         >
-          {title}
+          <span>{title}</span>
           {state === 'done' && <span className="sr-only">{` · ${t({ id: 'step-done' })}`}</span>}
         </h2>
       </div>

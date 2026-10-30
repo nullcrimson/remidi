@@ -1,5 +1,6 @@
 import { useT } from '../locale/localeContext';
 import type { ReactNode } from 'react';
+import type { ElementChildren } from '../ui/elementChildren';
 import type { FocusRef } from '../ui/useFocusIntent';
 import { SiteFooter } from './SiteFooter';
 import { SiteHeader } from './SiteHeader';
@@ -21,8 +22,8 @@ export function Page({
   wide?: boolean;
   loading?: boolean;
   onSkip: () => void;
-  after?: ReactNode;
-  children: ReactNode;
+  after?: ElementChildren;
+  children: ElementChildren;
 }) {
   const t = useT();
   return (

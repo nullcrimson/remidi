@@ -57,12 +57,6 @@ export function kindCounts(errors: AppError[]): [AppError['kind'], number][] {
   return [...counts];
 }
 
-/** A thrown value's kind and first line, short enough to send with the crash event. */
-export function crashSummary(err: unknown): string {
-  const text = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-  return text.split('\n', 1)[0].slice(0, 100);
-}
-
 /** The untranslated technical cause, when there is one. */
 export function errorDetail(e: AppError): string | null {
   return 'detail' in e ? e.detail : null;

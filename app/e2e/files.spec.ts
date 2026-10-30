@@ -1,8 +1,6 @@
 import type { Page } from '@playwright/test';
-import { addFiles, DRUMS, expect, hitKeys, midFile, openPair, test } from './fixtures';
+import { addFiles, expect, hitKeys, kick, midFile, openPair, test } from './fixtures';
 import { chosenEngine, download, engineCard, pickEngine, press } from './steps';
-
-const kick = (name: string) => midFile(name, [{ channel: DRUMS, key: 24 }]);
 
 async function choose(page: Page, ...files: ReturnType<typeof midFile>[]) {
   const chooser = page.waitForEvent('filechooser');

@@ -111,7 +111,7 @@ export function SavedMappingChip({
       >
         <span className="max-w-40 truncate text-t2">{mapping.name}</span>
         <span className="shrink-0 font-mono text-label text-t5">
-          {engineCode(mapping.src)}→{engineCode(mapping.tgt)}
+          {`${engineCode(mapping.src)}→${engineCode(mapping.tgt)}`}
         </span>
       </button>
       <button

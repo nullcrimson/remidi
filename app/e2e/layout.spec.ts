@@ -2,6 +2,7 @@ import { LOCALE_CODES } from '../src/generated/localeCodes';
 import { addFiles, expect, kickAndChina, test } from './fixtures';
 import { clipped, EVERY_VIEWPORT_PAGE, fits, LOCALES, PHONE_PAGES } from './layout';
 import { messages, PSEUDO, pseudoFtl } from './messages';
+import { openLanguageMenu } from './steps';
 
 const prefix = (code: string) => (code === PSEUDO ? 'pl' : code);
 
@@ -35,7 +36,7 @@ for (const code of LOCALES) {
       await page.goto(`/${prefix(code)}/?from=ggd_invasion&to=ezdrummer`);
       await expect(page.getByRole('link', { name: m('nav-converter') }).first()).toBeVisible();
       await fits(page, 'empty');
-      await page.getByRole('button', { name: m('lang-menu-label') }).click();
+      await openLanguageMenu(page);
       await fits(page, 'language menu');
       await page.keyboard.press('Escape');
       await addFiles(page, kickAndChina());

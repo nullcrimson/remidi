@@ -96,7 +96,7 @@ export function EditView({
             </h2>
           </div>
           <span className="truncate text-label text-t4">
-            {srcName} → {tgtName}
+            {`${srcName} → ${tgtName}`}
           </span>
         </div>
 
@@ -143,7 +143,7 @@ export function EditView({
               aria-expanded:border-accent/40 aria-expanded:text-t1
             "
           >
-            {t({ id: 'edit-advanced' })}
+            <span>{t({ id: 'edit-advanced' })}</span>
             <span
               aria-hidden="true"
               className={`

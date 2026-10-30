@@ -1,5 +1,5 @@
 import { addFiles, DRUMS, expect, midFile, openPair, test } from './fixtures';
-import { openSettings } from './steps';
+import { openLanguageMenu, openSettings, pickLanguage } from './steps';
 
 test('/pl/ renders Polish with lang="pl"', async ({ page }) => {
   await page.goto('/pl/');
@@ -9,7 +9,7 @@ test('/pl/ renders Polish with lang="pl"', async ({ page }) => {
 
 test('the language menu lists every language in its own name', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Language' }).click();
+  await openLanguageMenu(page);
   await expect(page.locator('#language-menu').getByRole('link')).toHaveText(
     ['English', 'Español', 'Português', 'Deutsch', '日本語', 'Français', 'Русский', 'Polski', 'Italiano', '中文', '한국어'],
   );
@@ -20,16 +20,14 @@ test.describe('a short screen', () => {
 
   test('reaches the last language in the menu', async ({ page }) => {
     await page.goto('/faq/');
-    await page.getByRole('button', { name: 'Language' }).click();
-    await page.locator('#language-menu').getByRole('link', { name: '한국어' }).click();
+    await pickLanguage(page, '한국어');
     await expect(page).toHaveURL(/\/ko\/faq\/$/);
   });
 });
 
 test('the language menu keeps the page', async ({ page }) => {
   await page.goto('/faq/');
-  await page.getByRole('button', { name: 'Language' }).click();
-  await page.locator('#language-menu').getByRole('link', { name: 'Polski' }).click();
+  await pickLanguage(page, 'Polski');
   await expect(page).toHaveURL(/\/pl\/faq\/$/);
   await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
 });
@@ -86,8 +84,7 @@ test.describe('a Polish browser', () => {
   test('after choosing English, / stays English', async ({ page }) => {
     await page.goto('/');
     await expect(page).toHaveURL(/\/pl\/$/);
-    await page.getByRole('button', { name: 'Język' }).click();
-    await page.locator('#language-menu').getByRole('link', { name: 'English' }).click();
+    await pickLanguage(page, 'English');
     await expect(page).toHaveURL(/localhost:\d+\/$/);
     await page.goto('/');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
@@ -102,8 +99,7 @@ test.describe('a Polish browser', () => {
 
   test('Back after switching returns to the previous language in place', async ({ page }) => {
     await page.goto('/pl/');
-    await page.getByRole('button', { name: 'Język' }).click();
-    await page.locator('#language-menu').getByRole('link', { name: 'English' }).click();
+    await pickLanguage(page, 'English');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await page.goBack();
     await expect(page).toHaveURL(/\/pl\/$/);
@@ -114,8 +110,7 @@ test.describe('a Polish browser', () => {
 test('switching language on the converter keeps a loaded file', async ({ page }) => {
   await openPair(page);
   await addFiles(page, midFile('kick.mid', [{ channel: DRUMS, key: 24 }]));
-  await page.getByRole('button', { name: 'Language' }).click();
-  await page.locator('#language-menu').getByRole('link', { name: 'Polski' }).click();
+  await pickLanguage(page, 'Polski');
   await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
   await expect(page.getByText('kick.mid')).toBeVisible();
 });
@@ -124,8 +119,7 @@ test('switching language on the converter keeps its settings', async ({ page }) 
   await openPair(page);
   await openSettings(page);
   await page.getByText('C-2', { exact: true }).click();
-  await page.getByRole('button', { name: 'Language' }).click();
-  await page.locator('#language-menu').getByRole('link', { name: 'Polski' }).click();
+  await pickLanguage(page, 'Polski');
   await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
   await openSettings(page);
   await expect(page.getByRole('radio', { name: 'C-2' })).toBeChecked();
@@ -172,8 +166,7 @@ test('a blocked language file on /pl/ sends load-failed with the kind locale', a
 test.describe('after choosing Polski', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/faq/');
-    await page.getByRole('button', { name: 'Language' }).click();
-    await page.locator('#language-menu').getByRole('link', { name: 'Polski' }).click();
+    await pickLanguage(page, 'Polski');
     await expect(page).toHaveURL(/\/pl\/faq\/$/);
   });
 

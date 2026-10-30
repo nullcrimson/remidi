@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import type { ElementChildren } from '../ui/elementChildren';
 import { TIP_MAX_WIDTH_CLASS, tip } from '../ui/styles';
 
 const GAP_X = 14;
@@ -8,7 +9,7 @@ const SPACING_PX = 4;
 const MAX_WIDTH = Number(TIP_MAX_WIDTH_CLASS.slice('max-w-'.length)) * SPACING_PX;
 
 /** Shows `text` beside the mouse pointer while it is over `children`, following it; touch shows nothing. */
-export function FollowTip({ text, children }: { text: string | null; children: ReactNode }) {
+export function FollowTip({ text, children }: { text: string | null; children: ElementChildren }) {
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   if (text === null) return children;
   const flip = at !== null && at.x + GAP_X + MAX_WIDTH > window.innerWidth;

@@ -73,7 +73,7 @@ export function SummaryRow({
             `}
           >
             <span aria-hidden="true">✎</span>
-            {t({ id: 'summary-edit' })}
+            <span>{t({ id: 'summary-edit' })}</span>
           </button>
         </Tooltip>
         <Tooltip
@@ -93,7 +93,7 @@ export function SummaryRow({
             `}
           >
             <span aria-hidden="true">↓</span>
-            {t({ id: 'summary-rack' })}
+            <span>{t({ id: 'summary-rack' })}</span>
           </button>
         </Tooltip>
       </span>
@@ -157,7 +157,7 @@ function BreakdownDetail({
                       marker:text-t4
                     "
                     >
-                      {g.label}
+                      <span>{g.label}</span>
                       <span className="block text-t3 italic">{g.reason}</span>
                     </summary>
                     {g.names.map((name) => (
@@ -168,7 +168,10 @@ function BreakdownDetail({
               : (
                   <>
                     <span className="text-t2">{g.label}</span>
-                    {g.reason && <span className="col-start-2 text-t3 italic">{g.reason}</span>}
+                    {g.reason !== '' && (
+                      <span className="col-start-2 text-t3 italic">{g.reason}
+                      </span>
+                    )}
                   </>
                 )}
           </li>

@@ -37,7 +37,7 @@ export function TipToast({ onClose }: { onClose: () => void }) {
       <div className="flex items-start justify-between gap-3">
         <p className="text-ui/relaxed text-t3">
           <span aria-hidden="true" className="text-star">☕ </span>
-          {t({ id: 'tip-ask' })}
+          <span>{t({ id: 'tip-ask' })}</span>
         </p>
         <IconButton label={t({ id: 'close' })} onClick={close}>×</IconButton>
       </div>

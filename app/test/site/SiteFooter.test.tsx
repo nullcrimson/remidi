@@ -104,7 +104,7 @@ describe('SiteFooter', () => {
 
   it('shows the converter’s three steps and tips in How to use', async () => {
     const dialog = await openHowToUse();
-    expect(within(dialog).getAllByRole('listitem').map((li) => li.querySelector('span')?.textContent ?? li.textContent?.split('.')[0])).toEqual([
+    expect(within(dialog).getAllByRole('listitem').map((li) => li.querySelector('span.font-medium')?.textContent ?? li.textContent?.split('.')[0])).toEqual([
       'Your drum file',
       'From one drum layout to another',
       'Convert',

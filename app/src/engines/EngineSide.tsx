@@ -65,7 +65,7 @@ export function EngineSide({ side, label, value, disabledId, engines, next, onCh
                   `}
                 >
                   <span aria-hidden="true" className="text-star">★</span>
-                  {e.name}
+                  <span>{e.name}</span>
                 </button>
               </li>
             );

@@ -8,10 +8,10 @@ export function ErrorText({ error }: { error: AppError }) {
   const { message, detail } = errorParts(error, t);
   return (
     <>
-      {message}
+      <span>{message}</span>
       {detail !== null && (
         <>
-          {' '}
+          <span>{' '}</span>
           <span className="font-mono text-label text-t5">{detail}</span>
         </>
       )}

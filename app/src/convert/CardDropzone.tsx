@@ -1,13 +1,14 @@
 import { useT } from '../locale/localeContext';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { takeFiles, type OnFiles } from '../core/files';
+import type { ElementChildren } from '../ui/elementChildren';
 
 export function CardDropzone({
   onFiles,
   children,
 }: {
   onFiles: OnFiles;
-  children: ReactNode;
+  children: ElementChildren;
 }) {
   const t = useT();
   const [over, setOver] = useState(false);

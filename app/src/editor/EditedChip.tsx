@@ -45,11 +45,10 @@ export function EditedChip({ count, lines, preset, onReview }: EditedState) {
         `}
       >
         <span aria-hidden="true">✎</span>
-        {' '}
         {preset.kind === 'saved' && (
           <>
             <span className="min-w-0 truncate">{preset.name}</span>
-            {' · '}
+            <span>{' · '}</span>
           </>
         )}
         <span className="whitespace-nowrap">

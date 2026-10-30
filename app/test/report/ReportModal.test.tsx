@@ -108,7 +108,7 @@ describe('ReportModal', () => {
 
   it('lists unchanged notes', () => {
     show(cleanWithUnchanged);
-    expect(screen.getAllByText(/^Unchanged/)[0]).toHaveTextContent('Unchanged · other tracks / channels');
+    expect(screen.getAllByText(/^Unchanged/)[0].parentElement).toHaveTextContent('Unchanged · other tracks / channels');
     expect(screen.getByText('×170')).toBeInTheDocument();
     expect(screen.getByText('a.mid')).toBeInTheDocument();
     expect(screen.getByText('×168')).toBeInTheDocument();
@@ -152,33 +152,33 @@ describe('ReportModal', () => {
 
   it('shows approximated notes bright, not gold', () => {
     show(lossy);
-    const approx = screen.getAllByText(/^Approximated/)[0];
+    const approx = screen.getAllByText(/^Approximated/)[0].parentElement;
     expect(approx).toHaveClass('text-t1');
-    expect(approx.className).not.toMatch(/\btext-star/);
+    expect(approx?.className).not.toMatch(/\btext-star/);
   });
 
   it('explains the approximated group', () => {
     show(lossy);
-    const approx = screen.getAllByText(/^Approximated/)[0];
+    const approx = screen.getAllByText(/^Approximated/)[0].parentElement;
     expect(approx).toHaveTextContent('played on the nearest drum');
     expect(screen.getAllByText(/played on the nearest drum/)[0]).toHaveClass('normal-case');
   });
 
   it('explains the dropped group', () => {
     show(lossy);
-    expect(screen.getAllByText(/^Dropped/)[0]).toHaveTextContent('EZdrummer has no such drum');
+    expect(screen.getAllByText(/^Dropped/)[0].parentElement).toHaveTextContent('EZdrummer has no such drum');
   });
 
   it('explains the unrecognized group', () => {
     show(lossy);
-    expect(screen.getAllByText(/^Unrecognized/)[0]).toHaveTextContent(
+    expect(screen.getAllByText(/^Unrecognized/)[0].parentElement).toHaveTextContent(
       'not in the GGD Invasion map — removed from the file',
     );
   });
 
   it('explains the unrecognized group as kept when the notes were kept', () => {
     show(lossy, undefined, 'keep');
-    expect(screen.getAllByText(/^Unrecognized/)[0]).toHaveTextContent(
+    expect(screen.getAllByText(/^Unrecognized/)[0].parentElement).toHaveTextContent(
       'not in the GGD Invasion map — kept unchanged in the file',
     );
   });

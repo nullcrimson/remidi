@@ -19,7 +19,8 @@ export function SiteHeader() {
             sm:inline
           "
           >{'— '}
-          </span>{t({ id: 'brand-tagline' })}
+          </span>
+          <span>{t({ id: 'brand-tagline' })}</span>
         </span>
       </h1>
       <nav aria-label={t({ id: 'nav-main' })}>

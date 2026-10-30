@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useState } from 'react';
 import { CardDropzone } from './convert/CardDropzone';
 import { CloserSourcesNotice } from './convert/CloserSourcesNotice';
 import { EditView } from './editor/EditView';
@@ -17,7 +17,7 @@ import { StatusNotice } from './ui/StatusNotice';
 import { Step } from './convert/Step';
 import { stepStates } from './convert/stepState';
 import { isConverted } from './convert/useConverter';
-import { CONVERTER_STEPS, type ConverterStep } from './locale/docs';
+import { CONVERTER_STEPS } from './locale/docs';
 import { useDropGuard } from './convert/useDropGuard';
 import { useConversionReport } from './report/useConversionReport';
 import { useEditedSummary } from './editor/useEditedSummary';
@@ -105,7 +105,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
     );
   }
 
-  const stepBodies: Record<ConverterStep, ReactNode> = {
+  const stepBodies = {
     file: (
       <FileChips
         files={remapper.files}

@@ -98,7 +98,7 @@ export function VoiceRow({
                 aria-label={extraHint}
                 className="tap font-mono text-caption text-t5"
               >
-                +{extraNotes.length}
+                {`+${extraNotes.length}`}
               </span>
             </Tooltip>
           )}

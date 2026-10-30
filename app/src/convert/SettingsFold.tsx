@@ -50,7 +50,7 @@ export function SettingsFold({ open, onToggle, oct, channel, missing, unrecogniz
               "
             >
               <span className="text-t5">{v.label}</span>
-              {' '}
+              <span>{' '}</span>
               <span className="text-t2">{v.value}</span>
             </span>
           ))}

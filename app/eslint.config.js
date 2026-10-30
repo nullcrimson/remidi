@@ -6,6 +6,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 import { literalStringRule } from './eslint.literals.ts';
+import { translateSafeText } from './eslint.translate.ts';
 
 export default tseslint.config(
   { ignores: ['dist', 'coverage', 'src/wasm', 'src/generated', 'playwright-report', 'test-results'] },
@@ -43,6 +44,7 @@ export default tseslint.config(
     },
   },
   literalStringRule,
+  translateSafeText,
   {
     files: ['src/**/*.{ts,tsx}'],
     ignores: ['src/core/storage.ts'],

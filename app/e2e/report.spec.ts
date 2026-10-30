@@ -1,18 +1,6 @@
 import type { Page } from '@playwright/test';
-import { addFiles, DRUMS, expect, midFile, openPair, test } from './fixtures';
-
-const drumsAndBass = () => midFile(
-  'band.mid',
-  [{ channel: DRUMS, key: 24 }, { channel: DRUMS, key: 65 }],
-  [{ channel: 1, key: 40 }],
-);
-
-async function convertBand(page: Page) {
-  await openPair(page);
-  await addFiles(page, drumsAndBass());
-  await page.getByRole('button', { name: /^Convert/ }).click();
-  await expect(page.getByRole('heading', { name: /1 file converted/ })).toBeVisible();
-}
+import { expect, test } from './fixtures';
+import { convertBand } from './steps';
 
 const inside = (page: Page) =>
   page.evaluate(() => !!document.activeElement?.closest('[role=dialog]'));

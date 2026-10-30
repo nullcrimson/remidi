@@ -1,8 +1,7 @@
 import type { Page } from '@playwright/test';
-import { addFiles, DRUMS, expect, midFile, openPair, test } from './fixtures';
+import { addFiles, expect, kick, openPair, test } from './fixtures';
 import { convert, press } from './steps';
 
-const kick = () => midFile('kick.mid', [{ channel: DRUMS, key: 24 }]);
 const tip = (page: Page) => page.getByRole('group', { name: 'Leave a tip' });
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -15,7 +14,7 @@ async function save(page: Page) {
 
 async function convertAndSave(page: Page, times: number) {
   await openPair(page);
-  await addFiles(page, kick());
+  await addFiles(page, kick('kick.mid'));
   await convert(page);
   for (let i = 0; i < times; i += 1) await save(page);
 }

@@ -7,7 +7,7 @@ import { TextButton } from './TextButton';
 
 function Line({ line }: { line: NoticeLine }) {
   const t = useT();
-  if ('message' in line) return t(line.message);
+  if ('message' in line) return <span>{t(line.message)}</span>;
   if ('rackFailed' in line) return <Rich id="rack-failed" slots={{ error: <ErrorText error={line.rackFailed} /> }} />;
   return (
     <Rich
@@ -31,7 +31,7 @@ export function StatusNotice({ lines, onDismiss }: { lines: NoticeLine[]; onDism
       <span className="min-w-0 wrap-break-word">
         {lines.map((line, i) => (
           <Fragment key={i}>
-            {i > 0 && ' '}
+            {i > 0 && <span>{' '}</span>}
             <Line line={line} />
           </Fragment>
         ))}

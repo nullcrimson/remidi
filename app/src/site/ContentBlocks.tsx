@@ -18,7 +18,8 @@ function ConverterSteps({ bodies }: { bodies: Record<ConverterStep, string> }) {
     >
       {CONVERTER_STEPS.map(({ key, title }) => (
         <li key={key}>
-          <span className="block font-medium text-t2">{t({ id: title })}</span> {bodies[key]}
+          <span className="block font-medium text-t2">{t({ id: title })}</span>
+          <span>{` ${bodies[key]}`}</span>
         </li>
       ))}
     </ol>
@@ -33,7 +34,7 @@ function contactClick(href: string) {
 function Text({ inline }: { inline: Inline[] }) {
   const { translator } = useLocale();
   return inline.map((part, i) => {
-    if (typeof part === 'string') return part;
+    if (typeof part === 'string') return <span key={i}>{part}</span>;
     return isSitePath(part.href)
       ? (
           <a
@@ -57,7 +58,8 @@ function BlockView({ block }: { block: Block }) {
   if ('note' in block) {
     return (
       <p className="text-t5">
-        <span className="font-medium text-t2">{block.note.title}</span> {block.note.body}
+        <span className="font-medium text-t2">{block.note.title}</span>
+        <span>{` ${block.note.body}`}</span>
       </p>
     );
   }

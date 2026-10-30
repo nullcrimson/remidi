@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
 import { useT } from '../locale/localeContext';
 import { IconButton } from '../ui/IconButton';
+import type { ElementChildren } from '../ui/elementChildren';
 import { MonoLabel } from '../ui/MonoLabel';
 
 /** A picker's title line: the heading, what follows it on the baseline if anything, and the close button. */
@@ -13,7 +13,7 @@ export function PickerHeader({
   heading: string;
   onClose: () => void;
   className?: string;
-  children?: ReactNode;
+  children?: ElementChildren;
 }) {
   const t = useT();
   const title = <MonoLabel tone="muted">{heading}</MonoLabel>;

@@ -89,6 +89,9 @@ export function hitKeys(bytes: Uint8Array): number[] {
 
 export const DRUMS = 10;
 
+/** GetGood Drums Invasion's kick on the drum channel, as the file `name`. */
+export const kick = (name: string) => midFile(name, [{ channel: DRUMS, key: 24 }]);
+
 /** GetGood Drums Invasion's kick and China, on the drum channel. */
 export const kickAndChina = () => midFile('groove.mid', [
   { channel: DRUMS, key: 24 },

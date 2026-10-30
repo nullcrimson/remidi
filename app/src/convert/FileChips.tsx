@@ -57,7 +57,7 @@ export function FileChips({
                 text-body text-t2
               "
               >
-                {t({ id: 'files-drop' })}
+                <span>{t({ id: 'files-drop' })}</span>
                 <span className="
                   inline-flex items-center justify-center rounded-full border
                   border-accent/45 px-4 py-1.5 font-display text-ui
@@ -83,7 +83,7 @@ export function FileChips({
               reason={t({ id: 'files-sample-needs-from' })}
             >
               <PlayIcon />
-              {t({ id: 'files-sample' })}
+              <span>{t({ id: 'files-sample' })}</span>
             </TextButton>
           </div>
         </div>

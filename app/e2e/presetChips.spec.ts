@@ -2,14 +2,9 @@ import { readFile } from 'node:fs/promises';
 import { gunzipSync } from 'node:zlib';
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { leaveEditor, openEditor, presetChip, press, retarget, saved, saveKickPreset, targetNote } from './steps';
+import { chipMenu, leaveEditor, openEditor, presetChip, press, retarget, saved, saveKickPreset, targetNote } from './steps';
 
 const NAME = 'Heavy Kick';
-
-async function menu(page: Page, name: string, action: 'Rename' | 'Duplicate' | 'Ableton rack' | 'Delete') {
-  await press(page.getByRole('button', { name: `More actions for ${name}`, exact: true }));
-  await press(page.getByRole('menuitem', { name: action }));
-}
 
 const chips = (page: Page) => saved(page).getByRole('listitem');
 
@@ -29,7 +24,7 @@ async function updatePreset(page: Page) {
 test('a preset is renamed from its chip menu', async ({ page }) => {
   await saveKickPreset(page, NAME);
 
-  await menu(page, NAME, 'Rename');
+  await chipMenu(page, NAME, 'Rename');
   const field = page.getByRole('textbox', { name: `Rename ${NAME}` });
   await expect(field).toHaveValue(NAME);
   await field.fill('Big Kick');
@@ -41,14 +36,14 @@ test('a preset is renamed from its chip menu', async ({ page }) => {
 test('a preset is duplicated from its chip menu', async ({ page }) => {
   await saveKickPreset(page, 'Big Kick');
 
-  await menu(page, 'Big Kick', 'Duplicate');
+  await chipMenu(page, 'Big Kick', 'Duplicate');
   await expect(presetChip(page, 'Big Kick copy')).toBeVisible();
   await expect(chips(page)).toHaveCount(2);
 });
 
 test('a duplicated preset is still there after a reload', async ({ page }) => {
   await saveKickPreset(page, 'Big Kick');
-  await menu(page, 'Big Kick', 'Duplicate');
+  await chipMenu(page, 'Big Kick', 'Duplicate');
   await presetChip(page, 'Big Kick copy').waitFor();
 
   await page.reload();
@@ -57,10 +52,10 @@ test('a duplicated preset is still there after a reload', async ({ page }) => {
 
 test('a preset is deleted from its chip menu and focus moves to the next chip', async ({ page }) => {
   await saveKickPreset(page, 'Big Kick');
-  await menu(page, 'Big Kick', 'Duplicate');
+  await chipMenu(page, 'Big Kick', 'Duplicate');
   await presetChip(page, 'Big Kick copy').waitFor();
 
-  await menu(page, 'Big Kick', 'Delete');
+  await chipMenu(page, 'Big Kick', 'Delete');
   await expect(chips(page)).toHaveCount(1);
   await expect(presetChip(page, 'Big Kick')).toHaveCount(0);
   await expect(presetChip(page, 'Big Kick copy')).toBeFocused();
@@ -68,7 +63,7 @@ test('a preset is deleted from its chip menu and focus moves to the next chip', 
 
 test('a duplicated preset carries the edit of its original', async ({ page }) => {
   await saveKickPreset(page, 'Big Kick');
-  await menu(page, 'Big Kick', 'Duplicate');
+  await chipMenu(page, 'Big Kick', 'Duplicate');
   await presetChip(page, 'Big Kick copy').waitFor();
 
   await openEditor(page);
@@ -84,7 +79,7 @@ test('deleting the last preset removes the saved mappings group', async ({ page 
 
   await page.reload();
   await expect(chips(page)).toHaveCount(1);
-  await menu(page, 'Big Kick copy', 'Delete');
+  await chipMenu(page, 'Big Kick copy', 'Delete');
   await expect(saved(page)).toHaveCount(0);
 });
 
@@ -147,7 +142,7 @@ test("a saved preset's menu downloads its rack", async ({ page }) => {
   await expect(presetChip(page, 'My kick')).toBeVisible();
 
   const file = page.waitForEvent('download');
-  await menu(page, 'My kick', 'Ableton rack');
+  await chipMenu(page, 'My kick', 'Ableton rack');
   const download = await file;
   expect(download.suggestedFilename()).toBe('My kick.adg');
   const xml = gunzipSync(await readFile(await download.path())).toString('utf8');

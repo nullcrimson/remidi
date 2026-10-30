@@ -1,6 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import type { Locator, Page } from '@playwright/test';
-import { expect, openPair, test } from './fixtures';
+import { addFiles, DRUMS, expect, midFile, openPair, test } from './fixtures';
+import { messages } from './messages';
+
+type Messages = ReturnType<typeof messages>;
+
+const english = messages('en');
+
+const sideName = (side: 'FROM' | 'TO', m: Messages) => m(side === 'FROM' ? 'engine-from' : 'engine-to');
 
 /** Taps on a touch screen and clicks elsewhere, as a person on that device would. */
 export async function press(target: Locator) {
@@ -17,23 +24,24 @@ export const noteButtons = (page: Page, drum: string) => drumRow(page, drum).loc
 
 export const targetNote = (page: Page, drum: string) => noteButtons(page, drum).nth(1);
 
-/** One side of the conversion: its card, its favourites and, once open, its picker. */
-export const engineSide = (page: Page, side: 'FROM' | 'TO') => page.getByRole('group', { name: `${side} engine` });
+/** One side of the conversion, labelled in the language of `m`: its card, its favourites and, once open, its picker. */
+export const engineSide = (page: Page, side: 'FROM' | 'TO', m = english) =>
+  page.getByRole('group', { name: m('library-group', { side: sideName(side, m) }) });
 
-export const engineCard = (page: Page, side: 'FROM' | 'TO') =>
-  engineSide(page, side).getByRole('button', { name: new RegExp(`^${side}`) });
+export const engineCard = (page: Page, side: 'FROM' | 'TO', m = english) =>
+  engineSide(page, side, m).getByRole('button', { name: new RegExp(`^${sideName(side, m)}`) });
 
 /** The name of the engine chosen on a side, shown on its card. */
 export const chosenEngine = (page: Page, side: 'FROM' | 'TO') => engineSide(page, side).getByTestId('chosen-engine');
 
-export const enginePicker = (page: Page, side: 'FROM' | 'TO') =>
-  page.getByRole('dialog', { name: `Choose the ${side} engine` });
+export const enginePicker = (page: Page, side: 'FROM' | 'TO', m = english) =>
+  page.getByRole('dialog', { name: m('engine-picker-heading', { side: sideName(side, m) }) });
 
-/** Opens a side's picker from its card, filters it and picks `engine`. */
-export async function pickEngine(page: Page, side: 'FROM' | 'TO', filter: string, engine: string) {
-  await press(engineCard(page, side));
-  const picker = enginePicker(page, side);
-  await picker.getByRole('combobox', { name: `Filter ${side} engines` }).fill(filter);
+/** Opens a side's picker from its card, filters it and picks `engine`, in the language of `m`. */
+export async function pickEngine(page: Page, side: 'FROM' | 'TO', filter: string, engine: string, m = english) {
+  await press(engineCard(page, side, m));
+  const picker = enginePicker(page, side, m);
+  await picker.getByRole('combobox', { name: m('library-filter', { side: sideName(side, m) }) }).fill(filter);
   await press(picker.getByRole('option', { name: engine, exact: true }));
   await expect(picker).toBeHidden();
 }
@@ -45,6 +53,23 @@ export async function openSettings(page: Page) {
     if (await fold.getAttribute('open') === null) await press(fold.locator('summary'));
     await expect(fold).toHaveAttribute('open', '', { timeout: 1000 });
   }).toPass();
+}
+
+/** Opens the language menu, in any language. */
+export async function openLanguageMenu(page: Page) {
+  await press(page.locator('#language-trigger'));
+}
+
+/** Switches to the language called `name` in its own language. */
+export async function pickLanguage(page: Page, name: string) {
+  await openLanguageMenu(page);
+  await press(page.locator('#language-menu').getByRole('link', { name }));
+}
+
+/** Picks `action` from the menu of the saved preset called `name`. */
+export async function chipMenu(page: Page, name: string, action: 'Rename' | 'Duplicate' | 'Ableton rack' | 'Delete') {
+  await press(page.getByRole('button', { name: `More actions for ${name}`, exact: true }));
+  await press(page.getByRole('menuitem', { name: action }));
 }
 
 export const saved = (page: Page) => page.getByRole('group', { name: 'Saved mappings' });
@@ -95,4 +120,17 @@ export async function saveKickPreset(page: Page, name: string) {
   await expect(page.getByRole('button', { name: 'Update preset' })).toBeVisible();
   await leaveEditor(page);
   await expect(presetChip(page, name)).toBeVisible();
+}
+
+const drumsAndBass = () => midFile(
+  'band.mid',
+  [{ channel: DRUMS, key: 24 }, { channel: DRUMS, key: 65 }],
+  [{ channel: 1, key: 40 }],
+);
+
+/** Converts a file with a drum track and a bass track for GetGood Drums Invasion → EZdrummer. */
+export async function convertBand(page: Page) {
+  await openPair(page);
+  await addFiles(page, drumsAndBass());
+  await convert(page);
 }
