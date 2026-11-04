@@ -97,6 +97,18 @@ test.describe('a Polish browser', () => {
     await expect(page.locator('[data-offer="pl"]')).toBeVisible();
   });
 
+  test('offers Polish again on a reload of the page that first offered it', async ({ page }) => {
+    await page.goto('/faq/');
+    await page.reload();
+    await expect(page.locator('[data-offer="pl"]')).toBeVisible();
+  });
+
+  test('offers nothing on the next page once the offer was left unanswered', async ({ page }) => {
+    await page.goto('/faq/');
+    await page.goto('/drum-maps/');
+    await expect(page.locator('#lang-offer')).toBeHidden();
+  });
+
   test('Back after switching returns to the previous language in place', async ({ page }) => {
     await page.goto('/pl/');
     await pickLanguage(page, 'English');

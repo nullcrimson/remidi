@@ -1,3 +1,4 @@
+import { readOffer, writeOffer } from '../../src/locale/localeOffer';
 import { runLocaleScript } from '../../src/locale/staticPages';
 
 const PAGE = `
@@ -9,6 +10,7 @@ const PAGE = `
   </div>`;
 
 const locationStub = () => ({ replace: vi.fn() });
+const at = (path: string) => window.history.replaceState(null, '', path);
 const offer = () => document.getElementById('lang-offer');
 const offerLink = () => document.querySelector<HTMLAnchorElement>('[data-offer]');
 
@@ -16,6 +18,7 @@ describe('the static pages locale script', () => {
   beforeEach(() => {
     document.body.innerHTML = PAGE;
     document.documentElement.lang = 'en';
+    at('/faq/');
   });
 
   afterEach(() => {
@@ -48,7 +51,7 @@ describe('the static pages locale script', () => {
   });
 
   it('offers nothing after the offer was dismissed', () => {
-    localStorage.setItem('midiremap:locale-offer', 'dismissed');
+    writeOffer({ kind: 'answered' });
     runLocaleScript(document, ['pl'], locationStub());
     expect(offer()?.hidden).toBe(true);
   });
@@ -56,12 +59,37 @@ describe('the static pages locale script', () => {
   it('remembers a dismissal', () => {
     runLocaleScript(document, ['pl'], locationStub());
     document.querySelector<HTMLElement>('[data-dismiss]')?.click();
-    expect(localStorage.getItem('midiremap:locale-offer')).toBe('dismissed');
+    expect(readOffer()).toEqual({ kind: 'answered' });
   });
 
   it('hides the offer on a dismissal', () => {
     runLocaleScript(document, ['pl'], locationStub());
     document.querySelector<HTMLElement>('[data-dismiss]')?.click();
+    expect(offer()?.hidden).toBe(true);
+  });
+
+  it('offers again on the same page while the offer is unanswered', () => {
+    runLocaleScript(document, ['pl'], locationStub());
+    document.body.innerHTML = PAGE;
+    runLocaleScript(document, ['pl'], locationStub());
+    expect(offer()?.hidden).toBe(false);
+  });
+
+  it('offers nothing on another page once the offer was left unanswered', () => {
+    runLocaleScript(document, ['pl'], locationStub());
+    document.body.innerHTML = PAGE;
+    at('/drum-maps/');
+    runLocaleScript(document, ['pl'], locationStub());
+    expect(offer()?.hidden).toBe(true);
+  });
+
+  it('offers nothing after the offer was ignored', () => {
+    runLocaleScript(document, ['pl'], locationStub());
+    at('/drum-maps/');
+    runLocaleScript(document, ['pl'], locationStub());
+    at('/faq/');
+    document.body.innerHTML = PAGE;
+    runLocaleScript(document, ['pl'], locationStub());
     expect(offer()?.hidden).toBe(true);
   });
 });

@@ -10,6 +10,8 @@ const PAGE = `
   </div>`;
 
 const location = { replace: vi.fn() };
+const at = (path: string) => window.history.replaceState(null, '', path);
+const load = () => window.dispatchEvent(new Event('load'));
 const click = (selector: string) => document.querySelector<HTMLElement>(selector)?.click();
 
 describe('the events of the static pages locale script', () => {
@@ -18,9 +20,11 @@ describe('the events of the static pages locale script', () => {
   beforeEach(() => {
     document.body.innerHTML = PAGE;
     document.documentElement.lang = 'en';
+    at('/faq/');
   });
 
   afterEach(() => {
+    load();
     localStorage.clear();
     document.body.innerHTML = '';
   });
@@ -92,5 +96,37 @@ describe('the events of the static pages locale script', () => {
     runLocaleScript(document, ['pl'], location);
     click('[data-dismiss]');
     expect(umami).toHaveBeenCalledWith('language-offer-answered', { to: 'pl', answer: 'dismissed' });
+  });
+
+  it('sends language-offered once for a visitor who sees the offer again', () => {
+    runLocaleScript(document, ['pl'], location);
+    load();
+    document.body.innerHTML = PAGE;
+    runLocaleScript(document, ['pl'], location);
+    load();
+    expect(umami.mock.calls.filter(([name]) => name === 'language-offered')).toHaveLength(1);
+  });
+
+  it('sends language-offer-answered with ignored when the page has loaded on another page after the offer', () => {
+    runLocaleScript(document, ['pl'], location);
+    load();
+    umami.mockClear();
+    document.body.innerHTML = PAGE;
+    at('/drum-maps/');
+    runLocaleScript(document, ['pl'], location);
+    load();
+    expect(umami.mock.calls).toEqual([['language-offer-answered', { to: 'pl', answer: 'ignored' }]]);
+  });
+
+  it('sends ignored only once', () => {
+    runLocaleScript(document, ['pl'], location);
+    at('/drum-maps/');
+    runLocaleScript(document, ['pl'], location);
+    load();
+    umami.mockClear();
+    at('/faq/');
+    runLocaleScript(document, ['pl'], location);
+    load();
+    expect(umami).not.toHaveBeenCalled();
   });
 });

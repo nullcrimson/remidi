@@ -1,16 +1,20 @@
 import { sameLanguage } from './language';
 import { readChoice, writeChoice } from './languageChoice';
 import { asLocale } from './localeCode';
-import { readStored, writeStored } from '../core/storage';
+import { readOffer, writeOffer } from './localeOffer';
 import type { Locale } from '../generated/localeCodes';
 import { send } from '../core/umami';
 
+const afterLoad = (run: () => void) => window.addEventListener('load', run, { once: true });
+
 /**
  * What the static pages do about the visitor's language: remember a clicked language link,
- * send a visitor with a stored choice to that language's page, and otherwise offer, once,
- * the browser's language when the page has it and the offer was not dismissed.
+ * send a visitor with a stored choice to that language's page, and otherwise offer the
+ * browser's language when the page has it, on the page where it was first offered only:
+ * moving on to another page without answering counts as ignoring it.
  */
 export function runLocaleScript(document: Document, languages: readonly string[], location: Pick<Location, 'replace'>): void {
+  const here = new URL(document.URL).pathname;
   document.querySelectorAll<HTMLElement>('[data-locale]').forEach((link) => {
     link.addEventListener('click', () => {
       const code = link.dataset.locale;
@@ -36,7 +40,14 @@ export function runLocaleScript(document: Document, languages: readonly string[]
     location.replace(chosen.href);
     return;
   }
-  if (stored !== null || readStored('locale-offer') !== null) return;
+  if (stored !== null) return;
+  const before = readOffer();
+  if (before?.kind === 'answered') return;
+  if (before?.kind === 'shown' && before.page !== here) {
+    writeOffer({ kind: 'answered' });
+    afterLoad(() => send('language-offer-answered', { to: before.to, answer: 'ignored' }));
+    return;
+  }
 
   const page = document.documentElement.lang;
   let offered: Locale | undefined;
@@ -51,9 +62,12 @@ export function runLocaleScript(document: Document, languages: readonly string[]
     }
   }
   const to = offered;
-  if (to !== undefined) window.addEventListener('load', () => send('language-offered', { to }), { once: true });
+  if (to !== undefined && before === null) {
+    writeOffer({ kind: 'shown', to, page: here });
+    afterLoad(() => send('language-offered', { to }));
+  }
   offer.querySelector('[data-dismiss]')?.addEventListener('click', () => {
-    writeStored('locale-offer', 'dismissed');
+    writeOffer({ kind: 'answered' });
     offer.hidden = true;
     if (to !== undefined) send('language-offer-answered', { to, answer: 'dismissed' });
   });

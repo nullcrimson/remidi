@@ -19,7 +19,7 @@ export interface StatEvents {
   'note-map-downloaded': { engine: string; page: 'engine' | 'drum-maps' };
   'rack-downloaded': { where: 'summary' | 'preset'; edited: boolean } | { where: 'pair' };
   'language-offered': { to: Locale };
-  'language-offer-answered': { to: Locale; answer: 'accepted' | 'dismissed' };
+  'language-offer-answered': { to: Locale; answer: 'accepted' | 'dismissed' | 'ignored' };
   'engine-picked': { side: 'from' | 'to'; id: string; via: 'list' | 'filter' | 'favorite' };
   'engines-swapped': undefined;
   'engine-starred': { id: string; on: boolean };

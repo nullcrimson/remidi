@@ -95,7 +95,7 @@ function loadedBy(entry: string): string[] {
 }
 
 describe('app structure', () => {
-  it('loads on a static page only its language script, the stored choice and the event sender', () => {
+  it('loads on a static page only its language script, the stored choice and offer, and the event sender', () => {
     expect(loadedBy(`${SRC_PREFIX}locale/staticPagesEntry`)).toEqual([
       'core/storage.ts',
       'core/umami.ts',
@@ -103,6 +103,7 @@ describe('app structure', () => {
       'locale/language.ts',
       'locale/languageChoice.ts',
       'locale/localeCode.ts',
+      'locale/localeOffer.ts',
       'locale/staticPages.ts',
       'locale/staticPagesEntry.ts',
     ]);
