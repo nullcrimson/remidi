@@ -29,5 +29,5 @@ midiremap-layers = { path = "../midiremap-layers" }
 midiremap-testkit = { path = "../midiremap-testkit" }
 pdf-extract = "0.12"
 roxmltree = "0.21"
-scraper = "0.27"
+scraper = "0.29"
 tempfile = "3"
