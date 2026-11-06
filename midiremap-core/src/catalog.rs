@@ -190,6 +190,30 @@ mod tests {
     }
 
     #[test]
+    fn krimh_plays_its_plain_closed_hat_on_42() {
+        assert_eq!(decoded("bogren_krimh", 42), Some(k("hat.closed")));
+    }
+
+    #[test]
+    fn krimh_plays_crash_1_right_as_crash_2_on_54_and_55() {
+        assert_eq!(decoded("bogren_krimh", 54), Some(k("crash.2.hit")));
+        assert_eq!(decoded("bogren_krimh", 55), Some(k("crash.2.mute")));
+    }
+
+    #[test]
+    fn krimh_plays_crash_2_left_as_crash_3_on_56_and_57() {
+        assert_eq!(decoded("bogren_krimh", 56), Some(k("crash.3.hit")));
+        assert_eq!(decoded("bogren_krimh", 57), Some(k("crash.3.mute")));
+    }
+
+    #[test]
+    fn krimh_numbers_its_floor_toms_by_pitch_left_floor_tom_first() {
+        assert_eq!(decoded("bogren_krimh", 37), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("bogren_krimh", 35), Some(k("tom.floor2.hit")));
+        assert_eq!(decoded("bogren_krimh", 36), Some(k("tom.floor3.hit")));
+    }
+
+    #[test]
     fn guitar_pro_plays_a_side_stick_on_31_and_33() {
         assert_eq!(decoded("guitar_pro", 31), Some(k("snare1.sidestick")));
         assert_eq!(decoded("guitar_pro", 33), Some(k("snare1.sidestick")));
