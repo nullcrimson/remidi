@@ -317,6 +317,56 @@ mod tests {
     }
 
     #[test]
+    fn ultimate_heavy_plays_its_closed_hat_edge_on_22_and_nothing_on_46() {
+        assert_eq!(
+            decoded("mdltone_ultimateheavy", 22),
+            Some(k("hat.closed.edge"))
+        );
+        assert_eq!(decoded("mdltone_ultimateheavy", 46), None);
+    }
+
+    #[test]
+    fn ultimate_heavy_plays_crash_l_r_and_ll_as_crash_1_2_and_3() {
+        assert_eq!(decoded("mdltone_ultimateheavy", 49), Some(k("crash.1.hit")));
+        assert_eq!(
+            decoded("mdltone_ultimateheavy", 50),
+            Some(k("crash.1.mute"))
+        );
+        assert_eq!(decoded("mdltone_ultimateheavy", 57), Some(k("crash.2.hit")));
+        assert_eq!(
+            decoded("mdltone_ultimateheavy", 58),
+            Some(k("crash.2.mute"))
+        );
+        assert_eq!(decoded("mdltone_ultimateheavy", 66), Some(k("crash.3.hit")));
+        assert_eq!(
+            decoded("mdltone_ultimateheavy", 67),
+            Some(k("crash.3.mute"))
+        );
+    }
+
+    #[test]
+    fn ultimate_heavy_plays_its_right_ride_as_ride_1_on_51_and_53() {
+        assert_eq!(decoded("mdltone_ultimateheavy", 51), Some(k("ride.1")));
+        assert_eq!(decoded("mdltone_ultimateheavy", 53), Some(k("ride.1.bell")));
+        assert_eq!(decoded("mdltone_ultimateheavy", 64), Some(k("ride.2")));
+        assert_eq!(decoded("mdltone_ultimateheavy", 65), Some(k("ride.2.bell")));
+    }
+
+    #[test]
+    fn ultimate_heavy_plays_its_right_china_as_china_1_on_52_and_54() {
+        assert_eq!(decoded("mdltone_ultimateheavy", 52), Some(k("china.1.hit")));
+        assert_eq!(
+            decoded("mdltone_ultimateheavy", 54),
+            Some(k("china.1.mute"))
+        );
+        assert_eq!(decoded("mdltone_ultimateheavy", 71), Some(k("china.2.hit")));
+        assert_eq!(
+            decoded("mdltone_ultimateheavy", 72),
+            Some(k("china.2.mute"))
+        );
+    }
+
+    #[test]
     fn guitar_pro_plays_a_side_stick_on_31_and_33() {
         assert_eq!(decoded("guitar_pro", 31), Some(k("snare1.sidestick")));
         assert_eq!(decoded("guitar_pro", 33), Some(k("snare1.sidestick")));
