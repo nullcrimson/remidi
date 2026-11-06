@@ -173,15 +173,33 @@ mod tests {
     }
 
     #[test]
-    fn bfd3_plays_cymbal_1_as_crash_3_on_76() {
-        assert_eq!(decoded("bfd3", 76), Some(k("crash.3.hit")));
+    fn bfd3_plays_cymbal_1_as_crash_2_on_76_since_its_default_kit_has_no_crash_2() {
+        assert_eq!(decoded("bfd3", 76), Some(k("crash.2.hit")));
+        assert_eq!(decoded("bfd3", 80), Some(k("crash.2.mute")));
     }
 
     #[test]
-    fn bfd3_has_no_drum_on_its_unmapped_hat_keys() {
-        assert_eq!(decoded("bfd3", 18), None);
-        assert_eq!(decoded("bfd3", 20), None);
-        assert_eq!(decoded("bfd3", 22), None);
+    fn bfd3_plays_crash_2_as_crash_3_on_74() {
+        assert_eq!(decoded("bfd3", 74), Some(k("crash.3.hit")));
+        assert_eq!(decoded("bfd3", 78), Some(k("crash.3.mute")));
+    }
+
+    #[test]
+    fn bfd3_plays_its_variable_hat_tip_shank_and_bell_on_18_20_22() {
+        assert_eq!(decoded("bfd3", 18), Some(k("hat.cc.tip")));
+        assert_eq!(decoded("bfd3", 20), Some(k("hat.cc.edge")));
+        assert_eq!(decoded("bfd3", 22), Some(k("hat.cc.bell")));
+    }
+
+    #[test]
+    fn bfd3_plays_the_half_edge_snare_as_the_off_center_snare_on_28() {
+        assert_eq!(decoded("bfd3", 28), Some(k("snare1.side")));
+    }
+
+    #[test]
+    fn bfd3_plays_the_bows_of_crash_1_and_crash_2_on_52_and_53() {
+        assert_eq!(decoded("bfd3", 52), Some(k("crash.1.bow")));
+        assert_eq!(decoded("bfd3", 53), Some(k("crash.3.bow")));
     }
 
     #[test]
@@ -261,6 +279,32 @@ mod tests {
             Some(k("ride.1.belltip"))
         );
         assert_eq!(decoded("mixwave_sleeptoken2", 71), Some(k("ride.1.mute")));
+    }
+
+    #[test]
+    fn royster_numbers_its_rack_toms_by_size_piccolo_and_concert_first() {
+        assert_eq!(decoded("mixwave_royster", 50), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("mixwave_royster", 48), Some(k("tom.rack2.hit")));
+        assert_eq!(decoded("mixwave_royster", 47), Some(k("tom.rack3.hit")));
+        assert_eq!(decoded("mixwave_royster", 45), Some(k("tom.rack4.hit")));
+    }
+
+    #[test]
+    fn royster_keeps_each_rack_tom_rim_with_its_tom_on_23_and_21() {
+        assert_eq!(decoded("mixwave_royster", 23), Some(k("tom.rack3.rim")));
+        assert_eq!(decoded("mixwave_royster", 21), Some(k("tom.rack4.rim")));
+    }
+
+    #[test]
+    fn odeholm_plays_tom_3_as_floor_tom_1_and_tom_4_as_floor_tom_2_on_43_and_41() {
+        assert_eq!(decoded("odeholm", 43), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("odeholm", 41), Some(k("tom.floor2.hit")));
+    }
+
+    #[test]
+    fn odeholm_alt_plays_tom_3_as_floor_tom_1_and_tom_4_as_floor_tom_2_on_36_and_37() {
+        assert_eq!(decoded("odeholm_alt", 36), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("odeholm_alt", 37), Some(k("tom.floor2.hit")));
     }
 
     #[test]
