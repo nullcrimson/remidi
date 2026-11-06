@@ -214,6 +214,56 @@ mod tests {
     }
 
     #[test]
+    fn sleep_token_ii_plays_the_left_kick_on_35_and_the_right_on_36() {
+        assert_eq!(decoded("mixwave_sleeptoken2", 35), Some(k("kick.left")));
+        assert_eq!(decoded("mixwave_sleeptoken2", 36), Some(k("kick.main")));
+    }
+
+    #[test]
+    fn sleep_token_ii_plays_its_snare_roll_as_a_ruff_on_25() {
+        assert_eq!(decoded("mixwave_sleeptoken2", 25), Some(k("snare1.ruff")));
+    }
+
+    #[test]
+    fn sleep_token_ii_plays_the_stack_tip_and_edge_on_62_and_63() {
+        assert_eq!(
+            decoded("mixwave_sleeptoken2", 62),
+            Some(k("stack.1.bowtip"))
+        );
+        assert_eq!(decoded("mixwave_sleeptoken2", 63), Some(k("stack.1.hit")));
+    }
+
+    #[test]
+    fn sleep_token_ii_plays_the_mini_stack_tip_and_edge_on_108_and_109() {
+        assert_eq!(
+            decoded("mixwave_sleeptoken2", 108),
+            Some(k("stack.2.bowtip"))
+        );
+        assert_eq!(decoded("mixwave_sleeptoken2", 109), Some(k("stack.2.hit")));
+    }
+
+    #[test]
+    fn sleep_token_ii_plays_the_china_on_52_and_its_manual_choke_on_64() {
+        assert_eq!(decoded("mixwave_sleeptoken2", 52), Some(k("china.1.hit")));
+        assert_eq!(decoded("mixwave_sleeptoken2", 64), Some(k("china.1.mute")));
+    }
+
+    #[test]
+    fn sleep_token_ii_plays_crash_4_on_95_and_its_manual_choke_on_107() {
+        assert_eq!(decoded("mixwave_sleeptoken2", 95), Some(k("crash.4.hit")));
+        assert_eq!(decoded("mixwave_sleeptoken2", 107), Some(k("crash.4.mute")));
+    }
+
+    #[test]
+    fn sleep_token_ii_plays_the_ride_bell_tip_on_60_and_its_manual_choke_on_71() {
+        assert_eq!(
+            decoded("mixwave_sleeptoken2", 60),
+            Some(k("ride.1.belltip"))
+        );
+        assert_eq!(decoded("mixwave_sleeptoken2", 71), Some(k("ride.1.mute")));
+    }
+
+    #[test]
     fn guitar_pro_plays_a_side_stick_on_31_and_33() {
         assert_eq!(decoded("guitar_pro", 31), Some(k("snare1.sidestick")));
         assert_eq!(decoded("guitar_pro", 33), Some(k("snare1.sidestick")));

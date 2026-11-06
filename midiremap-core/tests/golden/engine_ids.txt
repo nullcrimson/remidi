@@ -85,6 +85,7 @@ mixwave_holland
 mixwave_mangini
 mixwave_pridgen
 mixwave_royster
+mixwave_sleeptoken2
 mixwave_wackerman
 mixwave_weinberg
 ml_drums
