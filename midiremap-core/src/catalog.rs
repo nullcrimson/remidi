@@ -308,6 +308,15 @@ mod tests {
     }
 
     #[test]
+    fn gillespie_plays_its_side_snare_side_stick_and_flam_on_13_and_15() {
+        assert_eq!(
+            decoded("mixwave_gillespie", 13),
+            Some(k("snare2.sidestick"))
+        );
+        assert_eq!(decoded("mixwave_gillespie", 15), Some(k("snare2.flam")));
+    }
+
+    #[test]
     fn guitar_pro_plays_a_side_stick_on_31_and_33() {
         assert_eq!(decoded("guitar_pro", 31), Some(k("snare1.sidestick")));
         assert_eq!(decoded("guitar_pro", 33), Some(k("snare1.sidestick")));

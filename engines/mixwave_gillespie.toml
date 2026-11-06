@@ -2,9 +2,9 @@ id = "mixwave_gillespie"
 name = "MixWave Underoath - Aaron Gillespie"
 vendor = "MixWave"
 notes = [
-  { note = 13, canon = "snare1.sidestick" },
+  { note = 13, canon = "snare2.sidestick", primary = true },
   { note = 14, canon = "snare2.off", primary = true },
-  { note = 15, canon = "snare1.flam" },
+  { note = 15, canon = "snare2.flam", primary = true },
   { note = 17, canon = "tom.floor2.rim", primary = true },
   { note = 18, canon = "tom.floor1.rim", primary = true },
   { note = 21, canon = "tom.rack1.rim", primary = true },
