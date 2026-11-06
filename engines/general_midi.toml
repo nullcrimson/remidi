@@ -3,6 +3,7 @@ name = "GM (General Midi Standard)"
 short_name = "General MIDI"
 vendor = "Standards"
 notes = [
+  { note = 31, canon = "perc.sticks", primary = true },
   { note = 35, canon = "kick.main" },
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.sidestick", primary = true },
@@ -50,4 +51,5 @@ notes = [
   { note = 79, canon = "perc.cuica", primary = true },
   { note = 80, canon = "perc.triangle.mute", primary = true },
   { note = 81, canon = "perc.triangle", primary = true },
+  { note = 82, canon = "perc.shaker" },
 ]

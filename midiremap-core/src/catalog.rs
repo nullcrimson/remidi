@@ -367,6 +367,150 @@ mod tests {
     }
 
     #[test]
+    fn studio_drummer_plays_the_halfway_snare_as_the_off_center_snare_on_40_84_86() {
+        assert_eq!(decoded("ni_studiodrummer", 40), Some(k("snare1.side")));
+        assert_eq!(decoded("ni_studiodrummer", 84), Some(k("snare1.side")));
+        assert_eq!(decoded("ni_studiodrummer", 86), Some(k("snare1.side")));
+    }
+
+    #[test]
+    fn counterkit_plays_a_rimshot_on_40() {
+        assert_eq!(
+            decoded("soundblind_counterkit", 40),
+            Some(k("snare1.rimshot"))
+        );
+    }
+
+    #[test]
+    fn counterkit_plays_its_open_close_hats_as_the_cc_hat_side_on_64_and_top_on_65() {
+        assert_eq!(decoded("soundblind_counterkit", 64), Some(k("hat.cc.edge")));
+        assert_eq!(decoded("soundblind_counterkit", 65), Some(k("hat.cc.tip")));
+    }
+
+    #[test]
+    fn mjolnir_plays_the_ride_bell_on_51_and_tip_on_53() {
+        assert_eq!(decoded("solemntones_mjolnir", 51), Some(k("ride.1.bell")));
+        assert_eq!(decoded("solemntones_mjolnir", 53), Some(k("ride.1")));
+    }
+
+    #[test]
+    fn mjolnir_plays_tom_3_as_its_only_floor_tom_on_43() {
+        assert_eq!(
+            decoded("solemntones_mjolnir", 43),
+            Some(k("tom.floor1.hit"))
+        );
+    }
+
+    #[test]
+    fn mjolnir_plays_the_hat_from_closed_to_open_on_42_41_45_46() {
+        assert_eq!(decoded("solemntones_mjolnir", 42), Some(k("hat.closed")));
+        assert_eq!(decoded("solemntones_mjolnir", 41), Some(k("hat.loose")));
+        assert_eq!(decoded("solemntones_mjolnir", 45), Some(k("hat.open1")));
+        assert_eq!(decoded("solemntones_mjolnir", 46), Some(k("hat.open2")));
+        assert_eq!(decoded("solemntones_mjolnir", 44), Some(k("hat.pedal")));
+    }
+
+    #[test]
+    fn mjolnir_plays_the_snare_ghost_on_39() {
+        assert_eq!(decoded("solemntones_mjolnir", 39), Some(k("snare1.ghost")));
+    }
+
+    #[test]
+    fn mjolnir_chokes_each_cymbal_one_key_above_its_hit() {
+        assert_eq!(decoded("solemntones_mjolnir", 50), Some(k("crash.1.mute")));
+        assert_eq!(decoded("solemntones_mjolnir", 58), Some(k("crash.2.mute")));
+        assert_eq!(decoded("solemntones_mjolnir", 56), Some(k("splash.1.mute")));
+        assert_eq!(decoded("solemntones_mjolnir", 54), Some(k("china.1.mute")));
+    }
+
+    #[test]
+    fn sterling_plays_the_snare_roll_on_24_and_flam_on_39() {
+        assert_eq!(decoded("mixwave_sterling", 24), Some(k("snare1.ruff")));
+        assert_eq!(decoded("mixwave_sterling", 39), Some(k("snare1.flam")));
+    }
+
+    #[test]
+    fn sterling_plays_the_tom_rim_flams_as_the_tom_rims() {
+        assert_eq!(decoded("mixwave_sterling", 22), Some(k("tom.rack1.rim")));
+        assert_eq!(decoded("mixwave_sterling", 18), Some(k("tom.floor1.rim")));
+    }
+
+    #[test]
+    fn sterling_plays_one_rack_tom_and_one_floor_tom() {
+        assert_eq!(decoded("mixwave_sterling", 47), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("mixwave_sterling", 43), Some(k("tom.floor1.hit")));
+    }
+
+    #[test]
+    fn sterling_plays_the_open_pedal_hat_on_81() {
+        assert_eq!(decoded("mixwave_sterling", 81), Some(k("hat.pedalsplash")));
+    }
+
+    #[test]
+    fn fang_plays_timbale_1_as_the_high_timbale_on_5_to_8() {
+        for note in 5..=8 {
+            assert_eq!(decoded("mixwave_fang", note), Some(k("perc.timbale.high")));
+        }
+    }
+
+    #[test]
+    fn fang_plays_timbale_2_as_the_low_timbale_on_9_to_12() {
+        for note in 9..=12 {
+            assert_eq!(decoded("mixwave_fang", note), Some(k("perc.timbale.low")));
+        }
+    }
+
+    #[test]
+    fn fang_plays_its_only_rack_tom_as_rack_tom_1() {
+        assert_eq!(decoded("mixwave_fang", 47), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("mixwave_fang", 45), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("mixwave_fang", 21), Some(k("tom.rack1.rim")));
+    }
+
+    #[test]
+    fn fang_plays_the_stack_tip_on_56_and_edge_on_55() {
+        assert_eq!(decoded("mixwave_fang", 56), Some(k("stack.1.bowtip")));
+        assert_eq!(decoded("mixwave_fang", 55), Some(k("stack.1.hit")));
+    }
+
+    #[test]
+    fn fang_plays_claves_on_112() {
+        assert_eq!(decoded("mixwave_fang", 112), Some(k("perc.claves")));
+    }
+
+    #[test]
+    fn studio_drummer_plays_its_ride_tip_as_the_main_ride_on_51() {
+        assert_eq!(decoded("ni_studiodrummer", 51), Some(k("ride.1")));
+    }
+
+    #[test]
+    fn general_midi_plays_the_gm2_sticks_on_31_and_shaker_on_82() {
+        assert_eq!(decoded("general_midi", 31), Some(k("perc.sticks")));
+        assert_eq!(decoded("general_midi", 82), Some(k("perc.shaker")));
+    }
+
+    #[test]
+    fn general_midi_writes_its_shaker_on_the_gm1_maracas_70() {
+        let catalog = Catalog::builtin();
+        let gm = catalog.get("general_midi").unwrap();
+        assert_eq!(gm.encode(k("perc.shaker")), Some(n(70)));
+    }
+
+    #[test]
+    fn guitar_pro_reads_every_general_midi_note_it_shares_as_the_same_drum() {
+        let differ: Vec<u8> = (35..=81)
+            .filter(|&note| ![40, 59].contains(&note))
+            .filter(|&note| decoded("guitar_pro", note) != decoded("general_midi", note))
+            .collect();
+        assert_eq!(differ, Vec::<u8>::new());
+    }
+
+    #[test]
+    fn guitar_pro_plays_its_half_open_hat_on_92_below_the_open_hat() {
+        assert_eq!(decoded("guitar_pro", 92), Some(k("hat.loose")));
+    }
+
+    #[test]
     fn guitar_pro_plays_a_side_stick_on_31_and_33() {
         assert_eq!(decoded("guitar_pro", 31), Some(k("snare1.sidestick")));
         assert_eq!(decoded("guitar_pro", 33), Some(k("snare1.sidestick")));

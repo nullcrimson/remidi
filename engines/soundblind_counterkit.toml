@@ -4,7 +4,7 @@ vendor = "Soundblind"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 39, canon = "snare1.hit", primary = true },
-  { note = 40, canon = "snare1.rim", primary = true },
+  { note = 40, canon = "snare1.rimshot", primary = true },
   { note = 43, canon = "tom.floor1.hit", primary = true },
   { note = 45, canon = "tom.rack1.hit", primary = true },
   { note = 49, canon = "crash.1.hit", primary = true },
@@ -22,6 +22,6 @@ notes = [
   { note = 61, canon = "hat.closed.edge", primary = true },
   { note = 62, canon = "hat.closed.tip", primary = true },
   { note = 63, canon = "hat.pedal", primary = true },
-  { note = 64, canon = "hat.closed", primary = true },
-  { note = 65, canon = "hat.closed" },
+  { note = 64, canon = "hat.cc.edge", primary = true },
+  { note = 65, canon = "hat.cc.tip", primary = true },
 ]
