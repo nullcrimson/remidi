@@ -374,6 +374,27 @@ mod tests {
     }
 
     #[test]
+    fn ugritone_plays_the_10_inch_fx_cymbal_as_splash_2_on_56() {
+        assert_eq!(decoded("ugritone", 56), Some(k("splash.2.hit")));
+    }
+
+    #[test]
+    fn ugritone_plays_the_19_inch_fx_stack_on_59() {
+        assert_eq!(decoded("ugritone", 59), Some(k("stack.1.hit")));
+    }
+
+    #[test]
+    fn ugritone_plays_the_semi_open_hat_on_46_and_wide_open_on_32() {
+        assert_eq!(decoded("ugritone", 46), Some(k("hat.open1")));
+        assert_eq!(decoded("ugritone", 32), Some(k("hat.open2")));
+    }
+
+    #[test]
+    fn ugritone_plays_the_ride_top_as_the_main_ride_on_51() {
+        assert_eq!(decoded("ugritone", 51), Some(k("ride.1")));
+    }
+
+    #[test]
     fn counterkit_plays_a_rimshot_on_40() {
         assert_eq!(
             decoded("soundblind_counterkit", 40),
