@@ -395,6 +395,41 @@ mod tests {
     }
 
     #[test]
+    fn addictive_drums_2_plays_toms_3_and_4_as_its_high_and_low_floor_toms() {
+        let ad2 = "addictive_drums2";
+        assert_eq!(decoded(ad2, 71), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded(ad2, 69), Some(k("tom.rack2.hit")));
+        assert_eq!(decoded(ad2, 67), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded(ad2, 68), Some(k("tom.floor1.rimshot")));
+        assert_eq!(decoded(ad2, 65), Some(k("tom.floor2.hit")));
+        assert_eq!(decoded(ad2, 66), Some(k("tom.floor2.rimshot")));
+    }
+
+    #[test]
+    fn addictive_drums_2_reads_its_cc_hi_hat_notes() {
+        let ad2 = "addictive_drums2";
+        assert_eq!(decoded(ad2, 7), Some(k("hat.cc.edge")));
+        assert_eq!(decoded(ad2, 8), Some(k("hat.cc.tip")));
+        assert_eq!(decoded(ad2, 9), Some(k("hat.cc.bell")));
+    }
+
+    #[test]
+    fn addictive_drums_2_reads_its_cc_position_notes_as_the_drum_they_play() {
+        let ad2 = "addictive_drums2";
+        assert_eq!(decoded(ad2, 3), Some(k("ride.2")));
+        assert_eq!(decoded(ad2, 4), Some(k("ride.1")));
+        assert_eq!(decoded(ad2, 6), Some(k("snare1.hit")));
+    }
+
+    #[test]
+    fn addictive_drums_2_reads_every_flexi_hit_as_a_kit_dependent_percussion() {
+        let ad2 = "addictive_drums2";
+        for note in [47, 73, 74, 76, 96, 97, 98, 99, 101, 102, 103, 104] {
+            assert_eq!(decoded(ad2, note), Some(k("perc.misc")), "{note}");
+        }
+    }
+
+    #[test]
     fn abbey_road_60s_early_kit_plays_one_rack_and_one_floor_tom() {
         let early = "ni_abbeyroad_60s_early";
         assert_eq!(decoded(early, 45), Some(k("tom.rack1.hit")));

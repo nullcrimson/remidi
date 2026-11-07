@@ -39,6 +39,11 @@ fn gm_open_hat_lands_on_ugritone_wide_open() {
 }
 
 #[test]
+fn ggd_open_hat_lands_on_addictive_drums_2_open_b() {
+    assert_eq!(lands("ggd_invasion", "addictive_drums2", 46), Some(55));
+}
+
+#[test]
 fn ggd_open_levels_keep_their_order_on_krimh() {
     assert_eq!(lands("ggd_invasion", "bogren_krimh", 45), Some(43));
     assert_eq!(lands("ggd_invasion", "bogren_krimh", 46), Some(46));
