@@ -2,6 +2,7 @@ id = "ggd_numetal_ggd"
 name = "GGD One Kit Wonder: Nu Metal (Mapping 'GGD')"
 vendor = "GetGood Drums"
 variant = { of = "ggd_numetal" }
+open_hat_level = 2
 notes = [
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.hit", primary = true },

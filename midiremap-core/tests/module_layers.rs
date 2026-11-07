@@ -23,13 +23,17 @@ const ALLOWED_USES: &Table = &[
             "xml",
         ],
     ),
-    ("engine_map", &["canon", "non_blank", "note", "resolution"]),
+    (
+        "engine_map",
+        &["canon", "non_blank", "note", "open_levels", "resolution"],
+    ),
     ("family", &[]),
     ("fit", &["catalog", "channel", "engine_map", "midi", "note"]),
     ("idx", &[]),
     ("midi", &[]),
     ("non_blank", &[]),
     ("note", &[]),
+    ("open_levels", &["canon"]),
     ("overrides", &["canon", "note"]),
     ("plan", &["canon", "note", "resolution", "translate"]),
     (

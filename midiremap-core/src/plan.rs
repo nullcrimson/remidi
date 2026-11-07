@@ -77,7 +77,7 @@ impl Mapping<'_> {
                 Some(VoicePlan {
                     entry: outcome.canon().into(),
                     src_notes,
-                    default_tgt_note: self.target().resolve(canon, self.missing()).note(),
+                    default_tgt_note: self.unedited(canon).note(),
                     outcome,
                 })
             })
@@ -161,6 +161,7 @@ mod tests {
             find(&near, "kick.main").outcome,
             Outcome::Direct {
                 canon: k("kick.main"),
+                opened_to: None,
                 note: n(36)
             }
         );
@@ -190,6 +191,7 @@ mod tests {
             find(&rows, "china.1.hit").outcome,
             Outcome::Direct {
                 canon: k("china.1.hit"),
+                opened_to: None,
                 note: n(52)
             }
         );

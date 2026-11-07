@@ -2,6 +2,7 @@ id = "ggd_modernfusion_halpern"
 name = "GGD One Kit Wonder: Modern Fusion (Mapping 'Halpern')"
 vendor = "GetGood Drums"
 variant = { of = "ggd_modernfusion" }
+open_hat_level = 2
 notes = [
   { note = 24, canon = "kick.main", primary = true },
   { note = 26, canon = "snare1.hit", primary = true },

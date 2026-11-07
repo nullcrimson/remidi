@@ -691,9 +691,10 @@ fn family_groups(map: &EngineMap) -> Vec<FamilyGroup<EngineRow>> {
 /// drum the engine plays only on another drum is left out.
 fn core_notes(map: &EngineMap) -> Vec<Drum> {
     let mut shown = HashSet::new();
+    let mapping = default_mapping(EngineMap::core_kit(), map);
     Canon::CORE_KIT
         .iter()
-        .map(|&canon| map.resolve(canon, MissingDrums::default()))
+        .map(|&canon| mapping.resolve_canon(canon))
         .filter(|r| !r.moves_to_other_drum())
         .filter_map(|r| r.played())
         .filter(|&(_, note)| shown.insert(note))
@@ -1689,22 +1690,16 @@ mod tests {
         hit_keys(&out.bytes).first().copied()
     }
 
-    fn core_kit() -> EngineMap {
-        let keys = Canon::CORE_KIT.map(|canon| canon.to_string());
-        let notes: Vec<(u8, &str)> = (0..).zip(keys.iter().map(String::as_str)).collect();
-        EngineMap::from_json(&engine_json("core", &notes).to_string()).unwrap()
-    }
-
     #[test]
     fn core_notes_agree_with_the_converter() {
         let maps = Catalog::builtin();
-        let kit = core_kit();
+        let kit = EngineMap::core_kit();
         for p in &site().engines {
             let map = maps.get(&p.engine.id).unwrap();
-            let mapping = default_mapping(&kit, map);
+            let mapping = default_mapping(kit, map);
             let shown: HashSet<u8> = p.core.iter().map(|c| c.note.get()).collect();
             for canon in Canon::CORE_KIT {
-                let resolved = map.resolve(canon, MissingDrums::default());
+                let resolved = mapping.resolve_canon(canon);
                 let Some(note) = resolved.note().filter(|_| !resolved.moves_to_other_drum()) else {
                     continue;
                 };
@@ -1718,6 +1713,16 @@ mod tests {
                 assert!(shown.contains(&note.get()), "{}: {canon}", p.engine.id);
             }
         }
+    }
+
+    #[test]
+    fn core_notes_show_the_engines_normal_open_hat_not_its_least_open_one() {
+        let core = |id: &str| -> Vec<u8> {
+            let p = site().engines.iter().find(|p| p.engine.id == id).unwrap();
+            p.core.iter().map(|c| c.note.get()).collect()
+        };
+        assert!(core("ezdrummer").contains(&25) && !core("ezdrummer").contains(&24));
+        assert!(core("mt_power").contains(&46) && !core("mt_power").contains(&44));
     }
 
     #[test]

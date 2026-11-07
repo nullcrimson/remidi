@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{canon::Canon, note::Note};
+use crate::{
+    canon::{Canon, OpenLevel},
+    note::Note,
+};
 
 /// Where a drum lands on the target: on its own note, on the note of the drum that stands
 /// in for it, or nowhere. Serialized tagged by `status`, without the drum itself.
@@ -18,10 +21,13 @@ use crate::{canon::Canon, note::Note};
     tsify(missing_as_null, hashmap_as_object)
 )]
 pub enum Outcome {
-    /// The target has the drum.
+    /// The target has the drum: the drum itself, or, `opened_to` another level, the target's
+    /// opening of the same hi-hat that matches the source's.
     Direct {
         #[serde(skip)]
         canon: Canon,
+        #[serde(skip)]
+        opened_to: Option<OpenedTo>,
         note: Note,
     },
     /// Another drum plays it.
@@ -34,6 +40,10 @@ pub enum Outcome {
         other_drum: bool,
     },
 }
+
+/// The level an open hi-hat plays at on the target, when it is not the source's own.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub struct OpenedTo(OpenLevel);
 
 /// The drum `stand_in` playing `canon` on `note`; `other_drum` when the stand-in is another
 /// drum, not the same one played another way.
@@ -89,7 +99,11 @@ impl Outcome {
     /// The target drum that plays it and that drum's note, when anything plays it.
     pub fn played(&self) -> Option<(Canon, Note)> {
         match *self {
-            Self::Direct { canon, note } => Some((canon, note)),
+            Self::Direct {
+                canon,
+                opened_to,
+                note,
+            } => Some((opened_to.map_or(canon, |o| canon.at_open_level(o.0)), note)),
             Self::Fallback(s) => Some((s.stand_in, s.note)),
             Self::Dropped { .. } => None,
         }
@@ -97,6 +111,27 @@ impl Outcome {
 
     pub fn note(&self) -> Option<Note> {
         self.played().map(|(_, note)| note)
+    }
+
+    /// This landing of another opening of `canon`'s hi-hat, as the landing of `canon`: what
+    /// plays and on which note stay, the drum it is about becomes `canon`.
+    pub(crate) fn for_drum(self, canon: Canon) -> Self {
+        match self {
+            Self::Direct {
+                canon: opening,
+                note,
+                ..
+            } => Self::Direct {
+                canon,
+                opened_to: opening
+                    .opening()
+                    .filter(|_| opening != canon && canon.is_open_main_hat())
+                    .map(|(level, _)| OpenedTo(level)),
+                note,
+            },
+            Self::Fallback(s) => Self::Fallback(StandIn::new(canon, s.stand_in, s.note)),
+            Self::Dropped { other_drum, .. } => Self::Dropped { canon, other_drum },
+        }
     }
 }
 
@@ -164,7 +199,11 @@ fn substitute(canon: Canon, encode: &Encoding, missing: MissingDrums) -> Option<
 
 pub(crate) fn resolve(canon: Canon, encode: &Encoding, missing: MissingDrums) -> Outcome {
     if let Some(&note) = encode.get(&canon) {
-        return Outcome::Direct { canon, note };
+        return Outcome::Direct {
+            canon,
+            opened_to: None,
+            note,
+        };
     }
     substitute(canon, encode, missing).map_or_else(
         || Outcome::Dropped {

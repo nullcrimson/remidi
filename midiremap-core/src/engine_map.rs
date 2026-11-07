@@ -1,13 +1,21 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::LazyLock,
+};
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    canon::{Canon, CanonEntry},
+    canon::{Canon, CanonEntry, OpenLevel},
     non_blank::NonBlank,
     note::Note,
+    open_levels::OpenLevels,
     resolution::{self, MissingDrums, Outcome},
 };
+
+/// The note General MIDI plays its open hi-hat on; the open hi-hat an engine plays there is the
+/// one its vendor means as the normal open hat.
+const GM_OPEN_HAT: Note = Note::ALL[46];
 
 #[derive(Deserialize)]
 struct RawEntry {
@@ -31,6 +39,8 @@ struct RawMap {
     variant: Option<RawVariant>,
     #[serde(default)]
     grooves_from: Option<Note>,
+    #[serde(default)]
+    open_hat_level: Option<OpenLevel>,
     notes: Vec<RawEntry>,
 }
 
@@ -96,6 +106,7 @@ pub struct EngineMap {
     aliases: Vec<String>,
     variant: Option<Variant>,
     grooves_from: Option<Note>,
+    open_levels: Option<OpenLevels>,
     to_canon: HashMap<Note, Canon>,
     from_canon: HashMap<Canon, Note>,
 }
@@ -123,6 +134,36 @@ impl Drum {
 }
 
 impl EngineMap {
+    /// The core drums as a kit of their own: each on its own note, its one open hi-hat its
+    /// normal open hat.
+    pub fn core_kit() -> &'static Self {
+        static KIT: LazyLock<EngineMap> = LazyLock::new(|| {
+            let notes = Note::ALL.into_iter().zip(Canon::CORE_KIT);
+            build(RawMap {
+                id: "core".to_owned(),
+                name: "core".to_owned(),
+                short_name: None,
+                vendor: None,
+                aliases: Vec::new(),
+                variant: None,
+                grooves_from: None,
+                open_hat_level: Canon::CORE_KIT
+                    .iter()
+                    .find_map(|c| c.opening())
+                    .map(|(level, _)| level),
+                notes: notes
+                    .map(|(note, canon)| RawEntry {
+                        note,
+                        canon,
+                        primary: true,
+                    })
+                    .collect(),
+            })
+            .expect("the core kit plays each core drum once")
+        });
+        &KIT
+    }
+
     /// Reads a user map in the same shape as the builtin `engines/*.toml`, as JSON.
     pub fn from_json(s: &str) -> Result<Self, MapError> {
         build(serde_json::from_str(s).map_err(MapError::Parse)?)
@@ -183,6 +224,11 @@ impl EngineMap {
         &self.aliases
     }
 
+    /// How far the main hi-hat opens, when the engine names its normal open hat.
+    pub(crate) fn open_levels(&self) -> Option<&OpenLevels> {
+        self.open_levels.as_ref()
+    }
+
     /// What makes this engine another mapping of a base engine, when it is one.
     pub(crate) fn variant(&self) -> Option<&Variant> {
         self.variant.as_ref()
@@ -221,6 +267,13 @@ pub enum MapError {
     VariantOfVariant(String),
     #[error("{0} is a variant, but its name ends on no label in parentheses")]
     UnlabelledVariant(String),
+    #[error("engine {engine} names {open_hat} its open hi-hat, but plays no such hi-hat")]
+    OpenHatLevelNotPlayed { engine: String, open_hat: Canon },
+    #[error(
+        "engine {engine} names {open_hat} its open hi-hat, which its note {} already says",
+        GM_OPEN_HAT
+    )]
+    OpenHatLevelRedundant { engine: String, open_hat: Canon },
 }
 
 /// The text in the parentheses that end `name`, such as `Mapping 'GM'` in
@@ -275,6 +328,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
         }
     }
 
+    let open_levels = open_levels(&raw.id, raw.open_hat_level, &to_canon)?;
     Ok(EngineMap {
         id: raw.id,
         name: raw.name,
@@ -283,9 +337,39 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
         aliases: raw.aliases,
         variant,
         grooves_from: raw.grooves_from,
+        open_levels,
         to_canon,
         from_canon,
     })
+}
+
+/// The main hi-hat's open levels, the normal open hat the `declared` level or else the one on
+/// [`GM_OPEN_HAT`]; `None` when neither names one.
+fn open_levels(
+    engine: &str,
+    declared: Option<OpenLevel>,
+    to_canon: &HashMap<Note, Canon>,
+) -> Result<Option<OpenLevels>, MapError> {
+    let on_gm_open_hat = to_canon
+        .get(&GM_OPEN_HAT)
+        .and_then(|c| c.opening())
+        .map(|(level, _)| level);
+    let main = match (declared, on_gm_open_hat) {
+        (Some(level), Some(evident)) if level == evident => {
+            return Err(MapError::OpenHatLevelRedundant {
+                engine: engine.to_owned(),
+                open_hat: Canon::open_main_hat(level),
+            })
+        }
+        (Some(level), _) | (None, Some(level)) => level,
+        (None, None) => return Ok(None),
+    };
+    OpenLevels::new(to_canon.values().filter_map(|c| c.opening()), main)
+        .map(Some)
+        .ok_or_else(|| MapError::OpenHatLevelNotPlayed {
+            engine: engine.to_owned(),
+            open_hat: Canon::open_main_hat(main),
+        })
 }
 
 #[cfg(test)]
@@ -437,6 +521,67 @@ mod tests {
             notes = [ { note = 36, canon = "kick.main", primary = true } ]
         "#;
         assert!(matches!(from_toml(bad), Err(MapError::Parse(_))));
+    }
+
+    fn hats(open_hat_level: Option<u8>, on_46: &str) -> Result<EngineMap, MapError> {
+        let declared = open_hat_level.map_or(String::new(), |l| format!("open_hat_level = {l}"));
+        from_toml(&format!(
+            r#"
+            id = "hats"
+            name = "Hats"
+            {declared}
+            notes = [
+              {{ note = 45, canon = "hat.open1", primary = true }},
+              {{ note = 46, canon = "{on_46}", primary = true }},
+              {{ note = 47, canon = "hat.open3", primary = true }},
+            ]
+            "#
+        ))
+    }
+
+    fn main_level(m: &EngineMap) -> Option<u8> {
+        m.open_levels().map(|l| l.main().get())
+    }
+
+    #[test]
+    fn the_open_hat_on_the_general_midi_open_hat_note_is_the_main_one() {
+        assert_eq!(main_level(&hats(None, "hat.open2").unwrap()), Some(2));
+        assert_eq!(main_level(&hats(None, "hat.open2.edge").unwrap()), Some(2));
+    }
+
+    #[test]
+    fn a_declared_open_hat_level_is_the_main_one() {
+        assert_eq!(main_level(&hats(Some(3), "hat.open2").unwrap()), Some(3));
+        assert_eq!(main_level(&hats(Some(3), "hat.cc").unwrap()), Some(3));
+    }
+
+    #[test]
+    fn an_engine_without_an_open_main_hat_on_46_or_a_declaration_has_no_main_one() {
+        assert_eq!(main_level(&hats(None, "hat.cc").unwrap()), None);
+        assert_eq!(main_level(&hats(None, "hat.loose").unwrap()), None);
+        assert_eq!(main_level(&hats(None, "aux1.open2").unwrap()), None);
+        assert_eq!(main_level(&hats(None, "tom.rack1.hit").unwrap()), None);
+    }
+
+    #[test]
+    fn a_declared_open_hat_level_the_engine_does_not_play_is_an_error() {
+        assert!(matches!(
+            hats(Some(4), "hat.cc"),
+            Err(MapError::OpenHatLevelNotPlayed { open_hat, .. }) if open_hat == k("hat.open4")
+        ));
+    }
+
+    #[test]
+    fn declaring_the_level_note_46_already_gives_is_an_error() {
+        assert!(matches!(
+            hats(Some(2), "hat.open2"),
+            Err(MapError::OpenHatLevelRedundant { open_hat, .. }) if open_hat == k("hat.open2")
+        ));
+    }
+
+    #[test]
+    fn an_open_hat_level_past_six_does_not_parse() {
+        assert!(matches!(hats(Some(7), "hat.cc"), Err(MapError::Parse(_))));
     }
 
     #[test]

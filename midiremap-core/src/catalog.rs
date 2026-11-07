@@ -114,6 +114,7 @@ mod tests {
     use crate::{
         canon::{k, Canon},
         note::n,
+        open_levels::OpenLevels,
     };
 
     #[test]
@@ -126,6 +127,26 @@ mod tests {
 
     fn decoded(engine: &str, note: u8) -> Option<Canon> {
         Catalog::builtin().get(engine).unwrap().decode(n(note))
+    }
+
+    #[test]
+    fn a_mapping_variant_opens_its_hat_like_its_base_kit() {
+        let catalog = Catalog::builtin();
+        let differ: Vec<&str> = catalog
+            .engines()
+            .filter_map(|v| Some((v, catalog.get(v.variant()?.of())?)))
+            .filter(|(v, base)| {
+                let base_main = base.open_levels().map(OpenLevels::main);
+                let plays = |l| {
+                    v.drums()
+                        .iter()
+                        .any(|d| d.entry.canon().opening().map(|(level, _)| level) == Some(l))
+                };
+                base_main.is_some_and(plays) && v.open_levels().map(OpenLevels::main) != base_main
+            })
+            .map(|(v, _)| v.id())
+            .collect();
+        assert_eq!(differ, Vec::<&str>::new());
     }
 
     #[test]
@@ -371,6 +392,52 @@ mod tests {
         assert_eq!(decoded("ni_studiodrummer", 40), Some(k("snare1.side")));
         assert_eq!(decoded("ni_studiodrummer", 84), Some(k("snare1.side")));
         assert_eq!(decoded("ni_studiodrummer", 86), Some(k("snare1.side")));
+    }
+
+    #[test]
+    fn abbey_road_60s_early_kit_plays_one_rack_and_one_floor_tom() {
+        let early = "ni_abbeyroad_60s_early";
+        assert_eq!(decoded(early, 45), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded(early, 93), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded(early, 41), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded(early, 96), Some(k("tom.floor1.hit")));
+    }
+
+    #[test]
+    fn abbey_road_60s_late_kit_plays_two_rack_toms_and_one_floor_tom() {
+        let late = "ni_abbeyroad_60s_late";
+        assert_eq!(decoded(late, 47), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded(late, 45), Some(k("tom.rack2.hit")));
+        assert_eq!(decoded(late, 96), Some(k("tom.rack2.hit")));
+        assert_eq!(decoded(late, 93), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded(late, 41), Some(k("tom.floor1.hit")));
+    }
+
+    #[test]
+    fn abbey_road_60s_plays_its_felt_beater_as_the_second_kick_sound_on_60() {
+        for kit in ["ni_abbeyroad_60s_early", "ni_abbeyroad_60s_late"] {
+            assert_eq!(decoded(kit, 60), Some(k("kick.alt")));
+            assert_eq!(decoded(kit, 36), Some(k("kick.main")));
+        }
+    }
+
+    #[test]
+    fn abbey_road_60s_plays_the_halfway_snare_as_the_off_center_snare_on_40() {
+        for kit in ["ni_abbeyroad_60s_early", "ni_abbeyroad_60s_late"] {
+            assert_eq!(decoded(kit, 40), Some(k("snare1.side")));
+        }
+    }
+
+    #[test]
+    fn abbey_road_60s_opens_the_hat_quarter_half_three_quarters_loose_full() {
+        for kit in ["ni_abbeyroad_60s_early", "ni_abbeyroad_60s_late"] {
+            assert_eq!(decoded(kit, 76), Some(k("hat.open1")));
+            assert_eq!(decoded(kit, 77), Some(k("hat.open2")));
+            assert_eq!(decoded(kit, 78), Some(k("hat.open3")));
+            assert_eq!(decoded(kit, 79), Some(k("hat.loose")));
+            assert_eq!(decoded(kit, 80), Some(k("hat.open4")));
+            assert_eq!(decoded(kit, 46), Some(k("hat.cc")));
+        }
     }
 
     #[test]

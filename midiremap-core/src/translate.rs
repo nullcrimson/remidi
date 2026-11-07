@@ -99,9 +99,20 @@ impl<'a> Mapping<'a> {
         missing: MissingDrums,
     ) -> Self {
         let encode = encoding(tgt, overrides);
-        let drums: HashMap<Canon, Outcome> = Canon::all()
+        let resolved: HashMap<Canon, Outcome> = Canon::all()
             .iter()
             .map(|&canon| (canon, resolve(canon, &encode, missing)))
+            .collect();
+        let drums: HashMap<Canon, Outcome> = resolved
+            .into_iter()
+            .map(|(canon, outcome)| {
+                let edited = overrides.target().contains_key(&canon);
+                if edited || !opens_by_level(src, tgt, canon) {
+                    (canon, outcome)
+                } else {
+                    (canon, unedited(src, tgt, canon, missing))
+                }
+            })
             .collect();
         let decode = decoding(src, overrides);
         Self {
@@ -133,10 +144,6 @@ impl<'a> Mapping<'a> {
         self.target
     }
 
-    pub(crate) fn missing(&self) -> MissingDrums {
-        self.missing
-    }
-
     /// The source notes the overrides reassign or unassign.
     pub(crate) fn edited(&self) -> &HashSet<Note> {
         &self.edited
@@ -159,9 +166,9 @@ impl<'a> Mapping<'a> {
     /// does not recognize it and the mapping removes such notes.
     pub(crate) fn destination(&self, note: Note) -> Option<Destination> {
         match self.get(note) {
-            Some(Outcome::Direct { canon, note: to }) => {
-                Some(Destination::Drum { canon, note: to })
-            }
+            Some(Outcome::Direct {
+                canon, note: to, ..
+            }) => Some(Destination::Drum { canon, note: to }),
             Some(fallback @ Outcome::Fallback(s)) => Some(Destination::Drum {
                 canon: fallback.canon(),
                 note: s.note(),
@@ -173,6 +180,11 @@ impl<'a> Mapping<'a> {
 
     pub fn resolve_canon(&self, canon: Canon) -> Outcome {
         self.drums[&canon]
+    }
+
+    /// Where `canon` lands with no target edits.
+    pub(crate) fn unedited(&self, canon: Canon) -> Outcome {
+        unedited(self.source, self.target, canon, self.missing)
     }
 
     /// Each drum some source note decodes to, edits applied, with those notes ascending.
@@ -190,6 +202,30 @@ impl<'a> Mapping<'a> {
             .into_keys()
             .filter(|&canon| matches!(self.resolve_canon(canon), Outcome::Dropped { .. }))
     }
+}
+
+/// The drum of `tgt` that plays `canon` from `src`: for an open main hi-hat, the opening of
+/// `tgt` that matches the opening of `src` when both name their normal open hat; any other drum,
+/// itself.
+fn matching_opening(src: &EngineMap, tgt: &EngineMap, canon: Canon) -> Canon {
+    match (canon.opening(), src.open_levels(), tgt.open_levels()) {
+        (Some((level, zone)), Some(from), Some(to)) => {
+            canon.at_open_level(from.toward(to, level, zone))
+        }
+        _ => canon,
+    }
+}
+
+/// Whether `canon` lands by its opening: an open main hi-hat, when both engines name their
+/// normal open hat.
+fn opens_by_level(src: &EngineMap, tgt: &EngineMap, canon: Canon) -> bool {
+    canon.is_open_main_hat() && src.open_levels().is_some() && tgt.open_levels().is_some()
+}
+
+/// Where `canon` from `src` lands on `tgt` with no target edits.
+fn unedited(src: &EngineMap, tgt: &EngineMap, canon: Canon, missing: MissingDrums) -> Outcome {
+    tgt.resolve(matching_opening(src, tgt, canon), missing)
+        .for_drum(canon)
 }
 
 fn decoding(src: &EngineMap, overrides: &Overrides) -> Decoding {
@@ -270,6 +306,99 @@ notes = [ {} ]",
         .unwrap()
     }
 
+    fn openings(map: &EngineMap) -> Vec<Canon> {
+        let mut played: Vec<Canon> = map
+            .drums()
+            .iter()
+            .map(|d| d.entry.canon())
+            .filter(|c| c.opening().is_some())
+            .collect();
+        played.sort();
+        played.dedup();
+        played
+    }
+
+    fn named_pairs() -> Vec<(&'static EngineMap, &'static EngineMap, Mapping<'static>)> {
+        let catalog = Catalog::shared();
+        let named: Vec<&EngineMap> = catalog
+            .engines()
+            .filter(|m| m.open_levels().is_some())
+            .collect();
+        named
+            .iter()
+            .flat_map(|&src| named.iter().map(move |&tgt| (src, tgt)))
+            .map(|(src, tgt)| {
+                let mapping = Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest);
+                (src, tgt, mapping)
+            })
+            .collect()
+    }
+
+    fn plays_in_zone(tgt: &EngineMap, canon: Canon) -> bool {
+        openings(tgt)
+            .iter()
+            .any(|c| c.opening().map(|(_, z)| z) == canon.opening().map(|(_, z)| z))
+    }
+
+    #[test]
+    fn an_opening_lands_exactly_in_its_zone_on_a_target_playing_that_zone() {
+        for (src, tgt, mapping) in named_pairs() {
+            for canon in openings(src).into_iter().filter(|&c| plays_in_zone(tgt, c)) {
+                let outcome = mapping.resolve_canon(canon);
+                let zone = outcome
+                    .played()
+                    .and_then(|(c, _)| c.opening())
+                    .map(|(_, z)| z);
+                assert!(
+                    matches!(outcome, Outcome::Direct { .. })
+                        && zone == canon.opening().map(|(_, z)| z),
+                    "{} -> {}: {canon} {outcome:?}",
+                    src.id(),
+                    tgt.id()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn every_main_open_hat_lands_on_the_targets_main_open_hat() {
+        for (src, tgt, mapping) in named_pairs() {
+            let (from, to) = (src.open_levels().unwrap(), tgt.open_levels().unwrap());
+            let mains = openings(src)
+                .into_iter()
+                .filter(|c| c.opening().is_some_and(|(l, _)| l == from.main()))
+                .filter(|c| tgt.encode(c.at_open_level(to.main())).is_some());
+            for canon in mains {
+                assert_eq!(
+                    mapping.resolve_canon(canon).played().map(|(c, _)| c),
+                    Some(canon.at_open_level(to.main())),
+                    "{} -> {}: {canon}",
+                    src.id(),
+                    tgt.id()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn a_more_open_source_hat_never_lands_less_open() {
+        for (src, tgt, mapping) in named_pairs() {
+            let mut landed: Vec<_> = openings(src)
+                .into_iter()
+                .filter_map(|c| {
+                    let (level, zone) = c.opening()?;
+                    let (played, _) = mapping.resolve_canon(c).played()?;
+                    Some((zone, level, played.opening()?.0))
+                })
+                .collect();
+            landed.sort();
+            let flipped = landed
+                .windows(2)
+                .find(|w| w[0].0 == w[1].0 && w[0].2 > w[1].2);
+            assert_eq!(flipped, None, "{} -> {}", src.id(), tgt.id());
+        }
+    }
+
     fn onto(tgt: &EngineMap, missing: MissingDrums) -> Mapping<'_> {
         Mapping::new(tgt, tgt, &Overrides::default(), missing)
     }
@@ -286,6 +415,7 @@ notes = [ {} ]",
     fn kick_on(note: u8) -> Option<Outcome> {
         Some(Outcome::Direct {
             canon: k("kick.main"),
+            opened_to: None,
             note: n(note),
         })
     }
@@ -434,7 +564,12 @@ notes = [ {} ]",
         for map in catalog.engines() {
             for missing in [MissingDrums::Nearest, MissingDrums::Drop] {
                 let mapping = onto(map, missing);
-                for &canon in Canon::all() {
+                let unplayed_opening = |canon: Canon| {
+                    canon.opening().is_some()
+                        && map.open_levels().is_some()
+                        && map.encode(canon).is_none()
+                };
+                for &canon in Canon::all().iter().filter(|&&c| !unplayed_opening(c)) {
                     assert_eq!(
                         mapping.resolve_canon(canon),
                         map.resolve(canon, missing),
@@ -457,6 +592,7 @@ notes = [ {} ]",
             mapping.get(n(60)),
             Some(Outcome::Direct {
                 canon: k("china.1.hit"),
+                opened_to: None,
                 note: n(55)
             })
         );
@@ -600,6 +736,7 @@ notes = [ {} ]",
             mapping().get(n(12)),
             Some(Outcome::Direct {
                 canon: k("kick.main"),
+                opened_to: None,
                 note: n(50)
             })
         );

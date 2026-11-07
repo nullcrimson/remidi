@@ -1,6 +1,7 @@
 id = "ugritone"
 name = "Ugritone KVLT Drums II"
 vendor = "Ugritone"
+open_hat_level = 2
 notes = [
   { note = 32, canon = "hat.open2", primary = true },
   { note = 36, canon = "kick.main", primary = true },

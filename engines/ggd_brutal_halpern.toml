@@ -2,6 +2,7 @@ id = "ggd_brutal_halpern"
 name = "GGD One Kit Wonder: Brutal (Mapping 'Halpern')"
 vendor = "GetGood Drums"
 variant = { of = "ggd_brutal" }
+open_hat_level = 2
 notes = [
   { note = 24, canon = "kick.main", primary = true },
   { note = 26, canon = "snare1.hit", primary = true },

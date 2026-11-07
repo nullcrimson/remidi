@@ -387,6 +387,33 @@ impl Canon {
         }
     }
 
+    /// How far open the main hi-hat is and where it is hit, when this drum is an open main
+    /// hi-hat.
+    pub(crate) fn opening(self) -> Option<(OpenLevel, HatZone)> {
+        match self.0 {
+            Slot::Hat(HatOpen::Open(level), zone) => Some((level, zone)),
+            _ => None,
+        }
+    }
+
+    /// Whether this drum is the main hi-hat played open, at any level and in any zone.
+    pub fn is_open_main_hat(self) -> bool {
+        self.opening().is_some()
+    }
+
+    /// The main hi-hat open to `level`.
+    pub(crate) fn open_main_hat(level: OpenLevel) -> Canon {
+        Canon(Slot::Hat(HatOpen::Open(level), HatZone::Plain))
+    }
+
+    /// The same open main hi-hat, in the same zone, opened to `level`; any other drum as it is.
+    pub(crate) fn at_open_level(self, level: OpenLevel) -> Canon {
+        match self.0 {
+            Slot::Hat(HatOpen::Open(_), zone) => Canon(Slot::Hat(HatOpen::Open(level), zone)),
+            _ => self,
+        }
+    }
+
     /// The part of the kit this drum is, whichever way it is played.
     pub(crate) fn piece(self) -> Piece {
         let hat = |open| match open {
@@ -488,6 +515,33 @@ mod tests {
     fn assert_reaches_every<D: VariantArray + Eq + std::hash::Hash>(seen: impl Iterator<Item = D>) {
         let seen: HashSet<D> = seen.collect();
         assert!(D::VARIANTS.iter().all(|d| seen.contains(d)));
+    }
+
+    #[test]
+    fn an_open_main_hat_has_an_opening_in_its_zone() {
+        assert_eq!(k("hat.open2").opening(), Some((idx(2), HatZone::Plain)));
+        assert_eq!(k("hat.open4.edge").opening(), Some((idx(4), HatZone::Edge)));
+    }
+
+    #[test]
+    fn only_an_open_main_hat_has_an_opening() {
+        assert_eq!(k("aux1.open2").opening(), None);
+        assert_eq!(k("hat.loose").opening(), None);
+        assert_eq!(k("hat.cc").opening(), None);
+        assert_eq!(k("snare1.hit").opening(), None);
+    }
+
+    #[test]
+    fn an_open_main_hat_moves_to_another_level_in_its_zone() {
+        assert_eq!(k("hat.open1.tip").at_open_level(idx(4)), k("hat.open4.tip"));
+        assert_eq!(k("hat.open3").at_open_level(idx(1)), k("hat.open1"));
+    }
+
+    #[test]
+    fn a_drum_without_an_opening_stays_itself_at_any_level() {
+        assert_eq!(k("aux1.open2").at_open_level(idx(4)), k("aux1.open2"));
+        assert_eq!(k("hat.loose").at_open_level(idx(4)), k("hat.loose"));
+        assert_eq!(k("snare1.hit").at_open_level(idx(4)), k("snare1.hit"));
     }
 
     #[test]

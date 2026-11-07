@@ -136,6 +136,7 @@ mod tests {
             n(12),
             Some(Outcome::Direct {
                 canon: k("kick.main"),
+                opened_to: None,
                 note: n(50),
             }),
         );

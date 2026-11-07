@@ -2,6 +2,7 @@ id = "ggd_architects_halpern"
 name = "GGD One Kit Wonder: Architects (Mapping 'Halpern')"
 vendor = "GetGood Drums"
 variant = { of = "ggd_architects" }
+open_hat_level = 2
 notes = [
   { note = 24, canon = "kick.main", primary = true },
   { note = 28, canon = "snare1.hit", primary = true },

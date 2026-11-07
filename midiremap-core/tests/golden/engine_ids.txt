@@ -92,6 +92,8 @@ mixwave_weinberg
 ml_drums
 ml_drums_free
 mt_power
+ni_abbeyroad_60s_early
+ni_abbeyroad_60s_late
 ni_abbeyroad_modern
 ni_butchvig
 ni_drumlab
