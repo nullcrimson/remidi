@@ -1,9 +1,9 @@
 id = "ggd_halpern"
 name = "GGD Matt Halpern (Default Mapping 'Halpern')"
 vendor = "GetGood Drums"
+open_hat_level = 2
 notes = [
   { note = 24, canon = "kick.main", primary = true },
-  { note = 25, canon = "snare1.sidestick" },
   { note = 26, canon = "snare1.hit", primary = true },
   { note = 27, canon = "snare1.flam", primary = true },
   { note = 28, canon = "snare1.ruff", primary = true },
@@ -34,11 +34,11 @@ notes = [
   { note = 57, canon = "hat.open4.tip", primary = true },
   { note = 58, canon = "hat.open4.edge", primary = true },
   { note = 62, canon = "crash.1.hit", primary = true },
-  { note = 63, canon = "crash.1.bowtip", primary = true },
+  { note = 63, canon = "crash.1.bell", primary = true },
   { note = 64, canon = "crash.1.mute", primary = true },
   { note = 65, canon = "crash.1.hit" },
   { note = 67, canon = "crash.2.hit", primary = true },
-  { note = 68, canon = "crash.2.bowtip", primary = true },
+  { note = 68, canon = "crash.2.bell", primary = true },
   { note = 69, canon = "crash.2.mute", primary = true },
   { note = 70, canon = "crash.2.hit" },
   { note = 72, canon = "ride.1.bowtip", primary = true },

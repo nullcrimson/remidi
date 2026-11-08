@@ -49,6 +49,17 @@ fn gm_open_hat_lands_on_spectre_master_kit_shank_open_4() {
 }
 
 #[test]
+fn gm_open_hat_lands_on_trivium_open_3_as_its_general_midi_preset_plays_it() {
+    assert_eq!(lands("general_midi", "bogren_trivium", 46), Some(45));
+}
+
+#[test]
+fn a_main_open_hat_lands_on_halpern_open_2_as_its_general_midi_map_plays_it() {
+    assert_eq!(lands("bogren_krimh", "ggd_halpern", 46), Some(54));
+    assert_eq!(lands("bogren_krimh", "ggd_halpern_ggd", 46), Some(52));
+}
+
+#[test]
 fn ggd_open_levels_keep_their_order_on_krimh() {
     assert_eq!(lands("ggd_invasion", "bogren_krimh", 45), Some(43));
     assert_eq!(lands("ggd_invasion", "bogren_krimh", 46), Some(46));

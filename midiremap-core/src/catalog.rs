@@ -395,6 +395,42 @@ mod tests {
     }
 
     #[test]
+    fn halpern_plays_its_crash_bells_as_bells() {
+        assert_eq!(decoded("ggd_halpern", 63), Some(k("crash.1.bell")));
+        assert_eq!(decoded("ggd_halpern", 68), Some(k("crash.2.bell")));
+        assert_eq!(decoded("ggd_halpern_ggd", 84), Some(k("crash.1.bell")));
+        assert_eq!(decoded("ggd_halpern_ggd", 85), Some(k("crash.2.bell")));
+    }
+
+    #[test]
+    fn halpern_reads_no_snare_on_its_kick_stick_click() {
+        assert_eq!(decoded("ggd_halpern", 25), None);
+        assert_eq!(decoded("ggd_halpern", 30), Some(k("snare1.sidestick")));
+    }
+
+    #[test]
+    fn trivium_plays_its_off_center_snare_as_the_snare_side() {
+        assert_eq!(decoded("bogren_trivium", 25), Some(k("snare1.side")));
+        assert_eq!(decoded("bogren_trivium", 29), Some(k("snare1.off")));
+    }
+
+    #[test]
+    fn trivium_chokes_both_chinas_on_their_choke_key() {
+        let trivium = Catalog::shared().get("bogren_trivium").unwrap();
+        assert_eq!(trivium.encode(k("china.1.mute")), Some(n(66)));
+        assert_eq!(trivium.encode(k("china.2.mute")), Some(n(68)));
+    }
+
+    #[test]
+    fn pridgen_plays_its_mini_hat_and_junk_hat_as_two_closed_aux_hats() {
+        let pridgen = "mixwave_pridgen";
+        assert_eq!(decoded(pridgen, 62), Some(k("aux1.closed.tip")));
+        assert_eq!(decoded(pridgen, 63), Some(k("aux1.closed.edge")));
+        assert_eq!(decoded(pridgen, 64), Some(k("aux2.closed.tip")));
+        assert_eq!(decoded(pridgen, 65), Some(k("aux2.closed.edge")));
+    }
+
+    #[test]
     fn sun_drums_plays_its_snare_edge_as_the_snare_side() {
         assert_eq!(decoded("soniccouture_sun", 40), Some(k("snare1.side")));
         assert_eq!(decoded("soniccouture_sun", 38), Some(k("snare1.hit")));

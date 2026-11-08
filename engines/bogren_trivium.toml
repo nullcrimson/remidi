@@ -1,12 +1,13 @@
 id = "bogren_trivium"
 name = "Bogren Digital Trivium Drums"
 vendor = "Bogren Digital"
+open_hat_level = 3
 notes = [
   { note = 17, canon = "hat.cc", primary = true },
   { note = 22, canon = "kick.main" },
   { note = 23, canon = "kick.left", primary = true },
   { note = 24, canon = "kick.main", primary = true },
-  { note = 25, canon = "snare1.hit" },
+  { note = 25, canon = "snare1.side", primary = true },
   { note = 26, canon = "snare1.hit", primary = true },
   { note = 27, canon = "snare1.flam", primary = true },
   { note = 29, canon = "snare1.off", primary = true },
@@ -37,9 +38,9 @@ notes = [
   { note = 61, canon = "ride.1.bell", primary = true },
   { note = 62, canon = "ride.1", primary = true },
   { note = 63, canon = "ride.1.edge", primary = true },
-  { note = 64, canon = "china.1.mute", primary = true },
+  { note = 64, canon = "china.1.mute" },
   { note = 65, canon = "china.1.hit", primary = true },
-  { note = 66, canon = "china.1.mute" },
+  { note = 66, canon = "china.1.mute", primary = true },
   { note = 67, canon = "china.2.hit", primary = true },
   { note = 68, canon = "china.2.mute", primary = true },
   { note = 69, canon = "china.2.mute" },
