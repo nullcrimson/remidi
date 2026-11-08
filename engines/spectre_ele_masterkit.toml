@@ -1,6 +1,7 @@
 id = "spectre_ele_masterkit"
 name = "Extinction Level Event Master Kit (Spectre Digital)"
 vendor = "Spectre Digital"
+open_hat_level = 4
 notes = [
   { note = 2, canon = "hat.cc", primary = true },
   { note = 29, canon = "tom.rack1.rim", primary = true },
@@ -35,13 +36,9 @@ notes = [
   { note = 65, canon = "crash.2.bowtip", primary = true },
   { note = 66, canon = "crash.2.hit", primary = true },
   { note = 67, canon = "crash.2.mute", primary = true },
-  { note = 68, canon = "ride.1.bowtip" },
-  { note = 69, canon = "ride.1.bowtip", primary = true },
+  { note = 69, canon = "ride.1", primary = true },
   { note = 70, canon = "ride.1.belltip", primary = true },
-  { note = 71, canon = "ride.1", primary = true },
   { note = 72, canon = "ride.1.bell", primary = true },
-  { note = 73, canon = "ride.1.edge", primary = true },
-  { note = 74, canon = "ride.1.mute", primary = true },
   { note = 76, canon = "china.1.hit", primary = true },
   { note = 77, canon = "china.1.mute", primary = true },
   { note = 78, canon = "splash.1.hit", primary = true },

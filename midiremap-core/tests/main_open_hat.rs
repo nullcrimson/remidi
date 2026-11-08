@@ -44,6 +44,11 @@ fn ggd_open_hat_lands_on_addictive_drums_2_open_b() {
 }
 
 #[test]
+fn gm_open_hat_lands_on_spectre_master_kit_shank_open_4() {
+    assert_eq!(lands("general_midi", "spectre_ele_masterkit", 46), Some(58));
+}
+
+#[test]
 fn ggd_open_levels_keep_their_order_on_krimh() {
     assert_eq!(lands("ggd_invasion", "bogren_krimh", 45), Some(43));
     assert_eq!(lands("ggd_invasion", "bogren_krimh", 46), Some(46));

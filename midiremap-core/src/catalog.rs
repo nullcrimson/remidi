@@ -395,6 +395,23 @@ mod tests {
     }
 
     #[test]
+    fn spectre_master_kit_plays_its_ride_on_the_tip_bow_its_general_midi_preset_uses() {
+        let spectre = "spectre_ele_masterkit";
+        assert_eq!(decoded(spectre, 69), Some(k("ride.1")));
+        assert_eq!(decoded(spectre, 70), Some(k("ride.1.belltip")));
+        assert_eq!(decoded(spectre, 72), Some(k("ride.1.bell")));
+    }
+
+    #[test]
+    fn spectre_master_kit_has_no_ride_rows_its_mapping_page_hides() {
+        let spectre = "spectre_ele_masterkit";
+        assert_eq!(decoded(spectre, 68), None);
+        assert_eq!(decoded(spectre, 71), None);
+        assert_eq!(decoded(spectre, 73), None);
+        assert_eq!(decoded(spectre, 74), None);
+    }
+
+    #[test]
     fn addictive_drums_2_plays_toms_3_and_4_as_its_high_and_low_floor_toms() {
         let ad2 = "addictive_drums2";
         assert_eq!(decoded(ad2, 71), Some(k("tom.rack1.hit")));
