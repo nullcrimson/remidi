@@ -395,6 +395,12 @@ mod tests {
     }
 
     #[test]
+    fn sun_drums_plays_its_snare_edge_as_the_snare_side() {
+        assert_eq!(decoded("soniccouture_sun", 40), Some(k("snare1.side")));
+        assert_eq!(decoded("soniccouture_sun", 38), Some(k("snare1.hit")));
+    }
+
+    #[test]
     fn spectre_master_kit_plays_its_ride_on_the_tip_bow_its_general_midi_preset_uses() {
         let spectre = "spectre_ele_masterkit";
         assert_eq!(decoded(spectre, 69), Some(k("ride.1")));
