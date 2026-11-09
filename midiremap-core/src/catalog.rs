@@ -419,6 +419,25 @@ mod tests {
     }
 
     #[test]
+    fn duplantier_plays_the_babar_as_a_second_stack() {
+        let d = "mixwave_duplantier";
+        assert_eq!(decoded(d, 58), Some(k("stack.2.bowtip")));
+        assert_eq!(decoded(d, 62), Some(k("stack.2.hit")));
+        assert_eq!(decoded(d, 64), Some(k("stack.2.hit")));
+        assert_eq!(decoded(d, 70), Some(k("stack.2.mute")));
+        let map = Catalog::shared().get(d).unwrap();
+        assert_eq!(map.encode(k("stack.2.hit")), Some(n(62)));
+    }
+
+    #[test]
+    fn duplantier_keys_no_hat_cc_second_pedal_hat_or_plate_choke() {
+        let d = "mixwave_duplantier";
+        assert_eq!(decoded(d, 32), None);
+        assert_eq!(decoded(d, 80), None);
+        assert_eq!(decoded(d, 68), None);
+    }
+
+    #[test]
     fn sandnes_plays_its_kit_as_its_rs_drums_preset_shows() {
         let s = "rsdrums_sandnes";
         assert_eq!(decoded(s, 24), Some(k("kick.main")));

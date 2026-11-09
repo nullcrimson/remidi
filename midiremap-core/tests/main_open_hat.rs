@@ -66,6 +66,11 @@ fn gm_open_hat_lands_on_duplantier_2_edge_open_3() {
 }
 
 #[test]
+fn gm_open_hat_lands_on_duplantier_open_5_as_its_general_midi_preset_plays_it() {
+    assert_eq!(lands("general_midi", "mixwave_duplantier", 46), Some(83));
+}
+
+#[test]
 fn gm_closed_hat_lands_on_hertz_2_closed_tip_not_its_choke() {
     assert_eq!(lands("general_midi", "hertz2", 42), Some(42));
     assert_eq!(lands("general_midi", "hertz2", 46), Some(27));

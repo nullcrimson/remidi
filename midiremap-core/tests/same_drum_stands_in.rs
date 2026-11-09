@@ -276,6 +276,24 @@ fn guitar_pro_pedal_hat_plays_on_the_benny_greb_pedal_hat() {
     assert_eq!(played("hat.pedal"), Some(53));
 }
 
+#[test]
+fn the_duplantier_babar_plays_on_the_first_stack_then_the_first_crash() {
+    let catalog = Catalog::shared();
+    let babar_on = |tgt: &str| {
+        Mapping::new(
+            catalog.get("mixwave_duplantier").unwrap(),
+            catalog.get(tgt).unwrap(),
+            &Default::default(),
+            MissingDrums::Nearest,
+        )
+        .resolve_canon(k("stack.2.hit"))
+        .note()
+    };
+    let d2 = catalog.get("mixwave_duplantier2").unwrap();
+    assert_eq!(babar_on("mixwave_duplantier2"), d2.encode(k("stack.1.hit")));
+    assert_eq!(babar_on("general_midi").map(Note::get), Some(49));
+}
+
 fn guitar_pro_to_benny_greb() -> impl Fn(&'static str) -> Option<u8> {
     let catalog = Catalog::shared();
     let mapping = Mapping::new(
