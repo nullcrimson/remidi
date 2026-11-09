@@ -493,6 +493,24 @@ mod tests {
     }
 
     #[test]
+    fn beatbuddy_never_plays_its_metronome_click_as_a_drum() {
+        assert_eq!(decoded("beatbuddy", 33), None);
+        let bb = Catalog::shared().get("beatbuddy").unwrap();
+        assert_eq!(bb.encode(k("perc.sticks")), None);
+    }
+
+    #[test]
+    fn td17_plays_its_rim_zones_as_rimshots_and_its_closed_hat_as_closed() {
+        let td = "roland_td17";
+        assert_eq!(decoded(td, 40), Some(k("snare1.rimshot")));
+        assert_eq!(decoded(td, 50), Some(k("tom.rack1.rimshot")));
+        assert_eq!(decoded(td, 47), Some(k("tom.rack2.rimshot")));
+        assert_eq!(decoded(td, 58), Some(k("tom.floor1.rimshot")));
+        assert_eq!(decoded(td, 42), Some(k("hat.closed.tip")));
+        assert_eq!(decoded(td, 22), Some(k("hat.closed.edge")));
+    }
+
+    #[test]
     fn halpern_plays_its_crash_bells_as_bells() {
         assert_eq!(decoded("ggd_halpern", 63), Some(k("crash.1.bell")));
         assert_eq!(decoded("ggd_halpern", 68), Some(k("crash.2.bell")));
