@@ -395,6 +395,30 @@ mod tests {
     }
 
     #[test]
+    fn duplantier_2_plays_its_kit_as_its_mapping_page_shows() {
+        let d2 = "mixwave_duplantier2";
+        assert_eq!(decoded(d2, 36), Some(k("kick.main")));
+        assert_eq!(decoded(d2, 35), Some(k("kick.left")));
+        assert_eq!(decoded(d2, 26), Some(k("snare1.off")));
+        assert_eq!(decoded(d2, 24), Some(k("snare1.ruff")));
+        assert_eq!(decoded(d2, 23), Some(k("tom.rack1.rim")));
+        assert_eq!(decoded(d2, 43), Some(k("tom.floor1.rimshot")));
+        assert_eq!(decoded(d2, 33), Some(k("hat.cc.tip")));
+        assert_eq!(decoded(d2, 85), Some(k("hat.open3.tip")));
+        assert_eq!(decoded(d2, 62), Some(k("stack.1.hit")));
+        assert_eq!(decoded(d2, 64), Some(k("china.2.mute")));
+        assert_eq!(decoded(d2, 67), Some(k("splash.1.mute")));
+    }
+
+    #[test]
+    fn duplantier_2_writes_each_choke_to_its_manual_choke_key() {
+        let d2 = Catalog::shared().get("mixwave_duplantier2").unwrap();
+        assert_eq!(d2.encode(k("crash.1.mute")), Some(n(61)));
+        assert_eq!(d2.encode(k("splash.1.mute")), Some(n(67)));
+        assert_eq!(d2.encode(k("china.1.mute")), Some(n(66)));
+    }
+
+    #[test]
     fn halpern_plays_its_crash_bells_as_bells() {
         assert_eq!(decoded("ggd_halpern", 63), Some(k("crash.1.bell")));
         assert_eq!(decoded("ggd_halpern", 68), Some(k("crash.2.bell")));
@@ -2247,6 +2271,59 @@ mod tests {
     #[test]
     fn ezdrummer_plays_a_snare_flam_on_69() {
         assert_eq!(decoded("ezdrummer", 69), Some(k("snare1.flam")));
+    }
+
+    #[test]
+    fn ezdrummer_plays_its_splash_and_splash_choke_on_55_and_56() {
+        assert_eq!(decoded("ezdrummer", 55), Some(k("splash.1.hit")));
+        assert_eq!(decoded("ezdrummer", 56), Some(k("splash.1.mute")));
+        let ezd = Catalog::shared().get("ezdrummer").unwrap();
+        assert_eq!(ezd.encode(k("splash.1.hit")), Some(n(55)));
+        assert_eq!(ezd.encode(k("splash.1.mute")), Some(n(56)));
+    }
+
+    #[test]
+    fn drumkit_from_hell_reads_its_tom_flams_as_tom_hits() {
+        assert_eq!(
+            decoded("ezx_drumkit_from_hell", 82),
+            Some(k("tom.rack1.hit"))
+        );
+        assert_eq!(
+            decoded("ezx_drumkit_from_hell", 75),
+            Some(k("tom.floor1.hit"))
+        );
+        assert_eq!(decoded("ezx_metal_mania", 82), Some(k("tom.rack1.rimshot")));
+        assert_eq!(decoded("ezx_metal_mania", 71), Some(k("tom.floor2.rim")));
+    }
+
+    #[test]
+    fn drumkit_from_hell_plays_its_cymbals_where_its_mapping_page_puts_them() {
+        let dfh = "ezx_drumkit_from_hell";
+        assert_eq!(decoded(dfh, 35), Some(k("kick.left")));
+        assert_eq!(decoded(dfh, 69), Some(k("snare1.flam")));
+        assert_eq!(decoded(dfh, 49), Some(k("crash.1.hit")));
+        assert_eq!(decoded(dfh, 85), Some(k("crash.3.bell")));
+        assert_eq!(decoded(dfh, 117), Some(k("crash.4.bell")));
+        assert_eq!(decoded(dfh, 27), Some(k("china.1.hit")));
+        assert_eq!(decoded(dfh, 110), Some(k("china.2.hit")));
+        assert_eq!(decoded(dfh, 30), Some(k("splash.2.hit")));
+        assert_eq!(decoded(dfh, 31), Some(k("splash.3.hit")));
+    }
+
+    #[test]
+    fn metal_mania_plays_its_cymbals_where_its_mapping_page_puts_them() {
+        let mm = "ezx_metal_mania";
+        assert_eq!(decoded(mm, 34), Some(k("kick.left")));
+        assert_eq!(decoded(mm, 76), Some(k("snare1.rim")));
+        assert_eq!(decoded(mm, 69), Some(k("perc.sticks")));
+        assert_eq!(decoded(mm, 91), Some(k("crash.1.hit")));
+        assert_eq!(decoded(mm, 27), Some(k("crash.2.bowtip")));
+        assert_eq!(decoded(mm, 110), Some(k("crash.4.hit")));
+        assert_eq!(decoded(mm, 84), Some(k("china.1.hit")));
+        assert_eq!(decoded(mm, 96), Some(k("splash.2.hit")));
+        assert_eq!(decoded(mm, 112), Some(k("bell.1.hit")));
+        assert_eq!(decoded(mm, 120), Some(k("aux1.closed.edge")));
+        assert_eq!(decoded(mm, 125), Some(k("aux1.open1.tip")));
     }
 
     #[test]

@@ -60,6 +60,12 @@ fn a_main_open_hat_lands_on_halpern_open_2_as_its_general_midi_map_plays_it() {
 }
 
 #[test]
+fn gm_open_hat_lands_on_duplantier_2_edge_open_3() {
+    assert_eq!(lands("general_midi", "mixwave_duplantier2", 46), Some(46));
+    assert_eq!(lands("ggd_invasion", "mixwave_duplantier2", 45), Some(77));
+}
+
+#[test]
 fn ggd_open_levels_keep_their_order_on_krimh() {
     assert_eq!(lands("ggd_invasion", "bogren_krimh", 45), Some(43));
     assert_eq!(lands("ggd_invasion", "bogren_krimh", 46), Some(46));

@@ -1232,10 +1232,10 @@ mod tests {
     }
 
     #[test]
-    fn ggd_invasion_to_ezdrummer_merges_five_cymbals_into_crash_1() {
+    fn ggd_invasion_to_ezdrummer_merges_both_chinas_and_the_stack_into_crash_1() {
         let busiest = &pair("ggd-invasion-to-ezdrummer").changes.merges[0];
         assert_eq!(busiest.target.entry.label(), "Crash 1");
-        assert_eq!(busiest.sources.len(), 5, "{:?}", busiest.sources);
+        assert_eq!(busiest.sources.len(), 3, "{:?}", busiest.sources);
     }
 
     #[test]
@@ -1553,7 +1553,7 @@ mod tests {
     }
 
     #[test]
-    fn toontrack_is_a_vendor_group_of_three_engines() {
+    fn toontrack_is_a_vendor_group_of_five_engines() {
         let s = site();
         let toontrack = s
             .index
@@ -1561,7 +1561,7 @@ mod tests {
             .iter()
             .find(|g| g.name == "Toontrack")
             .unwrap();
-        assert_eq!(toontrack.engines.len(), 3);
+        assert_eq!(toontrack.engines.len(), 5);
     }
 
     #[test]

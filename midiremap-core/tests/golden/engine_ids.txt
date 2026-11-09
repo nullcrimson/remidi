@@ -11,6 +11,8 @@ dw_soundworks
 eastwest_prodrummer
 ezdrummer
 ezdrummer2
+ezx_drumkit_from_hell
+ezx_metal_mania
 fotis_benardo
 general_midi
 ggd_aggressiverock
@@ -79,6 +81,7 @@ mdltone_ultimateheavy
 midiremap_standard
 mixwave_archey
 mixwave_duplantier
+mixwave_duplantier2
 mixwave_fang
 mixwave_gillespie
 mixwave_holland

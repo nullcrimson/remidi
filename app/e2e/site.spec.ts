@@ -186,7 +186,7 @@ const changes = (page: Page) => page.locator('section').filter({ has: page.getBy
 test('a conversion table says up front which drums stand in for the ones the target lacks', async ({ page }) => {
   await page.goto('/convert/ggd-invasion-to-ezdrummer/');
   const crash = changes(page).getByRole('listitem').filter({ hasText: /^Crash 1 86/ });
-  await expect(crash).toContainText('plays China 1, China 2, Splash 1, Splash 2, Stack 1');
+  await expect(crash).toContainText('plays China 1, China 2, Stack 1');
 });
 
 test('a conversion table says up front which drums the target has none for', async ({ page }) => {
