@@ -463,6 +463,15 @@ mod tests {
     }
 
     #[test]
+    fn logic_drummer_plays_its_snare_edge_and_one_key_pair_per_tom() {
+        let logic = "logic_pro_drummer";
+        assert_eq!(decoded(logic, 34), Some(k("snare1.side")));
+        assert_eq!(decoded(logic, 75), Some(k("perc.sticks")));
+        assert_eq!(decoded(logic, 45), Some(k("tom.rack2.hit")));
+        assert_eq!(decoded(logic, 47), Some(k("tom.rack2.hit")));
+    }
+
+    #[test]
     fn halpern_plays_its_crash_bells_as_bells() {
         assert_eq!(decoded("ggd_halpern", 63), Some(k("crash.1.bell")));
         assert_eq!(decoded("ggd_halpern", 68), Some(k("crash.2.bell")));

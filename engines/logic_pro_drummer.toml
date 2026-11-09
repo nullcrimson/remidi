@@ -7,7 +7,7 @@ notes = [
   { note = 31, canon = "hat.pedalsplash", primary = true },
   { note = 32, canon = "snare1.rimshot" },
   { note = 33, canon = "hat.pedal" },
-  { note = 34, canon = "snare1.hit" },
+  { note = 34, canon = "snare1.side", primary = true },
   { note = 35, canon = "kick.main" },
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.sidestick", primary = true },
