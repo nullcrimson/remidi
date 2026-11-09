@@ -1,4 +1,5 @@
 import { parse, type StackFrame } from 'stacktrace-parser';
+import { wholeItems } from './stats';
 import type { StatEvents } from './umami';
 
 const COMPONENT_FRAMES = 4;
@@ -15,9 +16,17 @@ function text(value: unknown): string {
   }
 }
 
-function crashSummary(err: unknown): string {
-  const summary = err instanceof Error ? `${err.name}: ${err.message}` : text(err);
-  return summary.split('\n', 1)[0].slice(0, ERROR_CHARS);
+function summary(err: unknown): string {
+  try {
+    return err instanceof Error ? `${err.name}: ${err.message}` : text(err);
+  } catch {
+    return Object.prototype.toString.call(err);
+  }
+}
+
+/** What an error says, short enough to send: its kind and the first line of its message, at most 100 characters. */
+export function errorLine(err: unknown): string {
+  return summary(err).split('\n', 1)[0].slice(0, ERROR_CHARS);
 }
 
 function thrownFrames(error: unknown): StackFrame[] {
@@ -30,13 +39,7 @@ const isHost = ({ methodName, file, lineNumber }: StackFrame) =>
   /^[a-z]/.test(methodName) && (lineNumber === null || file === HOST_FILE);
 
 function wholeFrames(frames: StackFrame[]): string {
-  let kept = '';
-  for (const frame of frames.map(formatted)) {
-    const next = kept === '' ? frame : `${kept}${SEPARATOR}${frame}`;
-    if (next.length > PROP_CHARS) break;
-    kept = next;
-  }
-  return kept;
+  return wholeItems(frames.map(formatted), SEPARATOR, PROP_CHARS);
 }
 
 function formatted({ methodName, file, lineNumber, column }: StackFrame): string {
@@ -54,7 +57,7 @@ export function crashReport(error: unknown, componentStack: string | null | unde
   try {
     const components = parse(componentStack ?? '').filter((frame) => !isHost(frame)).slice(0, COMPONENT_FRAMES);
     return {
-      error: crashSummary(error),
+      error: errorLine(error),
       thrown: wholeFrames(thrownFrames(error).slice(0, 1)),
       components: wholeFrames(components),
     };

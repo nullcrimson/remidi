@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { localeScriptOf, siteManifest, stylesheetOf, type EmittedChunk } from '../scripts/siteManifest';
+import { localeScriptOf, siteManifest, statsAttrs, stylesheetOf, type EmittedChunk } from '../scripts/siteManifest';
 
 const FILES = ['index.html', 'assets/index-AbC123.js', 'assets/index-XyZ789.css', 'assets/site-locale-Lo1.js', 'assets/ibm-plex-sans-latin-wght-normal-Pl1.woff2'];
 
@@ -75,5 +75,16 @@ describe('site manifest', () => {
   it('refuses a bundle without latin text fonts', () => {
     const files = ['assets/index-XyZ789.css', 'assets/ibm-plex-sans-latin-ext-wght-normal-Cd2.woff2', 'assets/ibm-plex-mono-latin-400-normal-Ef3.woff2'];
     expect(() => siteManifest(files, CHUNKS, 'site-locale', `default-src 'self'`, [])).toThrow();
+  });
+});
+
+describe('statsAttrs', () => {
+  it('turns on web vitals and tags no build without a commit', () => {
+    expect(statsAttrs(undefined)).toEqual({ 'data-performance': 'true' });
+    expect(statsAttrs('')).toEqual({ 'data-performance': 'true' });
+  });
+
+  it('tags the events with the short commit of the build', () => {
+    expect(statsAttrs('abcdef1234')).toEqual({ 'data-performance': 'true', 'data-tag': 'abcdef1' });
   });
 });

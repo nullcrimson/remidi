@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { Engine, SourceFits } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
-import { addMidi, openPicker, openSettings, pickEngines, pickFrom, pickTo, startApp } from './eventSteps';
+import { addMidi, convert, openPicker, openSettings, pickEngines, pickFrom, pickTo, startApp } from './eventSteps';
 import { typed } from './typed';
 import { fakeUmami } from './umami';
 
@@ -154,7 +154,9 @@ describe('the events of setting up a conversion', () => {
     expect(umami).toHaveBeenCalledWith('converted', expect.objectContaining({ from: 'ggd_invasion', to: 'ezdrummer', files: 1 }));
   });
 
-  it('sends source-suggestion-used with the place of the suggestion chosen', async () => {
+  const ROCK_SUGGESTION = 'GGD Rock Fundamentals (9 notes)';
+
+  async function offerCloserSources(): Promise<void> {
     vi.mocked(stub.engine_catalog).mockReturnValue(typed<Engine[]>([
       { id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GetGood Drums Invasion' },
       { id: 'ezdrummer', name: 'EZdrummer', fullName: 'Toontrack EZdrummer 3' },
@@ -168,7 +170,18 @@ describe('the events of setting up a conversion', () => {
     await startApp();
     await pickEngines();
     await addMidi('groove.mid');
-    await userEvent.click(await screen.findByRole('button', { name: 'GGD Rock Fundamentals (9 notes)' }));
-    expect(umami).toHaveBeenCalledWith('source-suggestion-used', { rank: 2 });
+  }
+
+  it('sends source-suggestion-used with the place and the engine of the suggestion chosen', async () => {
+    await offerCloserSources();
+    await userEvent.click(await screen.findByRole('button', { name: ROCK_SUGGESTION }));
+    expect(umami).toHaveBeenCalledWith('source-suggestion-used', { rank: 2, engine: 'ggd_rock' });
+  });
+
+  it('sends converted with the best source the notice offered', async () => {
+    await offerCloserSources();
+    await screen.findByRole('button', { name: ROCK_SUGGESTION });
+    await convert();
+    expect(umami).toHaveBeenCalledWith('converted', expect.objectContaining({ closer: 'ggd_mm' }));
   });
 });

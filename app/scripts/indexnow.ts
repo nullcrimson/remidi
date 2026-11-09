@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { STATS_SCRIPT } from './siteManifest.ts';
 
 const KEY = 'b70482caafc9bdd6b2cc45b7fd07ddae';
 const PUBLISHED = 'page-hashes.json';
@@ -37,11 +38,13 @@ export function pageFile(url: string): string {
   return `${new URL(url).pathname.slice(1)}index.html`;
 }
 
-/** Each page's content hash, blind to asset file names that change on every rebuild. */
+const STATS_TAG = new RegExp(`<script[^>]*src="${STATS_SCRIPT.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}"[^>]*></script>`, 'g');
+
+/** Each page's content hash, blind to asset file names that change on every rebuild and to the stats script's attributes, which carry the build's commit. */
 export function hashPages(urls: string[], read: (file: string) => string): Hashes {
   return Object.fromEntries(
     urls.map((url) => {
-      const html = read(pageFile(url)).replace(/\/assets\/[^"'\s)]+/g, '/assets/');
+      const html = read(pageFile(url)).replace(/\/assets\/[^"'\s)]+/g, '/assets/').replace(STATS_TAG, STATS_SCRIPT);
       return [url, createHash('sha256').update(html).digest('hex')];
     }),
   );

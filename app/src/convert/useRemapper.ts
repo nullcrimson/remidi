@@ -14,6 +14,7 @@ import { loadSession, saveSession } from './session';
 import { selectionOf, selectionReducer } from './selectionState';
 import { useConverter } from './useConverter';
 import { useSourceFits } from './useSourceFits';
+import { offeredSources } from './closerSources';
 import type { EditFilter } from '../editor/editFilter';
 import type { LoadedFile } from '../core/files';
 import { useEditor } from '../editor/useEditor';
@@ -53,6 +54,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
   const converter = useConverter(batches, pair, settingsKey);
   const { onSelection: converterSees, convert: runConvert } = converter;
   const fits = useSourceFits(batches, converter.files, channel);
+  const offered = useMemo(() => offeredSources(fits, src, tgt, srcEdits), [fits, src, tgt, srcEdits]);
 
   const emit = useCallback(
     (event: SelectionEvent) => {
@@ -133,9 +135,10 @@ export function useRemapper({ load, converter: batches }: Runtime) {
         missing: m,
         edited: editCount({ edits, srcEdits }) > 0,
         preset: presetId !== null,
+        closer: files === undefined ? offered?.better[0].engine ?? '' : '',
       }));
     },
-    [runConvert, overrides, channel, unrecognized, keyFor, pair, edits, srcEdits, presetId],
+    [runConvert, overrides, channel, unrecognized, keyFor, pair, edits, srcEdits, presetId, offered],
   );
   const convert = useCallback((files?: LoadedFile[]) => run(missing, files), [run, missing]);
   const dropMissingAndConvert = useCallback(() => {
@@ -155,7 +158,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     unrecognized,
     presetId,
     files: converter.files,
-    fits,
+    offered,
     skipped: converter.skipped,
     view,
     conv: converter.conv,

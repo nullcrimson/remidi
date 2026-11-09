@@ -7,13 +7,13 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { builtFile } from './scripts/devStatic.ts';
 import { localeChunkName } from './scripts/localeChunk.ts';
-import { siteManifest, type AnalyticsScript } from './scripts/siteManifest.ts';
+import { siteManifest, STATS_SCRIPT, statsAttrs, type AnalyticsScript } from './scripts/siteManifest.ts';
 import { steadyFonts } from './scripts/steadyFonts.ts';
 import { LOCALES } from './src/generated/i18n.ts';
 
 const BEACON = 'https://static.cloudflareinsights.com';
 const BEACON_REPORTS = 'https://cloudflareinsights.com';
-const STATS = 'https://cloud.umami.is';
+const STATS = new URL(STATS_SCRIPT).origin;
 const STATS_REPORTS = 'https://gateway.umami.is';
 
 const CONTENT_SECURITY_POLICY = [
@@ -33,7 +33,7 @@ const LOCALE_ENTRY = 'site-locale';
 
 const ANALYTICS: readonly AnalyticsScript[] = [
   { src: `${BEACON}/beacon.min.js`, attrs: { 'data-cf-beacon': '{"token": "070603e1f4af4cf3a16a08fd5255e6bc"}' } },
-  { src: `${STATS}/script.js`, attrs: { 'data-website-id': '5f4e658b-ad31-4636-933b-3fb96cafa735', 'data-domains': 'drumverter.com' } },
+  { src: STATS_SCRIPT, attrs: { 'data-website-id': '5f4e658b-ad31-4636-933b-3fb96cafa735', 'data-domains': 'drumverter.com', ...statsAttrs(process.env.GITHUB_SHA) } },
 ];
 
 function analyticsScripts(): Plugin {

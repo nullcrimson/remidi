@@ -44,6 +44,10 @@ export interface StatEvents {
     dropped: number;
     approximated: number;
     unrecognized: number;
+    unrecognizedNotes: string;
+    droppedDrums: string;
+    approximatedDrums: string;
+    closer: string;
   };
   'convert-failed': { from: string; to: string; kind: ErrorKind };
   downloaded: { files: number; how: 'single' | 'file' | 'zip' };
@@ -58,7 +62,7 @@ export interface StatEvents {
   'missing-dropped': { where: 'done' | 'report' };
   'done-wrong-source': undefined;
   'done-assign-unrecognized': undefined;
-  'source-suggestion-used': { rank: SuggestionRank };
+  'source-suggestion-used': { rank: SuggestionRank; engine: string };
   'mapping-reported': undefined;
   'editor-closed': {
     how: 'done' | 'back' | 'history';
@@ -81,7 +85,7 @@ export interface StatEvents {
   'contact-used': { link: 'issues' | 'email' };
   'tip-asked': undefined;
   'tip-answered': { answer: '3' | '5' | '10' | 'other' | 'closed'; where: 'toast' | 'footer' };
-  'load-failed': { kind: ErrorKind | 'locale' };
+  'load-failed': { kind: ErrorKind | 'locale'; detail: string };
   crashed: { error: string; thrown: string; components: string };
   'storage-cleared': undefined;
 }

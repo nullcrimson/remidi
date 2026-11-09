@@ -6,6 +6,17 @@ export interface AnalyticsScript {
   attrs: Readonly<Record<string, string>>;
 }
 
+/** The address of the Umami script that counts visits and events. */
+export const STATS_SCRIPT = 'https://cloud.umami.is/script.js';
+
+/** How much of the build's commit the events are tagged with. */
+const SHORT_SHA_CHARS = 7;
+
+/** The Umami script's attributes besides its site and domain: web vitals on, and the build's short commit as the events' tag when there is one. */
+export function statsAttrs(sha: string | undefined): Record<string, string> {
+  return sha ? { 'data-performance': 'true', 'data-tag': sha.slice(0, SHORT_SHA_CHARS) } : { 'data-performance': 'true' };
+}
+
 /** The script the static pages load: its address and the chunks it imports, to preload. */
 export interface LocaleScript {
   src: string;

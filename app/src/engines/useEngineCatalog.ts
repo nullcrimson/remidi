@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent, useState } from 'react';
-import { toAppError, wasmUnavailable, type AppError } from '../core/errors';
+import { errorDetail, toAppError, wasmUnavailable, type AppError } from '../core/errors';
+import { errorLine } from '../core/crash';
 import { track } from '../core/stats';
 import type { Engine, LoadMidiremap, Midiremap } from '../core/midiremap';
 
@@ -21,7 +22,7 @@ export function useEngineCatalog(
     let cancelled = false;
     const fail = (error: AppError) => {
       if (cancelled) return;
-      track('load-failed', { kind: error.kind });
+      track('load-failed', { kind: error.kind, detail: errorLine(errorDetail(error) ?? '') });
       setCatalog({ status: 'error', error });
     };
     load()

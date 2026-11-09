@@ -89,6 +89,10 @@ describe('the events of converting', () => {
       dropped: 3,
       approximated: 1,
       unrecognized: 2,
+      unrecognizedNotes: '51,52',
+      droppedDrums: 'china.1.hit,crash.1.hit,hat.cc',
+      approximatedDrums: 'hat.open3>hat.open1',
+      closer: '',
     });
   });
 

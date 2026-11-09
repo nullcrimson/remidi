@@ -162,7 +162,7 @@ test('a blocked language file on /pl/ shows the Polish load-failure notice and n
   pageErrors.length = 0;
 });
 
-test('a blocked language file on /pl/ sends load-failed with the kind locale', async ({ page, pageErrors }) => {
+test('a blocked language file on /pl/ sends load-failed with the kind locale and the error line', async ({ page, pageErrors }) => {
   await page.addInitScript(() => {
     Object.defineProperty(window, 'umami', {
       value: { track: (name: string, props?: unknown) => sessionStorage.setItem('sent', JSON.stringify([name, props])) },
@@ -171,7 +171,8 @@ test('a blocked language file on /pl/ sends load-failed with the kind locale', a
   await page.route(/locale-[\w-]+\.js$/, (r) => r.abort());
   await page.goto('/pl/');
   await expect(page.locator('#load-failed')).toBeVisible();
-  expect(await page.evaluate(() => sessionStorage.getItem('sent'))).toBe('["load-failed",{"kind":"locale"}]');
+  const sent = JSON.parse((await page.evaluate(() => sessionStorage.getItem('sent'))) ?? 'null') as [string, { kind: string; detail: string }];
+  expect(sent).toEqual(['load-failed', { kind: 'locale', detail: expect.stringMatching(/^TypeError: /) }]);
   pageErrors.length = 0;
 });
 

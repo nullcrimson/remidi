@@ -38,6 +38,15 @@ describe('IndexNow for changed pages only', () => {
     expect(changedUrls(hashPages(urls, (f) => files[f]), parseLive(before))).toEqual(['https://drumverter.com/faq/']);
   });
 
+  it('hashes a page the same whatever attributes its stats script carries', () => {
+    const url = 'https://drumverter.com/';
+    const hash = (html: string) => hashPages([url], () => html)[url];
+    const vite = '<script defer src="https://cloud.umami.is/script.js" data-website-id="w" data-domains="d" data-tag="abc1234"></script>';
+    const askama = '<script defer src="https://cloud.umami.is/script.js" data-domains="d" data-performance="true" data-tag="def5678" data-website-id="w"></script>';
+    expect(hash(`home${vite}`)).toBe(hash(`home${askama}`));
+    expect(hash(`faq${vite}`)).not.toBe(hash(`home${vite}`));
+  });
+
   it('submits new pages', () => {
     const now = { 'https://drumverter.com/': 'a', 'https://drumverter.com/new/': 'b' };
     expect(changedUrls(now, { 'https://drumverter.com/': { hash: 'a' } })).toEqual(['https://drumverter.com/new/']);

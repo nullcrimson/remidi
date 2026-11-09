@@ -1,10 +1,11 @@
 import type { FileResult } from '../core/files';
 import type { Canon, Drum, MissingDrums, Note, Report, CanonEntry } from '../core/midiremap';
 import type { EnginePair } from '../core/enginePair';
+import { listProp } from '../core/stats';
 import type { StatEvents } from '../core/umami';
 import { drumLabels, standInText } from '../core/drums';
 import { byCanon } from '../core/canon';
-import { byNote, noteName, type OctaveBase } from '../core/notes';
+import { ascending, byNote, noteName, type OctaveBase } from '../core/notes';
 
 /** A drum the target lacks and that was left out. */
 export interface DroppedEntry {
@@ -150,7 +151,7 @@ export function convertedProps(
   pair: EnginePair,
   reports: Report[],
   failed: number,
-  setup: { missing: MissingDrums; edited: boolean; preset: boolean },
+  setup: { missing: MissingDrums; edited: boolean; preset: boolean; closer: string },
 ): StatEvents['converted'] {
   return {
     from: pair.src,
@@ -159,19 +160,36 @@ export function convertedProps(
     files: reports.length,
     failed,
     ...setup,
-    ...lossCounts(reports),
+    ...lossProps(reports),
   };
 }
 
-/** How many entries each loss group of the report has across `reports`, counted without building the report. */
-export function lossCounts(reports: Report[]): { dropped: number; approximated: number; unrecognized: number } {
-  const dropped = new Set<Canon>();
-  const approximated = new Set<string>();
+type LossProps = Pick<StatEvents['converted'], 'dropped' | 'approximated' | 'unrecognized' | 'unrecognizedNotes' | 'droppedDrums' | 'approximatedDrums'>;
+
+function addHits<K extends string>(hits: Map<K, number>, key: K, count: number): void {
+  hits.set(key, (hits.get(key) ?? 0) + count);
+}
+
+function mostHitFirst<K extends string>(hits: Map<K, number>): string {
+  return listProp([...hits].sort(([a, x], [b, y]) => y - x || (a < b ? -1 : 1)).map(([key]) => key));
+}
+
+/** How many entries each loss group of the report has across `reports`, and which: notes lowest first, drums most hit first, each list cut to what Umami keeps. */
+export function lossProps(reports: Report[]): LossProps {
+  const dropped = new Map<Canon, number>();
+  const approximated = new Map<`${Canon}>${Canon}`, number>();
   const unrecognized = new Set<Note>();
   for (const report of reports) {
-    for (const [canon] of byCanon(report.dropped)) dropped.add(canon);
-    for (const [canon, { standIn }] of byCanon(report.fallbackUsed)) approximated.add(`${canon}:${standIn}`);
+    for (const [canon, count] of byCanon(report.dropped)) addHits(dropped, canon, count);
+    for (const [canon, { standIn, count }] of byCanon(report.fallbackUsed)) addHits(approximated, `${canon}>${standIn}`, count);
     for (const [note] of byNote(report.unmappedSource)) unrecognized.add(note);
   }
-  return { dropped: dropped.size, approximated: approximated.size, unrecognized: unrecognized.size };
+  return {
+    dropped: dropped.size,
+    approximated: approximated.size,
+    unrecognized: unrecognized.size,
+    unrecognizedNotes: listProp([...unrecognized].sort(ascending).map(String)),
+    droppedDrums: mostHitFirst(dropped),
+    approximatedDrums: mostHitFirst(approximated),
+  };
 }

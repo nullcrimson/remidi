@@ -1,14 +1,29 @@
-import { crashFrames, crashReport } from '../../src/core/crash';
+import { crashFrames, crashReport, errorLine } from '../../src/core/crash';
 
 const withStack = (stack: string) => Object.assign(new Error('x'), { stack });
 
-describe('crash', () => {
-  it('sums up a crash by the error kind and the first line of its message', () => {
-    expect(crashReport(new TypeError('x is undefined\n    at render'), null).error).toBe('TypeError: x is undefined');
+describe('errorLine', () => {
+  it('sums up an error by its kind and the first line of its message', () => {
+    expect(errorLine(new TypeError('x is undefined\n    at render'))).toBe('TypeError: x is undefined');
   });
 
-  it('caps a crash summary at 100 characters', () => {
-    expect(crashReport(new Error('y'.repeat(300)), null).error).toHaveLength(100);
+  it('caps an error line at 100 characters', () => {
+    expect(errorLine(new Error('y'.repeat(300)))).toHaveLength(100);
+  });
+
+  it('sums up an error whose message cannot be read without throwing', () => {
+    const hostile = Object.defineProperty(new Error('x'), 'message', {
+      get: () => {
+        throw new Error('no');
+      },
+    });
+    expect(typeof errorLine(hostile)).toBe('string');
+  });
+});
+
+describe('crash', () => {
+  it('sums up a crash by its error line', () => {
+    expect(crashReport(new TypeError('x is undefined'), null).error).toBe('TypeError: x is undefined');
   });
 
   it('sums up a thrown value that is not an error by its text', () => {

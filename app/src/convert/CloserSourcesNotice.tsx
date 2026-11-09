@@ -4,7 +4,7 @@ import type { EngineId } from '../core/midiremap';
 import { track } from '../core/stats';
 import { Rich } from '../ui/Rich';
 import { TextButton } from '../ui/TextButton';
-import { closerSources, type RankedFit } from './closerSources';
+import type { RankedFit } from './closerSources';
 import type { Remapper } from './useRemapper';
 
 function Suggestion({ fit, name, onChoose }: { fit: RankedFit; name: string; onChoose: (id: EngineId) => void }) {
@@ -12,7 +12,7 @@ function Suggestion({ fit, name, onChoose }: { fit: RankedFit; name: string; onC
   return (
     <TextButton
       onClick={() => {
-        track('source-suggestion-used', { rank: fit.rank });
+        track('source-suggestion-used', { rank: fit.rank, engine: fit.engine });
         onChoose(fit.engine);
       }}
     >
@@ -31,9 +31,7 @@ function Suggestion({ fit, name, onChoose }: { fit: RankedFit; name: string; onC
  * source notes are edited, since the edits change what the source recognizes.
  */
 export function CloserSourcesNotice({ remapper }: { remapper: Remapper }) {
-  const { fits, src, tgt, engines, editor, chooseSrc } = remapper;
-  if (fits === null || src === null || Object.keys(editor.srcEdits).length > 0) return null;
-  const closer = closerSources(fits, src, tgt);
+  const { offered: closer, engines, chooseSrc } = remapper;
   if (closer === null) return null;
   const suggestions = closer.better.map((fit, i) => (
     <Fragment key={fit.engine}>
@@ -48,7 +46,7 @@ export function CloserSourcesNotice({ remapper }: { remapper: Remapper }) {
     >
       <Rich
         id="source-fit-missing"
-        args={{ missing: closer.missing, hits: closer.hits, source: engineName(engines, src) }}
+        args={{ missing: closer.missing, hits: closer.hits, source: engineName(engines, closer.source) }}
         slots={{ engines: suggestions }}
       />
     </p>

@@ -111,7 +111,7 @@ describe('the events of language, navigation, tips and failures', () => {
   it('sends load-failed with the kind when the converter cannot load', async () => {
     const failing: Runtime = { ...RUNTIME, load: () => Promise.reject(new Error('wasm boom')) };
     render(<App runtime={failing} />);
-    await waitFor(() => expect(umami).toHaveBeenCalledWith('load-failed', { kind: 'wasmUnavailable' }));
+    await waitFor(() => expect(umami).toHaveBeenCalledWith('load-failed', { kind: 'wasmUnavailable', detail: 'wasm boom' }));
   });
 
   describe('the error screen', () => {

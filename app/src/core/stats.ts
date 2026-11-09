@@ -2,6 +2,25 @@ import { send, type AppEvent, type StatArgs } from './umami';
 
 export { SUGGESTION_RANKS, type SuggestionRank } from './umami';
 
+/** The longest string Umami keeps in a property; it cuts longer ones. */
+const STRING_PROP_CHARS = 500;
+
+/** `items` joined by `separator`, stopping before the first item that would take it past `limit`. */
+export function wholeItems(items: readonly string[], separator: string, limit: number): string {
+  let kept = '';
+  for (const item of items) {
+    const next = kept === '' ? item : `${kept}${separator}${item}`;
+    if (next.length > limit) break;
+    kept = next;
+  }
+  return kept;
+}
+
+/** A list as one event property: its items joined by commas, cut at whole items to what Umami keeps. */
+export function listProp(items: readonly string[]): string {
+  return wholeItems(items, ',', STRING_PROP_CHARS);
+}
+
 /** 1 is the funnel, 2 is feature use, 3 is fine detail. */
 export type Tier = 1 | 2 | 3;
 

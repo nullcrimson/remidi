@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildReport, entryText, lossCounts } from '../../src/report/report';
+import { buildReport, entryText, lossProps } from '../../src/report/report';
 import type { FileResult } from '../../src/core/files';
 import type { CanonEntry, Drum } from '../../src/core/midiremap';
 import { typed, type Loose } from '../typed';
@@ -201,28 +201,59 @@ describe('buildReport', () => {
   });
 });
 
-describe('lossCounts', () => {
+describe('lossProps', () => {
   const lossy = result('a.mid', { dropped: { 'china.1.hit': 4 }, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.cup', note: 60, count: 1 } }, unmappedSource: { 51: 2 }, untouched: 0, converted: 10 });
 
-  it('counts the entries of each group of one file', () => {
-    expect(lossCounts([lossy.report])).toEqual({ dropped: 1, approximated: 1, unrecognized: 1 });
+  it('counts and lists the entries of each group of one file', () => {
+    expect(lossProps([lossy.report])).toEqual({
+      dropped: 1,
+      approximated: 1,
+      unrecognized: 1,
+      unrecognizedNotes: '51',
+      droppedDrums: 'china.1.hit',
+      approximatedDrums: 'ride.1.bell>ride.1.cup',
+    });
+  });
+
+  it('lists the unrecognized notes of all files once each, lowest first', () => {
+    const a = result('a.mid', { ...empty, unmappedSource: { 51: 1, 7: 1 } });
+    const b = result('b.mid', { ...empty, unmappedSource: { 7: 1, 100: 1 } });
+    expect(lossProps([a.report, b.report]).unrecognizedNotes).toBe('7,51,100');
+  });
+
+  it('lists the dropped drums most hit first', () => {
+    const a = result('a.mid', { ...empty, dropped: { 'china.1.hit': 1, 'crash.1.hit': 9 } });
+    expect(lossProps([a.report]).droppedDrums).toBe('crash.1.hit,china.1.hit');
+  });
+
+  it('orders the dropped drums by their hits across all files', () => {
+    const a = result('a.mid', { ...empty, dropped: { 'crash.1.hit': 3, 'china.1.hit': 4 } });
+    const b = result('b.mid', { ...empty, dropped: { 'crash.1.hit': 3 } });
+    expect(lossProps([a.report, b.report]).droppedDrums).toBe('crash.1.hit,china.1.hit');
   });
 
   it('counts a drum dropped in two files once', () => {
-    expect(lossCounts([lossy.report, lossy.report]).dropped).toBe(1);
+    expect(lossProps([lossy.report, lossy.report]).dropped).toBe(1);
   });
 
   it('counts a drum approximated by two different stand-ins twice', () => {
     const other = result('b.mid', { ...empty, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.bowtip', note: 60, count: 1 } } });
-    expect(lossCounts([lossy.report, other.report]).approximated).toBe(2);
+    expect(lossProps([lossy.report, other.report]).approximated).toBe(2);
   });
 
   it('counts a drum approximated by one stand-in once, whatever note it landed on', () => {
     const other = result('b.mid', { ...empty, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.cup', note: 61, count: 1 } } });
-    expect(lossCounts([lossy.report, other.report]).approximated).toBe(1);
+    expect(lossProps([lossy.report, other.report]).approximated).toBe(1);
   });
 
   it('counts nothing for a clean conversion', () => {
-    expect(lossCounts([result('a.mid', empty).report])).toEqual({ dropped: 0, approximated: 0, unrecognized: 0 });
+    expect(lossProps([result('a.mid', empty).report])).toEqual({
+      dropped: 0,
+      approximated: 0,
+      unrecognized: 0,
+      unrecognizedNotes: '',
+      droppedDrums: '',
+      approximatedDrums: '',
+    });
   });
 });

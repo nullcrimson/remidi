@@ -1,4 +1,5 @@
 import type { EngineId, SourceFit, SourceFits } from '../core/midiremap';
+import type { SrcEdits } from '../core/overrides';
 import { SUGGESTION_RANKS, type SuggestionRank } from '../core/stats';
 
 /** An engine the notice suggests, with its place and whether it recognizes every hit. */
@@ -9,6 +10,7 @@ export type Better = [RankedFit] | [RankedFit, RankedFit] | [RankedFit, RankedFi
 
 /** What the chosen source misses of the files' hits, and the engines that recognize more of them, best first. */
 export interface CloserSources {
+  source: EngineId;
   missing: number;
   hits: number;
   better: Better;
@@ -31,5 +33,14 @@ export function closerSources({ hits, ranked }: SourceFits, src: EngineId, tgt: 
     i < above.length ? { ...above[i], rank, complete: recognizesAll(above[i], hits) } : undefined);
   if (first === undefined) return null;
   const better: Better = second === undefined ? [first] : third === undefined ? [first, second] : [first, second, third];
-  return { missing: hits - current.recognized, hits, better };
+  return { source: src, missing: hits - current.recognized, hits, better };
+}
+
+/**
+ * What the notice offers: `closerSources` once the fits have arrived and a source is chosen,
+ * and nothing while source notes are edited, since the edits change what the source recognizes.
+ */
+export function offeredSources(fits: SourceFits | null, src: EngineId | null, tgt: EngineId | null, srcEdits: SrcEdits): CloserSources | null {
+  if (fits === null || src === null || Object.keys(srcEdits).length > 0) return null;
+  return closerSources(fits, src, tgt);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { closerSources } from '../../src/convert/closerSources';
+import { closerSources, offeredSources } from '../../src/convert/closerSources';
 import type { SourceFits } from '../../src/core/midiremap';
 import { engineId, typed } from '../typed';
 
@@ -15,6 +15,7 @@ const closer = (all: SourceFits, src: string, tgt: string | null = null) =>
 describe('closerSources', () => {
   it('says what the source misses and offers the engines that recognize more, best first', () => {
     expect(closer(FITS, 'sd3')).toEqual({
+      source: 'sd3',
       missing: 3,
       hits: 10,
       better: [
@@ -47,5 +48,23 @@ describe('closerSources', () => {
 
   it('offers nothing when the only better engine is the target', () => {
     expect(closer(FITS, 'rock', 'mm')).toBeNull();
+  });
+});
+
+describe('offeredSources', () => {
+  const offered = (all: SourceFits | null, src: string | null, srcEdits = {}) =>
+    offeredSources(all, src === null ? null : engineId(src), null, srcEdits);
+
+  it('offers what closerSources offers for the chosen source', () => {
+    expect(offered(FITS, 'sd3')).toEqual(closer(FITS, 'sd3'));
+  });
+
+  it('offers nothing before the fits arrive or a source is chosen', () => {
+    expect(offered(null, 'sd3')).toBeNull();
+    expect(offered(FITS, null)).toBeNull();
+  });
+
+  it('offers nothing while source notes are edited, since the edits change what the source recognizes', () => {
+    expect(offered(FITS, 'sd3', { 40: 'snare1.hit' })).toBeNull();
   });
 });
