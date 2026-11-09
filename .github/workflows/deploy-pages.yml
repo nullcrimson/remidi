@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci2-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -132,7 +132,7 @@ jobs:
       pages: write
       id-token: write
     concurrency:
-      group: pages
+      group: pages2
       cancel-in-progress: true
     environment:
       name: github-pages
