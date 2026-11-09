@@ -472,6 +472,20 @@ mod tests {
     }
 
     #[test]
+    fn handy_drums_reads_only_the_keys_its_standard_map_assigns() {
+        let handy = "goran_grooves_handy";
+        assert_eq!(decoded(handy, 40), Some(k("snare1.hit")));
+        for silent in [60, 73, 79, 83, 85] {
+            assert_eq!(decoded(handy, silent), None, "{silent}");
+        }
+        assert_eq!(decoded(handy, 90), Some(k("perc.misc")));
+        let map = Catalog::shared().get(handy).unwrap();
+        assert_eq!(map.encode(k("snare1.hit")), Some(n(38)));
+        assert_eq!(map.encode(k("snare1.rimshot")), None);
+        assert_eq!(map.encode(k("perc.misc")), Some(n(90)));
+    }
+
+    #[test]
     fn halpern_plays_its_crash_bells_as_bells() {
         assert_eq!(decoded("ggd_halpern", 63), Some(k("crash.1.bell")));
         assert_eq!(decoded("ggd_halpern", 68), Some(k("crash.2.bell")));
