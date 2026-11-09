@@ -486,6 +486,13 @@ mod tests {
     }
 
     #[test]
+    fn ds_drum_plays_its_ride_hit_on_both_keys_of_its_midi_page() {
+        assert_eq!(decoded("redpack_dsdrum", 59), Some(k("ride.1.edge")));
+        assert_eq!(decoded("redpack_dsdrum", 103), Some(k("ride.1.edge")));
+        assert_eq!(decoded("redpack_dsdrum", 91), None);
+    }
+
+    #[test]
     fn halpern_plays_its_crash_bells_as_bells() {
         assert_eq!(decoded("ggd_halpern", 63), Some(k("crash.1.bell")));
         assert_eq!(decoded("ggd_halpern", 68), Some(k("crash.2.bell")));

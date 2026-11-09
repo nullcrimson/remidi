@@ -42,7 +42,7 @@ notes = [
   { note = 68, canon = "snare1.hit" },
   { note = 69, canon = "snare1.flam", primary = true },
   { note = 71, canon = "snare1.sidestick" },
-  { note = 91, canon = "ride.1.edge" },
   { note = 102, canon = "ride.1.bell" },
+  { note = 103, canon = "ride.1.edge" },
   { note = 104, canon = "ride.1" },
 ]
