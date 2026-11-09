@@ -446,6 +446,23 @@ mod tests {
     }
 
     #[test]
+    fn drumforge_ultimate_plays_every_drum_of_its_default_mapping() {
+        let df = "drumforge_ultimate";
+        assert_eq!(decoded(df, 33), Some(k("perc.sticks")));
+        assert_eq!(decoded(df, 34), Some(k("snare1.rim")));
+        assert_eq!(decoded(df, 35), Some(k("snare1.sidestick")));
+        assert_eq!(decoded(df, 40), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded(df, 41), Some(k("tom.rack2.hit")));
+        assert_eq!(decoded(df, 43), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded(df, 72), Some(k("ride.2")));
+        assert_eq!(decoded(df, 75), Some(k("ride.2.belltip")));
+        assert_eq!(decoded(df, 77), Some(k("china.1.hit")));
+        assert_eq!(decoded(df, 78), Some(k("china.1.mute")));
+        assert_eq!(decoded(df, 79), Some(k("splash.1.hit")));
+        assert_eq!(decoded(df, 80), Some(k("splash.1.mute")));
+    }
+
+    #[test]
     fn halpern_plays_its_crash_bells_as_bells() {
         assert_eq!(decoded("ggd_halpern", 63), Some(k("crash.1.bell")));
         assert_eq!(decoded("ggd_halpern", 68), Some(k("crash.2.bell")));
