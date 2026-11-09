@@ -66,6 +66,12 @@ fn gm_open_hat_lands_on_duplantier_2_edge_open_3() {
 }
 
 #[test]
+fn gm_closed_hat_lands_on_hertz_2_closed_tip_not_its_choke() {
+    assert_eq!(lands("general_midi", "hertz2", 42), Some(42));
+    assert_eq!(lands("general_midi", "hertz2", 46), Some(27));
+}
+
+#[test]
 fn ggd_open_levels_keep_their_order_on_krimh() {
     assert_eq!(lands("ggd_invasion", "bogren_krimh", 45), Some(43));
     assert_eq!(lands("ggd_invasion", "bogren_krimh", 46), Some(46));

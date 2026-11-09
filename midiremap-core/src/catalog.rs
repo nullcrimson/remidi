@@ -511,6 +511,41 @@ mod tests {
     }
 
     #[test]
+    fn mt_power_reads_only_the_keys_of_its_reaper_drum_map() {
+        assert_eq!(decoded("mt_power", 33), None);
+        assert_eq!(decoded("mt_power", 35), Some(k("kick.main")));
+        assert_eq!(decoded("mt_power", 83), None);
+    }
+
+    #[test]
+    fn hertz_2_writes_each_drum_to_its_main_key() {
+        let h = Catalog::shared().get("hertz2").unwrap();
+        for (canon, note) in [
+            ("snare1.hit", 38),
+            ("snare1.rimshot", 40),
+            ("snare1.sidestick", 37),
+            ("tom.rack1.hit", 60),
+            ("tom.rack2.hit", 57),
+            ("tom.rack3.hit", 54),
+            ("tom.floor1.hit", 51),
+            ("tom.floor2.hit", 48),
+            ("perc.tambourine", 84),
+            ("perc.cowbell", 87),
+        ] {
+            assert_eq!(h.encode(k(canon)), Some(n(note)), "{canon}");
+        }
+    }
+
+    #[test]
+    fn hertz_2_reads_its_hat_choke_as_nothing_and_its_splash_tips_as_tips() {
+        assert_eq!(decoded("hertz2", 13), None);
+        assert_eq!(decoded("hertz2", 18), Some(k("hat.cc.tip")));
+        assert_eq!(decoded("hertz2", 82), Some(k("splash.1.bowtip")));
+        assert_eq!(decoded("hertz2", 79), Some(k("splash.2.bowtip")));
+        assert_eq!(decoded("hertz2", 76), Some(k("splash.3.bowtip")));
+    }
+
+    #[test]
     fn halpern_plays_its_crash_bells_as_bells() {
         assert_eq!(decoded("ggd_halpern", 63), Some(k("crash.1.bell")));
         assert_eq!(decoded("ggd_halpern", 68), Some(k("crash.2.bell")));
