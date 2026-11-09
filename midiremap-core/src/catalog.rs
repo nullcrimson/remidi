@@ -439,6 +439,13 @@ mod tests {
     }
 
     #[test]
+    fn perfect_drums_plays_its_third_tom_as_its_one_floor_tom() {
+        assert_eq!(decoded("perfectdrums", 45), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("perfectdrums", 43), Some(k("tom.rack2.hit")));
+        assert_eq!(decoded("perfectdrums", 41), Some(k("tom.floor1.hit")));
+    }
+
+    #[test]
     fn halpern_plays_its_crash_bells_as_bells() {
         assert_eq!(decoded("ggd_halpern", 63), Some(k("crash.1.bell")));
         assert_eq!(decoded("ggd_halpern", 68), Some(k("crash.2.bell")));
