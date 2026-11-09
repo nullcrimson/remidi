@@ -189,6 +189,26 @@ mod tests {
     }
 
     #[test]
+    fn bfd3_reads_each_second_tom_slot_as_its_partner() {
+        for (partner, second, tom) in [
+            (31, 33, "tom.floor1.hit"),
+            (35, 36, "tom.rack2.hit"),
+            (38, 40, "tom.rack1.hit"),
+            (61, 63, "tom.floor1.rimshot"),
+            (66, 68, "tom.rack2.rimshot"),
+            (70, 73, "tom.rack1.rimshot"),
+            (89, 90, "tom.floor1.rim"),
+            (91, 92, "tom.rack2.rim"),
+            (93, 94, "tom.rack1.rim"),
+        ] {
+            assert_eq!(decoded("bfd3", partner), Some(k(tom)));
+            assert_eq!(decoded("bfd3", second), Some(k(tom)));
+            let bfd3 = Catalog::shared().get("bfd3").unwrap();
+            assert_eq!(bfd3.encode(k(tom)), Some(n(partner)), "{tom}");
+        }
+    }
+
+    #[test]
     fn bfd3_plays_its_ride_on_60() {
         assert_eq!(decoded("bfd3", 60), Some(k("ride.1")));
     }

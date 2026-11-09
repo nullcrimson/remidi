@@ -294,6 +294,29 @@ fn the_duplantier_babar_plays_on_the_first_stack_then_the_first_crash() {
     assert_eq!(babar_on("general_midi").map(Note::get), Some(49));
 }
 
+#[test]
+fn every_general_midi_tom_plays_on_a_bfd3_slot_its_default_kit_fills() {
+    let catalog = Catalog::shared();
+    let mapping = Mapping::new(
+        catalog.get("general_midi").unwrap(),
+        catalog.get("bfd3").unwrap(),
+        &Default::default(),
+        MissingDrums::Nearest,
+    );
+    let lands = |note: u8| {
+        mapping
+            .played()
+            .find(|(n, _)| n.get() == note)
+            .and_then(|(_, outcome)| outcome.note())
+            .map(Note::get)
+    };
+    let toms: Vec<Option<u8>> = [50, 48, 47, 45, 43, 41].into_iter().map(lands).collect();
+    assert_eq!(
+        toms,
+        [Some(38), Some(35), Some(35), Some(35), Some(31), Some(31)]
+    );
+}
+
 fn guitar_pro_to_benny_greb() -> impl Fn(&'static str) -> Option<u8> {
     let catalog = Catalog::shared();
     let mapping = Mapping::new(
