@@ -112,6 +112,7 @@ roomsound_ballou_vol1
 roomsound_blastingroom
 rsdrums_fairview
 rsdrums_monarch
+rsdrums_sandnes
 solemntones_mjolnir
 soniccouture_sun
 soundblind_counterkit

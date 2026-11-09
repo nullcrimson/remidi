@@ -419,6 +419,26 @@ mod tests {
     }
 
     #[test]
+    fn sandnes_plays_its_kit_as_its_rs_drums_preset_shows() {
+        let s = "rsdrums_sandnes";
+        assert_eq!(decoded(s, 24), Some(k("kick.main")));
+        assert_eq!(decoded(s, 25), Some(k("kick.left")));
+        assert_eq!(decoded(s, 51), Some(k("splash.1.hit")));
+        assert_eq!(decoded(s, 31), Some(k("snare2.hit")));
+        assert_eq!(decoded(s, 33), Some(k("tom.floor3.hit")));
+        assert_eq!(decoded(s, 46), Some(k("hat.open2")));
+        assert_eq!(decoded(s, 48), Some(k("crash.1.bowtip")));
+        assert_eq!(decoded(s, 59), Some(k("ride.1.mute")));
+        assert_eq!(decoded(s, 64), Some(k("ride.1.bowtip")));
+        assert_eq!(decoded(s, 63), Some(k("ride.1.bell")));
+        let sandnes = Catalog::shared().get(s).unwrap();
+        assert_eq!(sandnes.encode(k("ride.1.bowtip")), Some(n(62)));
+        assert_eq!(sandnes.encode(k("ride.1.bell")), Some(n(61)));
+        assert_eq!(decoded(s, 65), Some(k("ride.1.edge")));
+        assert_eq!(decoded(s, 58), Some(k("china.1.bowtip")));
+    }
+
+    #[test]
     fn halpern_plays_its_crash_bells_as_bells() {
         assert_eq!(decoded("ggd_halpern", 63), Some(k("crash.1.bell")));
         assert_eq!(decoded("ggd_halpern", 68), Some(k("crash.2.bell")));
