@@ -1269,6 +1269,14 @@ mod tests {
     }
 
     #[test]
+    fn drum_lab_reads_its_halfway_snare_as_the_side_and_its_half_and_full_hats() {
+        assert_eq!(decoded("ni_drumlab", 40), Some(k("snare1.side")));
+        assert_eq!(decoded("ni_drumlab", 55), Some(k("hat.open2")));
+        assert_eq!(decoded("ni_drumlab", 57), Some(k("hat.open4")));
+        assert_eq!(decoded("ni_drumlab", 58), Some(k("hat.pedalsplash")));
+    }
+
+    #[test]
     fn abbey_road_modern_reads_its_halfway_snare_as_the_side_like_the_60s_kits() {
         for note in [40, 84, 86] {
             assert_eq!(

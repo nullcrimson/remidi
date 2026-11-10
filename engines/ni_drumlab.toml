@@ -2,12 +2,14 @@ id = "ni_drumlab"
 name = "Native Instruments Drumlab"
 vendor = "Native Instruments"
 notes = [
+  # Source: the Drum Lab manual, Options Page, Mapping Presets, "Default MIDI mapping" (p. 78, owner's copy).
+  # Snare Kang, Shot and Muted (62-64) have no drum slot and read as the snare; Perc A-E (65-73) change with the kit.
   { note = 35, canon = "kick.main" },
   { note = 36, canon = "kick.main" },
   { note = 37, canon = "kick.main", primary = true },
   { note = 38, canon = "snare1.hit", primary = true },
   { note = 39, canon = "snare1.sidestick", primary = true },
-  { note = 40, canon = "snare1.hit" },
+  { note = 40, canon = "snare1.side", primary = true },
   { note = 41, canon = "snare1.rimshot", primary = true },
   { note = 42, canon = "hat.closed.tip", primary = true },
   { note = 43, canon = "tom.floor1.hit", primary = true },
