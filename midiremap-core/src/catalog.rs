@@ -202,6 +202,14 @@ mod tests {
     }
 
     #[test]
+    fn modern_massive_2_plays_its_cross_stick_on_37() {
+        assert_eq!(
+            decoded("ggd_modernmassive2", 37),
+            Some(k("snare1.sidestick"))
+        );
+    }
+
+    #[test]
     fn kinglake_plays_two_rack_toms_and_two_floor_toms_on_34_to_37() {
         let toms: Vec<Option<Canon>> = (34..=37)
             .map(|note| decoded("prenc_kinglake", note))

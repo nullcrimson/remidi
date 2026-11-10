@@ -3,7 +3,7 @@ name = "GGD Modern & Massive 2 (Default Mapping)"
 vendor = "GetGood Drums"
 notes = [
   { note = 36, canon = "kick.main", primary = true },
-  { note = 37, canon = "perc.sticks", primary = true },
+  { note = 37, canon = "snare1.sidestick", primary = true },
   { note = 38, canon = "snare1.hit", primary = true },
   { note = 39, canon = "snare1.off", primary = true },
   { note = 42, canon = "tom.rack1.hit", primary = true },
