@@ -1,6 +1,7 @@
 id = "ni_abbeyroad_modern"
 name = "Native Instruments Abbey Road Modern Drummer (White Kit)"
 vendor = "Native Instruments"
+open_hat_level = 4
 notes = [
   # Source: the library's own "Abbey Road Modern Drummer Manual English.pdf" (MKII), 6.2 White Kit, pp. 51-54.
   # Cowbell on 27-30, chopper on 17/19/21 and spiral on 31/32 (other percussion); two rack toms and two floor toms.

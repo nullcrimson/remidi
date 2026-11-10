@@ -34,6 +34,13 @@ fn gm_open_hat_lands_on_mt_power_open_not_half_open() {
 }
 
 #[test]
+fn gm_open_hat_lands_on_both_abbey_road_modern_kits_fully_open() {
+    for tgt in ["ni_abbeyroad_modern", "ni_abbeyroad_modern_sparkle"] {
+        assert_eq!(lands("general_midi", tgt, 46), Some(80), "{tgt}");
+    }
+}
+
+#[test]
 fn gm_open_hat_lands_on_ugritone_wide_open() {
     assert_eq!(lands("general_midi", "ugritone", 46), Some(32));
 }

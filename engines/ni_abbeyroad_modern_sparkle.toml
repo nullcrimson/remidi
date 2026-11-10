@@ -1,6 +1,7 @@
 id = "ni_abbeyroad_modern_sparkle"
 name = "Native Instruments Abbey Road Modern Drummer (Sparkle Kit)"
 vendor = "Native Instruments"
+open_hat_level = 4
 notes = [
   # Source: the library's own "Abbey Road Modern Drummer Manual English.pdf" (MKII), 6.1 Sparkle Kit, pp. 47-50.
   # The drums sit on the White Kit's keys, but Tom 3 is a rack tom (three rack toms, one floor tom). Chopper
