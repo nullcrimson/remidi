@@ -809,6 +809,44 @@ mod tests {
     }
 
     #[test]
+    fn monarch_reads_its_toms_and_open_hats_as_its_gm_and_invasion_presets_place_them() {
+        let main = "rsdrums_monarch";
+        let gm = "rsdrums_monarch_gm";
+        assert_eq!(decoded(main, 36), Some(k("tom.rack3.hit")));
+        assert_eq!(decoded(main, 35), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded(main, 33), Some(k("tom.floor2.hit")));
+        assert_eq!(decoded(main, 45), decoded("ggd_invasion", 45));
+        assert_eq!(decoded(main, 47), decoded("ggd_invasion", 47));
+        for (monarch, general_midi) in [(47, 47), (43, 43), (41, 41)] {
+            assert_eq!(
+                decoded(gm, monarch),
+                decoded("general_midi", general_midi),
+                "{monarch}"
+            );
+        }
+        for (main_note, gm_note) in [
+            (36, 47),
+            (35, 43),
+            (33, 41),
+            (38, 50),
+            (37, 48),
+            (24, 36),
+            (58, 60),
+            (54, 57),
+            (52, 61),
+            (53, 62),
+            (62, 59),
+        ] {
+            assert_eq!(
+                decoded(main, main_note),
+                decoded(gm, gm_note),
+                "{main_note} vs {gm_note}"
+            );
+        }
+        assert_eq!(decoded(gm, 45), None);
+    }
+
+    #[test]
     fn benny_greb_gm_puts_the_mini_hats_on_52_and_its_open_hats_on_46_and_58() {
         let gm = "ggd_bennygreb_gm";
         assert_eq!(decoded(gm, 52), Some(k("aux2.closed.tip")));

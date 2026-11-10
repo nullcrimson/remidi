@@ -142,6 +142,7 @@ roomsound_ballou_vol1
 roomsound_blastingroom
 rsdrums_fairview
 rsdrums_monarch
+rsdrums_monarch_gm
 rsdrums_sandnes
 simmons_sd600
 simmons_titan20

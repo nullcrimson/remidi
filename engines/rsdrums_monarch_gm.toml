@@ -1,0 +1,33 @@
+id = "rsdrums_monarch_gm"
+name = "RS Drums - Monarch (Mapping 'General MIDI')"
+vendor = "RS Drums"
+variant = { of = "rsdrums_monarch" }
+notes = [
+  # Source: the plugin's MIDI Map, preset "GENERAL MIDI" (owner's screenshots, 2026-11-10, C1 = 36). The preset
+  # leaves the flams, chokes, mutes, pedal splash, shoulders and small open hat unassigned.
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 37, canon = "snare1.sidestick", primary = true },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 40, canon = "snare1.rimshot", primary = true },
+  { note = 41, canon = "tom.floor2.hit", primary = true },
+  { note = 42, canon = "hat.tight.tip", primary = true },
+  { note = 43, canon = "tom.floor1.hit", primary = true },
+  { note = 44, canon = "hat.pedal", primary = true },
+  { note = 46, canon = "hat.open2", primary = true },
+  { note = 47, canon = "tom.rack3.hit", primary = true },
+  { note = 48, canon = "tom.rack2.hit", primary = true },
+  { note = 49, canon = "crash.1.hit", primary = true },
+  { note = 50, canon = "tom.rack1.hit", primary = true },
+  { note = 51, canon = "ride.1.belltip", primary = true },
+  { note = 52, canon = "china.1.hit", primary = true },
+  { note = 53, canon = "ride.1.bell", primary = true },
+  { note = 54, canon = "hat.closed.tip", primary = true },
+  { note = 55, canon = "splash.1.hit", primary = true },
+  { note = 56, canon = "stack.1.hit", primary = true },
+  { note = 57, canon = "crash.2.hit", primary = true },
+  { note = 58, canon = "hat.open3", primary = true },
+  { note = 59, canon = "ride.1.bowtip", primary = true },
+  { note = 60, canon = "crash.3.hit", primary = true },
+  { note = 61, canon = "stack.2.hit", primary = true },
+  { note = 62, canon = "bell.1.hit", primary = true },
+]
