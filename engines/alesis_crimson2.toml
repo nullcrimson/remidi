@@ -1,0 +1,26 @@
+id = "alesis_crimson2"
+name = "Alesis Crimson II"
+vendor = "Alesis"
+notes = [
+  # Crimson II drum module user guide (v1.3), appendix "Default Trigger MIDI Note Assignments". The module
+  # sends one hi-hat note, 8, open or closed, with the openness as a CC; each crash edge shares its bow's note.
+  { note = 8, canon = "hat.cc", primary = true },
+  { note = 22, canon = "hat.pedal", primary = true },
+  { note = 23, canon = "hat.pedalsplash", primary = true },
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 40, canon = "snare1.rimshot", primary = true },
+  { note = 41, canon = "tom.floor2.hit", primary = true },
+  { note = 43, canon = "tom.floor1.hit", primary = true },
+  { note = 47, canon = "tom.rack2.hit", primary = true },
+  { note = 49, canon = "crash.1.hit", primary = true },
+  { note = 50, canon = "tom.rack1.hit", primary = true },
+  { note = 51, canon = "ride.1", primary = true },
+  { note = 53, canon = "ride.1.bell", primary = true },
+  { note = 57, canon = "crash.2.hit", primary = true },
+  { note = 59, canon = "ride.1.edge", primary = true },
+  { note = 73, canon = "tom.floor2.rimshot", primary = true },
+  { note = 75, canon = "tom.floor1.rimshot", primary = true },
+  { note = 80, canon = "tom.rack2.rimshot", primary = true },
+  { note = 82, canon = "tom.rack1.rimshot", primary = true },
+]

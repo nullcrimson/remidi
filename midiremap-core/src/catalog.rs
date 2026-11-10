@@ -587,6 +587,92 @@ mod tests {
     }
 
     #[test]
+    fn td1_and_td07_have_no_tom_rims_and_only_the_td07_a_cross_stick() {
+        assert_eq!(decoded("roland_td1", 37), None);
+        assert_eq!(decoded("roland_td1", 50), None);
+        assert_eq!(decoded("roland_td1", 22), Some(k("hat.closed.edge")));
+        assert_eq!(decoded("roland_td07", 37), Some(k("snare1.sidestick")));
+        assert_eq!(decoded("roland_td07", 50), None);
+        assert_eq!(decoded("roland_td07", 53), Some(k("ride.1.bell")));
+    }
+
+    #[test]
+    fn td25_keys_no_brush_and_reads_its_aux_pad_as_a_china() {
+        assert_eq!(decoded("roland_td25", 23), None);
+        assert_eq!(decoded("roland_td25", 58), Some(k("tom.floor1.rimshot")));
+        assert_eq!(decoded("roland_td25", 27), Some(k("china.1.bow")));
+        assert_eq!(decoded("roland_td25", 28), Some(k("china.1.hit")));
+    }
+
+    #[test]
+    fn td27_reads_its_three_aux_pads_as_china_splash_and_stack() {
+        let aux: Vec<Option<Canon>> = (27..=32).map(|note| decoded("roland_td27", note)).collect();
+        assert_eq!(
+            aux,
+            [
+                Some(k("china.1.bow")),
+                Some(k("china.1.hit")),
+                Some(k("splash.1.bowtip")),
+                Some(k("splash.1.hit")),
+                Some(k("stack.1.bowtip")),
+                Some(k("stack.1.hit")),
+            ]
+        );
+    }
+
+    #[test]
+    fn alesis_nitro_plays_a_fourth_tom_as_the_second_floor_tom_and_a_half_open_hat() {
+        let nitro = "alesis_nitro";
+        assert_eq!(decoded(nitro, 41), Some(k("tom.floor2.hit")));
+        assert_eq!(decoded(nitro, 39), Some(k("tom.floor2.rimshot")));
+        assert_eq!(decoded(nitro, 23), Some(k("hat.loose")));
+        assert_eq!(decoded(nitro, 21), Some(k("hat.pedalsplash")));
+        assert_eq!(decoded(nitro, 55), None);
+    }
+
+    #[test]
+    fn alesis_command_has_crash_edges_and_a_three_zone_ride() {
+        let command = "alesis_command";
+        assert_eq!(decoded(command, 49), Some(k("crash.1.bow")));
+        assert_eq!(decoded(command, 55), Some(k("crash.1.hit")));
+        assert_eq!(decoded(command, 52), Some(k("crash.2.hit")));
+        assert_eq!(decoded(command, 59), Some(k("ride.1.edge")));
+        assert_eq!(decoded(command, 53), Some(k("ride.1.bell")));
+    }
+
+    #[test]
+    fn alesis_crimson_2_sends_one_cc_hat_note_and_high_tom_rims() {
+        let crimson = "alesis_crimson2";
+        assert_eq!(decoded(crimson, 8), Some(k("hat.cc")));
+        assert_eq!(decoded(crimson, 22), Some(k("hat.pedal")));
+        assert_eq!(decoded(crimson, 50), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded(crimson, 82), Some(k("tom.rack1.rimshot")));
+        assert_eq!(decoded(crimson, 73), Some(k("tom.floor2.rimshot")));
+    }
+
+    #[test]
+    fn dtx402_plays_three_toms_its_closed_rim_as_cross_stick_and_splash_on_83() {
+        let dtx = "yamaha_dtx402";
+        assert_eq!(decoded(dtx, 37), Some(k("snare1.sidestick")));
+        assert_eq!(decoded(dtx, 47), Some(k("tom.rack2.hit")));
+        assert_eq!(decoded(dtx, 43), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded(dtx, 83), Some(k("hat.pedalsplash")));
+        assert_eq!(decoded(dtx, 57), Some(k("crash.2.hit")));
+    }
+
+    #[test]
+    fn musescore_4_keys_general_midi_35_to_59_without_clap_or_vibraslap() {
+        for note in 35..=59 {
+            let want = match note {
+                39 | 58 => None,
+                _ => decoded("general_midi", note),
+            };
+            assert_eq!(decoded("musescore4", note), want, "note {note}");
+        }
+        assert_eq!(decoded("musescore4", 60), None);
+    }
+
+    #[test]
     fn mt_power_reads_only_the_keys_of_its_reaper_drum_map() {
         assert_eq!(decoded("mt_power", 33), None);
         assert_eq!(decoded("mt_power", 35), Some(k("kick.main")));

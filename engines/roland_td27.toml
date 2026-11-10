@@ -1,0 +1,36 @@
+id = "roland_td27"
+name = "Roland TD-27"
+vendor = "Roland"
+notes = [
+  # Roland's "TD-27: Default MIDI Note Map" (support.roland.com 4407474950811): the TD-17 notes plus AUX 2 and 3.
+  # The AUX pads play whatever the kit puts on them; AUX 1 is read as a china as on the TD-17, AUX 2 as a
+  # splash and AUX 3 as a stack.
+  { note = 22, canon = "hat.closed.edge", primary = true },
+  { note = 26, canon = "hat.open4", primary = true },
+  { note = 27, canon = "china.1.bow", primary = true },
+  { note = 28, canon = "china.1.hit", primary = true },
+  { note = 29, canon = "splash.1.bowtip", primary = true },
+  { note = 30, canon = "splash.1.hit", primary = true },
+  { note = 31, canon = "stack.1.bowtip", primary = true },
+  { note = 32, canon = "stack.1.hit", primary = true },
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 37, canon = "snare1.sidestick", primary = true },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 40, canon = "snare1.rimshot", primary = true },
+  { note = 42, canon = "hat.closed.tip", primary = true },
+  { note = 43, canon = "tom.floor1.hit", primary = true },
+  { note = 44, canon = "hat.pedal", primary = true },
+  { note = 45, canon = "tom.rack2.hit", primary = true },
+  { note = 46, canon = "hat.open4.tip", primary = true },
+  { note = 47, canon = "tom.rack2.rimshot", primary = true },
+  { note = 48, canon = "tom.rack1.hit", primary = true },
+  { note = 49, canon = "crash.1.bow", primary = true },
+  { note = 50, canon = "tom.rack1.rimshot", primary = true },
+  { note = 51, canon = "ride.1", primary = true },
+  { note = 52, canon = "crash.2.hit", primary = true },
+  { note = 53, canon = "ride.1.bell", primary = true },
+  { note = 55, canon = "crash.1.hit", primary = true },
+  { note = 57, canon = "crash.2.bow", primary = true },
+  { note = 58, canon = "tom.floor1.rimshot", primary = true },
+  { note = 59, canon = "ride.1.edge", primary = true },
+]
