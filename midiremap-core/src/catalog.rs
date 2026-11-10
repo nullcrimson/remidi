@@ -189,6 +189,22 @@ mod tests {
     }
 
     #[test]
+    fn kinglake_plays_two_rack_toms_and_two_floor_toms_on_34_to_37() {
+        let toms: Vec<Option<Canon>> = (34..=37)
+            .map(|note| decoded("prenc_kinglake", note))
+            .collect();
+        assert_eq!(
+            toms,
+            [
+                Some(k("tom.rack1.hit")),
+                Some(k("tom.rack2.hit")),
+                Some(k("tom.floor1.hit")),
+                Some(k("tom.floor2.hit")),
+            ]
+        );
+    }
+
+    #[test]
     fn bfd3_reads_each_second_tom_slot_as_its_partner() {
         for (partner, second, tom) in [
             (31, 33, "tom.floor1.hit"),
