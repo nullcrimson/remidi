@@ -2,6 +2,7 @@ id = "roland_td1"
 name = "Roland TD-1"
 vendor = "Roland"
 notes = [
+  # Source: https://static.roland.com/assets/media/pdf/TD-1_eng02_W.pdf
   # Roland TD-1 Owner's Manual (eng02), "Note numbers (default)". No x-stick, tom rims, ride bell or AUX.
   { note = 22, canon = "hat.closed.edge", primary = true },
   { note = 26, canon = "hat.open4", primary = true },

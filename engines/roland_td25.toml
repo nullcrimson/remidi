@@ -2,6 +2,7 @@ id = "roland_td25"
 name = "Roland TD-25"
 vendor = "Roland"
 notes = [
+  # Source: https://support.roland.com/hc/en-us/articles/115000201706
   # Roland's "TD-25: Default MIDI Note Number Map" (support.roland.com 115000201706). Its snare brush (23)
   # has no drum slot, and the note list gives no closed-edge hi-hat. AUX is read as a china, as on the TD-17.
   { note = 26, canon = "hat.open4", primary = true },

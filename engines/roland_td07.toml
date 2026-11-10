@@ -2,6 +2,7 @@ id = "roland_td07"
 name = "Roland TD-07"
 vendor = "Roland"
 notes = [
+  # Source: https://support.roland.com/hc/en-us/articles/24553430488091-TD-07-Default-MIDI-Note-Map
   # Roland's "TD-07: Default MIDI Note Map" (support.roland.com 24553430488091). No tom rims or AUX.
   { note = 22, canon = "hat.closed.edge", primary = true },
   { note = 26, canon = "hat.open4", primary = true },

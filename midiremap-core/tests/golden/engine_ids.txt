@@ -5,6 +5,7 @@ alesis_crimson2
 alesis_nitro
 beatbuddy
 bfd3
+bfd_player
 bogren_krimh
 bogren_trivium
 drumforge_bergstrand
@@ -12,6 +13,7 @@ drumforge_greiner
 drumforge_ultimate
 dw_soundworks
 eastwest_prodrummer
+efnote
 ezdrummer
 ezdrummer2
 ezx_drumkit_from_hell
@@ -82,6 +84,8 @@ klangmacht
 logic_pro_drummer
 mdltone_ultimateheavy
 midiremap_standard
+millenium_mps1000
+millenium_mps150
 mixwave_archey
 mixwave_duplantier
 mixwave_duplantier2
@@ -115,12 +119,17 @@ roland_td1
 roland_td17
 roland_td25
 roland_td27
+roland_td30
 roomsound_ballou
 roomsound_ballou_vol1
 roomsound_blastingroom
 rsdrums_fairview
 rsdrums_monarch
 rsdrums_sandnes
+simmons_sd600
+simmons_titan20
+simmons_titan50
+simmons_titan70
 solemntones_mjolnir
 soniccouture_sun
 soundblind_counterkit

@@ -2,6 +2,7 @@ id = "hertz2"
 name = "Hertz Drums 2"
 vendor = "Hertz Drums"
 notes = [
+  # Source: https://hertzinstruments.com/hertz-drums-2-midi-map/
   { note = 5, canon = "snare1.sidestick" },
   { note = 10, canon = "snare1.rimshot" },
   { note = 11, canon = "snare1.hit" },

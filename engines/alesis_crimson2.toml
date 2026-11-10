@@ -2,6 +2,7 @@ id = "alesis_crimson2"
 name = "Alesis Crimson II"
 vendor = "Alesis"
 notes = [
+  # Source: https://www.alesis.com/rscdn/1811/documents/CrimsonIIDrumModule-UserGuide-v1.3.pdf
   # Crimson II drum module user guide (v1.3), appendix "Default Trigger MIDI Note Assignments". The module
   # sends one hi-hat note, 8, open or closed, with the openness as a CC; each crash edge shares its bow's note.
   { note = 8, canon = "hat.cc", primary = true },

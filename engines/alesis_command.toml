@@ -2,6 +2,7 @@ id = "alesis_command"
 name = "Alesis Command"
 vendor = "Alesis"
 notes = [
+  # Source: https://www.alesis.com/rscdn/2086/downloads/Command%20Drum%20Module%20-%20User%20Guide%20-%20v1.2.pdf
   # Command drum module user guide (v1.2), appendix "Default Trigger MIDI Note Assignments".
   { note = 21, canon = "hat.pedalsplash", primary = true },
   { note = 36, canon = "kick.main", primary = true },

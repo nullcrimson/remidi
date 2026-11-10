@@ -621,6 +621,19 @@ mod tests {
     }
 
     #[test]
+    fn td30_plays_four_toms_four_aux_pads_and_a_two_input_ride() {
+        let td = "roland_td30";
+        assert_eq!(decoded(td, 41), Some(k("tom.floor2.hit")));
+        assert_eq!(decoded(td, 39), Some(k("tom.floor2.rimshot")));
+        assert_eq!(decoded(td, 33), Some(k("china.2.bow")));
+        assert_eq!(decoded(td, 25), Some(k("ride.1.edge")));
+        assert_eq!(decoded(td, 23), None);
+        let map = Catalog::shared().get(td).unwrap();
+        assert_eq!(map.encode(k("ride.1.edge")), Some(n(59)));
+        assert_eq!(map.encode(k("kick.main")), Some(n(36)));
+    }
+
+    #[test]
     fn alesis_nitro_plays_a_fourth_tom_as_the_second_floor_tom_and_a_half_open_hat() {
         let nitro = "alesis_nitro";
         assert_eq!(decoded(nitro, 41), Some(k("tom.floor2.hit")));
@@ -670,6 +683,65 @@ mod tests {
             assert_eq!(decoded("musescore4", note), want, "note {note}");
         }
         assert_eq!(decoded("musescore4", 60), None);
+    }
+
+    #[test]
+    fn simmons_titans_add_zones_from_the_20_to_the_70() {
+        assert_eq!(decoded("simmons_titan20", 41), None);
+        assert_eq!(decoded("simmons_titan20", 40), Some(k("snare1.rimshot")));
+        assert_eq!(decoded("simmons_titan50", 41), Some(k("tom.floor2.hit")));
+        assert_eq!(decoded("simmons_titan50", 86), Some(k("hat.loose")));
+        assert_eq!(decoded("simmons_titan50", 50), None);
+        assert_eq!(decoded("simmons_titan70", 50), Some(k("tom.rack1.rimshot")));
+        assert_eq!(decoded("simmons_titan70", 59), Some(k("ride.1.edge")));
+        assert_eq!(decoded("simmons_titan70", 77), Some(k("china.1.bow")));
+        assert_eq!(decoded("simmons_titan70", 80), Some(k("splash.1.hit")));
+        assert_eq!(decoded("simmons_sd600", 39), Some(k("tom.floor2.rimshot")));
+        assert_eq!(decoded("simmons_sd600", 85), Some(k("hat.pedalsplash")));
+    }
+
+    #[test]
+    fn millenium_mps150_has_one_zone_per_pad_and_the_mps1000_reads_ext_as_a_floor_tom() {
+        assert_eq!(decoded("millenium_mps150", 40), None);
+        assert_eq!(decoded("millenium_mps150", 49), Some(k("crash.1.hit")));
+        assert_eq!(
+            decoded("millenium_mps1000", 37),
+            Some(k("snare1.sidestick"))
+        );
+        assert_eq!(decoded("millenium_mps1000", 52), Some(k("crash.2.hit")));
+        assert_eq!(decoded("millenium_mps1000", 41), Some(k("tom.floor2.hit")));
+        assert_eq!(
+            decoded("millenium_mps1000", 39),
+            Some(k("tom.floor2.rimshot"))
+        );
+    }
+
+    #[test]
+    fn efnote_plays_three_crashes_with_cups_as_bells() {
+        assert_eq!(decoded("efnote", 54), Some(k("crash.1.bell")));
+        assert_eq!(decoded("efnote", 56), Some(k("crash.2.bell")));
+        assert_eq!(decoded("efnote", 27), Some(k("crash.3.bow")));
+        assert_eq!(decoded("efnote", 28), Some(k("crash.3.hit")));
+        assert_eq!(decoded("efnote", 44), Some(k("hat.pedal")));
+    }
+
+    #[test]
+    fn bfd_player_reads_its_nine_hat_openings_and_second_toms_as_bfd3_does() {
+        let player = "bfd_player";
+        assert_eq!(decoded(player, 0), Some(k("hat.closed.tip")));
+        assert_eq!(decoded(player, 1), Some(k("hat.loose.tip")));
+        assert_eq!(decoded(player, 6), Some(k("hat.open5.tip")));
+        assert_eq!(decoded(player, 7), Some(k("hat.open6.tip")));
+        assert_eq!(decoded(player, 8), Some(k("hat.open6.tip")));
+        assert_eq!(decoded(player, 28), Some(k("hat.cc.edge")));
+        assert_eq!(decoded(player, 33), None);
+        assert_eq!(decoded(player, 41), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded(player, 48), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded(player, 49), Some(k("crash.2.hit")));
+        let map = Catalog::shared().get(player).unwrap();
+        assert_eq!(map.encode(k("tom.rack1.hit")), Some(n(47)));
+        assert_eq!(map.encode(k("hat.open6.edge")), Some(n(46)));
+        assert_eq!(map.encode(k("hat.closed.tip")), Some(n(42)));
     }
 
     #[test]

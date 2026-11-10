@@ -2,6 +2,7 @@ id = "mt_power"
 name = "MT Power Drum Kit"
 vendor = "Manda Audio"
 notes = [
+  # Source: https://www.powerdrumkit.com/help-drum-map-Reaper.php
   { note = 35, canon = "kick.main" },
   { note = 36, canon = "kick.main", primary = true },
   { note = 37, canon = "snare1.sidestick", primary = true },

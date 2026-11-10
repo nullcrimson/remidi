@@ -2,6 +2,8 @@ id = "roland_td27"
 name = "Roland TD-27"
 vendor = "Roland"
 notes = [
+  # Source: https://support.roland.com/hc/en-us/articles/4407474950811-TD-27-Default-MIDI-Note-Map
+  # Source: https://static.roland.com/assets/media/pdf/TD-27_Data_List_eng03_W.pdf
   # Roland's "TD-27: Default MIDI Note Map" (support.roland.com 4407474950811): the TD-17 notes plus AUX 2 and 3.
   # The AUX pads play whatever the kit puts on them; AUX 1 is read as a china as on the TD-17, AUX 2 as a
   # splash and AUX 3 as a stack.

@@ -1,9 +1,12 @@
 id = "alesis_nitro"
-name = "Alesis Nitro, Nitro Mesh and Surge"
+name = "Alesis Nitro, Nitro Mesh, Nitro Max and Surge"
 short_name = "Alesis Nitro / Surge"
 vendor = "Alesis"
 notes = [
-  # The Nitro and Surge drum module user guides (v1.2), appendix "Pad MIDI Note Numbers". One-zone cymbals.
+  # Source: https://www.alesis.com/rscdn/1886/documents/Nitro%20Drum%20Module%20-%20User%20Guide%20-%20v1.2.pdf
+  # Source: https://www.alesis.com/rscdn/2087/downloads/Surge%20Drum%20Module%20-%20User%20Guide%20-%20v1.2.pdf
+  # Source: https://www.alesis.com/rscdn/2102/documents/Nitro%20Max%20Drum%20Module%20-%20User%20Guide%20-%20v1.1.pdf
+  # The Nitro, Nitro Max and Surge drum module user guides (v1.2, v1.1, v1.2), appendix "Pad MIDI Note Numbers". One-zone cymbals.
   { note = 21, canon = "hat.pedalsplash", primary = true },
   { note = 23, canon = "hat.loose", primary = true },
   { note = 36, canon = "kick.main", primary = true },

@@ -3,6 +3,7 @@ name = "Guitar Pro"
 short_name = "Guitar Pro"
 vendor = "Standards"
 notes = [
+  # Source: https://www.guitar-pro.com/docs/gp8/score/drums
   { note = 29, canon = "ride.1.mute" },
   { note = 31, canon = "snare1.sidestick" },
   { note = 33, canon = "snare1.sidestick" },

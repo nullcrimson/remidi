@@ -3,6 +3,7 @@ name = "Yamaha DTX402 (DTX402K, DTX432K, DTX452K)"
 short_name = "Yamaha DTX402"
 vendor = "Yamaha"
 notes = [
+  # Source: https://data.yamaha.com/files/download/other_assets/8/1181128/dtx402k_432k_452k_en_rm_a0.pdf
   # Yamaha's "DTX402K DTX432K DTX452K MIDI Reference", "MIDI Note Numbers Assigned to Pads". The extra pad
   # on a KP65 kick pad sends 57, read as a second crash as in General MIDI.
   { note = 36, canon = "kick.main", primary = true },

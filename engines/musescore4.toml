@@ -3,6 +3,7 @@ name = "MuseScore Studio 4 (Drum Kit, large)"
 short_name = "MuseScore 4"
 vendor = "MuseScore"
 notes = [
+  # Source: https://github.com/musescore/MuseScore/blob/v4.7.6/share/instruments/instruments.xml
   # MuseScore's "Drum Kit (large)" drumset (share/instruments/instruments.xml, v4.7.6): General MIDI 35 to 59
   # without the clap (39) and the vibraslap (58), which its drum staff does not list.
   { note = 35, canon = "kick.main" },
