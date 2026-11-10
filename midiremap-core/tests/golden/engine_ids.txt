@@ -3,8 +3,12 @@ alanvista_royotoms
 alesis_command
 alesis_crimson2
 alesis_nitro
+alesis_sr16
+arturia_drumbrute
+arturia_drumbrute_impact
 beatbuddy
 bfd3
+bfd_eco
 bfd_player
 bogren_krimh
 bogren_trivium
@@ -15,6 +19,7 @@ dw_soundworks
 eastwest_prodrummer
 efnote
 ezdrummer
+ezdrummer1
 ezdrummer2
 ezx_drumkit_from_hell
 ezx_metal_mania
@@ -29,6 +34,7 @@ ggd_architects_ggd
 ggd_architects_gm
 ggd_architects_halpern
 ggd_bennygreb
+ggd_bennygreb_gm
 ggd_brutal
 ggd_brutal_ggd
 ggd_brutal_gm
@@ -81,6 +87,7 @@ hertz2
 impact_xt
 impact_xt_roomyrock
 klangmacht
+korg_volcabeats
 logic_pro_drummer
 mdltone_ultimateheavy
 midiremap_standard
@@ -120,6 +127,9 @@ roland_td17
 roland_td25
 roland_td27
 roland_td30
+roland_tr08
+roland_tr09
+roland_tr8s
 roomsound_ballou
 roomsound_ballou_vol1
 roomsound_blastingroom
@@ -139,3 +149,4 @@ superior_drummer3
 ugritone
 ujam_heavy
 yamaha_dtx402
+zoom_rt223

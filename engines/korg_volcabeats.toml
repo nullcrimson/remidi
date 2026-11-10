@@ -1,0 +1,14 @@
+id = "korg_volcabeats"
+name = "Korg volca beats"
+vendor = "Korg"
+notes = [
+  # Source: https://cdn.korg.com/us/support/download/files/456d19dc4cc9e6e73f7ed9ac34e38aec.pdf?filename=volca_beats_MIDI_Chart_E.pdf
+  # volca beats MIDI Implementation Chart (Ver. 1.00), note *2: the only notes that sound.
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 39, canon = "perc.clap", primary = true },
+  { note = 42, canon = "hat.closed", primary = true },
+  { note = 43, canon = "tom.floor1.hit", primary = true },
+  { note = 46, canon = "hat.open4", primary = true },
+  { note = 50, canon = "tom.rack1.hit", primary = true },
+]

@@ -1,0 +1,52 @@
+id = "bfd_eco"
+name = "BFD Eco"
+vendor = "BFD"
+notes = [
+  # Source: https://d140ffsmluhjx7.cloudfront.net/Documentation/manuals/pdf/BFD_Eco_Manual.pdf
+  # BFD Eco Manual, 1:4 "Default MIDI key assignments" (A#0, printed as 36, is 34). Read as `bfd_player`
+  # is: Cym1 (crash) crash 1, Cym2 (cymbal) crash 2, Cym3 the ride; hat 1/4, 1/2 and 3/4 open are open 1,
+  # 3 and 5, open is open 6; shank is the edge; tom Alt keys are read only. The kick, snare, hat, tom and
+  # Perc chokes have no slot. Perc 1-3 play whatever the kit loads and are read as other percussion.
+  { note = 0, canon = "perc.misc", primary = true },
+  { note = 1, canon = "perc.misc" },
+  { note = 17, canon = "tom.floor1.hit" },
+  { note = 18, canon = "tom.floor1.rimshot", primary = true },
+  { note = 19, canon = "tom.rack2.hit" },
+  { note = 20, canon = "tom.rack2.rimshot", primary = true },
+  { note = 21, canon = "tom.rack1.hit" },
+  { note = 22, canon = "tom.rack1.rimshot", primary = true },
+  { note = 23, canon = "perc.misc" },
+  { note = 24, canon = "perc.misc" },
+  { note = 26, canon = "perc.misc" },
+  { note = 27, canon = "perc.misc" },
+  { note = 30, canon = "hat.open1.edge", primary = true },
+  { note = 31, canon = "hat.open1.tip", primary = true },
+  { note = 32, canon = "hat.open5.edge", primary = true },
+  { note = 33, canon = "hat.open5.tip", primary = true },
+  { note = 34, canon = "snare1.side", primary = true },
+  { note = 35, canon = "kick.main" },
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 37, canon = "snare1.sidestick", primary = true },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 39, canon = "snare1.ruff", primary = true },
+  { note = 40, canon = "snare1.rimshot", primary = true },
+  { note = 41, canon = "snare1.flam", primary = true },
+  { note = 42, canon = "hat.closed.tip", primary = true },
+  { note = 43, canon = "tom.floor1.hit", primary = true },
+  { note = 44, canon = "hat.pedal", primary = true },
+  { note = 45, canon = "tom.rack2.hit", primary = true },
+  { note = 46, canon = "hat.open6.tip", primary = true },
+  { note = 47, canon = "tom.rack1.hit", primary = true },
+  { note = 48, canon = "hat.closed.edge", primary = true },
+  { note = 49, canon = "crash.1.hit", primary = true },
+  { note = 50, canon = "hat.open3.tip", primary = true },
+  { note = 51, canon = "ride.1", primary = true },
+  { note = 52, canon = "hat.open3.edge", primary = true },
+  { note = 53, canon = "ride.1.bell", primary = true },
+  { note = 54, canon = "crash.1.bell", primary = true },
+  { note = 55, canon = "crash.2.hit", primary = true },
+  { note = 56, canon = "crash.2.bell", primary = true },
+  { note = 57, canon = "crash.1.mute", primary = true },
+  { note = 58, canon = "crash.2.mute", primary = true },
+  { note = 59, canon = "ride.1.mute", primary = true },
+]

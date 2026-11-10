@@ -1,0 +1,20 @@
+id = "alesis_sr16"
+name = "Alesis SR-16"
+vendor = "Alesis"
+notes = [
+  # Source: https://www.alesis.com/rscdn/920/documents/SR16%20Reference%20Rev%20C.pdf
+  # SR-16 Reference Manual Rev C, 6.4 "Assign MIDI note numbers to drum pads": the default note
+  # assignments. Perc 1 and Perc 2 play whatever the kit puts on them and are read as other percussion.
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 39, canon = "perc.clap", primary = true },
+  { note = 41, canon = "tom.floor1.hit", primary = true },
+  { note = 42, canon = "hat.closed", primary = true },
+  { note = 45, canon = "tom.rack2.hit", primary = true },
+  { note = 46, canon = "hat.open4", primary = true },
+  { note = 48, canon = "tom.rack1.hit", primary = true },
+  { note = 49, canon = "crash.1.hit", primary = true },
+  { note = 51, canon = "ride.1", primary = true },
+  { note = 65, canon = "perc.misc", primary = true },
+  { note = 67, canon = "perc.misc" },
+]

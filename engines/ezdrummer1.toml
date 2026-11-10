@@ -1,0 +1,55 @@
+id = "ezdrummer1"
+name = "Toontrack EZdrummer 1"
+short_name = "EZdrummer 1"
+vendor = "Toontrack"
+notes = [
+  # Source: https://images.thomann.de/pics/prod/221685_ezdrummer_manual.pdf
+  # Toontrack's EZdrummer operation manual (2008, hosted by Thomann), 4.4 "Key Mapping". Crash A is crash
+  # 1 and Crash B crash 2 (General MIDI's 49 and 57). Where EZdrummer 2 keeps a note for the same sound
+  # (hat openings 24-26 and 60, tight hats 62/63, 64 and 65), it is read as `ezdrummer2` reads it.
+  { note = 21, canon = "hat.pedal", primary = true },
+  { note = 22, canon = "hat.closed.edge", primary = true },
+  { note = 23, canon = "hat.pedalsplash", primary = true },
+  { note = 24, canon = "hat.loose", primary = true },
+  { note = 25, canon = "hat.open1", primary = true },
+  { note = 26, canon = "hat.open2", primary = true },
+  { note = 27, canon = "crash.1.hit" },
+  { note = 28, canon = "crash.1.hit" },
+  { note = 29, canon = "crash.1.hit" },
+  { note = 30, canon = "crash.2.hit" },
+  { note = 31, canon = "crash.2.hit" },
+  { note = 32, canon = "crash.2.hit" },
+  { note = 33, canon = "snare1.hit" },
+  { note = 34, canon = "kick.main" },
+  { note = 35, canon = "kick.main" },
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 37, canon = "snare1.sidestick", primary = true },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 39, canon = "snare1.hit" },
+  { note = 40, canon = "snare1.rimshot", primary = true },
+  { note = 41, canon = "tom.floor1.hit" },
+  { note = 42, canon = "hat.closed.tip", primary = true },
+  { note = 43, canon = "tom.floor1.hit", primary = true },
+  { note = 44, canon = "hat.pedal" },
+  { note = 45, canon = "tom.rack2.hit" },
+  { note = 46, canon = "hat.open1" },
+  { note = 47, canon = "tom.rack2.hit", primary = true },
+  { note = 48, canon = "tom.rack1.hit", primary = true },
+  { note = 49, canon = "crash.1.hit", primary = true },
+  { note = 50, canon = "tom.rack1.hit" },
+  { note = 51, canon = "ride.1", primary = true },
+  { note = 52, canon = "crash.2.hit" },
+  { note = 53, canon = "ride.1.bell", primary = true },
+  { note = 54, canon = "crash.1.mute", primary = true },
+  { note = 55, canon = "crash.1.hit" },
+  { note = 56, canon = "perc.cowbell", primary = true },
+  { note = 57, canon = "crash.2.hit", primary = true },
+  { note = 58, canon = "crash.2.mute", primary = true },
+  { note = 59, canon = "ride.1.edge", primary = true },
+  { note = 60, canon = "hat.open3", primary = true },
+  { note = 61, canon = "hat.closed.tip" },
+  { note = 62, canon = "hat.tight.edge", primary = true },
+  { note = 63, canon = "hat.tight.tip", primary = true },
+  { note = 64, canon = "hat.closed.edge" },
+  { note = 65, canon = "perc.misc", primary = true },
+]

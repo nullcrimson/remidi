@@ -1,0 +1,28 @@
+id = "arturia_drumbrute_impact"
+name = "Arturia DrumBrute Impact"
+vendor = "Arturia"
+notes = [
+  # Source: https://downloads.arturia.com/products/drumbrute-impact/manual/drumbrute-impact_Manual_1_0_EN.pdf
+  # DrumBrute Impact User Manual 1.0, 9.10.5 Drum Map (the MIDI Control Center screenshot). Snare 2 is the
+  # second snare; each Colored note plays its instrument with the Color effect and is read only. FM has
+  # no drum slot and is read as other percussion.
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 37, canon = "snare1.hit", primary = true },
+  { note = 38, canon = "snare2.hit", primary = true },
+  { note = 39, canon = "tom.rack1.hit", primary = true },
+  { note = 40, canon = "tom.floor1.hit", primary = true },
+  { note = 41, canon = "crash.1.hit", primary = true },
+  { note = 42, canon = "perc.cowbell", primary = true },
+  { note = 43, canon = "hat.closed", primary = true },
+  { note = 44, canon = "hat.open4", primary = true },
+  { note = 45, canon = "perc.misc", primary = true },
+  { note = 48, canon = "kick.main" },
+  { note = 49, canon = "snare1.hit" },
+  { note = 50, canon = "snare2.hit" },
+  { note = 51, canon = "tom.rack1.hit" },
+  { note = 52, canon = "tom.floor1.hit" },
+  { note = 53, canon = "crash.1.hit" },
+  { note = 55, canon = "hat.closed" },
+  { note = 56, canon = "hat.open4" },
+  { note = 57, canon = "perc.misc" },
+]

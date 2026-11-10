@@ -745,6 +745,81 @@ mod tests {
     }
 
     #[test]
+    fn roland_tr_machines_read_their_alt_keys_and_write_their_main_keys() {
+        for tr in ["roland_tr8s", "roland_tr08", "roland_tr09"] {
+            assert_eq!(decoded(tr, 37), Some(k("snare1.sidestick")), "{tr}");
+            assert_eq!(decoded(tr, 41), Some(k("tom.floor1.hit")), "{tr}");
+            let map = Catalog::shared().get(tr).unwrap();
+            assert_eq!(map.encode(k("tom.floor1.hit")), Some(n(43)), "{tr}");
+            assert_eq!(map.encode(k("kick.main")), Some(n(36)), "{tr}");
+        }
+        assert_eq!(decoded("roland_tr8s", 56), Some(k("snare1.sidestick")));
+        assert_eq!(decoded("roland_tr08", 56), Some(k("perc.cowbell")));
+        assert_eq!(decoded("roland_tr08", 63), Some(k("perc.conga.high")));
+        assert_eq!(decoded("roland_tr09", 51), Some(k("ride.1")));
+    }
+
+    #[test]
+    fn volca_beats_plays_only_its_seven_notes() {
+        let keyed: Vec<u8> = (0..=127)
+            .filter(|&note| decoded("korg_volcabeats", note).is_some())
+            .collect();
+        assert_eq!(keyed, [36, 38, 39, 42, 43, 46, 50]);
+    }
+
+    #[test]
+    fn drumbrutes_play_their_chromatic_maps_and_colored_keys_are_read_only() {
+        assert_eq!(decoded("arturia_drumbrute", 37), Some(k("kick.alt")));
+        assert_eq!(decoded("arturia_drumbrute", 43), Some(k("hat.open4")));
+        assert_eq!(decoded("arturia_drumbrute", 47), Some(k("tom.floor1.hit")));
+        let impact = "arturia_drumbrute_impact";
+        assert_eq!(decoded(impact, 38), Some(k("snare2.hit")));
+        assert_eq!(decoded(impact, 51), Some(k("tom.rack1.hit")));
+        let map = Catalog::shared().get(impact).unwrap();
+        assert_eq!(map.encode(k("tom.rack1.hit")), Some(n(39)));
+    }
+
+    #[test]
+    fn sr16_and_rt223_play_their_named_pads() {
+        assert_eq!(decoded("alesis_sr16", 41), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("alesis_sr16", 65), Some(k("perc.misc")));
+        assert_eq!(decoded("zoom_rt223", 47), Some(k("tom.rack2.hit")));
+        assert_eq!(decoded("zoom_rt223", 53), Some(k("ride.1.bell")));
+        assert_eq!(decoded("zoom_rt223", 35), None);
+    }
+
+    #[test]
+    fn ezdrummer_1_keeps_its_crashes_on_general_midi_49_and_57() {
+        let ezd1 = "ezdrummer1";
+        assert_eq!(decoded(ezd1, 49), Some(k("crash.1.hit")));
+        assert_eq!(decoded(ezd1, 57), Some(k("crash.2.hit")));
+        assert_eq!(decoded(ezd1, 54), Some(k("crash.1.mute")));
+        assert_eq!(decoded(ezd1, 41), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded(ezd1, 21), Some(k("hat.pedal")));
+    }
+
+    #[test]
+    fn bfd_eco_reads_its_hat_openings_as_bfd_player_does() {
+        assert_eq!(decoded("bfd_eco", 31), Some(k("hat.open1.tip")));
+        assert_eq!(decoded("bfd_eco", 50), Some(k("hat.open3.tip")));
+        assert_eq!(decoded("bfd_eco", 33), Some(k("hat.open5.tip")));
+        assert_eq!(decoded("bfd_eco", 46), Some(k("hat.open6.tip")));
+        assert_eq!(decoded("bfd_eco", 34), Some(k("snare1.side")));
+        assert_eq!(decoded("bfd_eco", 60), None);
+    }
+
+    #[test]
+    fn benny_greb_gm_puts_the_mini_hats_on_52_and_its_open_hats_on_46_and_58() {
+        let gm = "ggd_bennygreb_gm";
+        assert_eq!(decoded(gm, 52), Some(k("aux2.closed.tip")));
+        assert_eq!(decoded(gm, 46), Some(k("hat.open2.tip")));
+        assert_eq!(decoded(gm, 58), Some(k("hat.open3.tip")));
+        assert_eq!(decoded(gm, 54), Some(k("hat.closed.tip")));
+        assert_eq!(decoded(gm, 50), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded(gm, 45), None);
+    }
+
+    #[test]
     fn mt_power_reads_only_the_keys_of_its_reaper_drum_map() {
         assert_eq!(decoded("mt_power", 33), None);
         assert_eq!(decoded("mt_power", 35), Some(k("kick.main")));

@@ -1553,7 +1553,7 @@ mod tests {
     }
 
     #[test]
-    fn toontrack_is_a_vendor_group_of_five_engines() {
+    fn toontrack_is_a_vendor_group_of_six_engines() {
         let s = site();
         let toontrack = s
             .index
@@ -1561,7 +1561,7 @@ mod tests {
             .iter()
             .find(|g| g.name == "Toontrack")
             .unwrap();
-        assert_eq!(toontrack.engines.len(), 5);
+        assert_eq!(toontrack.engines.len(), 6);
     }
 
     #[test]

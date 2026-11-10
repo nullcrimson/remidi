@@ -1,0 +1,30 @@
+id = "roland_tr8s"
+name = "Roland TR-8S"
+vendor = "Roland"
+notes = [
+  # Source: https://static.roland.com/assets/media/pdf/TR-8S_MIDIImpleChart_eng02_W.pdf
+  # TR-8S MIDI Implementation Chart (Version 1.10), note *1: each instrument's note and its ALT note, which is
+  # read only. RS (rim shot) is read as the side stick, as in General MIDI.
+  { note = 35, canon = "kick.main" },
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 37, canon = "snare1.sidestick", primary = true },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 39, canon = "perc.clap", primary = true },
+  { note = 40, canon = "snare1.hit" },
+  { note = 41, canon = "tom.floor1.hit" },
+  { note = 42, canon = "hat.closed", primary = true },
+  { note = 43, canon = "tom.floor1.hit", primary = true },
+  { note = 44, canon = "hat.closed" },
+  { note = 45, canon = "tom.rack2.hit" },
+  { note = 46, canon = "hat.open4", primary = true },
+  { note = 47, canon = "tom.rack2.hit", primary = true },
+  { note = 48, canon = "tom.rack1.hit" },
+  { note = 49, canon = "crash.1.hit", primary = true },
+  { note = 50, canon = "tom.rack1.hit", primary = true },
+  { note = 51, canon = "ride.1", primary = true },
+  { note = 54, canon = "perc.clap" },
+  { note = 56, canon = "snare1.sidestick" },
+  { note = 58, canon = "hat.open4" },
+  { note = 61, canon = "crash.1.hit" },
+  { note = 63, canon = "ride.1" },
+]
