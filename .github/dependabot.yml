@@ -7,6 +7,9 @@ updates:
     groups:
       rust:
         update-types: [minor, patch]
+    ignore:
+      # skrifa reads the fonts krilla embeds and must stay on krilla's version; bump both together.
+      - dependency-name: skrifa
 
   - package-ecosystem: npm
     directory: /app
