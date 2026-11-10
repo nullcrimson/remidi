@@ -189,6 +189,19 @@ mod tests {
     }
 
     #[test]
+    fn ggd_groove_player_plays_rack_tom_3_on_48_and_rack_tom_1_on_50() {
+        assert_eq!(decoded("ggd_grooveplayer", 48), Some(k("tom.rack3.hit")));
+        assert_eq!(decoded("ggd_grooveplayer", 50), Some(k("tom.rack1.hit")));
+    }
+
+    #[test]
+    fn ggd_groove_player_has_no_stack_and_nothing_on_75() {
+        assert_eq!(decoded("ggd_grooveplayer", 75), None);
+        let map = Catalog::shared().get("ggd_grooveplayer").unwrap();
+        assert_eq!(map.encode(k("stack.1.hit")), None);
+    }
+
+    #[test]
     fn kinglake_plays_two_rack_toms_and_two_floor_toms_on_34_to_37() {
         let toms: Vec<Option<Canon>> = (34..=37)
             .map(|note| decoded("prenc_kinglake", note))
