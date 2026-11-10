@@ -1,0 +1,16 @@
+id = "behringer_rd6"
+name = "Behringer RD-6"
+vendor = "Behringer"
+notes = [
+  # Source: https://www.adorama.com/col/productManuals/BERD6LM.pdf
+  # Behringer's RD-6 Quick Start Guide V 3.0 (hosted by Adorama), "Voice MIDI Note No.". The snare is on
+  # 40 and the cymbal on 51, as printed.
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 39, canon = "perc.clap", primary = true },
+  { note = 40, canon = "snare1.hit", primary = true },
+  { note = 42, canon = "hat.closed", primary = true },
+  { note = 45, canon = "tom.floor1.hit", primary = true },
+  { note = 46, canon = "hat.open4", primary = true },
+  { note = 50, canon = "tom.rack1.hit", primary = true },
+  { note = 51, canon = "crash.1.hit", primary = true },
+]

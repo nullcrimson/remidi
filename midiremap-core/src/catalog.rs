@@ -820,6 +820,35 @@ mod tests {
     }
 
     #[test]
+    fn d16_machines_read_their_doubled_keys_and_skip_nephetons_lg() {
+        assert_eq!(decoded("d16_drumazon", 41), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded("d16_drumazon", 51), Some(k("ride.1")));
+        assert_eq!(decoded("d16_nepheton", 43), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("d16_nepheton", 59), Some(k("crash.1.hit")));
+        assert_eq!(decoded("d16_nepheton", 60), Some(k("perc.conga.high.mute")));
+        assert_eq!(decoded("d16_nepheton", 58), None);
+        let map = Catalog::shared().get("d16_nepheton").unwrap();
+        assert_eq!(map.encode(k("tom.rack1.hit")), Some(n(50)));
+    }
+
+    #[test]
+    fn medeli_mz528_plays_four_toms_with_rims() {
+        assert_eq!(decoded("medeli_mz528", 41), Some(k("tom.floor2.hit")));
+        assert_eq!(decoded("medeli_mz528", 39), Some(k("tom.floor2.rimshot")));
+        assert_eq!(decoded("medeli_mz528", 21), Some(k("hat.pedalsplash")));
+    }
+
+    #[test]
+    fn tr8_tr6s_and_rd6_play_their_charts() {
+        assert_eq!(decoded("roland_tr8", 48), Some(k("tom.rack1.hit")));
+        assert_eq!(decoded("roland_tr6s", 54), Some(k("perc.clap")));
+        assert_eq!(decoded("roland_tr6s", 47), None);
+        assert_eq!(decoded("behringer_rd6", 40), Some(k("snare1.hit")));
+        assert_eq!(decoded("behringer_rd6", 38), None);
+        assert_eq!(decoded("behringer_rd6", 51), Some(k("crash.1.hit")));
+    }
+
+    #[test]
     fn mt_power_reads_only_the_keys_of_its_reaper_drum_map() {
         assert_eq!(decoded("mt_power", 33), None);
         assert_eq!(decoded("mt_power", 35), Some(k("kick.main")));

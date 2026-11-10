@@ -1,0 +1,20 @@
+id = "roland_tr6s"
+name = "Roland TR-6S"
+vendor = "Roland"
+notes = [
+  # Source: https://www.bax-shop.fr/downloads/products/9000-0070-0561/roland_tr-6s_midi_implementation_chart.pdf
+  # Roland's TR-6S MIDI Implementation Chart (Version 1.00, Apr. 22 2020; hosted by Bax-shop), note *1: six
+  # instruments, each on a note and an ALT note (read only).
+  { note = 35, canon = "kick.main" },
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 39, canon = "perc.clap", primary = true },
+  { note = 40, canon = "snare1.hit" },
+  { note = 41, canon = "tom.floor1.hit" },
+  { note = 42, canon = "hat.closed", primary = true },
+  { note = 43, canon = "tom.floor1.hit", primary = true },
+  { note = 44, canon = "hat.closed" },
+  { note = 46, canon = "hat.open4", primary = true },
+  { note = 54, canon = "perc.clap" },
+  { note = 58, canon = "hat.open4" },
+]

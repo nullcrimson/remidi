@@ -1,0 +1,28 @@
+id = "medeli_mz528"
+name = "Medeli MUZA MZ528"
+short_name = "Medeli MZ528"
+vendor = "Medeli"
+notes = [
+  # Source: https://www.medeli.com.cn/uploads/Muza_MZ528_OM07CN_210226.pdf
+  # MUZA MZ528 owner's manual (Chinese, OM07CN), Utility default MIDI notes, p. 21 (pad names printed in
+  # English). Tom 4 is read as the second floor tom; one-zone crashes.
+  { note = 21, canon = "hat.pedalsplash", primary = true },
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 39, canon = "tom.floor2.rimshot", primary = true },
+  { note = 40, canon = "snare1.rimshot", primary = true },
+  { note = 41, canon = "tom.floor2.hit", primary = true },
+  { note = 42, canon = "hat.closed", primary = true },
+  { note = 43, canon = "tom.floor1.hit", primary = true },
+  { note = 44, canon = "hat.pedal", primary = true },
+  { note = 45, canon = "tom.rack2.hit", primary = true },
+  { note = 46, canon = "hat.open4", primary = true },
+  { note = 47, canon = "tom.rack2.rimshot", primary = true },
+  { note = 48, canon = "tom.rack1.hit", primary = true },
+  { note = 49, canon = "crash.1.hit", primary = true },
+  { note = 50, canon = "tom.rack1.rimshot", primary = true },
+  { note = 51, canon = "ride.1", primary = true },
+  { note = 57, canon = "crash.2.hit", primary = true },
+  { note = 58, canon = "tom.floor1.rimshot", primary = true },
+  { note = 59, canon = "ride.1.edge", primary = true },
+]

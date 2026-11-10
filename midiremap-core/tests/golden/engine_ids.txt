@@ -7,11 +7,14 @@ alesis_sr16
 arturia_drumbrute
 arturia_drumbrute_impact
 beatbuddy
+behringer_rd6
 bfd3
 bfd_eco
 bfd_player
 bogren_krimh
 bogren_trivium
+d16_drumazon
+d16_nepheton
 drumforge_bergstrand
 drumforge_greiner
 drumforge_ultimate
@@ -90,6 +93,7 @@ klangmacht
 korg_volcabeats
 logic_pro_drummer
 mdltone_ultimateheavy
+medeli_mz528
 midiremap_standard
 millenium_mps1000
 millenium_mps150
@@ -129,6 +133,8 @@ roland_td27
 roland_td30
 roland_tr08
 roland_tr09
+roland_tr6s
+roland_tr8
 roland_tr8s
 roomsound_ballou
 roomsound_ballou_vol1

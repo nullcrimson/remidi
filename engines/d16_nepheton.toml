@@ -1,0 +1,37 @@
+id = "d16_nepheton"
+name = "D16 Nepheton"
+vendor = "D16 Group"
+notes = [
+  # Source: https://helpdesk.d16.pl/knowledge_base/article/41
+  # D16 helpdesk "Nepheton 1: External Mode - Drum Map" (updated 2024-06-07), the plug-in's default External
+  # mode map. Instruments on several keys are read from all of them; the tom, conga, maracas and claves
+  # keys follow the TR-08 map. RS is read as the side stick. 58, printed "LG", is not keyed: the help page
+  # does not say what LG is.
+  { note = 35, canon = "kick.main" },
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 37, canon = "snare1.sidestick", primary = true },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 39, canon = "perc.clap", primary = true },
+  { note = 40, canon = "snare1.hit" },
+  { note = 41, canon = "tom.floor1.hit", primary = true },
+  { note = 42, canon = "hat.closed", primary = true },
+  { note = 43, canon = "tom.rack1.hit" },
+  { note = 44, canon = "hat.closed" },
+  { note = 45, canon = "tom.floor1.hit" },
+  { note = 46, canon = "hat.open4", primary = true },
+  { note = 47, canon = "tom.rack2.hit", primary = true },
+  { note = 48, canon = "tom.rack2.hit" },
+  { note = 49, canon = "crash.1.hit", primary = true },
+  { note = 50, canon = "tom.rack1.hit", primary = true },
+  { note = 51, canon = "crash.1.hit" },
+  { note = 52, canon = "crash.1.hit" },
+  { note = 56, canon = "perc.cowbell", primary = true },
+  { note = 59, canon = "crash.1.hit" },
+  { note = 60, canon = "perc.conga.high.mute" },
+  { note = 61, canon = "perc.conga.low" },
+  { note = 62, canon = "perc.conga.high.mute", primary = true },
+  { note = 63, canon = "perc.conga.high", primary = true },
+  { note = 64, canon = "perc.conga.low", primary = true },
+  { note = 70, canon = "perc.shaker", primary = true },
+  { note = 75, canon = "perc.claves", primary = true },
+]

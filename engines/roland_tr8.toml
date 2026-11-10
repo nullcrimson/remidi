@@ -1,0 +1,26 @@
+id = "roland_tr8"
+name = "Roland TR-8"
+vendor = "Roland"
+notes = [
+  # Source: https://www.polynominal.com/roland-aira-tr8/midi-tr8.pdf
+  # Roland's TR-8 MIDI Implementation Chart (author Roland Corporation, 2014; hosted by Polynominal), note *1.
+  # Each instrument answers to both its keys and is written to the key the TR-09 uses. RS is read as the
+  # side stick.
+  { note = 35, canon = "kick.main" },
+  { note = 36, canon = "kick.main", primary = true },
+  { note = 37, canon = "snare1.sidestick", primary = true },
+  { note = 38, canon = "snare1.hit", primary = true },
+  { note = 39, canon = "perc.clap", primary = true },
+  { note = 40, canon = "snare1.hit" },
+  { note = 41, canon = "tom.floor1.hit" },
+  { note = 42, canon = "hat.closed", primary = true },
+  { note = 43, canon = "tom.floor1.hit", primary = true },
+  { note = 44, canon = "hat.closed" },
+  { note = 45, canon = "tom.rack2.hit" },
+  { note = 46, canon = "hat.open4", primary = true },
+  { note = 47, canon = "tom.rack2.hit", primary = true },
+  { note = 48, canon = "tom.rack1.hit" },
+  { note = 49, canon = "crash.1.hit", primary = true },
+  { note = 50, canon = "tom.rack1.hit", primary = true },
+  { note = 51, canon = "ride.1", primary = true },
+]
