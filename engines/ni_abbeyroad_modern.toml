@@ -1,7 +1,9 @@
 id = "ni_abbeyroad_modern"
-name = "Native Instruments Abbey Road (Modern Drummer)"
+name = "Native Instruments Abbey Road Modern Drummer (White Kit)"
 vendor = "Native Instruments"
 notes = [
+  # Source: the library's own "Abbey Road Modern Drummer Manual English.pdf" (MKII), 6.2 White Kit, pp. 51-54.
+  # Cowbell on 27-30, chopper on 17/19/21 and spiral on 31/32 (other percussion); two rack toms and two floor toms.
   { note = 17, canon = "perc.misc" },
   { note = 19, canon = "perc.misc" },
   { note = 21, canon = "perc.misc", primary = true },
@@ -23,7 +25,7 @@ notes = [
   { note = 37, canon = "snare1.sidestick", primary = true },
   { note = 38, canon = "snare1.hit", primary = true },
   { note = 39, canon = "snare1.rimshot", primary = true },
-  { note = 40, canon = "snare1.hit" },
+  { note = 40, canon = "snare1.side", primary = true },
   { note = 41, canon = "tom.floor2.hit", primary = true },
   { note = 42, canon = "hat.closed.tip", primary = true },
   { note = 43, canon = "tom.floor1.hit", primary = true },
@@ -67,9 +69,9 @@ notes = [
   { note = 81, canon = "snare1.hit" },
   { note = 82, canon = "kick.main" },
   { note = 83, canon = "snare1.hit" },
-  { note = 84, canon = "snare1.hit" },
+  { note = 84, canon = "snare1.side" },
   { note = 85, canon = "hat.tight.tip" },
-  { note = 86, canon = "snare1.hit" },
+  { note = 86, canon = "snare1.side" },
   { note = 87, canon = "hat.tight.tip" },
   { note = 88, canon = "tom.floor2.hit" },
   { note = 89, canon = "tom.floor2.hit" },

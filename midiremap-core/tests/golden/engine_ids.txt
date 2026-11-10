@@ -117,6 +117,7 @@ musescore4
 ni_abbeyroad_60s_early
 ni_abbeyroad_60s_late
 ni_abbeyroad_modern
+ni_abbeyroad_modern_sparkle
 ni_butchvig
 ni_drumlab
 ni_studiodrummer

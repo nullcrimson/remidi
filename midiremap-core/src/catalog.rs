@@ -1250,6 +1250,36 @@ mod tests {
     }
 
     #[test]
+    fn abbey_road_modern_kits_share_their_drums_but_not_their_percussion_or_third_tom() {
+        let white = "ni_abbeyroad_modern";
+        let sparkle = "ni_abbeyroad_modern_sparkle";
+        for note in [36, 38, 42, 46, 47, 49, 51, 59, 80] {
+            assert_eq!(decoded(white, note), decoded(sparkle, note), "note {note}");
+        }
+        assert_eq!(decoded(white, 43), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded(sparkle, 43), Some(k("tom.rack3.hit")));
+        assert_eq!(decoded(sparkle, 41), Some(k("tom.floor1.hit")));
+        assert_eq!(decoded(white, 29), Some(k("perc.cowbell")));
+        assert_eq!(decoded(sparkle, 29), Some(k("perc.misc")));
+        assert_eq!(decoded(sparkle, 19), Some(k("perc.cowbell")));
+        assert_eq!(decoded(sparkle, 31), Some(k("perc.tambourine")));
+        assert_eq!(decoded(white, 16), None);
+        assert_eq!(decoded(white, 103), None);
+        assert_eq!(decoded(sparkle, 103), Some(k("perc.misc")));
+    }
+
+    #[test]
+    fn abbey_road_modern_reads_its_halfway_snare_as_the_side_like_the_60s_kits() {
+        for note in [40, 84, 86] {
+            assert_eq!(
+                decoded("ni_abbeyroad_modern", note),
+                Some(k("snare1.side")),
+                "note {note}"
+            );
+        }
+    }
+
+    #[test]
     fn general_midi_plays_a_hand_clap_on_39() {
         assert_eq!(decoded("general_midi", 39), Some(k("perc.clap")));
     }
