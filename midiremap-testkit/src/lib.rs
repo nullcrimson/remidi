@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use midly::{
     num::{u15, u28, u4, u7},
-    Format, Header, MidiMessage, Smf, Timing, Track, TrackEvent, TrackEventKind,
+    Format, Header, MetaMessage, MidiMessage, Smf, Timing, Track, TrackEvent, TrackEventKind,
 };
 
 /// Ticks per quarter note in every file built here.
@@ -84,13 +84,28 @@ pub fn track(events: &[Ev]) -> Track<'static> {
         .collect()
 }
 
-/// A file of `tracks`: single-track for one, parallel for more.
+/// `track` closed with End-of-Track, as every track of a whole file is.
+fn ended(mut track: Track<'static>) -> Track<'static> {
+    let closed = track
+        .last()
+        .is_some_and(|ev| ev.kind == TrackEventKind::Meta(MetaMessage::EndOfTrack));
+    if !closed {
+        track.push(TrackEvent {
+            delta: u28::default(),
+            kind: TrackEventKind::Meta(MetaMessage::EndOfTrack),
+        });
+    }
+    track
+}
+
+/// A file of `tracks`, each closed with End-of-Track: single-track for one, parallel for more.
 pub fn smf(tracks: Vec<Track<'static>>) -> Vec<u8> {
     let format = if tracks.len() == 1 {
         Format::SingleTrack
     } else {
         Format::Parallel
     };
+    let tracks = tracks.into_iter().map(ended).collect();
     let smf = Smf {
         header: Header {
             format,
