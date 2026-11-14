@@ -4,7 +4,7 @@ use std::fmt;
 
 use super::{
     Canon, CongaPitch, CymArtic, CymSlot, HandDrum, HandStroke, HatOpen, HatZone, KickKind,
-    OpenLevel, RideArtic, Slot, SnareArtic, TomArtic,
+    OpenLevel, PercKind, RideArtic, Slot, SnareArtic, TomArtic,
 };
 
 /// A kind of drum a stand-in may be, with cymbals told apart by type.
@@ -395,6 +395,67 @@ fn anchor(c: Canon) -> Anchor {
             None => Anchor::MayDrop(DropReason::OpenHandDrum),
         },
     }
+}
+
+/// What a stroke does, whichever drum plays it: two drums with the same stroke can stand in
+/// for each other where their kinds allow it.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+enum Stroke {
+    Kick,
+    Snare(SnareArtic),
+    Tom(TomArtic),
+    Hat(HatOpen, HatZone),
+    Cymbal(CymArtic),
+    Bell,
+    BellTip,
+    Ride(RideArtic),
+    Perc(PercKind),
+    Hand(HandDrum),
+}
+
+fn stroke(c: Canon) -> Stroke {
+    match c.0 {
+        Slot::Kick(_) => Stroke::Kick,
+        Slot::Snare(_, a) => Stroke::Snare(a),
+        Slot::Tom(_, a) => Stroke::Tom(a),
+        Slot::Hat(o, z) | Slot::Aux(_, o, z) => Stroke::Hat(o, z),
+        Slot::Cymbal(CymSlot::Bell(_), CymArtic::Hit) => Stroke::Bell,
+        Slot::Cymbal(_, CymArtic::Bell) | Slot::Ride(_, RideArtic::Bell) => Stroke::Bell,
+        Slot::Cymbal(_, CymArtic::BellTip) | Slot::Ride(_, RideArtic::BellTip) => Stroke::BellTip,
+        Slot::Ride(_, RideArtic::Edge) => Stroke::Cymbal(CymArtic::Hit),
+        Slot::Cymbal(
+            _,
+            a
+            @ (CymArtic::Hit | CymArtic::Edge | CymArtic::Bow | CymArtic::BowTip | CymArtic::Mute),
+        ) => Stroke::Cymbal(a),
+        Slot::Ride(_, a @ (RideArtic::Bow | RideArtic::BowTip | RideArtic::Mute)) => {
+            Stroke::Ride(a)
+        }
+        Slot::Perc(p) => Stroke::Perc(p),
+        Slot::Hand(d) => Stroke::Hand(d),
+    }
+}
+
+/// Whether `d` plays the same stroke as `c` on a drum `c`'s rules let it stand in on, and
+/// how preferred that kind is (0 is `c`'s own kind).
+pub(crate) fn stand_in_rank(c: Canon, d: Canon) -> Option<usize> {
+    kind_rank(c, d).filter(|_| stroke(c) == stroke(d))
+}
+
+/// How preferred the kind of `landed` is as a stand-in for `c` (0 is `c`'s own kind), whatever
+/// its stroke.
+pub(crate) fn kind_rank(c: Canon, landed: Canon) -> Option<usize> {
+    let own = DrumKind::from(c);
+    let kind = DrumKind::from(landed);
+    if kind == own {
+        return Some(0);
+    }
+    rules(c)
+        .lands_on
+        .iter()
+        .filter(|&&k| k != own)
+        .position(|&k| k == kind)
+        .map(|p| p + 1)
 }
 
 fn keys(cs: &[Canon]) -> String {

@@ -1,11 +1,24 @@
+mod audit;
 mod pairs;
 
 use expect_test::expect_file;
 
-use crate::canon::{
-    rules::{rules, snapshot, Anchor, DrumKind},
-    Canon,
+use crate::{
+    canon::{
+        rules::{rules, snapshot, Anchor, DrumKind},
+        Canon,
+    },
+    engine_map::EngineMap,
+    resolution::MissingDrums,
+    translate::Mapping,
 };
+
+/// Whether `c` is an open main hi-hat the mapping re-targets to another opening by level (N50),
+/// which `main_open_hat.rs` judges, rather than walking its chain.
+fn matched_opening(near: &Mapping, tgt: &EngineMap, c: Canon) -> bool {
+    c.is_open_main_hat()
+        && near.resolve_canon(c).note() != tgt.resolve(c, MissingDrums::Nearest).note()
+}
 
 #[test]
 fn the_rule_table_matches_its_reviewed_snapshot() {

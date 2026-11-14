@@ -137,22 +137,32 @@ fn converted(mapping: &Mapping) -> BTreeMap<u8, u8> {
     )
 }
 
+const PARTNERS: [&str; 2] = ["general_midi", "ggd_invasion"];
+
+fn every_engine_with_each_partner() -> BTreeSet<(&'static str, &'static str)> {
+    let wide = CATALOG
+        .ids()
+        .flat_map(|id| PARTNERS.into_iter().flat_map(move |p| [(id, p), (p, id)]));
+    let core = ENGINES
+        .into_iter()
+        .flat_map(|src| ENGINES.into_iter().map(move |tgt| (src, tgt)));
+    wide.chain(core).collect()
+}
+
 #[test]
 fn a_remap_rack_plays_every_note_where_the_converter_puts_it() {
+    let pairs = every_engine_with_each_partner();
     for ov_json in [NO_EDITS, OVERRIDES] {
         let ov: Overrides = serde_json::from_str(ov_json).unwrap();
         for missing in [MissingDrums::Nearest, MissingDrums::Drop] {
             for unrecognized in [Unrecognized::Remove, Unrecognized::Keep] {
-                ENGINES.par_iter().for_each(|&src| {
-                    for tgt in ENGINES {
-                        let mapping =
-                            mapping(src, tgt, &ov, missing).with_unrecognized(unrecognized);
-                        assert_eq!(
-                            through_rack(&rack_xml(&mapping)),
-                            converted(&mapping),
-                            "{src} -> {tgt} ({missing}, {unrecognized}, overrides {ov_json})"
-                        );
-                    }
+                pairs.par_iter().for_each(|&(src, tgt)| {
+                    let mapping = mapping(src, tgt, &ov, missing).with_unrecognized(unrecognized);
+                    assert_eq!(
+                        through_rack(&rack_xml(&mapping)),
+                        converted(&mapping),
+                        "{src} -> {tgt} ({missing}, {unrecognized}, overrides {ov_json})"
+                    );
                 });
             }
         }

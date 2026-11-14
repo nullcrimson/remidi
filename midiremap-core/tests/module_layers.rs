@@ -54,6 +54,7 @@ const ALLOWED_USES: &Table = &[
             "catalog",
             "engine_map",
             "note",
+            "overrides",
             "resolution",
             "translate",
         ],

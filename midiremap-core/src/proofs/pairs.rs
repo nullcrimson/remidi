@@ -1,5 +1,6 @@
 use rayon::prelude::*;
 
+use super::matched_opening;
 use crate::{
     canon::{
         rules::{rules, DrumKind},
@@ -35,15 +36,11 @@ impl<'a> Pair<'a> {
     fn new(src: &'a EngineMap, tgt: &'a EngineMap) -> Self {
         let near = Mapping::new(src, tgt, &Default::default(), MissingDrums::Nearest);
         let drop = Mapping::new(src, tgt, &Default::default(), MissingDrums::Drop);
-        let matched_opening = |c: Canon| {
-            c.is_open_main_hat()
-                && near.resolve_canon(c).note() != tgt.resolve(c, MissingDrums::Nearest).note()
-        };
         let missing = Canon::all()
             .iter()
             .copied()
             .filter(|&c| src.encode(c).is_some() && tgt.encode(c).is_none())
-            .filter(|&c| !matched_opening(c))
+            .filter(|&c| !matched_opening(&near, tgt, c))
             .collect();
         let label = format!("{} -> {}", src.id(), tgt.id());
         Self {
