@@ -201,141 +201,141 @@ aux2.open6.edge | stroke: Hat(Open(Idx(6)), Edge) | own: aux2.open6 aux2.open6.t
 aux2.open6.bell | stroke: Hat(Open(Idx(6)), Bell) | own: aux2.open6.edge aux2.open6.tip aux2.open6 aux2.open5.bell aux2.open5.edge aux2.open5.tip aux2.open5 aux2.open4.bell aux2.open4.edge aux2.open4.tip aux2.open4 aux2.open3.bell aux2.open3.edge aux2.open3.tip aux2.open3 aux2.open2.bell aux2.open2.edge aux2.open2.tip aux2.open2 aux2.open1.bell aux2.open1.edge aux2.open1.tip aux2.open1 aux2.loose.bell aux2.loose.edge aux2.loose.tip aux2.loose | lands on: Hat | plays when the kit has any of: aux2.open6.bell hat.open6.bell aux2.open6.edge hat.open6.edge aux2.open6.tip hat.open6.tip aux2.open6 hat.open6 aux2.open5.bell hat.open5.bell aux2.open5.edge hat.open5.edge aux2.open5.tip hat.open5.tip aux2.open5 hat.open5 aux2.open4.bell hat.open4.bell aux2.open4.edge hat.open4.edge aux2.open4.tip hat.open4.tip aux2.open4 hat.open4 aux2.open3.bell hat.open3.bell aux2.open3.edge hat.open3.edge aux2.open3.tip hat.open3.tip aux2.open3 hat.open3 aux2.open2.bell hat.open2.bell aux2.open2.edge hat.open2.edge aux2.open2.tip hat.open2.tip aux2.open2 hat.open2 aux2.open1.bell hat.open1.bell aux2.open1.edge hat.open1.edge aux2.open1.tip hat.open1.tip aux2.open1 hat.open1 aux2.loose.bell hat.loose.bell aux2.loose.edge hat.loose.edge aux2.loose.tip hat.loose.tip aux2.loose hat.loose
 crash.1.hit | stroke: Cymbal(Hit) | own: crash.1.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.1.mute | stroke: Cymbal(Mute) | own: crash.1.hit crash.1.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-crash.1.bell | stroke: Bell | own: crash.1.belltip | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-crash.1.belltip | stroke: BellTip | own: crash.1.bell | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
+crash.1.bell | stroke: Bell | own: crash.1.belltip | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+crash.1.belltip | stroke: BellTip | own: crash.1.bell | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
 crash.1.bow | stroke: Cymbal(Bow) | own: crash.1.bowtip crash.1.hit crash.1.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.1.bowtip | stroke: Cymbal(BowTip) | own: crash.1.bow crash.1.hit crash.1.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.1.edge | stroke: Cymbal(Edge) | own: crash.1.hit | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.2.hit | stroke: Cymbal(Hit) | own: crash.2.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.2.mute | stroke: Cymbal(Mute) | own: crash.2.hit crash.2.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-crash.2.bell | stroke: Bell | own: crash.2.belltip | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-crash.2.belltip | stroke: BellTip | own: crash.2.bell | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
+crash.2.bell | stroke: Bell | own: crash.2.belltip | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+crash.2.belltip | stroke: BellTip | own: crash.2.bell | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
 crash.2.bow | stroke: Cymbal(Bow) | own: crash.2.bowtip crash.2.hit crash.2.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.2.bowtip | stroke: Cymbal(BowTip) | own: crash.2.bow crash.2.hit crash.2.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.2.edge | stroke: Cymbal(Edge) | own: crash.2.hit | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.3.hit | stroke: Cymbal(Hit) | own: crash.3.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.3.mute | stroke: Cymbal(Mute) | own: crash.3.hit crash.3.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-crash.3.bell | stroke: Bell | own: crash.3.belltip | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-crash.3.belltip | stroke: BellTip | own: crash.3.bell | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
+crash.3.bell | stroke: Bell | own: crash.3.belltip | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+crash.3.belltip | stroke: BellTip | own: crash.3.bell | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
 crash.3.bow | stroke: Cymbal(Bow) | own: crash.3.bowtip crash.3.hit crash.3.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.3.bowtip | stroke: Cymbal(BowTip) | own: crash.3.bow crash.3.hit crash.3.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.3.edge | stroke: Cymbal(Edge) | own: crash.3.hit | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.4.hit | stroke: Cymbal(Hit) | own: crash.4.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.4.mute | stroke: Cymbal(Mute) | own: crash.4.hit crash.4.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-crash.4.bell | stroke: Bell | own: crash.4.belltip | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-crash.4.belltip | stroke: BellTip | own: crash.4.bell | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
+crash.4.bell | stroke: Bell | own: crash.4.belltip | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+crash.4.belltip | stroke: BellTip | own: crash.4.bell | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
 crash.4.bow | stroke: Cymbal(Bow) | own: crash.4.bowtip crash.4.hit crash.4.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.4.bowtip | stroke: Cymbal(BowTip) | own: crash.4.bow crash.4.hit crash.4.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.4.edge | stroke: Cymbal(Edge) | own: crash.4.hit | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.5.hit | stroke: Cymbal(Hit) | own: crash.5.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.5.mute | stroke: Cymbal(Mute) | own: crash.5.hit crash.5.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-crash.5.bell | stroke: Bell | own: crash.5.belltip | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-crash.5.belltip | stroke: BellTip | own: crash.5.bell | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
+crash.5.bell | stroke: Bell | own: crash.5.belltip | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+crash.5.belltip | stroke: BellTip | own: crash.5.bell | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
 crash.5.bow | stroke: Cymbal(Bow) | own: crash.5.bowtip crash.5.hit crash.5.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.5.bowtip | stroke: Cymbal(BowTip) | own: crash.5.bow crash.5.hit crash.5.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.5.edge | stroke: Cymbal(Edge) | own: crash.5.hit | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.6.hit | stroke: Cymbal(Hit) | own: crash.6.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.6.mute | stroke: Cymbal(Mute) | own: crash.6.hit crash.6.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-crash.6.bell | stroke: Bell | own: crash.6.belltip | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-crash.6.belltip | stroke: BellTip | own: crash.6.bell | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
+crash.6.bell | stroke: Bell | own: crash.6.belltip | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+crash.6.belltip | stroke: BellTip | own: crash.6.bell | lands on: Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
 crash.6.bow | stroke: Cymbal(Bow) | own: crash.6.bowtip crash.6.hit crash.6.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.6.bowtip | stroke: Cymbal(BowTip) | own: crash.6.bow crash.6.hit crash.6.edge | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 crash.6.edge | stroke: Cymbal(Edge) | own: crash.6.hit | lands on: Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-china.1.hit | stroke: Cymbal(Hit) | own: china.1.edge | lands on: China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-china.1.mute | stroke: Cymbal(Mute) | own: china.1.hit china.1.edge | lands on: China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-china.1.bell | stroke: Bell | own: china.1.belltip | lands on: China Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-china.1.belltip | stroke: BellTip | own: china.1.bell | lands on: China Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-china.1.bow | stroke: Cymbal(Bow) | own: china.1.bowtip china.1.hit china.1.edge | lands on: China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-china.1.bowtip | stroke: Cymbal(BowTip) | own: china.1.bow china.1.hit china.1.edge | lands on: China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-china.1.edge | stroke: Cymbal(Edge) | own: china.1.hit | lands on: China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-china.2.hit | stroke: Cymbal(Hit) | own: china.2.edge | lands on: China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-china.2.mute | stroke: Cymbal(Mute) | own: china.2.hit china.2.edge | lands on: China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-china.2.bell | stroke: Bell | own: china.2.belltip | lands on: China Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-china.2.belltip | stroke: BellTip | own: china.2.bell | lands on: China Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-china.2.bow | stroke: Cymbal(Bow) | own: china.2.bowtip china.2.hit china.2.edge | lands on: China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-china.2.bowtip | stroke: Cymbal(BowTip) | own: china.2.bow china.2.hit china.2.edge | lands on: China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-china.2.edge | stroke: Cymbal(Edge) | own: china.2.hit | lands on: China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-china.3.hit | stroke: Cymbal(Hit) | own: china.3.edge | lands on: China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-china.3.mute | stroke: Cymbal(Mute) | own: china.3.hit china.3.edge | lands on: China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-china.3.bell | stroke: Bell | own: china.3.belltip | lands on: China Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-china.3.belltip | stroke: BellTip | own: china.3.bell | lands on: China Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-china.3.bow | stroke: Cymbal(Bow) | own: china.3.bowtip china.3.hit china.3.edge | lands on: China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-china.3.bowtip | stroke: Cymbal(BowTip) | own: china.3.bow china.3.hit china.3.edge | lands on: China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-china.3.edge | stroke: Cymbal(Edge) | own: china.3.hit | lands on: China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+china.1.hit | stroke: Cymbal(Hit) | own: china.1.edge | lands on: China Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+china.1.mute | stroke: Cymbal(Mute) | own: china.1.hit china.1.edge | lands on: China Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+china.1.bell | stroke: Bell | own: china.1.belltip | lands on: China Stack Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+china.1.belltip | stroke: BellTip | own: china.1.bell | lands on: China Stack Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+china.1.bow | stroke: Cymbal(Bow) | own: china.1.bowtip china.1.hit china.1.edge | lands on: China Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+china.1.bowtip | stroke: Cymbal(BowTip) | own: china.1.bow china.1.hit china.1.edge | lands on: China Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+china.1.edge | stroke: Cymbal(Edge) | own: china.1.hit | lands on: China Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+china.2.hit | stroke: Cymbal(Hit) | own: china.2.edge | lands on: China Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+china.2.mute | stroke: Cymbal(Mute) | own: china.2.hit china.2.edge | lands on: China Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+china.2.bell | stroke: Bell | own: china.2.belltip | lands on: China Stack Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+china.2.belltip | stroke: BellTip | own: china.2.bell | lands on: China Stack Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+china.2.bow | stroke: Cymbal(Bow) | own: china.2.bowtip china.2.hit china.2.edge | lands on: China Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+china.2.bowtip | stroke: Cymbal(BowTip) | own: china.2.bow china.2.hit china.2.edge | lands on: China Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+china.2.edge | stroke: Cymbal(Edge) | own: china.2.hit | lands on: China Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+china.3.hit | stroke: Cymbal(Hit) | own: china.3.edge | lands on: China Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+china.3.mute | stroke: Cymbal(Mute) | own: china.3.hit china.3.edge | lands on: China Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+china.3.bell | stroke: Bell | own: china.3.belltip | lands on: China Stack Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+china.3.belltip | stroke: BellTip | own: china.3.bell | lands on: China Stack Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+china.3.bow | stroke: Cymbal(Bow) | own: china.3.bowtip china.3.hit china.3.edge | lands on: China Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+china.3.bowtip | stroke: Cymbal(BowTip) | own: china.3.bow china.3.hit china.3.edge | lands on: China Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+china.3.edge | stroke: Cymbal(Edge) | own: china.3.hit | lands on: China Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 splash.1.hit | stroke: Cymbal(Hit) | own: splash.1.edge | lands on: Splash Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 splash.1.mute | stroke: Cymbal(Mute) | own: splash.1.hit splash.1.edge | lands on: Splash Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-splash.1.bell | stroke: Bell | own: splash.1.belltip | lands on: Splash Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-splash.1.belltip | stroke: BellTip | own: splash.1.bell | lands on: Splash Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
+splash.1.bell | stroke: Bell | own: splash.1.belltip | lands on: Splash Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+splash.1.belltip | stroke: BellTip | own: splash.1.bell | lands on: Splash Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
 splash.1.bow | stroke: Cymbal(Bow) | own: splash.1.bowtip splash.1.hit splash.1.edge | lands on: Splash Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 splash.1.bowtip | stroke: Cymbal(BowTip) | own: splash.1.bow splash.1.hit splash.1.edge | lands on: Splash Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 splash.1.edge | stroke: Cymbal(Edge) | own: splash.1.hit | lands on: Splash Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 splash.2.hit | stroke: Cymbal(Hit) | own: splash.2.edge | lands on: Splash Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 splash.2.mute | stroke: Cymbal(Mute) | own: splash.2.hit splash.2.edge | lands on: Splash Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-splash.2.bell | stroke: Bell | own: splash.2.belltip | lands on: Splash Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-splash.2.belltip | stroke: BellTip | own: splash.2.bell | lands on: Splash Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
+splash.2.bell | stroke: Bell | own: splash.2.belltip | lands on: Splash Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+splash.2.belltip | stroke: BellTip | own: splash.2.bell | lands on: Splash Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
 splash.2.bow | stroke: Cymbal(Bow) | own: splash.2.bowtip splash.2.hit splash.2.edge | lands on: Splash Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 splash.2.bowtip | stroke: Cymbal(BowTip) | own: splash.2.bow splash.2.hit splash.2.edge | lands on: Splash Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 splash.2.edge | stroke: Cymbal(Edge) | own: splash.2.hit | lands on: Splash Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 splash.3.hit | stroke: Cymbal(Hit) | own: splash.3.edge | lands on: Splash Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 splash.3.mute | stroke: Cymbal(Mute) | own: splash.3.hit splash.3.edge | lands on: Splash Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-splash.3.bell | stroke: Bell | own: splash.3.belltip | lands on: Splash Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-splash.3.belltip | stroke: BellTip | own: splash.3.bell | lands on: Splash Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
+splash.3.bell | stroke: Bell | own: splash.3.belltip | lands on: Splash Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+splash.3.belltip | stroke: BellTip | own: splash.3.bell | lands on: Splash Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
 splash.3.bow | stroke: Cymbal(Bow) | own: splash.3.bowtip splash.3.hit splash.3.edge | lands on: Splash Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 splash.3.bowtip | stroke: Cymbal(BowTip) | own: splash.3.bow splash.3.hit splash.3.edge | lands on: Splash Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 splash.3.edge | stroke: Cymbal(Edge) | own: splash.3.hit | lands on: Splash Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.1.hit | stroke: Cymbal(Hit) | own: stack.1.edge | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.1.mute | stroke: Cymbal(Mute) | own: stack.1.hit stack.1.edge | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.1.bell | stroke: Bell | own: stack.1.belltip | lands on: Stack Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-stack.1.belltip | stroke: BellTip | own: stack.1.bell | lands on: Stack Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-stack.1.bow | stroke: Cymbal(Bow) | own: stack.1.bowtip stack.1.hit stack.1.edge | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.1.bowtip | stroke: Cymbal(BowTip) | own: stack.1.bow stack.1.hit stack.1.edge | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.1.edge | stroke: Cymbal(Edge) | own: stack.1.hit | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.2.hit | stroke: Cymbal(Hit) | own: stack.2.edge | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.2.mute | stroke: Cymbal(Mute) | own: stack.2.hit stack.2.edge | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.2.bell | stroke: Bell | own: stack.2.belltip | lands on: Stack Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-stack.2.belltip | stroke: BellTip | own: stack.2.bell | lands on: Stack Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-stack.2.bow | stroke: Cymbal(Bow) | own: stack.2.bowtip stack.2.hit stack.2.edge | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.2.bowtip | stroke: Cymbal(BowTip) | own: stack.2.bow stack.2.hit stack.2.edge | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.2.edge | stroke: Cymbal(Edge) | own: stack.2.hit | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.3.hit | stroke: Cymbal(Hit) | own: stack.3.edge | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.3.mute | stroke: Cymbal(Mute) | own: stack.3.hit stack.3.edge | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.3.bell | stroke: Bell | own: stack.3.belltip | lands on: Stack Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-stack.3.belltip | stroke: BellTip | own: stack.3.bell | lands on: Stack Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-stack.3.bow | stroke: Cymbal(Bow) | own: stack.3.bowtip stack.3.hit stack.3.edge | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.3.bowtip | stroke: Cymbal(BowTip) | own: stack.3.bow stack.3.hit stack.3.edge | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.3.edge | stroke: Cymbal(Edge) | own: stack.3.hit | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.4.hit | stroke: Cymbal(Hit) | own: stack.4.edge | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.4.mute | stroke: Cymbal(Mute) | own: stack.4.hit stack.4.edge | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.4.bell | stroke: Bell | own: stack.4.belltip | lands on: Stack Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-stack.4.belltip | stroke: BellTip | own: stack.4.bell | lands on: Stack Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-stack.4.bow | stroke: Cymbal(Bow) | own: stack.4.bowtip stack.4.hit stack.4.edge | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.4.bowtip | stroke: Cymbal(BowTip) | own: stack.4.bow stack.4.hit stack.4.edge | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-stack.4.edge | stroke: Cymbal(Edge) | own: stack.4.hit | lands on: Stack Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
-bell.1.hit | stroke: Bell | own: bell.1.edge | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-bell.1.mute | stroke: Cymbal(Mute) | own: bell.1.hit bell.1.edge | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-bell.1.bell | stroke: Bell | own: bell.1.belltip | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-bell.1.belltip | stroke: BellTip | own: bell.1.bell | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-bell.1.bow | stroke: Cymbal(Bow) | own: bell.1.bowtip bell.1.hit bell.1.edge | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-bell.1.bowtip | stroke: Cymbal(BowTip) | own: bell.1.bow bell.1.hit bell.1.edge | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-bell.1.edge | stroke: Cymbal(Edge) | own: bell.1.hit | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-bell.2.hit | stroke: Bell | own: bell.2.edge | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-bell.2.mute | stroke: Cymbal(Mute) | own: bell.2.hit bell.2.edge | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-bell.2.bell | stroke: Bell | own: bell.2.belltip | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-bell.2.belltip | stroke: BellTip | own: bell.2.bell | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-bell.2.bow | stroke: Cymbal(Bow) | own: bell.2.bowtip bell.2.hit bell.2.edge | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-bell.2.bowtip | stroke: Cymbal(BowTip) | own: bell.2.bow bell.2.hit bell.2.edge | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-bell.2.edge | stroke: Cymbal(Edge) | own: bell.2.hit | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
+stack.1.hit | stroke: Cymbal(Hit) | own: stack.1.edge | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.1.mute | stroke: Cymbal(Mute) | own: stack.1.hit stack.1.edge | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.1.bell | stroke: Bell | own: stack.1.belltip | lands on: Stack China Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+stack.1.belltip | stroke: BellTip | own: stack.1.bell | lands on: Stack China Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+stack.1.bow | stroke: Cymbal(Bow) | own: stack.1.bowtip stack.1.hit stack.1.edge | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.1.bowtip | stroke: Cymbal(BowTip) | own: stack.1.bow stack.1.hit stack.1.edge | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.1.edge | stroke: Cymbal(Edge) | own: stack.1.hit | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.2.hit | stroke: Cymbal(Hit) | own: stack.2.edge | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.2.mute | stroke: Cymbal(Mute) | own: stack.2.hit stack.2.edge | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.2.bell | stroke: Bell | own: stack.2.belltip | lands on: Stack China Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+stack.2.belltip | stroke: BellTip | own: stack.2.bell | lands on: Stack China Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+stack.2.bow | stroke: Cymbal(Bow) | own: stack.2.bowtip stack.2.hit stack.2.edge | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.2.bowtip | stroke: Cymbal(BowTip) | own: stack.2.bow stack.2.hit stack.2.edge | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.2.edge | stroke: Cymbal(Edge) | own: stack.2.hit | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.3.hit | stroke: Cymbal(Hit) | own: stack.3.edge | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.3.mute | stroke: Cymbal(Mute) | own: stack.3.hit stack.3.edge | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.3.bell | stroke: Bell | own: stack.3.belltip | lands on: Stack China Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+stack.3.belltip | stroke: BellTip | own: stack.3.bell | lands on: Stack China Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+stack.3.bow | stroke: Cymbal(Bow) | own: stack.3.bowtip stack.3.hit stack.3.edge | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.3.bowtip | stroke: Cymbal(BowTip) | own: stack.3.bow stack.3.hit stack.3.edge | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.3.edge | stroke: Cymbal(Edge) | own: stack.3.hit | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.4.hit | stroke: Cymbal(Hit) | own: stack.4.edge | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.4.mute | stroke: Cymbal(Mute) | own: stack.4.hit stack.4.edge | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.4.bell | stroke: Bell | own: stack.4.belltip | lands on: Stack China Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+stack.4.belltip | stroke: BellTip | own: stack.4.bell | lands on: Stack China Crash Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+stack.4.bow | stroke: Cymbal(Bow) | own: stack.4.bowtip stack.4.hit stack.4.edge | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.4.bowtip | stroke: Cymbal(BowTip) | own: stack.4.bow stack.4.hit stack.4.edge | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+stack.4.edge | stroke: Cymbal(Edge) | own: stack.4.hit | lands on: Stack China Crash | plays when the kit has any of: crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+bell.1.hit | stroke: Bell | own: bell.1.edge | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+bell.1.mute | stroke: Cymbal(Mute) | own: bell.1.hit bell.1.edge | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+bell.1.bell | stroke: Bell | own: bell.1.belltip | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+bell.1.belltip | stroke: BellTip | own: bell.1.bell | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+bell.1.bow | stroke: Cymbal(Bow) | own: bell.1.bowtip bell.1.hit bell.1.edge | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+bell.1.bowtip | stroke: Cymbal(BowTip) | own: bell.1.bow bell.1.hit bell.1.edge | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+bell.1.edge | stroke: Cymbal(Edge) | own: bell.1.hit | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+bell.2.hit | stroke: Bell | own: bell.2.edge | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+bell.2.mute | stroke: Cymbal(Mute) | own: bell.2.hit bell.2.edge | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+bell.2.bell | stroke: Bell | own: bell.2.belltip | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+bell.2.belltip | stroke: BellTip | own: bell.2.bell | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+bell.2.bow | stroke: Cymbal(Bow) | own: bell.2.bowtip bell.2.hit bell.2.edge | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+bell.2.bowtip | stroke: Cymbal(BowTip) | own: bell.2.bow bell.2.hit bell.2.edge | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+bell.2.edge | stroke: Cymbal(Edge) | own: bell.2.hit | lands on: Bell Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
 ride.1 | stroke: Ride(Bow) | own: ride.1.bowtip | lands on: Ride | plays when the kit has any of: ride.1 ride.1.bowtip ride.2 ride.2.bowtip
-ride.1.bell | stroke: Bell | own: ride.1.belltip | lands on: Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-ride.1.belltip | stroke: BellTip | own: ride.1.bell | lands on: Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
+ride.1.bell | stroke: Bell | own: ride.1.belltip ride.1 ride.1.bowtip | lands on: Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+ride.1.belltip | stroke: BellTip | own: ride.1.bell ride.1 ride.1.bowtip | lands on: Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
 ride.1.bowtip | stroke: Ride(BowTip) | own: ride.1 | lands on: Ride | plays when the kit has any of: ride.1 ride.1.bowtip ride.2 ride.2.bowtip
-ride.1.edge | stroke: Cymbal(Hit) | own:  | lands on: Ride Crash | plays when the kit has any of: ride.1.edge ride.2.edge crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+ride.1.edge | stroke: Cymbal(Hit) | own: ride.1 ride.1.bowtip | lands on: Ride Crash | plays when the kit has any of: ride.1 ride.1.bowtip ride.2 ride.2.bowtip ride.1.edge ride.2.edge crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 ride.1.mute | stroke: Ride(Mute) | own: ride.1 ride.1.bowtip | lands on: Ride | plays when the kit has any of: ride.1 ride.1.bowtip ride.2 ride.2.bowtip
 ride.2 | stroke: Ride(Bow) | own: ride.2.bowtip | lands on: Ride | plays when the kit has any of: ride.1 ride.1.bowtip ride.2 ride.2.bowtip
-ride.2.bell | stroke: Bell | own: ride.2.belltip | lands on: Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
-ride.2.belltip | stroke: BellTip | own: ride.2.bell | lands on: Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip
+ride.2.bell | stroke: Bell | own: ride.2.belltip ride.2 ride.2.bowtip | lands on: Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
+ride.2.belltip | stroke: BellTip | own: ride.2.bell ride.2 ride.2.bowtip | lands on: Ride | plays when the kit has any of: ride.1.bell ride.1.belltip ride.2.bell ride.2.belltip ride.1 ride.1.bowtip ride.2 ride.2.bowtip
 ride.2.bowtip | stroke: Ride(BowTip) | own: ride.2 | lands on: Ride | plays when the kit has any of: ride.1 ride.1.bowtip ride.2 ride.2.bowtip
-ride.2.edge | stroke: Cymbal(Hit) | own:  | lands on: Ride Crash | plays when the kit has any of: ride.1.edge ride.2.edge crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
+ride.2.edge | stroke: Cymbal(Hit) | own: ride.2 ride.2.bowtip | lands on: Ride Crash | plays when the kit has any of: ride.1 ride.1.bowtip ride.2 ride.2.bowtip ride.1.edge ride.2.edge crash.1.hit crash.2.hit crash.3.hit crash.4.hit crash.5.hit crash.6.hit
 ride.2.mute | stroke: Ride(Mute) | own: ride.2 ride.2.bowtip | lands on: Ride | plays when the kit has any of: ride.1 ride.1.bowtip ride.2 ride.2.bowtip
 perc.cowbell | stroke: Perc(Cowbell) | own:  | lands on:  | may drop: percussion has no stand-in
 perc.clap | stroke: Perc(Clap) | own:  | lands on:  | may drop: percussion has no stand-in

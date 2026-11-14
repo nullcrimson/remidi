@@ -131,10 +131,9 @@ fn ride_order(a: RideArtic) -> Vec<RideArtic> {
     match a {
         RideArtic::Bow => vec![RideArtic::BowTip],
         RideArtic::BowTip => vec![RideArtic::Bow],
-        RideArtic::Bell => vec![RideArtic::BellTip],
-        RideArtic::BellTip => vec![RideArtic::Bell],
-        RideArtic::Mute => vec![RideArtic::Bow, RideArtic::BowTip],
-        RideArtic::Edge => Vec::new(),
+        RideArtic::Bell => vec![RideArtic::BellTip, RideArtic::Bow, RideArtic::BowTip],
+        RideArtic::BellTip => vec![RideArtic::Bell, RideArtic::Bow, RideArtic::BowTip],
+        RideArtic::Mute | RideArtic::Edge => vec![RideArtic::Bow, RideArtic::BowTip],
     }
 }
 
@@ -281,7 +280,7 @@ fn cymbal_kind(s: CymSlot) -> DrumKind {
 }
 
 fn lands_on(c: Canon) -> Vec<DrumKind> {
-    use DrumKind::{Crash, Hat, Ride, Snare, Tom};
+    use DrumKind::{China, Crash, Hat, Ride, Snare, Stack, Tom};
     match c.0 {
         Slot::Kick(_) | Slot::Hat(..) | Slot::Perc(_) | Slot::Hand(_) => Vec::new(),
         Slot::Snare(..) => vec![Snare],
@@ -291,16 +290,17 @@ fn lands_on(c: Canon) -> Vec<DrumKind> {
         Slot::Ride(..) => vec![Ride],
         Slot::Cymbal(s, a) => {
             let own = cymbal_kind(s);
-            let bell = is_bell(a);
-            match s {
-                CymSlot::Crash(_) if bell => vec![Crash, Ride],
-                CymSlot::Crash(_) => vec![Crash],
-                CymSlot::China(_) | CymSlot::Splash(_) | CymSlot::Stack(_) if bell => {
-                    vec![own, Crash, Ride]
-                }
-                CymSlot::China(_) | CymSlot::Splash(_) | CymSlot::Stack(_) => vec![own, Crash],
-                CymSlot::Bell(_) => vec![own, Ride],
+            let (mut kinds, bell_cymbal) = match s {
+                CymSlot::Crash(_) => (vec![Crash], false),
+                CymSlot::China(_) => (vec![own, Stack, Crash], false),
+                CymSlot::Stack(_) => (vec![own, China, Crash], false),
+                CymSlot::Splash(_) => (vec![own, Crash], false),
+                CymSlot::Bell(_) => (vec![own], true),
+            };
+            if bell_cymbal || is_bell(a) {
+                kinds.push(Ride);
             }
+            kinds
         }
     }
 }
@@ -315,6 +315,15 @@ fn crash_hits() -> Vec<Canon> {
 
 fn ride_bells() -> Vec<Canon> {
     all_where(|s| matches!(s, Slot::Ride(_, RideArtic::Bell | RideArtic::BellTip)))
+}
+
+fn ride_bows() -> Vec<Canon> {
+    all_where(|s| matches!(s, Slot::Ride(_, RideArtic::Bow | RideArtic::BowTip)))
+}
+
+/// Ride bells, then ride bows: where a bell plays when its own drum is missing.
+fn bells_or_bows() -> Vec<Canon> {
+    ride_bells().into_iter().chain(ride_bows()).collect()
 }
 
 /// The hi-hat strokes a hit at `(o, z)` may land on, its own first.
@@ -369,22 +378,21 @@ fn anchor(c: Canon) -> Anchor {
             [Canon(Slot::Aux(i, o, z)), Canon(Slot::Hat(o, z))]
         }),
         Slot::Cymbal(s, a) => match s {
-            CymSlot::Bell(_) => any(ride_bells()),
+            CymSlot::Bell(_) => any(bells_or_bows()),
             CymSlot::Crash(_) | CymSlot::China(_) | CymSlot::Splash(_) | CymSlot::Stack(_) => {
                 if is_bell(a) {
-                    any(ride_bells())
+                    any(bells_or_bows())
                 } else {
                     any(crash_hits())
                 }
             }
         },
         Slot::Ride(_, a) => match a {
-            RideArtic::Bow | RideArtic::BowTip | RideArtic::Mute => any(all_where(|s| {
-                matches!(s, Slot::Ride(_, RideArtic::Bow | RideArtic::BowTip))
-            })),
-            RideArtic::Bell | RideArtic::BellTip => any(ride_bells()),
+            RideArtic::Bow | RideArtic::BowTip | RideArtic::Mute => any(ride_bows()),
+            RideArtic::Bell | RideArtic::BellTip => any(bells_or_bows()),
             RideArtic::Edge => {
-                let mut anchors = all_where(|s| matches!(s, Slot::Ride(_, RideArtic::Edge)));
+                let mut anchors = ride_bows();
+                anchors.extend(all_where(|s| matches!(s, Slot::Ride(_, RideArtic::Edge))));
                 anchors.extend(crash_hits());
                 any(anchors)
             }

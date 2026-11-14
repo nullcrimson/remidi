@@ -47,7 +47,7 @@ fn guitar_pro_pedal_hat_plays_on_the_benny_greb_pedal_hat() {
 }
 
 #[test]
-fn the_duplantier_babar_plays_on_the_first_stack_then_the_first_crash() {
+fn the_duplantier_babar_plays_on_the_first_stack_then_the_first_china() {
     let catalog = Catalog::shared();
     let babar_on = |tgt: &str| {
         Mapping::new(
@@ -61,7 +61,7 @@ fn the_duplantier_babar_plays_on_the_first_stack_then_the_first_crash() {
     };
     let d2 = catalog.get("mixwave_duplantier2").unwrap();
     assert_eq!(babar_on("mixwave_duplantier2"), d2.encode(k("stack.1.hit")));
-    assert_eq!(babar_on("general_midi").map(Note::get), Some(49));
+    assert_eq!(babar_on("general_midi").map(Note::get), Some(52));
 }
 
 #[test]

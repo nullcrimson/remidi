@@ -71,10 +71,10 @@ fn ride_order(a: RideArtic) -> &'static [RideArtic] {
     match a {
         Bow => &[BowTip],
         BowTip => &[Bow],
-        Bell => &[BellTip],
-        BellTip => &[Bell],
+        Bell => &[BellTip, Bow, BowTip],
+        BellTip => &[Bell, Bow, BowTip],
         Mute => &[Bow, BowTip],
-        Edge => &[],
+        Edge => &[Bow, BowTip],
     }
 }
 
@@ -200,10 +200,21 @@ fn neighbours(c: Canon) -> Vec<Canon> {
             let same_kind = nearest(slot, kind, CymSlot::index)
                 .into_iter()
                 .map(|s| Canon(Slot::Cymbal(s, a)));
-            let next = match slot {
-                CymSlot::Crash(_) => ride_bell_for(a),
-                CymSlot::China(_) | CymSlot::Splash(_) | CymSlot::Stack(_) => Some(crash(a)),
-                CymSlot::Bell(_) => Some(Canon(Slot::Ride(RideIdx::FIRST, RideArtic::Bell))),
+            let every = |kind: fn(&CymSlot) -> bool| {
+                CymSlot::all()
+                    .filter(kind)
+                    .map(move |s| Canon(Slot::Cymbal(s, a)))
+            };
+            let next: Vec<Canon> = match slot {
+                CymSlot::Crash(_) => ride_bell_for(a).into_iter().collect(),
+                CymSlot::China(_) => every(|s| matches!(s, CymSlot::Stack(_)))
+                    .chain(once(crash(a)))
+                    .collect(),
+                CymSlot::Stack(_) => every(|s| matches!(s, CymSlot::China(_)))
+                    .chain(once(crash(a)))
+                    .collect(),
+                CymSlot::Splash(_) => vec![crash(a)],
+                CymSlot::Bell(_) => vec![Canon(Slot::Ride(RideIdx::FIRST, RideArtic::Bell))],
             };
             same_kind.chain(next).collect()
         }
@@ -327,10 +338,18 @@ mod tests {
         );
     }
 
+    fn first(chain: &[Canon], kind: &str) -> usize {
+        chain
+            .iter()
+            .position(|c| c.to_string().starts_with(kind))
+            .unwrap()
+    }
+
     #[test]
-    fn a_china_tries_the_other_chinas_before_a_crash() {
+    fn a_china_tries_the_other_chinas_then_the_stacks_before_a_crash() {
+        let chain = chain("china.2.mute");
         assert_eq!(
-            chain("china.2.mute")[..11],
+            chain[..8],
             keys(&[
                 "china.2.hit",
                 "china.2.edge",
@@ -340,11 +359,10 @@ mod tests {
                 "china.3.mute",
                 "china.3.hit",
                 "china.3.edge",
-                "crash.1.mute",
-                "crash.1.hit",
-                "crash.1.edge",
             ])
         );
+        assert_eq!(chain[first(chain, "stack.")], k("stack.1.mute"));
+        assert!(first(chain, "stack.") < first(chain, "crash."));
     }
 
     #[test]
@@ -374,8 +392,13 @@ mod tests {
     }
 
     #[test]
-    fn a_stack_falls_to_the_first_crash_after_the_stacks() {
-        assert_eq!(chain("stack.1.hit")[7], k("crash.1.hit"));
+    fn a_stack_tries_the_other_stacks_then_the_chinas_before_a_crash() {
+        let chain = chain("stack.1.hit");
+        assert!(chain[..first(chain, "china.")]
+            .iter()
+            .all(|c| c.to_string().starts_with("stack.")));
+        assert_eq!(chain[first(chain, "china.")], k("china.1.hit"));
+        assert!(first(chain, "china.") < first(chain, "crash."));
     }
 
     #[test]
@@ -387,10 +410,20 @@ mod tests {
     }
 
     #[test]
-    fn a_ride_edge_falls_to_a_crash_after_the_other_ride_edge() {
+    fn a_ride_edge_tries_its_own_bow_then_the_other_ride_edge_then_a_crash() {
+        let chain = chain("ride.1.edge");
         assert_eq!(
-            chain("ride.1.edge")[..3],
-            keys(&["ride.2.edge", "crash.1.hit", "crash.1.edge"])
+            chain[..3],
+            keys(&["ride.1", "ride.1.bowtip", "ride.2.edge"])
+        );
+        assert_eq!(chain[first(chain, "crash.")], k("crash.1.hit"));
+    }
+
+    #[test]
+    fn a_ride_bell_tries_its_own_bow_then_the_other_ride_bell() {
+        assert_eq!(
+            chain("ride.1.bell")[..4],
+            keys(&["ride.1.belltip", "ride.1", "ride.1.bowtip", "ride.2.bell"])
         );
     }
 
