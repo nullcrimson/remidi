@@ -4,7 +4,7 @@ use midly::{
 };
 
 use crate::{
-    channel::{hit, Channel, ChannelFilter, ChannelScope},
+    channel::{hit, Channel, ChannelFilter},
     midi::CodecError,
     note::Note,
     report::Report,
@@ -129,10 +129,9 @@ fn thin<'a>(
 pub(crate) fn rewrite<'a>(
     mut smf: Smf<'a>,
     mapping: &Mapping,
-    scope: ChannelScope,
+    filters: Vec<ChannelFilter>,
 ) -> Result<(Smf<'a>, Report), CodecError> {
     let mut report = Report::default();
-    let filters = scope.resolve(&smf);
     for (track, filter) in smf.tracks.iter_mut().zip(filters) {
         *track = thin(std::mem::take(track), |ev| {
             let fate = step(mapping, filter, &mut ev.kind);
@@ -281,9 +280,12 @@ mod tests {
                 .with_unrecognized(Unrecognized::Keep),
         ];
         let filters = [
-            ChannelFilter::All,
-            ChannelFilter::Skip,
-            ChannelFilter::Only(Channel::of(u4::from_int_lossy(9))),
+            ChannelFilter::ALL,
+            ChannelFilter::NONE,
+            ChannelFilter::NONE.with(Channel::of(u4::from_int_lossy(9))),
+            ChannelFilter::NONE
+                .with(Channel::of(u4::from_int_lossy(0)))
+                .with(Channel::of(u4::from_int_lossy(9))),
         ];
         let midi = every_channel_message().into_iter().flat_map(|message| {
             (0..16).map(move |c| TrackEventKind::Midi {
@@ -318,6 +320,6 @@ mod tests {
             }
         }
         assert_eq!(events.len(), 16 * 82_176 + 3);
-        assert_eq!(checked, 6 * events.len());
+        assert_eq!(checked, 8 * events.len());
     }
 }

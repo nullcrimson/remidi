@@ -1,6 +1,6 @@
 use midiremap_core::{
     convert, Catalog, Channel, ChannelScope, CodecError, Converted, Mapping, MissingDrums,
-    Overrides,
+    Overrides, Part, PartSet,
 };
 use midiremap_testkit::{cc, choke, events, off, on, silent_on, tracks, Ev, DRUMS};
 use midly::num::u28;
@@ -14,6 +14,7 @@ fn ggd_to_ezd(midi: &[u8], scope: ChannelScope) -> Result<Converted, CodecError>
         midi,
         &Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest),
         scope,
+        None,
     )
 }
 
@@ -288,4 +289,59 @@ fn converted_counts_nothing_when_the_named_channel_has_no_hits() {
             .converted(),
         0
     );
+}
+
+fn parts(items: &[&str]) -> PartSet {
+    items.iter().map(|p| p.parse::<Part>().unwrap()).collect()
+}
+
+fn ggd_to_ezd_parts(midi: &[u8], picked: &[&str]) -> Result<Converted, CodecError> {
+    let b = Catalog::builtin();
+    let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
+    convert(
+        midi,
+        &Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest),
+        ChannelScope::Auto,
+        Some(&parts(picked)),
+    )
+}
+
+#[test]
+fn picked_parts_convert_and_every_other_part_stays_as_it_was() {
+    let midi = drum_track_beside_a_bass_track();
+    let out = ggd_to_ezd_parts(&midi, &["2:1"]).unwrap();
+    assert_eq!(
+        events(&out.bytes, 0),
+        vec![(0, DRUMS, on(24)), (10, DRUMS, off(24))]
+    );
+    assert_eq!(events(&out.bytes, 1)[0], (0, BASS, on(36)));
+}
+
+#[test]
+fn two_channels_picked_in_one_track_both_convert() {
+    let midi = tracks(&[&[
+        (0, DRUMS, on(24)),
+        (0, BASS, on(24)),
+        (0, 11, on(24)),
+        (10, DRUMS, off(24)),
+        (0, BASS, off(24)),
+        (0, 11, off(24)),
+    ]]);
+    let out = ggd_to_ezd_parts(&midi, &["1:10", "1:1"]).unwrap();
+    assert_eq!(
+        events(&out.bytes, 0)[..3],
+        [(0, DRUMS, on(36)), (0, BASS, on(36)), (0, 11, on(24))]
+    );
+}
+
+#[test]
+fn a_picked_part_the_file_has_no_hit_in_is_refused() {
+    let midi = drum_track_beside_a_bass_track();
+    for missing in ["1:1", "3:10"] {
+        let err = ggd_to_ezd_parts(&midi, &[missing]).err().unwrap();
+        assert!(
+            matches!(err, CodecError::NoSuchPart(p) if p.to_string() == missing),
+            "{missing}: {err}"
+        );
+    }
 }

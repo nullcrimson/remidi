@@ -28,7 +28,7 @@ pub mod xml;
 
 pub use canon::{Canon, CanonEntry, CanonParseError};
 pub use catalog::Catalog;
-pub use channel::{Channel, ChannelScope, ChannelScopeError, TrackNo};
+pub use channel::{Channel, ChannelScope, ChannelScopeError, Part, PartError, PartSet, TrackNo};
 pub use conversion::{convert, Converted};
 pub use daw::{rack_file, Daw, FileStem, Packing, RackFile};
 pub use engine_map::{Drum, EngineId, EngineMap, MapError};

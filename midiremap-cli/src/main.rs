@@ -7,7 +7,7 @@ use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand};
 use midiremap_core::{
     convert, parse_preset, Catalog, ChannelScope, Damage, EngineId, EngineMap, Mapping,
-    MissingDrums, Overrides, Position, Unrecognized,
+    MissingDrums, Overrides, Part, PartSet, Position, Unrecognized,
 };
 
 #[derive(Parser)]
@@ -41,6 +41,15 @@ struct ConvertArgs {
     /// Channels to convert: auto (tracks with channel-10 hits, else every track), all, or 1-16
     #[arg(long, value_name = "CHANNEL", default_value_t)]
     channel: ChannelScope,
+    /// The drum parts to convert instead, as track:channel items counted from 1, such as
+    /// 1:10,2:1; every other part stays as it is
+    #[arg(
+        long,
+        value_name = "PARTS",
+        value_delimiter = ',',
+        conflicts_with = "channel"
+    )]
+    parts: Option<Vec<Part>>,
     /// A preset exported from the web app (<name>-drumverter.json); its engines must match
     #[arg(long, value_name = "FILE")]
     preset: Option<PathBuf>,
@@ -121,10 +130,12 @@ fn run_convert(a: ConvertArgs) -> Result<ExitCode> {
         Some(path) => read_preset(path, &catalog, src, tgt)?,
         None => Overrides::default(),
     };
+    let parts: Option<PartSet> = a.parts.map(|parts| parts.into_iter().collect());
     let out = convert(
         &mid,
         &Mapping::new(src, tgt, &overrides, a.missing).with_unrecognized(a.unrecognized),
         a.channel,
+        parts.as_ref(),
     )
     .context("remap failed")?;
 

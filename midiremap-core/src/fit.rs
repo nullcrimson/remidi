@@ -245,7 +245,9 @@ mod tests {
         let src = catalog.get("ggd_invasion").unwrap();
         let tgt = catalog.get("ezdrummer").unwrap();
         let mapping = Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest);
-        let report = convert(&midi, &mapping, ChannelScope::Auto).unwrap().report;
+        let report = convert(&midi, &mapping, ChannelScope::Auto, None)
+            .unwrap()
+            .report;
         let fits = source_fits(&catalog, &hits);
         let fit = fits
             .ranked()

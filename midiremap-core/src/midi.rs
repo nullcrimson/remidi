@@ -4,7 +4,7 @@ use midly::{num::u28, MetaMessage, Smf, Track, TrackEvent, TrackEventKind};
 use serde::Serialize;
 
 use crate::{
-    channel::TrackNo,
+    channel::{Part, TrackNo},
     meter::{Meter, Position},
 };
 
@@ -22,6 +22,8 @@ pub enum CodecError {
     DeltaOverflow,
     #[error("MIDI write error")]
     Write(#[source] std::io::Error),
+    #[error("the file has no notes on channel {} of track {}", .0.channel, .0.track)]
+    NoSuchPart(Part),
 }
 
 /// What a file had lost before it was read: notes that were in it once and cannot be

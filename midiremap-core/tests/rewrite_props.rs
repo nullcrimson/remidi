@@ -269,7 +269,7 @@ proptest! {
         pair in pair(),
         scope in scope(),
     ) {
-        let out = convert(&midi, &pair.mapping(), scope).unwrap();
+        let out = convert(&midi, &pair.mapping(), scope, None).unwrap();
         let (before, after) = (Smf::parse(&midi).unwrap(), Smf::parse(&out.bytes).unwrap());
         prop_assert_eq!(before.header, after.header);
         let (input, output) = (absolute(&midi), absolute(&out.bytes));
@@ -281,7 +281,7 @@ proptest! {
 
     #[test]
     fn notes_stay_paired(midi in file(), pair in pair(), scope in scope()) {
-        let out = convert(&midi, &pair.mapping(), scope).unwrap();
+        let out = convert(&midi, &pair.mapping(), scope, None).unwrap();
         for track in absolute(&out.bytes) {
             prop_assert!(balanced(&track), "{:?}", track);
         }
@@ -289,7 +289,7 @@ proptest! {
 
     #[test]
     fn every_hit_is_counted_once(midi in file(), pair in pair(), scope in scope()) {
-        let report = convert(&midi, &pair.mapping(), scope).unwrap().report;
+        let report = convert(&midi, &pair.mapping(), scope, None).unwrap().report;
         prop_assert_eq!(report.hits(), hits(&midi));
     }
 
@@ -299,10 +299,10 @@ proptest! {
         pair in pair(),
         cut in any::<Index>(),
     ) {
-        let whole = convert(&midi, &pair.mapping(), ChannelScope::All).unwrap();
+        let whole = convert(&midi, &pair.mapping(), ChannelScope::All, None).unwrap();
         prop_assert!(whole.damage.is_empty(), "{:?}", whole.damage);
         let short = &midi[..cut.index(midi.len())];
-        if let Ok(read) = convert(short, &pair.mapping(), ChannelScope::All) {
+        if let Ok(read) = convert(short, &pair.mapping(), ChannelScope::All, None) {
             prop_assert!(
                 !read.damage.is_empty() || read.report.hits() == whole.report.hits(),
                 "cut to {} of {} bytes: {} of {} hits, no damage",
@@ -320,8 +320,8 @@ proptest! {
         pair in pair(),
         scope in scope(),
     ) {
-        let kept = convert(&midi, &pair.mapping_with(Unrecognized::Keep), scope).unwrap();
-        let removed = convert(&midi, &pair.mapping_with(Unrecognized::Remove), scope).unwrap();
+        let kept = convert(&midi, &pair.mapping_with(Unrecognized::Keep), scope, None).unwrap();
+        let removed = convert(&midi, &pair.mapping_with(Unrecognized::Remove), scope, None).unwrap();
         prop_assert_eq!(kept.report, removed.report);
     }
 
@@ -331,7 +331,7 @@ proptest! {
         pair in pair(),
         scope in scope(),
     ) {
-        let out = convert(&midi, &pair.mapping_with(Unrecognized::Keep), scope).unwrap();
+        let out = convert(&midi, &pair.mapping_with(Unrecognized::Keep), scope, None).unwrap();
         let unrecognized: u32 = out.report.unmapped_source().map(|(_, count)| count).sum();
         let written = out.report.converted() + unrecognized + out.report.untouched();
         prop_assert_eq!(hits(&out.bytes), written);

@@ -244,3 +244,32 @@ fn a_damaged_file_is_converted_as_far_as_it_goes_and_exits_with_3() {
         "stderr: {err}"
     );
 }
+
+#[test]
+fn parts_convert_only_the_named_track_and_channel() {
+    let (out, written) = convert_note(24, &["--parts", "1:10"]);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(hit_keys(&written), vec![36]);
+}
+
+#[test]
+fn a_part_the_file_lacks_is_refused_and_nothing_is_written() {
+    let (out, written) = convert_note(24, &["--parts", "1:1"]);
+    assert!(!out.status.success());
+    assert!(written.is_empty());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("no notes on channel 1 of track 1"),
+        "stderr: {err}"
+    );
+}
+
+#[test]
+fn parts_and_channel_together_are_refused() {
+    let (out, _) = convert_note(24, &["--parts", "1:10", "--channel", "all"]);
+    assert_eq!(out.status.code(), Some(2));
+}

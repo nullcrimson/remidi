@@ -58,10 +58,10 @@ higher. `tests/module_layers.rs` holds the table of which module may use which, 
 fails on any use outside it (an allowed use a module does not make is no failure).
 
 ```
-conversion   ── convert(bytes, &Mapping, ChannelScope) → Converted { bytes, report, damage }
+conversion   ── convert(bytes, &Mapping, ChannelScope, parts) → Converted { bytes, report, damage }
    ├── midi        ── parse / write (midly), track_at
    └── rewrite     ── rewrite(Smf, &Mapping, ChannelScope) → (Smf, Report): one pure step per event
-          ├── channel     ── Channel (Idx<16>), ChannelScope → per-track ChannelFilter, hit()
+          ├── channel     ── Channel (Idx<16>), TrackNo, Part, ChannelScope / PartSet → per-track ChannelFilter, hit()
           │      └── midi, idx
           ├── report      ── Report: what a conversion did with each hit
           └── translate   ── Mapping: every drum's and every source note's Outcome, compiled once
@@ -220,13 +220,18 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
   count them (`Channel::DRUMS` is 10). `hit(kind)` is the one predicate for a hit (a
   note-on with velocity > 0), read by the converter, the hit counts `fit` ranks engines by, and the `Auto` scope.
 - `ChannelScope { Auto | Only(Channel) | All }` chooses which channels a conversion
-  rewrites; `resolve(&smf)` turns it into one `ChannelFilter { Only | All | Skip }`
-  per track. `Auto` (the default) converts every channel of each track that has a
+  rewrites; `resolve(&smf)` turns it into one `ChannelFilter` per track, a set of the
+  sixteen channels (`ALL`, `NONE`, `with(channel)`). `Auto` (the default) converts every channel of each track that has a
   channel-10 note-on and skips the other tracks; when no track has one, it converts
   everything. Multi-track song exports keep their bass and keys, drum tracks split
   across channels convert whole, and files with drums elsewhere convert as before.
   Parses from `auto`, `all` or `1`..=`16`.
-- `rewrite`: `rewrite(smf, &Mapping, ChannelScope) → (Smf, Report)` runs one pure `step`
+- A `Part { track: TrackNo, channel }` is one track's notes on one channel, both counted
+  from 1 (`2:10`). `convert` takes an optional `PartSet`, a user's pick for one file: when
+  given it replaces the scope, `part_filters` building each track's filter from the parts
+  named in it, and a part the file has no hit in is `CodecError::NoSuchPart`. The CLI takes
+  it as `--parts 1:10,2:1`, the WASM as `remap_parts(…, parts, …)`.
+- `rewrite`: `rewrite(smf, &Mapping, filters) → (Smf, Report)` runs one pure `step`
   per event, which moves its key and says its `Fate` (stays or goes, and what it adds to
   the report), and `thin` keeps the events that stay:
   - Note-on/off and poly aftertouch keys are rewritten to the resolved target
@@ -260,7 +265,7 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
 
 ### `conversion` — end-to-end facade
 
-- `convert(midi, &Mapping, ChannelScope) → Converted { bytes, report, damage }`: parse,
+- `convert(midi, &Mapping, ChannelScope, Option<&PartSet>) → Converted { bytes, report, damage }`: parse,
   rewrite, write. The single entry point for the CLI and the WASM; `Converted` crosses
   to the app as it is.
 - `damage` lists what the file had lost before it was read, since midly (not strict) reads

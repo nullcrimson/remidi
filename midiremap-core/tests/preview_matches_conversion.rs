@@ -49,6 +49,7 @@ fn assert_preview_matches_conversion(ov_json: &str, missing: MissingDrums) {
                 &midi,
                 &Mapping::new(src, tgt, &ov, missing),
                 ChannelScope::Auto,
+                None,
             )
             .unwrap();
             assert_eq!(

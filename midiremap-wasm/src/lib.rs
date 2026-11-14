@@ -4,7 +4,8 @@ use midiremap_core::{
     convert, note_hits, parse_preset, rack_file, sample_file as core_sample_file,
     source_fits as core_source_fits, Canon, CanonEntry, Catalog, ChannelScope, Converted, Drum,
     EngineId, EngineMap, Family, LoadedPreset, Mapping, MissingDrums, Note, NoteHits, OctaveBase,
-    Overrides, PresetError, PresetName, RackFile, SourceFits, Unrecognized, VoicePlan,
+    Overrides, Part, PartSet, PresetError, PresetName, RackFile, SourceFits, Unrecognized,
+    VoicePlan,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -113,6 +114,7 @@ fn convert_file(
     tgt_id: &str,
     ov: &Overrides,
     settings: &Settings,
+    parts: Option<&PartSet>,
 ) -> Result<Converted, WasmError> {
     let mapping = mapping(
         catalog,
@@ -122,7 +124,8 @@ fn convert_file(
         settings.missing,
         settings.unrecognized,
     )?;
-    convert(mid, &mapping, settings.scope).map_err(|e| WasmError::BadMidi { detail: chain(&e) })
+    convert(mid, &mapping, settings.scope, parts)
+        .map_err(|e| WasmError::BadMidi { detail: chain(&e) })
 }
 
 #[wasm_bindgen]
@@ -141,7 +144,44 @@ pub fn remap(
         missing: from_js(missing, |detail| WasmError::BadMissing { detail })?,
         unrecognized: from_js(unrecognized, |detail| WasmError::Internal { detail })?,
     };
-    let out = convert_file(Catalog::shared(), mid, src_id, tgt_id, &ov, &settings)?;
+    let out = convert_file(Catalog::shared(), mid, src_id, tgt_id, &ov, &settings, None)?;
+    Ok(out.into_ts()?)
+}
+
+/// [`remap`] of only the `parts` a user picked as the file's drums; every other part stays
+/// as it is.
+#[wasm_bindgen]
+pub fn remap_parts(
+    mid: &[u8],
+    src_id: &str,
+    tgt_id: &str,
+    overrides: Option<Ts<Overrides>>,
+    parts: Vec<Ts<Part>>,
+    missing: Option<Ts<MissingDrums>>,
+    unrecognized: Option<Ts<Unrecognized>>,
+) -> Result<Ts<Converted>, WasmError> {
+    let ov = from_js(overrides, |detail| WasmError::BadOverrides { detail })?;
+    let parts: PartSet = parts
+        .iter()
+        .map(Ts::to_rust)
+        .collect::<Result<_, _>>()
+        .map_err(|e| WasmError::Internal {
+            detail: e.to_string(),
+        })?;
+    let settings = Settings {
+        scope: ChannelScope::default(),
+        missing: from_js(missing, |detail| WasmError::BadMissing { detail })?,
+        unrecognized: from_js(unrecognized, |detail| WasmError::Internal { detail })?,
+    };
+    let out = convert_file(
+        Catalog::shared(),
+        mid,
+        src_id,
+        tgt_id,
+        &ov,
+        &settings,
+        Some(&parts),
+    )?;
     Ok(out.into_ts()?)
 }
 
@@ -512,6 +552,7 @@ mod tests {
                 missing: MissingDrums::Nearest,
                 unrecognized: Unrecognized::Remove,
             },
+            None,
         )
         .err()
         .unwrap();
@@ -535,6 +576,7 @@ mod tests {
                 missing: MissingDrums::Nearest,
                 unrecognized,
             },
+            None,
         )
         .unwrap()
     }

@@ -1,7 +1,7 @@
 use serde::Serialize;
 
 use crate::{
-    channel::ChannelScope,
+    channel::{part_filters, ChannelScope, PartSet},
     midi::{self, CodecError, Damage, Parsed},
     report::Report,
     rewrite::rewrite,
@@ -23,14 +23,20 @@ pub struct Converted {
     pub damage: Vec<Damage>,
 }
 
-/// Converts a standard MIDI file through `mapping`, rewriting the channels `scope` selects.
+/// Converts a standard MIDI file through `mapping`, rewriting the `parts` picked, or the
+/// channels `scope` selects when none are; a picked part the file has no hit in is an error.
 pub fn convert(
     midi: &[u8],
     mapping: &Mapping,
     scope: ChannelScope,
+    parts: Option<&PartSet>,
 ) -> Result<Converted, CodecError> {
     let Parsed { smf, damage } = midi::parse(midi)?;
-    let (smf, report) = rewrite(smf, mapping, scope)?;
+    let filters = match parts {
+        Some(parts) => part_filters(&smf, parts).map_err(CodecError::NoSuchPart)?,
+        None => scope.resolve(&smf),
+    };
+    let (smf, report) = rewrite(smf, mapping, filters)?;
     let bytes = midi::write(&smf)?;
     Ok(Converted {
         bytes,
@@ -67,6 +73,7 @@ mod tests {
             mid,
             &Mapping::new(src, tgt, &Overrides::default(), missing),
             ChannelScope::Auto,
+            None,
         )
         .unwrap()
     }
@@ -80,6 +87,7 @@ mod tests {
             mid,
             &Mapping::new(src, tgt, &overrides, MissingDrums::Nearest),
             ChannelScope::Auto,
+            None,
         )
         .unwrap()
     }
@@ -190,7 +198,7 @@ mod tests {
             MissingDrums::Nearest,
         )
         .with_unrecognized(unrecognized);
-        convert(mid, &mapping, ChannelScope::Auto).unwrap()
+        convert(mid, &mapping, ChannelScope::Auto, None).unwrap()
     }
 
     fn kick_and_unrecognized() -> Vec<u8> {

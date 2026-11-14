@@ -31,7 +31,7 @@ fuzz_target!(|data: &[u8]| {
     };
     let (missing, scope) = setting(*byte);
     let mapping = Mapping::new(engine(*src), engine(*tgt), &Overrides::default(), missing);
-    let Ok(out) = convert(midi, &mapping, scope) else {
+    let Ok(out) = convert(midi, &mapping, scope, None) else {
         return;
     };
     Smf::parse(&out.bytes).expect("a converted file parses");
