@@ -8,7 +8,7 @@ use midly::{
     num::{u14, u24, u28, u7},
     MetaMessage, MidiMessage, PitchBend, Smf, TrackEvent, TrackEventKind,
 };
-use proptest::{prelude::*, sample::Index};
+use proptest::{prelude::*, sample::Index, test_runner::RngSeed};
 
 #[derive(Debug, Clone)]
 enum Item {
@@ -258,6 +258,11 @@ fn balanced(track: &[(u64, TrackEventKind)]) -> bool {
 }
 
 proptest! {
+    #![proptest_config(ProptestConfig {
+        rng_seed: RngSeed::Fixed(20_261_114),
+        ..ProptestConfig::default()
+    })]
+
     #[test]
     fn kept_events_keep_their_ticks_and_only_notes_are_removed(
         midi in file(),
