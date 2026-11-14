@@ -23,6 +23,7 @@ error-unknown-engine =
        *[target] 目标
     }鼓音源“{ $id }”
 error-bad-midi = 无法读取此文件，它似乎不是 MIDI 文件
+error-no-such-part = 此文件在被选为鼓的分轨上没有音符
 error-bad-preset = 不是预设文件
 error-bad-overrides = 无法读取音符修改
 error-bad-missing = 无法识别“缺少的鼓件”设置
@@ -77,7 +78,7 @@ convert-error = 错误：{ $error }
 notice-dismiss = 关闭
 channel-label = 鼓通道
 channel-tip-title = 转换哪些音符
-channel-tip = “自动”会转换所有使用通道 10（General MIDI 的鼓通道）的轨道，其他乐器保持不变。如果鼓不在这个通道上，请选择对应的通道或“所有通道”。
+channel-tip = 自动会转换第 10 通道（General MIDI 鼓通道），不动其他乐器；鼓音轨中的其他通道会在转换后提供。没有第 10 通道的文件会转换它唯一有音符的分轨，或询问你哪些分轨是鼓。要按通道转换，请选择某个通道或“全部”。
 missing-label = 缺少的鼓件
 missing-tip-title = 目标鼓音源里没有某个鼓件时
 missing-tip = “替换”会换成目标鼓音源里最接近的鼓件，例如 China 换成 crash，Tom 4 换成 Tom 3。“删除”会把这些音符从文件中删掉。如果目标鼓音源有这个鼓件，只是没有鬼音、rimshot 等演奏法，这些音符一律按该鼓件的普通敲击处理。

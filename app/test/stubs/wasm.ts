@@ -90,12 +90,7 @@ export const remap = vi.fn<typeof Wasm.remap>(() => ({
   }),
 }));
 
-export const remap_parts = vi.fn<typeof Wasm.remap_parts>((mid, src, tgt, overrides, _parts, missing, unrecognized) =>
-  remap(mid, src, tgt, overrides, 'all', missing, unrecognized));
-
 export const auto_question = vi.fn<typeof Wasm.auto_question>(() => undefined);
-
-export const file_parts = vi.fn<typeof Wasm.file_parts>(() => []);
 
 export const RACK_XML = '<?xml version="1.0" encoding="UTF-8"?>\n<Ableton/>\n';
 

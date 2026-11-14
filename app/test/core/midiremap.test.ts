@@ -71,16 +71,16 @@ describe('midiremap wrapper', () => {
   });
 
   it('passes the missing-drums choice drop to the converter', () => {
-    core.remap(new Uint8Array([0]), enginePair('ggd_invasion', 'ezdrummer'), undefined, 'auto', 'drop');
+    core.remap(new Uint8Array([0]), enginePair('ggd_invasion', 'ezdrummer'), undefined, { scope: 'auto' }, 'drop');
     expect(vi.mocked(stub.remap).mock.lastCall?.[5]).toBe('drop');
   });
 
-  it('passes the channel to the converter', () => {
-    core.remap(new Uint8Array([0]), enginePair('ggd_invasion', 'ezdrummer'), undefined, '10');
-    expect(vi.mocked(stub.remap).mock.lastCall?.[4]).toBe('10');
+  it('passes the selection to the converter', () => {
+    core.remap(new Uint8Array([0]), enginePair('ggd_invasion', 'ezdrummer'), undefined, { scope: '10' });
+    expect(vi.mocked(stub.remap).mock.lastCall?.[4]).toEqual({ scope: '10' });
   });
 
-  it('passes no channel to the converter when none is given', () => {
+  it('passes no selection to the converter when none is given', () => {
     core.remap(new Uint8Array([0]), enginePair('ggd_invasion', 'ezdrummer'));
     expect(vi.mocked(stub.remap).mock.lastCall?.[4]).toBeUndefined();
   });

@@ -17,6 +17,7 @@ const KINDS = {
   badOverrides: true,
   badMissing: true,
   badMidi: true,
+  noSuchPart: true,
   badPreset: true,
   internal: true,
 } as const satisfies Record<WasmError['kind'], true>;
@@ -42,6 +43,7 @@ export function errorMessage(e: AppError): Message {
   switch (e.kind) {
     case 'unknownEngine': return { id: 'error-unknown-engine', args: { role: e.role, id: e.id } };
     case 'badMidi': return { id: 'error-bad-midi' };
+    case 'noSuchPart': return { id: 'error-no-such-part' };
     case 'badPreset': return { id: 'error-bad-preset' };
     case 'badOverrides': return { id: 'error-bad-overrides' };
     case 'badMissing': return { id: 'error-bad-missing' };

@@ -23,6 +23,7 @@ error-unknown-engine =
        *[target] 대상
     } 음원 '{ $id }'
 error-bad-midi = 파일을 읽을 수 없습니다. MIDI 파일이 아닌 것 같습니다
+error-no-such-part = 드럼으로 고른 파트에 이 파일의 노트가 없습니다
 error-bad-preset = 프리셋 파일이 아닙니다
 error-bad-overrides = 노트 편집 내용을 읽을 수 없습니다
 error-bad-missing = 알 수 없는 '없는 악기' 설정입니다
@@ -76,7 +77,7 @@ convert-error = 오류: { $error }
 notice-dismiss = 닫기
 channel-label = 드럼 채널
 channel-tip-title = 어떤 노트가 변환되나요
-channel-tip = '자동'은 General MIDI 드럼 채널인 채널 10을 쓰는 트랙을 모두 변환하고, 다른 악기는 건드리지 않습니다. 드럼이 다른 채널에 있다면 그 채널이나 '모든 채널'을 선택하세요.
+channel-tip = 자동은 10번 채널(General MIDI 드럼 채널)을 변환하고 다른 악기는 그대로 둡니다. 드럼 트랙의 다른 채널은 변환 후에 제안됩니다. 10번 채널이 없는 파일은 노트가 있는 유일한 파트를 변환하거나, 어느 파트가 드럼인지 묻습니다. 채널별로 변환하려면 채널이나 전체를 고르세요.
 missing-label = 없는 악기
 missing-tip-title = 대상 음원에 없는 악기가 있을 때
 missing-tip = '대체'는 대상 음원에 있는 가장 비슷한 악기로 연주합니다(예: China는 crash로, Tom 4는 Tom 3으로). '제외'는 그 악기의 노트를 파일에서 뺍니다. 고스트 노트, 림샷처럼 대상 음원에 있는 악기를 다른 주법으로 친 노트는 항상 그 악기의 기본 타격으로 바뀝니다.

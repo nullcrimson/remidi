@@ -23,6 +23,7 @@ error-unknown-engine =
        *[target] Ziel
     }-Plugin „{ $id }“
 error-bad-midi = Der Konverter kann diese Datei nicht lesen – sie sieht nicht nach MIDI aus
+error-no-such-part = Diese Datei hat keine Noten auf einem als Drums gewählten Part
 error-bad-preset = Das ist keine Preset-Datei
 error-bad-overrides = Die Notenänderungen konnten nicht gelesen werden
 error-bad-missing = Unbekannte Einstellung für fehlende Instrumente
@@ -81,7 +82,7 @@ convert-error = Fehler: { $error }
 notice-dismiss = Schließen
 channel-label = Drum-Kanal
 channel-tip-title = Welche Noten konvertiert werden
-channel-tip = Bei „Auto“ wird jede Spur auf Kanal 10 konvertiert – dem Drum-Kanal von General MIDI. Alle anderen Spuren bleiben, wie sie sind. Liegen Ihre Drums auf einem anderen Kanal, wählen Sie diesen oder „Alle“.
+channel-tip = Auto konvertiert Kanal 10 — den General-MIDI-Drum-Kanal — und lässt die anderen Instrumente in Ruhe; andere Kanäle einer Drum-Spur werden nach dem Konvertieren angeboten. Eine Datei ohne Kanal 10 konvertiert ihren einzigen Part mit Noten oder fragt dich, welche Parts die Drums sind. Wähle einen Kanal oder Alle, um stattdessen nach Kanal zu konvertieren.
 missing-label = Fehlende Instrumente
 missing-tip-title = Wenn das Ziel-Plugin ein Instrument nicht hat
 missing-tip = „Ersetzen“ nimmt stattdessen das ähnlichste Instrument im Ziel-Plugin – etwa ein Crash statt eines China, Tom 3 statt Tom 4. „Entfernen“ lässt die Noten weg. Fehlt nur eine Spieltechnik wie Ghost Notes oder Rimshots, wird daraus immer ein normaler Schlag auf dasselbe Instrument.

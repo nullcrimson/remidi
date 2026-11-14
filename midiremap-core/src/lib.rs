@@ -28,7 +28,10 @@ pub mod xml;
 
 pub use canon::{Canon, CanonEntry, CanonParseError};
 pub use catalog::Catalog;
-pub use channel::{Channel, ChannelScope, ChannelScopeError, Part, PartError, PartSet, TrackNo};
+pub use channel::{
+    Channel, ChannelScope, ChannelScopeError, ConvertError, NoParts, Part, PartError, PartSet,
+    Parts, Selection,
+};
 pub use conversion::{convert, Conversion, Converted};
 pub use daw::{rack_file, Daw, FileStem, Packing, RackFile};
 pub use engine_map::{Drum, EngineId, EngineMap, MapError};
@@ -37,8 +40,8 @@ pub use fit::{
     auto_question, note_hits, part_summaries, source_fits, NoteHits, PartSummary, PlayedDrum,
     Plays, SourceFit, SourceFits,
 };
-pub use meter::{Bar, Position};
-pub use midi::{CodecError, Damage};
+pub use meter::{Bar, Position, Tick};
+pub use midi::{CodecError, Damage, TrackNo};
 pub use note::{Note, NoteParseError, OctaveBase};
 pub use overrides::Overrides;
 pub use plan::VoicePlan;

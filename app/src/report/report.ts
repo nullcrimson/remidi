@@ -4,7 +4,7 @@ import type { EnginePair } from '../core/enginePair';
 import { listProp } from '../core/stats';
 import type { StatEvents } from '../core/umami';
 import { drumLabels, standInText } from '../core/drums';
-import { byCanon } from '../core/canon';
+import { byCanon, canonLabels } from '../core/canon';
 import { ascending, byNote, noteName, type OctaveBase } from '../core/notes';
 
 /** A drum the target lacks and that was left out. */
@@ -67,10 +67,8 @@ export function buildReport(
   targetDrums: Drum[],
   oct: OctaveBase,
 ): ReportView {
-  const labelByCanon = new Map(canons.map((c) => [c.canon, c.label]));
+  const canonLabel = canonLabels(canons);
   const labels = drumLabels(targetDrums);
-
-  const canonLabel = (canon: Canon) => labelByCanon.get(canon) ?? canon;
 
   const groupsOf = (report: Report): ReportGroups => ({
     dropped: sortEntries(

@@ -1685,7 +1685,6 @@ mod tests {
             &drums(&[(10, on(note.get())), (10, off(note.get()))]),
             mapping,
             ChannelScope::Auto,
-            None,
         )
         .unwrap()
         .done()

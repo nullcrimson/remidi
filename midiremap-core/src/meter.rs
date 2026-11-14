@@ -1,6 +1,6 @@
 use std::{fmt, num::NonZeroU32};
 
-use midly::{MetaMessage, Smf, Timing, TrackEventKind};
+use midly::{MetaMessage, Smf, Timing, TrackEvent, TrackEventKind};
 use serde::Serialize;
 
 /// A bar of a piece, counted from 1 as people count them.
@@ -27,49 +27,105 @@ impl fmt::Display for Bar {
     }
 }
 
-/// Where in a file something happens: its bar, or its tick in a file timed in SMPTE frames,
-/// which has no bars.
+/// A moment of a track, in ticks from its start.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Serialize)]
+#[serde(transparent)]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify), tsify(type = "number"))]
+pub struct Tick(u32);
+
+impl Tick {
+    /// Tick `n`, for tests.
+    #[cfg(test)]
+    pub(crate) fn at(n: u32) -> Self {
+        Self(n)
+    }
+
+    /// The ticks from `start` to this moment; none when `start` comes later.
+    fn since(self, start: Self) -> u32 {
+        self.0.saturating_sub(start.0)
+    }
+}
+
+impl fmt::Display for Tick {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+/// Each event of `track` with the tick it happens at.
+pub(crate) fn ticks<'t, 'a>(
+    track: &'t [TrackEvent<'a>],
+) -> impl Iterator<Item = (Tick, &'t TrackEvent<'a>)> {
+    track.iter().scan(Tick::default(), |tick, ev| {
+        *tick = Tick(tick.0.saturating_add(ev.delta.as_int()));
+        Some((*tick, ev))
+    })
+}
+
+/// Where in a file something happens: its bar, or its tick in a file that has no bars (one
+/// timed in SMPTE frames, or with a zero division).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "ts", derive(tsify::Tsify))]
 pub enum Position {
     Bar(Bar),
-    Tick(u32),
+    Tick(Tick),
+}
+
+/// A time signature from its first tick on, by the ticks of one of its bars.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct Signature {
+    start: Tick,
+    bar: NonZeroU32,
+}
+
+impl Signature {
+    /// The bars it begins before `end`, a bar that `end` cuts short counting as one.
+    fn bars_before(self, end: Tick) -> u32 {
+        end.since(self.start).div_ceil(self.bar.get())
+    }
+
+    /// The whole bars from its start to `tick`.
+    fn whole_bars_to(self, tick: Tick) -> u32 {
+        tick.since(self.start) / self.bar.get()
+    }
 }
 
 /// The time signatures of a file, which turn its ticks into bars.
-pub(crate) struct Meter {
-    /// Each signature's first tick and the ticks of one of its bars, in order; empty for a
-    /// file timed in SMPTE frames.
-    bars: Vec<(u32, u32)>,
+pub(crate) enum Meter {
+    /// A file with no bars: timed in SMPTE frames, or with a zero division.
+    Unbarred,
+    /// Bars of `first` from tick 0, then of each of `changes`, in order.
+    Barred {
+        first: NonZeroU32,
+        changes: Vec<Signature>,
+    },
 }
 
 const FOUR_FOUR: (u8, u8) = (4, 2);
+const QUARTERS_PER_WHOLE: u32 = 4;
 
 impl Meter {
     pub(crate) fn new(smf: &Smf) -> Self {
         let Timing::Metrical(per_quarter) = smf.header.timing else {
-            return Self { bars: Vec::new() };
+            return Self::Unbarred;
         };
         let per_quarter = u32::from(per_quarter.as_int());
         let bar_ticks = |(numerator, power): (u8, u8)| {
-            let whole = per_quarter * 4 * u32::from(numerator);
+            let whole = per_quarter * QUARTERS_PER_WHOLE * u32::from(numerator);
             1u32.checked_shl(u32::from(power))
-                .map(|denominator| whole / denominator)
-                .filter(|&ticks| ticks > 0)
+                .and_then(|denominator| NonZeroU32::new(whole / denominator))
         };
-        let mut changes: Vec<(u32, u32)> = smf
+        let Some(first) = bar_ticks(FOUR_FOUR) else {
+            return Self::Unbarred;
+        };
+        let mut changes: Vec<Signature> = smf
             .tracks
             .iter()
-            .flat_map(|track| {
-                track.iter().scan(0u32, |tick, ev| {
-                    *tick = tick.saturating_add(ev.delta.as_int());
-                    Some((*tick, ev.kind))
-                })
-            })
-            .filter_map(|(tick, kind)| match kind {
+            .flat_map(|track| ticks(track))
+            .filter_map(|(start, ev)| match ev.kind {
                 TrackEventKind::Meta(MetaMessage::TimeSignature(numerator, power, ..)) => {
-                    bar_ticks((numerator, power)).map(|ticks| (tick, ticks))
+                    bar_ticks((numerator, power)).map(|bar| Signature { start, bar })
                 }
                 TrackEventKind::Midi { .. }
                 | TrackEventKind::SysEx(_)
@@ -77,31 +133,27 @@ impl Meter {
                 | TrackEventKind::Meta(_) => None,
             })
             .collect();
-        changes.sort_by_key(|&(tick, _)| tick);
-        let first = bar_ticks(FOUR_FOUR).map(|ticks| (0, ticks));
-        Self {
-            bars: first.into_iter().chain(changes).collect(),
-        }
+        changes.sort_by_key(|signature| signature.start);
+        Self::Barred { first, changes }
     }
 
     /// Where `tick` falls: a bar that a signature change cuts short still counts as a bar.
-    pub(crate) fn position(&self, tick: u32) -> Position {
-        if self.bars.is_empty() {
+    pub(crate) fn position(&self, tick: Tick) -> Position {
+        let Self::Barred { first, changes } = self else {
             return Position::Tick(tick);
-        }
+        };
+        let mut current = Signature {
+            start: Tick::default(),
+            bar: *first,
+        };
         let mut whole = 0u32;
-        for (i, &(start, ticks)) in self.bars.iter().enumerate() {
-            match self.bars.get(i + 1) {
-                Some(&(next, _)) if next <= tick => {
-                    whole = whole.saturating_add((next - start).div_ceil(ticks));
-                }
-                Some(_) | None => {
-                    whole = whole.saturating_add((tick - start) / ticks);
-                    break;
-                }
-            }
+        for &next in changes.iter().take_while(|next| next.start <= tick) {
+            whole = whole.saturating_add(current.bars_before(next.start));
+            current = next;
         }
-        Position::Bar(Bar::after(whole))
+        Position::Bar(Bar::after(
+            whole.saturating_add(current.whole_bars_to(tick)),
+        ))
     }
 }
 
@@ -109,7 +161,7 @@ impl Meter {
 mod tests {
     use midly::{
         num::{u15, u28},
-        Format, Fps, Header, Track, TrackEvent,
+        Format, Fps, Header, Track,
     };
 
     use super::*;
@@ -131,11 +183,11 @@ mod tests {
     }
 
     fn bar(tick: u32, smf: &Smf) -> Position {
-        Meter::new(smf).position(tick)
+        Meter::new(smf).position(Tick(tick))
     }
 
     fn nth(n: u32) -> Position {
-        Position::Bar(Bar::after(n - 1))
+        Position::Bar(Bar::number(n))
     }
 
     #[test]
@@ -168,6 +220,6 @@ mod tests {
             header: Header::new(Format::SingleTrack, Timing::Timecode(Fps::Fps25, 40)),
             tracks: vec![Vec::new()],
         };
-        assert_eq!(bar(1234, &smf), Position::Tick(1234));
+        assert_eq!(bar(1234, &smf), Position::Tick(Tick(1234)));
     }
 }

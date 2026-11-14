@@ -2,6 +2,7 @@ import { useT } from '../locale/localeContext';
 import { useId, useMemo, useState } from 'react';
 import type { Canon, Drum, Family, Note, CanonEntry } from '../core/midiremap';
 import type { SrcEdits } from '../core/overrides';
+import { canonLabels } from '../core/canon';
 import { ascending, byNote, noteName, parseNote, type OctaveBase } from '../core/notes';
 import { Button } from '../ui/Button';
 import { CanonPicker } from './CanonPicker';
@@ -125,10 +126,7 @@ export function SourceEditor({
   const [invalid, setInvalid] = useState(false);
   const errorId = useId();
 
-  const labelOf = useMemo(() => {
-    const m = new Map(options.map((o) => [o.canon, o.label]));
-    return (canon: Canon) => m.get(canon) ?? canon;
-  }, [options]);
+  const labelOf = useMemo(() => canonLabels(options), [options]);
 
   const baseCanon = useMemo(
     () => new Map(notes.map((n) => [n.note, n.canon])),

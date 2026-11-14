@@ -1,12 +1,9 @@
-use std::error::Error;
+use std::{error::Error, fmt, num::NonZeroUsize};
 
 use midly::{num::u28, MetaMessage, Smf, Track, TrackEvent, TrackEventKind};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-use crate::{
-    channel::{Part, TrackNo},
-    meter::{Meter, Position},
-};
+use crate::meter::{self, Meter, Position, Tick};
 
 const MTHD_TRACKS: usize = 2;
 const MTHD_DIVISION: usize = 4;
@@ -22,8 +19,43 @@ pub enum CodecError {
     DeltaOverflow,
     #[error("MIDI write error")]
     Write(#[source] std::io::Error),
-    #[error("the file has no notes on channel {} of track {}", .0.channel, .0.track)]
-    NoSuchPart(Part),
+}
+
+/// A track of a file, numbered from 1 as people count them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify), tsify(type = "number"))]
+pub struct TrackNo(NonZeroUsize);
+
+impl TrackNo {
+    pub(crate) fn new(n: NonZeroUsize) -> Self {
+        Self(n)
+    }
+
+    /// The track a file stores at `index`, counted from zero.
+    pub(crate) fn at(index: usize) -> Self {
+        Self(NonZeroUsize::MIN.saturating_add(index))
+    }
+
+    /// Where a file stores this track, counted from zero.
+    pub(crate) fn index(self) -> usize {
+        self.0.get() - 1
+    }
+}
+
+impl fmt::Display for TrackNo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+/// The event that closes every track of a file.
+pub(crate) const END_OF_TRACK: TrackEventKind<'static> =
+    TrackEventKind::Meta(MetaMessage::EndOfTrack);
+
+/// Whether `track` ends with its End-of-Track, as a whole track does.
+pub(crate) fn is_closed(track: &[TrackEvent]) -> bool {
+    track.last().is_some_and(|ev| ev.kind == END_OF_TRACK)
 }
 
 /// What a file had lost before it was read: notes that were in it once and cannot be
@@ -66,13 +98,10 @@ pub(crate) fn parse(bytes: &[u8]) -> Result<Parsed<'_>, CodecError> {
 fn damage(bytes: &[u8], smf: &Smf) -> Vec<Damage> {
     let meter = Meter::new(smf);
     let cut = smf.tracks.iter().enumerate().filter_map(|(index, track)| {
-        let ended = track
+        let last_tick = meter::ticks(track)
             .last()
-            .is_some_and(|ev| ev.kind == TrackEventKind::Meta(MetaMessage::EndOfTrack));
-        let last_tick = track
-            .iter()
-            .fold(0u32, |tick, ev| tick.saturating_add(ev.delta.as_int()));
-        (!ended).then(|| Damage::TrackCut {
+            .map_or_else(Tick::default, |(tick, _)| tick);
+        (!is_closed(track)).then(|| Damage::TrackCut {
             track: TrackNo::at(index),
             at: meter.position(last_tick),
             events_read: track.len(),
@@ -317,7 +346,7 @@ mod tests {
             damage_of(&bytes),
             [Damage::TrackCut {
                 track: TrackNo::at(0),
-                at: Position::Tick(3 * u32::from(QUARTER)),
+                at: Position::Tick(Tick::at(3 * u32::from(QUARTER))),
                 events_read: 3,
             }]
         );

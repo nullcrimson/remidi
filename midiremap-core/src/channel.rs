@@ -8,7 +8,11 @@ use std::{
 use midly::{num::u4, MetaMessage, MidiMessage, Smf, TrackEventKind};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{idx::Idx, note::Note};
+use crate::{
+    idx::Idx,
+    midi::{CodecError, TrackNo},
+    note::Note,
+};
 
 type ChannelIdx = Idx<16>;
 
@@ -54,24 +58,6 @@ impl fmt::Display for Channel {
     }
 }
 
-/// A track of a file, numbered from 1 as people count them.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
-#[cfg_attr(feature = "ts", derive(tsify::Tsify), tsify(type = "number"))]
-pub struct TrackNo(NonZeroUsize);
-
-impl TrackNo {
-    /// The track a file stores at `index`, counted from zero.
-    pub(crate) fn at(index: usize) -> Self {
-        Self(NonZeroUsize::MIN.saturating_add(index))
-    }
-
-    /// Where a file stores this track, counted from zero.
-    pub(crate) fn index(self) -> usize {
-        self.0.get() - 1
-    }
-}
-
 /// One track's notes on one channel: what a user picks as the drums of a file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(tsify::Tsify))]
@@ -101,7 +87,7 @@ impl FromStr for Part {
             .and_then(Channel::new)
             .ok_or_else(bad)?;
         Ok(Self {
-            track: TrackNo(track),
+            track: TrackNo::new(track),
             channel,
         })
     }
@@ -111,6 +97,77 @@ impl fmt::Display for Part {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}:{}", self.track, self.channel)
     }
+}
+
+/// A set of parts that holds at least one.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "Vec<Part>", into = "Vec<Part>")]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify), tsify(type = "Part[]"))]
+pub struct Parts(PartSet);
+
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
+#[error("pick at least one part")]
+pub struct NoParts;
+
+impl Parts {
+    /// `parts`, when it holds one or more.
+    pub fn new(parts: PartSet) -> Option<Self> {
+        (!parts.is_empty()).then_some(Self(parts))
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &Part> {
+        self.0.iter()
+    }
+}
+
+impl TryFrom<Vec<Part>> for Parts {
+    type Error = NoParts;
+
+    fn try_from(parts: Vec<Part>) -> Result<Self, Self::Error> {
+        Self::new(parts.into_iter().collect()).ok_or(NoParts)
+    }
+}
+
+impl From<Parts> for Vec<Part> {
+    fn from(parts: Parts) -> Self {
+        parts.0.into_iter().collect()
+    }
+}
+
+/// What a conversion rewrites: the channels a scope selects, or the parts a user picked.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify))]
+pub enum Selection {
+    Scope(ChannelScope),
+    Parts(Parts),
+}
+
+impl Default for Selection {
+    fn default() -> Self {
+        Self::Scope(ChannelScope::default())
+    }
+}
+
+impl From<ChannelScope> for Selection {
+    fn from(scope: ChannelScope) -> Self {
+        Self::Scope(scope)
+    }
+}
+
+impl From<Parts> for Selection {
+    fn from(parts: Parts) -> Self {
+        Self::Parts(parts)
+    }
+}
+
+/// Why converting a file, or reading the hits converting it would rewrite, failed.
+#[derive(thiserror::Error, Debug)]
+pub enum ConvertError {
+    #[error(transparent)]
+    Codec(#[from] CodecError),
+    #[error("the file has no notes on channel {} of track {}", .0.channel, .0.track)]
+    NoSuchPart(Part),
 }
 
 /// The note of every hit of each part of `smf`, in order.
@@ -147,84 +204,118 @@ pub(crate) fn track_names(smf: &Smf) -> Vec<Option<String>> {
         .collect()
 }
 
-/// Every part of `smf` that has a hit.
-pub(crate) fn parts_with_hits(smf: &Smf) -> PartSet {
-    smf.tracks
+/// One filter per track of the file it was made for, in track order.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct TrackFilters(Vec<ChannelFilter>);
+
+impl TrackFilters {
+    fn uniform(smf: &Smf, filter: ChannelFilter) -> Self {
+        Self(vec![filter; smf.tracks.len()])
+    }
+
+    /// Accepting in each track of `smf` the channels `parts` names in it, every one of which
+    /// has hits in `smf`.
+    fn of<'p>(smf: &Smf, parts: impl IntoIterator<Item = &'p Part>) -> Self {
+        let mut filters = vec![ChannelFilter::NONE; smf.tracks.len()];
+        for part in parts {
+            let filter = &mut filters[part.track.index()];
+            *filter = filter.with(part.channel);
+        }
+        Self(filters)
+    }
+
+    /// Whether it accepts `part`, a part with hits in its file.
+    fn accepts(&self, part: Part) -> bool {
+        self.0[part.track.index()].accepts(part.channel)
+    }
+}
+
+impl IntoIterator for TrackFilters {
+    type Item = ChannelFilter;
+    type IntoIter = std::vec::IntoIter<ChannelFilter>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+/// What a selection comes to for one file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum Choice {
+    /// Rewrites what `filters` accept, which are the parts with hits in `picked`; leaves
+    /// `offers` as they are: parts beside channel-10 hits in their track that nothing says
+    /// are drums.
+    Convert {
+        filters: TrackFilters,
+        picked: PartSet,
+        offers: PartSet,
+    },
+    /// Rewrites nothing: these parts have hits, none on channel 10, and only the user can
+    /// tell which are the drums.
+    Ask(Parts),
+}
+
+/// What `selection` rewrites in `smf`, or the picked part `smf` has no hit in. `Auto` takes
+/// every channel-10 part when the file has one, offering the other parts of their tracks;
+/// else its one part with hits; else it asks.
+pub(crate) fn choose(smf: &Smf, selection: &Selection) -> Result<Choice, Part> {
+    let present: PartSet = part_hits(smf).into_keys().collect();
+    let (filters, offers) = match selection {
+        Selection::Parts(parts) => match parts.iter().find(|p| !present.contains(p)) {
+            Some(&missing) => return Err(missing),
+            None => (TrackFilters::of(smf, parts.iter()), PartSet::new()),
+        },
+        Selection::Scope(ChannelScope::All) => (
+            TrackFilters::uniform(smf, ChannelFilter::ALL),
+            PartSet::new(),
+        ),
+        Selection::Scope(ChannelScope::Only(channel)) => (
+            TrackFilters::uniform(smf, ChannelFilter::NONE.with(*channel)),
+            PartSet::new(),
+        ),
+        Selection::Scope(ChannelScope::Auto) => {
+            let (drums, others): (PartSet, PartSet) =
+                present.iter().partition(|p| p.channel == Channel::DRUMS);
+            if drums.is_empty() && others.len() > 1 {
+                return Ok(Choice::Ask(Parts(others)));
+            }
+            let drum_tracks: BTreeSet<TrackNo> = drums.iter().map(|p| p.track).collect();
+            let (offers, alone): (PartSet, PartSet) = others
+                .into_iter()
+                .partition(|p| drum_tracks.contains(&p.track));
+            let picked = if drums.is_empty() { alone } else { drums };
+            (TrackFilters::of(smf, &picked), offers)
+        }
+    };
+    let picked = present
+        .into_iter()
+        .filter(|&p| filters.accepts(p))
+        .collect();
+    Ok(Choice::Convert {
+        filters,
+        picked,
+        offers,
+    })
+}
+
+/// The note of every hit in `smf` that a conversion with `selection` rewrites, track by
+/// track; none when it would ask.
+pub(crate) fn hit_notes(smf: &Smf, selection: &Selection) -> Result<Vec<Note>, Part> {
+    let Choice::Convert { filters, .. } = choose(smf, selection)? else {
+        return Ok(Vec::new());
+    };
+    Ok(smf
+        .tracks
         .iter()
-        .enumerate()
-        .flat_map(|(index, track)| {
+        .zip(filters)
+        .flat_map(|(track, filter)| {
             track.iter().filter_map(move |ev| {
-                hit(&ev.kind).map(|(channel, _)| Part {
-                    track: TrackNo::at(index),
-                    channel,
-                })
+                hit(&ev.kind)
+                    .filter(|&(channel, _)| filter.accepts(channel))
+                    .map(|(_, note)| note)
             })
         })
-        .collect()
-}
-
-/// One filter per track of `smf` that accepts exactly the channels `parts` names in it, or
-/// the first part `smf` has no hit in.
-pub(crate) fn part_filters(smf: &Smf, parts: &PartSet) -> Result<Vec<ChannelFilter>, Part> {
-    let present = parts_with_hits(smf);
-    match parts.iter().find(|p| !present.contains(p)) {
-        Some(&missing) => Err(missing),
-        None => Ok(filters_of(smf, parts)),
-    }
-}
-
-/// One filter per track of `smf` accepting the channels of `parts`, all of which `smf` has.
-fn filters_of(smf: &Smf, parts: &PartSet) -> Vec<ChannelFilter> {
-    let mut filters = vec![ChannelFilter::NONE; smf.tracks.len()];
-    for part in parts {
-        let filter = &mut filters[part.track.index()];
-        *filter = filter.with(part.channel);
-    }
-    filters
-}
-
-/// What `Auto` does with a file.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum AutoChoice {
-    /// Converts `parts`, and offers each of `offers`: a part beside channel-10 hits in their
-    /// track that is left as it is, since nothing says whether it is drums.
-    Picked { parts: PartSet, offers: PartSet },
-    /// Converts nothing: several parts have hits, none on channel 10, and only the user can
-    /// tell which are the drums.
-    Ask(PartSet),
-}
-
-/// `Auto`'s choice for `smf`: every channel-10 part when it has one; else its one part with
-/// hits; else ask.
-pub(crate) fn auto_choice(smf: &Smf) -> AutoChoice {
-    let present = parts_with_hits(smf);
-    let (drums, others): (PartSet, PartSet) =
-        present.iter().partition(|p| p.channel == Channel::DRUMS);
-    if drums.is_empty() {
-        return if others.len() <= 1 {
-            AutoChoice::Picked {
-                parts: others,
-                offers: PartSet::new(),
-            }
-        } else {
-            AutoChoice::Ask(others)
-        };
-    }
-    let drum_tracks: BTreeSet<TrackNo> = drums.iter().map(|p| p.track).collect();
-    let offers = others
-        .into_iter()
-        .filter(|p| drum_tracks.contains(&p.track))
-        .collect();
-    AutoChoice::Picked {
-        parts: drums,
-        offers,
-    }
-}
-
-impl fmt::Display for TrackNo {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
-    }
+        .collect())
 }
 
 const AUTO: &str = "auto";
@@ -301,34 +392,6 @@ impl ChannelScope {
             .into_iter()
             .chain(ChannelIdx::all().map(|channel| Self::Only(Channel(channel))))
     }
-
-    /// One filter per track of `smf`, in track order.
-    pub(crate) fn resolve(self, smf: &Smf) -> Vec<ChannelFilter> {
-        let uniform = |filter| vec![filter; smf.tracks.len()];
-        match self {
-            Self::Only(channel) => uniform(ChannelFilter::NONE.with(channel)),
-            Self::All => uniform(ChannelFilter::ALL),
-            Self::Auto => match auto_choice(smf) {
-                AutoChoice::Picked { parts, .. } => filters_of(smf, &parts),
-                AutoChoice::Ask(_) => uniform(ChannelFilter::NONE),
-            },
-        }
-    }
-
-    /// The note of every hit in `smf` that a conversion with this scope rewrites, track by
-    /// track.
-    pub(crate) fn hit_notes<'a>(self, smf: &'a Smf<'a>) -> impl Iterator<Item = Note> + 'a {
-        smf.tracks
-            .iter()
-            .zip(self.resolve(smf))
-            .flat_map(|(track, filter)| {
-                track.iter().filter_map(move |ev| {
-                    hit(&ev.kind)
-                        .filter(|&(channel, _)| filter.accepts(channel))
-                        .map(|(_, note)| note)
-                })
-            })
-    }
 }
 
 /// The channel and note of `kind` when it sounds a note: a note-on with a velocity.
@@ -368,17 +431,55 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_part_reads_and_prints_as_track_colon_channel() {
+    fn a_part_reads_as_track_colon_channel() {
         let part: Part = "2:10".parse().unwrap();
         assert_eq!((part.track.index(), part.channel), (1, Channel::DRUMS));
+    }
+
+    #[test]
+    fn a_part_prints_as_track_colon_channel() {
+        let part = Part {
+            track: TrackNo::at(1),
+            channel: Channel::DRUMS,
+        };
         assert_eq!(part.to_string(), "2:10");
     }
 
     #[test]
-    fn a_part_counts_both_from_one() {
-        for bad in ["0:1", "1:0", "1:17", "1", "1:", ":1", "a:b"] {
-            assert!(bad.parse::<Part>().is_err(), "{bad}");
-        }
+    fn a_part_track_counts_from_one() {
+        assert!("0:1".parse::<Part>().is_err());
+    }
+
+    #[test]
+    fn a_part_channel_counts_from_one() {
+        assert!("1:0".parse::<Part>().is_err());
+    }
+
+    #[test]
+    fn a_part_channel_ends_at_sixteen() {
+        assert!("1:17".parse::<Part>().is_err());
+    }
+
+    #[test]
+    fn a_part_without_a_channel_is_rejected() {
+        assert!("1".parse::<Part>().is_err());
+        assert!("1:".parse::<Part>().is_err());
+    }
+
+    #[test]
+    fn a_part_without_a_track_is_rejected() {
+        assert!(":1".parse::<Part>().is_err());
+    }
+
+    #[test]
+    fn a_part_of_words_is_rejected() {
+        assert!("a:b".parse::<Part>().is_err());
+    }
+
+    #[test]
+    fn no_parts_are_not_a_selection() {
+        assert_eq!(Parts::new(PartSet::new()), None);
+        assert!(serde_json::from_str::<Parts>("[]").is_err());
     }
 
     #[test]

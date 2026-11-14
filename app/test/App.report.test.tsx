@@ -99,6 +99,6 @@ describe('App loss report', () => {
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Drum channel' }), '10');
     await userEvent.click(screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ }));
     await waitFor(() => expect(stub.remap).toHaveBeenCalled());
-    expect(vi.mocked(stub.remap).mock.calls[0][4]).toBe('10');
+    expect(vi.mocked(stub.remap).mock.calls[0][4]).toEqual({ scope: '10' });
   });
 });

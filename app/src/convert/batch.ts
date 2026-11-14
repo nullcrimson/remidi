@@ -1,15 +1,16 @@
 import { toAppError, type AppError } from '../core/errors';
 import type { EnginePair } from '../core/enginePair';
 import type { LoadedFile } from '../core/files';
-import type { ChannelScope, Damage, Midiremap, MissingDrums, Overrides, Part, Report, Unrecognized } from '../core/midiremap';
+import type { ChannelScope, Damage, Midiremap, MissingDrums, Overrides, Part, PartSummary, Report, Unrecognized } from '../core/midiremap';
+import { selectionOf } from '../core/part';
 
 interface ConvertedFile {
-  name: string;
+  input: LoadedFile;
   bytes: Uint8Array<ArrayBuffer>;
   report: Report;
   damage: Damage[];
   picked: Part[];
-  offers: Part[];
+  offers: PartSummary[];
 }
 
 export interface FailedFile {
@@ -32,20 +33,18 @@ export function runBatch(
   channel: ChannelScope,
   missing: MissingDrums,
   unrecognized: Unrecognized,
-  core: Pick<Midiremap, 'remap' | 'remapParts'>,
+  core: Pick<Midiremap, 'remap'>,
 ): BatchResult {
   const result: BatchResult = { ok: [], failed: [], asked: [] };
   for (const f of files) {
     try {
-      const conversion = f.parts !== undefined && f.parts.length > 0
-        ? core.remapParts(f.bytes, pair, ov, f.parts, missing, unrecognized)
-        : core.remap(f.bytes, pair, ov, channel, missing, unrecognized);
+      const conversion = core.remap(f.bytes, pair, ov, selectionOf(f.parts, channel), missing, unrecognized);
       if (conversion.kind === 'ask') {
         result.asked.push(f.name);
         continue;
       }
       const { bytes, report, damage, picked, offers } = conversion;
-      result.ok.push({ name: f.name, bytes, report, damage, picked, offers });
+      result.ok.push({ input: f, bytes, report, damage, picked, offers });
     } catch (e) {
       result.failed.push({ name: f.name, error: toAppError(e) });
     }

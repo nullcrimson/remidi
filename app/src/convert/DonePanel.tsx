@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { saveBlob } from '../core/download';
 import { engineCode } from '../core/engineCode';
 import type { EngineNames, EnginePair } from '../core/enginePair';
-import type { Part, Unrecognized } from '../core/midiremap';
+import type { Unrecognized } from '../core/midiremap';
+import type { PickedParts } from '../core/part';
 import { reportLink } from '../report/reportLink';
 import type { FailedFile } from './batch';
 import { ErrorText } from '../ui/ErrorText';
@@ -51,7 +52,7 @@ export function DonePanel({
   onDropMissing?: () => void;
   editedDrums?: number;
   offers?: Offer[];
-  onAlsoConvert?: (file: string, parts: Part[]) => void;
+  onAlsoConvert?: (file: string, parts: PickedParts) => void;
 }) {
   const { translator } = useLocale();
   const { t, locale } = translator;

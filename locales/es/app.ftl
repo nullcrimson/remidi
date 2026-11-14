@@ -23,6 +23,7 @@ error-unknown-engine =
        *[target] destino
     } desconocido: “{ $id }”
 error-bad-midi = El conversor no puede leer este archivo: no parece un MIDI
+error-no-such-part = Este archivo no tiene notas en una parte elegida como batería
 error-bad-preset = No es un archivo de preset
 error-bad-overrides = No se pudieron leer los cambios de notas
 error-bad-missing = Opción desconocida para las piezas que faltan
@@ -81,7 +82,7 @@ convert-error = Error: { $error }
 notice-dismiss = Descartar
 channel-label = Canal de batería
 channel-tip-title = Qué notas se convierten
-channel-tip = Auto convierte todas las pistas que usan el canal 10 —el canal de batería de General MIDI— y no toca los demás instrumentos. Si tu batería está en otro canal, elige ese canal o Todos los canales.
+channel-tip = Auto convierte el canal 10 —el canal de batería de General MIDI— y deja en paz los demás instrumentos; los otros canales de una pista de batería se ofrecen después de convertir. Un archivo sin canal 10 convierte su única parte con notas o te pregunta qué partes son la batería. Elige un canal o Todos para convertir por canal.
 missing-label = Piezas que faltan
 missing-tip-title = Si al plugin de destino le falta una pieza
 missing-tip = Reemplazar la cambia por la pieza más parecida que tenga el plugin de destino: un China pasa a un crash, el Tom 4 al Tom 3. Quitar la saca del archivo. Las ghost notes, los rimshots y otras formas de tocar una pieza que el destino sí tiene siempre pasan a un golpe normal en esa pieza.

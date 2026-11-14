@@ -55,6 +55,8 @@ const keys = (o: object) => Object.keys(o).sort();
 const kind = (f: () => unknown) => (thrown(f) as { kind: string }).kind;
 const first = <T extends object>(xs: T[]) => keys(xs[0]);
 
+const auto = (bytes: Uint8Array) => ({ bytes, selection: { scope: 'auto' as const } });
+
 function done(conversion: Conversion): Extract<Conversion, { kind: 'done' }> {
   if (conversion.kind !== 'done') throw new Error('the conversion asked which parts are drums');
   return conversion;
@@ -158,18 +160,18 @@ describe('real WASM module', () => {
   });
 
   it('fits every engine to the hits of the files, best first', () => {
-    const { hits, ranked } = real.source_fits([MIDI, CHINA_MIDI], 'auto');
+    const { hits, ranked } = real.source_fits([auto(MIDI), auto(CHINA_MIDI)]);
     expect(ranked).toHaveLength(real.engine_catalog().length);
     expect([hits, ranked.find((f) => f.engine === 'ggd_invasion')]).toEqual([3, { engine: 'ggd_invasion', recognized: 3 }]);
     expect(ranked.map((f) => f.recognized)).toEqual(ranked.map((f) => f.recognized).sort((a, b) => b - a));
   });
 
   it('leaves a file that does not parse out of a fit', () => {
-    expect(real.source_fits([MIDI, new Uint8Array([1, 2])], 'auto').hits).toBe(2);
+    expect(real.source_fits([auto(MIDI), auto(new Uint8Array([1, 2]))]).hits).toBe(2);
   });
 
   it('builds a sample groove whose every hit the engine it was built for recognizes', () => {
-    const { hits, ranked } = real.source_fits([real.sample_file('ggd_invasion')], 'auto');
+    const { hits, ranked } = real.source_fits([auto(real.sample_file('ggd_invasion'))]);
     expect(hits).toBeGreaterThan(0);
     expect(ranked.find((f) => f.engine === 'ggd_invasion')?.recognized).toBe(hits);
   });

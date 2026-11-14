@@ -179,7 +179,7 @@ describe('useRemapper convert path', () => {
     act(() => result.current.chooseTgt(engineId('ezdrummer')));
     act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
     await act(() => result.current.convert());
-    expect(vi.mocked(stub.remap).mock.calls[0][4]).toBe('auto');
+    expect(vi.mocked(stub.remap).mock.calls[0][4]).toEqual({ scope: 'auto' });
   });
 
   it('converts with the chosen channel', async () => {
@@ -190,7 +190,7 @@ describe('useRemapper convert path', () => {
     act(() => result.current.addFiles([{ bytes: new Uint8Array([9]), name: 'groove.mid' }]));
     act(() => result.current.setChannel('10'));
     await act(() => result.current.convert());
-    expect(vi.mocked(stub.remap).mock.calls[0][4]).toBe('10');
+    expect(vi.mocked(stub.remap).mock.calls[0][4]).toEqual({ scope: '10' });
   });
 
   it('clears finished results when the channel changes', async () => {

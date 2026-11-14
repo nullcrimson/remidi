@@ -65,7 +65,7 @@ describe('the closer sources notice', () => {
     await pickEngines();
     await addMidi('groove.mid');
     await screen.findByText(/notes in your file aren't in the/);
-    expect(vi.mocked(stub.source_fits).mock.lastCall).toEqual([[new Uint8Array([1])], 'auto']);
+    expect(vi.mocked(stub.source_fits).mock.lastCall).toEqual([[{ bytes: new Uint8Array([1]), selection: { scope: 'auto' } }]]);
   });
 
   it('suggests at most three engines, leaving out the target', async () => {

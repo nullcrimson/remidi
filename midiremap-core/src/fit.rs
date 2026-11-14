@@ -1,11 +1,14 @@
-use std::{cmp::Reverse, iter::Sum, ops::AddAssign};
+use std::{cmp::Reverse, collections::BTreeMap, iter::Sum, ops::AddAssign};
 
 use serde::Serialize;
 
 use crate::{
     canon::Canon,
     catalog::Catalog,
-    channel::{auto_choice, part_hits, track_names, AutoChoice, ChannelScope, Part},
+    channel::{
+        choose, hit_notes, part_hits, track_names, ChannelScope, Choice, ConvertError, Part,
+        Selection,
+    },
     engine_map::{EngineId, EngineMap},
     midi::{self, CodecError, Parsed},
     note::Note,
@@ -35,18 +38,22 @@ impl NoteHits {
     }
 
     fn played_on(&self, engine: &EngineMap) -> Plays {
-        let mut drums: Vec<PlayedDrum> = Vec::new();
+        let mut by_drum: BTreeMap<Canon, u32> = BTreeMap::new();
         let mut unknown = 0;
-        for note in Note::ALL.into_iter().filter(|&n| self.get(n) > 0) {
-            let hits = self.get(note);
-            match engine.decode(note) {
-                Some(canon) => match drums.iter_mut().find(|d| d.canon == canon) {
-                    Some(drum) => drum.hits += hits,
-                    None => drums.push(PlayedDrum { canon, hits }),
-                },
+        let decoded = Note::ALL
+            .into_iter()
+            .filter(|&note| self.get(note) > 0)
+            .map(|note| (engine.decode(note), self.get(note)));
+        for (canon, hits) in decoded {
+            match canon {
+                Some(canon) => *by_drum.entry(canon).or_default() += hits,
                 None => unknown += hits,
             }
         }
+        let mut drums: Vec<PlayedDrum> = by_drum
+            .into_iter()
+            .map(|(canon, hits)| PlayedDrum { canon, hits })
+            .collect();
         drums.sort_by_key(|d| Reverse(d.hits));
         Plays { drums, unknown }
     }
@@ -60,6 +67,16 @@ impl AddAssign<&Self> for NoteHits {
     }
 }
 
+impl FromIterator<Note> for NoteHits {
+    fn from_iter<I: IntoIterator<Item = Note>>(notes: I) -> Self {
+        let mut hits = Self::default();
+        for note in notes {
+            hits.0[note.index()] += 1;
+        }
+        hits
+    }
+}
+
 impl Sum for NoteHits {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Self::default(), |mut total, hits| {
@@ -69,14 +86,12 @@ impl Sum for NoteHits {
     }
 }
 
-/// The hits on each note among the note-ons a conversion with `scope` rewrites in `midi`.
-pub fn note_hits(midi: &[u8], scope: ChannelScope) -> Result<NoteHits, CodecError> {
+/// The hits on each note among the note-ons a conversion with `selection` rewrites in
+/// `midi`; none when it would ask which parts are the drums.
+pub fn note_hits(midi: &[u8], selection: impl Into<Selection>) -> Result<NoteHits, ConvertError> {
     let smf = midi::parse(midi)?.smf;
-    let mut hits = NoteHits::default();
-    for note in scope.hit_notes(&smf) {
-        hits.0[note.index()] += 1;
-    }
-    Ok(hits)
+    let notes = hit_notes(&smf, &selection.into()).map_err(ConvertError::NoSuchPart)?;
+    Ok(notes.into_iter().collect())
 }
 
 /// One drum a part plays as a source layout, and how many hits it gets.
@@ -115,7 +130,7 @@ pub fn part_summaries(
     midi: &[u8],
     source: Option<&EngineMap>,
 ) -> Result<Vec<PartSummary>, CodecError> {
-    Ok(summaries(&midi::parse(midi)?, source))
+    Ok(summaries(&midi::parse(midi)?, source, |_| true))
 }
 
 /// The parts of `midi`, as [`part_summaries`] gives them, when `Auto` would ask which are the
@@ -125,21 +140,26 @@ pub fn auto_question(
     source: Option<&EngineMap>,
 ) -> Result<Option<Vec<PartSummary>>, CodecError> {
     let parsed = midi::parse(midi)?;
-    Ok(match auto_choice(&parsed.smf) {
-        AutoChoice::Ask(_) => Some(summaries(&parsed, source)),
-        AutoChoice::Picked { .. } => None,
+    let auto = Selection::from(ChannelScope::Auto);
+    Ok(match choose(&parsed.smf, &auto) {
+        Ok(Choice::Ask(_)) => Some(summaries(&parsed, source, |_| true)),
+        Ok(Choice::Convert { .. }) | Err(_) => None,
     })
 }
 
-fn summaries(parsed: &Parsed, source: Option<&EngineMap>) -> Vec<PartSummary> {
+/// The parts of `parsed` with hits that `keep` keeps, in track and channel order, each played
+/// as `source` when one is given.
+pub(crate) fn summaries(
+    parsed: &Parsed,
+    source: Option<&EngineMap>,
+    keep: impl Fn(Part) -> bool,
+) -> Vec<PartSummary> {
     let names = track_names(&parsed.smf);
     part_hits(&parsed.smf)
         .into_iter()
+        .filter(|&(part, _)| keep(part))
         .map(|(part, notes)| {
-            let mut hits = NoteHits::default();
-            for note in notes {
-                hits.0[note.index()] += 1;
-            }
+            let hits: NoteHits = notes.into_iter().collect();
             PartSummary {
                 part,
                 track_name: names[part.track.index()].clone(),
@@ -296,6 +316,11 @@ mod tests {
             [("kick.main".to_owned(), 2), ("snare1.hit".to_owned(), 1)]
         );
         assert_eq!(plays.unknown, 1);
+    }
+
+    #[test]
+    fn a_part_summary_without_a_source_plays_nothing() {
+        let bytes = tracks(&[&[(0, 1, on(36))]]);
         assert!(part_summaries(&bytes, None).unwrap()[0].plays.is_none());
     }
 
@@ -395,7 +420,7 @@ mod tests {
         let src = catalog.get("ggd_invasion").unwrap();
         let tgt = catalog.get("ezdrummer").unwrap();
         let mapping = Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest);
-        let report = convert(&midi, &mapping, ChannelScope::Auto, None)
+        let report = convert(&midi, &mapping, ChannelScope::Auto)
             .map(|c| c.done().expect("converted"))
             .unwrap()
             .report;

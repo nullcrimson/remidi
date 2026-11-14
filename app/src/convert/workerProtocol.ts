@@ -2,6 +2,7 @@ import { toAppError, type AppError } from '../core/errors';
 import type { EnginePair } from '../core/enginePair';
 import type { LoadedFile } from '../core/files';
 import type { ChannelScope, LoadMidiremap, MissingDrums, Overrides, SourceFits, Unrecognized } from '../core/midiremap';
+import { selectionOf } from '../core/part';
 import { runBatch, type BatchResult } from './batch';
 
 /** A batch as the converter hands it to its worker. */
@@ -42,7 +43,10 @@ export async function answerHere(load: LoadMidiremap, request: WorkerRequest): P
       return { kind: 'convert', result: runBatch(files, pair, ov, channel, missing, unrecognized, core) };
     }
     case 'fit':
-      return { kind: 'fit', fits: core.sourceFits(request.files.map((f) => f.bytes), request.channel) };
+      return {
+        kind: 'fit',
+        fits: core.sourceFits(request.files.map((f) => ({ bytes: f.bytes, selection: selectionOf(f.parts, request.channel) }))),
+      };
   }
 }
 

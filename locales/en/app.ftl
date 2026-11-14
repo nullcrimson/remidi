@@ -23,6 +23,7 @@ error-unknown-engine =
        *[target] target
     } engine '{ $id }'
 error-bad-midi = Not a MIDI file this converter can read
+error-no-such-part = This file has no notes on a part picked as its drums
 error-bad-preset = Not a preset file
 error-bad-overrides = The note edits couldn't be read
 error-bad-missing = Unknown missing-drums setting
@@ -81,7 +82,7 @@ convert-error = Error: { $error }
 notice-dismiss = Dismiss
 channel-label = Drum channel
 channel-tip-title = Which notes get converted
-channel-tip = Auto converts every track that uses channel 10 — the General MIDI drum channel — and leaves other instruments alone. Pick a channel or All if your drums are elsewhere.
+channel-tip = Auto converts channel 10 — the General MIDI drum channel — and leaves the other instruments alone; other channels in a drum track are offered after converting. A file with no channel 10 converts its one part with notes, or asks you which parts are the drums. Pick a channel or All to convert by channel instead.
 missing-label = Missing drums
 missing-tip-title = When the target lacks a drum
 missing-tip = Nearest plays it on the closest drum the target has — a China on a crash, Tom 4 on Tom 3. Drop leaves it out. Ghost notes, rimshots and other ways of playing a drum the target does have always fall back to a plain hit on that drum.

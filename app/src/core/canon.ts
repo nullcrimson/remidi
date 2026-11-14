@@ -8,6 +8,12 @@ export function vocabularyOf(drums: CanonEntry[]): Vocabulary {
   return new Map(drums.map((d) => [d.canon, d.canon]));
 }
 
+/** Each drum's label in `drums`, a drum it lacks named by its key. */
+export function canonLabels(drums: CanonEntry[]): (canon: Canon) => string {
+  const labels = new Map(drums.map((d) => [d.canon, d.label]));
+  return (canon) => labels.get(canon) ?? canon;
+}
+
 /** The entries of a record keyed by drum, each key as the drum it was written under. */
 export function byCanon<V>(record: Record<Canon, V>): [Canon, V][] {
   return Object.entries(record) as [Canon, V][];

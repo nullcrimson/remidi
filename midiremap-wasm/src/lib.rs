@@ -1,11 +1,11 @@
 use std::{collections::BTreeMap, error::Error};
 
 use midiremap_core::{
-    auto_question as core_auto_question, convert, note_hits, parse_preset, part_summaries,
-    rack_file, sample_file as core_sample_file, source_fits as core_source_fits, Canon, CanonEntry,
-    Catalog, ChannelScope, Conversion, Drum, EngineId, EngineMap, Family, LoadedPreset, Mapping,
-    MissingDrums, Note, NoteHits, OctaveBase, Overrides, Part, PartSet, PartSummary, PresetError,
-    PresetName, RackFile, SourceFits, Unrecognized, VoicePlan,
+    auto_question as core_auto_question, convert, note_hits, parse_preset, rack_file,
+    sample_file as core_sample_file, source_fits as core_source_fits, Canon, CanonEntry, Catalog,
+    Conversion, ConvertError, Drum, EngineId, EngineMap, Family, LoadedPreset, Mapping,
+    MissingDrums, Note, NoteHits, OctaveBase, Overrides, PartSummary, PresetError, PresetName,
+    RackFile, Selection, SourceFits, Unrecognized, VoicePlan,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -36,6 +36,7 @@ pub enum WasmError {
     BadOverrides { detail: String },
     BadMissing { detail: String },
     BadMidi { detail: String },
+    NoSuchPart { detail: String },
     BadPreset { detail: String },
     Internal { detail: String },
 }
@@ -45,6 +46,19 @@ fn chain(err: &(dyn Error + 'static)) -> String {
         .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join(": ")
+}
+
+impl From<ConvertError> for WasmError {
+    fn from(err: ConvertError) -> Self {
+        match err {
+            ConvertError::Codec(codec) => Self::BadMidi {
+                detail: chain(&codec),
+            },
+            ConvertError::NoSuchPart(_) => Self::NoSuchPart {
+                detail: err.to_string(),
+            },
+        }
+    }
 }
 
 impl From<WasmError> for JsValue {
@@ -88,7 +102,7 @@ fn to_js_all<T: Tsify + Serialize>(items: &[T]) -> Result<Vec<Ts<T>>, WasmError>
 }
 
 struct Settings {
-    scope: ChannelScope,
+    selection: Selection,
     missing: MissingDrums,
     unrecognized: Unrecognized,
 }
@@ -114,7 +128,6 @@ fn convert_file(
     tgt_id: &str,
     ov: &Overrides,
     settings: &Settings,
-    parts: Option<&PartSet>,
 ) -> Result<Conversion, WasmError> {
     let mapping = mapping(
         catalog,
@@ -124,8 +137,7 @@ fn convert_file(
         settings.missing,
         settings.unrecognized,
     )?;
-    convert(mid, &mapping, settings.scope, parts)
-        .map_err(|e| WasmError::BadMidi { detail: chain(&e) })
+    Ok(convert(mid, &mapping, settings.selection.clone())?)
 }
 
 #[wasm_bindgen]
@@ -134,67 +146,18 @@ pub fn remap(
     src_id: &str,
     tgt_id: &str,
     overrides: Option<Ts<Overrides>>,
-    channel: Option<Ts<ChannelScope>>,
+    selection: Option<Ts<Selection>>,
     missing: Option<Ts<MissingDrums>>,
     unrecognized: Option<Ts<Unrecognized>>,
 ) -> Result<Ts<Conversion>, WasmError> {
     let ov = from_js(overrides, |detail| WasmError::BadOverrides { detail })?;
     let settings = Settings {
-        scope: from_js(channel, |detail| WasmError::Internal { detail })?,
+        selection: from_js(selection, |detail| WasmError::Internal { detail })?,
         missing: from_js(missing, |detail| WasmError::BadMissing { detail })?,
         unrecognized: from_js(unrecognized, |detail| WasmError::Internal { detail })?,
     };
-    let out = convert_file(Catalog::shared(), mid, src_id, tgt_id, &ov, &settings, None)?;
+    let out = convert_file(Catalog::shared(), mid, src_id, tgt_id, &ov, &settings)?;
     Ok(out.into_ts()?)
-}
-
-/// [`remap`] of only the `parts` a user picked as the file's drums; every other part stays
-/// as it is.
-#[wasm_bindgen]
-pub fn remap_parts(
-    mid: &[u8],
-    src_id: &str,
-    tgt_id: &str,
-    overrides: Option<Ts<Overrides>>,
-    parts: Vec<Ts<Part>>,
-    missing: Option<Ts<MissingDrums>>,
-    unrecognized: Option<Ts<Unrecognized>>,
-) -> Result<Ts<Conversion>, WasmError> {
-    let ov = from_js(overrides, |detail| WasmError::BadOverrides { detail })?;
-    let parts: PartSet = parts
-        .iter()
-        .map(Ts::to_rust)
-        .collect::<Result<_, _>>()
-        .map_err(|e| WasmError::Internal {
-            detail: e.to_string(),
-        })?;
-    let settings = Settings {
-        scope: ChannelScope::default(),
-        missing: from_js(missing, |detail| WasmError::BadMissing { detail })?,
-        unrecognized: from_js(unrecognized, |detail| WasmError::Internal { detail })?,
-    };
-    let out = convert_file(
-        Catalog::shared(),
-        mid,
-        src_id,
-        tgt_id,
-        &ov,
-        &settings,
-        Some(&parts),
-    )?;
-    Ok(out.into_ts()?)
-}
-
-/// Every part of `mid` with hits, each played as `src_id`'s layout when one is given: what a
-/// user picks the drum parts from.
-#[wasm_bindgen]
-pub fn file_parts(mid: &[u8], src_id: Option<String>) -> Result<Vec<Ts<PartSummary>>, WasmError> {
-    let source = src_id
-        .map(|id| engine(Catalog::shared(), &id, Role::Source))
-        .transpose()?;
-    let parts =
-        part_summaries(mid, source).map_err(|e| WasmError::BadMidi { detail: chain(&e) })?;
-    to_js_all(&parts)
 }
 
 /// The parts of `mid`, played as `src_id`'s layout when one is given, when converting it under
@@ -388,30 +351,34 @@ pub fn engine_catalog() -> Result<Vec<Ts<Engine>>, WasmError> {
     to_js_all(&engines(Catalog::shared()))
 }
 
-/// The bytes of the files a fit is computed over.
+/// A file a fit is computed over, and what converting it would rewrite.
+#[derive(Deserialize, Tsify)]
+pub struct FitFile {
+    #[tsify(type = "Uint8Array")]
+    bytes: ByteBuf,
+    selection: Selection,
+}
+
+/// The files a fit is computed over.
 #[derive(Deserialize, Tsify)]
 #[serde(transparent)]
-#[tsify(type = "Uint8Array[]")]
-pub struct MidiFiles(Vec<ByteBuf>);
+pub struct FitFiles(Vec<FitFile>);
 
-fn fits_of(catalog: &Catalog, mids: &[ByteBuf], scope: ChannelScope) -> SourceFits {
-    let hits: NoteHits = mids
+fn fits_of(catalog: &Catalog, files: &[FitFile]) -> SourceFits {
+    let hits: NoteHits = files
         .iter()
-        .filter_map(|mid| note_hits(mid, scope).ok())
+        .filter_map(|file| note_hits(&file.bytes, file.selection.clone()).ok())
         .sum();
     core_source_fits(catalog, &hits)
 }
 
-/// Every engine fitted to the hits of all `mids` that a conversion with `channel` reads,
-/// best first. A file that does not parse is left out: converting it says why.
+/// Every engine fitted to the hits of all `files` that converting each with its selection
+/// reads, best first. A file that does not parse, or lacks a picked part, is left out:
+/// converting it says why.
 #[wasm_bindgen]
-pub fn source_fits(
-    mids: Ts<MidiFiles>,
-    channel: Option<Ts<ChannelScope>>,
-) -> Result<Ts<SourceFits>, WasmError> {
-    let MidiFiles(mids) = mids.to_rust()?;
-    let scope = from_js(channel, |detail| WasmError::Internal { detail })?;
-    Ok(fits_of(Catalog::shared(), &mids, scope).into_ts()?)
+pub fn source_fits(files: Ts<FitFiles>) -> Result<Ts<SourceFits>, WasmError> {
+    let FitFiles(files) = files.to_rust()?;
+    Ok(fits_of(Catalog::shared(), &files).into_ts()?)
 }
 
 fn sample_of(catalog: &Catalog, engine_id: &str) -> Result<Vec<u8>, WasmError> {
@@ -427,7 +394,7 @@ pub fn sample_file(engine: &str) -> Result<Vec<u8>, WasmError> {
 
 #[cfg(test)]
 mod tests {
-    use midiremap_core::Converted;
+    use midiremap_core::{ChannelScope, Converted};
     use midiremap_testkit::{drums, on};
 
     use super::*;
@@ -576,11 +543,10 @@ mod tests {
             "ezdrummer",
             &Overrides::default(),
             &Settings {
-                scope: ChannelScope::Auto,
+                selection: Selection::default(),
                 missing: MissingDrums::Nearest,
                 unrecognized: Unrecognized::Remove,
             },
-            None,
         )
         .err()
         .unwrap();
@@ -600,11 +566,10 @@ mod tests {
             "ezdrummer",
             &Overrides::default(),
             &Settings {
-                scope: ChannelScope::Auto,
+                selection: Selection::default(),
                 missing: MissingDrums::Nearest,
                 unrecognized,
             },
-            None,
         )
         .unwrap()
         .done()
@@ -651,8 +616,14 @@ mod tests {
     }
 
     fn ggd_fit(mids: &[&[u8]]) -> (u32, u32) {
-        let mids: Vec<ByteBuf> = mids.iter().map(|mid| ByteBuf::from(*mid)).collect();
-        let fits = fits_of(&Catalog::builtin(), &mids, ChannelScope::Auto);
+        let files: Vec<FitFile> = mids
+            .iter()
+            .map(|mid| FitFile {
+                bytes: ByteBuf::from(*mid),
+                selection: Selection::default(),
+            })
+            .collect();
+        let fits = fits_of(&Catalog::builtin(), &files);
         let ggd = fits
             .ranked()
             .iter()

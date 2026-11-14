@@ -23,6 +23,7 @@ error-unknown-engine =
        *[target] di destinazione
     } sconosciuto: “{ $id }”
 error-bad-midi = Il convertitore non riesce a leggere questo file: non sembra un file MIDI
+error-no-such-part = Questo file non ha note su una parte scelta come batteria
 error-bad-preset = Non è un file di preset
 error-bad-overrides = Impossibile leggere le modifiche alle note
 error-bad-missing = Impostazione sconosciuta per gli strumenti mancanti
@@ -85,7 +86,7 @@ convert-error = Errore: { $error }
 notice-dismiss = Ignora
 channel-label = Canale batteria
 channel-tip-title = Quali note vengono convertite
-channel-tip = Con Auto vengono convertite tutte le tracce sul canale 10 (il canale della batteria in General MIDI), mentre le altre tracce restano come sono. Se la batteria è su un altro canale, sceglilo oppure scegli Tutti i canali.
+channel-tip = Auto converte il canale 10 — il canale batteria del General MIDI — e lascia stare gli altri strumenti; gli altri canali di una traccia di batteria vengono proposti dopo la conversione. Un file senza canale 10 converte la sua unica parte con note, oppure ti chiede quali parti sono la batteria. Scegli un canale o Tutti per convertire per canale.
 missing-label = Strumenti mancanti
 missing-tip-title = Se nel plugin di destinazione manca uno strumento
 missing-tip = “Sostituisci” usa al suo posto lo strumento più simile del plugin di destinazione: un crash al posto di un China, il Tom 3 al posto del Tom 4. “Rimuovi” toglie le sue note dal file. Se manca solo un'articolazione (ghost note, rimshot…), la nota diventa sempre un colpo normale sullo stesso strumento.

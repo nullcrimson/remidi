@@ -3,14 +3,16 @@ import { engineName } from '../core/enginePair';
 import type { Canon, Part, PartSummary } from '../core/midiremap';
 import { useT } from '../locale/localeContext';
 import { TextButton } from '../ui/TextButton';
-import { canonLabels, partName, samePart, sameTracks, type PartQuestion } from './partQuestions';
+import { canonLabels } from '../core/canon';
+import { partLabel, samePart } from '../core/part';
+import { sameTracks, type PartQuestion } from './partQuestions';
 import type { Remapper } from './useRemapper';
 import type { Picks } from './useConverter';
 
 const SHOWN_DRUMS = 3;
 
 /** What a part's hits play as the source: its most hit drums, then how many more and how many unknown. */
-export function PartPlays({ summary, labelOf }: { summary: PartSummary; labelOf: (canon: Canon) => string }) {
+function PartPlays({ summary, labelOf }: { summary: PartSummary; labelOf: (canon: Canon) => string }) {
   const t = useT();
   const plays = summary.plays;
   if (plays === null) return null;
@@ -75,7 +77,7 @@ function Question({
                 checked={picked.some((p) => samePart(p, s.part))}
                 onChange={() => onPick(question.file, toggled(picked, s.part))}
               />
-              <span>{partName(s, t)}</span>
+              <span>{t(partLabel(s))}</span>
               <span className="font-mono text-label text-t4">{t({ id: 'parts-notes', args: { count: s.hits } })}</span>
               <PartPlays summary={s} labelOf={labelOf} />
             </label>

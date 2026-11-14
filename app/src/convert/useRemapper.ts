@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { vocabularyOf } from '../core/canon';
-import type { ChannelScope, Engine, EngineId, Midiremap, MissingDrums, Note, Part, Unrecognized } from '../core/midiremap';
+import type { ChannelScope, Engine, EngineId, Midiremap, MissingDrums, Note, Unrecognized } from '../core/midiremap';
+import type { PickedParts } from '../core/part';
 import type { OctaveBase } from '../core/notes';
 import { pairOf } from '../core/enginePair';
 import { kindCounts } from '../core/errors';
@@ -158,7 +159,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     [run, missing, picked, questions.waiting],
   );
   const alsoConvert = useCallback(
-    (name: string, parts: Part[]) => {
+    (name: string, parts: PickedParts) => {
       converter.setParts(name, parts);
       return run(missing, withPicks(converter.files, { ...converter.picks, [name]: parts }, channel));
     },

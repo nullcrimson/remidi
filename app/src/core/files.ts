@@ -1,5 +1,6 @@
 import type { Message } from '../generated/i18n';
-import type { Damage, Part, Report } from './midiremap';
+import type { Damage, Part, PartSummary, Report } from './midiremap';
+import type { PickedParts } from './part';
 
 const MID_EXTENSIONS = ['.mid', '.midi'];
 const PRESET_EXTENSIONS = ['.json'];
@@ -80,7 +81,7 @@ export interface LoadedFile {
   bytes: Uint8Array;
   name: string;
   /** The parts picked as the file's drums, when the user picked them. */
-  parts?: Part[];
+  parts?: PickedParts;
 }
 
 export interface FileResult {
@@ -93,5 +94,5 @@ export interface FileResult {
   input: LoadedFile;
   picked: Part[];
   /** Parts left as they are beside channel-10 drums in their track, offered to convert too. */
-  offers: Part[];
+  offers: PartSummary[];
 }

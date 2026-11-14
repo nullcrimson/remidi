@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { PartPicker, type PartPickerSource } from '../../src/convert/PartPicker';
 import { PartOffers } from '../../src/convert/PartOffers';
 import type { PartSummary } from '../../src/core/midiremap';
+import type { PickedParts } from '../../src/core/part';
+import type { Picks } from '../../src/convert/useConverter';
 import { typed } from '../typed';
 
 const KIT = typed<PartSummary>({
@@ -22,9 +24,9 @@ const KIT = typed<PartSummary>({
 });
 const BASS = typed<PartSummary>({ part: { track: 2, channel: 2 }, trackName: null, hits: 30, plays: null });
 
-function remapper(asked: { file: string; parts: PartSummary[] }[], picks: Record<string, PartSummary['part'][]>, setParts = vi.fn()) {
+function remapper(asked: { file: string; parts: PartSummary[] }[], picks: Picks, setParts = vi.fn()) {
   return typed<PartPickerSource>({
-    questions: { asked, waiting: new Set(), offers: [] },
+    questions: { asked, unreadable: [], waiting: new Set(), offers: [] },
     picks,
     src: 'ggd_invasion',
     engines: [{ id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GetGood Drums Invasion' }],
@@ -48,12 +50,16 @@ describe('PartPicker', () => {
     expect(screen.getByText('What each would play as GGD Invasion:')).toBeInTheDocument();
   });
 
-  it('ticks and unticks a part', async () => {
+  it('ticking a part picks it', async () => {
     const setParts = vi.fn();
-    const { rerender } = render(<PartPicker remapper={remapper([{ file: 'song.mid', parts: [KIT, BASS] }], {}, setParts)} />);
+    render(<PartPicker remapper={remapper([{ file: 'song.mid', parts: [KIT, BASS] }], {}, setParts)} />);
     await userEvent.click(screen.getByRole('checkbox', { name: /Kit/ }));
     expect(setParts).toHaveBeenLastCalledWith('song.mid', [KIT.part]);
-    rerender(<PartPicker remapper={remapper([{ file: 'song.mid', parts: [KIT, BASS] }], { 'song.mid': [KIT.part] }, setParts)} />);
+  });
+
+  it('unticking a picked part drops it', async () => {
+    const setParts = vi.fn();
+    render(<PartPicker remapper={remapper([{ file: 'song.mid', parts: [KIT, BASS] }], { 'song.mid': [KIT.part] }, setParts)} />);
     await userEvent.click(screen.getByRole('checkbox', { name: /Kit/ }));
     expect(setParts).toHaveBeenLastCalledWith('song.mid', []);
   });
@@ -75,11 +81,17 @@ describe('PartPicker', () => {
 });
 
 describe('PartOffers', () => {
-  it('says what stayed beside channel 10 and converts it on request', async () => {
-    const onAlsoConvert = vi.fn();
-    const withOffers = [{ track: 1, channel: 10 }, KIT.part];
-    render(<PartOffers offers={[{ file: 'mjod.mid', parts: [KIT], withOffers }]} onAlsoConvert={onAlsoConvert} />);
+  const withOffers: PickedParts = [KIT.part, { track: 1, channel: 10 }];
+  const offers = [{ file: 'mjod.mid', parts: [KIT], withOffers }];
+
+  it('names the notes that stayed beside channel 10', () => {
+    render(<PartOffers offers={offers} onAlsoConvert={vi.fn()} />);
     expect(screen.getByText('12 notes on Track “Kit” · channel 1 in mjod.mid stayed as they were, beside the drums on channel 10.')).toBeInTheDocument();
+  });
+
+  it('Also convert them passes the file with its parts and the offered ones', async () => {
+    const onAlsoConvert = vi.fn();
+    render(<PartOffers offers={offers} onAlsoConvert={onAlsoConvert} />);
     await userEvent.click(screen.getByRole('button', { name: 'Also convert them' }));
     expect(onAlsoConvert).toHaveBeenCalledWith('mjod.mid', withOffers);
   });

@@ -260,7 +260,7 @@ fn balanced(track: &[(u64, TrackEventKind)]) -> bool {
 
 /// The conversion of `midi`, or `None` when `Auto` asks which parts are the drums.
 fn converted(midi: &[u8], mapping: &Mapping, scope: ChannelScope) -> Option<Converted> {
-    convert(midi, mapping, scope, None).unwrap().done()
+    convert(midi, mapping, scope).unwrap().done()
 }
 
 /// The hits of each part of `midi`, named `track:channel` counted from 1, read straight
@@ -324,7 +324,7 @@ proptest! {
         let present = part_hits_of(&midi);
         let all: BTreeSet<String> = present.keys().cloned().collect();
         let drums: BTreeSet<String> = all.iter().filter(|p| p.ends_with(":10")).cloned().collect();
-        match convert(&midi, &pair.mapping(), ChannelScope::Auto, None).unwrap() {
+        match convert(&midi, &pair.mapping(), ChannelScope::Auto).unwrap() {
             Conversion::Done(out) => {
                 let picked = names(&out.picked);
                 if drums.is_empty() {
@@ -338,7 +338,7 @@ proptest! {
             }
             Conversion::Ask { parts, .. } => {
                 prop_assert!(drums.is_empty() && all.len() > 1, "asked about {:?}", all);
-                prop_assert_eq!(names(&parts), all);
+                prop_assert_eq!(names(&Vec::from(parts)), all);
             }
         }
     }
@@ -359,7 +359,7 @@ proptest! {
         let whole = converted(&midi, &pair.mapping(), ChannelScope::All).unwrap();
         prop_assert!(whole.damage.is_empty(), "{:?}", whole.damage);
         let short = &midi[..cut.index(midi.len())];
-        if let Ok(Conversion::Done(read)) = convert(short, &pair.mapping(), ChannelScope::All, None) {
+        if let Ok(Conversion::Done(read)) = convert(short, &pair.mapping(), ChannelScope::All) {
             prop_assert!(
                 !read.damage.is_empty() || read.report.hits() == whole.report.hits(),
                 "cut to {} of {} bytes: {} of {} hits, no damage",

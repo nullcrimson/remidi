@@ -23,6 +23,7 @@ error-unknown-engine =
        *[target] docelowa
     } „{ $id }”
 error-bad-midi = Konwerter nie może odczytać tego pliku — to chyba nie jest MIDI
+error-no-such-part = Ten plik nie ma nut w partii wybranej jako perkusja
 error-bad-preset = To nie jest plik presetu
 error-bad-overrides = Nie udało się odczytać zmian nut
 error-bad-missing = Nieznane ustawienie brakujących instrumentów
@@ -85,7 +86,7 @@ convert-error = Błąd: { $error }
 notice-dismiss = Zamknij
 channel-label = Kanał perkusji
 channel-tip-title = Które nuty są konwertowane
-channel-tip = Auto konwertuje każdą ścieżkę na kanale 10 — kanale perkusji General MIDI — i nie rusza innych instrumentów. Wybierz kanał lub Wszystkie, jeśli perkusja jest gdzie indziej.
+channel-tip = Auto konwertuje kanał 10 — kanał perkusji General MIDI — i zostawia inne instrumenty w spokoju; pozostałe kanały ścieżki perkusji są proponowane po konwersji. Plik bez kanału 10 konwertuje swoją jedyną partię z nutami albo pyta, które partie to perkusja. Wybierz kanał lub Wszystkie, aby konwertować według kanału.
 missing-label = Brakujące instrumenty
 missing-tip-title = Gdy wtyczce docelowej brakuje instrumentu
 missing-tip = Zastąp wstawia zamiast niego najbardziej podobny instrument wtyczki docelowej — China zamienia się w crash, Tom 4 w Tom 3. Usuń po prostu wyrzuca jego nuty z pliku. Ghost notes, rimshoty i inne warianty gry na instrumencie, który jest we wtyczce docelowej, zawsze zamieniają się w zwykłe uderzenie w ten instrument.

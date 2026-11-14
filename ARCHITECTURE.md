@@ -58,10 +58,12 @@ higher. `tests/module_layers.rs` holds the table of which module may use which, 
 fails on any use outside it (an allowed use a module does not make is no failure).
 
 ```
-conversion   ── convert(bytes, &Mapping, ChannelScope, parts) → Conversion (Done | Ask)
-   ├── midi        ── parse / write (midly), track_at
-   └── rewrite     ── rewrite(Smf, &Mapping, ChannelScope) → (Smf, Report): one pure step per event
-          ├── channel     ── Channel (Idx<16>), TrackNo, Part, ChannelScope / PartSet → per-track ChannelFilter, hit()
+conversion   ── convert(bytes, &Mapping, Selection) → Conversion (Done | Ask)
+   ├── fit         ── the offered parts' summaries
+   ├── midi        ── parse / write (midly), track_at, TrackNo, Damage
+   │      └── meter ── Tick, Bar, Position: a track's ticks as bars
+   └── rewrite     ── rewrite(Smf, &Mapping, TrackFilters) → (Smf, Report): one pure step per event
+          ├── channel     ── Channel (Idx<16>), Part, Parts, Selection → choose: TrackFilters or Ask, hit()
           │      └── midi, idx
           ├── report      ── Report: what a conversion did with each hit
           └── translate   ── Mapping: every drum's and every source note's Outcome, compiled once
@@ -220,9 +222,11 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
   count them (`Channel::DRUMS` is 10). `hit(kind)` is the one predicate for a hit (a
   note-on with velocity > 0), read by the converter, the hit counts `fit` ranks engines by, and the `Auto` scope.
 - `ChannelScope { Auto | Only(Channel) | All }` chooses which channels a conversion
-  rewrites; `resolve(&smf)` turns it into one `ChannelFilter` per track, a set of the
-  sixteen channels (`ALL`, `NONE`, `with(channel)`). `Auto` (the default) picks parts and
-  never guesses (`auto_choice`): a file with channel-10 hits converts its channel-10 parts
+  rewrites. A `Selection` is a scope or a user's `Parts`, and `choose(&smf, &selection)` is
+  the one place either becomes `Choice::Convert { filters, picked, offers }` or
+  `Choice::Ask(parts)`: `TrackFilters` is one `ChannelFilter` per track of that file, a set
+  of the sixteen channels (`ALL`, `NONE`, `with(channel)`), built only there. `Auto` (the
+  default) picks parts and never guesses: a file with channel-10 hits converts its channel-10 parts
   and offers each other part of the tracks those are in (Mjód: 168 drum hits on channel 1
   beside channel 10, which nothing in the file tells from a one-track band file's piano); a
   file whose hits are all on one part converts it (drum packs); any other file converts
@@ -231,10 +235,10 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
   untouched part is counted `untouched`.
   Parses from `auto`, `all` or `1`..=`16`.
 - A `Part { track: TrackNo, channel }` is one track's notes on one channel, both counted
-  from 1 (`2:10`). `convert` takes an optional `PartSet`, a user's pick for one file: when
-  given it replaces the scope, `part_filters` building each track's filter from the parts
-  named in it, and a part the file has no hit in is `CodecError::NoSuchPart`. The CLI takes
-  it as `--parts 1:10,2:1`, the WASM as `remap_parts(…, parts, …)`.
+  from 1 (`2:10`); `Parts` is a set that holds at least one, a user's pick for one file
+  (`Selection::Parts`), and a picked part the file has no hit in is
+  `ConvertError::NoSuchPart`. The CLI takes it as `--parts 1:10,2:1`, the WASM as the
+  `remap` selection `{ parts: [...] }`.
 - `rewrite`: `rewrite(smf, &Mapping, filters) → (Smf, Report)` runs one pure `step`
   per event, which moves its key and says its `Fate` (stays or goes, and what it adds to
   the report), and `thin` keeps the events that stay:
@@ -269,10 +273,11 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
 
 ### `conversion` — end-to-end facade
 
-- `convert(midi, &Mapping, ChannelScope, Option<&PartSet>) → Conversion`: parse, rewrite,
-  write. `Conversion::Done(Converted { bytes, report, damage, picked, offers })`, or
-  `Conversion::Ask { parts, damage }` when `Auto` must ask (nothing written). The single
-  entry point for the CLI and the WASM; it crosses to the app as it is. `fit::part_summaries`
+- `convert(midi, &Mapping, impl Into<Selection>) → Result<Conversion, ConvertError>`: parse,
+  choose, rewrite, write. `Conversion::Done(Converted { bytes, report, damage, picked,
+  offers })`, the offers summarized as the source plays them, or `Conversion::Ask { parts,
+  damage }` when `Auto` must ask (nothing written). The single entry point for the CLI and
+  the WASM; it crosses to the app as it is. `fit::part_summaries`
   lists a file's parts (track name, hits, and what they play as a source), and
   `fit::auto_question` lists them only when `Auto` would ask.
 - `damage` lists what the file had lost before it was read, since midly (not strict) reads
@@ -418,7 +423,7 @@ stderr and exits non-zero):
 ```
 midiremap convert <input.mid> <src_id> <tgt_id> <output.mid>
                   [--user-map map.json] [--preset my-kit-drumverter.json]
-                  [--channel auto|all|1-16] [--missing nearest|drop]
+                  [--channel auto|all|1-16 | --parts 1:10,2:1] [--missing nearest|drop]
                   [--unrecognized remove|keep]
 midiremap list [--user-map map.json]
 ```
@@ -429,17 +434,24 @@ engines, resolved through aliases, must be the command's; skipped edits are prin
 `--missing drop` leaves out drums the target lacks instead of playing them on the
 nearest drum. `--unrecognized keep` writes notes the source layout does not recognize
 out unchanged instead of removing them; the report lists them as `unmappedSource` either
-way. `list` prints available engine ids. The exit code is 0 when the file was written
-(even with dropped notes: read the report), 1 on any error and 2 on a usage error.
+way. `--parts` names the drum parts as `track:channel` (both from 1) in place of
+`--channel`. `list` prints available engine ids. The exit code is 0 when the file was
+written whole (even with dropped notes: read the report), 3 when the input was damaged
+(what it still held is written, and the damage printed), 4 when `auto` asks which parts are
+the drums (nothing is written; the parts and a `--parts` value are printed), 1 on any other
+error and 2 on a usage error. Parts left beside channel-10 drums are printed with the
+`--parts` value that converts them too.
 
 ### WASM (`midiremap-wasm`)
 
 `wasm-bindgen` exports for the browser app:
 
-- `remap(mid, src_id, tgt_id, overrides?, channel?, missing?, unrecognized?) → Conversion` (and `remap_parts(…, parts, …)`; `auto_question(mid, src_id?) → PartSummary[] | undefined` lists the parts `auto` would ask about, `file_parts(mid, src_id?) → PartSummary[]` every part) —
-  `overrides` is an `Overrides` object; `channel` is `auto` (the default), `all` or
-  `1`-`16`; `missing` is `nearest` (the default) or `drop`; `unrecognized` is `remove`
-  (the default) or `keep`. Like `channel`, a value outside its set is `internal`: the app
+- `remap(mid, src_id, tgt_id, overrides?, selection?, missing?, unrecognized?) → Conversion`
+  (`auto_question(mid, src_id?) → PartSummary[] | undefined` lists the parts `auto` would
+  ask about) — `overrides` is an `Overrides` object; `selection` is `{ scope }` with `auto`
+  (the default), `all` or `1`-`16`, or `{ parts }`, a non-empty `Part[]` (a picked part the
+  file lacks is `noSuchPart`); `missing` is `nearest` (the default) or `drop`; `unrecognized` is `remove`
+  (the default) or `keep`. Like `selection`, a value outside its set is `internal`: the app
   only sends its own typed values. `plan` does not take it, since no plan row is an
   unrecognized note.
 - `remap_rack(src_id, tgt_id, overrides?, missing?, unrecognized?, preset_name?) → RackFile { fileName, xml, packing, dropped }` —
@@ -453,10 +465,10 @@ way. `list` prints available engine ids. The exit code is 0 when the file was wr
   `status`); the app reads it through `core/outcome.ts` (`playedNote`, `movesToOtherDrum`, `isPlayed`, `leadNote`).
 - `engine_catalog() → [{ id, name, fullName }]` — `name` is the display name,
   `fullName` the catalog name.
-- `source_fits(mids, channel?) → { hits, ranked: [{ engine, recognized }] }` — every engine fitted to
-  the hits of all `mids` that a conversion with `channel` reads (core `note_hits`, summed,
+- `source_fits(files: { bytes, selection }[]) → { hits, ranked: [{ engine, recognized }] }` — every engine fitted to
+  the hits of all `files` that converting each with its selection reads (core `note_hits`, summed,
   then `source_fits`: a hit is recognized when the engine's map decodes its note), best
-  first, ties in catalog order; a file that does not parse is left out.
+  first, ties in catalog order; a file that does not parse, or lacks a picked part, is left out.
 - `sample_file(engine) → Uint8Array` — a two-bar 4/4 groove at 120 bpm on channel 10 (core
   `sample_file`): eighth notes on the closed hi-hat (the ride where an engine has none) over
   kick and snare, a crash on the first beat, each drum on the engine's own note or its

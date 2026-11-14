@@ -1,10 +1,9 @@
 use serde::Serialize;
 
 use crate::{
-    channel::{
-        auto_choice, part_filters, parts_with_hits, AutoChoice, ChannelScope, Part, PartSet,
-    },
-    midi::{self, CodecError, Damage, Parsed},
+    channel::{choose, Choice, ConvertError, Part, Parts, Selection},
+    fit::{summaries, PartSummary},
+    midi::{self, Damage},
     report::Report,
     rewrite::rewrite,
     translate::Mapping,
@@ -25,9 +24,9 @@ pub struct Converted {
     pub damage: Vec<Damage>,
     /// The parts with hits the conversion rewrote.
     pub picked: Vec<Part>,
-    /// The parts `Auto` left as they are beside channel-10 hits in their track: likely drums
-    /// too, offered to the user.
-    pub offers: Vec<Part>,
+    /// The parts `Auto` left as they are beside channel-10 hits in their track, played as the
+    /// source: likely drums too, offered to the user.
+    pub offers: Vec<PartSummary>,
 }
 
 /// What a conversion did: converted the file, or converted nothing and asks which parts are
@@ -47,7 +46,7 @@ pub enum Conversion {
     Done(Converted),
     /// Several parts have hits, none on channel 10; `parts` lists them.
     Ask {
-        parts: Vec<Part>,
+        parts: Parts,
         damage: Vec<Damage>,
     },
 }
@@ -62,46 +61,39 @@ impl Conversion {
     }
 }
 
-/// Converts a standard MIDI file through `mapping`, rewriting the `parts` picked, or the
-/// channels `scope` selects when none are; a picked part the file has no hit in is an error.
+/// Converts a standard MIDI file through `mapping`, rewriting what `selection` selects; a
+/// picked part the file has no hit in is an error.
 pub fn convert(
     midi: &[u8],
     mapping: &Mapping,
-    scope: ChannelScope,
-    parts: Option<&PartSet>,
-) -> Result<Conversion, CodecError> {
-    let Parsed { smf, damage } = midi::parse(midi)?;
-    let (filters, offers) = match (parts, scope) {
-        (Some(parts), _) => (
-            part_filters(&smf, parts).map_err(CodecError::NoSuchPart)?,
-            PartSet::new(),
-        ),
-        (None, ChannelScope::Auto) => match auto_choice(&smf) {
-            AutoChoice::Picked { parts, offers } => (
-                part_filters(&smf, &parts).map_err(CodecError::NoSuchPart)?,
-                offers,
-            ),
-            AutoChoice::Ask(parts) => {
-                return Ok(Conversion::Ask {
-                    parts: parts.into_iter().collect(),
-                    damage,
-                })
-            }
-        },
-        (None, ChannelScope::All | ChannelScope::Only(_)) => (scope.resolve(&smf), PartSet::new()),
+    selection: impl Into<Selection>,
+) -> Result<Conversion, ConvertError> {
+    let parsed = midi::parse(midi)?;
+    let (filters, picked, offers) = match choose(&parsed.smf, &selection.into()) {
+        Err(missing) => return Err(ConvertError::NoSuchPart(missing)),
+        Ok(Choice::Ask(parts)) => {
+            return Ok(Conversion::Ask {
+                parts,
+                damage: parsed.damage,
+            })
+        }
+        Ok(Choice::Convert {
+            filters,
+            picked,
+            offers,
+        }) => (filters, picked, offers),
     };
-    let picked = parts_with_hits(&smf)
-        .into_iter()
-        .filter(|p| filters[p.track.index()].accepts(p.channel))
-        .collect();
-    let (smf, report) = rewrite(smf, mapping, filters)?;
+    let offers = summaries(&parsed, Some(mapping.source()), |part| {
+        offers.contains(&part)
+    });
+    let (smf, report) = rewrite(parsed.smf, mapping, filters)?;
     let bytes = midi::write(&smf)?;
     Ok(Conversion::Done(Converted {
         bytes,
         report,
-        damage,
-        picked,
-        offers: offers.into_iter().collect(),
+        damage: parsed.damage,
+        picked: picked.into_iter().collect(),
+        offers,
     }))
 }
 
@@ -112,8 +104,8 @@ mod tests {
 
     use super::*;
     use crate::{
-        canon::k, catalog::Catalog, note::n, overrides::Overrides, report::FallbackTally,
-        resolution::MissingDrums, translate::Unrecognized,
+        canon::k, catalog::Catalog, channel::ChannelScope, note::n, overrides::Overrides,
+        report::FallbackTally, resolution::MissingDrums, translate::Unrecognized,
     };
 
     fn convert_ids(mid: &[u8], src_id: &str, tgt_id: &str) -> Converted {
@@ -133,7 +125,6 @@ mod tests {
             mid,
             &Mapping::new(src, tgt, &Overrides::default(), missing),
             ChannelScope::Auto,
-            None,
         )
         .map(|c| c.done().expect("converted"))
         .unwrap()
@@ -148,7 +139,6 @@ mod tests {
             mid,
             &Mapping::new(src, tgt, &overrides, MissingDrums::Nearest),
             ChannelScope::Auto,
-            None,
         )
         .map(|c| c.done().expect("converted"))
         .unwrap()
@@ -260,7 +250,7 @@ mod tests {
             MissingDrums::Nearest,
         )
         .with_unrecognized(unrecognized);
-        convert(mid, &mapping, ChannelScope::Auto, None)
+        convert(mid, &mapping, ChannelScope::Auto)
             .map(|c| c.done().expect("converted"))
             .unwrap()
     }

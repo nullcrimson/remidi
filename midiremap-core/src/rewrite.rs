@@ -1,11 +1,11 @@
 use midly::{
     num::{u28, u7},
-    MetaMessage, MidiMessage, Smf, Track, TrackEvent, TrackEventKind,
+    MidiMessage, Smf, Track, TrackEvent, TrackEventKind,
 };
 
 use crate::{
-    channel::{hit, Channel, ChannelFilter},
-    midi::CodecError,
+    channel::{hit, Channel, ChannelFilter, TrackFilters},
+    midi::{is_closed, CodecError, END_OF_TRACK},
     note::Note,
     report::Report,
     translate::Mapping,
@@ -94,8 +94,6 @@ fn apply(mapping: &Mapping, key: &mut u7) -> bool {
     }
 }
 
-const END_OF_TRACK: TrackEventKind<'static> = TrackEventKind::Meta(MetaMessage::EndOfTrack);
-
 /// The events `keep` keeps, in order, each removed event's delta folded into the next kept
 /// one, closed with End-of-Track: a track that lacks one (a damaged file) gains it, carrying
 /// the delta of the events removed after the last kept one.
@@ -113,7 +111,7 @@ fn thin<'a>(
             fold.remove(&ev)?;
         }
     }
-    if out.last().is_none_or(|ev| ev.kind != END_OF_TRACK) {
+    if !is_closed(&out) {
         let mut end = TrackEvent {
             delta: u28::default(),
             kind: END_OF_TRACK,
@@ -124,12 +122,12 @@ fn thin<'a>(
     Ok(out)
 }
 
-/// `smf` with every note event the scope accepts rewritten through `mapping`, the notes
-/// nothing plays removed, and the report of what happened to each hit.
+/// `smf` with every note event its track's filter accepts rewritten through `mapping`, the
+/// notes nothing plays removed, and the report of what happened to each hit.
 pub(crate) fn rewrite<'a>(
     mut smf: Smf<'a>,
     mapping: &Mapping,
-    filters: Vec<ChannelFilter>,
+    filters: TrackFilters,
 ) -> Result<(Smf<'a>, Report), CodecError> {
     let mut report = Report::default();
     for (track, filter) in smf.tracks.iter_mut().zip(filters) {

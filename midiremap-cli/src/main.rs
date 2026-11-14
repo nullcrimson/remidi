@@ -7,7 +7,7 @@ use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand};
 use midiremap_core::{
     convert, parse_preset, part_summaries, Catalog, ChannelScope, Conversion, Damage, EngineId,
-    EngineMap, Mapping, MissingDrums, Overrides, Part, PartSet, PartSummary, Position,
+    EngineMap, Mapping, MissingDrums, Overrides, Part, PartSummary, Parts, Position, Selection,
     Unrecognized,
 };
 
@@ -134,32 +134,27 @@ fn run_convert(a: ConvertArgs) -> Result<ExitCode> {
         Some(path) => read_preset(path, &catalog, src, tgt)?,
         None => Overrides::default(),
     };
-    let parts: Option<PartSet> = a.parts.map(|parts| parts.into_iter().collect());
+    let selection: Selection = match a.parts {
+        Some(parts) => Parts::try_from(parts).context("invalid --parts")?.into(),
+        None => a.channel.into(),
+    };
     let conversion = convert(
         &mid,
         &Mapping::new(src, tgt, &overrides, a.missing).with_unrecognized(a.unrecognized),
-        a.channel,
-        parts.as_ref(),
+        selection,
     )
     .context("remap failed")?;
-    let summary = |wanted: &[Part]| -> Result<Vec<String>> {
-        Ok(part_summaries(&mid, Some(src))?
-            .iter()
-            .filter(|s| wanted.contains(&s.part))
-            .map(summary_line)
-            .collect())
-    };
     let out = match conversion {
         Conversion::Done(out) => out,
         Conversion::Ask { parts, damage } => {
             eprintln!(
                 "{} has notes on several parts and none on channel 10, so nothing was converted; \
-                 name the drum parts with --parts, such as --parts {}:",
+                 name the drum parts among them with --parts, as in --parts {}:",
                 a.input.display(),
-                parts.first().map_or_else(String::new, ToString::to_string)
+                listed(parts.iter())
             );
-            for line in summary(&parts)? {
-                eprintln!("  {line}");
+            for summary in part_summaries(&mid, Some(src))? {
+                eprintln!("  {}", summary_line(&summary));
             }
             print_damage(&a.input, &damage, "nothing was converted");
             return Ok(ExitCode::from(EXIT_ASK_PARTS));
@@ -171,12 +166,12 @@ fn run_convert(a: ConvertArgs) -> Result<ExitCode> {
     eprintln!("{}", serde_json::to_string_pretty(&out.report)?);
     if !out.offers.is_empty() {
         eprintln!("left as they are, beside the channel-10 drums of their track:");
-        for line in summary(&out.offers)? {
-            eprintln!("  {line}");
+        for offer in &out.offers {
+            eprintln!("  {}", summary_line(offer));
         }
         eprintln!(
             "to convert them too, pass --parts {}",
-            listed(out.picked.iter().chain(&out.offers))
+            listed(out.picked.iter().chain(out.offers.iter().map(|o| &o.part)))
         );
     }
     if out.damage.is_empty() {

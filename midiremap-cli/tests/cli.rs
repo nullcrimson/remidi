@@ -1,6 +1,6 @@
 use std::process::{Command, Output};
 
-use midiremap_testkit::{drums, hit_keys, off, on, tracks, DRUMS};
+use midiremap_testkit::{drums, events, hit_keys, off, on, tracks, DRUMS};
 
 const BIN: &str = env!("CARGO_BIN_EXE_midiremap");
 
@@ -247,13 +247,15 @@ fn a_damaged_file_is_converted_as_far_as_it_goes_and_exits_with_3() {
 
 #[test]
 fn parts_convert_only_the_named_track_and_channel() {
-    let (out, written) = convert_note(24, &["--parts", "1:10"]);
+    let midi = tracks(&[&[(0, DRUMS, on(24))], &[(0, 1, on(24))]]);
+    let (out, written) = run(&midi, PAIR, None, &["--parts", "2:1"]);
     assert!(
         out.status.success(),
         "stderr: {}",
         String::from_utf8_lossy(&out.stderr)
     );
-    assert_eq!(hit_keys(&written), vec![36]);
+    assert_eq!(events(&written, 0), vec![(0, DRUMS, on(24))]);
+    assert_eq!(events(&written, 1), vec![(0, 1, on(36))]);
 }
 
 #[test]

@@ -20,7 +20,7 @@ export function FileStep({
     <div className="flex flex-col gap-3">
       <FileChips
         files={remapper.files}
-        failures={remapper.failures}
+        failures={[...remapper.failures, ...remapper.questions.unreadable.filter((u) => !remapper.failures.some((f) => f.name === u.name))]}
         skipped={remapper.skipped}
         onFiles={onFiles}
         onTrySample={onTrySample}

@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
+import { toAppError } from '../core/errors';
 import type { FileResult, LoadedFile } from '../core/files';
-import type { Canon, CanonEntry, ChannelScope, EngineId, Midiremap, Part, PartSummary } from '../core/midiremap';
-import type { Translate } from '../locale/i18n';
+import type { ChannelScope, EngineId, Midiremap, Part, PartSummary } from '../core/midiremap';
+import { asksForParts, samePart, type PickedParts } from '../core/part';
+import type { FailedFile } from './batch';
 import type { Picks } from './useConverter';
 
 /** A file converting under `auto` would ask about: several parts have notes, none on channel 10. */
@@ -14,28 +16,40 @@ export interface PartQuestion {
 export interface Offer {
   file: string;
   parts: PartSummary[];
-  withOffers: Part[];
+  withOffers: PickedParts;
 }
 
 export interface PartQuestions {
   /** Each file `auto` would ask about, in file order. */
   asked: PartQuestion[];
+  /** The files whose parts could not be read, and why: converting them fails the same way. */
+  unreadable: FailedFile[];
   /** The asked files no part is picked in yet. */
   waiting: ReadonlySet<string>;
   /** The parts each converted file left beside its channel-10 drums. */
   offers: Offer[];
 }
 
-export function samePart(a: Part, b: Part): boolean {
-  return a.track === b.track && a.channel === b.channel;
+type Asking = { kind: 'asked'; question: PartQuestion } | { kind: 'unreadable'; failure: FailedFile } | { kind: 'converts' };
+
+function asking(core: Midiremap, file: LoadedFile, source: EngineId | undefined): Asking {
+  try {
+    const parts = core.autoQuestion(file.bytes, source);
+    return parts === undefined ? { kind: 'converts' } : { kind: 'asked', question: { file: file.name, parts } };
+  } catch (err) {
+    return { kind: 'unreadable', failure: { name: file.name, error: toAppError(err) } };
+  }
 }
 
-function summariesOf(read: () => PartSummary[] | undefined): PartSummary[] | undefined {
-  try {
-    return read();
-  } catch {
-    return undefined;
-  }
+/** The offer of `result`, when its conversion left parts beside its channel-10 drums. */
+function offerOf(result: FileResult): Offer[] {
+  const [first, ...rest] = result.offers;
+  if (first === undefined) return [];
+  return [{
+    file: result.input.name,
+    parts: result.offers,
+    withOffers: [first.part, ...rest.map((o) => o.part), ...result.picked],
+  }];
 }
 
 /** The questions `auto` asks about `files`, which of them wait for a pick, and what the last conversion offers. */
@@ -48,27 +62,18 @@ export function usePartQuestions(
   results: FileResult[],
 ): PartQuestions {
   const source = src ?? undefined;
-  const asked = useMemo(() => {
-    if (core === null || channel !== 'auto') return [];
-    return files.flatMap((f) => {
-      const parts = summariesOf(() => core.autoQuestion(f.bytes, source));
-      return parts === undefined ? [] : [{ file: f.name, parts }];
-    });
-  }, [core, files, source, channel]);
+  const askings = useMemo(
+    () => (core === null || !asksForParts(channel) ? [] : files.map((f) => asking(core, f, source))),
+    [core, files, source, channel],
+  );
+  const asked = useMemo(() => askings.flatMap((a) => (a.kind === 'asked' ? [a.question] : [])), [askings]);
+  const unreadable = useMemo(() => askings.flatMap((a) => (a.kind === 'unreadable' ? [a.failure] : [])), [askings]);
   const waiting = useMemo(
-    () => new Set(asked.filter((q) => (picks[q.file] ?? []).length === 0).map((q) => q.file)),
+    () => new Set(asked.filter((q) => picks[q.file] === undefined).map((q) => q.file)),
     [asked, picks],
   );
-  const offers = useMemo(() => {
-    if (core === null) return [];
-    return results.flatMap((r) => {
-      if (r.offers.length === 0) return [];
-      const parts = (summariesOf(() => core.fileParts(r.input.bytes, source)) ?? [])
-        .filter((s) => r.offers.some((o) => samePart(o, s.part)));
-      return [{ file: r.input.name, parts, withOffers: [...r.picked, ...r.offers] }];
-    });
-  }, [core, results, source]);
-  return { asked, waiting, offers };
+  const offers = useMemo(() => results.flatMap(offerOf), [results]);
+  return { asked, unreadable, waiting, offers };
 }
 
 /** The part of `among` with this track name on this channel, when exactly one has it. */
@@ -91,18 +96,4 @@ export function sameTracks(from: PartSummary[], picked: Part[], to: PartSummary[
     carried.push(there.part);
   }
   return carried.length > 0 ? carried : undefined;
-}
-
-/** One part as a line: its track by name or number, and its channel. */
-export function partName(s: PartSummary, t: Translate): string {
-  const { track, channel } = s.part;
-  return s.trackName === null
-    ? t({ id: 'parts-track-unnamed', args: { track, channel } })
-    : t({ id: 'parts-track-named', args: { name: s.trackName, channel } });
-}
-
-/** Looks up a drum's label in `canons`, falling back to its key. */
-export function canonLabels(canons: CanonEntry[]): (canon: Canon) => string {
-  const labels = new Map(canons.map((c) => [c.canon, c.label]));
-  return (canon) => labels.get(canon) ?? canon;
 }

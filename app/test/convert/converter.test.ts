@@ -33,7 +33,7 @@ class FakeWorker {
   }
 
   reply(id: number, name: string) {
-    this.answer(id, { kind: 'convert', result: { ok: [{ name, bytes: new Uint8Array([9]), report: REPORT, damage: [], picked: [], offers: [] }], failed: [], asked: [] } });
+    this.answer(id, { kind: 'convert', result: { ok: [{ input: { name, bytes: new Uint8Array([1]) }, bytes: new Uint8Array([9]), report: REPORT, damage: [], picked: [], offers: [] }], failed: [], asked: [] } });
   }
 
   answer(id: number, answer: Answer) {
@@ -114,8 +114,8 @@ describe('createConverter', () => {
     const { worker, first, second } = twoBatches();
     worker.reply(worker.sent[1].id, 'second');
     worker.reply(worker.sent[0].id, 'first');
-    expect((await first).ok[0].name).toBe('first');
-    expect((await second).ok[0].name).toBe('second');
+    expect((await first).ok[0].input.name).toBe('first');
+    expect((await second).ok[0].input.name).toBe('second');
     expect(remapMock).not.toHaveBeenCalled();
   });
 
@@ -126,7 +126,7 @@ describe('createConverter', () => {
     const result = await convert(FILES, enginePair('ggd_invasion', 'ezdrummer'), undefined, 'all', 'nearest', 'remove');
     expect(Array.from(result.ok[0].bytes)).toEqual([7]);
     expect(remapMock).toHaveBeenCalledOnce();
-    expect(remapMock.mock.calls[0][4]).toBe('all');
+    expect(remapMock.mock.calls[0][4]).toEqual({ scope: 'all' });
     expect(remapMock.mock.calls[0][5]).toBe('nearest');
   });
 
@@ -138,7 +138,7 @@ describe('createConverter', () => {
     const pending = convert(FILES, enginePair('ggd_invasion', 'ezdrummer'), undefined, '3', 'nearest', 'remove');
     worker.onerror?.(new Event('error'));
     expect(Array.from((await pending).ok[0].bytes)).toEqual([7]);
-    expect(remapMock.mock.calls[0][4]).toBe('3');
+    expect(remapMock.mock.calls[0][4]).toEqual({ scope: '3' });
     expect(worker.terminated).toBe(true);
   });
 
@@ -184,7 +184,7 @@ describe('a converter whose worker died after answering', () => {
     expect(made).toHaveLength(2);
     expect(made[1].sent.map((m) => m.channel)).toEqual(['3']);
     made[1].reply(made[1].sent[0].id, 'again');
-    expect((await stranded).ok[0].name).toBe('again');
+    expect((await stranded).ok[0].input.name).toBe('again');
     expect(remapMock).not.toHaveBeenCalled();
   });
 
@@ -207,8 +207,8 @@ describe('a converter whose worker died after answering', () => {
     const stranded = convert(FILES, enginePair('ggd_invasion', 'ezdrummer'), undefined, '3', 'nearest', 'remove');
     made[0].onerror?.(new Event('error'));
     made[1].onerror?.(new Event('error'));
-    expect((await stranded).ok[0].name).toBe('a.mid');
-    expect(remapMock.mock.calls[0][4]).toBe('3');
+    expect((await stranded).ok[0].input.name).toBe('a.mid');
+    expect(remapMock.mock.calls[0][4]).toEqual({ scope: '3' });
   });
 
   it('starts no third worker once the new one died before answering', async () => {
@@ -227,7 +227,7 @@ describe('a converter whose worker died after answering', () => {
     const next = convert(FILES, enginePair('ggd_invasion', 'ezdrummer'), undefined, 'auto', 'nearest', 'remove');
     made[0].onerror?.(new Event('error'));
     made[1].reply(made[1].sent[0].id, 'next');
-    expect((await next).ok[0].name).toBe('next');
+    expect((await next).ok[0].input.name).toBe('next');
     expect(made[1].terminated).toBe(false);
   });
 });
@@ -262,7 +262,7 @@ describe('a batch whose signal aborts', () => {
     const next = convert(FILES, enginePair('ggd_invasion', 'ezdrummer'), undefined, '10', 'nearest', 'remove');
     expect(made[1].sent.map((m) => m.channel)).toEqual(['10']);
     made[1].reply(made[1].sent[0].id, 'next');
-    expect((await next).ok[0].name).toBe('next');
+    expect((await next).ok[0].input.name).toBe('next');
   });
 
   it('moves the other pending batches to the new worker', async () => {
@@ -275,7 +275,7 @@ describe('a batch whose signal aborts', () => {
     await expect(aborted).rejects.toBeDefined();
     expect(made[1].sent.map((m) => m.channel)).toEqual(['5']);
     made[1].reply(made[1].sent[0].id, 'kept');
-    expect((await kept).ok[0].name).toBe('kept');
+    expect((await kept).ok[0].input.name).toBe('kept');
   });
 
   it('is rejected without starting a worker when it was aborted beforehand', async () => {
@@ -347,7 +347,7 @@ describe('a fit', () => {
     made[0].reply(made[0].sent[0].id, 'done');
     made[0].answer(made[0].fitsSent[0].id, { kind: 'fit', fits: FITS });
     expect(made).toHaveLength(1);
-    expect((await converted).ok[0].name).toBe('done');
+    expect((await converted).ok[0].input.name).toBe('done');
     expect(await fitted).toEqual(FITS);
   });
 });

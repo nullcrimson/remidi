@@ -1,5 +1,4 @@
 import type {
-  ChannelScope,
   Drum,
   Engine,
   Family,
@@ -9,8 +8,9 @@ import type {
   LoadedPreset,
   RackFile,
   Conversion,
-  Part,
+  FitFile,
   PartSummary,
+  Selection,
   SourceFits,
   Unrecognized,
   CanonEntry,
@@ -41,9 +41,11 @@ export type {
   Conversion,
   Converted,
   Damage,
+  FitFile,
   Part,
   PartSummary,
   Report,
+  Selection,
   SourceFit,
   SourceFits,
   Unrecognized,
@@ -64,23 +66,12 @@ export interface Midiremap {
     mid: Uint8Array,
     pair: EnginePair,
     ov?: Overrides,
-    channel?: ChannelScope,
-    missing?: MissingDrums,
-    unrecognized?: Unrecognized,
-  ): Conversion;
-  /** `remap` of only the `parts` picked as the file's drums. */
-  remapParts(
-    mid: Uint8Array,
-    pair: EnginePair,
-    ov: Overrides | undefined,
-    parts: Part[],
+    selection?: Selection,
     missing?: MissingDrums,
     unrecognized?: Unrecognized,
   ): Conversion;
   /** The parts of `mid`, played as `src`, when converting it under `auto` would ask which are the drums. */
   autoQuestion(mid: Uint8Array, src?: string): PartSummary[] | undefined;
-  /** Every part of `mid` with hits, played as `src` when given. */
-  fileParts(mid: Uint8Array, src?: string): PartSummary[];
   /** The Ableton rack that plays `pair.src` MIDI on `pair.tgt` as `remap` converts it, named after `presetName` when given. */
   remapRack(
     pair: EnginePair,
@@ -89,8 +80,8 @@ export interface Midiremap {
     unrecognized?: Unrecognized,
     presetName?: PresetName,
   ): RackFile;
-  /** Every engine fitted to the hits of `mids` a conversion with `channel` reads, best first; a file that does not parse is left out. */
-  sourceFits(mids: Uint8Array[], channel?: ChannelScope): SourceFits;
+  /** Every engine fitted to the hits of `files` converting each with its selection reads, best first; a file that does not parse, or lacks a picked part, is left out. */
+  sourceFits(files: FitFile[]): SourceFits;
   /** A two-bar groove of kick, snare, closed hi-hat and crash on the notes `engine` plays them on. */
   sampleFile(engine: string): Uint8Array;
 }
@@ -115,15 +106,12 @@ function calls(m: WasmModule): Midiremap {
     familyOrder: () => call(() => m.family_order()),
     parsePresetFile: (json) => call(() => m.parse_preset_file(json)),
     plan: ({ src, tgt }, ov, missing) => call(() => m.plan(src, tgt, ov, missing)),
-    remap: (mid, { src, tgt }, ov, channel, missing, unrecognized) =>
-      call(() => m.remap(mid, src, tgt, ov, channel, missing, unrecognized)),
-    remapParts: (mid, { src, tgt }, ov, parts, missing, unrecognized) =>
-      call(() => m.remap_parts(mid, src, tgt, ov, parts, missing, unrecognized)),
+    remap: (mid, { src, tgt }, ov, selection, missing, unrecognized) =>
+      call(() => m.remap(mid, src, tgt, ov, selection, missing, unrecognized)),
     autoQuestion: (mid, src) => call(() => m.auto_question(mid, src)),
-    fileParts: (mid, src) => call(() => m.file_parts(mid, src)),
     remapRack: ({ src, tgt }, ov, missing, unrecognized, presetName) =>
       call(() => m.remap_rack(src, tgt, ov, missing, unrecognized, presetName)),
-    sourceFits: (mids, channel) => call(() => m.source_fits(mids, channel)),
+    sourceFits: (files) => call(() => m.source_fits(files)),
     sampleFile: (engine) => call(() => m.sample_file(engine)),
   };
 }

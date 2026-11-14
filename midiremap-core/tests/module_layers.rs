@@ -5,10 +5,10 @@ use midiremap_layers::{Layers, Table};
 const ALLOWED_USES: &Table = &[
     ("canon", &["family", "idx"]),
     ("catalog", &["engine_map"]),
-    ("channel", &["idx", "note"]),
+    ("channel", &["idx", "midi", "note"]),
     (
         "conversion",
-        &["channel", "midi", "report", "rewrite", "translate"],
+        &["channel", "fit", "midi", "report", "rewrite", "translate"],
     ),
     (
         "daw",
@@ -34,7 +34,7 @@ const ALLOWED_USES: &Table = &[
     ),
     ("idx", &[]),
     ("meter", &[]),
-    ("midi", &["channel", "meter"]),
+    ("midi", &["meter"]),
     ("non_blank", &[]),
     ("note", &[]),
     ("open_levels", &["canon"]),
