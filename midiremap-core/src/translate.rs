@@ -83,6 +83,7 @@ pub struct Mapping<'a> {
     source: &'a EngineMap,
     target: &'a EngineMap,
     missing: MissingDrums,
+    matched: HashMap<Canon, Canon>,
     edited: HashSet<Note>,
     notes: [Option<Outcome>; Note::COUNT],
     drums: HashMap<Canon, Outcome>,
@@ -98,6 +99,10 @@ impl<'a> Mapping<'a> {
         overrides: &Overrides,
         missing: MissingDrums,
     ) -> Self {
+        let matched: HashMap<Canon, Canon> = Canon::all()
+            .iter()
+            .filter_map(|&canon| matched_drum(src, tgt, canon).map(|m| (canon, m)))
+            .collect();
         let encode = encoding(tgt, overrides);
         let resolved: HashMap<Canon, Outcome> = Canon::all()
             .iter()
@@ -107,10 +112,9 @@ impl<'a> Mapping<'a> {
             .into_iter()
             .map(|(canon, outcome)| {
                 let edited = overrides.target().contains_key(&canon);
-                if edited || !opens_by_level(src, tgt, canon) {
-                    (canon, outcome)
-                } else {
-                    (canon, unedited(src, tgt, canon, missing))
+                match matched.get(&canon) {
+                    Some(&plays) if !edited => (canon, unedited(tgt, plays, canon, missing)),
+                    _ => (canon, outcome),
                 }
             })
             .collect();
@@ -119,6 +123,7 @@ impl<'a> Mapping<'a> {
             source: src,
             target: tgt,
             missing,
+            matched,
             edited: overrides.source().keys().copied().collect(),
             notes: Note::ALL.map(|note| decode.get(&note).map(|canon| drums[canon])),
             drums,
@@ -185,7 +190,15 @@ impl<'a> Mapping<'a> {
 
     /// Where `canon` lands with no target edits.
     pub(crate) fn unedited(&self, canon: Canon) -> Outcome {
-        unedited(self.source, self.target, canon, self.missing)
+        let plays = self.matched_drum(canon).unwrap_or(canon);
+        unedited(self.target, plays, canon, self.missing)
+    }
+
+    /// The target drum `canon` lands on by matching the source's, rather than by walking its
+    /// chain: for an open main hi-hat, the opening of the target that matches the opening of
+    /// the source, when both name their normal open hat.
+    pub(crate) fn matched_drum(&self, canon: Canon) -> Option<Canon> {
+        self.matched.get(&canon).copied()
     }
 
     /// Each drum some source note decodes to, edits applied, with those notes ascending.
@@ -205,28 +218,18 @@ impl<'a> Mapping<'a> {
     }
 }
 
-/// The drum of `tgt` that plays `canon` from `src`: for an open main hi-hat, the opening of
-/// `tgt` that matches the opening of `src` when both name their normal open hat; any other drum,
-/// itself.
-fn matching_opening(src: &EngineMap, tgt: &EngineMap, canon: Canon) -> Canon {
+fn matched_drum(src: &EngineMap, tgt: &EngineMap, canon: Canon) -> Option<Canon> {
     match (canon.opening(), src.open_levels(), tgt.open_levels()) {
         (Some((level, zone)), Some(from), Some(to)) => {
-            canon.at_open_level(from.toward(to, level, zone))
+            Some(canon.at_open_level(from.toward(to, level, zone)))
         }
-        _ => canon,
+        _ => None,
     }
 }
 
-/// Whether `canon` lands by its opening: an open main hi-hat, when both engines name their
-/// normal open hat.
-fn opens_by_level(src: &EngineMap, tgt: &EngineMap, canon: Canon) -> bool {
-    canon.is_open_main_hat() && src.open_levels().is_some() && tgt.open_levels().is_some()
-}
-
-/// Where `canon` from `src` lands on `tgt` with no target edits.
-fn unedited(src: &EngineMap, tgt: &EngineMap, canon: Canon, missing: MissingDrums) -> Outcome {
-    tgt.resolve(matching_opening(src, tgt, canon), missing)
-        .for_drum(canon)
+/// Where `canon` lands on `tgt` with no target edits, played as `plays`.
+fn unedited(tgt: &EngineMap, plays: Canon, canon: Canon, missing: MissingDrums) -> Outcome {
+    tgt.resolve(plays, missing).for_drum(canon)
 }
 
 fn decoding(src: &EngineMap, overrides: &Overrides) -> Decoding {

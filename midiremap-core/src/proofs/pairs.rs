@@ -1,6 +1,6 @@
 use rayon::prelude::*;
 
-use super::matched_opening;
+use super::lands_by_match;
 use crate::{
     canon::{
         rules::{rules, DrumKind},
@@ -40,7 +40,7 @@ impl<'a> Pair<'a> {
             .iter()
             .copied()
             .filter(|&c| src.encode(c).is_some() && tgt.encode(c).is_none())
-            .filter(|&c| !matched_opening(&near, tgt, c))
+            .filter(|&c| !lands_by_match(&near, tgt, c))
             .collect();
         let label = format!("{} -> {}", src.id(), tgt.id());
         Self {

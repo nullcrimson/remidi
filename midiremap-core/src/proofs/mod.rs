@@ -14,10 +14,10 @@ use crate::{
     translate::Mapping,
 };
 
-/// Whether `c` is an open main hi-hat the mapping re-targets to another opening by level (N50),
-/// which `main_open_hat.rs` judges, rather than walking its chain.
-fn matched_opening(near: &Mapping, tgt: &EngineMap, c: Canon) -> bool {
-    c.is_open_main_hat()
+/// Whether `c` lands by match on another note than its chain would give it, which the proofs
+/// of that match judge (`main_open_hat.rs` for an open main hi-hat), not the stand-in table.
+fn lands_by_match(near: &Mapping, tgt: &EngineMap, c: Canon) -> bool {
+    near.matched_drum(c).is_some()
         && near.resolve_canon(c).note() != tgt.resolve(c, MissingDrums::Nearest).note()
 }
 
