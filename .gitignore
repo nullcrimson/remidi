@@ -12,3 +12,5 @@
 *.tsbuildinfo
 /app/playwright-report
 /app/test-results
+
+*.proptest-regressions

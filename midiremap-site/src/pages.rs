@@ -1687,7 +1687,9 @@ mod tests {
             ChannelScope::Auto,
             None,
         )
-        .unwrap();
+        .unwrap()
+        .done()
+        .expect("a drum-channel file converts");
         hit_keys(&out.bytes).first().copied()
     }
 
