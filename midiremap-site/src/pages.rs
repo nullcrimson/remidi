@@ -688,15 +688,19 @@ fn family_groups(map: &EngineMap) -> Vec<FamilyGroup<EngineRow>> {
 }
 
 /// The notes the converter writes for the core drums on this engine, each note once; a
-/// drum the engine plays only on another drum is left out.
+/// drum the engine plays only on another drum is left out, but for a tom spread onto another of
+/// its toms, so every tom the core toms play on shows.
 fn core_notes(map: &EngineMap) -> Vec<Drum> {
     let mut shown = HashSet::new();
     let mapping = default_mapping(EngineMap::core_kit(), map);
+    let tom = |c: Canon| c.family() == Family::Toms;
     Canon::CORE_KIT
         .iter()
         .map(|&canon| mapping.resolve_canon(canon))
-        .filter(|r| !r.moves_to_other_drum())
-        .filter_map(|r| r.played())
+        .filter_map(|r| {
+            let (landed, note) = r.played()?;
+            (!r.moves_to_other_drum() || (tom(r.canon()) && tom(landed))).then_some((landed, note))
+        })
         .filter(|&(_, note)| shown.insert(note))
         .map(|(canon, note)| Drum::new(note, canon))
         .collect()
@@ -1725,6 +1729,20 @@ mod tests {
         };
         assert!(core("ezdrummer").contains(&25) && !core("ezdrummer").contains(&24));
         assert!(core("mt_power").contains(&46) && !core("mt_power").contains(&44));
+    }
+
+    #[test]
+    fn core_notes_show_every_tom_the_core_toms_spread_onto() {
+        let p = site()
+            .engines
+            .iter()
+            .find(|p| p.engine.id == "bogren_krimh")
+            .unwrap();
+        let notes: BTreeSet<u8> = p.core.iter().map(|c| c.note.get()).collect();
+        assert!(
+            [33, 34, 35, 36, 37].iter().all(|n| notes.contains(n)),
+            "{notes:?}"
+        );
     }
 
     #[test]
