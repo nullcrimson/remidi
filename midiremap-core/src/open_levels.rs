@@ -101,14 +101,6 @@ mod tests {
     }
 
     #[test]
-    fn the_main_level_lands_on_the_targets_main_level() {
-        let ggd = plain(&[1, 2, 3], 2);
-        let krimh = plain(&[1, 2, 3, 4, 5], 4);
-        assert_eq!(ggd.toward(&krimh, idx(2), HatZone::Plain), idx(4));
-        assert_eq!(krimh.toward(&ggd, idx(4), HatZone::Plain), idx(2));
-    }
-
-    #[test]
     fn a_less_open_level_stays_below_and_a_more_open_one_above_the_main() {
         let ggd = plain(&[1, 2, 3], 2);
         let krimh = plain(&[1, 2, 3, 4, 5], 4);
@@ -130,21 +122,6 @@ mod tests {
         let one_to_five = plain(&[1, 2, 3, 4, 5], 1);
         let drumlab = plain(&[2, 4, 6], 2);
         assert_eq!(one_to_five.toward(&drumlab, idx(5), HatZone::Plain), idx(4));
-    }
-
-    #[test]
-    fn a_level_lands_among_the_levels_the_target_plays_in_its_zone() {
-        let ggd = plain(&[1, 2, 3], 2);
-        let hertz2 = OpenLevels::new(
-            [1, 2, 3, 4]
-                .map(|n| (idx(n), HatZone::Plain))
-                .into_iter()
-                .chain([(idx(5), HatZone::Tip)]),
-            idx(4),
-        )
-        .unwrap();
-        assert_eq!(ggd.toward(&hertz2, idx(3), HatZone::Plain), idx(4));
-        assert_eq!(ggd.toward(&hertz2, idx(3), HatZone::Tip), idx(5));
     }
 
     #[test]
