@@ -139,7 +139,8 @@ chain through anyhow and the WASM joins it into one message (`outer: inner`).
 reverse; hi-hats keep closed with closed and open with open, foot with foot, and never
 fall onto the bell), then walks breadth-first to other drums (`neighbours`, used only
 by Nearest: the other snare, the nearest toms, the nearest cymbal of the same kind,
-crash 1 for china/splash/stack and for a ride edge, the ride bell for a cymbal bell,
+crash 1 for china/splash/stack and for a ride edge, the ride bell for a bell cymbal
+and for a crash bell,
 the main hat for an aux hat), each with its own allow-list. "Nearest" is one rule
 (`nearest`: the others by distance in rank, the lower rank first on a tie) shared by
 toms, cymbals and hat openings. No stand-in → the drum is dropped. Chains are built

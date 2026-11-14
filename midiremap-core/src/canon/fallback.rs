@@ -49,11 +49,20 @@ fn cym_order(a: CymArtic) -> &'static [CymArtic] {
     match a {
         Hit => &[Edge],
         Edge => &[Hit],
-        Bow => &[BowTip],
-        BowTip => &[Bow],
+        Bow => &[BowTip, Hit, Edge],
+        BowTip => &[Bow, Hit, Edge],
         Bell => &[BellTip],
         BellTip => &[Bell],
         Mute => &[Hit, Edge],
+    }
+}
+
+fn ride_bell_for(a: CymArtic) -> Option<Canon> {
+    let ride = |r| Some(Canon(Slot::Ride(RideIdx::FIRST, r)));
+    match a {
+        CymArtic::Bell => ride(RideArtic::Bell),
+        CymArtic::BellTip => ride(RideArtic::BellTip),
+        CymArtic::Hit | CymArtic::Edge | CymArtic::Bow | CymArtic::BowTip | CymArtic::Mute => None,
     }
 }
 
@@ -192,7 +201,7 @@ fn neighbours(c: Canon) -> Vec<Canon> {
                 .into_iter()
                 .map(|s| Canon(Slot::Cymbal(s, a)));
             let next = match slot {
-                CymSlot::Crash(_) => None,
+                CymSlot::Crash(_) => ride_bell_for(a),
                 CymSlot::China(_) | CymSlot::Splash(_) | CymSlot::Stack(_) => Some(crash(a)),
                 CymSlot::Bell(_) => Some(Canon(Slot::Ride(RideIdx::FIRST, RideArtic::Bell))),
             };
@@ -381,6 +390,32 @@ mod tests {
                 "crash.1.edge",
             ])
         );
+    }
+
+    #[test]
+    fn a_crash_bow_tries_its_tip_then_its_hit_then_the_next_crash() {
+        assert_eq!(
+            chain("crash.1.bow")[..4],
+            keys(&[
+                "crash.1.bowtip",
+                "crash.1.hit",
+                "crash.1.edge",
+                "crash.2.bow"
+            ])
+        );
+    }
+
+    #[test]
+    fn a_crash_bell_tries_the_other_crash_bells_then_the_ride_bell() {
+        let chain = chain("crash.1.bell");
+        let last_crash = chain
+            .iter()
+            .rposition(|c| c.to_string().starts_with("crash."))
+            .unwrap();
+        assert_eq!(chain[last_crash + 1], k("ride.1.bell"));
+        assert!(chain[..=last_crash]
+            .iter()
+            .all(|c| c.to_string().ends_with(".bell") || c.to_string().ends_with(".belltip")));
     }
 
     #[test]

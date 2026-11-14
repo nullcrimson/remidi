@@ -119,8 +119,8 @@ fn agreed(c: Canon) -> Vec<String> {
             let order: &[&str] = match *stroke {
                 "hit" => &["edge"],
                 "edge" => &["hit"],
-                "bow" => &["bowtip"],
-                "bowtip" => &["bow"],
+                "bow" => &["bowtip", "hit", "edge"],
+                "bowtip" => &["bow", "hit", "edge"],
                 "bell" => &["belltip"],
                 "belltip" => &["bell"],
                 "mute" => &["hit", "edge"],
@@ -144,15 +144,36 @@ fn kind(c: Canon) -> String {
     head.trim_end_matches(char::is_numeric).to_owned()
 }
 
+fn stroke(c: Canon) -> String {
+    let key = c.to_string();
+    let (_, last) = key.rsplit_once('.').expect("every drum key has a dot");
+    last.to_owned()
+}
+
+fn plain_cymbal(kind: &str) -> bool {
+    matches!(kind, "crash" | "china" | "splash" | "stack")
+}
+
+fn sample(failures: &[String]) -> String {
+    failures
+        .iter()
+        .take(25)
+        .cloned()
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 fn may_cross(from: Canon, to: Canon) -> bool {
     let (a, b) = (kind(from), kind(to));
     let edge_ride = from.to_string().ends_with(".edge") && a == "ride";
+    let cymbal_bell = matches!(stroke(from).as_str(), "bell" | "belltip") && plain_cymbal(&a);
     a == b
         || matches!(
             (a.as_str(), b.as_str()),
             ("china" | "splash" | "stack", "crash") | ("bell", "ride") | ("aux", "hat")
         )
         || (edge_ride && b == "crash")
+        || (cymbal_bell && b == "ride")
 }
 
 #[test]
@@ -243,12 +264,57 @@ fn every_builtin_pair_plays_the_agreed_stand_in_or_drops() {
         failures.is_empty(),
         "{} of {checked} break the agreed fallbacks, e.g.\n{}",
         failures.len(),
-        failures
-            .iter()
-            .take(25)
-            .cloned()
-            .collect::<Vec<_>>()
-            .join("\n")
+        sample(&failures)
+    );
+}
+
+fn plays(tgt: &EngineMap, drum: &str, strokes: &[&str]) -> bool {
+    Canon::all().iter().any(|&c| {
+        kind(c) == drum && strokes.contains(&stroke(c).as_str()) && tgt.encode(c).is_some()
+    })
+}
+
+#[test]
+fn no_cymbal_stroke_goes_silent_on_a_target_with_a_crash_and_a_ride_bell() {
+    let catalog = Catalog::builtin();
+    let cymbals: Vec<Canon> = Canon::all()
+        .iter()
+        .copied()
+        .filter(|&c| plain_cymbal(&kind(c)))
+        .collect();
+    let silent: Vec<String> = catalog
+        .engines()
+        .filter(|tgt| plays(tgt, "crash", &["hit"]) && plays(tgt, "ride", &["bell", "belltip"]))
+        .flat_map(|tgt| {
+            cymbals
+                .iter()
+                .filter(move |&&c| tgt.resolve(c, MissingDrums::Nearest).note().is_none())
+                .map(move |c| format!("{}: {c}", tgt.id()))
+        })
+        .collect();
+    assert!(
+        silent.is_empty(),
+        "{} silent, e.g.\n{}",
+        silent.len(),
+        sample(&silent)
+    );
+}
+
+#[test]
+fn a_bfd3_crash_bell_plays_on_the_addictive_drums_ride_bell() {
+    let catalog = Catalog::shared();
+    let mapping = Mapping::new(
+        catalog.get("bfd3").unwrap(),
+        catalog.get("addictive_drums2").unwrap(),
+        &Default::default(),
+        MissingDrums::Nearest,
+    );
+    assert_eq!(
+        mapping
+            .resolve_canon(k("crash.1.bell"))
+            .note()
+            .map(Note::get),
+        Some(61)
     );
 }
 
