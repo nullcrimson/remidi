@@ -33,6 +33,12 @@ impl OpenLevels {
         self.main
     }
 
+    /// Every level played, each in its zone.
+    #[cfg(test)]
+    pub(crate) fn played(&self) -> &BTreeSet<(HatZone, OpenLevel)> {
+        &self.played
+    }
+
     /// The level `target` plays this engine's `level` at, hit in `zone`. Each engine counts
     /// among the levels it plays in `zone` (in any zone when it plays none there), its main there
     /// the one nearest its main: the main lands on `target`'s main, a less open level on the
@@ -115,6 +121,21 @@ mod tests {
         assert_eq!(landings(&ggd, &mangini, &[1, 3]), [1, 3]);
         let ezd2 = plain(&[1, 2, 3, 4], 1);
         assert_eq!(landings(&ggd, &ezd2, &[1, 3]), [1, 3]);
+    }
+
+    #[test]
+    fn a_level_lands_among_the_levels_the_target_plays_in_its_zone() {
+        let ggd = plain(&[1, 2, 3], 2);
+        let hertz2 = OpenLevels::new(
+            [1, 2, 3, 4]
+                .map(|n| (idx(n), HatZone::Plain))
+                .into_iter()
+                .chain([(idx(5), HatZone::Tip)]),
+            idx(4),
+        )
+        .unwrap();
+        assert_eq!(ggd.toward(&hertz2, idx(3), HatZone::Plain), idx(4));
+        assert_eq!(ggd.toward(&hertz2, idx(3), HatZone::Tip), idx(5));
     }
 
     #[test]

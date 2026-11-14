@@ -229,15 +229,29 @@ mod tests {
         }
     }
 
+    /// The struck note of a note-on with a velocity: a hit, which the report counts.
+    fn struck(kind: TrackEventKind) -> Option<Note> {
+        match kind {
+            TrackEventKind::Midi {
+                message: MidiMessage::NoteOn { key, vel },
+                ..
+            } if vel.as_int() > 0 => Some(Note::from_key(key)),
+            TrackEventKind::Midi { .. }
+            | TrackEventKind::SysEx(_)
+            | TrackEventKind::Escape(_)
+            | TrackEventKind::Meta(_) => None,
+        }
+    }
+
     fn expected_fate(filter: ChannelFilter, kind: TrackEventKind, stays: bool) -> Fate {
         let accepted = match kind {
             TrackEventKind::Midi { channel, .. } => filter.accepts(Channel::of(channel)),
             TrackEventKind::SysEx(_) | TrackEventKind::Escape(_) | TrackEventKind::Meta(_) => true,
         };
-        match (hit(&kind), accepted, stays) {
+        match (struck(kind), accepted, stays) {
             (Some(_), false, _) => Fate::Untouched,
-            (Some((_, note)), true, true) => Fate::Played(note),
-            (Some((_, note)), true, false) => Fate::Dropped(note),
+            (Some(note), true, true) => Fate::Played(note),
+            (Some(note), true, false) => Fate::Dropped(note),
             (None, _, true) => Fate::Kept,
             (None, _, false) => Fate::Removed,
         }

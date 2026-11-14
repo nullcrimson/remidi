@@ -1,5 +1,8 @@
+use strum::VariantArray;
+
 use crate::{
     canon::{HatZone, OpenLevel},
+    catalog::Catalog,
     open_levels::OpenLevels,
 };
 
@@ -97,4 +100,72 @@ fn a_zone_that_plays_no_level_counts_among_the_levels_of_every_zone() {
             }
         }
     }
+}
+
+/// The levels `hat` plays in `zone`, or in any zone when it plays none there.
+fn levels_in_zone(hat: &OpenLevels, zone: HatZone) -> Vec<OpenLevel> {
+    let all: Vec<OpenLevel> = hat.played().iter().map(|&(_, l)| l).collect();
+    let in_zone: Vec<OpenLevel> = hat
+        .played()
+        .iter()
+        .filter(|&&(z, _)| z == zone)
+        .map(|&(_, l)| l)
+        .collect();
+    let mut levels = if in_zone.is_empty() { all } else { in_zone };
+    levels.sort();
+    levels.dedup();
+    levels
+}
+
+/// The level of `levels` nearest `hat`'s main level, the less open one on a tie.
+fn zone_main(hat: &OpenLevels, levels: &[OpenLevel]) -> OpenLevel {
+    let main = hat.main().get();
+    *levels
+        .iter()
+        .min_by_key(|l| (l.get().abs_diff(main), l.get()))
+        .expect("every zone has a level")
+}
+
+#[test]
+fn every_builtin_pair_lands_each_open_level_in_its_zone_on_its_side_in_order() {
+    let catalog = Catalog::shared();
+    let hats: Vec<(&str, &OpenLevels)> = catalog
+        .engines()
+        .filter_map(|e| e.open_levels().map(|l| (e.id(), l)))
+        .collect();
+    let mut failures = Vec::new();
+    for &(src_id, src) in &hats {
+        for &(tgt_id, tgt) in &hats {
+            for &zone in HatZone::VARIANTS {
+                let (from, to) = (levels_in_zone(src, zone), levels_in_zone(tgt, zone));
+                let (from_main, to_main) = (zone_main(src, &from), zone_main(tgt, &to));
+                let landed: Vec<OpenLevel> =
+                    from.iter().map(|&l| src.toward(tgt, l, zone)).collect();
+                for (&l, &at) in from.iter().zip(&landed) {
+                    let side = l.cmp(&from_main);
+                    let room = to.iter().any(|t| t.cmp(&to_main) == side);
+                    let ok = to.contains(&at)
+                        && (side.is_ne() || at == to_main)
+                        && (side.is_eq() || (at.cmp(&to_main) == side) == room);
+                    if !ok {
+                        failures.push(format!("{src_id} -> {tgt_id} {zone:?}: {l} lands on {at}"));
+                    }
+                }
+                if landed.windows(2).any(|w| w[0] > w[1]) {
+                    failures.push(format!("{src_id} -> {tgt_id} {zone:?}: order {landed:?}"));
+                }
+            }
+        }
+    }
+    assert!(
+        hats.len() > 40,
+        "only {} engines have open levels",
+        hats.len()
+    );
+    assert!(
+        failures.is_empty(),
+        "{} breaks, e.g.\n{}",
+        failures.len(),
+        failures[..failures.len().min(25)].join("\n")
+    );
 }

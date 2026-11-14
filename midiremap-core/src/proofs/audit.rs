@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use expect_test::expect_file;
 use rayon::prelude::*;
@@ -20,43 +20,58 @@ use crate::{
 enum Gap {
     /// Plays nothing although the target has one of its anchors.
     Silent,
-    /// Lands on another drum, sharing it or of a less preferred kind, while `idle` is free.
-    Crowded {
-        landed: Canon,
-        shared: bool,
-        idle: Canon,
-    },
+    /// Lands on a drum another source drum plays while `idle`, a drum nothing plays, would do
+    /// as well.
+    Shared { landed: Canon, idle: Canon },
+    /// Lands on a drum of a less preferred kind while `idle`, of a more preferred kind, is free.
+    Worse { landed: Canon, idle: Canon },
 }
 
-/// The backlog row a gap belongs to, by the kind of the source drum.
-fn backlog(c: Canon) -> &'static str {
-    match DrumKind::from(c) {
-        DrumKind::Tom => "N61",
-        DrumKind::Stack => "N63",
-        DrumKind::Crash | DrumKind::China | DrumKind::Splash | DrumKind::Bell => "N70",
-        DrumKind::Ride => "N58",
-        DrumKind::Aux => "N72",
-        DrumKind::Kick | DrumKind::Snare | DrumKind::Hat | DrumKind::Perc | DrumKind::Hand => {
-            "unfiled"
-        }
+/// The backlog row a gap belongs to: a doubling up by the kind of drum left idle, a less
+/// preferred kind by the source drum whose preference it breaks.
+fn backlog(c: Canon, gap: &Gap) -> &'static str {
+    match gap {
+        Gap::Silent => "silent",
+        Gap::Shared { idle, .. } => match DrumKind::from(*idle) {
+            DrumKind::Tom => "N61",
+            DrumKind::Crash
+            | DrumKind::China
+            | DrumKind::Splash
+            | DrumKind::Stack
+            | DrumKind::Bell
+            | DrumKind::Ride => "N70",
+            DrumKind::Kick
+            | DrumKind::Snare
+            | DrumKind::Hat
+            | DrumKind::Aux
+            | DrumKind::Perc
+            | DrumKind::Hand => "unfiled",
+        },
+        Gap::Worse { .. } => match DrumKind::from(c) {
+            DrumKind::Stack => "N63",
+            DrumKind::Ride => "N58",
+            DrumKind::Kick
+            | DrumKind::Snare
+            | DrumKind::Tom
+            | DrumKind::Hat
+            | DrumKind::Aux
+            | DrumKind::Perc
+            | DrumKind::Hand
+            | DrumKind::Crash
+            | DrumKind::China
+            | DrumKind::Splash
+            | DrumKind::Bell => "unfiled",
+        },
     }
 }
 
 fn line(label: &str, c: Canon, gap: &Gap) -> String {
     let what = match gap {
         Gap::Silent => "silent although the target plays an anchor".to_owned(),
-        Gap::Crowded {
-            landed,
-            shared: true,
-            idle,
-        } => format!("shares {landed} while {idle} is idle"),
-        Gap::Crowded {
-            landed,
-            shared: false,
-            idle,
-        } => format!("lands on {landed} while {idle} is idle"),
+        Gap::Shared { landed, idle } => format!("shares {landed} while {idle} is idle"),
+        Gap::Worse { landed, idle } => format!("lands on {landed} while {idle} is idle"),
     };
-    format!("{label} | {c} | {} | {what}", backlog(c))
+    format!("{label} | {c} | {} | {what}", backlog(c, gap))
 }
 
 fn encoded(map: &EngineMap) -> Vec<(Canon, Note)> {
@@ -73,19 +88,28 @@ fn gaps(src: &EngineMap, tgt: &EngineMap) -> Vec<String> {
         .into_iter()
         .map(|(c, _)| (c, near.resolve_canon(c).played()))
         .collect();
-    let mut players: BTreeMap<Note, usize> = BTreeMap::new();
-    for (_, p) in &played {
-        if let Some((_, note)) = p {
-            *players.entry(*note).or_default() += 1;
-        }
-    }
+    let sounding: BTreeSet<Note> = played
+        .iter()
+        .filter_map(|(_, p)| p.map(|(_, n)| n))
+        .collect();
     let targets = encoded(tgt);
-    let idle = |c: Canon, best: usize, shared: bool| {
-        targets.iter().find_map(|&(d, note)| {
-            let rank = stand_in_rank(c, d)?;
-            let better = rank < best || (shared && rank == best);
-            (better && !players.contains_key(&note)).then_some(d)
-        })
+    let drum_idle = |d: Canon| {
+        targets
+            .iter()
+            .filter(|(e, _)| e.same_drum(d))
+            .all(|(_, n)| !sounding.contains(n))
+    };
+    let best_idle = |c: Canon| {
+        targets
+            .iter()
+            .filter_map(|&(d, _)| stand_in_rank(c, d).map(|rank| (rank, d)))
+            .filter(|&(_, d)| drum_idle(d))
+            .min_by_key(|&(rank, _)| rank)
+    };
+    let shared_by_another = |c: Canon, note: Note| {
+        played
+            .iter()
+            .any(|&(o, p)| !c.same_drum(o) && p.is_some_and(|(_, n)| n == note))
     };
     played
         .iter()
@@ -98,13 +122,15 @@ fn gaps(src: &EngineMap, tgt: &EngineMap) -> Vec<String> {
                     Anchor::Any(_) | Anchor::MayDrop(_) => None,
                 },
                 Some((landed, note)) if !c.same_drum(landed) => {
-                    let shared = players[&note] > 1;
-                    let best = kind_rank(c, landed)?;
-                    idle(c, best, shared).map(|idle| Gap::Crowded {
-                        landed,
-                        shared,
-                        idle,
-                    })
+                    let at = kind_rank(c, landed)?;
+                    let (rank, idle) = best_idle(c)?;
+                    if rank < at {
+                        Some(Gap::Worse { landed, idle })
+                    } else if rank == at && shared_by_another(c, note) {
+                        Some(Gap::Shared { landed, idle })
+                    } else {
+                        None
+                    }
                 }
                 Some(_) => None,
             }?;
@@ -141,7 +167,9 @@ fn edits_not_followed(src: &EngineMap, tgt: &EngineMap) -> Vec<String> {
     let near = Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest);
     let moved: Vec<(Canon, Canon, Note)> = encoded(src)
         .into_iter()
-        .filter(|&(c, _)| !c.is_open_main_hat())
+        .filter(|&(c, _)| {
+            !(c.is_open_main_hat() && src.open_levels().is_some() && tgt.open_levels().is_some())
+        })
         .filter_map(|(c, _)| {
             let (landed, note) = near.resolve_canon(c).played()?;
             (landed != c).then_some((c, landed, note))
