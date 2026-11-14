@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { vocabularyOf } from '../core/canon';
-import type { ChannelScope, Engine, EngineId, Midiremap, MissingDrums, Note, Unrecognized } from '../core/midiremap';
+import type { ChannelScope, Engine, EngineId, Midiremap, MissingDrums, Note, Part, Unrecognized } from '../core/midiremap';
 import type { OctaveBase } from '../core/notes';
 import { pairOf } from '../core/enginePair';
 import { kindCounts } from '../core/errors';
@@ -12,7 +12,8 @@ import type { Runtime } from './runtime';
 import type { SelectionEvent } from '../core/selection';
 import { loadSession, saveSession } from './session';
 import { selectionOf, selectionReducer } from './selectionState';
-import { useConverter } from './useConverter';
+import { useConverter, withPicks } from './useConverter';
+import { usePartQuestions } from './partQuestions';
 import { useSourceFits } from './useSourceFits';
 import { offeredSources } from './closerSources';
 import type { EditFilter } from '../editor/editFilter';
@@ -23,6 +24,10 @@ import { useEngineCatalog } from '../engines/useEngineCatalog';
 export type { Conv } from './useConverter';
 
 const NO_ENGINES: Engine[] = [];
+
+function channelKind(channel: ChannelScope): 'auto' | 'all' | 'one' {
+  return channel === 'auto' || channel === 'all' ? channel : 'one';
+}
 
 /**
  * Screen state for the converter. The last setup (engines, settings, unsaved edits) is
@@ -53,7 +58,10 @@ export function useRemapper({ load, converter: batches }: Runtime) {
   const settingsKey = useMemo(() => keyFor(missing), [keyFor, missing]);
   const converter = useConverter(batches, pair, settingsKey);
   const { onSelection: converterSees, convert: runConvert } = converter;
-  const fits = useSourceFits(batches, converter.files, channel);
+  const picked = useMemo(() => withPicks(converter.files, converter.picks, channel), [converter.files, converter.picks, channel]);
+  const fits = useSourceFits(batches, picked, channel);
+  const core = catalog.status === 'ready' ? catalog.core : null;
+  const questions = usePartQuestions(core, converter.files, src, channel, converter.picks, converter.results);
   const offered = useMemo(() => offeredSources(fits, src, tgt, srcEdits), [fits, src, tgt, srcEdits]);
 
   const emit = useCallback(
@@ -133,6 +141,9 @@ export function useRemapper({ load, converter: batches }: Runtime) {
       for (const [kind, files] of kindCounts(outcome.failed.map((file) => file.error))) track('file-failed', { kind, files });
       track('converted', convertedProps(pair, outcome.ok.map((file) => file.report), outcome.failed.length, {
         damaged: outcome.ok.filter((file) => file.damage.length > 0).length,
+        channel: outcome.ok.some((file) => file.input.parts !== undefined) ? 'parts' : channelKind(channel),
+        offered: outcome.ok.reduce((sum, file) => sum + file.offers.length, 0),
+        untouched: outcome.ok.reduce((sum, file) => sum + file.report.untouched, 0),
         missing: m,
         edited: editCount({ edits, srcEdits }) > 0,
         preset: presetId !== null,
@@ -142,6 +153,17 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     [runConvert, overrides, channel, unrecognized, keyFor, pair, edits, srcEdits, presetId, offered],
   );
   const convert = useCallback((files?: LoadedFile[]) => run(missing, files), [run, missing]);
+  const convertReady = useCallback(
+    () => run(missing, picked.filter((f) => !questions.waiting.has(f.name))),
+    [run, missing, picked, questions.waiting],
+  );
+  const alsoConvert = useCallback(
+    (name: string, parts: Part[]) => {
+      converter.setParts(name, parts);
+      return run(missing, withPicks(converter.files, { ...converter.picks, [name]: parts }, channel));
+    },
+    [converter, run, missing, channel],
+  );
   const dropMissingAndConvert = useCallback(() => {
     emit({ type: 'setMissing', missing: 'drop' });
     return run('drop');
@@ -159,6 +181,11 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     unrecognized,
     presetId,
     files: converter.files,
+    picks: converter.picks,
+    setParts: converter.setParts,
+    questions,
+    convertReady,
+    alsoConvert,
     offered,
     skipped: converter.skipped,
     view,

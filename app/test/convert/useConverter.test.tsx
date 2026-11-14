@@ -46,7 +46,7 @@ describe('useConverter', () => {
   });
 
   it('converts the files it is handed, added in the same event', async () => {
-    const convert = vi.fn<Converter['convert']>().mockResolvedValue({ ok: [], failed: [] });
+    const convert = vi.fn<Converter['convert']>().mockResolvedValue({ ok: [], failed: [], asked: [] });
     const { result } = renderHook(() => useConverter({ convert }, enginePair('ggd_invasion', 'ezdrummer'), 'k'));
     await act(async () => {
       result.current.addFiles([FILE]);

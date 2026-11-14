@@ -5,9 +5,9 @@ use serde::Serialize;
 use crate::{
     canon::Canon,
     catalog::Catalog,
-    channel::{part_hits, track_names, ChannelScope, Part},
+    channel::{auto_choice, part_hits, track_names, AutoChoice, ChannelScope, Part},
     engine_map::{EngineId, EngineMap},
-    midi::{self, CodecError},
+    midi::{self, CodecError, Parsed},
     note::Note,
 };
 
@@ -115,9 +115,25 @@ pub fn part_summaries(
     midi: &[u8],
     source: Option<&EngineMap>,
 ) -> Result<Vec<PartSummary>, CodecError> {
-    let smf = midi::parse(midi)?.smf;
-    let names = track_names(&smf);
-    Ok(part_hits(&smf)
+    Ok(summaries(&midi::parse(midi)?, source))
+}
+
+/// The parts of `midi`, as [`part_summaries`] gives them, when `Auto` would ask which are the
+/// drums; `None` when it converts without asking.
+pub fn auto_question(
+    midi: &[u8],
+    source: Option<&EngineMap>,
+) -> Result<Option<Vec<PartSummary>>, CodecError> {
+    let parsed = midi::parse(midi)?;
+    Ok(match auto_choice(&parsed.smf) {
+        AutoChoice::Ask(_) => Some(summaries(&parsed, source)),
+        AutoChoice::Picked { .. } => None,
+    })
+}
+
+fn summaries(parsed: &Parsed, source: Option<&EngineMap>) -> Vec<PartSummary> {
+    let names = track_names(&parsed.smf);
+    part_hits(&parsed.smf)
         .into_iter()
         .map(|(part, notes)| {
             let mut hits = NoteHits::default();
@@ -131,7 +147,7 @@ pub fn part_summaries(
                 plays: source.map(|engine| hits.played_on(engine)),
             }
         })
-        .collect())
+        .collect()
 }
 
 /// How many of the hits one engine's layout recognizes.
@@ -281,6 +297,20 @@ mod tests {
         );
         assert_eq!(plays.unknown, 1);
         assert!(part_summaries(&bytes, None).unwrap()[0].plays.is_none());
+    }
+
+    #[test]
+    fn auto_question_lists_the_parts_only_of_a_file_auto_asks_about() {
+        let asked = tracks(&[&[(0, 1, on(36))], &[(0, 2, on(38))]]);
+        let parts: Vec<String> = auto_question(&asked, None)
+            .unwrap()
+            .unwrap()
+            .iter()
+            .map(|s| s.part.to_string())
+            .collect();
+        assert_eq!(parts, ["1:1", "2:2"]);
+        let drums = tracks(&[&[(0, DRUMS, on(36)), (0, 1, on(38))]]);
+        assert!(auto_question(&drums, None).unwrap().is_none());
     }
 
     #[test]

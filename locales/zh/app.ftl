@@ -35,7 +35,7 @@ blocker-engines = 请选择来源和目标鼓音源
 channel-auto = 自动
 channel-all = 所有通道
 channel-number = { $channel }
-channel-hint-auto = 含通道 10 音符的轨道 · 其余不变
+channel-hint-auto = 第 10 通道，或唯一有音符的分轨 · 否则由你选择
 channel-hint-all = 转换所有通道
 channel-hint-one = 只转换通道 { $channel }
 missing-nearest = 替换
@@ -309,6 +309,29 @@ done-damaged-file = { $file } 已损坏：缺少一部分，剩余内容已全�
 done-damage-track-cut-bar = 音轨 { $track } 在第 { $bar } 小节中断；之后的部分不在文件中。
 done-damage-track-cut-tick = 音轨 { $track } 在 tick { $tick } 处中断；之后的部分不在文件中。
 done-damage-tracks-missing = 文件声明有 { $declared } 条音轨，但只能读取 { $read } 条。
+error-needs-parts = 请先选出这个文件的鼓分轨：多个分轨上有音符，而第 10 通道上没有。
+parts-question = { $file } 的哪些分轨是鼓？
+parts-why = 通常的鼓通道第 10 通道上没有任何内容，有 { $count } 个分轨有音符。勾选每个鼓分轨；其余保持不变。
+parts-plays-as = 每个按 { $source } 演奏的结果：
+parts-track-named = 音轨「{ $name }」· 通道 { $channel }
+parts-track-unnamed = 音轨 { $track } · 通道 { $channel }
+parts-notes =
+    { $count ->
+       *[other] { $count } 个音符
+    }
+parts-unknown = 未知 { $count }
+parts-more = 另有 { $count } 个
+parts-same-as = 勾选与 { $file } 相同的音轨
+blocker-parts = 请在上方勾选鼓分轨后再转换
+convert-ready-now =
+    { $count ->
+       *[other] 转换已就绪的 { $count } 个文件
+    }
+done-offer =
+    { $count ->
+       *[other] { $file } 中 { $part } 上的 { $count } 个音符保持原样，位于第 10 通道的鼓旁边。
+    }
+done-offer-convert = 也转换它们
 source-fit-missing = 文件的 { $hits } 个音符中有 { $missing } 个不在 { $source } 映射表中。更匹配的来源：{ $engines }
 source-fit-all = { $engine }（全部音符）
 source-fit-some = { $engine }（{ $count } 个）

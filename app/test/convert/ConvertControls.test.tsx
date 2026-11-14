@@ -19,7 +19,7 @@ describe('SummaryRow', () => {
 });
 
 describe('ConvertButton', () => {
-  const READY = { kind: 'ready', files: 1, target: 'EZdrummer 3' } as const;
+  const READY = { kind: 'ready', files: 1, target: 'EZdrummer 3', partial: false } as const;
   const blocked = (reason: string, quiet = false) => {
     render(<ConvertButton conv={{ kind: 'idle' }} state={{ kind: 'blocked', reason, quiet }} onConvert={() => {}} />);
     return screen.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ });

@@ -35,7 +35,7 @@ blocker-engines = Plugins für VON und NACH wählen
 channel-auto = Auto
 channel-all = Alle Kanäle
 channel-number = { $channel }
-channel-hint-auto = Spuren mit Noten auf Kanal 10 · andere unverändert
+channel-hint-auto = Kanal 10 oder der einzige Part mit Noten · sonst wählst du
 channel-hint-all = alle Kanäle werden konvertiert
 channel-hint-one = nur Kanal { $channel } wird konvertiert
 missing-nearest = Ersetzen
@@ -338,6 +338,32 @@ done-damaged-file = { $file } war beschädigt: Ein Teil fehlte, alles Übrige wu
 done-damage-track-cut-bar = Spur { $track } endet in Takt { $bar }; der Rest fehlte in der Datei.
 done-damage-track-cut-tick = Spur { $track } endet bei Tick { $tick }; der Rest fehlte in der Datei.
 done-damage-tracks-missing = Die Datei gibt { $declared } Spuren an; nur { $read } konnten gelesen werden.
+error-needs-parts = Wähle zuerst die Drum-Parts dieser Datei: Sie hat Noten auf mehreren Parts und keine auf Kanal 10.
+parts-question = Welche Parts von { $file } sind die Drums?
+parts-why = Nichts darin liegt auf Kanal 10, dem üblichen Drum-Kanal, und { $count } Parts haben Noten. Hake jeden Drum-Part an; der Rest bleibt, wie er ist.
+parts-plays-as = Was jeder als { $source } spielen würde:
+parts-track-named = Spur „{ $name }“ · Kanal { $channel }
+parts-track-unnamed = Spur { $track } · Kanal { $channel }
+parts-notes =
+    { $count ->
+        [one] { $count } Note
+       *[other] { $count } Noten
+    }
+parts-unknown = { $count } unbekannt
+parts-more = +{ $count } weitere
+parts-same-as = Dieselben Spuren wie in { $file } anhaken
+blocker-parts = Hake oben die Drum-Parts an, um zu konvertieren
+convert-ready-now =
+    { $count ->
+        [one] Die { $count } fertige Datei konvertieren
+       *[other] Die { $count } fertigen Dateien konvertieren
+    }
+done-offer =
+    { $count ->
+        [one] { $count } Note auf { $part } in { $file } blieb unverändert, neben den Drums auf Kanal 10.
+       *[other] { $count } Noten auf { $part } in { $file } blieben unverändert, neben den Drums auf Kanal 10.
+    }
+done-offer-convert = Auch diese konvertieren
 source-fit-missing =
     { $missing ->
         [one] { $missing } von { $hits } Noten Ihrer Datei ist nicht in der Notenbelegung von { $source }.

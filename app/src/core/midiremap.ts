@@ -8,7 +8,9 @@ import type {
   PresetName,
   LoadedPreset,
   RackFile,
-  Converted,
+  Conversion,
+  Part,
+  PartSummary,
   SourceFits,
   Unrecognized,
   CanonEntry,
@@ -36,8 +38,11 @@ export type {
   PresetName,
   LoadedPreset,
   RackFile,
+  Conversion,
   Converted,
   Damage,
+  Part,
+  PartSummary,
   Report,
   SourceFit,
   SourceFits,
@@ -62,7 +67,20 @@ export interface Midiremap {
     channel?: ChannelScope,
     missing?: MissingDrums,
     unrecognized?: Unrecognized,
-  ): Converted;
+  ): Conversion;
+  /** `remap` of only the `parts` picked as the file's drums. */
+  remapParts(
+    mid: Uint8Array,
+    pair: EnginePair,
+    ov: Overrides | undefined,
+    parts: Part[],
+    missing?: MissingDrums,
+    unrecognized?: Unrecognized,
+  ): Conversion;
+  /** The parts of `mid`, played as `src`, when converting it under `auto` would ask which are the drums. */
+  autoQuestion(mid: Uint8Array, src?: string): PartSummary[] | undefined;
+  /** Every part of `mid` with hits, played as `src` when given. */
+  fileParts(mid: Uint8Array, src?: string): PartSummary[];
   /** The Ableton rack that plays `pair.src` MIDI on `pair.tgt` as `remap` converts it, named after `presetName` when given. */
   remapRack(
     pair: EnginePair,
@@ -99,6 +117,10 @@ function calls(m: WasmModule): Midiremap {
     plan: ({ src, tgt }, ov, missing) => call(() => m.plan(src, tgt, ov, missing)),
     remap: (mid, { src, tgt }, ov, channel, missing, unrecognized) =>
       call(() => m.remap(mid, src, tgt, ov, channel, missing, unrecognized)),
+    remapParts: (mid, { src, tgt }, ov, parts, missing, unrecognized) =>
+      call(() => m.remap_parts(mid, src, tgt, ov, parts, missing, unrecognized)),
+    autoQuestion: (mid, src) => call(() => m.auto_question(mid, src)),
+    fileParts: (mid, src) => call(() => m.file_parts(mid, src)),
     remapRack: ({ src, tgt }, ov, missing, unrecognized, presetName) =>
       call(() => m.remap_rack(src, tgt, ov, missing, unrecognized, presetName)),
     sourceFits: (mids, channel) => call(() => m.source_fits(mids, channel)),

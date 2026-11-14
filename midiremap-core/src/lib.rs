@@ -34,8 +34,8 @@ pub use daw::{rack_file, Daw, FileStem, Packing, RackFile};
 pub use engine_map::{Drum, EngineId, EngineMap, MapError};
 pub use family::Family;
 pub use fit::{
-    note_hits, part_summaries, source_fits, NoteHits, PartSummary, PlayedDrum, Plays, SourceFit,
-    SourceFits,
+    auto_question, note_hits, part_summaries, source_fits, NoteHits, PartSummary, PlayedDrum,
+    Plays, SourceFit, SourceFits,
 };
 pub use meter::{Bar, Position};
 pub use midi::{CodecError, Damage};

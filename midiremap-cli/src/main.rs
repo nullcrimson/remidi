@@ -39,7 +39,7 @@ struct ConvertArgs {
     output: PathBuf,
     #[arg(long, value_name = "FILE")]
     user_map: Option<PathBuf>,
-    /// Channels to convert: auto (tracks with channel-10 hits, else every track), all, or 1-16
+    /// Channels to convert: auto (channel 10, else the file's one part with notes, else ask), all, or 1-16
     #[arg(long, value_name = "CHANNEL", default_value_t)]
     channel: ChannelScope,
     /// The drum parts to convert instead, as track:channel items counted from 1, such as

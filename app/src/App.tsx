@@ -3,7 +3,7 @@ import { CardDropzone } from './convert/CardDropzone';
 import { CloserSourcesNotice } from './convert/CloserSourcesNotice';
 import { EditView } from './editor/EditView';
 import { EngineColumns } from './engines/EngineColumns';
-import { FileChips } from './convert/FileChips';
+import { FileStep } from './convert/FileStep';
 import { Intro } from './convert/Intro';
 import { Card, Page } from './site/PageFrame';
 import { PopularConversions } from './site/PopularConversions';
@@ -107,16 +107,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
 
   const stepBodies = {
     file: (
-      <FileChips
-        files={remapper.files}
-        failures={remapper.failures}
-        skipped={remapper.skipped}
-        onFiles={pickFiles}
-        onTrySample={trySample}
-        onRemove={remapper.removeFile}
-        onClear={remapper.clearFiles}
-        pickerRef={focus.ref('filePicker')}
-      />
+      <FileStep remapper={remapper} onFiles={pickFiles} onTrySample={trySample} pickerRef={focus.ref('filePicker')} />
     ),
     engines: (
       <>

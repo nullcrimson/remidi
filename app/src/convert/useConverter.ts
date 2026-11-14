@@ -3,7 +3,7 @@ import type { Converter } from './converter';
 import type { BatchResult, FailedFile } from './batch';
 import type { EnginePair } from '../core/enginePair';
 import { toAppError, type AppError } from '../core/errors';
-import type { ChannelScope, MissingDrums, Overrides, Unrecognized } from '../core/midiremap';
+import type { ChannelScope, MissingDrums, Overrides, Part, Unrecognized } from '../core/midiremap';
 import type { SelectionEvent } from '../core/selection';
 import { withoutMidExtension, type FileResult, type LoadedFile } from '../core/files';
 
@@ -28,10 +28,25 @@ export type ConvertOutcome
 
 type Stored = Exclude<Conv, { kind: 'idle' }> & { key: string };
 
+/** The drum parts picked for each file, by file name. */
+export type Picks = Readonly<Record<string, Part[]>>;
+
 interface State {
   files: LoadedFile[];
   skipped: string[];
+  picks: Picks;
   conv: Stored | { kind: 'idle' };
+}
+
+const NO_PICKS: Picks = {};
+
+/** `files` with the parts picked for each attached, when converting under `auto`. */
+export function withPicks(files: LoadedFile[], picks: Picks, channel: ChannelScope): LoadedFile[] {
+  if (channel !== 'auto') return files;
+  return files.map((f) => {
+    const parts = picks[f.name];
+    return parts === undefined || parts.length === 0 ? f : { ...f, parts };
+  });
 }
 
 const IDLE: Conv = { kind: 'idle' };
@@ -41,11 +56,12 @@ type Action
     | { type: 'ADD_FILES'; files: LoadedFile[]; skipped: string[] }
     | { type: 'REMOVE_FILE'; name: string }
     | { type: 'CLEAR_FILES' }
+    | { type: 'SET_PARTS'; name: string; parts: Part[] }
     | { type: 'CONVERT_START'; key: string }
     | { type: 'CONVERT_DONE'; key: string; pair: EnginePair; results: FileResult[]; failures: FailedFile[] }
     | { type: 'CONVERT_ERROR'; key: string; failures: FailedFile[]; error: AppError };
 
-const INITIAL: State = { files: [], skipped: [], conv: { kind: 'idle' } };
+const INITIAL: State = { files: [], skipped: [], picks: NO_PICKS, conv: { kind: 'idle' } };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -53,16 +69,21 @@ function reducer(state: State, action: Action): State {
       const names = new Set(state.files.map((f) => f.name));
       const added = action.files.filter((f) => !names.has(f.name));
       if (added.length === 0) return { ...state, skipped: action.skipped };
-      return { files: [...state.files, ...added], skipped: action.skipped, conv: { kind: 'idle' } };
+      return { ...state, files: [...state.files, ...added], skipped: action.skipped, conv: { kind: 'idle' } };
     }
-    case 'REMOVE_FILE':
+    case 'REMOVE_FILE': {
+      const { [action.name]: _dropped, ...picks } = state.picks;
       return {
         files: state.files.filter((f) => f.name !== action.name),
         skipped: [],
+        picks,
         conv: { kind: 'idle' },
       };
+    }
     case 'CLEAR_FILES':
-      return { files: [], skipped: [], conv: { kind: 'idle' } };
+      return { files: [], skipped: [], picks: NO_PICKS, conv: { kind: 'idle' } };
+    case 'SET_PARTS':
+      return { ...state, picks: { ...state.picks, [action.name]: action.parts }, conv: { kind: 'idle' } };
     case 'chooseSrc':
     case 'chooseTgt':
     case 'swap':
@@ -96,7 +117,7 @@ function reducer(state: State, action: Action): State {
  * the files or the selection change, and when the screen goes away.
  */
 export function useConverter(converter: Pick<Converter, 'convert'>, pair: EnginePair | null, settingsKey: string) {
-  const [{ files, skipped, conv: stored }, dispatch] = useReducer(reducer, INITIAL);
+  const [{ files, skipped, picks, conv: stored }, dispatch] = useReducer(reducer, INITIAL);
   const conv: Conv = stored.kind !== 'idle' && stored.key !== settingsKey ? IDLE : stored;
   const running = useRef<AbortController | null>(null);
   const stop = useCallback(() => {
@@ -130,6 +151,10 @@ export function useConverter(converter: Pick<Converter, 'convert'>, pair: Engine
     stop();
     dispatch({ type: 'CLEAR_FILES' });
   }, [stop]);
+  const setParts = useCallback((name: string, parts: Part[]) => {
+    stop();
+    dispatch({ type: 'SET_PARTS', name, parts });
+  }, [stop]);
   const onSelection = useCallback((event: SelectionEvent) => {
     stop();
     dispatch(event);
@@ -142,8 +167,9 @@ export function useConverter(converter: Pick<Converter, 'convert'>, pair: Engine
       missing: MissingDrums,
       unrecognized: Unrecognized,
       key: string,
-      toConvert: LoadedFile[] = files,
+      only?: LoadedFile[],
     ): Promise<ConvertOutcome | null> => {
+      const toConvert = only ?? withPicks(files, picks, channel);
       if (toConvert.length === 0 || pair === null) return null;
       stop();
       const run = new AbortController();
@@ -159,19 +185,29 @@ export function useConverter(converter: Pick<Converter, 'convert'>, pair: Engine
         return { kind: 'failed', error };
       }
       if (run.signal.aborted) return null;
-      const ok: FileResult[] = batch.ok.map(({ name, bytes, report, damage }) => ({
-        name: `${withoutMidExtension(name)}-${pair.tgt}.mid`,
-        url: URL.createObjectURL(new Blob([bytes], { type: 'audio/midi' })),
-        bytes,
-        report,
-        damage,
-      }));
-      const bad = batch.failed;
+      const inputs = new Map(toConvert.map((f) => [f.name, f]));
+      const ok: FileResult[] = batch.ok.flatMap(({ name, bytes, report, damage, picked, offers }) => {
+        const input = inputs.get(name);
+        return input === undefined
+          ? []
+          : [{
+              name: `${withoutMidExtension(name)}-${pair.tgt}.mid`,
+              url: URL.createObjectURL(new Blob([bytes], { type: 'audio/midi' })),
+              bytes,
+              report,
+              damage,
+              input,
+              picked,
+              offers,
+            }];
+      });
+      const asked: FailedFile[] = batch.asked.map((name) => ({ name, error: { kind: 'needsParts' } }));
+      const bad = [...batch.failed, ...asked];
       if (ok.length > 0 || bad.length === 0) dispatch({ type: 'CONVERT_DONE', key, pair, results: ok, failures: bad });
       else dispatch({ type: 'CONVERT_ERROR', key, failures: bad, error: bad[0].error });
       return { kind: 'done', ok, failed: bad };
     },
-    [converter, files, pair, stop],
+    [converter, files, picks, pair, stop],
   );
 
   const results = conv.kind === 'done' ? conv.results : [];
@@ -180,6 +216,8 @@ export function useConverter(converter: Pick<Converter, 'convert'>, pair: Engine
   return {
     files,
     skipped,
+    picks,
+    setParts,
     conv,
     results,
     failures,

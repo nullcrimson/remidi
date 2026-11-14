@@ -35,7 +35,7 @@ blocker-engines = Pick a FROM and a TO engine
 channel-auto = Auto
 channel-all = All channels
 channel-number = { $channel }
-channel-hint-auto = tracks with channel-10 hits · others unchanged
+channel-hint-auto = channel 10, or the only part with notes · otherwise you pick
 channel-hint-all = every channel is converted
 channel-hint-one = only channel { $channel } is converted
 missing-nearest = Nearest
@@ -338,6 +338,32 @@ done-damaged-file = { $file } was damaged: part of it was missing, and everythin
 done-damage-track-cut-bar = Track { $track } stops at bar { $bar }; the rest of it was not in the file.
 done-damage-track-cut-tick = Track { $track } stops at tick { $tick }; the rest of it was not in the file.
 done-damage-tracks-missing = The file says it has { $declared } tracks; only { $read } could be read.
+error-needs-parts = Pick this file's drum parts first: it has notes on several parts and none on channel 10.
+parts-question = Which parts of { $file } are the drums?
+parts-why = Nothing in it is on channel 10, the usual drum channel, and { $count } parts have notes. Tick every drum part; the rest stays as it is.
+parts-plays-as = What each would play as { $source }:
+parts-track-named = Track “{ $name }” · channel { $channel }
+parts-track-unnamed = Track { $track } · channel { $channel }
+parts-notes =
+    { $count ->
+        [one] { $count } note
+       *[other] { $count } notes
+    }
+parts-unknown = { $count } unknown
+parts-more = +{ $count } more
+parts-same-as = Tick the same tracks as in { $file }
+blocker-parts = Tick the drum parts above to convert
+convert-ready-now =
+    { $count ->
+        [one] Convert the { $count } file that is ready
+       *[other] Convert the { $count } files that are ready
+    }
+done-offer =
+    { $count ->
+        [one] { $count } note on { $part } in { $file } stayed as it was, beside the drums on channel 10.
+       *[other] { $count } notes on { $part } in { $file } stayed as they were, beside the drums on channel 10.
+    }
+done-offer-convert = Also convert them
 source-fit-missing =
     { $missing ->
         [one] { $missing } of { $hits } notes in your file isn't in the { $source } layout.

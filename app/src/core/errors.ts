@@ -9,8 +9,8 @@ export class WasmCallError extends Error {
   }
 }
 
-/** Every error the app shows: a WASM call's error, or the module failing to load. */
-export type AppError = WasmError | { kind: 'wasmUnavailable'; detail: string };
+/** Every error the app shows: a WASM call's error, the module failing to load, or a file converted before its drum parts were picked. */
+export type AppError = WasmError | { kind: 'wasmUnavailable'; detail: string } | { kind: 'needsParts' };
 
 const KINDS = {
   unknownEngine: true,
@@ -47,6 +47,7 @@ export function errorMessage(e: AppError): Message {
     case 'badMissing': return { id: 'error-bad-missing' };
     case 'internal': return { id: 'error-internal' };
     case 'wasmUnavailable': return { id: 'error-wasm-unavailable' };
+    case 'needsParts': return { id: 'error-needs-parts' };
   }
 }
 

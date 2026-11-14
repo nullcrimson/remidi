@@ -1,16 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { runBatch } from '../../src/convert/batch';
 import { WasmCallError } from '../../src/core/errors';
-import type { Overrides, Converted } from '../../src/core/midiremap';
+import type { Conversion, Midiremap, Overrides } from '../../src/core/midiremap';
 import { enginePair, typed } from '../typed';
 
 const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 };
 
+const done = (bytes: Uint8Array<ArrayBuffer>): Conversion => ({ kind: 'done', bytes, report: REPORT, damage: [], picked: [], offers: [] });
+
+const unused: Midiremap['remapParts'] = () => {
+  throw new Error('no parts were picked');
+};
+
 describe('runBatch', () => {
   it('converts each file in order and collects failures by name', () => {
-    const remap = (mid: Uint8Array): Converted => {
+    const remap = (mid: Uint8Array): Conversion => {
       if (mid[0] === 0) throw new WasmCallError({ kind: 'badMidi', detail: 'bad midi' });
-      return { bytes: new Uint8Array([mid[0] + 1]), report: REPORT, damage: [] };
+      return done(new Uint8Array([mid[0] + 1]));
     };
     const result = runBatch(
       [
@@ -23,7 +29,7 @@ describe('runBatch', () => {
       'auto',
       'nearest',
       'remove',
-      remap,
+      { remap, remapParts: unused },
     );
     expect(result.ok.map((c) => [c.name, Array.from(c.bytes)])).toEqual([
       ['a.mid', [2]],
@@ -35,10 +41,44 @@ describe('runBatch', () => {
   it('passes engines, overrides, channel, missing drums and unrecognized notes through to remap', () => {
     const calls: unknown[][] = [];
     const ov = typed<Overrides>({ edits: { 'kick.main': 35 }, srcEdits: {} });
-    runBatch([{ name: 'a.mid', bytes: new Uint8Array([1]) }], enginePair('s', 't'), ov, '10', 'drop', 'keep', (...args) => {
+    const remap: Midiremap['remap'] = (...args) => {
       calls.push(args.slice(1));
-      return { bytes: new Uint8Array(), report: REPORT, damage: [] };
-    });
+      return done(new Uint8Array());
+    };
+    runBatch([{ name: 'a.mid', bytes: new Uint8Array([1]) }], enginePair('s', 't'), ov, '10', 'drop', 'keep', { remap, remapParts: unused });
     expect(calls).toEqual([[enginePair('s', 't'), ov, '10', 'drop', 'keep']]);
+  });
+
+  it('converts a file with picked parts through only those parts', () => {
+    const parts = [{ track: 1, channel: 1 }];
+    const seen: unknown[] = [];
+    const remapParts: Midiremap['remapParts'] = (_mid, _pair, _ov, picked) => {
+      seen.push(picked);
+      return done(new Uint8Array([3]));
+    };
+    const result = runBatch(
+      [{ name: 'a.mid', bytes: new Uint8Array([1]), parts }],
+      enginePair('s', 't'),
+      undefined,
+      'auto',
+      'nearest',
+      'remove',
+      { remap: () => done(new Uint8Array([9])), remapParts },
+    );
+    expect(seen).toEqual([parts]);
+    expect(result.ok.map((c) => Array.from(c.bytes))).toEqual([[3]]);
+  });
+
+  it('lists a file the conversion asks about, apart from the converted and the failed', () => {
+    const result = runBatch(
+      [{ name: 'a.mid', bytes: new Uint8Array([1]) }],
+      enginePair('s', 't'),
+      undefined,
+      'auto',
+      'nearest',
+      'remove',
+      { remap: () => ({ kind: 'ask', parts: [], damage: [] }), remapParts: unused },
+    );
+    expect(result).toEqual({ ok: [], failed: [], asked: ['a.mid'] });
   });
 });

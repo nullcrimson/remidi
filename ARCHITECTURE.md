@@ -273,7 +273,8 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
   write. `Conversion::Done(Converted { bytes, report, damage, picked, offers })`, or
   `Conversion::Ask { parts, damage }` when `Auto` must ask (nothing written). The single
   entry point for the CLI and the WASM; it crosses to the app as it is. `fit::part_summaries`
-  lists a file's parts (track name, hits, and what they play as a source) for the question.
+  lists a file's parts (track name, hits, and what they play as a source), and
+  `fit::auto_question` lists them only when `Auto` would ask.
 - `damage` lists what the file had lost before it was read, since midly (not strict) reads
   a damaged file as far as it goes without saying so: `Damage::TrackCut` for a track with no
   End-of-Track (every loss of events leaves one, a bad event or a cut download alike), placed
@@ -435,7 +436,7 @@ way. `list` prints available engine ids. The exit code is 0 when the file was wr
 
 `wasm-bindgen` exports for the browser app:
 
-- `remap(mid, src_id, tgt_id, overrides?, channel?, missing?, unrecognized?) → Conversion` (and `remap_parts(…, parts, …)`, `file_parts(mid, src_id?) → PartSummary[]`) —
+- `remap(mid, src_id, tgt_id, overrides?, channel?, missing?, unrecognized?) → Conversion` (and `remap_parts(…, parts, …)`; `auto_question(mid, src_id?) → PartSummary[] | undefined` lists the parts `auto` would ask about, `file_parts(mid, src_id?) → PartSummary[]` every part) —
   `overrides` is an `Overrides` object; `channel` is `auto` (the default), `all` or
   `1`-`16`; `missing` is `nearest` (the default) or `drop`; `unrecognized` is `remove`
   (the default) or `keep`. Like `channel`, a value outside its set is `internal`: the app
@@ -560,7 +561,11 @@ test in that file fails on any import outside it.
   edits, and anything else that throws while rendering reaches the root
   `ErrorBoundary` (Reload, Report an issue, two-step Reset saved data).
 - **Screen state** (`convert/useRemapper.ts` and the hooks of each feature) — `useRemapper` is the facade the UI consumes. It composes
-  `useEngineCatalog` (one `Catalog` union: loading, ready with the module and its engine list, or the error), `useConverter` (files → results),
+  `useEngineCatalog` (one `Catalog` union: loading, ready with the module and its engine list, or the error), `useConverter` (files → results, and the drum parts picked per file),
+  `usePartQuestions` (`convert/partQuestions.ts`: the files `auto` would ask about through
+  `auto_question`, the ones still waiting for a pick, and the parts a conversion offers;
+  `PartPicker` asks under the files, Convert takes only the files that do not wait, and
+  `PartOffers` in the done panel converts an offer by picking the file's parts again),
   and `useEditor` (per-note edits, the live `plan` preview, and derived
   counts) behind a stable return contract, plus a small selection reducer
   (`convert/selectionState.ts`) for

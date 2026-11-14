@@ -8,7 +8,7 @@ import { FollowTip } from './FollowTip';
 /** What Convert offers: why it cannot run, or how many files it converts to which engine. */
 export type ConvertState
   = | ({ kind: 'blocked' } & Blocker<string>)
-    | { kind: 'ready'; files: number; target: string };
+    | { kind: 'ready'; files: number; target: string; partial: boolean };
 
 export function ConvertButton({
   ref,
@@ -50,9 +50,11 @@ export function ConvertButton({
         quietReason={blocker?.quiet}
         onClick={onConvert}
       >
-        {state.kind === 'ready'
-          ? t({ id: 'convert-button-ready', args: { count: state.files, target: state.target } })
-          : t({ id: 'convert-button' })}
+        {state.kind !== 'ready'
+          ? t({ id: 'convert-button' })
+          : state.partial
+            ? t({ id: 'convert-ready-now', args: { count: state.files } })
+            : t({ id: 'convert-button-ready', args: { count: state.files, target: state.target } })}
       </Button>
     </FollowTip>
   );

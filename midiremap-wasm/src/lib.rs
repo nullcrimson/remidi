@@ -1,11 +1,11 @@
 use std::{collections::BTreeMap, error::Error};
 
 use midiremap_core::{
-    convert, note_hits, parse_preset, part_summaries, rack_file, sample_file as core_sample_file,
-    source_fits as core_source_fits, Canon, CanonEntry, Catalog, ChannelScope, Conversion, Drum,
-    EngineId, EngineMap, Family, LoadedPreset, Mapping, MissingDrums, Note, NoteHits, OctaveBase,
-    Overrides, Part, PartSet, PartSummary, PresetError, PresetName, RackFile, SourceFits,
-    Unrecognized, VoicePlan,
+    auto_question as core_auto_question, convert, note_hits, parse_preset, part_summaries,
+    rack_file, sample_file as core_sample_file, source_fits as core_source_fits, Canon, CanonEntry,
+    Catalog, ChannelScope, Conversion, Drum, EngineId, EngineMap, Family, LoadedPreset, Mapping,
+    MissingDrums, Note, NoteHits, OctaveBase, Overrides, Part, PartSet, PartSummary, PresetError,
+    PresetName, RackFile, SourceFits, Unrecognized, VoicePlan,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -195,6 +195,21 @@ pub fn file_parts(mid: &[u8], src_id: Option<String>) -> Result<Vec<Ts<PartSumma
     let parts =
         part_summaries(mid, source).map_err(|e| WasmError::BadMidi { detail: chain(&e) })?;
     to_js_all(&parts)
+}
+
+/// The parts of `mid`, played as `src_id`'s layout when one is given, when converting it under
+/// `auto` would ask which are the drums; nothing when it would convert without asking.
+#[wasm_bindgen]
+pub fn auto_question(
+    mid: &[u8],
+    src_id: Option<String>,
+) -> Result<Option<Vec<Ts<PartSummary>>>, WasmError> {
+    let source = src_id
+        .map(|id| engine(Catalog::shared(), &id, Role::Source))
+        .transpose()?;
+    let question =
+        core_auto_question(mid, source).map_err(|e| WasmError::BadMidi { detail: chain(&e) })?;
+    question.as_deref().map(to_js_all).transpose()
 }
 
 /// The Ableton rack that plays drum MIDI written for `src_id` on `tgt_id` with these edits and

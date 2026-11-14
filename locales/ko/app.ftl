@@ -35,7 +35,7 @@ blocker-engines = 원본 음원과 대상 음원을 선택하세요
 channel-auto = 자동
 channel-all = 모든 채널
 channel-number = { $channel }
-channel-hint-auto = 채널 10 노트가 있는 트랙 · 나머지는 그대로
+channel-hint-auto = 채널 10 또는 노트가 있는 유일한 파트 · 아니면 직접 선택
 channel-hint-all = 모든 채널 변환
 channel-hint-one = 채널 { $channel }만 변환
 missing-nearest = 대체
@@ -307,6 +307,29 @@ done-damaged-file = { $file } 파일이 손상되어 일부가 빠져 있었습�
 done-damage-track-cut-bar = 트랙 { $track }이(가) { $bar }마디에서 끊깁니다. 그 뒤는 파일에 없었습니다.
 done-damage-track-cut-tick = 트랙 { $track }이(가) 틱 { $tick }에서 끊깁니다. 그 뒤는 파일에 없었습니다.
 done-damage-tracks-missing = 파일에는 트랙이 { $declared }개 있다고 되어 있지만 { $read }개만 읽을 수 있었습니다.
+error-needs-parts = 먼저 이 파일의 드럼 파트를 고르세요. 여러 파트에 노트가 있고 10번 채널에는 없습니다.
+parts-question = { $file }의 어느 파트가 드럼인가요?
+parts-why = 보통 드럼 채널인 10번 채널에는 아무것도 없고, { $count }개 파트에 노트가 있습니다. 드럼 파트를 모두 체크하세요. 나머지는 그대로 둡니다.
+parts-plays-as = { $source }(으)로 연주하면:
+parts-track-named = 트랙 “{ $name }” · 채널 { $channel }
+parts-track-unnamed = 트랙 { $track } · 채널 { $channel }
+parts-notes =
+    { $count ->
+       *[other] 노트 { $count }개
+    }
+parts-unknown = 알 수 없음 { $count }
+parts-more = +{ $count }개 더
+parts-same-as = { $file }와 같은 트랙 체크
+blocker-parts = 변환하려면 위에서 드럼 파트를 체크하세요
+convert-ready-now =
+    { $count ->
+       *[other] 준비된 파일 { $count }개 변환
+    }
+done-offer =
+    { $count ->
+       *[other] { $file }의 { $part }에 있는 노트 { $count }개는 10번 채널 드럼 옆에서 그대로 남았습니다.
+    }
+done-offer-convert = 이것도 변환
 source-fit-missing = 파일의 노트 { $hits }개 중 { $missing }개가 { $source } 노트 맵에 없습니다. 더 잘 맞는 원본: { $engines }
 source-fit-all = { $engine } (모든 노트)
 source-fit-some = { $engine } ({ $count }개)

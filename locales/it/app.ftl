@@ -35,7 +35,7 @@ blocker-engines = Scegli entrambi i plugin
 channel-auto = Auto
 channel-all = Tutti i canali
 channel-number = { $channel }
-channel-hint-auto = tracce con note sul canale 10 · altre invariate
+channel-hint-auto = canale 10, o l’unica parte con note · altrimenti scegli tu
 channel-hint-all = vengono convertiti tutti i canali
 channel-hint-one = viene convertito solo il canale { $channel }
 missing-nearest = Sostituisci
@@ -370,6 +370,32 @@ done-damaged-file = { $file } era danneggiato: ne mancava una parte, e tutto ci�
 done-damage-track-cut-bar = La traccia { $track } si interrompe alla battuta { $bar }; il resto non era nel file.
 done-damage-track-cut-tick = La traccia { $track } si interrompe al tick { $tick }; il resto non era nel file.
 done-damage-tracks-missing = Il file dichiara { $declared } tracce; se ne sono potute leggere solo { $read }.
+error-needs-parts = Scegli prima le parti di batteria di questo file: ha note su più parti e nessuna sul canale 10.
+parts-question = Quali parti di { $file } sono la batteria?
+parts-why = Niente è sul canale 10, il solito canale della batteria, e { $count } parti hanno note. Spunta ogni parte di batteria; il resto resta com’è.
+parts-plays-as = Cosa suonerebbe ciascuna come { $source }:
+parts-track-named = Traccia «{ $name }» · canale { $channel }
+parts-track-unnamed = Traccia { $track } · canale { $channel }
+parts-notes =
+    { $count ->
+        [one] { $count } nota
+       *[other] { $count } note
+    }
+parts-unknown = { $count } sconosciute
+parts-more = +{ $count } altre
+parts-same-as = Spunta le stesse tracce di { $file }
+blocker-parts = Spunta sopra le parti di batteria per convertire
+convert-ready-now =
+    { $count ->
+        [one] Converti il { $count } file pronto
+       *[other] Converti i { $count } file pronti
+    }
+done-offer =
+    { $count ->
+        [one] { $count } nota su { $part } in { $file } è rimasta com’era, accanto alla batteria sul canale 10.
+       *[other] { $count } note su { $part } in { $file } sono rimaste com’erano, accanto alla batteria sul canale 10.
+    }
+done-offer-convert = Converti anche queste
 source-fit-missing =
     { $missing ->
         [one] { $missing } nota su { $hits } del tuo file non è nella mappatura di { $source }.

@@ -35,7 +35,7 @@ blocker-engines = Wybierz wtyczkę źródłową i docelową
 channel-auto = Auto
 channel-all = Wszystkie kanały
 channel-number = { $channel }
-channel-hint-auto = ścieżki z uderzeniami na kanale 10 · pozostałe bez zmian
+channel-hint-auto = kanał 10 lub jedyna partia z nutami · w innym razie wybierasz ty
 channel-hint-all = konwertowany jest każdy kanał
 channel-hint-one = konwertowany jest tylko kanał { $channel }
 missing-nearest = Zastąp
@@ -357,6 +357,38 @@ done-damaged-file = Plik { $file } był uszkodzony: brakowało jego części, a 
 done-damage-track-cut-bar = Ścieżka { $track } urywa się w takcie { $bar }; reszty nie było w pliku.
 done-damage-track-cut-tick = Ścieżka { $track } urywa się na ticku { $tick }; reszty nie było w pliku.
 done-damage-tracks-missing = Plik deklaruje { $declared } ścieżek; udało się odczytać tylko { $read }.
+error-needs-parts = Najpierw wybierz partie perkusji w tym pliku: ma nuty w kilku partiach i żadnej na kanale 10.
+parts-question = Które partie { $file } to perkusja?
+parts-why = Nic w nim nie jest na kanale 10, zwykłym kanale perkusji, a { $count } partii ma nuty. Zaznacz każdą partię perkusji; reszta zostaje bez zmian.
+parts-plays-as = Co każda zagrałaby jako { $source }:
+parts-track-named = Ścieżka „{ $name }” · kanał { $channel }
+parts-track-unnamed = Ścieżka { $track } · kanał { $channel }
+parts-notes =
+    { $count ->
+        [one] { $count } nuta
+        [few] { $count } nuty
+        [many] { $count } nut
+       *[other] { $count } nuty
+    }
+parts-unknown = { $count } nieznanych
+parts-more = +{ $count } więcej
+parts-same-as = Zaznacz te same ścieżki co w { $file }
+blocker-parts = Zaznacz powyżej partie perkusji, aby przekonwertować
+convert-ready-now =
+    { $count ->
+        [one] Konwertuj { $count } gotowy plik
+        [few] Konwertuj { $count } gotowe pliki
+        [many] Konwertuj { $count } gotowych plików
+       *[other] Konwertuj gotowe pliki: { $count }
+    }
+done-offer =
+    { $count ->
+        [one] { $count } nuta na { $part } w { $file } została bez zmian, obok perkusji na kanale 10.
+        [few] { $count } nuty na { $part } w { $file } zostały bez zmian, obok perkusji na kanale 10.
+        [many] { $count } nut na { $part } w { $file } zostało bez zmian, obok perkusji na kanale 10.
+       *[other] Nuty na { $part } w { $file } ({ $count }) zostały bez zmian, obok perkusji na kanale 10.
+    }
+done-offer-convert = Konwertuj też je
 source-fit-missing = W mapie { $source } brakuje { $missing } z { $hits } nut z pliku. Lepiej pasują: { $engines }
 source-fit-all = { $engine } (wszystkie nuty)
 source-fit-some =

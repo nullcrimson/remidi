@@ -1,5 +1,5 @@
 import type { Message } from '../generated/i18n';
-import type { Damage, Report } from './midiremap';
+import type { Damage, Part, Report } from './midiremap';
 
 const MID_EXTENSIONS = ['.mid', '.midi'];
 const PRESET_EXTENSIONS = ['.json'];
@@ -79,6 +79,8 @@ export async function takeFiles(list: File[], onFiles: OnFiles): Promise<void> {
 export interface LoadedFile {
   bytes: Uint8Array;
   name: string;
+  /** The parts picked as the file's drums, when the user picked them. */
+  parts?: Part[];
 }
 
 export interface FileResult {
@@ -87,4 +89,9 @@ export interface FileResult {
   bytes: Uint8Array;
   report: Report;
   damage: Damage[];
+  /** The file it was converted from. */
+  input: LoadedFile;
+  picked: Part[];
+  /** Parts left as they are beside channel-10 drums in their track, offered to convert too. */
+  offers: Part[];
 }

@@ -15,7 +15,7 @@ const drums = typed<Drum[]>([
 ]);
 
 function result(name: string, report: Loose<FileResult['report']>): FileResult {
-  return { name, url: 'blob:x', bytes: new Uint8Array(), report: typed<FileResult['report']>(report), damage: [] };
+  return { name, url: 'blob:x', bytes: new Uint8Array(), report: typed<FileResult['report']>(report), damage: [], input: { name, bytes: new Uint8Array() }, picked: [], offers: [] };
 }
 const empty = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 10 };
 

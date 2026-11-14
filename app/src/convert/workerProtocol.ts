@@ -39,7 +39,7 @@ export async function answerHere(load: LoadMidiremap, request: WorkerRequest): P
   switch (request.kind) {
     case 'convert': {
       const { files, pair, ov, channel, missing, unrecognized } = request;
-      return { kind: 'convert', result: runBatch(files, pair, ov, channel, missing, unrecognized, core.remap) };
+      return { kind: 'convert', result: runBatch(files, pair, ov, channel, missing, unrecognized, core) };
     }
     case 'fit':
       return { kind: 'fit', fits: core.sourceFits(request.files.map((f) => f.bytes), request.channel) };

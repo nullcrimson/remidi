@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from '../src/App';
 import { RUNTIME } from './runtime';
-import type { Converted, CanonEntry, VoicePlan } from '../src/core/midiremap';
+import type { Conversion, CanonEntry, VoicePlan } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
 import { convertButton, engineCard, pickFrom, pickTo } from './eventSteps';
@@ -35,7 +35,7 @@ describe('keyboard use', () => {
     vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([
       { canon: 'kick.main', label: 'Kick', family: 'Kick', srcNotes: [24], defaultTgtNote: 36, outcome: { status: 'direct', note: 36 } },
     ]));
-    vi.mocked(stub.remap).mockReturnValue(typed<Converted>({
+    vi.mocked(stub.remap).mockReturnValue(typed<Conversion>({ kind: 'done', picked: [], offers: [],
       bytes: new Uint8Array([1]),
       damage: [],
       report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 10 },

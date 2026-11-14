@@ -46,19 +46,22 @@ export function ConvertStepEnd({
         onDropMissing={onDropMissing}
         editedDrums={editedDrums}
         onConvertMore={onConvertMore}
+        offers={remapper.questions.offers}
+        onAlsoConvert={(file, parts) => void remapper.alsoConvert(file, parts)}
       />
     );
   }
-  const readiness = convertReadiness({ files: remapper.files.length, pair });
+  const readiness = convertReadiness({ files: remapper.files.length, waiting: remapper.questions.waiting.size, pair });
+  const partial = readiness.kind === 'ready' && readiness.waiting > 0;
   return (
     <>
       <ConvertButton
         ref={convertRef}
         conv={conv}
         state={readiness.kind === 'ready'
-          ? { kind: 'ready', files: readiness.files, target: namesOf(remapper.engines, readiness.pair).target }
+          ? { kind: 'ready', files: readiness.files, target: namesOf(remapper.engines, readiness.pair).target, partial }
           : { kind: 'blocked', reason: t(readiness.reason), quiet: readiness.quiet }}
-        onConvert={() => void remapper.convert()}
+        onConvert={() => void (partial ? remapper.convertReady() : remapper.convert())}
       />
       {conv.kind === 'error' && (
         <p

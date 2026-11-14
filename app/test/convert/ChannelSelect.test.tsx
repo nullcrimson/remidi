@@ -9,9 +9,9 @@ describe('ChannelSelect', () => {
     const select = screen.getByRole('combobox', { name: 'Drum channel' });
     expect(select).toHaveValue('auto');
     expect(screen.getAllByRole('option')).toHaveLength(18);
-    expect(screen.getByText('tracks with channel-10 hits · others unchanged')).toBeInTheDocument();
+    expect(screen.getByText('channel 10, or the only part with notes · otherwise you pick')).toBeInTheDocument();
     expect(select).toHaveClass('rounded-chip');
-    expect(select).toHaveAccessibleDescription(/tracks with channel-10 hits/);
+    expect(select).toHaveAccessibleDescription(/channel 10, or the only part with notes/);
   });
 
   it('shows the hint for a numbered channel', () => {

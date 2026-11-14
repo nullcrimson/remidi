@@ -4,13 +4,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from '../src/App';
 import { RUNTIME } from './runtime';
-import type { Converted, CanonEntry, VoicePlan } from '../src/core/midiremap';
+import type { Conversion, CanonEntry, VoicePlan } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { typed } from './typed';
 import { openSettings, pickFrom, pickTo } from './eventSteps';
 
 function reportWith(untouched: number, converted = 10) {
-  return typed<Converted>({
+  return typed<Conversion>({ kind: 'done', picked: [], offers: [],
     bytes: new Uint8Array([1]),
     damage: [],
     report: { unmappedSource: {}, fallbackUsed: {}, dropped: { 'china.1.hit': 2 }, untouched, converted },

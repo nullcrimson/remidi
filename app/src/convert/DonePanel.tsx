@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { saveBlob } from '../core/download';
 import { engineCode } from '../core/engineCode';
 import type { EngineNames, EnginePair } from '../core/enginePair';
-import type { Unrecognized } from '../core/midiremap';
+import type { Part, Unrecognized } from '../core/midiremap';
 import { reportLink } from '../report/reportLink';
 import type { FailedFile } from './batch';
 import { ErrorText } from '../ui/ErrorText';
@@ -17,6 +17,8 @@ import { CheckIcon } from '../ui/CheckIcon';
 import { fileStatus, outcomeTags } from './doneSummary';
 import { UnrecognizedNotes } from './UnrecognizedNotes';
 import { DamagedFiles } from './DamagedFiles';
+import { PartOffers } from './PartOffers';
+import type { Offer } from './partQuestions';
 import { TextButton } from '../ui/TextButton';
 import { TipToast } from '../tip/TipToast';
 import { track } from '../core/stats';
@@ -34,6 +36,8 @@ export function DonePanel({
   onConvertMore,
   onDropMissing,
   editedDrums = 0,
+  offers = [],
+  onAlsoConvert = () => {},
 }: {
   results: Converted['results'];
   failures: FailedFile[];
@@ -46,6 +50,8 @@ export function DonePanel({
   onConvertMore: () => void;
   onDropMissing?: () => void;
   editedDrums?: number;
+  offers?: Offer[];
+  onAlsoConvert?: (file: string, parts: Part[]) => void;
 }) {
   const { translator } = useLocale();
   const { t, locale } = translator;
@@ -112,6 +118,7 @@ export function DonePanel({
             />
           )}
           <DamagedFiles results={results} />
+          <PartOffers offers={offers} onAlsoConvert={onAlsoConvert} />
         </div>
 
         <div className="flex w-full flex-col items-center gap-1.5">

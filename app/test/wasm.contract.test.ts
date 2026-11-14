@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
-import type { Overrides } from '../src/core/midiremap';
+import type { Conversion, Overrides } from '../src/core/midiremap';
 import naming from '../src/wasm/note_naming.json';
 import { PRESET_FIXTURE } from './presetFixture';
 import * as stub from './stubs/wasm';
@@ -54,6 +54,11 @@ function thrown(f: () => unknown): unknown {
 const keys = (o: object) => Object.keys(o).sort();
 const kind = (f: () => unknown) => (thrown(f) as { kind: string }).kind;
 const first = <T extends object>(xs: T[]) => keys(xs[0]);
+
+function done(conversion: Conversion): Extract<Conversion, { kind: 'done' }> {
+  if (conversion.kind !== 'done') throw new Error('the conversion asked which parts are drums');
+  return conversion;
+}
 
 describe('real WASM module', () => {
   it('lists the engines', () => {
@@ -110,34 +115,34 @@ describe('real WASM module', () => {
   });
 
   it('converts a file into MIDI bytes', () => {
-    const out = real.remap(MIDI, 'ggd_invasion', 'ezdrummer');
+    const out = done(real.remap(MIDI, 'ggd_invasion', 'ezdrummer'));
     expect(out.bytes).toBeInstanceOf(Uint8Array);
     expect(Array.from(out.bytes.slice(0, 4))).toEqual([0x4d, 0x54, 0x68, 0x64]);
   });
 
   it('reports a conversion with a camelCase report', () => {
-    const out = real.remap(MIDI, 'ggd_invasion', 'ezdrummer');
+    const out = done(real.remap(MIDI, 'ggd_invasion', 'ezdrummer'));
     expect(keys(out.report)).toEqual(['converted', 'dropped', 'fallbackUsed', 'unmappedSource', 'untouched']);
     expect(out.report.converted).toBe(2);
   });
 
   it('keeps a note the source layout does not recognize when told to', () => {
-    const out = real.remap(UNKNOWN_MIDI, 'ggd_invasion', 'ezdrummer', undefined, undefined, undefined, 'keep');
+    const out = done(real.remap(UNKNOWN_MIDI, 'ggd_invasion', 'ezdrummer', undefined, undefined, undefined, 'keep'));
     expect(Array.from(out.bytes)).toEqual(Array.from(UNKNOWN_MIDI));
   });
 
   it('removes a note the source layout does not recognize by default', () => {
-    const out = real.remap(UNKNOWN_MIDI, 'ggd_invasion', 'ezdrummer');
+    const out = done(real.remap(UNKNOWN_MIDI, 'ggd_invasion', 'ezdrummer'));
     expect(Array.from(out.bytes)).not.toEqual(Array.from(UNKNOWN_MIDI));
   });
 
   it('reports a kept note as unrecognized', () => {
-    const out = real.remap(UNKNOWN_MIDI, 'ggd_invasion', 'ezdrummer', undefined, undefined, undefined, 'keep');
+    const out = done(real.remap(UNKNOWN_MIDI, 'ggd_invasion', 'ezdrummer', undefined, undefined, undefined, 'keep'));
     expect(out.report.unmappedSource).toEqual({ 99: 1 });
   });
 
   it('reports the stand-in a swapped drum played on', () => {
-    const out = real.remap(CHINA_MIDI, 'ggd_invasion', 'ezdrummer');
+    const out = done(real.remap(CHINA_MIDI, 'ggd_invasion', 'ezdrummer'));
     expect(out.report.fallbackUsed).toEqual({ 'china.1.hit': { standIn: 'crash.1.hit', note: 86, count: 1 } });
   });
 
@@ -283,7 +288,7 @@ describe('test stub', () => {
   });
 
   it('returns the same remap fields as the real module', () => {
-    const [s, r] = [stub.remap(MIDI, 'ggd_invasion', 'ezdrummer'), real.remap(MIDI, 'ggd_invasion', 'ezdrummer')];
+    const [s, r] = [done(stub.remap(MIDI, 'ggd_invasion', 'ezdrummer')), done(real.remap(MIDI, 'ggd_invasion', 'ezdrummer'))];
     expect(keys(s)).toEqual(keys(r));
     expect(keys(s.report)).toEqual(keys(r.report));
   });
@@ -308,7 +313,7 @@ describe('test stub', () => {
 
   it('uses only drum keys the real vocabulary has', () => {
     const vocabulary = new Map(real.canon_catalog().map((c) => [c.canon, c]));
-    const report = stub.remap(MIDI, 'ggd_invasion', 'ezdrummer').report;
+    const report = done(stub.remap(MIDI, 'ggd_invasion', 'ezdrummer')).report;
     const used = [
       ...stub.engine_drums('ezdrummer').map((d) => d.canon),
       ...stub.engine_notes('ggd_invasion').map((d) => d.canon),

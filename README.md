@@ -94,17 +94,21 @@ fuzzes the converter (see ARCHITECTURE.md).
 ```bash
 cargo run -p midiremap-cli -- list
 cargo run -p midiremap-cli -- convert in.mid ggd_invasion ezdrummer out.mid \
-    [--channel auto|all|1-16] [--missing nearest|drop] [--unrecognized remove|keep] \
+    [--channel auto|all|1-16 | --parts 1:10,2:1] [--missing nearest|drop] [--unrecognized remove|keep] \
     [--preset my-kit-drumverter.json] [--user-map map.json]
 ```
 
 `--preset` applies the note edits of a preset exported from the app (⋯ → Export), whose
 engines must be the ones named; `--user-map` adds your own engine map (JSON), also for `list`;
 `--unrecognized keep` writes notes the source layout does not know out unchanged instead of
-removing them. The
+removing them. `--channel auto` (the default) converts channel 10; a file with no notes on
+channel 10 converts its one part with notes, and with several it writes nothing, lists them
+and exits with 4: pick the drum parts with `--parts track:channel,…`, both counted from 1.
+Other channels of a track with channel-10 drums are left as they are and printed with the
+`--parts` value that converts them too. The
 loss report is printed to stderr as JSON (`unmappedSource`, `fallbackUsed`, `dropped`,
-`untouched`, `converted`; each `fallbackUsed` entry names the `standIn` drum, its `note` and the `count`); the exit code is 0 whenever the file was written, so read the
-report to see what was lost.
+`untouched`, `converted`; each `fallbackUsed` entry names the `standIn` drum, its `note` and the `count`); the exit code is 0 whenever the file was written whole and 3 when the
+input was damaged (what could be read is converted), so read the report to see what was lost.
 
 ## Adding an engine
 

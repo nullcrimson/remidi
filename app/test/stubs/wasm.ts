@@ -76,6 +76,9 @@ export const plan = vi.fn<typeof Wasm.plan>((_src, _tgt, overrides) => {
 export const REMAP_BYTES = new Uint8Array([77, 84, 104, 100]);
 
 export const remap = vi.fn<typeof Wasm.remap>(() => ({
+  kind: 'done',
+  picked: [],
+  offers: [],
   bytes: REMAP_BYTES,
   damage: [],
   report: typed<Wasm.Report>({
@@ -86,6 +89,13 @@ export const remap = vi.fn<typeof Wasm.remap>(() => ({
     converted: 40,
   }),
 }));
+
+export const remap_parts = vi.fn<typeof Wasm.remap_parts>((mid, src, tgt, overrides, _parts, missing, unrecognized) =>
+  remap(mid, src, tgt, overrides, 'all', missing, unrecognized));
+
+export const auto_question = vi.fn<typeof Wasm.auto_question>(() => undefined);
+
+export const file_parts = vi.fn<typeof Wasm.file_parts>(() => []);
 
 export const RACK_XML = '<?xml version="1.0" encoding="UTF-8"?>\n<Ableton/>\n';
 

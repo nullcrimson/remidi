@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { WasmCallError } from '../src/core/errors';
 import * as stub from './stubs/wasm';
-import type { Converted } from '../src/core/midiremap';
+import type { Conversion } from '../src/core/midiremap';
 import { addMidi, convert, MY_KIT, pickEngines, startApp, store, storePresets } from './eventSteps';
 import { recordDownloads } from './downloads';
 import { typed } from './typed';
@@ -11,7 +11,7 @@ import { fakeUmami } from './umami';
 
 const downloads = recordDownloads();
 
-const remapWithNotes = () => typed<Converted>({
+const remapWithNotes = () => typed<Conversion>({ kind: 'done', picked: [], offers: [],
   bytes: new Uint8Array([1]),
   damage: [],
   report: {
@@ -85,6 +85,9 @@ describe('the events of converting', () => {
       files: 1,
       failed: 0,
       damaged: 0,
+      channel: 'auto',
+      offered: 0,
+      untouched: 0,
       missing: 'nearest',
       edited: false,
       preset: false,

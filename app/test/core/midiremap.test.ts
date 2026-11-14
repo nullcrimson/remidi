@@ -48,7 +48,9 @@ describe('midiremap wrapper', () => {
   });
 
   it('passes remap bytes and the report through', () => {
-    const out = core.remap(new Uint8Array([0]), enginePair('ggd_invasion', 'ezdrummer'));
+    const conversion = core.remap(new Uint8Array([0]), enginePair('ggd_invasion', 'ezdrummer'));
+    if (conversion.kind !== 'done') throw new Error('asked');
+    const out = conversion;
     expect(out.bytes).toBe(REMAP_BYTES);
     expect(out.report.dropped).toEqual({ 'china.1.hit': 1 });
     expect(out.report.fallbackUsed).toEqual({ 'hat.open3': { standIn: 'hat.open1', note: 46, count: 2 } });

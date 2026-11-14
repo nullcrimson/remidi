@@ -23,6 +23,9 @@ const result = (name: string, url: string): FileResult => ({
   bytes: new Uint8Array([1]),
   damage: [],
   report: REPORT,
+  input: { name, bytes: new Uint8Array([1]) },
+  picked: [],
+  offers: [],
 });
 
 function view(overrides: Partial<ReportView['totals']> = {}, files: ReportView['files'] = []): ReportView {

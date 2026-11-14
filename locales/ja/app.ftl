@@ -35,7 +35,7 @@ blocker-engines = 変換元と変換先のドラム音源を選んでくださ�
 channel-auto = 自動
 channel-all = 全チャンネル
 channel-number = { $channel }
-channel-hint-auto = チャンネル10のトラックだけ、ほかはそのまま
+channel-hint-auto = チャンネル10、またはノートのある唯一のパート · それ以外は選択
 channel-hint-all = すべてのチャンネルを変換
 channel-hint-one = チャンネル{ $channel }だけ変換
 missing-nearest = 置き換え
@@ -308,6 +308,29 @@ done-damaged-file = { $file } は破損していました。一部が欠けて�
 done-damage-track-cut-bar = トラック { $track } は { $bar } 小節目で途切れています。それ以降はファイルにありませんでした。
 done-damage-track-cut-tick = トラック { $track } はティック { $tick } で途切れています。それ以降はファイルにありませんでした。
 done-damage-tracks-missing = ファイルには { $declared } トラックあるはずですが、読み込めたのは { $read } トラックだけでした。
+error-needs-parts = 先にこのファイルのドラムパートを選んでください。複数のパートにノートがあり、チャンネル10にはありません。
+parts-question = { $file } のどのパートがドラムですか？
+parts-why = 通常のドラムチャンネルであるチャンネル10には何もなく、{ $count } 個のパートにノートがあります。ドラムのパートをすべてチェックしてください。残りはそのままです。
+parts-plays-as = { $source } として鳴らすと：
+parts-track-named = トラック「{ $name }」· チャンネル { $channel }
+parts-track-unnamed = トラック { $track } · チャンネル { $channel }
+parts-notes =
+    { $count ->
+       *[other] { $count } ノート
+    }
+parts-unknown = 不明 { $count }
+parts-more = ほか { $count }
+parts-same-as = { $file } と同じトラックをチェック
+blocker-parts = 変換するには上のドラムパートをチェックしてください
+convert-ready-now =
+    { $count ->
+       *[other] 準備できた { $count } 個のファイルを変換
+    }
+done-offer =
+    { $count ->
+       *[other] { $file } の { $part } にある { $count } ノートは、チャンネル10のドラムの隣でそのまま残りました。
+    }
+done-offer-convert = これも変換する
 source-fit-missing = ファイル内の{ $hits }個のノートのうち{ $missing }個が{ $source }のノート配置にありません。より合う変換元：{ $engines }
 source-fit-all = { $engine }（全ノート）
 source-fit-some = { $engine }（{ $count }個）

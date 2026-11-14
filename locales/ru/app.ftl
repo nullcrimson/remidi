@@ -35,7 +35,7 @@ blocker-engines = Выберите, из какого плагина и в ка�
 channel-auto = Авто
 channel-all = Все каналы
 channel-number = { $channel }
-channel-hint-auto = конвертируются только ударные на канале 10 · остальные дорожки не меняются
+channel-hint-auto = канал 10 или единственная партия с нотами · иначе выбираете вы
 channel-hint-all = конвертируются все каналы
 channel-hint-one = конвертируется только канал { $channel }
 missing-nearest = Заменить
@@ -381,6 +381,38 @@ done-damaged-file = Файл { $file } повреждён: части не хв�
 done-damage-track-cut-bar = Дорожка { $track } обрывается на такте { $bar }; остальной её части в файле не было.
 done-damage-track-cut-tick = Дорожка { $track } обрывается на тике { $tick }; остальной её части в файле не было.
 done-damage-tracks-missing = В файле указано дорожек: { $declared }; прочитать удалось только { $read }.
+error-needs-parts = Сначала выберите партии ударных в этом файле: ноты есть в нескольких партиях, а на канале 10 — ни одной.
+parts-question = Какие партии { $file } — ударные?
+parts-why = На канале 10, обычном канале ударных, в нём ничего нет, а ноты есть в { $count } партиях. Отметьте все партии ударных; остальное останется как есть.
+parts-plays-as = Что каждая сыграла бы как { $source }:
+parts-track-named = Дорожка «{ $name }» · канал { $channel }
+parts-track-unnamed = Дорожка { $track } · канал { $channel }
+parts-notes =
+    { $count ->
+        [one] { $count } нота
+        [few] { $count } ноты
+        [many] { $count } нот
+       *[other] { $count } ноты
+    }
+parts-unknown = неизвестных: { $count }
+parts-more = ещё { $count }
+parts-same-as = Отметить те же дорожки, что в { $file }
+blocker-parts = Отметьте партии ударных выше, чтобы сконвертировать
+convert-ready-now =
+    { $count ->
+        [one] Сконвертировать { $count } готовый файл
+        [few] Сконвертировать { $count } готовых файла
+        [many] Сконвертировать { $count } готовых файлов
+       *[other] Сконвертировать готовые файлы: { $count }
+    }
+done-offer =
+    { $count ->
+        [one] { $count } нота на { $part } в { $file } осталась как была, рядом с ударными на канале 10.
+        [few] { $count } ноты на { $part } в { $file } остались как были, рядом с ударными на канале 10.
+        [many] { $count } нот на { $part } в { $file } остались как были, рядом с ударными на канале 10.
+       *[other] Ноты на { $part } в { $file } ({ $count }) остались как были, рядом с ударными на канале 10.
+    }
+done-offer-convert = Сконвертировать и их
 source-fit-missing = Нет в маппинге { $source }: { $missing } из { $hits } нот вашего файла. Подходят лучше: { $engines }
 source-fit-all = { $engine } (все ноты)
 source-fit-some =

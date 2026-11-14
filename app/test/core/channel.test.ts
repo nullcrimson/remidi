@@ -16,7 +16,7 @@ describe('channel options', () => {
   });
 
   it('describes what Auto converts', () => {
-    expect(t(channelHint('auto'))).toBe('tracks with channel-10 hits · others unchanged');
+    expect(t(channelHint('auto'))).toBe('channel 10, or the only part with notes · otherwise you pick');
   });
 
   it('describes what All channels converts', () => {

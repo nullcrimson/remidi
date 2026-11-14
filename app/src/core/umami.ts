@@ -39,6 +39,9 @@ export interface StatEvents {
     files: number;
     failed: number;
     damaged: number;
+    channel: 'auto' | 'all' | 'one' | 'parts';
+    offered: number;
+    untouched: number;
     missing: MissingDrums;
     edited: boolean;
     preset: boolean;
