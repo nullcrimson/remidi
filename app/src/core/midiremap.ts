@@ -44,6 +44,7 @@ export type {
   FitFile,
   Part,
   PartSummary,
+  Plays,
   Report,
   Selection,
   SourceFit,

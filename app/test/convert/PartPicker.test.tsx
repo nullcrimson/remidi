@@ -45,7 +45,8 @@ describe('PartPicker', () => {
     render(<PartPicker remapper={remapper([{ file: 'song.mid', parts: [KIT, BASS] }], {})} />);
     expect(screen.getByRole('group', { name: 'Which parts of song.mid are the drums?' })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /Track “Kit” · channel 1/ })).not.toBeChecked();
-    expect(screen.getByText('Kick · Snare · china.1.hit · +1 more · 1 unknown')).toBeInTheDocument();
+    expect(screen.getByText('Kick · Snare · china.1.hit · +1 more')).toBeInTheDocument();
+    expect(screen.getByText('1 unknown')).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /Track 2 · channel 2/ })).toBeInTheDocument();
     expect(screen.getByText('What each would play as GGD Invasion:')).toBeInTheDocument();
   });

@@ -10,7 +10,12 @@ export function PartOffers({ offers, onAlsoConvert }: { offers: Offer[]; onAlsoC
   return (
     <div className="flex flex-col gap-3 text-ui text-t3" role="status">
       {offers.map((o) => (
-        <div key={o.file} className="flex flex-col items-center gap-1">
+        <div
+          key={o.file}
+          className="
+            flex flex-col items-center gap-1 rounded-panel bg-star/4 px-3 py-2
+          "
+        >
           {o.parts.map((s) => (
             <p key={`${s.part.track}:${s.part.channel}`}>
               {t({ id: 'done-offer', args: { count: s.hits, part: t(partLabel(s)), file: o.file } })}

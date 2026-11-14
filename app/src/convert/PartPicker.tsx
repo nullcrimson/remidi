@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { engineName } from '../core/enginePair';
-import type { Canon, Part, PartSummary } from '../core/midiremap';
+import type { Canon, Part, PartSummary, Plays } from '../core/midiremap';
 import { useT } from '../locale/localeContext';
+import { Checkbox } from '../ui/Checkbox';
 import { TextButton } from '../ui/TextButton';
 import { canonLabels } from '../core/canon';
 import { partLabel, samePart } from '../core/part';
@@ -11,18 +12,43 @@ import type { Picks } from './useConverter';
 
 const SHOWN_DRUMS = 3;
 
-/** What a part's hits play as the source: its most hit drums, then how many more and how many unknown. */
+/** How much of a part the source knows: a bar of its known hits against its unknown ones, and how many are unknown. */
+function KnownShare({ plays }: { plays: Plays }) {
+  const t = useT();
+  const known = plays.drums.reduce((sum, d) => sum + d.hits, 0);
+  const total = known + plays.unknown;
+  if (total === 0) return null;
+  return (
+    <span className="flex items-center gap-3">
+      <span
+        aria-hidden="true"
+        className="
+          h-1.5 w-40 max-w-1/2 shrink-0 overflow-hidden rounded-full bg-white/8
+        "
+      >
+        <span className="block h-full bg-accent" style={{ width: `${(known / total) * 100}%` }} />
+      </span>
+      {plays.unknown > 0 && (
+        <span className="text-label text-t2">{t({ id: 'parts-unknown', args: { count: plays.unknown } })}</span>
+      )}
+    </span>
+  );
+}
+
+/** What a part's hits play as the source: how much of it is known, then its most hit drums and how many more. */
 function PartPlays({ summary, labelOf }: { summary: PartSummary; labelOf: (canon: Canon) => string }) {
   const t = useT();
   const plays = summary.plays;
   if (plays === null) return null;
   const shown = plays.drums.slice(0, SHOWN_DRUMS).map((d) => labelOf(d.canon));
   const more = plays.drums.length - shown.length;
-  const extras = [
-    ...(more > 0 ? [t({ id: 'parts-more', args: { count: more } })] : []),
-    ...(plays.unknown > 0 ? [t({ id: 'parts-unknown', args: { count: plays.unknown } })] : []),
-  ];
-  return <span className="text-t4">{[...shown, ...extras].join(' · ')}</span>;
+  const drums = [...shown, ...(more > 0 ? [t({ id: 'parts-more', args: { count: more } })] : [])];
+  return (
+    <>
+      <KnownShare plays={plays} />
+      {drums.length > 0 && <span className="text-label text-t3">{drums.join(' · ')}</span>}
+    </>
+  );
 }
 
 function toggled(parts: Part[], part: Part): Part[] {
@@ -55,31 +81,41 @@ function Question({
     })[0];
   return (
     <fieldset className="
-      flex flex-col gap-2 rounded-chip border border-hairline p-3
+      flex flex-col gap-3.5 rounded-card border border-star/30 bg-star/3 p-4
+      sm:px-5.5 sm:pt-5
     "
     >
-      <legend className="px-1 text-ui text-t1">
+      <legend className="px-2 font-display text-body font-semibold text-t1">
         {t({ id: 'parts-question', args: { file: question.file } })}
       </legend>
-      <p className="text-label text-t4">{t({ id: 'parts-why', args: { count: question.parts.length } })}</p>
-      {source !== null && <p className="text-label text-t4">{t({ id: 'parts-plays-as', args: { source } })}</p>}
-      <ul className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 text-ui/relaxed text-t3">
+        <p>{t({ id: 'parts-why', args: { count: question.parts.length } })}</p>
+        {source !== null && <p>{t({ id: 'parts-plays-as', args: { source } })}</p>}
+      </div>
+      <ul className="flex flex-col gap-2">
         {question.parts.map((s) => (
           <li key={`${s.part.track}:${s.part.channel}`}>
             <label className="
-              flex flex-wrap items-baseline gap-x-2 text-ui text-t2
-              pointer-coarse:min-h-11
+              flex min-h-11 cursor-pointer items-start gap-3.5 rounded-panel
+              border border-white/8 bg-white/2 px-4 py-3.5 transition-colors
+              hover:not-has-checked:border-white/16
+              has-checked:border-star/60 has-checked:bg-star/7
+              motion-reduce:transition-none
             "
             >
-              <input
-                type="checkbox"
-                className="accent-accent"
-                checked={picked.some((p) => samePart(p, s.part))}
-                onChange={() => onPick(question.file, toggled(picked, s.part))}
-              />
-              <span>{t(partLabel(s))}</span>
-              <span className="font-mono text-label text-t4">{t({ id: 'parts-notes', args: { count: s.hits } })}</span>
-              <PartPlays summary={s} labelOf={labelOf} />
+              <span className="flex h-lh items-center text-ui">
+                <Checkbox
+                  checked={picked.some((p) => samePart(p, s.part))}
+                  onChange={() => onPick(question.file, toggled(picked, s.part))}
+                />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-2">
+                <span className="flex flex-wrap items-baseline gap-x-2.5">
+                  <span className="text-ui font-semibold text-t1">{t(partLabel(s))}</span>
+                  <span className="text-label text-t4">{t({ id: 'parts-notes', args: { count: s.hits } })}</span>
+                </span>
+                <PartPlays summary={s} labelOf={labelOf} />
+              </span>
             </label>
           </li>
         ))}
