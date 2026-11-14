@@ -4,7 +4,11 @@ mod label;
 #[cfg(test)]
 pub(crate) mod rules;
 
-use std::{iter::once, sync::LazyLock};
+use std::{
+    iter::{once, Sum},
+    ops::Add,
+    sync::LazyLock,
+};
 
 use strum::{IntoStaticStr, VariantArray};
 
@@ -306,6 +310,38 @@ fn tom_positions() -> impl Iterator<Item = TomPos> {
     RackIdx::all()
         .map(TomPos::Rack)
         .chain(FloorIdx::all().map(TomPos::Floor))
+}
+
+/// How far apart two tom positions sit along the kit, from rack 1 down to the last floor tom.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
+pub(crate) struct TomDistance(u16);
+
+impl Add for TomDistance {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self(self.0 + other.0)
+    }
+}
+
+impl Sum for TomDistance {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::default(), Add::add)
+    }
+}
+
+impl TomPos {
+    fn rank(self) -> u16 {
+        match self {
+            Self::Rack(n) => u16::from(n.offset()),
+            Self::Floor(n) => u16::from(RackIdx::MAX + n.offset()),
+        }
+    }
+
+    /// How far this position sits from `other` along the kit.
+    pub(crate) fn distance(self, other: Self) -> TomDistance {
+        TomDistance(self.rank().abs_diff(other.rank()))
+    }
 }
 
 fn build_all() -> Vec<Canon> {

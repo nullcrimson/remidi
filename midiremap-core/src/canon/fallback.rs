@@ -7,7 +7,7 @@ use std::{
 
 use super::{
     tom_positions, Canon, CymArtic, CymSlot, HandStroke, HatOpen, HatZone, Idx, KickKind,
-    OpenLevel, RackIdx, RideArtic, RideIdx, Slot, SnareArtic, SnareIdx, TomArtic, TomPos,
+    OpenLevel, RideArtic, RideIdx, Slot, SnareArtic, SnareIdx, TomArtic, TomPos,
 };
 
 fn kick_order(k: KickKind) -> &'static [KickKind] {
@@ -163,11 +163,11 @@ fn variants(c: Canon) -> Vec<Canon> {
     }
 }
 
-fn tom_rank(p: TomPos) -> u8 {
-    match p {
-        TomPos::Rack(n) => n.offset(),
-        TomPos::Floor(n) => RackIdx::MAX + n.offset(),
-    }
+/// The tom positions other than `from`, nearest first, the higher tom first on a tie.
+fn nearest_toms(from: TomPos) -> Vec<TomPos> {
+    let mut others: Vec<TomPos> = tom_positions().filter(|&p| p != from).collect();
+    others.sort_by_key(|&p| (from.distance(p), p));
+    others
 }
 
 /// The members of `among` other than `from`, nearest by `rank` first, the lower rank first
@@ -190,7 +190,7 @@ fn neighbours(c: Canon) -> Vec<Canon> {
             .filter(|&j| j != i)
             .map(|j| Canon(Slot::Snare(j, a)))
             .collect(),
-        Slot::Tom(p, a) => nearest(p, tom_positions(), tom_rank)
+        Slot::Tom(p, a) => nearest_toms(p)
             .into_iter()
             .map(|q| Canon(Slot::Tom(q, a)))
             .collect(),
