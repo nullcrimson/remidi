@@ -1,5 +1,6 @@
 use strum::VariantArray;
 
+use super::assert_none;
 use crate::{
     canon::{HatZone, OpenLevel},
     catalog::Catalog,
@@ -79,12 +80,7 @@ fn every_open_level_lands_on_a_played_level_on_its_side_of_the_main_in_order() {
         })
         .collect();
     assert_eq!(hats.len(), 192);
-    assert!(
-        failures.is_empty(),
-        "{} breaks, e.g.\n{}",
-        failures.len(),
-        failures[..failures.len().min(25)].join("\n")
-    );
+    assert_none(&failures, "breaks");
 }
 
 #[test]
@@ -162,10 +158,5 @@ fn every_builtin_pair_lands_each_open_level_in_its_zone_on_its_side_in_order() {
         "only {} engines have open levels",
         hats.len()
     );
-    assert!(
-        failures.is_empty(),
-        "{} breaks, e.g.\n{}",
-        failures.len(),
-        failures[..failures.len().min(25)].join("\n")
-    );
+    assert_none(&failures, "breaks");
 }

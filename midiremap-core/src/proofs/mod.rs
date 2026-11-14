@@ -10,10 +10,34 @@ use crate::{
         rules::{rules, snapshot, Anchor, DrumKind},
         Canon,
     },
+    catalog::Catalog,
     engine_map::EngineMap,
     resolution::MissingDrums,
     translate::Mapping,
 };
+
+/// Every ordered pair of built-in engines, an engine with itself included.
+fn all_pairs() -> Vec<(&'static EngineMap, &'static EngineMap)> {
+    let engines: Vec<&EngineMap> = Catalog::shared().engines().collect();
+    engines
+        .iter()
+        .flat_map(|&src| engines.iter().map(move |&tgt| (src, tgt)))
+        .collect()
+}
+
+/// How many failures a proof names when it fails.
+const SHOWN: usize = 25;
+
+/// Fails, naming how many `failures` there are, `what` they break and the first few, unless
+/// there are none.
+fn assert_none(failures: &[String], what: &str) {
+    assert!(
+        failures.is_empty(),
+        "{} {what}, e.g.\n{}",
+        failures.len(),
+        failures[..failures.len().min(SHOWN)].join("\n")
+    );
+}
 
 /// Whether `c` lands by match on another note than its chain would give it, which the proofs
 /// of that match judge (`main_open_hat.rs` for an open main hi-hat), not the stand-in table.

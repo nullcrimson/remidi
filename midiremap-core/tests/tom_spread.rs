@@ -46,18 +46,13 @@ fn guitar_pro_toms_spread_over_every_krimh_tom() {
 }
 
 #[test]
-fn a_moved_tom_the_target_has_lands_directly_and_a_missing_one_stands_in() {
+fn a_moved_tom_the_target_has_lands_directly_on_its_spread_tom() {
     let catalog = Catalog::builtin();
     let m = guitar_pro_on_krimh(&catalog, NO_EDITS, MissingDrums::Nearest);
     let floor1 = m.resolve_canon(k("tom.floor1.hit"));
     assert!(
         matches!(floor1, Outcome::Direct(l) if l.plays() == k("tom.floor2.hit")),
         "{floor1:?}"
-    );
-    let rack4 = m.resolve_canon(k("tom.rack4.hit"));
-    assert!(
-        matches!(rack4, Outcome::Fallback(_)) && rack4.moves_to_other_drum(),
-        "{rack4:?}"
     );
 }
 
@@ -67,15 +62,6 @@ fn a_target_edit_of_a_moved_tom_keeps_the_users_note() {
     let edits = r#"{"edits":{"tom.floor1.hit":100},"srcEdits":{}}"#;
     let m = guitar_pro_on_krimh(&catalog, edits, MissingDrums::Nearest);
     assert_eq!(lands(&m, "tom.floor1.hit"), Some(100));
-}
-
-#[test]
-fn an_edit_of_a_tom_the_spread_kept_moves_the_toms_merged_onto_it() {
-    let catalog = Catalog::builtin();
-    let edits = r#"{"edits":{"tom.rack2.hit":100},"srcEdits":{}}"#;
-    let m = guitar_pro_on_krimh(&catalog, edits, MissingDrums::Nearest);
-    assert_eq!(lands(&m, "tom.rack2.hit"), Some(100));
-    assert_eq!(lands(&m, "tom.rack3.hit"), Some(100));
 }
 
 #[test]

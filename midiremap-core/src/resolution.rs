@@ -154,18 +154,62 @@ impl Outcome {
         self.played().map(|(_, note)| note)
     }
 
-    /// This landing of another opening of `canon`'s hi-hat, as the landing of `canon`: what
-    /// plays and on which note stay, the drum it is about becomes `canon`.
-    pub(crate) fn for_drum(self, canon: Canon) -> Self {
+    /// This landing of the drum `canon` is matched to, as the landing of `canon`: what plays
+    /// and on which note stay, the drum it is about becomes `canon`. A tom the target lacks
+    /// stands in, and a stand-in is judged against the drum `canon`'s strokes count as.
+    pub(crate) fn matched(self, canon: Canon, matched: Match) -> Self {
+        match (self, matched) {
+            (Self::Direct(landing), Match::Opening(level)) => {
+                Self::Direct(Landing::opened_to(canon, level, landing.note))
+            }
+            (
+                Self::Direct(landing),
+                Match::Spread {
+                    to, named: true, ..
+                },
+            ) => Self::Direct(Landing::spread_to(canon, to, landing.note)),
+            (Self::Direct(landing), Match::Spread { .. }) => Self::Fallback(StandIn::new(
+                canon,
+                matched.drum(canon),
+                landing.plays,
+                landing.note,
+            )),
+            (Self::Fallback(s), _) => {
+                Self::Fallback(StandIn::new(canon, matched.drum(canon), s.stand_in, s.note))
+            }
+            (Self::Dropped { other_drum, .. }, _) => Self::Dropped { canon, other_drum },
+        }
+    }
+}
+
+/// How a drum lands by matching the source's rather than by walking its chain.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub(crate) enum Match {
+    /// An open main hi-hat, on the target's opening at the level that matches the source's.
+    Opening(OpenLevel),
+    /// A tom stroke, on the same stroke of the target tom `to` the source's toms spread it to;
+    /// `named` when the target has the drum itself, `drum` the target tom its strokes count as.
+    Spread {
+        to: TomPos,
+        drum: TomPos,
+        named: bool,
+    },
+}
+
+impl Match {
+    /// The target drum `canon` plays as.
+    pub(crate) fn plays(self, canon: Canon) -> Canon {
         match self {
-            Self::Direct(landing) => Self::Direct(match landing.plays.opening() {
-                Some((level, _)) if landing.plays != canon && canon.is_open_main_hat() => {
-                    Landing::opened_to(canon, level, landing.note)
-                }
-                _ => Landing::itself(canon, landing.note),
-            }),
-            Self::Fallback(s) => Self::Fallback(StandIn::new(canon, canon, s.stand_in, s.note)),
-            Self::Dropped { other_drum, .. } => Self::Dropped { canon, other_drum },
+            Self::Opening(level) => canon.at_open_level(level),
+            Self::Spread { to, .. } => canon.at_tom_pos(to),
+        }
+    }
+
+    /// The drum a stand-in for `canon` is judged against.
+    fn drum(self, canon: Canon) -> Canon {
+        match self {
+            Self::Opening(_) => canon,
+            Self::Spread { drum, .. } => canon.at_tom_pos(drum),
         }
     }
 }

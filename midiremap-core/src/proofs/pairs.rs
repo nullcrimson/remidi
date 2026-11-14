@@ -2,13 +2,12 @@ use std::collections::HashSet;
 
 use rayon::prelude::*;
 
-use super::lands_by_match;
+use super::{all_pairs, assert_none, lands_by_match};
 use crate::{
     canon::{
         rules::{rules, DrumKind},
         Canon,
     },
-    catalog::Catalog,
     engine_map::EngineMap,
     note::Note,
     resolution::MissingDrums,
@@ -88,19 +87,15 @@ impl<'a> Pair<'a> {
 
 #[test]
 fn every_builtin_pair_plays_the_agreed_stand_in_or_drops() {
-    let catalog = Catalog::builtin();
-    let engines: Vec<&EngineMap> = catalog.engines().collect();
-    let pairs: Vec<Pair> = engines
+    let pairs: Vec<Pair> = all_pairs()
         .par_iter()
-        .flat_map_iter(|&src| engines.iter().map(move |&tgt| Pair::new(src, tgt)))
+        .map(|&(src, tgt)| Pair::new(src, tgt))
         .collect();
     let checked: usize = pairs.iter().map(|p| p.missing.len()).sum();
     let failures: Vec<String> = pairs.par_iter().flat_map_iter(Pair::failures).collect();
     assert!(checked > 10_000, "checked only {checked}");
-    assert!(
-        failures.is_empty(),
-        "{} of {checked} break the agreed fallbacks, e.g.\n{}",
-        failures.len(),
-        failures[..failures.len().min(25)].join("\n")
+    assert_none(
+        &failures,
+        &format!("of {checked} break the agreed fallbacks"),
     );
 }

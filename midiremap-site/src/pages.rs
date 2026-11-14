@@ -688,18 +688,17 @@ fn family_groups(map: &EngineMap) -> Vec<FamilyGroup<EngineRow>> {
 }
 
 /// The notes the converter writes for the core drums on this engine, each note once; a
-/// drum the engine plays only on another drum is left out, but for a tom spread onto another of
-/// its toms, so every tom the core toms play on shows.
+/// drum the engine plays only on another drum is left out, but for one it lands on by match,
+/// such as a tom spread onto another tom, so every tom the core toms play on shows.
 fn core_notes(map: &EngineMap) -> Vec<Drum> {
     let mut shown = HashSet::new();
     let mapping = default_mapping(EngineMap::core_kit(), map);
-    let tom = |c: Canon| c.family() == Family::Toms;
     Canon::CORE_KIT
         .iter()
-        .map(|&canon| mapping.resolve_canon(canon))
-        .filter_map(|r| {
-            let (landed, note) = r.played()?;
-            (!r.moves_to_other_drum() || (tom(r.canon()) && tom(landed))).then_some((landed, note))
+        .filter_map(|&canon| {
+            let r = mapping.resolve_canon(canon);
+            let shown = !r.moves_to_other_drum() || mapping.matched_drum(canon).is_some();
+            r.played().filter(|_| shown)
         })
         .filter(|&(_, note)| shown.insert(note))
         .map(|(canon, note)| Drum::new(note, canon))

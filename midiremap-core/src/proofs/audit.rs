@@ -3,16 +3,17 @@ use std::collections::{BTreeMap, BTreeSet};
 use expect_test::expect_file;
 use rayon::prelude::*;
 
+use super::{all_pairs, assert_none};
 use crate::{
     canon::{
+        k,
         rules::{kind_rank, rules, stand_in_rank, Anchor, DrumKind},
         Canon,
     },
-    catalog::Catalog,
     engine_map::EngineMap,
     note::Note,
     overrides::Overrides,
-    resolution::MissingDrums,
+    resolution::{MissingDrums, Outcome},
     translate::Mapping,
 };
 
@@ -139,15 +140,6 @@ fn gaps(src: &EngineMap, tgt: &EngineMap) -> Vec<String> {
         .collect()
 }
 
-fn all_pairs() -> Vec<(&'static EngineMap, &'static EngineMap)> {
-    let catalog = Catalog::shared();
-    let engines: Vec<&EngineMap> = catalog.engines().collect();
-    engines
-        .iter()
-        .flat_map(|&src| engines.iter().map(move |&tgt| (src, tgt)))
-        .collect()
-}
-
 #[test]
 fn every_gap_of_every_builtin_pair_is_a_known_gap() {
     let found: Vec<String> = all_pairs()
@@ -183,6 +175,15 @@ fn edited_note(note: Note) -> Note {
     Note::new((note.get() + 64) % 128).expect("a note below 128")
 }
 
+/// Whether `landed` is a stroke of a tom the target has whose source tom the spread moved
+/// onto another, so an edit of its row moves that row alone.
+fn moved_off_its_name(near: &Mapping, landed: Canon) -> bool {
+    landed.tom().is_some_and(|(pos, _)| {
+        let hit = k("tom.rack1.hit").at_tom_pos(pos);
+        matches!(near.resolve_canon(hit), Outcome::Direct(l) if l.plays() != hit)
+    })
+}
+
 fn edits_not_followed(src: &EngineMap, tgt: &EngineMap) -> Vec<String> {
     let near = Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest);
     let moved: Vec<(Canon, Canon, Note)> = encoded(src)
@@ -192,11 +193,7 @@ fn edits_not_followed(src: &EngineMap, tgt: &EngineMap) -> Vec<String> {
             let (landed, note) = near.resolve_canon(c).played()?;
             (landed != c).then_some((c, landed, note))
         })
-        .filter(|&(_, landed, _)| {
-            !landed
-                .tom()
-                .is_some_and(|(pos, _)| near.spread().moved(pos))
-        })
+        .filter(|&(_, landed, _)| !moved_off_its_name(&near, landed))
         .collect();
     let edits: BTreeMap<Canon, Note> = moved
         .iter()
@@ -232,10 +229,5 @@ fn a_stand_in_follows_an_edit_of_the_drum_it_lands_on() {
         .par_iter()
         .flat_map_iter(|&(src, tgt)| edits_not_followed(src, tgt))
         .collect();
-    assert!(
-        failures.is_empty(),
-        "{} stand-ins ignore an edit, e.g.\n{}",
-        failures.len(),
-        failures[..failures.len().min(25)].join("\n")
-    );
+    assert_none(&failures, "stand-ins ignore an edit");
 }

@@ -3,7 +3,7 @@ use std::{
     ops::Add,
 };
 
-use crate::canon::{TomDistance, TomPos};
+use crate::canon::{Canon, TomArtic, TomDistance, TomPos};
 
 /// The toms an engine plays: the positions it plays a hit on and those it plays a rim on.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -13,16 +13,20 @@ pub(crate) struct TomKit {
 }
 
 impl TomKit {
-    pub(crate) fn new(
-        hits: impl IntoIterator<Item = TomPos>,
-        rims: impl IntoIterator<Item = TomPos>,
-    ) -> Self {
-        Self {
-            hits: hits.into_iter().collect(),
-            rims: rims.into_iter().collect(),
+    /// The toms among `drums`.
+    pub(crate) fn of(drums: impl IntoIterator<Item = Canon>) -> Self {
+        let mut kit = Self::default();
+        for (pos, stroke) in drums.into_iter().filter_map(Canon::tom) {
+            match stroke {
+                TomArtic::Hit => kit.hits.insert(pos),
+                TomArtic::Rim => kit.rims.insert(pos),
+                TomArtic::Rimshot => false,
+            };
         }
+        kit
     }
 
+    #[cfg(test)]
     pub(crate) fn hits(&self) -> &BTreeSet<TomPos> {
         &self.hits
     }
@@ -47,12 +51,13 @@ pub(crate) struct TomSpread {
 
 impl TomSpread {
     pub(crate) fn new(source: &TomKit, target: &TomKit) -> Self {
-        let hits = spread(&source.hits, &target.hits, |from| Aim { from, keep: None });
+        let hits = spread(&source.hits, &target.hits, Aim::Near);
         let rims = spread(&source.rims, &target.rims, |rim| {
             let anchor = hits.get(&rim).copied().unwrap_or(rim);
-            Aim {
-                from: anchor,
-                keep: target.rims.contains(&anchor).then_some(anchor),
+            if target.rims.contains(&anchor) {
+                Aim::Kept(anchor)
+            } else {
+                Aim::Near(anchor)
             }
         });
         let moved = hits
@@ -77,14 +82,22 @@ impl TomSpread {
     pub(crate) fn moved(&self, pos: TomPos) -> bool {
         self.moved.contains(&pos)
     }
+
+    /// The target tom the strokes of the source tom at `from` count as: the tom its hits play
+    /// on when the spread moved it, else its own.
+    pub(crate) fn drum(&self, from: TomPos) -> TomPos {
+        match self.hits.get(&from) {
+            Some(&to) if self.moved(from) => to,
+            _ => from,
+        }
+    }
 }
 
-/// What a source tom aims at: the position its landing is measured `from`, and the target tom
-/// it must `keep` to when it can.
+/// Where a source tom aims: near a target tom, or kept on it whenever the target has it.
 #[derive(Copy, Clone)]
-struct Aim {
-    from: TomPos,
-    keep: Option<TomPos>,
+enum Aim {
+    Near(TomPos),
+    Kept(TomPos),
 }
 
 /// What a landing gives up, worst first: toms split from the tom they keep to, neighbours
@@ -111,12 +124,18 @@ impl Add for Cost {
 }
 
 impl Aim {
+    fn at(self) -> TomPos {
+        match self {
+            Self::Near(pos) | Self::Kept(pos) => pos,
+        }
+    }
+
     fn cost(self, to: TomPos) -> Cost {
         Cost {
-            splits: u8::from(self.keep.is_some_and(|keep| keep != to)),
+            splits: u8::from(matches!(self, Self::Kept(pos) if pos != to)),
             merges: 0,
-            crossings: u8::from(self.from.is_rack() != to.is_rack()),
-            distance: self.from.distance(to),
+            crossings: u8::from(self.at().is_rack() != to.is_rack()),
+            distance: self.at().distance(to),
         }
     }
 }
@@ -173,7 +192,10 @@ mod tests {
     use crate::canon::{idx, TomPos::*};
 
     fn kit(hits: &[TomPos]) -> TomKit {
-        TomKit::new(hits.iter().copied(), [])
+        TomKit {
+            hits: hits.iter().copied().collect(),
+            rims: BTreeSet::new(),
+        }
     }
 
     #[test]

@@ -3,11 +3,11 @@ use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    canon::{Canon, TomArtic, TomPos},
+    canon::{Canon, TomArtic},
     engine_map::EngineMap,
     note::Note,
     overrides::Overrides,
-    resolution::{resolve, Encoding, Landing, MissingDrums, Outcome, StandIn},
+    resolution::{resolve, Encoding, Match, MissingDrums, Outcome},
     tom_spread::TomSpread,
 };
 
@@ -84,8 +84,7 @@ pub struct Mapping<'a> {
     source: &'a EngineMap,
     target: &'a EngineMap,
     missing: MissingDrums,
-    spread: TomSpread,
-    matched: HashMap<Canon, Canon>,
+    matched: HashMap<Canon, Match>,
     edited: HashSet<Note>,
     notes: [Option<Outcome>; Note::COUNT],
     drums: HashMap<Canon, Outcome>,
@@ -105,9 +104,9 @@ impl<'a> Mapping<'a> {
             MissingDrums::Nearest => TomSpread::new(src.toms(), tgt.toms()),
             MissingDrums::Drop => TomSpread::default(),
         };
-        let matched: HashMap<Canon, Canon> = Canon::all()
+        let matched: HashMap<Canon, Match> = Canon::all()
             .iter()
-            .filter_map(|&canon| matched_drum(src, tgt, &spread, canon).map(|m| (canon, m)))
+            .filter_map(|&canon| matching(src, tgt, &spread, canon).map(|m| (canon, m)))
             .collect();
         let edits = overrides.target();
         let encode = encoding(tgt, edits.iter());
@@ -122,10 +121,10 @@ impl<'a> Mapping<'a> {
             .map(|&canon| {
                 let outcome = match matched.get(&canon) {
                     Some(_) if edits.contains_key(&canon) => resolve(canon, &encode, missing),
-                    Some(&plays) if plays.tom().is_some() => {
-                        land(tgt, &spread, canon, plays, resolve(plays, &follow, missing))
+                    Some(&m @ Match::Spread { .. }) => {
+                        resolve(m.plays(canon), &follow, missing).matched(canon, m)
                     }
-                    Some(&plays) => land(tgt, &spread, canon, plays, tgt.resolve(plays, missing)),
+                    Some(&m) => tgt.resolve(m.plays(canon), missing).matched(canon, m),
                     None => resolve(canon, &encode, missing),
                 };
                 (canon, outcome)
@@ -136,7 +135,6 @@ impl<'a> Mapping<'a> {
             source: src,
             target: tgt,
             missing,
-            spread,
             matched,
             edited: overrides.source().keys().copied().collect(),
             notes: Note::ALL.map(|note| decode.get(&note).map(|canon| drums[canon])),
@@ -204,9 +202,13 @@ impl<'a> Mapping<'a> {
 
     /// Where `canon` lands with no target edits.
     pub(crate) fn unedited(&self, canon: Canon) -> Outcome {
-        let plays = self.matched_drum(canon).unwrap_or(canon);
-        let resolved = self.target.resolve(plays, self.missing);
-        land(self.target, &self.spread, canon, plays, resolved)
+        match self.matched.get(&canon) {
+            Some(&m) => self
+                .target
+                .resolve(m.plays(canon), self.missing)
+                .matched(canon, m),
+            None => self.target.resolve(canon, self.missing),
+        }
     }
 
     /// The target drum `canon` lands on by matching the source's, rather than by walking its
@@ -214,14 +216,8 @@ impl<'a> Mapping<'a> {
     /// the source, when both name their normal open hat; for a tom under
     /// [`MissingDrums::Nearest`], the same stroke on the target tom the [`TomSpread`] moves it
     /// to.
-    pub(crate) fn matched_drum(&self, canon: Canon) -> Option<Canon> {
-        self.matched.get(&canon).copied()
-    }
-
-    /// How the source's toms spread over the target's.
-    #[cfg(test)]
-    pub(crate) fn spread(&self) -> &TomSpread {
-        &self.spread
+    pub fn matched_drum(&self, canon: Canon) -> Option<Canon> {
+        self.matched.get(&canon).map(|m| m.plays(canon))
     }
 
     /// Each drum some source note decodes to, edits applied, with those notes ascending.
@@ -241,68 +237,22 @@ impl<'a> Mapping<'a> {
     }
 }
 
-fn matched_drum(
-    src: &EngineMap,
-    tgt: &EngineMap,
-    spread: &TomSpread,
-    canon: Canon,
-) -> Option<Canon> {
+fn matching(src: &EngineMap, tgt: &EngineMap, spread: &TomSpread, canon: Canon) -> Option<Match> {
     if let (Some((level, zone)), Some(from), Some(to)) =
         (canon.opening(), src.open_levels(), tgt.open_levels())
     {
-        return Some(canon.at_open_level(from.toward(to, level, zone)));
+        return Some(Match::Opening(from.toward(to, level, zone)));
     }
     let (pos, artic) = canon.tom()?;
     let to = match artic {
         TomArtic::Hit | TomArtic::Rimshot => spread.hit(pos),
         TomArtic::Rim => spread.rim(pos),
     }?;
-    (to != pos).then(|| canon.at_tom_pos(to))
-}
-
-/// `canon` played as `plays`, where `plays` lands as `resolved`.
-fn land(
-    tgt: &EngineMap,
-    spread: &TomSpread,
-    canon: Canon,
-    plays: Canon,
-    resolved: Outcome,
-) -> Outcome {
-    match (canon.tom(), plays.tom()) {
-        (Some((from, _)), Some((to, _))) if from != to => {
-            spread_landing(tgt, spread, canon, from, to, resolved)
-        }
-        _ => resolved.for_drum(canon),
-    }
-}
-
-/// The tom `canon`, at `from`, spread to the same stroke at `to`, which lands as `resolved`.
-/// A tom the target has keeps landing directly, and its strokes count as that tom's wherever
-/// it plays them; a tom the target lacks stands in, judged by its own drum as before.
-fn spread_landing(
-    tgt: &EngineMap,
-    spread: &TomSpread,
-    canon: Canon,
-    from: TomPos,
-    to: TomPos,
-    resolved: Outcome,
-) -> Outcome {
-    let drum = match spread.hit(from) {
-        Some(hit) if tgt.toms().hits().contains(&from) => canon.at_tom_pos(hit),
-        _ => canon,
-    };
-    match resolved {
-        Outcome::Direct(landing) if tgt.encode(canon).is_some() => {
-            Outcome::Direct(Landing::spread_to(canon, to, landing.note()))
-        }
-        Outcome::Direct(landing) => {
-            Outcome::Fallback(StandIn::new(canon, drum, landing.plays(), landing.note()))
-        }
-        Outcome::Fallback(s) => {
-            Outcome::Fallback(StandIn::new(canon, drum, s.stand_in(), s.note()))
-        }
-        Outcome::Dropped { other_drum, .. } => Outcome::Dropped { canon, other_drum },
-    }
+    (to != pos).then(|| Match::Spread {
+        to,
+        drum: spread.drum(pos),
+        named: tgt.encode(canon).is_some(),
+    })
 }
 
 fn decoding(src: &EngineMap, overrides: &Overrides) -> Decoding {

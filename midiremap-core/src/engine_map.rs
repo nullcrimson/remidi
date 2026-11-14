@@ -6,7 +6,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    canon::{Canon, CanonEntry, OpenLevel, TomArtic},
+    canon::{Canon, CanonEntry, OpenLevel},
     non_blank::NonBlank,
     note::Note,
     open_levels::OpenLevels,
@@ -336,12 +336,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
     }
 
     let open_levels = open_levels(&raw.id, raw.open_hat_level, &to_canon)?;
-    let played = |stroke: TomArtic| {
-        from_canon
-            .keys()
-            .filter_map(move |c| c.tom().filter(|&(_, a)| a == stroke).map(|(pos, _)| pos))
-    };
-    let toms = TomKit::new(played(TomArtic::Hit), played(TomArtic::Rim));
+    let toms = TomKit::of(from_canon.keys().copied());
     Ok(EngineMap {
         id: raw.id,
         name: raw.name,

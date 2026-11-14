@@ -4,11 +4,7 @@ mod label;
 #[cfg(test)]
 pub(crate) mod rules;
 
-use std::{
-    iter::{once, Sum},
-    ops::Add,
-    sync::LazyLock,
-};
+use std::{iter::once, ops::Add, sync::LazyLock};
 
 use strum::{IntoStaticStr, VariantArray};
 
@@ -325,12 +321,6 @@ impl Add for TomDistance {
 
     fn add(self, other: Self) -> Self {
         Self(self.0 + other.0)
-    }
-}
-
-impl Sum for TomDistance {
-    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.fold(Self::default(), Add::add)
     }
 }
 

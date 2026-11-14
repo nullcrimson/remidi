@@ -98,7 +98,9 @@ fn opening_order(o: HatOpen) -> Vec<HatOpen> {
         Cc => vec![Closed, Tight],
         Pedal => Vec::new(),
         PedalSplash => vec![Pedal],
-        Loose | Open(_) => nearest(o, once(Loose).chain(OpenLevel::all().map(Open)), open_level),
+        Loose | Open(_) => nearest(o, once(Loose).chain(OpenLevel::all().map(Open)), |a, b| {
+            open_level(a).abs_diff(open_level(b))
+        }),
     }
 }
 
@@ -163,22 +165,15 @@ fn variants(c: Canon) -> Vec<Canon> {
     }
 }
 
-/// The tom positions other than `from`, nearest first, the higher tom first on a tie.
-fn nearest_toms(from: TomPos) -> Vec<TomPos> {
-    let mut others: Vec<TomPos> = tom_positions().filter(|&p| p != from).collect();
-    others.sort_by_key(|&p| (from.distance(p), p));
-    others
-}
-
-/// The members of `among` other than `from`, nearest by `rank` first, the lower rank first
+/// The members of `among` other than `from`, nearest by `distance` first, the first in order
 /// on a tie.
-fn nearest<T: Copy + PartialEq>(
+fn nearest<T: Copy + Ord, D: Ord>(
     from: T,
     among: impl Iterator<Item = T>,
-    rank: impl Fn(T) -> u8,
+    distance: impl Fn(T, T) -> D,
 ) -> Vec<T> {
     let mut others: Vec<T> = among.filter(|&x| x != from).collect();
-    others.sort_by_key(|&x| (rank(x).abs_diff(rank(from)), rank(x)));
+    others.sort_by_key(|&x| (distance(from, x), x));
     others
 }
 
@@ -190,14 +185,14 @@ fn neighbours(c: Canon) -> Vec<Canon> {
             .filter(|&j| j != i)
             .map(|j| Canon(Slot::Snare(j, a)))
             .collect(),
-        Slot::Tom(p, a) => nearest_toms(p)
+        Slot::Tom(p, a) => nearest(p, tom_positions(), TomPos::distance)
             .into_iter()
             .map(|q| Canon(Slot::Tom(q, a)))
             .collect(),
         Slot::Aux(_, o, z) => vec![Canon(Slot::Hat(o, z))],
         Slot::Cymbal(slot, a) => {
             let kind = CymSlot::all().filter(|s| discriminant(s) == discriminant(&slot));
-            let same_kind = nearest(slot, kind, CymSlot::index)
+            let same_kind = nearest(slot, kind, |a, b| a.index().abs_diff(b.index()))
                 .into_iter()
                 .map(|s| Canon(Slot::Cymbal(s, a)));
             let every = |kind: fn(&CymSlot) -> bool| {

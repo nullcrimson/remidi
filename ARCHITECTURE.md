@@ -145,9 +145,8 @@ by Nearest: the other snare, the nearest toms, the nearest cymbal of the same ki
 crash 1 for china/splash/stack and for a ride edge, the ride bell for a bell cymbal
 and for a crash bell,
 the main hat for an aux hat), each with its own allow-list. "Nearest" is one rule
-(`nearest`: the others by distance in rank, the lower rank first on a tie) shared by
-cymbals and hat openings; toms walk the same way by `TomPos::distance`, which the tom
-spread also measures by.
+(`nearest`: the others by distance, the first in order on a tie) shared by toms, cymbals
+and hat openings; toms measure it by `TomPos::distance`, as the tom spread does.
 A chain judges one drum alone; where a pair matches a drum as a whole (open hats by level,
 toms by the spread), `Mapping` does that before any chain is walked. No stand-in → the drum is dropped. Chains are built
 once for every slot. `tests/same_drum_stands_in.rs` holds the agreed rules as an
