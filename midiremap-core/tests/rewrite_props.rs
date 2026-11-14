@@ -1,7 +1,8 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use midiremap_core::{
-    convert, Catalog, Channel, ChannelScope, Mapping, MissingDrums, Overrides, Unrecognized,
+    convert, Catalog, Channel, ChannelScope, Conversion, Converted, Mapping, MissingDrums,
+    Overrides, Part, Unrecognized,
 };
 use midiremap_testkit::{cc, choke, event, hits, off, on, silent_on, smf, DRUMS};
 use midly::{
@@ -257,6 +258,37 @@ fn balanced(track: &[(u64, TrackEventKind)]) -> bool {
     sounding.values().all(|&n| n == 0)
 }
 
+/// The conversion of `midi`, or `None` when `Auto` asks which parts are the drums.
+fn converted(midi: &[u8], mapping: &Mapping, scope: ChannelScope) -> Option<Converted> {
+    convert(midi, mapping, scope, None).unwrap().done()
+}
+
+/// The hits of each part of `midi`, named `track:channel` counted from 1, read straight
+/// from the file.
+fn part_hits_of(midi: &[u8]) -> BTreeMap<String, u32> {
+    let mut hits = BTreeMap::new();
+    for (index, track) in Smf::parse(midi).unwrap().tracks.iter().enumerate() {
+        for ev in track {
+            if let TrackEventKind::Midi {
+                channel,
+                message: MidiMessage::NoteOn { vel, .. },
+            } = ev.kind
+            {
+                if vel.as_int() > 0 {
+                    *hits
+                        .entry(format!("{}:{}", index + 1, channel.as_int() + 1))
+                        .or_default() += 1;
+                }
+            }
+        }
+    }
+    hits
+}
+
+fn names(parts: &[Part]) -> BTreeSet<String> {
+    parts.iter().map(ToString::to_string).collect()
+}
+
 proptest! {
     #![proptest_config(ProptestConfig {
         rng_seed: RngSeed::Fixed(20_261_114),
@@ -269,7 +301,7 @@ proptest! {
         pair in pair(),
         scope in scope(),
     ) {
-        let out = convert(&midi, &pair.mapping(), scope, None).unwrap();
+        let Some(out) = converted(&midi, &pair.mapping(), scope) else { return Ok(()) };
         let (before, after) = (Smf::parse(&midi).unwrap(), Smf::parse(&out.bytes).unwrap());
         prop_assert_eq!(before.header, after.header);
         let (input, output) = (absolute(&midi), absolute(&out.bytes));
@@ -281,15 +313,40 @@ proptest! {
 
     #[test]
     fn notes_stay_paired(midi in file(), pair in pair(), scope in scope()) {
-        let out = convert(&midi, &pair.mapping(), scope, None).unwrap();
+        let Some(out) = converted(&midi, &pair.mapping(), scope) else { return Ok(()) };
         for track in absolute(&out.bytes) {
             prop_assert!(balanced(&track), "{:?}", track);
         }
     }
 
     #[test]
+    fn auto_converts_channel_10_else_the_one_part_else_asks(midi in file(), pair in pair()) {
+        let present = part_hits_of(&midi);
+        let all: BTreeSet<String> = present.keys().cloned().collect();
+        let drums: BTreeSet<String> = all.iter().filter(|p| p.ends_with(":10")).cloned().collect();
+        match convert(&midi, &pair.mapping(), ChannelScope::Auto, None).unwrap() {
+            Conversion::Done(out) => {
+                let picked = names(&out.picked);
+                if drums.is_empty() {
+                    prop_assert!(all.len() <= 1, "converted {:?} of {:?}", picked, all);
+                    prop_assert_eq!(&picked, &all);
+                } else {
+                    prop_assert_eq!(&picked, &drums);
+                }
+                let outside: u32 = present.iter().filter(|(p, _)| !picked.contains(*p)).map(|(_, n)| n).sum();
+                prop_assert_eq!(out.report.untouched(), outside);
+            }
+            Conversion::Ask { parts, .. } => {
+                prop_assert!(drums.is_empty() && all.len() > 1, "asked about {:?}", all);
+                prop_assert_eq!(names(&parts), all);
+            }
+        }
+    }
+
+    #[test]
     fn every_hit_is_counted_once(midi in file(), pair in pair(), scope in scope()) {
-        let report = convert(&midi, &pair.mapping(), scope, None).unwrap().report;
+        let Some(out) = converted(&midi, &pair.mapping(), scope) else { return Ok(()) };
+        let report = out.report;
         prop_assert_eq!(report.hits(), hits(&midi));
     }
 
@@ -299,10 +356,10 @@ proptest! {
         pair in pair(),
         cut in any::<Index>(),
     ) {
-        let whole = convert(&midi, &pair.mapping(), ChannelScope::All, None).unwrap();
+        let whole = converted(&midi, &pair.mapping(), ChannelScope::All).unwrap();
         prop_assert!(whole.damage.is_empty(), "{:?}", whole.damage);
         let short = &midi[..cut.index(midi.len())];
-        if let Ok(read) = convert(short, &pair.mapping(), ChannelScope::All, None) {
+        if let Ok(Conversion::Done(read)) = convert(short, &pair.mapping(), ChannelScope::All, None) {
             prop_assert!(
                 !read.damage.is_empty() || read.report.hits() == whole.report.hits(),
                 "cut to {} of {} bytes: {} of {} hits, no damage",
@@ -320,9 +377,9 @@ proptest! {
         pair in pair(),
         scope in scope(),
     ) {
-        let kept = convert(&midi, &pair.mapping_with(Unrecognized::Keep), scope, None).unwrap();
-        let removed = convert(&midi, &pair.mapping_with(Unrecognized::Remove), scope, None).unwrap();
-        prop_assert_eq!(kept.report, removed.report);
+        let kept = converted(&midi, &pair.mapping_with(Unrecognized::Keep), scope);
+        let removed = converted(&midi, &pair.mapping_with(Unrecognized::Remove), scope);
+        prop_assert_eq!(kept.map(|k| k.report), removed.map(|r| r.report));
     }
 
     #[test]
@@ -331,7 +388,7 @@ proptest! {
         pair in pair(),
         scope in scope(),
     ) {
-        let out = convert(&midi, &pair.mapping_with(Unrecognized::Keep), scope, None).unwrap();
+        let Some(out) = converted(&midi, &pair.mapping_with(Unrecognized::Keep), scope) else { return Ok(()) };
         let unrecognized: u32 = out.report.unmapped_source().map(|(_, count)| count).sum();
         let written = out.report.converted() + unrecognized + out.report.untouched();
         prop_assert_eq!(hits(&out.bytes), written);

@@ -3,8 +3,9 @@ use std::{cmp::Reverse, iter::Sum, ops::AddAssign};
 use serde::Serialize;
 
 use crate::{
+    canon::Canon,
     catalog::Catalog,
-    channel::ChannelScope,
+    channel::{part_hits, track_names, ChannelScope, Part},
     engine_map::{EngineId, EngineMap},
     midi::{self, CodecError},
     note::Note,
@@ -31,6 +32,23 @@ impl NoteHits {
 
     fn recognized_by(&self, engine: &EngineMap) -> u32 {
         engine.decodings().map(|(note, _)| self.get(note)).sum()
+    }
+
+    fn played_on(&self, engine: &EngineMap) -> Plays {
+        let mut drums: Vec<PlayedDrum> = Vec::new();
+        let mut unknown = 0;
+        for note in Note::ALL.into_iter().filter(|&n| self.get(n) > 0) {
+            let hits = self.get(note);
+            match engine.decode(note) {
+                Some(canon) => match drums.iter_mut().find(|d| d.canon == canon) {
+                    Some(drum) => drum.hits += hits,
+                    None => drums.push(PlayedDrum { canon, hits }),
+                },
+                None => unknown += hits,
+            }
+        }
+        drums.sort_by_key(|d| Reverse(d.hits));
+        Plays { drums, unknown }
     }
 }
 
@@ -59,6 +77,61 @@ pub fn note_hits(midi: &[u8], scope: ChannelScope) -> Result<NoteHits, CodecErro
         hits.0[note.index()] += 1;
     }
     Ok(hits)
+}
+
+/// One drum a part plays as a source layout, and how many hits it gets.
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify), tsify(missing_as_null))]
+pub struct PlayedDrum {
+    pub canon: Canon,
+    pub hits: u32,
+}
+
+/// What a part's hits play as a source layout.
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify), tsify(missing_as_null))]
+pub struct Plays {
+    /// The drums its notes decode to, most hits first.
+    pub drums: Vec<PlayedDrum>,
+    /// Hits on notes the layout does not know.
+    pub unknown: u32,
+}
+
+/// One part of a file as a user picks drum parts by: its track's name, its hits, and what
+/// they play as the source once a source is known.
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify), tsify(missing_as_null))]
+pub struct PartSummary {
+    pub part: Part,
+    pub track_name: Option<String>,
+    pub hits: u32,
+    pub plays: Option<Plays>,
+}
+
+/// Every part of `midi` with hits, in track and channel order, each played as `source` when
+/// one is given.
+pub fn part_summaries(
+    midi: &[u8],
+    source: Option<&EngineMap>,
+) -> Result<Vec<PartSummary>, CodecError> {
+    let smf = midi::parse(midi)?.smf;
+    let names = track_names(&smf);
+    Ok(part_hits(&smf)
+        .into_iter()
+        .map(|(part, notes)| {
+            let mut hits = NoteHits::default();
+            for note in notes {
+                hits.0[note.index()] += 1;
+            }
+            PartSummary {
+                part,
+                track_name: names[part.track.index()].clone(),
+                hits: hits.total(),
+                plays: source.map(|engine| hits.played_on(engine)),
+            }
+        })
+        .collect())
 }
 
 /// How many of the hits one engine's layout recognizes.
@@ -162,11 +235,58 @@ mod tests {
     }
 
     #[test]
-    fn note_hits_reads_only_the_tracks_auto_converts() {
+    fn note_hits_reads_only_the_parts_auto_converts() {
         assert_eq!(
             hits_of(&drum_track_and_bass_track(), ChannelScope::Auto),
-            [(36, 1), (38, 1)]
+            [(36, 1)]
         );
+    }
+
+    #[test]
+    fn a_part_summary_names_its_track_and_what_its_hits_play_as_the_source() {
+        let mut bytes = tracks(&[&[
+            (0, 1, on(36)),
+            (0, 1, on(36)),
+            (0, 1, on(38)),
+            (0, 1, on(3)),
+        ]]);
+        let named = midly::Smf::parse(&bytes).unwrap();
+        let mut named = named.to_static();
+        named.tracks[0].insert(
+            0,
+            midly::TrackEvent {
+                delta: midly::num::u28::new(0),
+                kind: midly::TrackEventKind::Meta(midly::MetaMessage::TrackName(b" Kit ")),
+            },
+        );
+        bytes.clear();
+        named.write_std(&mut bytes).unwrap();
+        let gm = Catalog::builtin();
+        let summaries = part_summaries(&bytes, gm.get("general_midi")).unwrap();
+        assert_eq!(summaries.len(), 1);
+        let kit = &summaries[0];
+        assert_eq!(
+            (kit.part.to_string(), kit.track_name.as_deref(), kit.hits),
+            ("1:1".to_owned(), Some("Kit"), 4)
+        );
+        let plays = kit.plays.as_ref().unwrap();
+        let drums: Vec<(String, u32)> = plays
+            .drums
+            .iter()
+            .map(|d| (d.canon.to_string(), d.hits))
+            .collect();
+        assert_eq!(
+            drums,
+            [("kick.main".to_owned(), 2), ("snare1.hit".to_owned(), 1)]
+        );
+        assert_eq!(plays.unknown, 1);
+        assert!(part_summaries(&bytes, None).unwrap()[0].plays.is_none());
+    }
+
+    #[test]
+    fn note_hits_leaves_out_a_file_auto_must_ask_about() {
+        let midi = tracks(&[&[(0, 1, on(36))], &[(0, 2, on(38))]]);
+        assert_eq!(hits_of(&midi, ChannelScope::Auto), []);
     }
 
     #[test]
@@ -246,6 +366,7 @@ mod tests {
         let tgt = catalog.get("ezdrummer").unwrap();
         let mapping = Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest);
         let report = convert(&midi, &mapping, ChannelScope::Auto, None)
+            .map(|c| c.done().expect("converted"))
             .unwrap()
             .report;
         let fits = source_fits(&catalog, &hits);

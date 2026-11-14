@@ -58,7 +58,7 @@ higher. `tests/module_layers.rs` holds the table of which module may use which, 
 fails on any use outside it (an allowed use a module does not make is no failure).
 
 ```
-conversion   ── convert(bytes, &Mapping, ChannelScope, parts) → Converted { bytes, report, damage }
+conversion   ── convert(bytes, &Mapping, ChannelScope, parts) → Conversion (Done | Ask)
    ├── midi        ── parse / write (midly), track_at
    └── rewrite     ── rewrite(Smf, &Mapping, ChannelScope) → (Smf, Report): one pure step per event
           ├── channel     ── Channel (Idx<16>), TrackNo, Part, ChannelScope / PartSet → per-track ChannelFilter, hit()
@@ -221,10 +221,14 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
   note-on with velocity > 0), read by the converter, the hit counts `fit` ranks engines by, and the `Auto` scope.
 - `ChannelScope { Auto | Only(Channel) | All }` chooses which channels a conversion
   rewrites; `resolve(&smf)` turns it into one `ChannelFilter` per track, a set of the
-  sixteen channels (`ALL`, `NONE`, `with(channel)`). `Auto` (the default) converts every channel of each track that has a
-  channel-10 note-on and skips the other tracks; when no track has one, it converts
-  everything. Multi-track song exports keep their bass and keys, drum tracks split
-  across channels convert whole, and files with drums elsewhere convert as before.
+  sixteen channels (`ALL`, `NONE`, `with(channel)`). `Auto` (the default) picks parts and
+  never guesses (`auto_choice`): a file with channel-10 hits converts its channel-10 parts
+  and offers each other part of the tracks those are in (Mjód: 168 drum hits on channel 1
+  beside channel 10, which nothing in the file tells from a one-track band file's piano); a
+  file whose hits are all on one part converts it (drum packs); any other file converts
+  nothing and asks which parts are the drums, since 123 of 160 layouts read half a piano or
+  bass range and only the user can tell. Nothing is deleted without saying so: an
+  untouched part is counted `untouched`.
   Parses from `auto`, `all` or `1`..=`16`.
 - A `Part { track: TrackNo, channel }` is one track's notes on one channel, both counted
   from 1 (`2:10`). `convert` takes an optional `PartSet`, a user's pick for one file: when
@@ -265,9 +269,11 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
 
 ### `conversion` — end-to-end facade
 
-- `convert(midi, &Mapping, ChannelScope, Option<&PartSet>) → Converted { bytes, report, damage }`: parse,
-  rewrite, write. The single entry point for the CLI and the WASM; `Converted` crosses
-  to the app as it is.
+- `convert(midi, &Mapping, ChannelScope, Option<&PartSet>) → Conversion`: parse, rewrite,
+  write. `Conversion::Done(Converted { bytes, report, damage, picked, offers })`, or
+  `Conversion::Ask { parts, damage }` when `Auto` must ask (nothing written). The single
+  entry point for the CLI and the WASM; it crosses to the app as it is. `fit::part_summaries`
+  lists a file's parts (track name, hits, and what they play as a source) for the question.
 - `damage` lists what the file had lost before it was read, since midly (not strict) reads
   a damaged file as far as it goes without saying so: `Damage::TrackCut` for a track with no
   End-of-Track (every loss of events leaves one, a bad event or a cut download alike), placed
@@ -429,7 +435,7 @@ way. `list` prints available engine ids. The exit code is 0 when the file was wr
 
 `wasm-bindgen` exports for the browser app:
 
-- `remap(mid, src_id, tgt_id, overrides?, channel?, missing?, unrecognized?) → Converted { bytes, report, damage }` —
+- `remap(mid, src_id, tgt_id, overrides?, channel?, missing?, unrecognized?) → Conversion` (and `remap_parts(…, parts, …)`, `file_parts(mid, src_id?) → PartSummary[]`) —
   `overrides` is an `Overrides` object; `channel` is `auto` (the default), `all` or
   `1`-`16`; `missing` is `nearest` (the default) or `drop`; `unrecognized` is `remove`
   (the default) or `keep`. Like `channel`, a value outside its set is `internal`: the app

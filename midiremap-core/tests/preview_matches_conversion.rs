@@ -51,6 +51,7 @@ fn assert_preview_matches_conversion(ov_json: &str, missing: MissingDrums) {
                 ChannelScope::Auto,
                 None,
             )
+            .map(|c| c.done().expect("converted"))
             .unwrap();
             assert_eq!(
                 every_note_keys(&converted.bytes),

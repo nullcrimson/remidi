@@ -1,6 +1,11 @@
-use std::{collections::BTreeSet, fmt, num::NonZeroUsize, str::FromStr};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt,
+    num::NonZeroUsize,
+    str::FromStr,
+};
 
-use midly::{num::u4, MidiMessage, Smf, Track, TrackEventKind};
+use midly::{num::u4, MetaMessage, MidiMessage, Smf, TrackEventKind};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::{idx::Idx, note::Note};
@@ -108,6 +113,40 @@ impl fmt::Display for Part {
     }
 }
 
+/// The note of every hit of each part of `smf`, in order.
+pub(crate) fn part_hits(smf: &Smf) -> BTreeMap<Part, Vec<Note>> {
+    let mut hits: BTreeMap<Part, Vec<Note>> = BTreeMap::new();
+    for (index, track) in smf.tracks.iter().enumerate() {
+        for (channel, note) in track.iter().filter_map(|ev| hit(&ev.kind)) {
+            let part = Part {
+                track: TrackNo::at(index),
+                channel,
+            };
+            hits.entry(part).or_default().push(note);
+        }
+    }
+    hits
+}
+
+/// The name each track of `smf` gives itself, when it gives a non-empty one.
+pub(crate) fn track_names(smf: &Smf) -> Vec<Option<String>> {
+    smf.tracks
+        .iter()
+        .map(|track| {
+            track.iter().find_map(|ev| match ev.kind {
+                TrackEventKind::Meta(MetaMessage::TrackName(name)) => {
+                    let name = String::from_utf8_lossy(name).trim().to_owned();
+                    (!name.is_empty()).then_some(name)
+                }
+                TrackEventKind::Midi { .. }
+                | TrackEventKind::SysEx(_)
+                | TrackEventKind::Escape(_)
+                | TrackEventKind::Meta(_) => None,
+            })
+        })
+        .collect()
+}
+
 /// Every part of `smf` that has a hit.
 pub(crate) fn parts_with_hits(smf: &Smf) -> PartSet {
     smf.tracks
@@ -128,15 +167,58 @@ pub(crate) fn parts_with_hits(smf: &Smf) -> PartSet {
 /// the first part `smf` has no hit in.
 pub(crate) fn part_filters(smf: &Smf, parts: &PartSet) -> Result<Vec<ChannelFilter>, Part> {
     let present = parts_with_hits(smf);
-    if let Some(&missing) = parts.iter().find(|p| !present.contains(p)) {
-        return Err(missing);
+    match parts.iter().find(|p| !present.contains(p)) {
+        Some(&missing) => Err(missing),
+        None => Ok(filters_of(smf, parts)),
     }
+}
+
+/// One filter per track of `smf` accepting the channels of `parts`, all of which `smf` has.
+fn filters_of(smf: &Smf, parts: &PartSet) -> Vec<ChannelFilter> {
     let mut filters = vec![ChannelFilter::NONE; smf.tracks.len()];
     for part in parts {
         let filter = &mut filters[part.track.index()];
         *filter = filter.with(part.channel);
     }
-    Ok(filters)
+    filters
+}
+
+/// What `Auto` does with a file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum AutoChoice {
+    /// Converts `parts`, and offers each of `offers`: a part beside channel-10 hits in their
+    /// track that is left as it is, since nothing says whether it is drums.
+    Picked { parts: PartSet, offers: PartSet },
+    /// Converts nothing: several parts have hits, none on channel 10, and only the user can
+    /// tell which are the drums.
+    Ask(PartSet),
+}
+
+/// `Auto`'s choice for `smf`: every channel-10 part when it has one; else its one part with
+/// hits; else ask.
+pub(crate) fn auto_choice(smf: &Smf) -> AutoChoice {
+    let present = parts_with_hits(smf);
+    let (drums, others): (PartSet, PartSet) =
+        present.iter().partition(|p| p.channel == Channel::DRUMS);
+    if drums.is_empty() {
+        return if others.len() <= 1 {
+            AutoChoice::Picked {
+                parts: others,
+                offers: PartSet::new(),
+            }
+        } else {
+            AutoChoice::Ask(others)
+        };
+    }
+    let drum_tracks: BTreeSet<TrackNo> = drums.iter().map(|p| p.track).collect();
+    let offers = others
+        .into_iter()
+        .filter(|p| drum_tracks.contains(&p.track))
+        .collect();
+    AutoChoice::Picked {
+        parts: drums,
+        offers,
+    }
 }
 
 impl fmt::Display for TrackNo {
@@ -158,8 +240,9 @@ const ALL: &str = "all";
     )
 )]
 pub enum ChannelScope {
-    /// Every channel of each track with a channel-10 note-on, leaving other tracks
-    /// untouched; every track when none has one.
+    /// Channel 10 when the file has hits there, offering the other channels of its drum
+    /// tracks; the one part with hits when there is only one; else nothing, asking which
+    /// parts are the drums.
     #[default]
     Auto,
     Only(Channel),
@@ -225,24 +308,10 @@ impl ChannelScope {
         match self {
             Self::Only(channel) => uniform(ChannelFilter::NONE.with(channel)),
             Self::All => uniform(ChannelFilter::ALL),
-            Self::Auto => {
-                let drum_tracks: Vec<bool> = smf
-                    .tracks
-                    .iter()
-                    .map(|t| has_hits_on(t, Channel::DRUMS))
-                    .collect();
-                let any_drums = drum_tracks.contains(&true);
-                drum_tracks
-                    .into_iter()
-                    .map(|drums| {
-                        if drums || !any_drums {
-                            ChannelFilter::ALL
-                        } else {
-                            ChannelFilter::NONE
-                        }
-                    })
-                    .collect()
-            }
+            Self::Auto => match auto_choice(smf) {
+                AutoChoice::Picked { parts, .. } => filters_of(smf, &parts),
+                AutoChoice::Ask(_) => uniform(ChannelFilter::NONE),
+            },
         }
     }
 
@@ -271,12 +340,6 @@ pub(crate) fn hit(kind: &TrackEventKind) -> Option<(Channel, Note)> {
         } if vel.as_int() > 0 => Some((Channel::of(channel), Note::from_key(key))),
         _ => None,
     }
-}
-
-fn has_hits_on(track: &Track, channel: Channel) -> bool {
-    track
-        .iter()
-        .any(|ev| hit(&ev.kind).is_some_and(|(c, _)| c == channel))
 }
 
 /// The channels one track's conversion rewrites: a set of the sixteen, one bit each.

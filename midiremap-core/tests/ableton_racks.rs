@@ -132,6 +132,7 @@ fn preset(name: &str) -> PresetName {
 fn converted(mapping: &Mapping) -> BTreeMap<u8, u8> {
     every_note_keys(
         &convert(&every_note(), mapping, ChannelScope::Auto, None)
+            .map(|c| c.done().expect("converted"))
             .unwrap()
             .bytes,
     )

@@ -1,6 +1,6 @@
 use midiremap_core::{
-    convert, Catalog, Channel, ChannelScope, CodecError, Converted, Mapping, MissingDrums,
-    Overrides, Part, PartSet,
+    convert, Catalog, Channel, ChannelScope, CodecError, Conversion, Converted, Mapping,
+    MissingDrums, Overrides, Part, PartSet,
 };
 use midiremap_testkit::{cc, choke, events, off, on, silent_on, tracks, Ev, DRUMS};
 use midly::num::u28;
@@ -16,6 +16,23 @@ fn ggd_to_ezd(midi: &[u8], scope: ChannelScope) -> Result<Converted, CodecError>
         scope,
         None,
     )
+    .map(|c| c.done().expect("converted"))
+}
+
+fn ggd_to_ezd_auto(midi: &[u8]) -> Conversion {
+    let b = Catalog::builtin();
+    let (src, tgt) = (b.get("ggd_invasion").unwrap(), b.get("ezdrummer").unwrap());
+    convert(
+        midi,
+        &Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest),
+        ChannelScope::Auto,
+        None,
+    )
+    .unwrap()
+}
+
+fn listed(parts: &[Part]) -> Vec<String> {
+    parts.iter().map(ToString::to_string).collect()
 }
 
 fn bass_track() -> Vec<Ev> {
@@ -58,27 +75,87 @@ fn auto_reports_no_unmapped_notes_for_untouched_tracks() {
 }
 
 #[test]
-fn auto_converts_every_channel_of_a_track_with_channel_10_hits() {
+fn auto_converts_channel_10_and_offers_the_other_channel_of_its_track() {
     let midi = tracks(&[&[(0, DRUMS, on(24)), (0, BASS, on(24)), (0, BASS, choke(24))]]);
     let out = ggd_to_ezd(&midi, ChannelScope::Auto).unwrap();
     assert_eq!(
         events(&out.bytes, 0),
-        vec![(0, DRUMS, on(36)), (0, BASS, on(36)), (0, BASS, choke(36))]
+        vec![(0, DRUMS, on(36)), (0, BASS, on(24)), (0, BASS, choke(24))]
     );
+    assert_eq!(listed(&out.offers), ["1:1"]);
+    assert_eq!(out.report.untouched(), 1);
 }
 
 #[test]
-fn auto_converts_every_track_without_channel_10_hits() {
+fn a_mjod_shaped_track_converts_channel_10_offers_channel_1_and_converts_both_once_taken() {
+    let midi = tracks(&[&[
+        (0, DRUMS, on(24)),
+        (10, DRUMS, on(24)),
+        (10, DRUMS, on(24)),
+        (10, BASS, on(24)),
+        (10, BASS, on(24)),
+    ]]);
+    let auto = ggd_to_ezd(&midi, ChannelScope::Auto).unwrap();
+    assert_eq!((auto.report.converted(), auto.report.untouched()), (3, 2));
+    assert_eq!(listed(&auto.picked), ["1:10"]);
+    assert_eq!(listed(&auto.offers), ["1:1"]);
+    let both = ggd_to_ezd_parts(&midi, &["1:10", "1:1"]).unwrap();
+    assert_eq!((both.report.converted(), both.report.untouched()), (5, 0));
+}
+
+#[test]
+fn auto_asks_when_several_parts_have_hits_and_none_on_channel_10() {
     let midi = tracks(&[
         &[(0, DRUMS, silent_on(24)), (0, BASS, on(24))],
         &[(0, BASS, on(24))],
     ]);
+    let Conversion::Ask { parts, .. } = ggd_to_ezd_auto(&midi) else {
+        panic!("converted without asking");
+    };
+    assert_eq!(listed(&parts), ["1:1", "2:1"]);
+}
+
+#[test]
+fn auto_converts_the_one_part_of_a_file_without_channel_10() {
+    let midi = tracks(&[&[(0, BASS, on(24)), (10, BASS, off(24))]]);
     let out = ggd_to_ezd(&midi, ChannelScope::Auto).unwrap();
     assert_eq!(
         events(&out.bytes, 0),
-        vec![(0, DRUMS, silent_on(36)), (0, BASS, on(36))]
+        vec![(0, BASS, on(36)), (10, BASS, off(36))]
     );
-    assert_eq!(events(&out.bytes, 1), vec![(0, BASS, on(36))]);
+}
+
+#[test]
+fn auto_asks_about_drums_split_over_tracks_on_one_channel() {
+    let midi = tracks(&[
+        &[(0, BASS, on(24))],
+        &[(0, BASS, on(38))],
+        &[(0, BASS, on(42))],
+    ]);
+    let Conversion::Ask { parts, .. } = ggd_to_ezd_auto(&midi) else {
+        panic!("converted without asking");
+    };
+    assert_eq!(listed(&parts), ["1:1", "2:1", "3:1"]);
+    let all = ggd_to_ezd_parts(&midi, &["1:1", "2:1", "3:1"]).unwrap();
+    assert_eq!(all.report.untouched(), 0);
+}
+
+#[test]
+fn a_one_track_band_file_converts_its_drums_and_leaves_piano_and_bass_as_they_are() {
+    let midi = tracks(&[&[
+        (0, DRUMS, on(24)),
+        (0, BASS, on(40)),
+        (0, 2, on(60)),
+        (10, DRUMS, off(24)),
+        (0, BASS, off(40)),
+        (0, 2, off(60)),
+    ]]);
+    let out = ggd_to_ezd(&midi, ChannelScope::Auto).unwrap();
+    assert_eq!(
+        events(&out.bytes, 0)[..3],
+        [(0, DRUMS, on(36)), (0, BASS, on(40)), (0, 2, on(60))]
+    );
+    assert!(out.report.dropped().next().is_none());
 }
 
 #[test]
@@ -265,13 +342,8 @@ fn converted_counts_hits_written_to_the_output_under_auto() {
         (0, DRUMS, on(99)),
         (0, BASS, on(24)),
     ]]);
-    assert_eq!(
-        ggd_to_ezd(&midi, ChannelScope::Auto)
-            .unwrap()
-            .report
-            .converted(),
-        2
-    );
+    let report = ggd_to_ezd(&midi, ChannelScope::Auto).unwrap().report;
+    assert_eq!((report.converted(), report.untouched()), (1, 1));
 }
 
 #[test]
@@ -304,6 +376,7 @@ fn ggd_to_ezd_parts(midi: &[u8], picked: &[&str]) -> Result<Converted, CodecErro
         ChannelScope::Auto,
         Some(&parts(picked)),
     )
+    .map(|c| c.done().expect("converted"))
 }
 
 #[test]

@@ -92,7 +92,9 @@ fn every_note_of_the_richest_kit_lands_on_every_target_as_recorded() {
             );
             outcome_line(
                 tgt_id,
-                &convert(&midi, &mapping, ChannelScope::Auto, None).unwrap(),
+                &convert(&midi, &mapping, ChannelScope::Auto, None)
+                    .map(|c| c.done().expect("converted"))
+                    .unwrap(),
             )
         })
         .collect();
@@ -114,6 +116,7 @@ fn same_engine_conversion_is_all_direct() {
         ChannelScope::Auto,
         None,
     )
+    .map(|c| c.done().expect("converted"))
     .unwrap();
 
     assert_eq!(hit_keys(&out.bytes).len(), notes.len());

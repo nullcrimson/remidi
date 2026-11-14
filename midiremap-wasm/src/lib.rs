@@ -1,11 +1,11 @@
 use std::{collections::BTreeMap, error::Error};
 
 use midiremap_core::{
-    convert, note_hits, parse_preset, rack_file, sample_file as core_sample_file,
-    source_fits as core_source_fits, Canon, CanonEntry, Catalog, ChannelScope, Converted, Drum,
+    convert, note_hits, parse_preset, part_summaries, rack_file, sample_file as core_sample_file,
+    source_fits as core_source_fits, Canon, CanonEntry, Catalog, ChannelScope, Conversion, Drum,
     EngineId, EngineMap, Family, LoadedPreset, Mapping, MissingDrums, Note, NoteHits, OctaveBase,
-    Overrides, Part, PartSet, PresetError, PresetName, RackFile, SourceFits, Unrecognized,
-    VoicePlan,
+    Overrides, Part, PartSet, PartSummary, PresetError, PresetName, RackFile, SourceFits,
+    Unrecognized, VoicePlan,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -115,7 +115,7 @@ fn convert_file(
     ov: &Overrides,
     settings: &Settings,
     parts: Option<&PartSet>,
-) -> Result<Converted, WasmError> {
+) -> Result<Conversion, WasmError> {
     let mapping = mapping(
         catalog,
         src_id,
@@ -137,7 +137,7 @@ pub fn remap(
     channel: Option<Ts<ChannelScope>>,
     missing: Option<Ts<MissingDrums>>,
     unrecognized: Option<Ts<Unrecognized>>,
-) -> Result<Ts<Converted>, WasmError> {
+) -> Result<Ts<Conversion>, WasmError> {
     let ov = from_js(overrides, |detail| WasmError::BadOverrides { detail })?;
     let settings = Settings {
         scope: from_js(channel, |detail| WasmError::Internal { detail })?,
@@ -159,7 +159,7 @@ pub fn remap_parts(
     parts: Vec<Ts<Part>>,
     missing: Option<Ts<MissingDrums>>,
     unrecognized: Option<Ts<Unrecognized>>,
-) -> Result<Ts<Converted>, WasmError> {
+) -> Result<Ts<Conversion>, WasmError> {
     let ov = from_js(overrides, |detail| WasmError::BadOverrides { detail })?;
     let parts: PartSet = parts
         .iter()
@@ -183,6 +183,18 @@ pub fn remap_parts(
         Some(&parts),
     )?;
     Ok(out.into_ts()?)
+}
+
+/// Every part of `mid` with hits, each played as `src_id`'s layout when one is given: what a
+/// user picks the drum parts from.
+#[wasm_bindgen]
+pub fn file_parts(mid: &[u8], src_id: Option<String>) -> Result<Vec<Ts<PartSummary>>, WasmError> {
+    let source = src_id
+        .map(|id| engine(Catalog::shared(), &id, Role::Source))
+        .transpose()?;
+    let parts =
+        part_summaries(mid, source).map_err(|e| WasmError::BadMidi { detail: chain(&e) })?;
+    to_js_all(&parts)
 }
 
 /// The Ableton rack that plays drum MIDI written for `src_id` on `tgt_id` with these edits and
@@ -400,6 +412,7 @@ pub fn sample_file(engine: &str) -> Result<Vec<u8>, WasmError> {
 
 #[cfg(test)]
 mod tests {
+    use midiremap_core::Converted;
     use midiremap_testkit::{drums, on};
 
     use super::*;
@@ -578,6 +591,8 @@ mod tests {
             },
             None,
         )
+        .unwrap()
+        .done()
         .unwrap()
     }
 

@@ -28,7 +28,10 @@ const ALLOWED_USES: &Table = &[
         &["canon", "non_blank", "note", "open_levels", "resolution"],
     ),
     ("family", &[]),
-    ("fit", &["catalog", "channel", "engine_map", "midi", "note"]),
+    (
+        "fit",
+        &["canon", "catalog", "channel", "engine_map", "midi", "note"],
+    ),
     ("idx", &[]),
     ("meter", &[]),
     ("midi", &["channel", "meter"]),

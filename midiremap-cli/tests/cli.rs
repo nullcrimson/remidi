@@ -1,6 +1,6 @@
 use std::process::{Command, Output};
 
-use midiremap_testkit::{drums, hit_keys, off, on};
+use midiremap_testkit::{drums, hit_keys, off, on, tracks, DRUMS};
 
 const BIN: &str = env!("CARGO_BIN_EXE_midiremap");
 
@@ -272,4 +272,38 @@ fn a_part_the_file_lacks_is_refused_and_nothing_is_written() {
 fn parts_and_channel_together_are_refused() {
     let (out, _) = convert_note(24, &["--parts", "1:10", "--channel", "all"]);
     assert_eq!(out.status.code(), Some(2));
+}
+
+#[test]
+fn a_file_with_several_parts_and_no_channel_10_writes_nothing_and_exits_with_4() {
+    let midi = tracks(&[&[(0, 1, on(24))], &[(0, 2, on(24))]]);
+    let (out, written) = run(&midi, PAIR, None, &[]);
+    assert_eq!(out.status.code(), Some(4));
+    assert!(written.is_empty());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("--parts 1:1") && err.contains("2:2"),
+        "stderr: {err}"
+    );
+}
+
+#[test]
+fn the_hint_names_parts_that_then_convert() {
+    let midi = tracks(&[&[(0, 1, on(24))], &[(0, 2, on(24))]]);
+    let (out, written) = run(&midi, PAIR, None, &["--parts", "1:1,2:2"]);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(hit_keys(&written), vec![36]);
+}
+
+#[test]
+fn a_channel_beside_channel_10_in_its_track_is_offered_with_the_parts_that_add_it() {
+    let midi = tracks(&[&[(0, DRUMS, on(24)), (0, 1, on(24))]]);
+    let (out, _) = run(&midi, PAIR, None, &[]);
+    assert!(out.status.success());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("pass --parts 1:10,1:1"), "stderr: {err}");
 }

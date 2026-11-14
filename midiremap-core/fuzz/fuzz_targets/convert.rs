@@ -3,7 +3,9 @@
 use std::sync::LazyLock;
 
 use libfuzzer_sys::fuzz_target;
-use midiremap_core::{convert, Catalog, ChannelScope, EngineMap, Mapping, MissingDrums, Overrides};
+use midiremap_core::{
+    convert, Catalog, ChannelScope, Conversion, EngineMap, Mapping, MissingDrums, Overrides,
+};
 use midiremap_testkit::hits;
 use midly::Smf;
 
@@ -31,7 +33,7 @@ fuzz_target!(|data: &[u8]| {
     };
     let (missing, scope) = setting(*byte);
     let mapping = Mapping::new(engine(*src), engine(*tgt), &Overrides::default(), missing);
-    let Ok(out) = convert(midi, &mapping, scope, None) else {
+    let Ok(Conversion::Done(out)) = convert(midi, &mapping, scope, None) else {
         return;
     };
     Smf::parse(&out.bytes).expect("a converted file parses");

@@ -1,7 +1,9 @@
 use serde::Serialize;
 
 use crate::{
-    channel::{part_filters, ChannelScope, PartSet},
+    channel::{
+        auto_choice, part_filters, parts_with_hits, AutoChoice, ChannelScope, Part, PartSet,
+    },
     midi::{self, CodecError, Damage, Parsed},
     report::Report,
     rewrite::rewrite,
@@ -21,6 +23,43 @@ pub struct Converted {
     pub bytes: Vec<u8>,
     pub report: Report,
     pub damage: Vec<Damage>,
+    /// The parts with hits the conversion rewrote.
+    pub picked: Vec<Part>,
+    /// The parts `Auto` left as they are beside channel-10 hits in their track: likely drums
+    /// too, offered to the user.
+    pub offers: Vec<Part>,
+}
+
+/// What a conversion did: converted the file, or converted nothing and asks which parts are
+/// the drums.
+#[derive(Serialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
+pub enum Conversion {
+    Done(Converted),
+    /// Several parts have hits, none on channel 10; `parts` lists them.
+    Ask {
+        parts: Vec<Part>,
+        damage: Vec<Damage>,
+    },
+}
+
+impl Conversion {
+    /// The converted file, when the conversion did not ask.
+    pub fn done(self) -> Option<Converted> {
+        match self {
+            Self::Done(converted) => Some(converted),
+            Self::Ask { .. } => None,
+        }
+    }
 }
 
 /// Converts a standard MIDI file through `mapping`, rewriting the `parts` picked, or the
@@ -30,19 +69,40 @@ pub fn convert(
     mapping: &Mapping,
     scope: ChannelScope,
     parts: Option<&PartSet>,
-) -> Result<Converted, CodecError> {
+) -> Result<Conversion, CodecError> {
     let Parsed { smf, damage } = midi::parse(midi)?;
-    let filters = match parts {
-        Some(parts) => part_filters(&smf, parts).map_err(CodecError::NoSuchPart)?,
-        None => scope.resolve(&smf),
+    let (filters, offers) = match (parts, scope) {
+        (Some(parts), _) => (
+            part_filters(&smf, parts).map_err(CodecError::NoSuchPart)?,
+            PartSet::new(),
+        ),
+        (None, ChannelScope::Auto) => match auto_choice(&smf) {
+            AutoChoice::Picked { parts, offers } => (
+                part_filters(&smf, &parts).map_err(CodecError::NoSuchPart)?,
+                offers,
+            ),
+            AutoChoice::Ask(parts) => {
+                return Ok(Conversion::Ask {
+                    parts: parts.into_iter().collect(),
+                    damage,
+                })
+            }
+        },
+        (None, ChannelScope::All | ChannelScope::Only(_)) => (scope.resolve(&smf), PartSet::new()),
     };
+    let picked = parts_with_hits(&smf)
+        .into_iter()
+        .filter(|p| filters[p.track.index()].accepts(p.channel))
+        .collect();
     let (smf, report) = rewrite(smf, mapping, filters)?;
     let bytes = midi::write(&smf)?;
-    Ok(Converted {
+    Ok(Conversion::Done(Converted {
         bytes,
         report,
         damage,
-    })
+        picked,
+        offers: offers.into_iter().collect(),
+    }))
 }
 
 #[cfg(test)]
@@ -75,6 +135,7 @@ mod tests {
             ChannelScope::Auto,
             None,
         )
+        .map(|c| c.done().expect("converted"))
         .unwrap()
     }
 
@@ -89,6 +150,7 @@ mod tests {
             ChannelScope::Auto,
             None,
         )
+        .map(|c| c.done().expect("converted"))
         .unwrap()
     }
 
@@ -198,7 +260,9 @@ mod tests {
             MissingDrums::Nearest,
         )
         .with_unrecognized(unrecognized);
-        convert(mid, &mapping, ChannelScope::Auto, None).unwrap()
+        convert(mid, &mapping, ChannelScope::Auto, None)
+            .map(|c| c.done().expect("converted"))
+            .unwrap()
     }
 
     fn kick_and_unrecognized() -> Vec<u8> {

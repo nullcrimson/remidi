@@ -6,8 +6,9 @@ use std::{
 use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand};
 use midiremap_core::{
-    convert, parse_preset, Catalog, ChannelScope, Damage, EngineId, EngineMap, Mapping,
-    MissingDrums, Overrides, Part, PartSet, Position, Unrecognized,
+    convert, parse_preset, part_summaries, Catalog, ChannelScope, Conversion, Damage, EngineId,
+    EngineMap, Mapping, MissingDrums, Overrides, Part, PartSet, PartSummary, Position,
+    Unrecognized,
 };
 
 #[derive(Parser)]
@@ -112,6 +113,9 @@ fn run_list(user_map: Option<PathBuf>) -> Result<()> {
 
 /// The exit code of a conversion that wrote its output from a damaged file.
 const EXIT_DAMAGED: u8 = 3;
+/// The exit code of a conversion that wrote nothing: it needs to be told which parts are
+/// the drums.
+const EXIT_ASK_PARTS: u8 = 4;
 
 fn run_convert(a: ConvertArgs) -> Result<ExitCode> {
     let catalog = build_catalog(a.user_map)?;
@@ -131,28 +135,82 @@ fn run_convert(a: ConvertArgs) -> Result<ExitCode> {
         None => Overrides::default(),
     };
     let parts: Option<PartSet> = a.parts.map(|parts| parts.into_iter().collect());
-    let out = convert(
+    let conversion = convert(
         &mid,
         &Mapping::new(src, tgt, &overrides, a.missing).with_unrecognized(a.unrecognized),
         a.channel,
         parts.as_ref(),
     )
     .context("remap failed")?;
+    let summary = |wanted: &[Part]| -> Result<Vec<String>> {
+        Ok(part_summaries(&mid, Some(src))?
+            .iter()
+            .filter(|s| wanted.contains(&s.part))
+            .map(summary_line)
+            .collect())
+    };
+    let out = match conversion {
+        Conversion::Done(out) => out,
+        Conversion::Ask { parts, damage } => {
+            eprintln!(
+                "{} has notes on several parts and none on channel 10, so nothing was converted; \
+                 name the drum parts with --parts, such as --parts {}:",
+                a.input.display(),
+                parts.first().map_or_else(String::new, ToString::to_string)
+            );
+            for line in summary(&parts)? {
+                eprintln!("  {line}");
+            }
+            print_damage(&a.input, &damage, "nothing was converted");
+            return Ok(ExitCode::from(EXIT_ASK_PARTS));
+        }
+    };
 
     std::fs::write(&a.output, &out.bytes)
         .with_context(|| format!("cannot write {}", a.output.display()))?;
     eprintln!("{}", serde_json::to_string_pretty(&out.report)?);
+    if !out.offers.is_empty() {
+        eprintln!("left as they are, beside the channel-10 drums of their track:");
+        for line in summary(&out.offers)? {
+            eprintln!("  {line}");
+        }
+        eprintln!(
+            "to convert them too, pass --parts {}",
+            listed(out.picked.iter().chain(&out.offers))
+        );
+    }
     if out.damage.is_empty() {
         return Ok(ExitCode::SUCCESS);
     }
-    eprintln!(
-        "{} is damaged; what it still held was converted:",
-        a.input.display()
-    );
-    for damage in &out.damage {
-        eprintln!("  {}", damage_line(damage));
-    }
+    print_damage(&a.input, &out.damage, "what it still held was converted");
     Ok(ExitCode::from(EXIT_DAMAGED))
+}
+
+fn listed<'a>(parts: impl Iterator<Item = &'a Part>) -> String {
+    parts.map(ToString::to_string).collect::<Vec<_>>().join(",")
+}
+
+fn summary_line(s: &PartSummary) -> String {
+    let name = s.track_name.as_deref().unwrap_or("unnamed track");
+    let plays = s.plays.as_ref().map_or_else(String::new, |plays| {
+        let drums: Vec<String> = plays
+            .drums
+            .iter()
+            .map(|d| format!("{} {}", d.canon, d.hits))
+            .collect();
+        format!("; plays {}; {} unknown", drums.join(", "), plays.unknown)
+    });
+    format!("{} \"{name}\": {} hits{plays}", s.part, s.hits)
+}
+
+fn print_damage(input: &Path, damage: &[Damage], outcome: &str) {
+    if damage.is_empty() {
+        return;
+    }
+    eprintln!("{} is damaged; {outcome}:", input.display());
+    for d in damage {
+        eprintln!("  {}", damage_line(d));
+    }
 }
 
 fn damage_line(damage: &Damage) -> String {
