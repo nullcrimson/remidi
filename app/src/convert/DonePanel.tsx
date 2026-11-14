@@ -16,6 +16,7 @@ import { tag } from '../ui/styles';
 import { CheckIcon } from '../ui/CheckIcon';
 import { fileStatus, outcomeTags } from './doneSummary';
 import { UnrecognizedNotes } from './UnrecognizedNotes';
+import { DamagedFiles } from './DamagedFiles';
 import { TextButton } from '../ui/TextButton';
 import { TipToast } from '../tip/TipToast';
 import { track } from '../core/stats';
@@ -110,6 +111,7 @@ export function DonePanel({
               onAssign={onViewReport}
             />
           )}
+          <DamagedFiles results={results} />
         </div>
 
         <div className="flex w-full flex-col items-center gap-1.5">

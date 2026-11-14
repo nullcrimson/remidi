@@ -21,6 +21,7 @@ const result = (name: string, url: string): FileResult => ({
   name,
   url,
   bytes: new Uint8Array([1]),
+  damage: [],
   report: REPORT,
 });
 
@@ -403,5 +404,28 @@ describe('DonePanel', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Assign the notes' }));
       expect(onViewReport).toHaveBeenCalledOnce();
     });
+  });
+});
+
+describe('DonePanel damaged files', () => {
+  beforeEach(cleanup);
+
+  it('says which file was damaged and where each track stops', () => {
+    const damaged: FileResult = {
+      ...result('cut-ezd.mid', 'blob:y'),
+      damage: [
+        { kind: 'trackCut', track: 2, at: { bar: 17 }, eventsRead: 300 },
+        { kind: 'tracksMissing', declared: 3, read: 2 },
+      ],
+    };
+    renderPanel({ results: [damaged] as Converted['results'] });
+    expect(screen.getByText(/cut-ezd\.mid was damaged/)).toBeTruthy();
+    expect(screen.getByText(/Track 2 stops at bar 17/)).toBeTruthy();
+    expect(screen.getByText(/says it has 3 tracks; only 2 could be read/)).toBeTruthy();
+  });
+
+  it('says nothing about damage when no file was damaged', () => {
+    renderPanel();
+    expect(screen.queryByText(/was damaged/)).toBeNull();
   });
 });

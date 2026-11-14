@@ -366,6 +366,10 @@ done-kept =
     }
 done-pick-source = Scegli un'altra origine
 done-assign-notes = Assegna le note
+done-damaged-file = { $file } era danneggiato: ne mancava una parte, e tutto ciò che conteneva ancora è stato convertito.
+done-damage-track-cut-bar = La traccia { $track } si interrompe alla battuta { $bar }; il resto non era nel file.
+done-damage-track-cut-tick = La traccia { $track } si interrompe al tick { $tick }; il resto non era nel file.
+done-damage-tracks-missing = Il file dichiara { $declared } tracce; se ne sono potute leggere solo { $read }.
 source-fit-missing =
     { $missing ->
         [one] { $missing } nota su { $hits } del tuo file non è nella mappatura di { $source }.

@@ -132,6 +132,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
       }
       for (const [kind, files] of kindCounts(outcome.failed.map((file) => file.error))) track('file-failed', { kind, files });
       track('converted', convertedProps(pair, outcome.ok.map((file) => file.report), outcome.failed.length, {
+        damaged: outcome.ok.filter((file) => file.damage.length > 0).length,
         missing: m,
         edited: editCount({ edits, srcEdits }) > 0,
         preset: presetId !== null,

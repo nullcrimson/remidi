@@ -2,13 +2,13 @@ use serde::Serialize;
 
 use crate::{
     channel::ChannelScope,
-    midi::{self, CodecError},
+    midi::{self, CodecError, Damage, Parsed},
     report::Report,
     rewrite::rewrite,
     translate::Mapping,
 };
 
-/// A converted file and what happened to its notes.
+/// A converted file, what happened to its notes, and what the file had lost before it was read.
 #[derive(Serialize)]
 #[cfg_attr(
     feature = "ts",
@@ -20,6 +20,7 @@ pub struct Converted {
     #[cfg_attr(feature = "ts", tsify(type = "Uint8Array<ArrayBuffer>"))]
     pub bytes: Vec<u8>,
     pub report: Report,
+    pub damage: Vec<Damage>,
 }
 
 /// Converts a standard MIDI file through `mapping`, rewriting the channels `scope` selects.
@@ -28,9 +29,14 @@ pub fn convert(
     mapping: &Mapping,
     scope: ChannelScope,
 ) -> Result<Converted, CodecError> {
-    let (smf, report) = rewrite(midi::parse(midi)?, mapping, scope)?;
+    let Parsed { smf, damage } = midi::parse(midi)?;
+    let (smf, report) = rewrite(smf, mapping, scope)?;
     let bytes = midi::write(&smf)?;
-    Ok(Converted { bytes, report })
+    Ok(Converted {
+        bytes,
+        report,
+        damage,
+    })
 }
 
 #[cfg(test)]

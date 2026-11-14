@@ -47,7 +47,7 @@ Seven crates, a web app, and embedded engine presets:
 | `xtask` | `cargo xtask gate`: every check, scheduled over the steps' needs. | `cargo_metadata`, `clap`, `anyhow`, `blake3`, `walkdir`, `serde`, `strum` |
 | `engines/*.toml` | Preset note↔canon maps; core's `build.rs` converts them to one embedded JSON table. | — |
 
-Inside `midiremap-core` only the `midi`, `channel`, `rewrite` and `sample` modules, and
+Inside `midiremap-core` only the `midi`, `meter`, `channel`, `rewrite` and `sample` modules, and
 `note`'s `u7` conversion, name `midly`, and nothing reads a file; the CLI, WASM, and app layers own
 all real-world I/O and presentation.
 
@@ -58,7 +58,7 @@ higher. `tests/module_layers.rs` holds the table of which module may use which, 
 fails on any use outside it (an allowed use a module does not make is no failure).
 
 ```
-conversion   ── convert(bytes, &Mapping, ChannelScope) → Converted { bytes, report }
+conversion   ── convert(bytes, &Mapping, ChannelScope) → Converted { bytes, report, damage }
    ├── midi        ── parse / write (midly), track_at
    └── rewrite     ── rewrite(Smf, &Mapping, ChannelScope) → (Smf, Report): one pure step per event
           ├── channel     ── Channel (Idx<16>), ChannelScope → per-track ChannelFilter, hit()
@@ -210,7 +210,8 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
 
 ### `midi`, `channel`, `rewrite` — the modules that know `midly`
 
-- `midi`: `parse(bytes)` / `write(&smf)`, the `midly` codec, and `track_at`, which builds
+- `midi`: `parse(bytes)` → `Parsed { smf, damage }` / `write(&smf)`, the `midly` codec,
+  and `track_at`, which builds
   a track from events at absolute ticks (it checks that the ticks never go back). `parse`
   refuses a header whose SMPTE rate byte is `0x80` (`CodecError::SmpteRate`) before midly
   sees it: midly 0.5.3 negates it with an overflow, a panic in builds with overflow checks
@@ -259,9 +260,15 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
 
 ### `conversion` — end-to-end facade
 
-- `convert(midi, &Mapping, ChannelScope) → Converted { bytes, report }`: parse,
+- `convert(midi, &Mapping, ChannelScope) → Converted { bytes, report, damage }`: parse,
   rewrite, write. The single entry point for the CLI and the WASM; `Converted` crosses
   to the app as it is.
+- `damage` lists what the file had lost before it was read, since midly (not strict) reads
+  a damaged file as far as it goes without saying so: `Damage::TrackCut` for a track with no
+  End-of-Track (every loss of events leaves one, a bad event or a cut download alike), placed
+  at the bar of its last event read (`meter`, or the tick in a file timed in SMPTE frames),
+  and `Damage::TracksMissing` when the header declares more tracks than were read. The CLI
+  prints them and exits 3; the app names each damaged file on the done panel.
 
 ### `catalog` — where engine maps come from
 
@@ -417,7 +424,7 @@ way. `list` prints available engine ids. The exit code is 0 when the file was wr
 
 `wasm-bindgen` exports for the browser app:
 
-- `remap(mid, src_id, tgt_id, overrides?, channel?, missing?, unrecognized?) → Converted { bytes, report }` —
+- `remap(mid, src_id, tgt_id, overrides?, channel?, missing?, unrecognized?) → Converted { bytes, report, damage }` —
   `overrides` is an `Overrides` object; `channel` is `auto` (the default), `all` or
   `1`-`16`; `missing` is `nearest` (the default) or `drop`; `unrecognized` is `remove`
   (the default) or `keep`. Like `channel`, a value outside its set is `internal`: the app

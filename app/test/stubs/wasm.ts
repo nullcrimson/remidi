@@ -77,6 +77,7 @@ export const REMAP_BYTES = new Uint8Array([77, 84, 104, 100]);
 
 export const remap = vi.fn<typeof Wasm.remap>(() => ({
   bytes: REMAP_BYTES,
+  damage: [],
   report: typed<Wasm.Report>({
     unmappedSource: {},
     fallbackUsed: { 'hat.open3': { standIn: 'hat.open1', note: 46, count: 2 } },

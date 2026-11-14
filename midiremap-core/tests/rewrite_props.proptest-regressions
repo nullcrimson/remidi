@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 07c4bcea1552b50f6fe49e9ffc89f1207b13970ecd4786c365879542610feed9 # shrinks to midi = [77, 84, 104, 100, 0, 0, 0, 6, 0, 0, 0, 1, 1, 224, 77, 84, 114, 107, 0, 0, 0, 4, 0, 255, 47, 0], pair = Pair { src: "addictive_drums2", tgt: "addictive_drums2", missing: Nearest, unrecognized: Remove }, cut = Index(17737253917028415016)

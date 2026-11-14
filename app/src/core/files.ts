@@ -1,5 +1,5 @@
 import type { Message } from '../generated/i18n';
-import type { Report } from './midiremap';
+import type { Damage, Report } from './midiremap';
 
 const MID_EXTENSIONS = ['.mid', '.midi'];
 const PRESET_EXTENSIONS = ['.json'];
@@ -86,4 +86,5 @@ export interface FileResult {
   url: string;
   bytes: Uint8Array;
   report: Report;
+  damage: Damage[];
 }

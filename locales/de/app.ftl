@@ -334,6 +334,10 @@ done-kept =
     }
 done-pick-source = Andere Quelle wählen
 done-assign-notes = Noten zuweisen
+done-damaged-file = { $file } war beschädigt: Ein Teil fehlte, alles Übrige wurde konvertiert.
+done-damage-track-cut-bar = Spur { $track } endet in Takt { $bar }; der Rest fehlte in der Datei.
+done-damage-track-cut-tick = Spur { $track } endet bei Tick { $tick }; der Rest fehlte in der Datei.
+done-damage-tracks-missing = Die Datei gibt { $declared } Spuren an; nur { $read } konnten gelesen werden.
 source-fit-missing =
     { $missing ->
         [one] { $missing } von { $hits } Noten Ihrer Datei ist nicht in der Notenbelegung von { $source }.

@@ -25,7 +25,7 @@ describe('useRemapper missing drums', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.mocked(stub.plan).mockReturnValue([]);
-    vi.mocked(stub.remap).mockReturnValue({ bytes: new Uint8Array([1]), report: REPORT });
+    vi.mocked(stub.remap).mockReturnValue({ bytes: new Uint8Array([1]), report: REPORT, damage: [] });
   });
 
   it('starts on nearest and plans with it', async () => {

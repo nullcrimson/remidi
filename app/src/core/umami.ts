@@ -38,6 +38,7 @@ export interface StatEvents {
     pair: `${string}>${string}`;
     files: number;
     failed: number;
+    damaged: number;
     missing: MissingDrums;
     edited: boolean;
     preset: boolean;

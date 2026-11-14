@@ -151,7 +151,7 @@ export function convertedProps(
   pair: EnginePair,
   reports: Report[],
   failed: number,
-  setup: { missing: MissingDrums; edited: boolean; preset: boolean; closer: string },
+  setup: { damaged: number; missing: MissingDrums; edited: boolean; preset: boolean; closer: string },
 ): StatEvents['converted'] {
   return {
     from: pair.src,

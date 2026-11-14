@@ -377,6 +377,10 @@ done-kept =
     }
 done-pick-source = Выбрать другой источник
 done-assign-notes = Назначить ноты
+done-damaged-file = Файл { $file } повреждён: части не хватало, всё оставшееся сконвертировано.
+done-damage-track-cut-bar = Дорожка { $track } обрывается на такте { $bar }; остальной её части в файле не было.
+done-damage-track-cut-tick = Дорожка { $track } обрывается на тике { $tick }; остальной её части в файле не было.
+done-damage-tracks-missing = В файле указано дорожек: { $declared }; прочитать удалось только { $read }.
 source-fit-missing = Нет в маппинге { $source }: { $missing } из { $hits } нот вашего файла. Подходят лучше: { $engines }
 source-fit-all = { $engine } (все ноты)
 source-fit-some =

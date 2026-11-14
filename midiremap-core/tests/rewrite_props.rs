@@ -294,6 +294,27 @@ proptest! {
     }
 
     #[test]
+    fn a_cut_file_converts_every_hit_or_reports_its_damage(
+        midi in file(),
+        pair in pair(),
+        cut in any::<Index>(),
+    ) {
+        let whole = convert(&midi, &pair.mapping(), ChannelScope::All).unwrap();
+        prop_assert!(whole.damage.is_empty(), "{:?}", whole.damage);
+        let short = &midi[..cut.index(midi.len())];
+        if let Ok(read) = convert(short, &pair.mapping(), ChannelScope::All) {
+            prop_assert!(
+                !read.damage.is_empty() || read.report.hits() == whole.report.hits(),
+                "cut to {} of {} bytes: {} of {} hits, no damage",
+                short.len(),
+                midi.len(),
+                read.report.hits(),
+                whole.report.hits()
+            );
+        }
+    }
+
+    #[test]
     fn keeping_unrecognized_notes_changes_no_count(
         midi in file(),
         pair in pair(),

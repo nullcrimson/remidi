@@ -230,3 +230,17 @@ fn an_unreadable_preset_fails_with_its_path() {
     assert!(err.contains("invalid preset"), "stderr: {err}");
     assert!(err.contains(EDITS_FILE), "stderr: {err}");
 }
+
+#[test]
+fn a_damaged_file_is_converted_as_far_as_it_goes_and_exits_with_3() {
+    let whole = drums(&[(0, on(24)), (48, off(24)), (48, on(24)), (48, off(24))]);
+    let cut = &whole[..whole.len() - 6];
+    let (out, written) = run(cut, PAIR, None, &[]);
+    assert_eq!(out.status.code(), Some(3));
+    assert_eq!(hit_keys(&written).len(), 2);
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("is damaged") && err.contains("track 1 stops"),
+        "stderr: {err}"
+    );
+}

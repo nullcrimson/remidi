@@ -12,6 +12,7 @@ import { openSettings, pickFrom, pickTo } from './eventSteps';
 function reportWith(untouched: number, converted = 10) {
   return typed<Converted>({
     bytes: new Uint8Array([1]),
+    damage: [],
     report: { unmappedSource: {}, fallbackUsed: {}, dropped: { 'china.1.hit': 2 }, untouched, converted },
   });
 }

@@ -159,11 +159,12 @@ export function useConverter(converter: Pick<Converter, 'convert'>, pair: Engine
         return { kind: 'failed', error };
       }
       if (run.signal.aborted) return null;
-      const ok: FileResult[] = batch.ok.map(({ name, bytes, report }) => ({
+      const ok: FileResult[] = batch.ok.map(({ name, bytes, report, damage }) => ({
         name: `${withoutMidExtension(name)}-${pair.tgt}.mid`,
         url: URL.createObjectURL(new Blob([bytes], { type: 'audio/midi' })),
         bytes,
         report,
+        damage,
       }));
       const bad = batch.failed;
       if (ok.length > 0 || bad.length === 0) dispatch({ type: 'CONVERT_DONE', key, pair, results: ok, failures: bad });

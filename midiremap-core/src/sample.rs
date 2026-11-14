@@ -185,7 +185,7 @@ mod tests {
     fn the_sample_is_two_bars_of_four_four_at_120_bpm() {
         let kit = engine(&[(36, "kick.main")]);
         let bytes = sample_file(&kit);
-        let smf = midi::parse(&bytes).unwrap();
+        let smf = midi::parse(&bytes).unwrap().smf;
         let track = &smf.tracks[0];
         let ticks: u32 = track.iter().map(|ev| ev.delta.as_int()).sum();
         let metas: Vec<MetaMessage> = track

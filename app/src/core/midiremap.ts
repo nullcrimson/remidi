@@ -37,6 +37,7 @@ export type {
   LoadedPreset,
   RackFile,
   Converted,
+  Damage,
   Report,
   SourceFit,
   SourceFits,

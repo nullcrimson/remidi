@@ -1,7 +1,14 @@
 use std::error::Error;
 
-use midly::{num::u28, Smf, Track, TrackEvent, TrackEventKind};
+use midly::{num::u28, MetaMessage, Smf, Track, TrackEvent, TrackEventKind};
+use serde::Serialize;
 
+use crate::{
+    channel::TrackNo,
+    meter::{Meter, Position},
+};
+
+const MTHD_TRACKS: usize = 2;
 const MTHD_DIVISION: usize = 4;
 const SMPTE_MINUS_128: u8 = 0x80;
 
@@ -17,11 +24,72 @@ pub enum CodecError {
     Write(#[source] std::io::Error),
 }
 
-pub(crate) fn parse(bytes: &[u8]) -> Result<Smf<'_>, CodecError> {
+/// What a file had lost before it was read: notes that were in it once and cannot be
+/// converted.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify))]
+pub enum Damage {
+    /// `track` stops without its End-of-Track after `events_read` events, the last at `at`:
+    /// the rest of it was not in the file.
+    TrackCut {
+        track: TrackNo,
+        at: Position,
+        events_read: usize,
+    },
+    /// The file says it has `declared` tracks, and only `read` could be read.
+    TracksMissing { declared: u16, read: usize },
+}
+
+/// A file as read, and what it had lost.
+#[derive(Debug)]
+pub(crate) struct Parsed<'a> {
+    pub(crate) smf: Smf<'a>,
+    pub(crate) damage: Vec<Damage>,
+}
+
+pub(crate) fn parse(bytes: &[u8]) -> Result<Parsed<'_>, CodecError> {
     if has_smpte_rate_minus_128(bytes) {
         return Err(CodecError::SmpteRate);
     }
-    Smf::parse(bytes).map_err(|e| CodecError::Parse(Box::new(e)))
+    let smf = Smf::parse(bytes).map_err(|e| CodecError::Parse(Box::new(e)))?;
+    let damage = damage(bytes, &smf);
+    Ok(Parsed { smf, damage })
+}
+
+fn damage(bytes: &[u8], smf: &Smf) -> Vec<Damage> {
+    let meter = Meter::new(smf);
+    let cut = smf.tracks.iter().enumerate().filter_map(|(index, track)| {
+        let ended = track
+            .last()
+            .is_some_and(|ev| ev.kind == TrackEventKind::Meta(MetaMessage::EndOfTrack));
+        let last_tick = track
+            .iter()
+            .fold(0u32, |tick, ev| tick.saturating_add(ev.delta.as_int()));
+        (!ended).then(|| Damage::TrackCut {
+            track: TrackNo::at(index),
+            at: meter.position(last_tick),
+            events_read: track.len(),
+        })
+    });
+    let read = smf.tracks.len();
+    let missing = declared_tracks(bytes)
+        .filter(|&declared| usize::from(declared) > read)
+        .map(|declared| Damage::TracksMissing { declared, read });
+    cut.chain(missing).collect()
+}
+
+/// The number of tracks the file's header declares.
+fn declared_tracks(bytes: &[u8]) -> Option<u16> {
+    let smf = smf_body(bytes)?;
+    chunks(smf, Chunking::Smf).find_map(|(id, data)| {
+        let count = data.get(MTHD_TRACKS..MTHD_DIVISION)?;
+        (id == b"MThd").then(|| u16::from_be_bytes([count[0], count[1]]))
+    })
 }
 
 fn has_smpte_rate_minus_128(bytes: &[u8]) -> bool {
@@ -151,5 +219,111 @@ mod tests {
         let err = parse(b"garbage").unwrap_err();
         assert_eq!(err.to_string(), "MIDI parse error");
         assert!(err.source().is_some_and(|e| !e.to_string().is_empty()));
+    }
+
+    const QUARTER: u8 = 0x60;
+    const END_OF_TRACK: &[u8] = b"\x00\xff\x2f\x00";
+
+    /// A file declaring `declared` tracks, timed by `timing`, holding
+    /// `chunks` as its track chunks, each `(declared length, bytes)`.
+    fn file(declared: u16, timing: &[u8], chunks: &[(usize, Vec<u8>)]) -> Vec<u8> {
+        let mut out = b"MThd\0\0\0\x06\0\x01".to_vec();
+        out.extend(declared.to_be_bytes());
+        out.extend(timing);
+        for (len, data) in chunks {
+            out.extend(b"MTrk");
+            out.extend(u32::try_from(*len).unwrap().to_be_bytes());
+            out.extend(data);
+        }
+        out
+    }
+
+    /// `hits` drum hits a quarter apart.
+    fn hits(hits: u8) -> Vec<u8> {
+        (0..hits).flat_map(|_| [QUARTER, 0x99, 36, 100]).collect()
+    }
+
+    fn whole(data: Vec<u8>) -> (usize, Vec<u8>) {
+        (data.len(), data)
+    }
+
+    fn damage_of(bytes: &[u8]) -> Vec<Damage> {
+        parse(bytes).unwrap().damage
+    }
+
+    fn cut(track: usize, bar: u32, events_read: usize) -> Damage {
+        Damage::TrackCut {
+            track: TrackNo::at(track - 1),
+            at: Position::Bar(crate::meter::Bar::number(bar)),
+            events_read,
+        }
+    }
+
+    #[test]
+    fn an_intact_file_has_no_damage() {
+        let data = [hits(12), END_OF_TRACK.to_vec()].concat();
+        assert_eq!(damage_of(&file(1, b"\0\x60", &[whole(data)])), []);
+    }
+
+    #[test]
+    fn a_bad_event_cuts_its_track_after_the_events_before_it() {
+        let data = [
+            hits(10),
+            b"\x60\xf4\x00".to_vec(),
+            hits(5),
+            END_OF_TRACK.to_vec(),
+        ]
+        .concat();
+        assert_eq!(
+            damage_of(&file(1, b"\0\x60", &[whole(data)])),
+            [cut(1, 3, 10)]
+        );
+    }
+
+    #[test]
+    fn a_download_cut_between_events_cuts_the_track() {
+        let full = [hits(12), END_OF_TRACK.to_vec()].concat();
+        let data = hits(9);
+        let bytes = file(1, b"\0\x60", &[(full.len(), data)]);
+        assert_eq!(damage_of(&bytes), [cut(1, 3, 9)]);
+    }
+
+    #[test]
+    fn a_download_cut_inside_an_event_cuts_the_track() {
+        let full = [hits(12), END_OF_TRACK.to_vec()].concat();
+        let data = full[..4 * 9 + 2].to_vec();
+        let bytes = file(1, b"\0\x60", &[(full.len(), data)]);
+        assert_eq!(damage_of(&bytes), [cut(1, 3, 9)]);
+    }
+
+    #[test]
+    fn a_track_the_file_declares_but_lacks_is_missing() {
+        let data = [hits(4), END_OF_TRACK.to_vec()].concat();
+        assert_eq!(
+            damage_of(&file(2, b"\0\x60", &[whole(data)])),
+            [Damage::TracksMissing {
+                declared: 2,
+                read: 1
+            }]
+        );
+    }
+
+    #[test]
+    fn a_cut_track_of_a_file_timed_in_frames_is_placed_by_its_tick() {
+        let bytes = file(1, b"\xe7\x28", &[whole(hits(3))]);
+        assert_eq!(
+            damage_of(&bytes),
+            [Damage::TrackCut {
+                track: TrackNo::at(0),
+                at: Position::Tick(3 * u32::from(QUARTER)),
+                events_read: 3,
+            }]
+        );
+    }
+
+    #[test]
+    fn junk_after_the_end_of_a_track_loses_nothing() {
+        let data = [hits(4), END_OF_TRACK.to_vec(), b"\xf4\xf4".to_vec()].concat();
+        assert_eq!(damage_of(&file(1, b"\0\x60", &[whole(data)])), []);
     }
 }

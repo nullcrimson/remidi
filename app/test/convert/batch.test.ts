@@ -10,7 +10,7 @@ describe('runBatch', () => {
   it('converts each file in order and collects failures by name', () => {
     const remap = (mid: Uint8Array): Converted => {
       if (mid[0] === 0) throw new WasmCallError({ kind: 'badMidi', detail: 'bad midi' });
-      return { bytes: new Uint8Array([mid[0] + 1]), report: REPORT };
+      return { bytes: new Uint8Array([mid[0] + 1]), report: REPORT, damage: [] };
     };
     const result = runBatch(
       [
@@ -37,7 +37,7 @@ describe('runBatch', () => {
     const ov = typed<Overrides>({ edits: { 'kick.main': 35 }, srcEdits: {} });
     runBatch([{ name: 'a.mid', bytes: new Uint8Array([1]) }], enginePair('s', 't'), ov, '10', 'drop', 'keep', (...args) => {
       calls.push(args.slice(1));
-      return { bytes: new Uint8Array(), report: REPORT };
+      return { bytes: new Uint8Array(), report: REPORT, damage: [] };
     });
     expect(calls).toEqual([[enginePair('s', 't'), ov, '10', 'drop', 'keep']]);
   });

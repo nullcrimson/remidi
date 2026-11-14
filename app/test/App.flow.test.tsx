@@ -50,6 +50,7 @@ describe('App convert flow', () => {
     ]));
     vi.mocked(stub.remap).mockReturnValue(typed<Converted>({
       bytes: new Uint8Array([1]),
+      damage: [],
       report: {
         unmappedSource: { 51: 3 },
         fallbackUsed: {},

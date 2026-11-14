@@ -1,10 +1,13 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    process::ExitCode,
+};
 
 use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand};
 use midiremap_core::{
-    convert, parse_preset, Catalog, ChannelScope, EngineId, EngineMap, Mapping, MissingDrums,
-    Overrides, Unrecognized,
+    convert, parse_preset, Catalog, ChannelScope, Damage, EngineId, EngineMap, Mapping,
+    MissingDrums, Overrides, Position, Unrecognized,
 };
 
 #[derive(Parser)]
@@ -98,7 +101,10 @@ fn run_list(user_map: Option<PathBuf>) -> Result<()> {
     Ok(())
 }
 
-fn run_convert(a: ConvertArgs) -> Result<()> {
+/// The exit code of a conversion that wrote its output from a damaged file.
+const EXIT_DAMAGED: u8 = 3;
+
+fn run_convert(a: ConvertArgs) -> Result<ExitCode> {
     let catalog = build_catalog(a.user_map)?;
 
     let src = catalog
@@ -125,13 +131,42 @@ fn run_convert(a: ConvertArgs) -> Result<()> {
     std::fs::write(&a.output, &out.bytes)
         .with_context(|| format!("cannot write {}", a.output.display()))?;
     eprintln!("{}", serde_json::to_string_pretty(&out.report)?);
-    Ok(())
+    if out.damage.is_empty() {
+        return Ok(ExitCode::SUCCESS);
+    }
+    eprintln!(
+        "{} is damaged; what it still held was converted:",
+        a.input.display()
+    );
+    for damage in &out.damage {
+        eprintln!("  {}", damage_line(damage));
+    }
+    Ok(ExitCode::from(EXIT_DAMAGED))
 }
 
-fn main() -> Result<()> {
+fn damage_line(damage: &Damage) -> String {
+    match damage {
+        Damage::TrackCut {
+            track,
+            at,
+            events_read,
+        } => {
+            let at = match at {
+                Position::Bar(bar) => format!("bar {bar}"),
+                Position::Tick(tick) => format!("tick {tick}"),
+            };
+            format!("track {track} stops after {events_read} events, at {at}; the rest of it is missing")
+        }
+        Damage::TracksMissing { declared, read } => {
+            format!("the file says it has {declared} tracks; only {read} could be read")
+        }
+    }
+}
+
+fn main() -> Result<ExitCode> {
     match Cli::parse().command {
         Command::Convert(a) => run_convert(a),
-        Command::List { user_map } => run_list(user_map),
+        Command::List { user_map } => run_list(user_map).map(|()| ExitCode::SUCCESS),
     }
 }
 

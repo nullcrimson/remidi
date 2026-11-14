@@ -334,6 +334,10 @@ done-kept =
     }
 done-pick-source = Pick another source
 done-assign-notes = Assign the notes
+done-damaged-file = { $file } was damaged: part of it was missing, and everything it still held was converted.
+done-damage-track-cut-bar = Track { $track } stops at bar { $bar }; the rest of it was not in the file.
+done-damage-track-cut-tick = Track { $track } stops at tick { $tick }; the rest of it was not in the file.
+done-damage-tracks-missing = The file says it has { $declared } tracks; only { $read } could be read.
 source-fit-missing =
     { $missing ->
         [one] { $missing } of { $hits } notes in your file isn't in the { $source } layout.

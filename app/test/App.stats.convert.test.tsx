@@ -13,6 +13,7 @@ const downloads = recordDownloads();
 
 const remapWithNotes = () => typed<Converted>({
   bytes: new Uint8Array([1]),
+  damage: [],
   report: {
     unmappedSource: { 51: 1, 52: 1 },
     fallbackUsed: { 'hat.open3': { standIn: 'hat.open1', note: 46, count: 2 } },
@@ -83,6 +84,7 @@ describe('the events of converting', () => {
       pair: 'ggd_invasion>ezdrummer',
       files: 1,
       failed: 0,
+      damaged: 0,
       missing: 'nearest',
       edited: false,
       preset: false,

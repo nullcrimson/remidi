@@ -353,6 +353,10 @@ done-kept =
     }
 done-pick-source = Wybierz inne źródło
 done-assign-notes = Przypisz nuty
+done-damaged-file = Plik { $file } był uszkodzony: brakowało jego części, a wszystko, co w nim zostało, przekonwertowano.
+done-damage-track-cut-bar = Ścieżka { $track } urywa się w takcie { $bar }; reszty nie było w pliku.
+done-damage-track-cut-tick = Ścieżka { $track } urywa się na ticku { $tick }; reszty nie było w pliku.
+done-damage-tracks-missing = Plik deklaruje { $declared } ścieżek; udało się odczytać tylko { $read }.
 source-fit-missing = W mapie { $source } brakuje { $missing } z { $hits } nut z pliku. Lepiej pasują: { $engines }
 source-fit-all = { $engine } (wszystkie nuty)
 source-fit-some =

@@ -1,4 +1,4 @@
-use std::{fmt, str::FromStr};
+use std::{fmt, num::NonZeroUsize, str::FromStr};
 
 use midly::{num::u4, MidiMessage, Smf, Track, TrackEventKind};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
@@ -30,6 +30,25 @@ impl Channel {
 }
 
 impl fmt::Display for Channel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+/// A track of a file, numbered from 1 as people count them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[serde(transparent)]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify), tsify(type = "number"))]
+pub struct TrackNo(NonZeroUsize);
+
+impl TrackNo {
+    /// The track a file stores at `index`, counted from zero.
+    pub(crate) fn at(index: usize) -> Self {
+        Self(NonZeroUsize::MIN.saturating_add(index))
+    }
+}
+
+impl fmt::Display for TrackNo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
     }

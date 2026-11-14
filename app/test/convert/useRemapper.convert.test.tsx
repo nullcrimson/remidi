@@ -16,6 +16,7 @@ const ROWS = typed<VoicePlan[]>([
 const converted = () =>
   typed<Converted>({
     bytes: new Uint8Array([1, 2, 3]),
+    damage: [],
     report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 },
   });
 

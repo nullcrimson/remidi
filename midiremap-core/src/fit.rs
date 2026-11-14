@@ -53,7 +53,7 @@ impl Sum for NoteHits {
 
 /// The hits on each note among the note-ons a conversion with `scope` rewrites in `midi`.
 pub fn note_hits(midi: &[u8], scope: ChannelScope) -> Result<NoteHits, CodecError> {
-    let smf = midi::parse(midi)?;
+    let smf = midi::parse(midi)?.smf;
     let mut hits = NoteHits::default();
     for note in scope.hit_notes(&smf) {
         hits.0[note.index()] += 1;

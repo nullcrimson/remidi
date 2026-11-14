@@ -33,7 +33,7 @@ class FakeWorker {
   }
 
   reply(id: number, name: string) {
-    this.answer(id, { kind: 'convert', result: { ok: [{ name, bytes: new Uint8Array([9]), report: REPORT }], failed: [] } });
+    this.answer(id, { kind: 'convert', result: { ok: [{ name, bytes: new Uint8Array([9]), report: REPORT, damage: [] }], failed: [] } });
   }
 
   answer(id: number, answer: Answer) {
@@ -43,7 +43,7 @@ class FakeWorker {
 
 describe('createConverter', () => {
   beforeEach(() => {
-    remapMock.mockReturnValue({ bytes: new Uint8Array([7]), report: REPORT });
+    remapMock.mockReturnValue({ bytes: new Uint8Array([7]), report: REPORT, damage: [] });
   });
 
   it('rejects a batch the worker could not convert, without retrying on the main thread', async () => {
