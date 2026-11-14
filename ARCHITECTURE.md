@@ -67,9 +67,10 @@ conversion   ── convert(bytes, &Mapping, Selection) → Conversion (Done | A
           │      └── midi, idx
           ├── report      ── Report: what a conversion did with each hit
           └── translate   ── Mapping: every drum's and every source note's Outcome, compiled once
-                 ├── resolution  ── Outcome { Direct | Fallback(StandIn) | Dropped }, MissingDrums
+                 ├── resolution  ── Outcome { Direct(Landing) | Fallback(StandIn) | Dropped }, MissingDrums
+                 ├── tom_spread  ── TomKit, TomSpread: a pair's toms in order onto the target's
                  ├── engine_map  ── EngineMap, Drum, EngineId
-                 │      └── canon, family, note, non_blank
+                 │      └── canon, family, note, non_blank, open_levels, tom_spread
                  ├── overrides   ── Overrides: edits to either side, as two maps
                  └── canon       ── Canon (opaque) + its key, label and fallback chains
                         ├── family ── Family, declared in display order
@@ -145,7 +146,10 @@ crash 1 for china/splash/stack and for a ride edge, the ride bell for a bell cym
 and for a crash bell,
 the main hat for an aux hat), each with its own allow-list. "Nearest" is one rule
 (`nearest`: the others by distance in rank, the lower rank first on a tie) shared by
-toms, cymbals and hat openings. No stand-in → the drum is dropped. Chains are built
+cymbals and hat openings; toms walk the same way by `TomPos::distance`, which the tom
+spread also measures by.
+A chain judges one drum alone; where a pair matches a drum as a whole (open hats by level,
+toms by the spread), `Mapping` does that before any chain is walked. No stand-in → the drum is dropped. Chains are built
 once for every slot. `tests/same_drum_stands_in.rs` holds the agreed rules as an
 independent table and checks every slot's chain against it, and every built-in engine
 pair in both missing-drum modes: the first agreed stand-in the target has is played,
@@ -178,6 +182,19 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
   `with_unrecognized(Unrecognized)` sets, once, what the conversion does with notes that do
   not decode (`Remove` unless set); it changes neither the outcomes nor the report, only
   whether those notes are written.
+- Some drums land by match, decided once in `Mapping::new` and read through
+  `matched_drum`: an open main hi-hat on the target's opening that matches the source's
+  (both engines name their normal open hat; it follows only its own row's edit), and, under
+  `Nearest`, a tom on the tom the `TomSpread` gives it. The spread lands the source's tom
+  hits on the target's in pitch order, on as many target toms as possible, racks on racks
+  and floors on floors wherever that leaves no target tom idle, nearest first, the higher
+  tom on a tie; rimshots follow their tom's hit, then that tom's chain to its hit; rims
+  spread the same way over the target's rims, each on its hit's tom whenever that tom has
+  a rim. A tom the target has stays `Direct` (its `Landing` plays the spread tom), a tom
+  the target lacks stays a `Fallback` to another drum, and a stroke is judged against the
+  tom its hit plays. An edit of a row the spread moved off its own name moves only that
+  row; every other stand-in follows the edit of the drum it lands on. `proofs/toms.rs`
+  checks the spread over every built-in pair.
 - Readers: `resolve_canon(canon)` (a drum's outcome), `played()` (each source note that
   plays a drum, with its outcome), `dropped_drums()` (the one rule for "a drum the source
   plays that the target leaves out", read by the site's pair pages and the rack's
@@ -188,11 +205,14 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
   engines' pairs, both Missing drums and both Unrecognized settings, with and without
   edits).
 - `Outcome` (module `resolution`) is where a drum lands, total by construction:
-  `Direct { note }` (the target has it), `Fallback(StandIn)` (another drum plays it), or
+  `Direct(Landing)` (the target has it: the drum itself, or matched to the source's at
+  another opening or tom, the only pairings `Landing`'s constructors build),
+  `Fallback(StandIn)` (another drum plays it), or
   `Dropped { other_drum }` (nothing plays it). A drum the target lacks takes the first
   drum of its fallback chain the target has; `Drop` walks the same chain filtered to
   `Canon::same_drum`, so both modes share one order. `StandIn` keeps its fields private
-  and computes in its one constructor whether the stand-in is another drum.
+  and computes in its one constructor whether the stand-in is another drum than the one
+  it is judged against.
   `moves_to_other_drum()` says whether the missing-drums setting decides the drum: a
   fallback to another drum, or a drop that another drum could have played. `Outcome`
   serializes tagged by `status`, without the drum itself.
