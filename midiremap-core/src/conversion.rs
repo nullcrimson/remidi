@@ -197,6 +197,26 @@ mod tests {
         drums(&[(0, on(24)), (10, off(24)), (30, on(99)), (48, off(99))])
     }
 
+    fn end_of_track_tick(bytes: &[u8]) -> Option<u32> {
+        let smf = midly::Smf::parse(bytes).unwrap();
+        let track = &smf.tracks[0];
+        let tick = track.iter().map(|ev| ev.delta.as_int()).sum();
+        let closed = track.last().is_some_and(|ev| {
+            ev.kind == midly::TrackEventKind::Meta(midly::MetaMessage::EndOfTrack)
+        });
+        closed.then_some(tick)
+    }
+
+    #[test]
+    fn a_cut_track_is_written_closed_at_the_tick_of_its_last_event_read() {
+        let whole = kick_and_unrecognized();
+        let cut = &whole[..whole.len() - 4];
+        let out = convert_unrecognized(cut, Unrecognized::Remove);
+        assert_eq!(out.damage.len(), 1);
+        assert_eq!(hit_keys(&out.bytes), vec![36]);
+        assert_eq!(end_of_track_tick(&out.bytes), Some(10 + 30 + 48));
+    }
+
     #[test]
     fn keep_writes_a_file_of_unrecognized_notes_out_byte_for_byte() {
         let mid = drums(&[(0, on(99)), (48, off(99)), (12, on(100)), (6, off(100))]);

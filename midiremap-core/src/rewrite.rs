@@ -1,6 +1,6 @@
 use midly::{
     num::{u28, u7},
-    MidiMessage, Smf, Track, TrackEvent, TrackEventKind,
+    MetaMessage, MidiMessage, Smf, Track, TrackEvent, TrackEventKind,
 };
 
 use crate::{
@@ -94,14 +94,17 @@ fn apply(mapping: &Mapping, key: &mut u7) -> bool {
     }
 }
 
+const END_OF_TRACK: TrackEventKind<'static> = TrackEventKind::Meta(MetaMessage::EndOfTrack);
+
 /// The events `keep` keeps, in order, each removed event's delta folded into the next kept
-/// one.
+/// one, closed with End-of-Track: a track that lacks one (a damaged file) gains it, carrying
+/// the delta of the events removed after the last kept one.
 fn thin<'a>(
     events: Track<'a>,
     mut keep: impl FnMut(&mut TrackEvent<'a>) -> bool,
 ) -> Result<Track<'a>, CodecError> {
     let mut fold = DeltaFold::default();
-    let mut out = Vec::with_capacity(events.len());
+    let mut out = Vec::with_capacity(events.len() + 1);
     for mut ev in events {
         if keep(&mut ev) {
             fold.keep(&mut ev)?;
@@ -109,6 +112,14 @@ fn thin<'a>(
         } else {
             fold.remove(&ev)?;
         }
+    }
+    if out.last().is_none_or(|ev| ev.kind != END_OF_TRACK) {
+        let mut end = TrackEvent {
+            delta: u28::default(),
+            kind: END_OF_TRACK,
+        };
+        fold.keep(&mut end)?;
+        out.push(end);
     }
     Ok(out)
 }
