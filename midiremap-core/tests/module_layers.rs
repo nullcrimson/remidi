@@ -47,6 +47,17 @@ const ALLOWED_USES: &Table = &[
             "overrides",
         ],
     ),
+    (
+        "proofs",
+        &[
+            "canon",
+            "catalog",
+            "engine_map",
+            "note",
+            "resolution",
+            "translate",
+        ],
+    ),
     ("report", &["canon", "note", "resolution"]),
     ("resolution", &["canon", "note"]),
     (

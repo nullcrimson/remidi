@@ -252,10 +252,8 @@ impl Canon {
 mod tests {
     use std::collections::HashSet;
 
-    use strum::VariantArray;
-
     use super::*;
-    use crate::canon::{k, PercKind};
+    use crate::canon::k;
 
     fn chain(s: &str) -> &'static [Canon] {
         k(s).fallback_chain()
@@ -266,38 +264,12 @@ mod tests {
     }
 
     #[test]
-    fn chain_has_no_self() {
-        for &c in Canon::all() {
-            let chain = c.fallback_chain();
-            assert!(!chain.contains(&c), "{c} in own chain");
-        }
-    }
-
-    #[test]
     fn chain_has_no_dupes() {
         for &c in Canon::all() {
             let chain = c.fallback_chain();
             let unique: HashSet<Canon> = chain.iter().copied().collect();
             assert_eq!(unique.len(), chain.len(), "dupes in {c}");
         }
-    }
-
-    #[test]
-    fn no_kick_or_main_hat_stands_in_with_another_drum() {
-        for &c in Canon::all()
-            .iter()
-            .filter(|c| matches!(c.0, Slot::Kick(_) | Slot::Hat(..)))
-        {
-            assert!(c.fallback_chain().iter().all(|&o| c.same_drum(o)), "{c}");
-        }
-    }
-
-    #[test]
-    fn an_open_hat_stands_in_only_with_open_strokes_off_the_bell() {
-        assert!(chain("hat.open2").iter().all(|o| {
-            let key = o.to_string();
-            (key.starts_with("hat.open") || key.starts_with("hat.loose")) && !key.ends_with(".bell")
-        }));
     }
 
     #[test]
@@ -322,23 +294,6 @@ mod tests {
             chain("snare2.rimshot"),
             keys(&["snare2.hit", "snare1.rimshot", "snare1.hit"])
         );
-    }
-
-    #[test]
-    fn a_muted_hand_drum_falls_to_its_open_stroke_only() {
-        assert_eq!(chain("perc.conga.high.mute"), keys(&["perc.conga.high"]));
-        assert_eq!(chain("perc.cuica.mute"), keys(&["perc.cuica"]));
-        assert_eq!(chain("perc.triangle.mute"), keys(&["perc.triangle"]));
-    }
-
-    #[test]
-    fn an_open_hand_drum_has_no_stand_in() {
-        for &c in Canon::all()
-            .iter()
-            .filter(|c| matches!(c.0, Slot::Hand(d) if d.stroke() == HandStroke::Open))
-        {
-            assert!(c.fallback_chain().is_empty(), "{c}");
-        }
     }
 
     #[test]
@@ -451,12 +406,5 @@ mod tests {
                 "ride.1.belltip"
             ])
         );
-    }
-
-    #[test]
-    fn no_percussion_has_a_stand_in() {
-        for &p in PercKind::VARIANTS {
-            assert!(Canon(Slot::Perc(p)).fallback_chain().is_empty(), "{p:?}");
-        }
     }
 }

@@ -24,6 +24,7 @@ gzip = ["dep:flate2"]
 ts = ["dep:tsify", "dep:wasm-bindgen"]
 
 [dev-dependencies]
+expect-test = "1.5.1"
 midiremap-layers = { path = "../midiremap-layers" }
 midiremap-testkit = { path = "../midiremap-testkit" }
 proptest = "1"

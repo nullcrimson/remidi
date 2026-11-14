@@ -1,3 +1,4 @@
+use expect_test::expect_file;
 use midiremap_core::{
     convert, Catalog, ChannelScope, Converted, Mapping, MissingDrums, Note, Overrides,
 };
@@ -53,8 +54,6 @@ fn the_richest_source_kit_decodes_127_notes() {
     );
 }
 
-const RECORDED: &str = include_str!("golden/walkthrough.txt");
-
 fn listed<T>(items: impl Iterator<Item = T>, show: impl Fn(T) -> String) -> String {
     items.map(show).collect::<Vec<_>>().join(" ")
 }
@@ -74,20 +73,6 @@ fn outcome_line(tgt_id: &str, out: &Converted) -> String {
             "{note}x{count}"
         )),
     )
-}
-
-type LinePair<'a> = (Option<&'a str>, Option<&'a str>);
-
-fn first_difference<'a>(actual: &'a [String], recorded: &'a str) -> Option<LinePair<'a>> {
-    let mut actual = actual.iter().map(String::as_str);
-    let mut recorded = recorded.lines();
-    loop {
-        match (actual.next(), recorded.next()) {
-            (None, None) => return None,
-            (got, want) if got != want => return Some((got, want)),
-            _ => {}
-        }
-    }
 }
 
 #[test]
@@ -111,11 +96,8 @@ fn every_note_of_the_richest_kit_lands_on_every_target_as_recorded() {
             )
         })
         .collect();
-    assert_eq!(
-        first_difference(&actual, RECORDED),
-        None,
-        "left is the conversion, right is tests/golden/walkthrough.txt"
-    );
+    let lines: String = actual.iter().map(|line| format!("{line}\n")).collect();
+    expect_file!["golden/walkthrough.txt"].assert_eq(&lines);
 }
 
 #[test]

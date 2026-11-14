@@ -16,6 +16,8 @@ mod open_levels;
 mod overrides;
 mod plan;
 mod preset;
+#[cfg(test)]
+mod proofs;
 mod report;
 mod resolution;
 mod rewrite;

@@ -1,6 +1,8 @@
 mod fallback;
 mod key;
 mod label;
+#[cfg(test)]
+pub(crate) mod rules;
 
 use std::{iter::once, sync::LazyLock};
 
