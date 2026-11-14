@@ -11,9 +11,22 @@ import { PlayIcon } from './PlayIcon';
 import { UploadIcon } from './UploadIcon';
 import { TextButton } from '../ui/TextButton';
 
+const CHIP_TONE = {
+  failed: 'border-danger/40 bg-danger/5',
+  waiting: 'border-star/60 bg-star/8',
+  ok: 'border-field-border bg-field',
+} as const;
+
+/** How a file's chip looks: failed over waiting for its drum parts over plain. */
+function chipState(failed: boolean, waiting: boolean): keyof typeof CHIP_TONE {
+  if (failed) return 'failed';
+  return waiting ? 'waiting' : 'ok';
+}
+
 export function FileChips({
   files,
   failures,
+  waiting = new Set(),
   skipped = [],
   onFiles,
   onRemove,
@@ -25,6 +38,7 @@ export function FileChips({
   onTrySample?: () => void;
   files: LoadedFile[];
   failures: FailedFile[];
+  waiting?: ReadonlySet<string>;
   skipped?: string[];
   onFiles: OnFiles;
   onRemove: (name: string) => void;
@@ -99,25 +113,23 @@ export function FileChips({
     <div className="flex flex-wrap items-center gap-2">
       {files.map((f) => {
         const error = failed.get(f.name);
-        const bad = error !== undefined;
+        const state = chipState(error !== undefined, waiting.has(f.name));
+        const needsParts = state === 'waiting' ? t({ id: 'error-needs-parts' }) : undefined;
         return (
           <div
             key={f.name}
-            data-state={bad ? 'failed' : 'ok'}
-            title={error}
+            data-state={state}
+            title={error ?? needsParts}
             className={`
               flex max-w-full items-center gap-1.5 rounded-full border py-1
-              pr-1.5 pl-3
-              ${
-          bad
-            ? 'border-danger/40 bg-danger/5'
-            : `border-field-border bg-field`
-          }
+              pr-1.5 pl-3 transition-colors
+              ${CHIP_TONE[state]}
             `}
           >
             <MidBadge />
             <span className="h-3.5 w-px shrink-0 bg-white/12" />
             <span className="min-w-0 truncate text-ui text-t1">{f.name}</span>
+            {needsParts !== undefined && <span className="sr-only">{needsParts}</span>}
             <IconButton
               label={t({ id: 'files-remove', args: { name: f.name } })}
               size="sm"

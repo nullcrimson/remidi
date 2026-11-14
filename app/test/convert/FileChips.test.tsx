@@ -127,4 +127,35 @@ describe('FileChips', () => {
     expect(chip).toHaveAttribute('data-state', 'failed');
     expect(chip).toHaveAttribute('title', 'Not a MIDI file this converter can read Details: parse failed');
   });
+
+  it('marks a file waiting for its drum parts and says why', () => {
+    render(
+      <FileChips
+        files={[{ bytes: new Uint8Array(1), name: 'song.mid' }, { bytes: new Uint8Array(1), name: 'drums.mid' }]}
+        failures={[]}
+        waiting={new Set(['song.mid'])}
+        onFiles={() => {}}
+        onRemove={() => {}}
+        onClear={() => {}}
+      />,
+    );
+    const waiting = screen.getByText('song.mid').closest('[data-state]');
+    expect(waiting).toHaveAttribute('data-state', 'waiting');
+    expect(waiting).toHaveTextContent(/pick this file's drum parts first/i);
+    expect(screen.getByText('drums.mid').closest('[data-state]')).toHaveAttribute('data-state', 'ok');
+  });
+
+  it('marks a file that failed as failed even while it waits for its drum parts', () => {
+    render(
+      <FileChips
+        files={[{ bytes: new Uint8Array(1), name: 'bad.mid' }]}
+        failures={[{ name: 'bad.mid', error: { kind: 'badMidi', detail: 'parse failed' } }]}
+        waiting={new Set(['bad.mid'])}
+        onFiles={() => {}}
+        onRemove={() => {}}
+        onClear={() => {}}
+      />,
+    );
+    expect(screen.getByText('bad.mid').closest('[data-state]')).toHaveAttribute('data-state', 'failed');
+  });
 });

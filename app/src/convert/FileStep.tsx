@@ -21,6 +21,7 @@ export function FileStep({
       <FileChips
         files={remapper.files}
         failures={[...remapper.failures, ...remapper.questions.unreadable.filter((u) => !remapper.failures.some((f) => f.name === u.name))]}
+        waiting={remapper.questions.waiting}
         skipped={remapper.skipped}
         onFiles={onFiles}
         onTrySample={onTrySample}
