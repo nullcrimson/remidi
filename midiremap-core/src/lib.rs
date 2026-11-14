@@ -47,6 +47,6 @@ pub use overrides::Overrides;
 pub use plan::VoicePlan;
 pub use preset::{parse_preset, LoadedPreset, PresetError, PresetName, SavedPreset, SkippedEdit};
 pub use report::{FallbackTally, Report};
-pub use resolution::{MissingDrums, MissingDrumsParseError, OpenedTo, Outcome, StandIn};
+pub use resolution::{Landing, MissingDrums, MissingDrumsParseError, Outcome, StandIn};
 pub use sample::sample_file;
 pub use translate::{Mapping, Unrecognized, UnrecognizedParseError};

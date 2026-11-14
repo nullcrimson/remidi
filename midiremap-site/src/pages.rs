@@ -256,7 +256,7 @@ impl PairRow {
     /// The word the page marks the outcome with.
     pub fn outcome_word(&self) -> &'static str {
         match self.outcome {
-            Outcome::Direct { .. } => "exact",
+            Outcome::Direct(_) => "exact",
             Outcome::Fallback(_) => "approximated",
             Outcome::Dropped { .. } => "dropped",
         }
@@ -275,7 +275,7 @@ impl FamilyGroup<PairRow> {
     pub fn all_exact(&self) -> bool {
         self.rows
             .iter()
-            .all(|r| matches!(r.outcome, Outcome::Direct { .. }))
+            .all(|r| matches!(r.outcome, Outcome::Direct(_)))
     }
 }
 
@@ -300,7 +300,7 @@ fn approximated<'a, I: IntoIterator<Item = &'a PairRow>>(
 ) -> impl Iterator<Item = (Drum, Canon)> + use<'a, I> {
     rows.into_iter().filter_map(|row| match row.outcome {
         Outcome::Fallback(s) => Some((Drum::new(s.note(), s.stand_in()), row.source.entry.canon())),
-        Outcome::Direct { .. } | Outcome::Dropped { .. } => None,
+        Outcome::Direct(_) | Outcome::Dropped { .. } => None,
     })
 }
 
@@ -343,7 +343,7 @@ impl Tally {
     fn of<'a>(rows: impl IntoIterator<Item = &'a PairRow>) -> Self {
         rows.into_iter().fold(Self::default(), |mut tally, row| {
             match row.outcome {
-                Outcome::Direct { .. } => tally.exact += 1,
+                Outcome::Direct(_) => tally.exact += 1,
                 Outcome::Fallback(_) => tally.approximated += 1,
                 Outcome::Dropped { .. } => tally.dropped += 1,
             }
@@ -1596,7 +1596,7 @@ mod tests {
                 .expect("the pair has each kind of outcome")
         };
         let rows = [
-            first(|o| matches!(o, Outcome::Direct { .. })),
+            first(|o| matches!(o, Outcome::Direct(_))),
             first(|o| matches!(o, Outcome::Fallback(_))),
             first(|o| matches!(o, Outcome::Dropped { .. })),
             first(|o| matches!(o, Outcome::Dropped { .. })),

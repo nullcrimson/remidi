@@ -89,7 +89,11 @@ impl Mapping<'_> {
 mod tests {
     use super::*;
     use crate::{
-        canon::k, catalog::Catalog, engine_map::from_toml, note::n, resolution::StandIn,
+        canon::k,
+        catalog::Catalog,
+        engine_map::from_toml,
+        note::n,
+        resolution::{Landing, StandIn},
         MissingDrums, Overrides,
     };
 
@@ -150,7 +154,12 @@ mod tests {
         let near = ggd_to_ezd(NO_EDITS);
         assert_eq!(
             find(&near, "china.1.hit").outcome,
-            Outcome::Fallback(StandIn::new(k("china.1.hit"), k("crash.1.hit"), n(86)))
+            Outcome::Fallback(StandIn::new(
+                k("china.1.hit"),
+                k("china.1.hit"),
+                k("crash.1.hit"),
+                n(86)
+            ))
         );
     }
 
@@ -159,11 +168,7 @@ mod tests {
         let near = ggd_to_ezd(NO_EDITS);
         assert_eq!(
             find(&near, "kick.main").outcome,
-            Outcome::Direct {
-                canon: k("kick.main"),
-                opened_to: None,
-                note: n(36)
-            }
+            Outcome::Direct(Landing::itself(k("kick.main"), n(36)))
         );
     }
 
@@ -189,11 +194,7 @@ mod tests {
         );
         assert_eq!(
             find(&rows, "china.1.hit").outcome,
-            Outcome::Direct {
-                canon: k("china.1.hit"),
-                opened_to: None,
-                note: n(52)
-            }
+            Outcome::Direct(Landing::itself(k("china.1.hit"), n(52)))
         );
     }
 

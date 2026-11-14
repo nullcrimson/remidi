@@ -53,7 +53,7 @@ impl<'a> Texts<'a> {
     /// How the pair table names the outcome of a row.
     pub fn status(&self, outcome: Outcome) -> &'a str {
         self.get(match outcome {
-            Outcome::Direct { .. } => Plain::MapsStatusExact,
+            Outcome::Direct(_) => Plain::MapsStatusExact,
             Outcome::Fallback(_) => Plain::MapsStatusApproximated,
             Outcome::Dropped { .. } => Plain::MapsStatusDropped,
         })

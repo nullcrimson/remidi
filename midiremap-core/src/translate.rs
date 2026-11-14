@@ -166,9 +166,10 @@ impl<'a> Mapping<'a> {
     /// does not recognize it and the mapping removes such notes.
     pub(crate) fn destination(&self, note: Note) -> Option<Destination> {
         match self.get(note) {
-            Some(Outcome::Direct {
-                canon, note: to, ..
-            }) => Some(Destination::Drum { canon, note: to }),
+            Some(Outcome::Direct(landing)) => Some(Destination::Drum {
+                canon: landing.canon(),
+                note: landing.note(),
+            }),
             Some(fallback @ Outcome::Fallback(s)) => Some(Destination::Drum {
                 canon: fallback.canon(),
                 note: s.note(),
@@ -255,7 +256,13 @@ mod tests {
     use std::sync::LazyLock;
 
     use super::*;
-    use crate::{canon::k, catalog::Catalog, engine_map::from_toml, note::n, resolution::StandIn};
+    use crate::{
+        canon::k,
+        catalog::Catalog,
+        engine_map::from_toml,
+        note::n,
+        resolution::{Landing, StandIn},
+    };
 
     const SRC: &str = r#"
         id = "src"
@@ -350,7 +357,7 @@ notes = [ {} ]",
                     .and_then(|(c, _)| c.opening())
                     .map(|(_, z)| z);
                 assert!(
-                    matches!(outcome, Outcome::Direct { .. })
+                    matches!(outcome, Outcome::Direct(_))
                         && zone == canon.opening().map(|(_, z)| z),
                     "{} -> {}: {canon} {outcome:?}",
                     src.id(),
@@ -413,11 +420,7 @@ notes = [ {} ]",
     }
 
     fn kick_on(note: u8) -> Option<Outcome> {
-        Some(Outcome::Direct {
-            canon: k("kick.main"),
-            opened_to: None,
-            note: n(note),
-        })
+        Some(Outcome::Direct(Landing::itself(k("kick.main"), n(note))))
     }
 
     #[test]
@@ -468,7 +471,7 @@ notes = [ {} ]",
     fn drop_keeps_a_same_drum_articulation_fallback() {
         let tgt = target(&[(38, "snare1.hit")]);
         let canon = k("snare1.rimshot");
-        let expected = Outcome::Fallback(StandIn::new(canon, k("snare1.hit"), n(38)));
+        let expected = Outcome::Fallback(StandIn::new(canon, canon, k("snare1.hit"), n(38)));
         assert_eq!(
             onto(&tgt, MissingDrums::Drop).resolve_canon(canon),
             expected
@@ -479,7 +482,7 @@ notes = [ {} ]",
     fn nearest_keeps_a_same_drum_articulation_fallback() {
         let tgt = target(&[(38, "snare1.hit")]);
         let canon = k("snare1.rimshot");
-        let expected = Outcome::Fallback(StandIn::new(canon, k("snare1.hit"), n(38)));
+        let expected = Outcome::Fallback(StandIn::new(canon, canon, k("snare1.hit"), n(38)));
         assert_eq!(
             onto(&tgt, MissingDrums::Nearest).resolve_canon(canon),
             expected
@@ -492,7 +495,7 @@ notes = [ {} ]",
         let canon = k("china.1.hit");
         assert_eq!(
             onto(&tgt, MissingDrums::Nearest).resolve_canon(canon),
-            Outcome::Fallback(StandIn::new(canon, k("crash.1.hit"), n(49)))
+            Outcome::Fallback(StandIn::new(canon, canon, k("crash.1.hit"), n(49)))
         );
     }
 
@@ -546,7 +549,7 @@ notes = [ {} ]",
                     assert!(canon.same_drum(stand_in), "{id}: {canon} -> {stand_in}");
                 }
                 match near {
-                    Outcome::Direct { .. } => assert_eq!(drop, near, "{id}: {canon}"),
+                    Outcome::Direct(_) => assert_eq!(drop, near, "{id}: {canon}"),
                     Outcome::Dropped { .. } => assert_eq!(drop, near, "{id}: {canon}"),
                     Outcome::Fallback(s) => {
                         if canon.same_drum(s.stand_in()) {
@@ -590,11 +593,7 @@ notes = [ {} ]",
         let mapping = Mapping::new(&src, &tgt, &ov, MissingDrums::Drop);
         assert_eq!(
             mapping.get(n(60)),
-            Some(Outcome::Direct {
-                canon: k("china.1.hit"),
-                opened_to: None,
-                note: n(55)
-            })
+            Some(Outcome::Direct(Landing::itself(k("china.1.hit"), n(55))))
         );
     }
 
@@ -734,11 +733,7 @@ notes = [ {} ]",
     fn a_drum_the_target_has_plays_on_its_note() {
         assert_eq!(
             mapping().get(n(12)),
-            Some(Outcome::Direct {
-                canon: k("kick.main"),
-                opened_to: None,
-                note: n(50)
-            })
+            Some(Outcome::Direct(Landing::itself(k("kick.main"), n(50))))
         );
     }
 
@@ -747,6 +742,7 @@ notes = [ {} ]",
         assert_eq!(
             mapping().get(n(11)),
             Some(Outcome::Fallback(StandIn::new(
+                k("hat.open3"),
                 k("hat.open3"),
                 k("hat.open1"),
                 n(61)
@@ -786,6 +782,7 @@ notes = [ {} ]",
         assert_eq!(
             onto(&tgt, MissingDrums::Drop).resolve_canon(k("perc.conga.high.mute")),
             Outcome::Fallback(StandIn::new(
+                k("perc.conga.high.mute"),
                 k("perc.conga.high.mute"),
                 k("perc.conga.high"),
                 n(60)

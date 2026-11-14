@@ -21,15 +21,8 @@ use crate::{
     tsify(missing_as_null, hashmap_as_object)
 )]
 pub enum Outcome {
-    /// The target has the drum: the drum itself, or, `opened_to` another level, the target's
-    /// opening of the same hi-hat that matches the source's.
-    Direct {
-        #[serde(skip)]
-        canon: Canon,
-        #[serde(skip)]
-        opened_to: Option<OpenedTo>,
-        note: Note,
-    },
+    /// The target has the drum, and plays it on its own note or matched to the source's.
+    Direct(Landing),
     /// Another drum plays it.
     Fallback(StandIn),
     /// Nothing plays it; `other_drum` when only another drum could have, so the
@@ -41,12 +34,53 @@ pub enum Outcome {
     },
 }
 
-/// The level an open hi-hat plays at on the target, when it is not the source's own.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct OpenedTo(OpenLevel);
+/// The target drum that plays `canon` on `note`: `canon` itself, or the same drum matched to
+/// the source's, the main hi-hat at the opening that matches the source's.
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize)]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify))]
+pub struct Landing {
+    #[serde(skip)]
+    canon: Canon,
+    #[serde(skip)]
+    plays: Canon,
+    note: Note,
+}
 
-/// The drum `stand_in` playing `canon` on `note`; `other_drum` when the stand-in is another
-/// drum, not the same one played another way.
+impl Landing {
+    /// `canon` on its own note.
+    pub(crate) fn itself(canon: Canon, note: Note) -> Self {
+        Self {
+            canon,
+            plays: canon,
+            note,
+        }
+    }
+
+    /// The open main hi-hat `canon` played at `level` on `note`.
+    pub(crate) fn opened_to(canon: Canon, level: OpenLevel, note: Note) -> Self {
+        Self {
+            canon,
+            plays: canon.at_open_level(level),
+            note,
+        }
+    }
+
+    pub fn canon(&self) -> Canon {
+        self.canon
+    }
+
+    /// The target drum that plays it.
+    pub fn plays(&self) -> Canon {
+        self.plays
+    }
+
+    pub fn note(&self) -> Note {
+        self.note
+    }
+}
+
+/// The drum `stand_in` playing `canon` on `note`; `other_drum` when the stand-in is not `drum`,
+/// the drum `canon` is played on, played another way.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "ts", derive(tsify::Tsify))]
@@ -59,12 +93,12 @@ pub struct StandIn {
 }
 
 impl StandIn {
-    pub(crate) fn new(canon: Canon, stand_in: Canon, note: Note) -> Self {
+    pub(crate) fn new(canon: Canon, drum: Canon, stand_in: Canon, note: Note) -> Self {
         Self {
             canon,
             stand_in,
             note,
-            other_drum: !canon.same_drum(stand_in),
+            other_drum: !drum.same_drum(stand_in),
         }
     }
 
@@ -82,7 +116,7 @@ impl Outcome {
     /// [`MissingDrums`] setting decides what plays it.
     pub fn moves_to_other_drum(&self) -> bool {
         match *self {
-            Self::Direct { .. } => false,
+            Self::Direct(_) => false,
             Self::Fallback(s) => s.other_drum,
             Self::Dropped { other_drum, .. } => other_drum,
         }
@@ -91,7 +125,8 @@ impl Outcome {
     /// The drum it is about.
     pub fn canon(&self) -> Canon {
         match *self {
-            Self::Direct { canon, .. } | Self::Dropped { canon, .. } => canon,
+            Self::Direct(landing) => landing.canon,
+            Self::Dropped { canon, .. } => canon,
             Self::Fallback(s) => s.canon,
         }
     }
@@ -99,11 +134,7 @@ impl Outcome {
     /// The target drum that plays it and that drum's note, when anything plays it.
     pub fn played(&self) -> Option<(Canon, Note)> {
         match *self {
-            Self::Direct {
-                canon,
-                opened_to,
-                note,
-            } => Some((opened_to.map_or(canon, |o| canon.at_open_level(o.0)), note)),
+            Self::Direct(landing) => Some((landing.plays, landing.note)),
             Self::Fallback(s) => Some((s.stand_in, s.note)),
             Self::Dropped { .. } => None,
         }
@@ -117,19 +148,13 @@ impl Outcome {
     /// plays and on which note stay, the drum it is about becomes `canon`.
     pub(crate) fn for_drum(self, canon: Canon) -> Self {
         match self {
-            Self::Direct {
-                canon: opening,
-                note,
-                ..
-            } => Self::Direct {
-                canon,
-                opened_to: opening
-                    .opening()
-                    .filter(|_| opening != canon && canon.is_open_main_hat())
-                    .map(|(level, _)| OpenedTo(level)),
-                note,
-            },
-            Self::Fallback(s) => Self::Fallback(StandIn::new(canon, s.stand_in, s.note)),
+            Self::Direct(landing) => Self::Direct(match landing.plays.opening() {
+                Some((level, _)) if landing.plays != canon && canon.is_open_main_hat() => {
+                    Landing::opened_to(canon, level, landing.note)
+                }
+                _ => Landing::itself(canon, landing.note),
+            }),
+            Self::Fallback(s) => Self::Fallback(StandIn::new(canon, canon, s.stand_in, s.note)),
             Self::Dropped { other_drum, .. } => Self::Dropped { canon, other_drum },
         }
     }
@@ -199,18 +224,14 @@ fn substitute(canon: Canon, encode: &Encoding, missing: MissingDrums) -> Option<
 
 pub(crate) fn resolve(canon: Canon, encode: &Encoding, missing: MissingDrums) -> Outcome {
     if let Some(&note) = encode.get(&canon) {
-        return Outcome::Direct {
-            canon,
-            opened_to: None,
-            note,
-        };
+        return Outcome::Direct(Landing::itself(canon, note));
     }
     substitute(canon, encode, missing).map_or_else(
         || Outcome::Dropped {
             canon,
             other_drum: substitute(canon, encode, MissingDrums::Nearest).is_some(),
         },
-        |(stand_in, note)| Outcome::Fallback(StandIn::new(canon, stand_in, note)),
+        |(stand_in, note)| Outcome::Fallback(StandIn::new(canon, canon, stand_in, note)),
     )
 }
 

@@ -95,7 +95,7 @@ impl Report {
                     .count += 1
             }
             Some(Outcome::Dropped { canon, .. }) => *self.dropped.entry(canon).or_default() += 1,
-            Some(Outcome::Direct { .. }) => self.converted += 1,
+            Some(Outcome::Direct(_)) => self.converted += 1,
         }
     }
 }
@@ -103,7 +103,11 @@ impl Report {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{canon::k, note::n, resolution::StandIn};
+    use crate::{
+        canon::k,
+        note::n,
+        resolution::{Landing, StandIn},
+    };
 
     fn open3() -> Canon {
         k("hat.open3")
@@ -121,6 +125,7 @@ mod tests {
             n(11),
             Some(Outcome::Fallback(StandIn::new(
                 open3,
+                open3,
                 k("hat.closed"),
                 n(60),
             ))),
@@ -134,11 +139,7 @@ mod tests {
         );
         r.record(
             n(12),
-            Some(Outcome::Direct {
-                canon: k("kick.main"),
-                opened_to: None,
-                note: n(50),
-            }),
+            Some(Outcome::Direct(Landing::itself(k("kick.main"), n(50)))),
         );
         r
     }
