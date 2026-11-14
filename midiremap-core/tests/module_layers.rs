@@ -25,7 +25,14 @@ const ALLOWED_USES: &Table = &[
     ),
     (
         "engine_map",
-        &["canon", "non_blank", "note", "open_levels", "resolution"],
+        &[
+            "canon",
+            "non_blank",
+            "note",
+            "open_levels",
+            "resolution",
+            "tom_spread",
+        ],
     ),
     ("family", &[]),
     (
@@ -61,6 +68,7 @@ const ALLOWED_USES: &Table = &[
             "open_levels",
             "overrides",
             "resolution",
+            "tom_spread",
             "translate",
         ],
     ),
@@ -74,9 +82,17 @@ const ALLOWED_USES: &Table = &[
         "sample",
         &["canon", "channel", "engine_map", "midi", "resolution"],
     ),
+    ("tom_spread", &["canon"]),
     (
         "translate",
-        &["canon", "engine_map", "note", "overrides", "resolution"],
+        &[
+            "canon",
+            "engine_map",
+            "note",
+            "overrides",
+            "resolution",
+            "tom_spread",
+        ],
     ),
     ("xml", &[]),
 ];

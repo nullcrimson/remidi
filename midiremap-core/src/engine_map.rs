@@ -6,11 +6,12 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    canon::{Canon, CanonEntry, OpenLevel},
+    canon::{Canon, CanonEntry, OpenLevel, TomArtic},
     non_blank::NonBlank,
     note::Note,
     open_levels::OpenLevels,
     resolution::{self, MissingDrums, Outcome},
+    tom_spread::TomKit,
 };
 
 /// The note General MIDI plays its open hi-hat on; the open hi-hat an engine plays there is the
@@ -107,6 +108,7 @@ pub struct EngineMap {
     variant: Option<Variant>,
     grooves_from: Option<Note>,
     open_levels: Option<OpenLevels>,
+    toms: TomKit,
     to_canon: HashMap<Note, Canon>,
     from_canon: HashMap<Canon, Note>,
 }
@@ -229,6 +231,11 @@ impl EngineMap {
         self.open_levels.as_ref()
     }
 
+    /// The toms it plays a hit or a rim on.
+    pub(crate) fn toms(&self) -> &TomKit {
+        &self.toms
+    }
+
     /// What makes this engine another mapping of a base engine, when it is one.
     pub(crate) fn variant(&self) -> Option<&Variant> {
         self.variant.as_ref()
@@ -329,6 +336,12 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
     }
 
     let open_levels = open_levels(&raw.id, raw.open_hat_level, &to_canon)?;
+    let played = |stroke: TomArtic| {
+        from_canon
+            .keys()
+            .filter_map(move |c| c.tom().filter(|&(_, a)| a == stroke).map(|(pos, _)| pos))
+    };
+    let toms = TomKit::new(played(TomArtic::Hit), played(TomArtic::Rim));
     Ok(EngineMap {
         id: raw.id,
         name: raw.name,
@@ -338,6 +351,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
         variant,
         grooves_from: raw.grooves_from,
         open_levels,
+        toms,
         to_canon,
         from_canon,
     })

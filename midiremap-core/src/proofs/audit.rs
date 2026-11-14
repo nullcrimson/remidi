@@ -187,10 +187,15 @@ fn edits_not_followed(src: &EngineMap, tgt: &EngineMap) -> Vec<String> {
     let near = Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest);
     let moved: Vec<(Canon, Canon, Note)> = encoded(src)
         .into_iter()
-        .filter(|&(c, _)| near.matched_drum(c).is_none())
+        .filter(|&(c, _)| !(c.is_open_main_hat() && near.matched_drum(c).is_some()))
         .filter_map(|(c, _)| {
             let (landed, note) = near.resolve_canon(c).played()?;
             (landed != c).then_some((c, landed, note))
+        })
+        .filter(|&(_, landed, _)| {
+            !landed
+                .tom()
+                .is_some_and(|(pos, _)| near.spread().moved(pos))
         })
         .collect();
     let edits: BTreeMap<Canon, Note> = moved

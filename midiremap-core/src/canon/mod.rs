@@ -316,6 +316,10 @@ fn tom_positions() -> impl Iterator<Item = TomPos> {
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub(crate) struct TomDistance(u16);
 
+impl TomDistance {
+    pub(crate) const ZERO: Self = Self(0);
+}
+
 impl Add for TomDistance {
     type Output = Self;
 
@@ -341,6 +345,10 @@ impl TomPos {
     /// How far this position sits from `other` along the kit.
     pub(crate) fn distance(self, other: Self) -> TomDistance {
         TomDistance(self.rank().abs_diff(other.rank()))
+    }
+
+    pub(crate) fn is_rack(self) -> bool {
+        matches!(self, Self::Rack(_))
     }
 }
 
@@ -448,6 +456,22 @@ impl Canon {
     pub(crate) fn at_open_level(self, level: OpenLevel) -> Canon {
         match self.0 {
             Slot::Hat(HatOpen::Open(_), zone) => Canon(Slot::Hat(HatOpen::Open(level), zone)),
+            _ => self,
+        }
+    }
+
+    /// Where the tom sits and how it is played, when this drum is a tom.
+    pub(crate) fn tom(self) -> Option<(TomPos, TomArtic)> {
+        match self.0 {
+            Slot::Tom(pos, artic) => Some((pos, artic)),
+            _ => None,
+        }
+    }
+
+    /// The same stroke on the tom at `pos`; any other drum as it is.
+    pub(crate) fn at_tom_pos(self, pos: TomPos) -> Canon {
+        match self.0 {
+            Slot::Tom(_, artic) => Canon(Slot::Tom(pos, artic)),
             _ => self,
         }
     }

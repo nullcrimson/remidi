@@ -1,6 +1,7 @@
 mod audit;
 mod open_hats;
 mod pairs;
+mod toms;
 
 use expect_test::expect_file;
 

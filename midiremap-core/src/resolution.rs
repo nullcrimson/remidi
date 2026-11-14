@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    canon::{Canon, OpenLevel},
+    canon::{Canon, OpenLevel, TomPos},
     note::Note,
 };
 
@@ -35,7 +35,8 @@ pub enum Outcome {
 }
 
 /// The target drum that plays `canon` on `note`: `canon` itself, or the same drum matched to
-/// the source's, the main hi-hat at the opening that matches the source's.
+/// the source's, the main hi-hat at the opening that matches the source's or the same stroke on
+/// the target tom the source's toms spread it to.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize)]
 #[cfg_attr(feature = "ts", derive(tsify::Tsify))]
 pub struct Landing {
@@ -61,6 +62,15 @@ impl Landing {
         Self {
             canon,
             plays: canon.at_open_level(level),
+            note,
+        }
+    }
+
+    /// The tom `canon` played with the same stroke on the target's tom at `pos`, on `note`.
+    pub(crate) fn spread_to(canon: Canon, pos: TomPos, note: Note) -> Self {
+        Self {
+            canon,
+            plays: canon.at_tom_pos(pos),
             note,
         }
     }

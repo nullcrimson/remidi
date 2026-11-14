@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use rayon::prelude::*;
 
 use super::lands_by_match;
@@ -20,27 +22,33 @@ fn first_agreed(tgt: &EngineMap, canon: Canon) -> Option<Note> {
         .find_map(|s| tgt.encode(s))
 }
 
-/// A pair of engines, its mappings under both settings, and the drums the source plays that
-/// the target lacks and that stand in: an open main hi-hat that lands on another opening of
-/// the target's is a matched opening, which `main_open_hat.rs` and the conversion's own tests
-/// judge.
+/// A pair of engines, its mappings under both settings, the drums the source plays that the
+/// target lacks, and the toms among them the spread moves under `Nearest`, which `toms.rs`
+/// judges there. An open main hi-hat that lands on another opening of the target's is a
+/// matched opening under both settings, which `main_open_hat.rs` judges, and is left out.
 struct Pair<'a> {
     tgt: &'a EngineMap,
     near: Mapping<'a>,
     drop: Mapping<'a>,
     label: String,
     missing: Vec<Canon>,
+    matched: HashSet<Canon>,
 }
 
 impl<'a> Pair<'a> {
     fn new(src: &'a EngineMap, tgt: &'a EngineMap) -> Self {
         let near = Mapping::new(src, tgt, &Default::default(), MissingDrums::Nearest);
         let drop = Mapping::new(src, tgt, &Default::default(), MissingDrums::Drop);
-        let missing = Canon::all()
+        let missing: Vec<Canon> = Canon::all()
             .iter()
             .copied()
             .filter(|&c| src.encode(c).is_some() && tgt.encode(c).is_none())
-            .filter(|&c| !lands_by_match(&near, tgt, c))
+            .filter(|&c| !(c.is_open_main_hat() && lands_by_match(&near, tgt, c)))
+            .collect();
+        let matched = missing
+            .iter()
+            .copied()
+            .filter(|&c| lands_by_match(&near, tgt, c))
             .collect();
         let label = format!("{} -> {}", src.id(), tgt.id());
         Self {
@@ -49,6 +57,7 @@ impl<'a> Pair<'a> {
             drop,
             label,
             missing,
+            matched,
         }
     }
 
@@ -61,6 +70,7 @@ impl<'a> Pair<'a> {
             let drop_failure = (dropped != want)
                 .then(|| format!("{pair} (drop) played {dropped:?}, agreed {want:?}"));
             let nearest_failure = match (want, nearest.played()) {
+                _ if self.matched.contains(&canon) => None,
                 (Some(_), played) if played.map(|(_, n)| n) != want => Some(format!(
                     "{pair} (nearest) played {played:?}, agreed {want:?}"
                 )),

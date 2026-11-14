@@ -23,6 +23,7 @@ mod report;
 mod resolution;
 mod rewrite;
 mod sample;
+mod tom_spread;
 mod translate;
 pub mod xml;
 
