@@ -5,9 +5,9 @@ use serde::Serialize;
 use super::{file::FileStem, packing::Packing};
 use crate::{
     engine::EngineMap,
+    files::PresetName,
     mapping::{Destination, Mapping},
     note::Note,
-    preset::PresetName,
     xml::{self, nest, Indent, Xml},
 };
 

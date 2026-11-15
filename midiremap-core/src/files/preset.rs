@@ -186,7 +186,7 @@ mod tests {
     use super::*;
     use crate::{canon::k, note::n};
 
-    const FIXTURE: &str = include_str!("../tests/golden/my-kit.drumverter.json");
+    const FIXTURE: &str = include_str!("../../tests/golden/my-kit.drumverter.json");
 
     #[test]
     fn resolves_an_engine_alias_to_its_id() {
