@@ -1,7 +1,6 @@
 use std::{
     collections::{HashMap, VecDeque},
     iter::once,
-    mem::discriminant,
     sync::LazyLock,
 };
 
@@ -191,8 +190,8 @@ fn neighbours(c: Canon) -> Vec<Canon> {
             .collect(),
         Slot::Aux(_, o, z) => vec![Canon(Slot::Hat(o, z))],
         Slot::Cymbal(slot, a) => {
-            let kind = CymSlot::all().filter(|s| discriminant(s) == discriminant(&slot));
-            let same_kind = nearest(slot, kind, |a, b| a.index().abs_diff(b.index()))
+            let kind = CymSlot::all().filter(|s| s.kind() == slot.kind());
+            let same_kind = nearest(slot, kind, CymSlot::distance)
                 .into_iter()
                 .map(|s| Canon(Slot::Cymbal(s, a)));
             let every = |kind: fn(&CymSlot) -> bool| {

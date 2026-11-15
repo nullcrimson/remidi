@@ -14,6 +14,7 @@ use crate::{family::Family, idx::Idx};
 pub(crate) type SnareIdx = Idx<2>;
 pub(crate) type AuxIdx = Idx<2>;
 pub(crate) type RideIdx = Idx<2>;
+pub(crate) type CrashIdx = Idx<6>;
 pub(crate) type RackIdx = Idx<8>;
 pub(crate) type FloorIdx = Idx<4>;
 pub(crate) type OpenLevel = Idx<6>;
@@ -108,15 +109,22 @@ pub(crate) enum HatZone {
     Bell,
 }
 /// A cymbal and its position; each kind has its own number of positions.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, IntoStaticStr)]
-#[strum(serialize_all = "lowercase")]
-#[cfg_attr(
-    test,
-    derive(strum::EnumDiscriminants),
-    strum_discriminants(derive(Hash, VariantArray))
+#[derive(
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Debug,
+    IntoStaticStr,
+    strum::EnumDiscriminants,
 )]
+#[strum(serialize_all = "lowercase")]
+#[strum_discriminants(name(CymKind), derive(Hash, PartialOrd, Ord, VariantArray))]
 pub(crate) enum CymSlot {
-    Crash(Idx<6>),
+    Crash(CrashIdx),
     China(Idx<3>),
     Splash(Idx<3>),
     Stack(Idx<4>),
@@ -224,6 +232,27 @@ impl CymSlot {
             Self::Bell(i) => i.get(),
         }
     }
+
+    pub(crate) fn kind(self) -> CymKind {
+        CymKind::from(self)
+    }
+
+    /// How far apart this cymbal's number sits from `other`'s, two cymbals of one kind.
+    pub(crate) fn distance(self, other: Self) -> CymDistance {
+        CymDistance(self.index().abs_diff(other.index()))
+    }
+}
+
+/// How far apart the numbers of two cymbals of one kind sit.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
+pub(crate) struct CymDistance(u8);
+
+impl Add for CymDistance {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self(self.0 + other.0)
+    }
 }
 
 impl HandDrum {
@@ -311,10 +340,6 @@ fn tom_positions() -> impl Iterator<Item = TomPos> {
 /// How far apart two tom positions sit along the kit, from rack 1 down to the last floor tom.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub(crate) struct TomDistance(u16);
-
-impl TomDistance {
-    pub(crate) const ZERO: Self = Self(0);
-}
 
 impl Add for TomDistance {
     type Output = Self;
@@ -626,7 +651,7 @@ mod tests {
     fn all_reaches_every_cymbal_slot() {
         let all = Canon::all().iter().copied();
         assert_reaches_every(all.filter_map(|c| match c {
-            Canon(Slot::Cymbal(s, _)) => Some(CymSlotDiscriminants::from(s)),
+            Canon(Slot::Cymbal(s, _)) => Some(s.kind()),
             _ => None,
         }));
     }

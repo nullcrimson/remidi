@@ -68,6 +68,7 @@ const ALLOWED_USES: &Table = &[
             "open_levels",
             "overrides",
             "resolution",
+            "spread",
             "tom_spread",
             "translate",
         ],
@@ -82,7 +83,8 @@ const ALLOWED_USES: &Table = &[
         "sample",
         &["canon", "channel", "engine_map", "midi", "resolution"],
     ),
-    ("tom_spread", &["canon"]),
+    ("spread", &["canon"]),
+    ("tom_spread", &["canon", "spread"]),
     (
         "translate",
         &[
