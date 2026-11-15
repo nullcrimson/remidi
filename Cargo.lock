@@ -1074,6 +1074,7 @@ version = "0.1.0"
 dependencies = [
  "expect-test",
  "flate2",
+ "midiremap-idx",
  "midiremap-layers",
  "midiremap-testkit",
  "midly",
@@ -1091,6 +1092,15 @@ dependencies = [
  "tsify",
  "uuid",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "midiremap-idx"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]

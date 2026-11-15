@@ -4,7 +4,6 @@ mod canon;
 mod convert;
 mod engine;
 mod files;
-mod idx;
 mod inspect;
 mod mapping;
 mod midi;

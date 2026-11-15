@@ -388,6 +388,7 @@ mod tests {
             [
                 "midiremap-cli",
                 "midiremap-core",
+                "midiremap-idx",
                 "midiremap-layers",
                 "midiremap-site",
                 "midiremap-testkit",

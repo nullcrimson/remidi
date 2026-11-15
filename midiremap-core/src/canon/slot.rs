@@ -1,8 +1,7 @@
 use std::{iter::once, ops::Add};
 
+use midiremap_idx::Idx;
 use strum::{IntoStaticStr, VariantArray};
-
-use crate::idx::Idx;
 
 pub(crate) type SnareIdx = Idx<2>;
 pub(crate) type AuxIdx = Idx<2>;

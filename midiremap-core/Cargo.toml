@@ -6,6 +6,7 @@ license = "MIT"
 publish = false
 
 [dependencies]
+midiremap-idx = { path = "../midiremap-idx" }
 flate2 = { version = "1", optional = true }
 midly = { version = "0.5", default-features = false, features = ["alloc", "std"] }
 plist = { version = "1.10", default-features = false }

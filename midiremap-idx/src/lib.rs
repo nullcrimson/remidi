@@ -1,3 +1,5 @@
+#![warn(unreachable_pub)]
+
 use std::fmt;
 
 use serde::Deserialize;
@@ -5,11 +7,11 @@ use serde::Deserialize;
 /// A 1-based position, always within `1..=MAX`.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Deserialize)]
 #[serde(try_from = "u8")]
-pub(crate) struct Idx<const MAX: u8>(u8);
+pub struct Idx<const MAX: u8>(u8);
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
 #[error("{0} is not in 1..={1}")]
-pub(crate) struct IdxRangeError(u8, u8);
+pub struct IdxRangeError(u8, u8);
 
 impl<const MAX: u8> TryFrom<u8> for Idx<MAX> {
     type Error = IdxRangeError;
@@ -20,10 +22,10 @@ impl<const MAX: u8> TryFrom<u8> for Idx<MAX> {
 }
 
 impl<const MAX: u8> Idx<MAX> {
-    pub(crate) const FIRST: Self = Self(1);
-    pub(crate) const MAX: u8 = MAX;
+    pub const FIRST: Self = Self(1);
+    pub const MAX: u8 = MAX;
 
-    pub(crate) const fn new(n: u8) -> Option<Self> {
+    pub const fn new(n: u8) -> Option<Self> {
         if n >= 1 && n <= MAX {
             Some(Self(n))
         } else {
@@ -31,22 +33,22 @@ impl<const MAX: u8> Idx<MAX> {
         }
     }
 
-    pub(crate) const fn get(self) -> u8 {
+    pub const fn get(self) -> u8 {
         self.0
     }
 
     /// The position counted from zero.
-    pub(crate) const fn offset(self) -> u8 {
+    pub const fn offset(self) -> u8 {
         self.0 - 1
     }
 
     /// How many positions lie between this one and `other`.
-    pub(crate) const fn distance(self, other: Self) -> u8 {
+    pub const fn distance(self, other: Self) -> u8 {
         self.0.abs_diff(other.0)
     }
 
     /// Every position, ascending.
-    pub(crate) fn all() -> impl Iterator<Item = Self> {
+    pub fn all() -> impl Iterator<Item = Self> {
         (1..=MAX).map(Self)
     }
 }

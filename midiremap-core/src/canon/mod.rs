@@ -9,6 +9,8 @@ mod slot;
 
 use std::sync::LazyLock;
 
+use midiremap_idx::Idx;
+
 #[cfg(test)]
 use self::slot::CongaPitch;
 use self::slot::{each, hat_slots, tom_positions};
@@ -21,7 +23,6 @@ pub(crate) use self::{
         RideArtic, RideIdx, Slot, SnareArtic, SnareIdx, TomArtic, TomDistance, TomPos,
     },
 };
-use crate::idx::Idx;
 
 /// A drum and how it is played, the hub every engine map translates through.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]

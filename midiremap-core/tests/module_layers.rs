@@ -3,7 +3,7 @@ use std::path::Path;
 use midiremap_layers::{Layers, Table};
 
 const ALLOWED_USES: &Table = &[
-    ("canon", &["idx"]),
+    ("canon", &[]),
     (
         "convert",
         &["canon", "inspect", "mapping", "midi", "note", "parts"],
@@ -21,10 +21,9 @@ const ALLOWED_USES: &Table = &[
             "xml",
         ],
     ),
-    ("idx", &[]),
     ("inspect", &["canon", "engine", "midi", "note", "parts"]),
     ("mapping", &["canon", "engine", "note", "spread"]),
-    ("midi", &["idx", "note"]),
+    ("midi", &["note"]),
     ("non_blank", &[]),
     ("note", &[]),
     ("parts", &["midi", "note"]),

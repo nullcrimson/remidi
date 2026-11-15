@@ -1,8 +1,7 @@
 use std::fmt;
 
+use midiremap_idx::Idx;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-
-use crate::idx::Idx;
 
 pub(crate) type ChannelIdx = Idx<16>;
 
