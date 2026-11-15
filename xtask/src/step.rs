@@ -22,6 +22,7 @@ pub enum Step {
     Fmt,
     Clippy,
     CargoTest,
+    Fuzz,
     GenI18n,
     BuildWasm,
     CompileSite,
@@ -50,6 +51,7 @@ pub enum OwnDir {
     Browser,
     Clippy,
     ClippyBrowser,
+    Fuzz,
     Site,
 }
 
@@ -63,6 +65,7 @@ impl OwnDir {
             OwnDir::Browser => "target/browser",
             OwnDir::Clippy => "target/clippy",
             OwnDir::ClippyBrowser => "target/clippy-browser",
+            OwnDir::Fuzz => "target/fuzz",
             OwnDir::Site => "target/site",
         }
     }
@@ -216,7 +219,7 @@ impl Group {
 
     pub fn steps(self) -> &'static [Step] {
         match self {
-            Group::Rust => &[Step::Fmt, Step::Clippy, Step::CargoTest],
+            Group::Rust => &[Step::Fmt, Step::Clippy, Step::CargoTest, Step::Fuzz],
             Group::App => &[Step::Eslint, Step::Tsc, Step::Vitest],
             Group::Dist => &[Step::Size, Step::E2e],
         }
@@ -234,6 +237,7 @@ impl Step {
             Step::Fmt
             | Step::Clippy
             | Step::CargoTest
+            | Step::Fuzz
             | Step::GenI18n
             | Step::BuildWasm
             | Step::CompileSite => &[],
@@ -277,7 +281,7 @@ impl Step {
     /// How the gate keeps the step's result between runs.
     pub fn kept(self) -> Kept {
         match self {
-            Step::Fmt | Step::Clippy | Step::CargoTest => Kept::Check(RUST_CHECK),
+            Step::Fmt | Step::Clippy | Step::CargoTest | Step::Fuzz => Kept::Check(RUST_CHECK),
             Step::Eslint | Step::Tsc | Step::Vitest => Kept::Check(APP_CHECK),
             Step::Size => Kept::Check(Reads {
                 sources: &[
@@ -327,6 +331,7 @@ impl Step {
                 CargoPass::Shipped => TargetDir::Main,
                 CargoPass::Browser => TargetDir::Own(OwnDir::Browser),
             }),
+            Step::Fuzz => (pass == CargoPass::Shipped).then_some(TargetDir::Own(OwnDir::Fuzz)),
             Step::BuildWasm => (pass == CargoPass::Browser).then_some(TargetDir::Main),
             Step::CompileSite => (pass == CargoPass::Shipped).then_some(TargetDir::Own(SITE_DIR)),
             Step::Fmt
@@ -374,6 +379,7 @@ impl Step {
             Step::CargoTest => 10,
             Step::Fmt => 11,
             Step::Size => 12,
+            Step::Fuzz => 13,
         }
     }
 }
@@ -391,6 +397,7 @@ mod tests {
                 "fmt",
                 "clippy",
                 "cargo-test",
+                "fuzz",
                 "gen-i18n",
                 "build-wasm",
                 "compile-site",

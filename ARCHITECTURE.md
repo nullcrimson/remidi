@@ -570,7 +570,9 @@ whether those notes are written.
   the output parses, and the counts add up. It runs daily in CI (`fuzz.yml`); locally,
   on Linux or WSL with a nightly toolchain:
   `cd midiremap-core && cargo +nightly fuzz run convert fuzz/corpus/convert fuzz/seeds -- -dict=fuzz/midi.dict -max_total_time=600`.
-  Crashes found become files in `fuzz/seeds/`.
+  Crashes found become files in `fuzz/seeds/`. The gate's `fuzz` step formats and lints
+  the target on every run (its own build directory, `target/fuzz`), so an API change that
+  breaks it fails the gate instead of the next day's fuzz run.
 
 ### `files` — files for other programs
 

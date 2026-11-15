@@ -149,7 +149,10 @@ mod tests {
 
     #[test]
     fn a_group_expands_to_its_steps() {
-        assert_eq!(names(&partial(&["rust"])), ["fmt", "clippy", "cargo-test"]);
+        assert_eq!(
+            names(&partial(&["rust"])),
+            ["fmt", "clippy", "cargo-test", "fuzz"]
+        );
         assert_eq!(names(&partial(&["dist"])), ["size", "e2e"]);
     }
 

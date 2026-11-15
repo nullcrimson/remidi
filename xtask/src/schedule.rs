@@ -309,7 +309,8 @@ mod tests {
                 Step::CompileSite,
                 Step::GenI18n,
                 Step::Clippy,
-                Step::Fmt
+                Step::Fmt,
+                Step::Fuzz
             ]
         );
     }

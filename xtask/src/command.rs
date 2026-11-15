@@ -32,6 +32,10 @@ impl Context {
     }
 }
 
+/// The fuzz workspace's manifest, from the repository root: a workspace of its own, which
+/// the root workspace's commands do not reach.
+const FUZZ_MANIFEST: &str = "midiremap-core/fuzz/Cargo.toml";
+
 /// The site generator `Step::CompileSite` builds, from the repository root.
 pub fn site_program() -> String {
     format!("{}/debug/{SITE}{EXE_SUFFIX}", SITE_DIR.path())
@@ -249,6 +253,32 @@ fn programs(step: Step, cx: &Context) -> Run {
             &["--all-targets", "--locked", "--", "-D", "warnings"],
         ),
         Step::CargoTest => both_passes(step, "test", &["--locked", "--lib", "--bins", "--tests"]),
+        Step::Fuzz => {
+            let toolchain = format!("+{}", cx.nightly);
+            let format = Invocation::cargo(&[
+                &toolchain,
+                "fmt",
+                "--manifest-path",
+                FUZZ_MANIFEST,
+                "--all",
+                "--",
+                "--check",
+                "--config",
+                "newline_style=Auto",
+            ]);
+            let lint = cargo_passes(step, |_| {
+                vec![
+                    "clippy",
+                    "--manifest-path",
+                    FUZZ_MANIFEST,
+                    "--locked",
+                    "--",
+                    "-D",
+                    "warnings",
+                ]
+            });
+            Run::InTurn(std::iter::once(format).chain(lint).collect())
+        }
         Step::GenI18n => one(Invocation::npm("gen:i18n", &[])),
         Step::BuildWasm => {
             let build = Invocation::npm("build:wasm", &[]);
@@ -346,6 +376,7 @@ pub fn summary(step: Step, log: &str) -> Vec<String> {
             .collect(),
         Step::Fmt
         | Step::Clippy
+        | Step::Fuzz
         | Step::GenI18n
         | Step::BuildWasm
         | Step::CompileSite
