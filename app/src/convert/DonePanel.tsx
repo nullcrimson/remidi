@@ -4,7 +4,6 @@ import { saveBlob } from '../core/download';
 import { engineCode } from '../core/engineCode';
 import type { EngineNames, EnginePair } from '../core/enginePair';
 import type { Unrecognized } from '../core/midiremap';
-import type { PickedParts } from '../core/part';
 import { reportLink } from '../report/reportLink';
 import type { FailedFile } from './batch';
 import { ErrorText } from '../ui/ErrorText';
@@ -52,7 +51,7 @@ export function DonePanel({
   onDropMissing?: () => void;
   editedDrums?: number;
   offers?: Offer[];
-  onAlsoConvert?: (file: string, parts: PickedParts) => void;
+  onAlsoConvert?: (offer: Offer) => void;
 }) {
   const { translator } = useLocale();
   const { t, locale } = translator;

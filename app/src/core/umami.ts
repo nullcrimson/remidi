@@ -30,6 +30,8 @@ export interface StatEvents {
     | { setting: 'missing'; value: MissingDrums }
     | { setting: 'unrecognized'; value: Unrecognized };
   'midi-added': { files: number; via: 'picker' | 'drop' | 'sample'; unreadable: number };
+  'parts-asked': { parts: number };
+  'parts-offer-taken': { parts: number };
   'sample-used': { converted: boolean };
   'preset-imported': { files: number; skipped: number; failed: number };
   converted: {

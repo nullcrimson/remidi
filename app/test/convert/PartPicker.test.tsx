@@ -90,10 +90,10 @@ describe('PartOffers', () => {
     expect(screen.getByText('12 notes on Track “Kit” · channel 1 in mjod.mid stayed as they were, beside the drums on channel 10.')).toBeInTheDocument();
   });
 
-  it('Also convert them passes the file with its parts and the offered ones', async () => {
+  it('Also convert them passes the offer, with its parts and the offered ones', async () => {
     const onAlsoConvert = vi.fn();
     render(<PartOffers offers={offers} onAlsoConvert={onAlsoConvert} />);
     await userEvent.click(screen.getByRole('button', { name: 'Also convert them' }));
-    expect(onAlsoConvert).toHaveBeenCalledWith('mjod.mid', withOffers);
+    expect(onAlsoConvert).toHaveBeenCalledWith(offers[0]);
   });
 });

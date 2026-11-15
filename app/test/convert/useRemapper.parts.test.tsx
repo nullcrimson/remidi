@@ -6,6 +6,7 @@ import { RUNTIME } from '../runtime';
 import type { Conversion, PartSummary, VoicePlan } from '../../src/core/midiremap';
 import * as stub from '../stubs/wasm';
 import { engineId, typed } from '../typed';
+import { fakeUmami } from '../umami';
 
 const PARTS = typed<PartSummary[]>([
   { part: { track: 1, channel: 1 }, trackName: 'Kit', hits: 12, plays: null },
@@ -119,7 +120,37 @@ describe('useRemapper drum parts', () => {
 
   it('converts an offer with the parts picked before', async () => {
     const result = await convertedBesideDrums();
-    await act(() => result.current.alsoConvert('mjod.mid', [BESIDE.part, DRUMS]));
+    await act(() => result.current.alsoConvert(result.current.questions.offers[0]));
     expect(vi.mocked(stub.remap).mock.lastCall?.[4]).toEqual({ parts: [BESIDE.part, DRUMS] });
+  });
+});
+
+describe('the events of picking drum parts', () => {
+  const umami = fakeUmami();
+
+  beforeEach(() => {
+    localStorage.clear();
+    vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([]));
+    vi.mocked(stub.remap).mockReturnValue(converted());
+    vi.mocked(stub.auto_question).mockImplementation((mid) => (mid[0] === 7 ? PARTS : undefined));
+  });
+
+  it('sends parts-asked once for a file the converter asks about, with how many parts it shows', async () => {
+    const result = await ready();
+    act(() => result.current.addFiles([{ name: 'song.mid', bytes: new Uint8Array([7]) }]));
+    act(() => result.current.chooseTgt(engineId('superior_drummer3')));
+    expect(umami.mock.calls.filter(([event]) => event === 'parts-asked')).toEqual([['parts-asked', { parts: 2 }]]);
+  });
+
+  it('sends nothing about parts for a file the converter does not ask about', async () => {
+    const result = await ready();
+    act(() => result.current.addFiles([{ name: 'drums.mid', bytes: new Uint8Array([1]) }]));
+    expect(umami.mock.calls.filter(([event]) => String(event).startsWith('parts-'))).toEqual([]);
+  });
+
+  it('sends parts-offer-taken with how many offered parts are taken', async () => {
+    const result = await convertedBesideDrums();
+    await act(() => result.current.alsoConvert(result.current.questions.offers[0]));
+    expect(umami).toHaveBeenCalledWith('parts-offer-taken', { parts: 1 });
   });
 });

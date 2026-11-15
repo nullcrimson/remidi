@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { vocabularyOf } from '../core/canon';
 import type { ChannelScope, Engine, EngineId, Midiremap, MissingDrums, Note, Unrecognized } from '../core/midiremap';
-import type { PickedParts } from '../core/part';
 import type { OctaveBase } from '../core/notes';
 import { pairOf } from '../core/enginePair';
 import { kindCounts } from '../core/errors';
@@ -14,7 +13,7 @@ import type { SelectionEvent } from '../core/selection';
 import { loadSession, saveSession } from './session';
 import { selectionOf, selectionReducer } from './selectionState';
 import { useConverter, withPicks } from './useConverter';
-import { usePartQuestions } from './partQuestions';
+import { usePartQuestions, type Offer } from './partQuestions';
 import { useSourceFits } from './useSourceFits';
 import { offeredSources } from './closerSources';
 import type { EditFilter } from '../editor/editFilter';
@@ -63,6 +62,14 @@ export function useRemapper({ load, converter: batches }: Runtime) {
   const fits = useSourceFits(batches, picked, channel);
   const core = catalog.status === 'ready' ? catalog.core : null;
   const questions = usePartQuestions(core, converter.files, src, channel, converter.picks, converter.results);
+  const askedReported = useRef(new Set<string>());
+  useEffect(() => {
+    for (const q of questions.asked) {
+      if (askedReported.current.has(q.file)) continue;
+      askedReported.current.add(q.file);
+      track('parts-asked', { parts: q.parts.length });
+    }
+  }, [questions.asked]);
   const offered = useMemo(() => offeredSources(fits, src, tgt, srcEdits), [fits, src, tgt, srcEdits]);
 
   const emit = useCallback(
@@ -159,9 +166,10 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     [run, missing, picked, questions.waiting],
   );
   const alsoConvert = useCallback(
-    (name: string, parts: PickedParts) => {
-      converter.setParts(name, parts);
-      return run(missing, withPicks(converter.files, { ...converter.picks, [name]: parts }, channel));
+    (offer: Offer) => {
+      track('parts-offer-taken', { parts: offer.parts.length });
+      converter.setParts(offer.file, offer.withOffers);
+      return run(missing, withPicks(converter.files, { ...converter.picks, [offer.file]: offer.withOffers }, channel));
     },
     [converter, run, missing, channel],
   );

@@ -1,10 +1,10 @@
-import { partLabel, type PickedParts } from '../core/part';
+import { partLabel } from '../core/part';
 import { useT } from '../locale/localeContext';
 import { TextButton } from '../ui/TextButton';
 import type { Offer } from './partQuestions';
 
 /** The parts each conversion left as they are beside channel-10 drums in their track, with a way to convert them too. */
-export function PartOffers({ offers, onAlsoConvert }: { offers: Offer[]; onAlsoConvert: (file: string, parts: PickedParts) => void }) {
+export function PartOffers({ offers, onAlsoConvert }: { offers: Offer[]; onAlsoConvert: (offer: Offer) => void }) {
   const t = useT();
   if (offers.length === 0) return null;
   return (
@@ -21,7 +21,7 @@ export function PartOffers({ offers, onAlsoConvert }: { offers: Offer[]; onAlsoC
               {t({ id: 'done-offer', args: { count: s.hits, part: t(partLabel(s)), file: o.file } })}
             </p>
           ))}
-          <TextButton onClick={() => onAlsoConvert(o.file, o.withOffers)}>
+          <TextButton onClick={() => onAlsoConvert(o)}>
             {t({ id: 'done-offer-convert' })}
           </TextButton>
         </div>

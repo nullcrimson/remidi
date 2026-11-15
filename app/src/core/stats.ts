@@ -29,6 +29,8 @@ const TIER_OF = {
   'engines-swapped': 2,
   'engine-starred': 2,
   'midi-added': 1,
+  'parts-asked': 1,
+  'parts-offer-taken': 2,
   'sample-used': 1,
   'file-removed': 2,
   'setting-changed': 2,

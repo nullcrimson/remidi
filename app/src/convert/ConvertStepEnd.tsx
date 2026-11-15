@@ -47,7 +47,7 @@ export function ConvertStepEnd({
         editedDrums={editedDrums}
         onConvertMore={onConvertMore}
         offers={remapper.questions.offers}
-        onAlsoConvert={(file, parts) => void remapper.alsoConvert(file, parts)}
+        onAlsoConvert={(offer) => void remapper.alsoConvert(offer)}
       />
     );
   }
