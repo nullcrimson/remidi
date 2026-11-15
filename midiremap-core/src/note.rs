@@ -1,6 +1,5 @@
 use std::{collections::BTreeMap, fmt, str::FromStr};
 
-use midly::num::u7;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use strum::VariantArray;
 
@@ -85,14 +84,6 @@ impl Note {
     /// The note's position in [`Note::ALL`].
     pub(crate) const fn index(self) -> usize {
         self.0 as usize
-    }
-
-    pub(crate) fn from_key(key: u7) -> Self {
-        Self(key.as_int())
-    }
-
-    pub(crate) fn key(self) -> u7 {
-        u7::from_int_lossy(self.0)
     }
 
     /// How many semitones `to` lies above this note; negative when it lies below.
@@ -278,12 +269,6 @@ mod tests {
     #[test]
     fn text_that_is_not_a_number_does_not_parse_as_a_note() {
         assert!("kick".parse::<Note>().is_err());
-    }
-
-    #[test]
-    fn converts_to_and_from_u7() {
-        let n = Note::new(100).unwrap();
-        assert_eq!(Note::from_key(n.key()), n);
     }
 
     #[test]

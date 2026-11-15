@@ -7,7 +7,10 @@ use midly::{
 use strum::VariantArray;
 
 use crate::{
-    canon::Canon, channel::Channel, engine_map::EngineMap, midi, resolution::MissingDrums,
+    canon::Canon,
+    engine_map::EngineMap,
+    midi::{self, Channel},
+    resolution::MissingDrums,
 };
 
 const TICKS_PER_BEAT: u16 = 480;
@@ -64,7 +67,7 @@ pub fn sample_file(engine: &EngineMap) -> Vec<u8> {
                 .drums()
                 .iter()
                 .find_map(|&drum| engine.resolve(drum, MissingDrums::Nearest).note())?;
-            Some((voice, note.key()))
+            Some((voice, midi::note_key(note)))
         })
         .collect();
     let note = |message| TrackEventKind::Midi {

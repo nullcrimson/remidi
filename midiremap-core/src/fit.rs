@@ -241,7 +241,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        channel::Channel, conversion::convert, note::n, overrides::Overrides,
+        conversion::convert, midi::Channel, note::n, overrides::Overrides,
         resolution::MissingDrums, translate::Mapping,
     };
 

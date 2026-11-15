@@ -4,8 +4,10 @@ use midly::{
 };
 
 use crate::{
-    channel::{hit, Channel, ChannelFilter, TrackFilters},
-    midi::{is_closed, CodecError, END_OF_TRACK},
+    channel::TrackFilters,
+    midi::{
+        hit, is_closed, note_from_key, note_key, Channel, ChannelFilter, CodecError, END_OF_TRACK,
+    },
     note::Note,
     report::Report,
     translate::Mapping,
@@ -85,9 +87,9 @@ fn step(mapping: &Mapping, filter: ChannelFilter, kind: &mut TrackEventKind) -> 
 }
 
 fn apply(mapping: &Mapping, key: &mut u7) -> bool {
-    match mapping.destination(Note::from_key(*key)) {
+    match mapping.destination(note_from_key(*key)) {
         Some(to) => {
-            *key = to.note().key();
+            *key = note_key(to.note());
             true
         }
         None => false,
@@ -224,11 +226,11 @@ mod tests {
         };
         match key_of(message).filter(|_| filter.accepts(Channel::of(channel))) {
             None => (kind, true),
-            Some(key) => match mapping.destination(Note::from_key(key)) {
+            Some(key) => match mapping.destination(note_from_key(key)) {
                 Some(to) => (
                     TrackEventKind::Midi {
                         channel,
-                        message: with_key(message, to.note().key()),
+                        message: with_key(message, note_key(to.note())),
                     },
                     true,
                 ),
@@ -243,7 +245,7 @@ mod tests {
             TrackEventKind::Midi {
                 message: MidiMessage::NoteOn { key, vel },
                 ..
-            } if vel.as_int() > 0 => Some(Note::from_key(key)),
+            } if vel.as_int() > 0 => Some(note_from_key(key)),
             TrackEventKind::Midi { .. }
             | TrackEventKind::SysEx(_)
             | TrackEventKind::Escape(_)

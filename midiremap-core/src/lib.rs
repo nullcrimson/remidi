@@ -8,7 +8,6 @@ mod daw;
 mod engine_map;
 mod fit;
 mod idx;
-mod meter;
 mod midi;
 mod non_blank;
 mod note;
@@ -29,8 +28,8 @@ pub mod xml;
 pub use canon::{Canon, CanonEntry, CanonParseError, Family};
 pub use catalog::Catalog;
 pub use channel::{
-    Channel, ChannelScope, ChannelScopeError, ConvertError, NoParts, Part, PartError, PartSet,
-    Parts, Selection,
+    ChannelScope, ChannelScopeError, ConvertError, NoParts, Part, PartError, PartSet, Parts,
+    Selection,
 };
 pub use conversion::{convert, Conversion, Converted};
 pub use daw::{rack_file, Daw, FileStem, Packing, RackFile};
@@ -39,8 +38,7 @@ pub use fit::{
     auto_question, note_hits, part_summaries, source_fits, NoteHits, PartSummary, PlayedDrum,
     Plays, SourceFit, SourceFits,
 };
-pub use meter::{Bar, Position, Tick};
-pub use midi::{CodecError, Damage, TrackNo};
+pub use midi::{Bar, Channel, CodecError, Damage, Position, Tick, TrackNo};
 pub use note::{Note, NoteParseError, OctaveBase};
 pub use overrides::Overrides;
 pub use plan::VoicePlan;

@@ -1,9 +1,12 @@
-use std::{error::Error, fmt, num::NonZeroUsize};
+use std::error::Error;
 
-use midly::{num::u28, MetaMessage, Smf, Track, TrackEvent, TrackEventKind};
-use serde::{Deserialize, Serialize};
+use midly::Smf;
+use serde::Serialize;
 
-use crate::meter::{self, Meter, Position, Tick};
+use super::{
+    meter::{self, Meter, Position, Tick},
+    track::{is_closed, TrackNo},
+};
 
 const MTHD_TRACKS: usize = 2;
 const MTHD_DIVISION: usize = 4;
@@ -19,43 +22,6 @@ pub enum CodecError {
     DeltaOverflow,
     #[error("MIDI write error")]
     Write(#[source] std::io::Error),
-}
-
-/// A track of a file, numbered from 1 as people count them.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
-#[cfg_attr(feature = "ts", derive(tsify::Tsify), tsify(type = "number"))]
-pub struct TrackNo(NonZeroUsize);
-
-impl TrackNo {
-    pub(crate) fn new(n: NonZeroUsize) -> Self {
-        Self(n)
-    }
-
-    /// The track a file stores at `index`, counted from zero.
-    pub(crate) fn at(index: usize) -> Self {
-        Self(NonZeroUsize::MIN.saturating_add(index))
-    }
-
-    /// Where a file stores this track, counted from zero.
-    pub(crate) fn index(self) -> usize {
-        self.0.get() - 1
-    }
-}
-
-impl fmt::Display for TrackNo {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
-    }
-}
-
-/// The event that closes every track of a file.
-pub(crate) const END_OF_TRACK: TrackEventKind<'static> =
-    TrackEventKind::Meta(MetaMessage::EndOfTrack);
-
-/// Whether `track` ends with its End-of-Track, as a whole track does.
-pub(crate) fn is_closed(track: &[TrackEvent]) -> bool {
-    track.last().is_some_and(|ev| ev.kind == END_OF_TRACK)
 }
 
 /// What a file had lost before it was read: notes that were in it once and cannot be
@@ -169,28 +135,6 @@ pub(crate) fn write(smf: &Smf) -> Result<Vec<u8>, CodecError> {
     Ok(bytes)
 }
 
-/// A track of `events` given at their absolute ticks.
-///
-/// # Panics
-///
-/// When a tick is below the one before it, or the gap between them does not fit a delta.
-pub(crate) fn track_at<'a>(
-    events: impl IntoIterator<Item = (u32, TrackEventKind<'a>)>,
-) -> Track<'a> {
-    let mut last = 0;
-    events
-        .into_iter()
-        .map(|(tick, kind)| {
-            let delta = tick
-                .checked_sub(last)
-                .and_then(u28::try_from)
-                .expect("the ticks never decrease and their gaps fit a delta");
-            last = tick;
-            TrackEvent { delta, kind }
-        })
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -285,7 +229,7 @@ mod tests {
     fn cut(track: usize, bar: u32, events_read: usize) -> Damage {
         Damage::TrackCut {
             track: TrackNo::at(track - 1),
-            at: Position::Bar(crate::meter::Bar::number(bar)),
+            at: Position::Bar(meter::Bar::number(bar)),
             events_read,
         }
     }

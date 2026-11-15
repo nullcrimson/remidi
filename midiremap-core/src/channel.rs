@@ -5,58 +5,13 @@ use std::{
     str::FromStr,
 };
 
-use midly::{num::u4, MetaMessage, MidiMessage, Smf, TrackEventKind};
+use midly::{MetaMessage, Smf, TrackEventKind};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::{
-    idx::Idx,
-    midi::{CodecError, TrackNo},
+    midi::{hit, Channel, ChannelFilter, ChannelIdx, CodecError, TrackNo},
     note::Note,
 };
-
-type ChannelIdx = Idx<16>;
-
-/// A MIDI channel, numbered `1..=16` as people count them.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(feature = "ts", derive(tsify::Tsify), tsify(type = "number"))]
-pub struct Channel(ChannelIdx);
-
-impl Serialize for Channel {
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        s.serialize_u8(self.0.get())
-    }
-}
-
-impl<'de> Deserialize<'de> for Channel {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let n = u8::deserialize(d)?;
-        Self::new(n).ok_or_else(|| de::Error::custom(format!("channel must be 1-16, got {n}")))
-    }
-}
-
-impl Channel {
-    /// Channel 10, where General MIDI puts drums.
-    pub const DRUMS: Self = Self(ChannelIdx::new(10).expect("10 is a channel"));
-
-    pub fn new(n: u8) -> Option<Self> {
-        ChannelIdx::new(n).map(Self)
-    }
-
-    pub(crate) fn of(wire: u4) -> Self {
-        Self(ChannelIdx::new(wire.as_int() + 1).expect("a 4-bit channel is 1..=16"))
-    }
-
-    /// The channel as a MIDI file stores it, counted from zero.
-    pub(crate) fn wire(self) -> u4 {
-        u4::new(self.0.offset())
-    }
-}
-
-impl fmt::Display for Channel {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
-    }
-}
 
 /// One track's notes on one channel: what a user picks as the drums of a file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -390,39 +345,7 @@ impl ChannelScope {
     pub fn all() -> impl Iterator<Item = Self> {
         [Self::Auto, Self::All]
             .into_iter()
-            .chain(ChannelIdx::all().map(|channel| Self::Only(Channel(channel))))
-    }
-}
-
-/// The channel and note of `kind` when it sounds a note: a note-on with a velocity.
-pub(crate) fn hit(kind: &TrackEventKind) -> Option<(Channel, Note)> {
-    match *kind {
-        TrackEventKind::Midi {
-            channel,
-            message: MidiMessage::NoteOn { key, vel },
-        } if vel.as_int() > 0 => Some((Channel::of(channel), Note::from_key(key))),
-        _ => None,
-    }
-}
-
-/// The channels one track's conversion rewrites: a set of the sixteen, one bit each.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct ChannelFilter(u16);
-
-impl ChannelFilter {
-    pub(crate) const ALL: Self = Self(u16::MAX);
-    pub(crate) const NONE: Self = Self(0);
-
-    pub(crate) fn with(self, channel: Channel) -> Self {
-        Self(self.0 | Self::bit(channel))
-    }
-
-    pub(crate) fn accepts(self, channel: Channel) -> bool {
-        self.0 & Self::bit(channel) != 0
-    }
-
-    fn bit(channel: Channel) -> u16 {
-        1 << channel.0.offset()
+            .chain(ChannelIdx::all().map(|channel| Self::Only(Channel::from_idx(channel))))
     }
 }
 
@@ -483,18 +406,6 @@ mod tests {
     }
 
     #[test]
-    fn a_channel_outside_one_to_sixteen_is_rejected() {
-        assert_eq!(Channel::new(0), None);
-        assert_eq!(Channel::new(17), None);
-    }
-
-    #[test]
-    fn a_channel_from_one_to_sixteen_is_accepted() {
-        assert_eq!(Channel::new(1).map(|c| c.to_string()), Some("1".into()));
-        assert_eq!(Channel::new(16).map(|c| c.to_string()), Some("16".into()));
-    }
-
-    #[test]
     fn there_are_eighteen_scopes_starting_with_auto_and_all() {
         let texts: Vec<String> = ChannelScope::all().map(|s| s.to_string()).collect();
         assert_eq!(texts.len(), 18);
@@ -524,19 +435,5 @@ mod tests {
     #[test]
     fn a_scope_outside_the_eighteen_does_not_deserialize() {
         assert!(serde_json::from_str::<ChannelScope>(r#""17""#).is_err());
-    }
-
-    #[test]
-    fn a_channel_counts_from_one_on_the_wire() {
-        assert_eq!(Some(Channel::of(u4::new(0))), Channel::new(1));
-        assert_eq!(Channel::of(u4::new(9)), Channel::DRUMS);
-        assert_eq!(Some(Channel::of(u4::new(15))), Channel::new(16));
-    }
-
-    #[test]
-    fn every_channel_reads_back_from_the_wire() {
-        for channel in ChannelIdx::all().map(Channel) {
-            assert_eq!(Channel::of(channel.wire()), channel);
-        }
     }
 }

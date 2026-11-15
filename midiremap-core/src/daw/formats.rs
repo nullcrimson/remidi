@@ -1,8 +1,8 @@
 use std::io;
 
 use crate::{
-    channel::Channel,
     engine_map::EngineMap,
+    midi::Channel,
     note::Note,
     xml::{self, element, empty, nest, Indent, Xml},
 };
