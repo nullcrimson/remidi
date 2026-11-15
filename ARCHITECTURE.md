@@ -47,99 +47,167 @@ Seven crates, a web app, and embedded engine presets:
 | `xtask` | `cargo xtask gate`: every check, scheduled over the steps' needs. | `cargo_metadata`, `clap`, `anyhow`, `blake3`, `walkdir`, `serde`, `strum` |
 | `engines/*.toml` | Preset note↔canon maps; core's `build.rs` converts them to one embedded JSON table. | — |
 
-Inside `midiremap-core` only the `midi`, `meter`, `channel`, `rewrite` and `sample` modules, and
-`note`'s `u7` conversion, name `midly`, and nothing reads a file; the CLI, WASM, and app layers own
-all real-world I/O and presentation.
+Inside `midiremap-core` only the `midi` folder, `parts/scan.rs`, `convert/rewrite.rs` and
+`files/sample.rs` name `midly` (outside tests), and nothing reads a file; the CLI, WASM, and app
+layers own all real-world I/O and presentation.
 
 ## Core modules (`midiremap-core/src`)
 
-The dependency direction runs top to bottom; nothing lower depends on anything
-higher. `tests/module_layers.rs` holds the table of which module may use which, and
-fails on any use outside it (an allowed use a module does not make is no failure).
+The core is two sides and three modules on top of them. The **drum side** (`canon`,
+`spread`, `engine`, `mapping`) knows drums and notes and never names `midly` or a MIDI
+event. The **MIDI side** (`midi`, `parts`) knows files, tracks and channels and never names
+a drum. **`inspect`, `convert` and `files`** are the only modules that use both. Under them
+all sit three small value modules at the crate root (`idx`, `non_blank`, `note`); `xml`
+stands alone, and only `files` uses it.
+
+| Module | May use |
+|---|---|
+| `idx`, `non_blank`, `note`, `xml` | nothing |
+| `canon` | `idx` |
+| `spread` | `canon` |
+| `engine` | `canon`, `non_blank`, `note`, `spread` |
+| `mapping` | `canon`, `engine`, `note`, `spread` |
+| `midi` | `idx`, `note` |
+| `parts` | `midi`, `note` |
+| `inspect` | `canon`, `engine`, `midi`, `note`, `parts` |
+| `convert` | `canon`, `inspect`, `mapping`, `midi`, `note`, `parts` |
+| `files` | `canon`, `engine`, `mapping`, `midi`, `non_blank`, `note`, `xml` |
+| `proofs` (tests only) | `canon`, `engine`, `mapping`, `note`, `spread` |
+
+This table lives in `tests/module_layers.rs`. The test reads every `crate::` path in the
+source (through `midiremap-layers`) and fails on a use outside the table, a module with no
+row, a row with no module, or a table that lets a module reach itself (an allowed use a
+module does not make is no failure). A folder is one row. Each folder's `mod.rs` declares
+its files privately and re-exports what other modules use, so other modules write
+`crate::mapping::Outcome`, never a path into a file; the one exception is the test-only
+`canon::rules`, which the proofs read.
 
 ```
-conversion   ── convert(bytes, &Mapping, Selection) → Conversion (Done | Ask)
-   ├── fit         ── the offered parts' summaries
-   ├── midi        ── parse / write (midly), track_at, TrackNo, Damage
-   │      └── meter ── Tick, Bar, Position: a track's ticks as bars
-   └── rewrite     ── rewrite(Smf, &Mapping, TrackFilters) → (Smf, Report): one pure step per event
-          ├── channel     ── Channel (Idx<16>), Part, Parts, Selection → choose: TrackFilters or Ask, hit()
-          │      └── midi, idx
-          ├── report      ── Report: what a conversion did with each hit
-          └── translate   ── Mapping: every drum's and every source note's Outcome, compiled once
-                 ├── resolution  ── Outcome { Direct(Landing) | Fallback(StandIn) | Dropped }, MissingDrums
-                 ├── spread/     ── Kit, Spreads: where a pair's spreads play each tom and cymbal stroke
-                 │      ├── toms    ── TomKit, TomSpread: a pair's toms in order onto the target's
-                 │      ├── cymbals ── CymbalKit, CymbalPlace, CymbalSpread: a pair's cymbals by kind
-                 │      └── assign  ── spread() over Places, into Landings and Moved: the least-cost
-                 │                     ordered assignment both use
-                 ├── engine_map  ── EngineMap, Drum, EngineId
-                 │      └── canon, family, note, non_blank, open_levels, spread (its Kit)
-                 ├── overrides   ── Overrides: edits to either side, as two maps
-                 └── canon       ── Canon (opaque) + its key, label and fallback chains
-                        ├── family ── Family, declared in display order
-                        └── idx    ── Idx<MAX>: a 1-based position in 1..=MAX
+lib.rs          ── re-exports only: the public API
+idx.rs          ── Idx<MAX>: a 1-based position in 1..=MAX
+non_blank.rs    ── NonBlank: a string that is not blank (inside core only)
+note.rs         ── Note (0..=127), OctaveBase, note names
+xml.rs          ── the one XML writer (quick-xml), public: the site writes its sitemap with it
 
-note        ── Note (0..=127), OctaveBase, note names
-non_blank   ── NonBlank: a string that is not blank (inside core only)
-catalog     ── Catalog: builtin presets (embedded) + user maps
-fit         ── note_hits / source_fits: how well each engine's layout covers a file's hits
-plan        ── Mapping::preview: per-drum rows for the editor, no MIDI
-preset      ── the preset file the app exports and the CLI reads
-sample      ── sample_file: a two-bar groove on the notes one engine plays, written by midi
-daw/        ── Daw and its Format registry: drum-map files, the Ableton rack (rack_file),
-               FileStem, Packing { Text | Gzip }
-xml         ── the one XML writer (quick-xml), public: the site writes its sitemap with it
+canon/          ── Canon (opaque), Canon::all, the named drums, CORE_KIT, same_drum
+   ├── slot.rs        ── Slot, its part enums and positions (TomPos, CymSlot, OpenLevel, …)
+   ├── key.rs         ── the dotted key: Display, FromStr, serde
+   ├── label.rs       ── each drum's label, CanonEntry
+   ├── family.rs      ── Family, declared in display order
+   ├── piece.rs       ── Piece: the part of the kit a drum is
+   ├── fallback.rs    ── fallback_chain: the stand-in rules
+   └── rules.rs       ── (tests) the agreed rule table
+spread/         ── Kit, Spreads, SpreadStroke: where a pair's spreads play each tom and cymbal stroke
+   ├── toms.rs        ── TomKit, TomSpread
+   ├── cymbals.rs     ── CymbalKit, CymbalPlace, CymbalSpread, the three steps over Placed
+   ├── assign.rs      ── SpreadPos, Places, Aim, spread(): the least-cost ordered assignment
+   └── landings.rs    ── Landings, Moved: where each place landed, and which moved
+engine/         ── one engine's notes, and every engine
+   ├── map.rs         ── EngineMap, Drum, EngineId, MapError, reading a map
+   ├── open_levels.rs ── OpenLevels: how far the main hi-hat opens
+   └── catalog.rs     ── Catalog: the built-in presets and user maps
+mapping/        ── Mapping: the stages composed, and its readers; Destination
+   ├── route.rs       ── Route, Routes                                   (stage 1)
+   ├── drums.rs       ── DrumTable and its one land()                    (stage 2)
+   ├── chain.rs       ── resolve, resolve_on: one drum against one note lookup
+   ├── outcome.rs     ── Outcome { Direct(Landing) | Fallback(StandIn) | Dropped }
+   ├── settings.rs    ── MissingDrums, Unrecognized
+   ├── overrides.rs   ── Overrides: edits to either side, as two maps
+   └── preview.rs     ── VoicePlan, Mapping::preview: per-drum rows for the editor
+midi/           ── a MIDI file as bytes and events
+   ├── codec.rs       ── parse / write (midly), CodecError, Damage
+   ├── track.rs       ── TrackNo, END_OF_TRACK, track_at
+   ├── meter.rs       ── Tick, Bar, Position, Meter: a track's ticks as bars
+   ├── channel.rs     ── Channel (Idx<16>), ChannelFilter
+   └── event.rs       ── hit(), note_from_key / note_key
+parts/          ── the parts of a file and what a selection selects in it
+   ├── part.rs        ── Part, Parts, PartSet
+   ├── selection.rs   ── Selection, ChannelScope
+   ├── scan.rs        ── PartIndex: a file's parts, read once
+   ├── choose.rs      ── choose → Choice, TrackFilters, hit_notes
+   └── error.rs       ── ConvertError
+inspect/        ── what a file plays, without converting it
+   ├── hits.rs        ── NoteHits, note_hits
+   ├── summary.rs     ── PartSummary, Plays, part_summaries, auto_question
+   └── fit.rs         ── SourceFit, SourceFits, source_fits
+convert/        ── convert(bytes, &Mapping, Selection) → Conversion (Done | Ask)
+   ├── rewrite.rs     ── rewrite(): one pure step per event, DeltaFold
+   └── report.rs      ── Report, FallbackTally: what a conversion did with each hit
+files/          ── files for other programs
+   ├── preset.rs      ── parse_preset: the preset file the app exports and the CLI reads
+   ├── sample.rs      ── sample_file: a two-bar groove on the notes one engine plays
+   └── daw/           ── Daw and its Format registry
+          ├── formats.rs ── Reaper, Cubase and Studio One drum maps
+          ├── logic.rs   ── the Logic Pro Step Sequencer template
+          ├── ableton.rs ── rack_file, RackFile, the note-name rack
+          ├── file.rs    ── FileStem
+          └── packing.rs ── Packing { Text | Gzip }
+proofs/         ── (tests) the all-pairs proofs: chains, pairs, open hats, toms, cymbals, gaps
 ```
 
-Every concept is one concrete type or function; the core defines no traits.
+Every concept is one concrete type or function. The one trait, the crate-private
+`SpreadPos`, lets one assignment serve both spreads.
 
 **Public surface.** Every module but `xml` is private; the crate root re-exports the API the
 CLI, the WASM and the site use (`Canon`, `Catalog`, `EngineMap`, `Mapping`, `Outcome`,
-`convert`, `Report`, `Channel`, `ChannelScope`, `Daw`, the preset and error types).
-`#![warn(unreachable_pub)]` keeps anything else from becoming public by accident, and
-no `midly` type appears in a public signature. Errors keep their causes as
-`source()` (`CodecError`, `MapError::Parse`, `PresetError::Parse`); the CLI prints the
-chain through anyhow and the WASM joins it into one message (`outer: inner`).
+`resolve_on`, `convert`, `Report`, `Channel`, `ChannelScope`, `Daw`, the preset and error
+types). `#![warn(unreachable_pub)]` keeps anything else from becoming public by accident,
+and no `midly` type appears in a public signature. Errors keep their causes as `source()`
+(`CodecError`, `MapError::Parse`, `PresetError::Parse`); the CLI prints the chain through
+anyhow and the WASM joins it into one message (`outer: inner`).
 
-### `canon` — the hub vocabulary
+### `note`, `idx`, `non_blank` — checked values
 
-- `Canon` is an opaque `Copy` value over a crate-private hierarchical enum `Slot`, whose
-  variants carry sub-enums and bounded positions: `Kick(KickKind)`,
-  `Snare(SnareIdx, SnareArtic)`, `Tom(TomPos, TomArtic)`, `Hat(HatOpen, HatZone)`,
-  `Aux(AuxIdx, HatOpen, HatZone)`, `Cymbal(CymSlot, CymArtic)`, `Ride(RideIdx, RideArtic)`
-  and percussion. Only `canon`'s own modules (`key`, `label`, `fallback`) see the `Slot`;
-  the rest of the core names drums by key, by `Canon::all()`, or by the named constants
-  (`Canon::KICK`, `SNARE`, `CLOSED_HAT`, `CRASH`, `RIDE`, `CORE_KIT`).
-- `Canon::family() → Family`. `Family` (module `family`) is declared in display order
-  (`Kick, Snare, Toms, Hi-Hat, Cymbals, Percussion, Aux`, `Family::ALL`) and serializes
-  as its label; the app and the site both group drums by it, so the order lives here
-  only. `CanonEntry` is a drum as people read it (canon, label, family); its one
-  constructor is `From<Canon>`, so its label and family always belong to its canon.
+- `Note` (`note.rs`): a MIDI note number that is always in `0..=127`. It deserializes from a
+  plain number, rejecting anything larger. Every note in the core — engine maps, edits, the
+  mapping, the report and the preview — is a `Note`. `midi/event.rs` converts it to and from
+  `midly`'s `u7` (`note_from_key`, `note_key`), so `note.rs` does not name `midly`.
 - `Note::name(OctaveBase)` names a note (`F#2`) and `Note::octave(OctaveBase)` numbers
   its octave; `OctaveBase::{C1, C2}` (`OctaveBase::ALL`) is the octave convention. The
   site calls them directly. The app reads a table of them: its wasm build calls the
   module's `note_naming` and writes the result to `app/src/wasm/note_naming.json`, which
   `core/notes.ts` imports, so the app names notes before the module has loaded and holds
   no naming rule of its own.
-- `Idx<const MAX: u8>` (module `idx`, shared with `Channel`) holds a 1-based position
-  that is always in `1..=MAX` (`SnareIdx = Idx<2>`, `RackIdx = Idx<8>`, `FloorIdx = Idx<4>`, `OpenLevel = Idx<6>`,
-  …); `CymSlot { Crash(Idx<6>) | China(Idx<3>) | Splash(Idx<3>) | Stack(Idx<4>) |
-  Bell(Idx<2>) }` gives each cymbal kind its own range. Every valid range is written
-  once, as a type, so an out-of-range slot cannot be constructed.
+- `Idx<const MAX: u8>` (`idx.rs`, shared by `canon` and `Channel`) holds a 1-based position
+  that is always in `1..=MAX` (`SnareIdx = Idx<2>`, `RackIdx = Idx<8>`, `FloorIdx = Idx<4>`,
+  `OpenLevel = Idx<6>`, …). Every valid range is written once, as a type, so an
+  out-of-range slot cannot be constructed.
+- `NonBlank` (`non_blank.rs`): a string that is not blank, for an engine's short name and
+  vendor and a preset's name.
+
+### `canon` — the hub vocabulary
+
+- `Canon` is an opaque `Copy` value over a crate-private hierarchical enum `Slot`
+  (`canon/slot.rs`), whose variants carry sub-enums and bounded positions: `Kick(KickKind)`,
+  `Snare(SnareIdx, SnareArtic)`, `Tom(TomPos, TomArtic)`, `Hat(HatOpen, HatZone)`,
+  `Aux(AuxIdx, HatOpen, HatZone)`, `Cymbal(CymSlot, CymArtic)`, `Ride(RideIdx, RideArtic)`,
+  `Perc(PercKind)` and `Hand(HandDrum)`. Only `canon`'s own files see the `Slot`; the rest
+  of the core names drums by key, by `Canon::all()`, by the named constants (`Canon::KICK`,
+  `SNARE`, `CLOSED_HAT`, `CRASH`, `RIDE`, `CORE_KIT`), or through accessors that read one
+  kind of drum (`tom()`, `cymbal()`, `opening()`).
+- `CymSlot { Crash(Idx<6>) | China(Idx<3>) | Splash(Idx<3>) | Stack(Idx<4>) | Bell(Idx<2>) }`
+  gives each cymbal kind its own range.
+- `Canon::family() → Family`. `Family` (`canon/family.rs`) is declared in display order
+  (`Kick, Snare, Toms, Hi-Hat, Cymbals, Percussion, Aux`, `Family::ALL`) and serializes
+  as its label; the app and the site both group drums by it, so the order lives here
+  only. `CanonEntry` (`canon/label.rs`) is a drum as people read it (canon, label,
+  family); its one constructor is `From<Canon>`, so its label and family always belong to
+  its canon.
+- `Canon::piece() → Piece` (`canon/piece.rs`) is the part of the kit a drum is, whichever
+  way it is played; the Logic template picks each row's icon by it.
 - Each `Canon` displays and serializes to a stable **dotted lowercase key**
-  (e.g. `kick.main`, `snare1.hit`, `tom.rack1.hit`, `hat.closed`, `crash.1.bell`,
-  `ride.1`); these keys are the contract shared with the presets, the edits,
-  and the web app (where `Canon` is a branded string).
+  (`canon/key.rs`; e.g. `kick.main`, `snare1.hit`, `tom.rack1.hit`, `hat.closed`,
+  `crash.1.bell`, `ride.1`); these keys are the contract shared with the presets, the
+  edits, and the web app (where `Canon` is a branded string).
 - `Canon::all()` is every slot, built once. `FromStr` is a lookup table built from
   `all()` and `Display` (plus the alias `ride.N.bow`), so every key round-trips by
   construction.
-- `Canon::fallback_chain()`: the ordered, nearest-first list of alternatives to try
-  when a target cannot play a slot.
+- `Canon::fallback_chain()` (`canon/fallback.rs`): the ordered, nearest-first list of
+  alternatives to try when a target cannot play a slot.
 - The part enums (`SnareArtic`, `CymArtic`, …) derive `strum::VariantArray`, so
-  `all()` enumerates them without hand-kept lists; a test checks through
+  `all()` enumerates them without hand-kept lists; tests check through
   `strum::EnumDiscriminants` that `all()` reaches every variant of `Slot`, `HatOpen`,
-  `TomPos` and `CymSlot`.
+  `TomPos`, `CymSlot` and `HandDrum`.
 
 **Fallback rules.** A chain first lists the strokes of the same drum that may stand in
 (`variants`, explicit allow-lists: a fancy stroke falls to a plain one, never the
@@ -147,195 +215,79 @@ reverse; hi-hats keep closed with closed and open with open, foot with foot, and
 fall onto the bell), then walks breadth-first to other drums (`neighbours`, used only
 by Nearest: the other snare, the nearest toms, the nearest cymbal of the same kind,
 crash 1 for china/splash/stack and for a ride edge, the ride bell for a bell cymbal
-and for a crash bell,
-the main hat for an aux hat), each with its own allow-list. "Nearest" is one rule
-(`nearest`: the others by distance, the first in order on a tie) shared by toms, cymbals
-and hat openings; toms measure it by `TomPos::distance` and cymbals by `CymSlot::distance`,
-as the spreads do.
-A chain judges one drum alone; where a pair matches a drum as a whole (open hats by level,
-toms and cymbals by the spreads), `Mapping` does that before any chain is walked. No stand-in → the drum is dropped. Chains are built
-once for every slot. `tests/same_drum_stands_in.rs` holds the agreed rules as an
-independent table and checks every slot's chain against it, and every built-in engine
-pair in both missing-drum modes: the first agreed stand-in the target has is played,
-nothing else on the same drum, and Nearest only crosses to drums the rules allow.
+and for a crash bell, the main hat for an aux hat), each with its own allow-list.
+"Nearest" is one rule (`nearest`: the others by distance, the first in order on a tie)
+shared by toms, cymbals and hat openings; toms measure it by `TomPos::distance` and
+cymbals by `CymSlot::distance`, as the spreads do. A chain judges one drum alone; where a
+pair matches a drum as a whole (open hats by level, toms and cymbals by the spreads), the
+mapping's routes do that before any chain is walked. No stand-in → the drum is dropped.
+Chains are built once for every slot. `canon/rules.rs` writes the agreed rules as a table
+(its snapshot is `tests/golden/rules.txt`), and the proofs in `proofs/` check every chain
+and every built-in pair against it. `tests/same_drum_stands_in.rs` holds the agreed
+same-drum rules as an independent table and checks every slot's chain against it, and
+every built-in engine pair in both missing-drum modes: the first agreed stand-in the target
+has is played, nothing else on the same drum, and Nearest only crosses to drums the rules
+allow.
 
-### `engine_map` — one engine's note table
+### `spread` — one kit's toms and cymbals on another's
 
-- `Note` (module `note`): a MIDI note number that is always in `0..=127`. It
-  deserializes from a plain number, rejecting anything larger, and converts to and
-  from `midly`'s `u7` at the MIDI boundary. Every note in the core — engine maps,
-  edits, the mapping, the report and the preview — is a `Note`.
-- `EngineMap::decode(Note) → Option<Canon>` and `encode(Canon) → Option<Note>`.
-  Built from a TOML/JSON document (see below):
+- `spread` knows no engine, no note and no outcome. A `Kit` is the toms (`TomKit`) and
+  cymbals (`CymbalKit`) among a list of drums (`Kit::of`); each `EngineMap` keeps its own.
+  `Spreads::new(source, target, stand_in)` spreads one kit over another, where `stand_in`
+  gives the target stroke a stroke plays as when nothing spreads it. `stroke(canon)` gives
+  the `SpreadStroke` of a stroke a spread moves off its own drum: the target stroke it plays
+  as (`plays`) and the stroke of the target drum its strokes count as (`drum`). `moved(canon)`
+  says whether the target has the drum `canon` is a stroke of and the source's drum of that
+  name plays on another.
+- The `TomSpread` lands the source's tom hits on the target's in pitch order, on as many
+  target toms as possible, racks on racks and floors on floors wherever that leaves no
+  target tom idle, nearest first, the higher tom on a tie; rimshots follow their tom's hit;
+  rims spread the same way over the target's rims, each on its hit's tom whenever that tom
+  has a rim.
+- The `CymbalSpread` lands cymbals the same way, kind first. A cymbal is in a kit when the
+  engine plays any stroke of it other than its bell. It is three steps, each handing the
+  next a `Placed` value (the cymbals placed so far and the places taken):
+  `own_kinds` spreads each kind over the target's cymbals of that kind like the toms, so a
+  kind the target has never leaves its kind; `missing_kinds` gives each cymbal of a kind the
+  target lacks (kinds in canon order: china, splash, stack, bell cymbal) the unused cymbal
+  nearest its number of the first other kind its chain reaches that the target plays (china
+  and stack: each other, then crashes; splash: crashes; bell cymbal: ride bells), else
+  leaves it to land as its chain would; `crash_bells` plays a crash's bell on its spread
+  crash's bell, else on the nearest unused bell of another crash, else on the first unused
+  ride bell (a ride bell the source's own ride bell lands on is used). Every other stroke
+  follows its cymbal: a `CymbalPlace` (a cymbal or a ride's bell) plays a stroke the same
+  way on a cymbal, and on a ride's bell as `CymArtic::on_ride_bell` names it, the one rule
+  the fallback chains use too. Rides are not spread.
+- Both spreads use `spread()` (`spread/assign.rs`): the least-cost ordered assignment of
+  one row of `Places` onto another, generic over `SpreadPos`, which `TomPos` and `CymSlot`
+  implement. It counts splits, then merges, then crossings, then distance. `Landings`
+  records where each place landed, and `Moved` also which places the target has but plays
+  elsewhere.
+
+### `engine` — one engine's note table, and the catalog
+
+- `EngineMap::decode(Note) → Option<Canon>` and `encode(Canon) → Option<Note>`
+  (`engine/map.rs`). Built from a TOML/JSON document (see below):
   - `to_canon: HashMap<Note, Canon>` — decode direction, one entry per listed note.
   - `from_canon: HashMap<Canon, Note>` — encode direction. A note flagged
-    `primary` wins the reverse mapping; a duplicate primary for one canon is a
-    build error. Non-primary notes fill a canon only if no primary claimed it.
+    `primary` wins the reverse mapping; a duplicate primary for one canon is an error
+    (`MapError::DuplicatePrimary`). Non-primary notes fill a canon only if no primary
+    claimed it.
+- A map also keeps its `OpenLevels` (`engine/open_levels.rs`: the levels its main hi-hat
+  plays in each zone and which is its normal open hat; `toward` gives the level another
+  engine plays a level at) and its spread `Kit`, both read once when it loads.
 - `EngineId` is an engine's id as the catalog names it (a branded string in the app);
   `Drum` is a note and the `CanonEntry` it plays.
 - An `EngineMap` is never copied or patched: edits are applied by `Mapping`.
-
-### `translate` and `resolution` — the pipeline, no MIDI
-
-- `Mapping::new(src, tgt, &Overrides, MissingDrums)` borrows the two engines and compiles
-  one conversion: the source's decode table with the source edits applied (an edit
-  without a canon removes the note), the `Outcome` of every drum in the vocabulary from the
-  target's encode table with the target edits applied, and from both, the outcome of every
-  one of the 128 source notes (`None` for a note the source does not decode). Nothing is
-  resolved after construction, so the fallback search never runs per MIDI event.
-  `with_unrecognized(Unrecognized)` sets, once, what the conversion does with notes that do
-  not decode (`Remove` unless set); it changes neither the outcomes nor the report, only
-  whether those notes are written.
-- Some drums land by match, decided once in `Mapping::new` and read through
-  `matched_drum`: an open main hi-hat on the target's opening that matches the source's
-  (both engines name their normal open hat; it follows only its own row's edit), and, under
-  `Nearest`, a tom on the tom the `TomSpread` gives it. The spread lands the source's tom
-  hits on the target's in pitch order, on as many target toms as possible, racks on racks
-  and floors on floors wherever that leaves no target tom idle, nearest first, the higher
-  tom on a tie; rimshots follow their tom's hit, then that tom's chain to its hit; rims
-  spread the same way over the target's rims, each on its hit's tom whenever that tom has
-  a rim. A tom the target has stays `Direct` (its `Landing` plays the spread tom), a tom
-  the target lacks stays a `Fallback` to another drum, and a stroke is judged against the
-  tom its hit plays. An edit of a row the spread moved off its own name moves only that
-  row; every other stand-in follows the edit of the drum it lands on. `proofs/toms.rs`
-  checks the spread over every built-in pair.
-- Under `Nearest`, cymbals land by the `CymbalSpread` the same way, kind first. A cymbal is
-  in a kit when the engine plays any stroke of it other than its bell. Each kind spreads over
-  the target's cymbals of that kind like the toms (`spread`, generic over `SpreadPos`, which
-  `TomPos` and `CymSlot` implement), so a kind the target has never leaves its kind. A kind
-  the target lacks (claimed in canon order: china, splash, stack, bell cymbal) takes the
-  unused cymbal nearest its number of the first other kind its chain reaches that the target
-  plays (china and stack: each other, then crashes; splash: crashes; bell cymbal: ride
-  bells), else lands as its chain would. A crash's bell plays on its spread crash's bell,
-  else on the nearest unused bell of another crash, else on the first unused ride bell (a
-  ride bell the source's own ride bell lands on is used). Every other stroke follows its
-  cymbal: a `CymbalPlace` (a cymbal or a ride's bell) plays a stroke the same way on a
-  cymbal, and on a ride's bell as `CymArtic::on_ride_bell` names it, the one rule the
-  fallback chains use too. Rides are not spread. Outcomes and edits follow
-  the tom rules; `proofs/cymbals.rs` checks the spread over every built-in pair.
-- Readers: `resolve_canon(canon)` (a drum's outcome), `played()` (each source note that
-  plays a drum, with its outcome), `dropped_drums()` (the one rule for "a drum the source
-  plays that the target leaves out", read by the site's pair pages and the rack's
-  `dropped` count), and, inside the core, `destination(note)`, the one rule for where a
-  source note plays: on a drum and its note, unchanged (`Unrecognized::Keep`), or nowhere.
-  `rewrite` and the Ableton rack both read it, so the rack plays every note where the
-  converted file puts it (`tests/ableton_racks.rs` checks that note for note over five
-  engines' pairs, both Missing drums and both Unrecognized settings, with and without
-  edits).
-- `Outcome` (module `resolution`) is where a drum lands, total by construction:
-  `Direct(Landing)` (the target has it: the drum itself, or matched to the source's at
-  another opening or tom, the only pairings `Landing`'s constructors build),
-  `Fallback(StandIn)` (another drum plays it), or
-  `Dropped { other_drum }` (nothing plays it). A drum the target lacks takes the first
-  drum of its fallback chain the target has; `Drop` walks the same chain filtered to
-  `Canon::same_drum`, so both modes share one order. `StandIn` keeps its fields private
-  and computes in its one constructor whether the stand-in is another drum than the one
-  it is judged against.
-  `moves_to_other_drum()` says whether the missing-drums setting decides the drum: a
-  fallback to another drum, or a drop that another drum could have played. `Outcome`
-  serializes tagged by `status`, without the drum itself.
-- `Report` (module `report`) keeps its counters private and hands them out as
-  iterators and totals (`hits()` is every note-on seen); only the converter tallies
-  them (`record`, `record_untouched`).
-- `Report::record` keeps the counting policy in one place: it tallies unmapped
-  source notes, fallbacks used (each with the stand-in drum the converter chose, the
-  target note it landed on and the hit count), and dropped canons; direct hits are not recorded. `converted` counts hits written to
-  the output (direct or approximated); `untouched` counts note-ons the channel scope
-  left alone, which are not loss. It serializes in camelCase (`unmappedSource`,
-  `fallbackUsed`, `dropped`, `untouched`, `converted`) with its `BTreeMap`s in a
-  stable order and note keys as strings, so the CLI and WASM print the same JSON. A
-  `fallbackUsed` entry is `{ standIn, note, count }`; the app names the report line
-  after `standIn`, and when a target edit moved the stand-in onto another note it adds
-  what the stock target has there ("China → Crash 2 → Ride").
-
-### `midi`, `channel`, `rewrite` — the modules that know `midly`
-
-- `midi`: `parse(bytes)` → `Parsed { smf, damage }` / `write(&smf)`, the `midly` codec,
-  and `track_at`, which builds
-  a track from events at absolute ticks (it checks that the ticks never go back). `parse`
-  refuses a header whose SMPTE rate byte is `0x80` (`CodecError::SmpteRate`) before midly
-  sees it: midly 0.5.3 negates it with an overflow, a panic in builds with overflow checks
-  (found by fuzzing).
-- `channel`: `Channel` is a MIDI channel `1..=16` (an `Idx<16>`), numbered as people
-  count them (`Channel::DRUMS` is 10). `hit(kind)` is the one predicate for a hit (a
-  note-on with velocity > 0), read by the converter, the hit counts `fit` ranks engines by, and the `Auto` scope.
-- `ChannelScope { Auto | Only(Channel) | All }` chooses which channels a conversion
-  rewrites. A `Selection` is a scope or a user's `Parts`, and `choose(&smf, &selection)` is
-  the one place either becomes `Choice::Convert { filters, picked, offers }` or
-  `Choice::Ask(parts)`: `TrackFilters` is one `ChannelFilter` per track of that file, a set
-  of the sixteen channels (`ALL`, `NONE`, `with(channel)`), built only there. `Auto` (the
-  default) picks parts and never guesses: a file with channel-10 hits converts its channel-10 parts
-  and offers each other part of the tracks those are in (Mjód: 168 drum hits on channel 1
-  beside channel 10, which nothing in the file tells from a one-track band file's piano); a
-  file whose hits are all on one part converts it (drum packs); any other file converts
-  nothing and asks which parts are the drums, since 123 of 160 layouts read half a piano or
-  bass range and only the user can tell. Nothing is deleted without saying so: an
-  untouched part is counted `untouched`.
-  Parses from `auto`, `all` or `1`..=`16`.
-- A `Part { track: TrackNo, channel }` is one track's notes on one channel, both counted
-  from 1 (`2:10`); `Parts` is a set that holds at least one, a user's pick for one file
-  (`Selection::Parts`), and a picked part the file has no hit in is
-  `ConvertError::NoSuchPart`. The CLI takes it as `--parts 1:10,2:1`, the WASM as the
-  `remap` selection `{ parts: [...] }`.
-- `rewrite`: `rewrite(smf, &Mapping, filters) → (Smf, Report)` runs one pure `step`
-  per event, which moves its key and says its `Fate` (stays or goes, and what it adds to
-  the report), and `thin` keeps the events that stay:
-  - Note-on/off and poly aftertouch keys are rewritten to the resolved target
-    note, so cymbal chokes follow their cymbal.
-  - Dropped notes (and their aftertouch) are removed, and so are unmapped ones unless
-    the mapping's `Unrecognized` is `Keep`, which writes them out unchanged (same key,
-    channel, velocity and tick); a removed event's
-    delta is folded into the next kept event (`DeltaFold`) so timing does not shift.
-    A folded gap past the `u28` maximum fails the conversion with
-    `CodecError::DeltaOverflow` instead of moving later events.
-  - Every other event, and every event on a rejected channel, passes through
-    untouched.
-  - Each real note-on (velocity > 0) is reported once; those on a rejected
-    channel or skipped track count as `untouched`.
-
-  No active `(channel, note)` tracking is needed: translation is a pure function
-  of the note number, so a note-on and its note-off resolve identically and stay
-  paired. The only accepted loss is many-to-one collisions (e.g. L/R kick → one
-  note).
-- `tests/rewrite_props.rs` (proptest) checks this on generated multi-track files, with
-  the built-in pair, missing setting, unrecognized setting and scope drawn at random: kept events keep their absolute tick
-  and everything but the key, only note events are removed, notes stay paired per
-  channel and key, and `converted + dropped + unmapped + untouched` equals the input's
-  note-ons; keeping unrecognized notes changes no count and writes
-  `converted + unmapped + untouched` note-ons.
-- `fuzz/` (cargo-fuzz, its own workspace) feeds `convert` arbitrary bytes: no panic,
-  the output parses, and the counts add up. It runs daily in CI (`fuzz.yml`); locally,
-  on Linux or WSL with a nightly toolchain:
-  `cd midiremap-core && cargo +nightly fuzz run convert fuzz/corpus/convert fuzz/seeds -- -dict=fuzz/midi.dict -max_total_time=600`.
-  Crashes found become files in `fuzz/seeds/`.
-
-### `conversion` — end-to-end facade
-
-- `convert(midi, &Mapping, impl Into<Selection>) → Result<Conversion, ConvertError>`: parse,
-  choose, rewrite, write. `Conversion::Done(Converted { bytes, report, damage, picked,
-  offers })`, the offers summarized as the source plays them, or `Conversion::Ask { parts,
-  damage }` when `Auto` must ask (nothing written). The single entry point for the CLI and
-  the WASM; it crosses to the app as it is. `fit::part_summaries`
-  lists a file's parts (track name, hits, and what they play as a source), and
-  `fit::auto_question` lists them only when `Auto` would ask.
-- `damage` lists what the file had lost before it was read, since midly (not strict) reads
-  a damaged file as far as it goes without saying so: `Damage::TrackCut` for a track with no
-  End-of-Track (every loss of events leaves one, a bad event or a cut download alike), placed
-  at the bar of its last event read (`meter`, or the tick in a file timed in SMPTE frames),
-  and `Damage::TracksMissing` when the header declares more tracks than were read. The CLI
-  prints them and exits 3; the app names each damaged file on the done panel.
-
-### `catalog` — where engine maps come from
-
-- `Catalog`: engine maps keyed by id in a `BTreeMap`, with `get(id)`, and `ids()` /
-  `engines()` in id order, so no caller sorts. `EngineMap` exposes `id()` / `name()`
-  and reads user maps with `EngineMap::from_json`; a map that lists a note twice is a
-  `MapError::DuplicateNote`. A map may list former
-  ids as `aliases`; `get` and `canonical_id` resolve them, so renaming an engine never
-  breaks a saved preset. `from_maps` rejects an alias that is also an id or belongs
-  to two engines (`MapError::AliasCollision`). No built-in preset has an alias yet.
-  A map may be a `variant` of another engine (another mapping of the same kit);
-  `variants(base)` and `base_of(map)` relate them.
+- `Catalog` (`engine/catalog.rs`): engine maps keyed by id in a `BTreeMap`, with
+  `get(id)`, and `ids()` / `engines()` in id order, so no caller sorts. `EngineMap`
+  exposes `id()` / `name()` and reads user maps with `EngineMap::from_json`; a map that
+  lists a note twice is a `MapError::DuplicateNote`. A map may list former ids as
+  `aliases`; `get` and `canonical_id` resolve them, so renaming an engine never breaks a
+  saved preset. `from_maps` rejects an alias that is also an id or belongs to two engines
+  (`MapError::AliasCollision`). No built-in preset has an alias yet. A map may be a
+  `variant` of another engine (another mapping of the same kit); `variants(base)` and
+  `base_of(map)` relate them.
 - `Catalog::builtin()`: every `engines/*.toml` (dozens of presets). Core's `build.rs`
   globs the directory, parses each file with `toml`, rejects invalid TOML or a
   duplicate engine id as a build error naming the file, and writes one JSON table
@@ -346,6 +298,10 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
   instance, so the WASM parses presets once per page instead of once per call.
 - `with_user_json(json)` adds a user map that *shadows* a builtin with the same id;
   `from_maps(maps)` builds a catalog from any maps (tests, generators).
+- `tests/engine_facts.rs` pins what the built-in engines play on the notes worth checking
+  (each names its vendor, UJAM's mute keys, BFD3's tom slots, …). It shares the drum-key
+  helper `k` and the note helper `n` in `tests/support/mod.rs` with four other
+  integration tests.
 - `tests/stable_ids.rs` guards saved data: every drum key and engine id ever released is
   recorded in `tests/golden/`, must still parse or resolve (through an alias after a
   rename), and every new one must be appended.
@@ -354,67 +310,257 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
   recorded line per target. A line changes only when a preset or the fallback order
   does; the change is then reviewed in the diff of that file.
 
-### `preset` — the preset file
+### `mapping` — one engine pair, compiled in stages
 
-- `parse_preset(json, &Catalog) → LoadedPreset { preset: SavedPreset, skipped }` reads
-  `{ "format": "drumverter-preset", "version": 1, name, src, tgt, edits: { canon: note },
-  srcEdits: { "note": canon | null } }` — the file the web app exports. `SavedPreset` is
-  `{ name: PresetName, src: EngineId, tgt: EngineId }` with its `Overrides` flattened in,
-  so the edits are stored in the same shape the app keeps and the WASM takes. The engines
-  are resolved through the catalog's aliases to current ids; an unknown engine is
-  `PresetError::UnknownSource` / `UnknownTarget`. Another format or version, or a blank
-  name or engine, is an error; an edit it cannot read (unknown drum, note out of range) is
-  skipped and listed in `skipped` as a `SkippedEdit` (kind + key/value; `Display` gives
-  the CLI's line), never fatal. The app's export and this parser share the fixture
-  `midiremap-core/tests/golden/my-kit.drumverter.json`, which the CLI's, the wasm crate's
-  and the app's tests read from there.
+`Mapping::new(src, tgt, &Overrides, MissingDrums)` borrows the two engines and compiles
+one conversion in stages. Each stage is a pure function whose product is built once:
 
-### `overrides` — per-voice retargeting
+| # | Stage | Where | Consumes | Produces |
+|---|---|---|---|---|
+| 1 | route | `mapping/route.rs` | source, target, `MissingDrums` | `Routes`: a `Route` for every drum |
+| 2 | land | `mapping/drums.rs` | `Routes`, target, target edits, `MissingDrums` | `DrumTable`: an `Outcome` for every drum |
+| 3 | decode | `mapping/mod.rs` | source, source edits | each source note's drum |
+| 4 | join | `Mapping::new` | stages 2 and 3 | the outcome of each of the 128 source notes |
 
-- `Overrides { edits: { canon: note }, srcEdits: { "note": canon | null } }`, both
-  maps required: one shape from the app's state through the WASM to the preset file.
-  `edits` retargets the *encode* side ("encode this canon as this note"); `srcEdits`
-  retargets the *decode* side ("read this source note as this canon"), which lets a note
-  the source engine doesn't map be rescued to a canon, or (with `null`) a note it does
-  map be unassigned — how the editor replaces a drum's source note. Notes are `Note`s
-  and drums `Canon`s, so an out-of-range value fails deserialization.
-- `Mapping::new` applies them, and anything not overridden falls through to the engine;
-  the preview reads the edited source notes only to list them first.
+Nothing is resolved after construction, so the fallback search never runs per MIDI event.
+`with_unrecognized(Unrecognized)` sets, once, what the conversion does with notes that do
+not decode (`Remove` unless set); it changes neither the outcomes nor the report, only
+whether those notes are written.
 
-### `plan` — the source→target preview (UI, no MIDI)
-
-- `Mapping::preview() → Vec<VoicePlan>`: per-drum rows from the same `Mapping` the
-  conversion uses. One row per canon the source engine defines or any note decodes to,
-  in `Canon::all()` order, serialized as `{ canon, label, family, srcNotes,
-  defaultTgtNote, outcome }`:
+- **Stage 1, routes.** A `Route` says how a drum finds the target drum that plays it:
+  `Chain` (by its own name, else its fallback chain), `Opening(OpenLevel)` (an open main
+  hi-hat on the target's opening that matches the source's, when both engines name their
+  normal open hat) or `Spread { stroke, named }` (under `Nearest`, a tom or cymbal stroke a
+  spread moves; `named` when the target has the stroke itself). Routes are decided from the
+  two engines as they ship, so no edit changes one. `Mapping::matched_drum(canon)` reads
+  them: the target drum a drum lands on by match rather than by its chain.
+- **Stage 2, landing.** `DrumTable::compile` lands every drum through one total function,
+  `land`. A drum with an edit of its own plays that edit, whatever its route. A `Chain`
+  drum resolves on the target with every edit. A matched opening resolves on the target as
+  it ships, so it follows only its own row's edit. A spread stroke resolves the stroke it
+  plays as on the target with every edit but those of the drums a spread moved off their
+  own name, so an edit of a moved row moves only that row and every other stand-in follows
+  the edit of the drum it lands on. `TargetNotes` names these three readings of the target
+  (`stock`, `edited`, `following`); edits are chained after the engine's notes, so an edit
+  wins. `opened` and `spread` relabel what landed as the drum's own outcome: a tom or
+  cymbal the target has stays `Direct` (its `Landing` plays the spread drum), one the
+  target lacks is a `Fallback` to another drum, and a stroke is judged against the stroke
+  of the drum its strokes count as. `Mapping::unedited()` is stage 2 compiled again with no
+  edits, so that rule is written once.
+- **One drum against one note lookup** (`mapping/chain.rs`). `resolve(canon, encode,
+  missing)` takes the target's lookup as a function: the drum itself when the target has
+  it, else the first drum of its fallback chain the target has that `missing` allows, else
+  dropped. `resolve_on(map, canon, missing)` is the same on an engine as it ships, with no
+  edits: what the converter writes for that drum. Both stages, the sample groove and the
+  proofs call it.
+- **Outcomes** (`mapping/outcome.rs`). `Outcome` is where a drum lands, total by
+  construction: `Direct(Landing)` (the target has it: the drum itself, or matched to the
+  source's at another opening, tom or cymbal, the only pairings `Landing`'s constructors
+  `itself`, `opened_to` and `spread_to` build), `Fallback(StandIn)` (another drum plays
+  it), or `Dropped { other_drum }` (nothing plays it). `Drop` walks the same chain as
+  `Nearest` filtered to `Canon::same_drum` (`MissingDrums::allows`), so both modes share
+  one order. `StandIn` keeps its fields private and computes in its one constructor whether
+  the stand-in is another drum than the one it is judged against. `moves_to_other_drum()`
+  says whether the missing-drums setting decides the drum: a fallback to another drum, or a
+  drop that another drum could have played. `Outcome` serializes tagged by `status`,
+  without the drum itself.
+- **Settings** (`mapping/settings.rs`): `MissingDrums { Nearest | Drop }` and
+  `Unrecognized { Remove | Keep }`, each parsed from and serialized as its lowercase name.
+- **Readers.** `resolve_canon(canon)` (a drum's outcome), `played()` (each source note
+  that plays a drum, with its outcome), `dropped_drums()` (the one rule for "a drum the
+  source plays that the target leaves out", read by the site's pair pages and the rack's
+  `dropped` count), and, inside the core, `destination(note)` → `Destination`, the one rule
+  for where a source note plays: on a drum and its note, unchanged
+  (`Unrecognized::Keep`), or nowhere. `rewrite` and the Ableton rack both read it, so the
+  rack plays every note where the converted file puts it (`tests/ableton_racks.rs` checks
+  that note for note over five engines' pairs, both Missing drums and both Unrecognized
+  settings, with and without edits).
+- **Edits** (`mapping/overrides.rs`). `Overrides { edits: { canon: note }, srcEdits:
+  { "note": canon | null } }`, both maps required: one shape from the app's state through
+  the WASM to the preset file. `edits` retargets the *encode* side ("encode this canon as
+  this note"); `srcEdits` retargets the *decode* side ("read this source note as this
+  canon"), which lets a note the source engine doesn't map be rescued to a canon, or (with
+  `null`) a note it does map be unassigned — how the editor replaces a drum's source note.
+  Notes are `Note`s and drums `Canon`s, so an out-of-range value fails deserialization.
+  `Mapping::new` applies them (target edits in stage 2, source edits in stage 3), and
+  anything not overridden falls through to the engine.
+- **Preview** (`mapping/preview.rs`, UI, no MIDI). `Mapping::preview() → Vec<VoicePlan>`:
+  per-drum rows from the same `Mapping` the conversion uses. One row per canon the source
+  engine defines or any note decodes to, in `Canon::all()` order, serialized as
+  `{ canon, label, family, srcNotes, defaultTgtNote, outcome }`:
   - `srcNotes`: every source note that plays this drum — overridden notes first,
     then the engine's primary note, then the rest. Empty for a *silent* drum (its
     notes were reassigned); the row stays so its target remains editable.
   - `outcome`: the drum's `Outcome`, with target edits applied (the app names a
     stand-in after `standIn`, followed by what the stock target has on the note when a
-    target edit moved it there); `defaultTgtNote`: the target note without target edits.
+    target edit moved it there); `defaultTgtNote`: the target note without target edits,
+    read from `unedited()`.
   - A row's drum comes from its outcome, so the two cannot disagree.
   `tests/preview_matches_conversion.rs` converts every note for every builtin pair
   (Nearest, Drop, and with edits) and checks the preview against the output.
+- **Proofs.** `proofs/` (tests only) checks the mapping over every built-in pair:
+  `proofs/pairs.rs` the agreed stand-ins, `proofs/open_hats.rs` the openings,
+  `proofs/toms.rs` the tom spread, `proofs/cymbals.rs` the cymbal spread, and
+  `proofs/audit.rs` that every gap a pair leaves is a known one
+  (`tests/golden/known_gaps.txt`).
 
-### `daw` — files for the DAWs
+### `midi` and `parts` — the MIDI side
 
-- `Daw { Reaper, Cubase, StudioOne, AbletonLive, Logic }` (`Daw::ALL`) and one `Format` entry per
-  DAW: its names, the drum-map file's extension, how the file is packed and how its text
-  is written for an engine. `daw.drum_map(map, credit)` writes an engine's drum map:
-  Reaper note names (with `credit` in the header), a Cubase `.drm`, a Studio One
-  `.pitchlist`, an Ableton note-name rack and a Logic Pro Step Sequencer template
-  (`.pattern`, an XML plist written with the `plist` crate: one row per played note, family
-  by family, named after its drum and set to its note, every step off).
+- `midi/codec.rs`: `parse(bytes)` → `Parsed { smf, damage }` / `write(&smf)`, the `midly`
+  codec. `parse` refuses a header whose SMPTE rate byte is `0x80` (`CodecError::SmpteRate`)
+  before midly sees it: midly 0.5.3 negates it with an overflow, a panic in builds with
+  overflow checks (found by fuzzing). `damage` lists what the file had lost before it was
+  read, since midly (not strict) reads a damaged file as far as it goes without saying so:
+  `Damage::TrackCut` for a track with no End-of-Track (every loss of events leaves one, a
+  bad event or a cut download alike), placed at the bar of its last event read (`Meter`,
+  or the tick in a file timed in SMPTE frames), and `Damage::TracksMissing` when the
+  header declares more tracks than were read.
+- `midi/track.rs`: `TrackNo` (counted from 1), `END_OF_TRACK`, and `track_at`, which
+  builds a track from events at absolute ticks (it checks that the ticks never go back).
+  `midi/meter.rs`: `Tick`, `Bar`, `Position` and `Meter`, which turns a file's ticks into
+  bars by its time signatures.
+- `midi/channel.rs`: `Channel` is a MIDI channel `1..=16` (an `Idx<16>`), numbered as people
+  count them (`Channel::DRUMS` is 10). `ChannelFilter` is a set of the sixteen channels
+  (`ALL`, `NONE`, `with(channel)`).
+- `midi/event.rs`: `hit(kind)` is the one predicate for a hit (a note-on with velocity
+  > 0), read by the converter, the part scan (so the hit counts `inspect` ranks engines
+  by) and the `Auto` scope.
+- `ChannelScope { Auto | Only(Channel) | All }` (`parts/selection.rs`) chooses which
+  channels a conversion rewrites; it parses from `auto`, `all` or `1`..=`16`. A `Selection`
+  is a scope or a user's `Parts`.
+- A `Part { track: TrackNo, channel }` (`parts/part.rs`) is one track's notes on one
+  channel, both counted from 1 (`2:10`); `Parts` is a set that holds at least one, a
+  user's pick for one file (`Selection::Parts`), and a picked part the file has no hit in
+  is `ConvertError::NoSuchPart` (`parts/error.rs`). The CLI takes it as
+  `--parts 1:10,2:1`, the WASM as the `remap` selection `{ parts: [...] }`.
+- `PartIndex::of(&smf)` (`parts/scan.rs`) reads a file's parts once: how many tracks it
+  has, the note of every hit of each part in order, and the name each track gives itself.
+  The choice of what to convert, the hit notes and the part summaries all read it instead
+  of scanning the file again.
+- `choose(&index, &selection)` (`parts/choose.rs`) is the one place a selection becomes
+  `Choice::Convert { filters, picked, offers }` or `Choice::Ask(parts)`: `TrackFilters` is
+  one `ChannelFilter` per track of that file, built only there. `Auto` (the default) picks
+  parts and never guesses: a file with channel-10 hits converts its channel-10 parts and
+  offers each other part of the tracks those are in (Mjód: 168 drum hits on channel 1
+  beside channel 10, which nothing in the file tells from a one-track band file's piano); a
+  file whose hits are all on one part converts it (drum packs); any other file converts
+  nothing and asks which parts are the drums, since 123 of 160 layouts read half a piano or
+  bass range and only the user can tell. Nothing is deleted without saying so: an
+  untouched part is counted `untouched`. `hit_notes` is the note of every hit a selection
+  would rewrite.
+
+### `inspect` — what a file plays
+
+- `note_hits(midi, selection) → NoteHits` (`inspect/hits.rs`): the hits on each note a
+  conversion with that selection would rewrite; none when it would ask.
+- `source_fits(&catalog, &hits) → SourceFits` (`inspect/fit.rs`): every engine fitted to the
+  same hits, best first (the most hits its map decodes, ties in catalog order).
+- `part_summaries(midi, source?)` (`inspect/summary.rs`) lists a file's parts (track name,
+  hits, and what they `Plays` as a source), and `auto_question(midi, source?)` lists them
+  only when `Auto` would ask. Both, and `convert`'s offers, come from one crate-private
+  `summaries`.
+
+### `convert` — the entry point
+
+- `convert(midi, &Mapping, impl Into<Selection>) → Result<Conversion, ConvertError>`
+  (`convert/mod.rs`) is the single entry point for the CLI and the WASM; it crosses to the
+  app as it is. Its stages:
+
+  | # | Stage | Function | Produces |
+  |---|---|---|---|
+  | 1 | parse | `midi::parse` | `Parsed { smf, damage }` |
+  | 2 | scan | `PartIndex::of` | the file's parts |
+  | 3 | choose | `choose` | `Choice::Convert { filters, picked, offers }` or `Choice::Ask(parts)` |
+  | 4 | summarize offers | `summaries` | the offers, as the source plays them |
+  | 5 | rewrite | `rewrite` | the new `smf` and its `Report` |
+  | 6 | write | `midi::write` | bytes |
+
+  The result is `Conversion::Done(Converted { bytes, report, damage, picked, offers })`, or
+  `Conversion::Ask { parts, damage }` when `Auto` must ask (nothing written). The CLI
+  prints the damage and exits 3; the app names each damaged file on the done panel.
+- `rewrite(smf, &Mapping, filters) → (Smf, Report)` (`convert/rewrite.rs`) runs one pure
+  `step` per event, which returns the event as written and its `Fate` (`Kept`, `Removed`,
+  `Untouched`, `Played(note)` or `Dropped(note)`: whether it stays, and what it adds to the
+  report). `rewrite` records each fate in the report, and `thin` keeps the events that
+  stay:
+  - Note-on/off and poly aftertouch keys are rewritten to the destination note, so cymbal
+    chokes follow their cymbal.
+  - Dropped notes (and their aftertouch) are removed, and so are unmapped ones unless
+    the mapping's `Unrecognized` is `Keep`, which writes them out unchanged (same key,
+    channel, velocity and tick); a removed event's delta is folded into the next kept
+    event (`DeltaFold`) so timing does not shift. A folded gap past the `u28` maximum
+    fails the conversion with `CodecError::DeltaOverflow` instead of moving later events.
+    A track that lacks its End-of-Track gains one.
+  - Every other event, and every event on a rejected channel, passes through
+    untouched.
+  - Each real note-on (velocity > 0) is reported once; those on a rejected
+    channel or skipped track count as `untouched`.
+
+  No active `(channel, note)` tracking is needed: translation is a pure function
+  of the note number, so a note-on and its note-off resolve identically and stay
+  paired. The only accepted loss is many-to-one collisions (e.g. L/R kick → one
+  note).
+- `Report` (`convert/report.rs`) keeps its counters private and hands them out as
+  iterators and totals (`hits()` is every note-on seen); only the converter tallies
+  them (`record`, `record_untouched`). `record` keeps the counting policy in one place: it
+  tallies unmapped source notes, fallbacks used (each a `FallbackTally`: the stand-in drum
+  the converter chose, the target note it landed on and the hit count), and dropped
+  canons; direct hits are not recorded. `converted` counts hits written to the output
+  (direct or approximated); `untouched` counts note-ons the channel scope left alone,
+  which are not loss. It serializes in camelCase (`unmappedSource`, `fallbackUsed`,
+  `dropped`, `untouched`, `converted`) with its `BTreeMap`s in a stable order and note
+  keys as strings, so the CLI and WASM print the same JSON. A `fallbackUsed` entry is
+  `{ standIn, note, count }`; the app names the report line after `standIn`, and when a
+  target edit moved the stand-in onto another note it adds what the stock target has
+  there ("China → Crash 2 → Ride").
+- `tests/rewrite_props.rs` (proptest) checks this on generated multi-track files, with
+  the built-in pair, missing setting, unrecognized setting and scope drawn at random:
+  kept events keep their absolute tick and everything but the key, only note events are
+  removed, notes stay paired per channel and key, and
+  `converted + dropped + unmapped + untouched` equals the input's note-ons; keeping
+  unrecognized notes changes no count and writes `converted + unmapped + untouched`
+  note-ons.
+- `fuzz/` (cargo-fuzz, its own workspace) feeds `convert` arbitrary bytes: no panic,
+  the output parses, and the counts add up. It runs daily in CI (`fuzz.yml`); locally,
+  on Linux or WSL with a nightly toolchain:
+  `cd midiremap-core && cargo +nightly fuzz run convert fuzz/corpus/convert fuzz/seeds -- -dict=fuzz/midi.dict -max_total_time=600`.
+  Crashes found become files in `fuzz/seeds/`.
+
+### `files` — files for other programs
+
+- `parse_preset(json, &Catalog) → LoadedPreset { preset: SavedPreset, skipped }`
+  (`files/preset.rs`) reads `{ "format": "drumverter-preset", "version": 1, name, src,
+  tgt, edits: { canon: note }, srcEdits: { "note": canon | null } }` — the file the web
+  app exports. `SavedPreset` is `{ name: PresetName, src: EngineId, tgt: EngineId }` with
+  its `Overrides` flattened in, so the edits are stored in the same shape the app keeps
+  and the WASM takes. The engines are resolved through the catalog's aliases to current
+  ids; an unknown engine is `PresetError::UnknownSource` / `UnknownTarget`. Another format
+  or version, or a blank name or engine, is an error; an edit it cannot read (unknown
+  drum, note out of range) is skipped and listed in `skipped` as a `SkippedEdit` (kind +
+  key/value; `Display` gives the CLI's line), never fatal. The app's export and this
+  parser share the fixture `midiremap-core/tests/golden/my-kit.drumverter.json`, which the
+  CLI's, the wasm crate's and the app's tests read from there.
+- `sample_file(&engine)` (`files/sample.rs`) writes a two-bar groove on the notes one
+  engine plays, each drum on the engine's own note or its nearest stand-in's
+  (`resolve_on` under `Nearest`).
+- `Daw { Reaper, Cubase, StudioOne, AbletonLive, Logic }` (`files/daw/mod.rs`,
+  `Daw::ALL`) and one `Format` entry per DAW: its names, the drum-map file's extension,
+  how the file is packed and how its text is written for an engine.
+  `daw.drum_map(map, credit)` writes an engine's drum map: Reaper note names (with
+  `credit` in the header), a Cubase `.drm`, a Studio One `.pitchlist`
+  (`files/daw/formats.rs`), an Ableton note-name rack (`files/daw/ableton.rs`) and a
+  Logic Pro Step Sequencer template (`files/daw/logic.rs`: `.pattern`, an XML plist
+  written with the `plist` crate: one row per played note, family by family, named after
+  its drum and set to its note, every step off).
 - `rack_file(&Mapping, Option<&PresetName>) → RackFile { file_name, xml, packing, dropped }`
-  is the Ableton Live MIDI Effect Rack that plays a mapping: one chain per source note,
-  shifted onto where the conversion puts it.
+  (`files/daw/ableton.rs`) is the Ableton Live MIDI Effect Rack that plays a mapping: one
+  chain per source note, shifted onto where the conversion puts it.
 - They write their XML with the core's one XML writer (`xml`: `document`, `element`, `nest`,
   `empty`, `text`), which the site's sitemap uses too. The tests read the files back with
-  `roxmltree`.
-  `FileStem` cleans a name into a file name every system accepts. `Packing { Text | Gzip }`
-  says how a file is stored; `Packing::pack` is behind the feature `gzip`, which the site
-  enables (the app packs with `fflate`), so the core writes text only by default.
+  `roxmltree`. `FileStem` (`files/daw/file.rs`) cleans a name into a file name every system
+  accepts. `Packing { Text | Gzip }` (`files/daw/packing.rs`) says how a file is stored;
+  `Packing::pack` is behind the feature `gzip`, which the site enables (the app packs with
+  `fflate`), so the core writes text only by default.
 
 ## Engine preset format
 
@@ -436,14 +582,14 @@ notes = [
 - `short_name` — optional; the name the app and site show (`display_name`), falling
   back to `name`. The app's engine filter still matches `name`.
 - `vendor` — who makes the engine; groups the site's engine index. Optional for user
-  maps, required for every built-in preset (a catalog test checks it). Blank values are
+  maps, required for every built-in preset (`tests/engine_facts.rs` checks it). Blank values are
   errors (`NonBlank`).
 - `note` — MIDI note number `0..=127`.
 - `canon` — a canon's dotted string key (see the `canon` module).
 - `primary` — optional (default `false`); the note used when *encoding* this
   canon. Multiple notes may decode to the same canon; at most one may be primary, and
   with none the first one listed encodes it.
-- `aliases` — optional; former ids that still resolve to this engine (see `catalog`).
+- `aliases` — optional; former ids that still resolve to this engine (see `engine`).
 
 Built-in presets: dozens of engines spanning GetGood Drums, Toontrack EZdrummer /
 Superior Drummer, Addictive Drums 2, BFD3, Steven Slate SSD5, Native Instruments,
@@ -700,7 +846,7 @@ test in that file fails on any import outside it.
   `rgba(` and `shadow-[` out of `src` (shadows are `@theme` tokens in `index.css`).
 
 Edit preview and downloaded output share one source of truth: the editor's rows
-come from the core `plan`, built from the same `Mapping` the converter uses, and a
+come from the WASM `plan` (the core's `Mapping::preview`), built from the same `Mapping` the converter uses, and a
 core test checks per-row target notes against the converted file for every builtin pair.
 The loss report labels substitutes from the target note recorded during
 conversion, not from the live rows. The drum channel picker beside the octave
