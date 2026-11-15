@@ -42,11 +42,18 @@ Drumverter is translated on [Hosted Weblate](https://hosted.weblate.org/projects
 
 | Path | What it is |
 |---|---|
-| `midiremap-core` | Pure Rust engine: canonical drums, fallback chains, MIDI rewrite, loss report, Ableton racks and DAW drum maps |
+| `midiremap-core` | The engine's one entry for every caller: converting a file, the loss report, what a file plays, the preset file, Ableton racks and DAW drum maps; it re-exports the public names of the crates below |
+| `midiremap-mapping` | One engine pair compiled: where every drum and every source note lands, with the all-pairs proofs |
+| `midiremap-kit` | The drum side: canonical drums, fallback chains, tom and cymbal spreads, the engine maps |
+| `midiremap-smf` | The MIDI side: reading and writing MIDI files, channels, a file's parts and what a selection picks |
+| `midiremap-note` | A MIDI note number and its names |
+| `midiremap-idx` | A 1-based position, shared by both sides |
 | `midiremap-cli` | Offline `convert` / `list` command |
 | `midiremap-wasm` | Browser bindings used by the app |
 | `midiremap-site` | Static pages: per-engine note maps, pair tables, drum-map files and pair racks, FAQ and guide |
 | `midiremap-testkit` | Test helpers that build and read small MIDI files |
+| `midiremap-layers` | Test-only check that the site's modules use each other along its layer table |
+| `xtask` | `cargo xtask gate`: every check of the repo in one run |
 | `app/` | Vite + React + TypeScript converter UI |
 | `engines/*.toml` | One note map per engine, embedded at build time |
 | `locales/` | The locale list, and per language the Fluent messages the app shows (`app.ftl`, read by the site too), the ones only the site reads (`site.ftl`) and a documents file |
