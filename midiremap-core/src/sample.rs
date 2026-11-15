@@ -116,7 +116,7 @@ mod tests {
     use super::*;
     use crate::{
         catalog::Catalog,
-        fit::{note_hits, source_fits},
+        inspect::{note_hits, source_fits},
         parts::ChannelScope,
     };
 

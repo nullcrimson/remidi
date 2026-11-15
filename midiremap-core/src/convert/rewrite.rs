@@ -3,13 +3,13 @@ use midly::{
     MidiMessage, Smf, Track, TrackEvent, TrackEventKind,
 };
 
+use super::report::Report;
 use crate::{
     midi::{
         hit, is_closed, note_from_key, note_key, Channel, ChannelFilter, CodecError, END_OF_TRACK,
     },
     note::Note,
     parts::TrackFilters,
-    report::Report,
     translate::Mapping,
 };
 

@@ -2,11 +2,11 @@
 
 mod canon;
 mod catalog;
-mod conversion;
+mod convert;
 mod daw;
 mod engine_map;
-mod fit;
 mod idx;
+mod inspect;
 mod midi;
 mod non_blank;
 mod note;
@@ -17,9 +17,7 @@ mod plan;
 mod preset;
 #[cfg(test)]
 mod proofs;
-mod report;
 mod resolution;
-mod rewrite;
 mod sample;
 mod spread;
 mod translate;
@@ -27,10 +25,10 @@ pub mod xml;
 
 pub use canon::{Canon, CanonEntry, CanonParseError, Family};
 pub use catalog::Catalog;
-pub use conversion::{convert, Conversion, Converted};
+pub use convert::{convert, Conversion, Converted, FallbackTally, Report};
 pub use daw::{rack_file, Daw, FileStem, Packing, RackFile};
 pub use engine_map::{Drum, EngineId, EngineMap, MapError};
-pub use fit::{
+pub use inspect::{
     auto_question, note_hits, part_summaries, source_fits, NoteHits, PartSummary, PlayedDrum,
     Plays, SourceFit, SourceFits,
 };
@@ -43,7 +41,6 @@ pub use parts::{
 };
 pub use plan::VoicePlan;
 pub use preset::{parse_preset, LoadedPreset, PresetError, PresetName, SavedPreset, SkippedEdit};
-pub use report::{FallbackTally, Report};
 pub use resolution::{Landing, MissingDrums, MissingDrumsParseError, Outcome, StandIn};
 pub use sample::sample_file;
 pub use translate::{Mapping, Unrecognized, UnrecognizedParseError};

@@ -6,8 +6,16 @@ const ALLOWED_USES: &Table = &[
     ("canon", &["idx"]),
     ("catalog", &["engine_map"]),
     (
-        "conversion",
-        &["fit", "midi", "parts", "report", "rewrite", "translate"],
+        "convert",
+        &[
+            "canon",
+            "inspect",
+            "midi",
+            "note",
+            "parts",
+            "resolution",
+            "translate",
+        ],
     ),
     (
         "daw",
@@ -32,11 +40,11 @@ const ALLOWED_USES: &Table = &[
             "spread",
         ],
     ),
+    ("idx", &[]),
     (
-        "fit",
+        "inspect",
         &["canon", "catalog", "engine_map", "midi", "note", "parts"],
     ),
-    ("idx", &[]),
     ("midi", &["idx", "note"]),
     ("non_blank", &[]),
     ("note", &[]),
@@ -69,9 +77,7 @@ const ALLOWED_USES: &Table = &[
             "translate",
         ],
     ),
-    ("report", &["canon", "note", "resolution"]),
     ("resolution", &["canon", "note", "spread"]),
-    ("rewrite", &["midi", "note", "parts", "report", "translate"]),
     ("sample", &["canon", "engine_map", "midi", "resolution"]),
     ("spread", &["canon"]),
     (

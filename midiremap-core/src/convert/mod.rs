@@ -1,11 +1,14 @@
+mod report;
+mod rewrite;
+
 use serde::Serialize;
 
+pub use self::report::{FallbackTally, Report};
+use self::rewrite::rewrite;
 use crate::{
-    fit::{summaries, PartSummary},
+    inspect::{summaries, PartSummary},
     midi::{self, Damage},
     parts::{choose, Choice, ConvertError, Part, Parts, Selection},
-    report::Report,
-    rewrite::rewrite,
     translate::Mapping,
 };
 
@@ -105,7 +108,7 @@ mod tests {
     use super::*;
     use crate::{
         canon::k, catalog::Catalog, note::n, overrides::Overrides, parts::ChannelScope,
-        report::FallbackTally, resolution::MissingDrums, translate::Unrecognized,
+        resolution::MissingDrums, translate::Unrecognized,
     };
 
     fn convert_ids(mid: &[u8], src_id: &str, tgt_id: &str) -> Converted {
