@@ -1,11 +1,10 @@
-use midiremap_note::Note;
-use plist::{Dictionary, Value};
-use uuid::Uuid;
-
-use crate::{
+use midiremap_kit::{
     canon::{Family, PercKind, Piece, RackIdx},
     engine::EngineMap,
 };
+use midiremap_note::Note;
+use plist::{Dictionary, Value};
+use uuid::Uuid;
 
 /// The steps of each row, all off: a template holds rows, not a groove.
 const STEPS: usize = 16;

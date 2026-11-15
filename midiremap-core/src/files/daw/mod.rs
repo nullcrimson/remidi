@@ -4,6 +4,7 @@ mod formats;
 mod logic;
 mod packing;
 
+use midiremap_kit::engine::EngineMap;
 use strum::VariantArray;
 
 pub use self::{
@@ -11,7 +12,6 @@ pub use self::{
     file::FileStem,
     packing::Packing,
 };
-use crate::engine::EngineMap;
 
 /// A DAW that reads a file naming the notes of a drum engine.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, VariantArray)]

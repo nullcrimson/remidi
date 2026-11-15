@@ -176,7 +176,7 @@ impl CanonEntry {
         &self.label
     }
 
-    pub(crate) fn into_label(self) -> String {
+    pub fn into_label(self) -> String {
         self.label
     }
 

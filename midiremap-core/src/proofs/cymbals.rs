@@ -1,15 +1,15 @@
 use std::collections::BTreeSet;
 
+use midiremap_kit::{
+    canon::{Canon, CymArtic, CymKind, CymSlot, CymStroke},
+    engine::EngineMap,
+    spread::CymbalPlace,
+};
 use rayon::prelude::*;
 use strum::VariantArray;
 
 use super::{all_pairs, assert_none};
-use crate::{
-    canon::{Canon, CymArtic, CymKind, CymSlot, CymStroke},
-    engine::EngineMap,
-    mapping::{Mapping, MissingDrums, Outcome, Overrides},
-    spread::CymbalPlace,
-};
+use crate::mapping::{Mapping, MissingDrums, Outcome, Overrides};
 
 fn hit(slot: CymSlot) -> Canon {
     Canon::of_cymbal(slot, CymArtic::Hit)

@@ -41,7 +41,7 @@ impl SpreadPos for CymSlot {
 
 /// Places along a kit, in kit order, each once.
 #[derive(Debug)]
-pub(crate) struct Places<P>(Vec<P>);
+pub struct Places<P>(Vec<P>);
 
 impl<P: Ord> Places<P> {
     pub(crate) fn of(places: impl IntoIterator<Item = P>) -> Self {

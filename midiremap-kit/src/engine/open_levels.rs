@@ -5,7 +5,7 @@ use crate::canon::{HatZone, OpenLevel};
 /// How far an engine's main hi-hat opens: the levels it plays in each zone and which level is
 /// its normal open hat.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct OpenLevels {
+pub struct OpenLevels {
     played: BTreeSet<(HatZone, OpenLevel)>,
     main: OpenLevel,
 }
@@ -13,7 +13,7 @@ pub(crate) struct OpenLevels {
 impl OpenLevels {
     /// The levels `played`, each in its zone, `main` the normal open hat among them; `None`
     /// when no zone plays `main`.
-    pub(crate) fn new(
+    pub fn new(
         played: impl IntoIterator<Item = (OpenLevel, HatZone)>,
         main: OpenLevel,
     ) -> Option<Self> {
@@ -28,14 +28,14 @@ impl OpenLevels {
     }
 
     /// The normal open hat's level.
-    #[cfg(test)]
-    pub(crate) fn main(&self) -> OpenLevel {
+    #[cfg(any(test, feature = "testing"))]
+    pub fn main(&self) -> OpenLevel {
         self.main
     }
 
     /// Every level played, each in its zone.
-    #[cfg(test)]
-    pub(crate) fn played(&self) -> &BTreeSet<(HatZone, OpenLevel)> {
+    #[cfg(any(test, feature = "testing"))]
+    pub fn played(&self) -> &BTreeSet<(HatZone, OpenLevel)> {
         &self.played
     }
 
@@ -44,7 +44,7 @@ impl OpenLevels {
     /// the one nearest its main: the main lands on `target`'s main, a less open level on the
     /// nearest of `target`'s less open ones, a more open level on the nearest of its more open
     /// ones, and on the main when `target` has none on that side.
-    pub(crate) fn toward(&self, target: &OpenLevels, level: OpenLevel, zone: HatZone) -> OpenLevel {
+    pub fn toward(&self, target: &OpenLevels, level: OpenLevel, zone: HatZone) -> OpenLevel {
         let (_, from_main) = self.in_zone(zone);
         let (among, main) = target.in_zone(zone);
         let side = level.cmp(&from_main);

@@ -1,14 +1,14 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use midiremap_kit::{
+    canon::{k, Canon, TomArtic, TomPos},
+    engine::EngineMap,
+    spread::TomKit,
+};
 use rayon::prelude::*;
 
 use super::{all_pairs, assert_none};
-use crate::{
-    canon::{k, Canon, TomArtic, TomPos},
-    engine::EngineMap,
-    mapping::{Mapping, MissingDrums, Outcome, Overrides},
-    spread::TomKit,
-};
+use crate::mapping::{Mapping, MissingDrums, Outcome, Overrides};
 
 fn stroke(pos: TomPos, stroke: TomArtic) -> Canon {
     let key = match stroke {

@@ -3,18 +3,17 @@ mod cymbals;
 mod landings;
 mod toms;
 
-#[cfg(test)]
-pub(crate) use self::cymbals::CymbalPlace;
-pub(crate) use self::toms::TomKit;
-use self::{
-    cymbals::{CymbalKit, CymbalSpread},
-    toms::TomSpread,
+pub use self::{
+    assign::Places,
+    cymbals::{CymbalKit, CymbalPlace},
+    toms::TomKit,
 };
+use self::{cymbals::CymbalSpread, toms::TomSpread};
 use crate::canon::Canon;
 
 /// The drums of an engine a spread places: its toms and its cymbals.
 #[derive(Debug)]
-pub(crate) struct Kit {
+pub struct Kit {
     toms: TomKit,
     cymbals: CymbalKit,
 }
@@ -29,39 +28,39 @@ impl Kit {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn toms(&self) -> &TomKit {
+    #[cfg(any(test, feature = "testing"))]
+    pub fn toms(&self) -> &TomKit {
         &self.toms
     }
 
-    #[cfg(test)]
-    pub(crate) fn cymbals(&self) -> &CymbalKit {
+    #[cfg(any(test, feature = "testing"))]
+    pub fn cymbals(&self) -> &CymbalKit {
         &self.cymbals
     }
 }
 
 /// A stroke a spread moves off its own drum.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub(crate) struct SpreadStroke {
+pub struct SpreadStroke {
     plays: Canon,
     drum: Canon,
 }
 
 impl SpreadStroke {
     /// The target stroke it plays as.
-    pub(crate) fn plays(self) -> Canon {
+    pub fn plays(self) -> Canon {
         self.plays
     }
 
     /// The stroke of the target drum its strokes count as.
-    pub(crate) fn drum(self) -> Canon {
+    pub fn drum(self) -> Canon {
         self.drum
     }
 }
 
 /// Where an engine pair's spreads move the source's toms and cymbals on the target.
 #[derive(Default)]
-pub(crate) struct Spreads {
+pub struct Spreads {
     toms: TomSpread,
     cymbals: CymbalSpread,
 }
@@ -69,11 +68,7 @@ pub(crate) struct Spreads {
 impl Spreads {
     /// The spreads of `source`'s toms and cymbals over `target`'s, where `stand_in` gives the
     /// target stroke a stroke plays as when nothing spreads it.
-    pub(crate) fn new(
-        source: &Kit,
-        target: &Kit,
-        stand_in: impl Fn(Canon) -> Option<Canon>,
-    ) -> Self {
+    pub fn new(source: &Kit, target: &Kit, stand_in: impl Fn(Canon) -> Option<Canon>) -> Self {
         Self {
             toms: TomSpread::new(&source.toms, &target.toms),
             cymbals: CymbalSpread::new(&source.cymbals, &target.cymbals, stand_in),
@@ -81,7 +76,7 @@ impl Spreads {
     }
 
     /// Where a spread plays `canon`, when it moves it off its own drum.
-    pub(crate) fn stroke(&self, canon: Canon) -> Option<SpreadStroke> {
+    pub fn stroke(&self, canon: Canon) -> Option<SpreadStroke> {
         let (plays, drum) = if let Some((pos, artic)) = canon.tom() {
             let to = self.toms.place(pos, artic)?;
             (canon.at_tom_pos(to), canon.at_tom_pos(self.toms.drum(pos)))
@@ -95,7 +90,7 @@ impl Spreads {
 
     /// Whether the target has the drum `canon` is a stroke of, and a spread plays the source's
     /// drum of that name on another.
-    pub(crate) fn moved(&self, canon: Canon) -> bool {
+    pub fn moved(&self, canon: Canon) -> bool {
         canon.tom().is_some_and(|(pos, _)| self.toms.moved(pos))
             || canon
                 .cymbal()

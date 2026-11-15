@@ -6,7 +6,7 @@ license = "MIT"
 publish = false
 
 [dependencies]
-midiremap-idx = { path = "../midiremap-idx" }
+midiremap-kit = { path = "../midiremap-kit" }
 midiremap-note = { path = "../midiremap-note" }
 midiremap-smf = { path = "../midiremap-smf" }
 flate2 = { version = "1", optional = true }
@@ -24,18 +24,21 @@ wasm-bindgen = { version = "0.2", optional = true }
 
 [features]
 gzip = ["dep:flate2"]
-ts = ["dep:tsify", "dep:wasm-bindgen", "midiremap-note/ts", "midiremap-smf/ts"]
+ts = [
+    "dep:tsify",
+    "dep:wasm-bindgen",
+    "midiremap-kit/ts",
+    "midiremap-note/ts",
+    "midiremap-smf/ts",
+]
 
 [dev-dependencies]
 expect-test = "1.5.1"
+midiremap-kit = { path = "../midiremap-kit", features = ["testing"] }
 midiremap-layers = { path = "../midiremap-layers" }
 midiremap-note = { path = "../midiremap-note", features = ["testing"] }
 midiremap-testkit = { path = "../midiremap-testkit" }
 proptest = "1"
 rayon = "1"
 roxmltree = "0.21"
-toml = "1.1"
-
-[build-dependencies]
-serde_json = "1"
 toml = "1.1"

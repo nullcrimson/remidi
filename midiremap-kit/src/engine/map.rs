@@ -81,7 +81,7 @@ impl Variant {
 pub struct EngineId(String);
 
 impl EngineId {
-    pub(crate) fn new(id: &str) -> Self {
+    pub fn new(id: &str) -> Self {
         Self(id.to_owned())
     }
 
@@ -190,11 +190,11 @@ impl EngineMap {
         self.from_canon.get(&canon).copied()
     }
 
-    pub(crate) fn decodings(&self) -> impl Iterator<Item = (Note, Canon)> + '_ {
+    pub fn decodings(&self) -> impl Iterator<Item = (Note, Canon)> + '_ {
         self.to_canon.iter().map(|(&note, &canon)| (note, canon))
     }
 
-    pub(crate) fn encodings(&self) -> impl Iterator<Item = (Canon, Note)> + '_ {
+    pub fn encodings(&self) -> impl Iterator<Item = (Canon, Note)> + '_ {
         self.from_canon.iter().map(|(&canon, &note)| (canon, note))
     }
 
@@ -221,12 +221,12 @@ impl EngineMap {
     }
 
     /// How far the main hi-hat opens, when the engine names its normal open hat.
-    pub(crate) fn open_levels(&self) -> Option<&OpenLevels> {
+    pub fn open_levels(&self) -> Option<&OpenLevels> {
         self.open_levels.as_ref()
     }
 
     /// The toms and cymbals it plays, as the spreads place them.
-    pub(crate) fn kit(&self) -> &Kit {
+    pub fn kit(&self) -> &Kit {
         &self.kit
     }
 
@@ -375,8 +375,8 @@ fn open_levels(
         })
 }
 
-#[cfg(test)]
-pub(crate) fn from_toml(s: &str) -> Result<EngineMap, MapError> {
+#[cfg(any(test, feature = "testing"))]
+pub fn from_toml(s: &str) -> Result<EngineMap, MapError> {
     let value: serde_json::Value = toml::from_str(s).expect("test map is valid TOML");
     build(serde_json::from_value(value).map_err(MapError::Parse)?)
 }

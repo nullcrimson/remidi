@@ -7,9 +7,9 @@ pub(crate) type SnareIdx = Idx<2>;
 pub(crate) type AuxIdx = Idx<2>;
 pub(crate) type RideIdx = Idx<2>;
 pub(crate) type CrashIdx = Idx<6>;
-pub(crate) type RackIdx = Idx<8>;
+pub type RackIdx = Idx<8>;
 pub(crate) type FloorIdx = Idx<4>;
-pub(crate) type OpenLevel = Idx<6>;
+pub type OpenLevel = Idx<6>;
 
 /// What a canon names: the drum and the way it is played.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -56,13 +56,13 @@ pub(crate) enum SnareArtic {
     derive(strum::EnumDiscriminants),
     strum_discriminants(derive(Hash, VariantArray))
 )]
-pub(crate) enum TomPos {
+pub enum TomPos {
     Rack(RackIdx),
     Floor(FloorIdx),
 }
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
-pub(crate) enum TomArtic {
+pub enum TomArtic {
     Hit,
     Rim,
     Rimshot,
@@ -85,7 +85,7 @@ pub(crate) enum HatOpen {
 }
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
-pub(crate) enum HatZone {
+pub enum HatZone {
     Plain,
     Tip,
     Edge,
@@ -106,7 +106,7 @@ pub(crate) enum HatZone {
 )]
 #[strum(serialize_all = "lowercase")]
 #[strum_discriminants(name(CymKind), derive(Hash, VariantArray))]
-pub(crate) enum CymSlot {
+pub enum CymSlot {
     Crash(CrashIdx),
     China(Idx<3>),
     Splash(Idx<3>),
@@ -115,7 +115,7 @@ pub(crate) enum CymSlot {
 }
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
-pub(crate) enum CymArtic {
+pub enum CymArtic {
     Hit,
     Mute,
     Bell,
@@ -126,7 +126,7 @@ pub(crate) enum CymArtic {
 }
 
 impl CymArtic {
-    pub(crate) fn is_bell(self) -> bool {
+    pub fn is_bell(self) -> bool {
         match self {
             Self::Bell | Self::BellTip => true,
             Self::Hit | Self::Mute | Self::Bow | Self::BowTip | Self::Edge => false,
@@ -146,7 +146,7 @@ impl CymArtic {
 }
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
-pub(crate) enum RideArtic {
+pub enum RideArtic {
     Bow,
     Bell,
     BellTip,
@@ -165,7 +165,7 @@ impl RideArtic {
 }
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
-pub(crate) enum PercKind {
+pub enum PercKind {
     Cowbell,
     Clap,
     Shaker,
@@ -246,7 +246,7 @@ impl CymSlot {
         }
     }
 
-    pub(crate) fn kind(self) -> CymKind {
+    pub fn kind(self) -> CymKind {
         CymKind::from(self)
     }
 
@@ -263,15 +263,15 @@ impl CymSlot {
 
 /// A stroke of a cymbal or of a ride.
 #[derive(Copy, Clone)]
-pub(crate) enum CymStroke {
+pub enum CymStroke {
     Cymbal(CymSlot, CymArtic),
     Ride(RideIdx, RideArtic),
 }
 
 impl CymStroke {
     /// Whether it is a stroke of a cymbal's bell or a ride's bell.
-    #[cfg(test)]
-    pub(crate) fn is_bell(self) -> bool {
+    #[cfg(any(test, feature = "testing"))]
+    pub fn is_bell(self) -> bool {
         match self {
             Self::Cymbal(_, artic) => artic.is_bell(),
             Self::Ride(_, artic) => artic.is_bell(),
@@ -281,7 +281,7 @@ impl CymStroke {
 
 /// How far apart the numbers of two cymbals, or of a cymbal and a ride, sit.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
-pub(crate) struct CymDistance(u8);
+pub struct CymDistance(u8);
 
 impl Add for CymDistance {
     type Output = Self;
@@ -398,7 +398,7 @@ impl TomPos {
         TomDistance(self.rank().abs_diff(other.rank()))
     }
 
-    pub(crate) fn is_rack(self) -> bool {
+    pub fn is_rack(self) -> bool {
         matches!(self, Self::Rack(_))
     }
 }

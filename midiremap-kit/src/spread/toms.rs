@@ -6,7 +6,7 @@ use crate::canon::{Canon, TomArtic, TomPos};
 
 /// The toms an engine plays: the positions it plays a hit on and those it plays a rim on.
 #[derive(Debug)]
-pub(crate) struct TomKit {
+pub struct TomKit {
     hits: Places<TomPos>,
     rims: Places<TomPos>,
 }
@@ -29,13 +29,13 @@ impl TomKit {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn hits(&self) -> &[TomPos] {
+    #[cfg(any(test, feature = "testing"))]
+    pub fn hits(&self) -> &[TomPos] {
         &self.hits
     }
 
-    #[cfg(test)]
-    pub(crate) fn rims(&self) -> &[TomPos] {
+    #[cfg(any(test, feature = "testing"))]
+    pub fn rims(&self) -> &[TomPos] {
         &self.rims
     }
 }

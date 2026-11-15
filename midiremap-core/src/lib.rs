@@ -1,20 +1,14 @@
 #![warn(unreachable_pub)]
 
-mod canon;
 mod convert;
-mod engine;
 mod files;
 mod inspect;
 mod mapping;
-mod non_blank;
 #[cfg(test)]
 mod proofs;
-mod spread;
 pub mod xml;
 
-pub use canon::{Canon, CanonEntry, CanonParseError, Family};
 pub use convert::{convert, Conversion, Converted, FallbackTally, Report};
-pub use engine::{Catalog, Drum, EngineId, EngineMap, MapError};
 pub use files::{
     parse_preset, rack_file, sample_file, Daw, FileStem, LoadedPreset, Packing, PresetError,
     PresetName, RackFile, SavedPreset, SkippedEdit,
@@ -26,6 +20,10 @@ pub use inspect::{
 pub use mapping::{
     resolve_on, Landing, Mapping, MissingDrums, MissingDrumsParseError, Outcome, Overrides,
     StandIn, Unrecognized, UnrecognizedParseError, VoicePlan,
+};
+pub use midiremap_kit::{
+    canon::{Canon, CanonEntry, CanonParseError, Family},
+    engine::{Catalog, Drum, EngineId, EngineMap, MapError},
 };
 pub use midiremap_note::{Note, NoteParseError, OctaveBase};
 pub use midiremap_smf::{

@@ -8,6 +8,7 @@ mod settings;
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
+use midiremap_kit::{canon::Canon, engine::EngineMap};
 use midiremap_note::Note;
 
 pub use self::{
@@ -18,7 +19,6 @@ pub use self::{
     settings::{MissingDrums, MissingDrumsParseError, Unrecognized, UnrecognizedParseError},
 };
 use self::{drums::DrumTable, route::Routes};
-use crate::{canon::Canon, engine::EngineMap};
 
 /// Where a source note plays on the target: on the note of the drum it decodes to, or
 /// unchanged, when the source does not recognize it and the mapping keeps such notes.
@@ -176,13 +176,13 @@ fn decoding(src: &EngineMap, overrides: &Overrides) -> Decoding {
 mod tests {
     use std::sync::LazyLock;
 
-    use midiremap_note::n;
-
-    use super::*;
-    use crate::{
+    use midiremap_kit::{
         canon::k,
         engine::{from_toml, Catalog},
     };
+    use midiremap_note::n;
+
+    use super::*;
 
     const SRC: &str = r#"
         id = "src"

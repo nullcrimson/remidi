@@ -1,20 +1,20 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use expect_test::expect_file;
-use midiremap_note::Note;
-use rayon::prelude::*;
-use strum::VariantArray;
-
-use super::{all_pairs, assert_none};
-use crate::{
+use midiremap_kit::{
     canon::{
         k,
         rules::{kind_rank, rules, stand_in_rank, Anchor, DrumKind},
         Canon, CymArtic,
     },
     engine::EngineMap,
-    mapping::{Mapping, MissingDrums, Outcome, Overrides},
 };
+use midiremap_note::Note;
+use rayon::prelude::*;
+use strum::VariantArray;
+
+use super::{all_pairs, assert_none};
+use crate::mapping::{Mapping, MissingDrums, Outcome, Overrides};
 
 /// A way a pair breaks the agreed rules, short of a wrong chain (which L1 rejects outright).
 enum Gap {

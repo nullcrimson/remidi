@@ -1,10 +1,10 @@
-use strum::VariantArray;
-
-use super::assert_none;
-use crate::{
+use midiremap_kit::{
     canon::{HatZone, OpenLevel},
     engine::{Catalog, OpenLevels},
 };
+use strum::VariantArray;
+
+use super::assert_none;
 
 /// Every engine whose hi-hat opens in one zone: each set of levels it plays, with each of them
 /// as its main level.

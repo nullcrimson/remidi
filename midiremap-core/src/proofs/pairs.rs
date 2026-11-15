@@ -1,17 +1,17 @@
 use std::collections::HashSet;
 
-use midiremap_note::Note;
-use rayon::prelude::*;
-
-use super::{all_pairs, assert_none, lands_by_match};
-use crate::{
+use midiremap_kit::{
     canon::{
         rules::{rules, DrumKind},
         Canon,
     },
     engine::EngineMap,
-    mapping::{Mapping, MissingDrums},
 };
+use midiremap_note::Note;
+use rayon::prelude::*;
+
+use super::{all_pairs, assert_none, lands_by_match};
+use crate::mapping::{Mapping, MissingDrums};
 
 fn first_agreed(tgt: &EngineMap, canon: Canon) -> Option<Note> {
     rules(canon)

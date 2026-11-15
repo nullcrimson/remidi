@@ -1,3 +1,4 @@
+use midiremap_kit::{canon::Canon, engine::EngineMap};
 use midiremap_smf::{
     midi::{self, CodecError},
     parts::{choose, ChannelScope, Choice, Part, PartIndex, Selection},
@@ -5,7 +6,6 @@ use midiremap_smf::{
 use serde::Serialize;
 
 use super::hits::NoteHits;
-use crate::{canon::Canon, engine::EngineMap};
 
 /// One drum a part plays as a source layout, and how many hits it gets.
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
@@ -88,10 +88,10 @@ pub(crate) fn summaries(
 
 #[cfg(test)]
 mod tests {
+    use midiremap_kit::engine::Catalog;
     use midiremap_testkit::{on, tracks, DRUMS};
 
     use super::*;
-    use crate::engine::Catalog;
 
     #[test]
     fn a_part_summary_names_its_track_and_what_its_hits_play_as_the_source() {

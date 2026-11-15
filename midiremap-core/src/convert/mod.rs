@@ -100,17 +100,14 @@ pub fn convert(
 
 #[cfg(test)]
 mod tests {
+    use midiremap_kit::{canon::k, engine::Catalog};
     use midiremap_note::n;
     use midiremap_smf::parts::ChannelScope;
     use midiremap_testkit::{drums, events, hit_keys, off, on};
     use midly::{num::u7, MidiMessage};
 
     use super::*;
-    use crate::{
-        canon::k,
-        engine::Catalog,
-        mapping::{MissingDrums, Overrides, Unrecognized},
-    };
+    use crate::mapping::{MissingDrums, Overrides, Unrecognized};
 
     fn convert_ids(mid: &[u8], src_id: &str, tgt_id: &str) -> Converted {
         convert_ids_with(mid, src_id, tgt_id, MissingDrums::Nearest)

@@ -9,7 +9,7 @@ use super::{
 
 /// A kind of drum a stand-in may be, with cymbals told apart by type.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub(crate) enum DrumKind {
+pub enum DrumKind {
     Kick,
     Snare,
     Tom,
@@ -53,7 +53,7 @@ impl fmt::Display for DrumKind {
 
 /// Why a drum may go silent on a kit without it, as the owner agreed.
 #[derive(Copy, Clone, Debug)]
-pub(crate) enum DropReason {
+pub enum DropReason {
     RimOrSidestick,
     TomRim,
     PedalHat,
@@ -75,22 +75,22 @@ impl fmt::Display for DropReason {
 
 /// When a drum must play: on any kit that plays one of the anchors, or never required.
 #[derive(Clone, Debug)]
-pub(crate) enum Anchor {
+pub enum Anchor {
     Any(Vec<Canon>),
     MayDrop(DropReason),
 }
 
 /// The agreed rules for one canon.
-pub(crate) struct Rules {
+pub struct Rules {
     /// The strokes of the same drum that stand in for it, in order.
-    pub(crate) own_strokes: Vec<Canon>,
+    pub own_strokes: Vec<Canon>,
     /// The other kinds of drum a stand-in may be, most preferred first.
-    pub(crate) lands_on: Vec<DrumKind>,
+    pub lands_on: Vec<DrumKind>,
     /// When it must play.
-    pub(crate) anchor: Anchor,
+    pub anchor: Anchor,
 }
 
-pub(crate) fn rules(c: Canon) -> Rules {
+pub fn rules(c: Canon) -> Rules {
     Rules {
         own_strokes: own_strokes(c),
         lands_on: lands_on(c),
@@ -449,13 +449,13 @@ fn stroke(c: Canon) -> Stroke {
 
 /// Whether `d` plays the same stroke as `c` on a drum `c`'s rules let it stand in on, and
 /// how preferred that kind is (0 is the most preferred).
-pub(crate) fn stand_in_rank(c: Canon, d: Canon) -> Option<usize> {
+pub fn stand_in_rank(c: Canon, d: Canon) -> Option<usize> {
     kind_rank(c, d).filter(|_| stroke(c) == stroke(d))
 }
 
 /// How preferred the kind of `landed` is as a stand-in for `c` by `c`'s rules (0 is the most
 /// preferred), whatever its stroke; `None` when the rules do not let it stand in.
-pub(crate) fn kind_rank(c: Canon, landed: Canon) -> Option<usize> {
+pub fn kind_rank(c: Canon, landed: Canon) -> Option<usize> {
     let kind = DrumKind::from(landed);
     rules(c).lands_on.iter().position(|&k| k == kind)
 }
@@ -468,7 +468,7 @@ fn keys(cs: &[Canon]) -> String {
 }
 
 /// One line per canon with its rules, the golden snapshot's text.
-pub(crate) fn snapshot() -> String {
+pub fn snapshot() -> String {
     Canon::all()
         .iter()
         .map(|&c| {

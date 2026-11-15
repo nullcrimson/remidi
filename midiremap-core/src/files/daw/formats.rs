@@ -1,12 +1,10 @@
 use std::io;
 
+use midiremap_kit::engine::EngineMap;
 use midiremap_note::Note;
 use midiremap_smf::midi::{channel_wire, Channel};
 
-use crate::{
-    engine::EngineMap,
-    xml::{self, element, empty, nest, Indent, Xml},
-};
+use crate::xml::{self, element, empty, nest, Indent, Xml};
 
 const UNNAMED: &str = "---";
 

@@ -1,5 +1,10 @@
 use std::collections::{BTreeMap, HashMap};
 
+use midiremap_kit::{
+    canon::{Canon, OpenLevel},
+    engine::EngineMap,
+    spread::SpreadStroke,
+};
 use midiremap_note::Note;
 
 use super::{
@@ -7,11 +12,6 @@ use super::{
     outcome::{Landing, Outcome, StandIn},
     route::{Route, Routes},
     settings::MissingDrums,
-};
-use crate::{
-    canon::{Canon, OpenLevel},
-    engine::EngineMap,
-    spread::SpreadStroke,
 };
 
 /// The notes a drum can land on, read three ways.

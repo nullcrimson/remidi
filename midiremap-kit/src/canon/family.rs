@@ -38,7 +38,7 @@ impl fmt::Display for Family {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Canon;
+    use crate::canon::Canon;
 
     #[test]
     fn families_are_labelled_in_display_order() {

@@ -1,5 +1,6 @@
 use std::{cmp::Reverse, collections::BTreeMap, iter::Sum, ops::AddAssign};
 
+use midiremap_kit::{canon::Canon, engine::EngineMap};
 use midiremap_note::Note;
 use midiremap_smf::{
     midi,
@@ -7,7 +8,6 @@ use midiremap_smf::{
 };
 
 use super::summary::{PlayedDrum, Plays};
-use crate::{canon::Canon, engine::EngineMap};
 
 /// How many hits each note has among the note-ons a conversion reads.
 #[derive(Debug, Clone, PartialEq, Eq)]

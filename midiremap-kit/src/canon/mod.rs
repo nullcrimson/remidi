@@ -3,24 +3,29 @@ mod family;
 mod key;
 mod label;
 mod piece;
-#[cfg(test)]
-pub(crate) mod rules;
+#[cfg(any(test, feature = "testing"))]
+pub mod rules;
 mod slot;
 
 use std::sync::LazyLock;
 
 use midiremap_idx::Idx;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "testing"))]
 use self::slot::CongaPitch;
 use self::slot::{each, hat_slots, tom_positions};
-pub use self::{family::Family, key::CanonParseError, label::CanonEntry};
-pub(crate) use self::{
+pub(crate) use self::slot::{
+    AuxIdx, CrashIdx, HandDrum, HandLength, HandPart, HandPitch, HandStroke, HatOpen, KickKind,
+    RideArtic, RideIdx, Slot, SnareArtic, SnareIdx, TomDistance,
+};
+pub use self::{
+    family::Family,
+    key::CanonParseError,
+    label::CanonEntry,
     piece::Piece,
     slot::{
-        AuxIdx, CrashIdx, CymArtic, CymDistance, CymKind, CymSlot, CymStroke, HandDrum, HandLength,
-        HandPart, HandPitch, HandStroke, HatOpen, HatZone, KickKind, OpenLevel, PercKind, RackIdx,
-        RideArtic, RideIdx, Slot, SnareArtic, SnareIdx, TomArtic, TomDistance, TomPos,
+        CymArtic, CymDistance, CymKind, CymSlot, CymStroke, HatZone, OpenLevel, PercKind, RackIdx,
+        TomArtic, TomPos,
     },
 };
 
@@ -51,14 +56,14 @@ fn build_all() -> Vec<Canon> {
 static ALL: LazyLock<Vec<Canon>> = LazyLock::new(build_all);
 
 impl Canon {
-    pub(crate) const KICK: Self = Self(Slot::Kick(KickKind::Main));
-    pub(crate) const SNARE: Self = Self(Slot::Snare(Idx::FIRST, SnareArtic::Hit));
-    pub(crate) const CLOSED_HAT: Self = Self(Slot::Hat(HatOpen::Closed, HatZone::Plain));
-    pub(crate) const CRASH: Self = Self(Slot::Cymbal(CymSlot::Crash(Idx::FIRST), CymArtic::Hit));
-    pub(crate) const RIDE: Self = Self(Slot::Ride(Idx::FIRST, RideArtic::Bow));
-    pub(crate) const RACK_TOM: Self = Self(Slot::Tom(TomPos::Rack(Idx::FIRST), TomArtic::Hit));
-    pub(crate) const SECOND_RACK_TOM: Self = Self(Slot::Tom(TomPos::Rack(idx(2)), TomArtic::Hit));
-    pub(crate) const FLOOR_TOM: Self = Self(Slot::Tom(TomPos::Floor(Idx::FIRST), TomArtic::Hit));
+    pub const KICK: Self = Self(Slot::Kick(KickKind::Main));
+    pub const SNARE: Self = Self(Slot::Snare(Idx::FIRST, SnareArtic::Hit));
+    pub const CLOSED_HAT: Self = Self(Slot::Hat(HatOpen::Closed, HatZone::Plain));
+    pub const CRASH: Self = Self(Slot::Cymbal(CymSlot::Crash(Idx::FIRST), CymArtic::Hit));
+    pub const RIDE: Self = Self(Slot::Ride(Idx::FIRST, RideArtic::Bow));
+    pub const RACK_TOM: Self = Self(Slot::Tom(TomPos::Rack(Idx::FIRST), TomArtic::Hit));
+    pub const SECOND_RACK_TOM: Self = Self(Slot::Tom(TomPos::Rack(idx(2)), TomArtic::Hit));
+    pub const FLOOR_TOM: Self = Self(Slot::Tom(TomPos::Floor(Idx::FIRST), TomArtic::Hit));
 
     /// The drums a groove uses most, in kit order.
     pub const CORE_KIT: [Canon; 16] = [
@@ -116,7 +121,7 @@ impl Canon {
 
     /// How far open the main hi-hat is and where it is hit, when this drum is an open main
     /// hi-hat.
-    pub(crate) fn opening(self) -> Option<(OpenLevel, HatZone)> {
+    pub fn opening(self) -> Option<(OpenLevel, HatZone)> {
         match self.0 {
             Slot::Hat(HatOpen::Open(level), zone) => Some((level, zone)),
             _ => None,
@@ -134,7 +139,7 @@ impl Canon {
     }
 
     /// The same open main hi-hat, in the same zone, opened to `level`; any other drum as it is.
-    pub(crate) fn at_open_level(self, level: OpenLevel) -> Canon {
+    pub fn at_open_level(self, level: OpenLevel) -> Canon {
         match self.0 {
             Slot::Hat(HatOpen::Open(_), zone) => Canon(Slot::Hat(HatOpen::Open(level), zone)),
             _ => self,
@@ -142,7 +147,7 @@ impl Canon {
     }
 
     /// Where the tom sits and how it is played, when this drum is a tom.
-    pub(crate) fn tom(self) -> Option<(TomPos, TomArtic)> {
+    pub fn tom(self) -> Option<(TomPos, TomArtic)> {
         match self.0 {
             Slot::Tom(pos, artic) => Some((pos, artic)),
             _ => None,
@@ -150,7 +155,7 @@ impl Canon {
     }
 
     /// The same stroke on the tom at `pos`; any other drum as it is.
-    pub(crate) fn at_tom_pos(self, pos: TomPos) -> Canon {
+    pub fn at_tom_pos(self, pos: TomPos) -> Canon {
         match self.0 {
             Slot::Tom(_, artic) => Canon(Slot::Tom(pos, artic)),
             _ => self,
@@ -158,7 +163,7 @@ impl Canon {
     }
 
     /// The cymbal `slot` played with `artic`.
-    pub(crate) fn of_cymbal(slot: CymSlot, artic: CymArtic) -> Canon {
+    pub fn of_cymbal(slot: CymSlot, artic: CymArtic) -> Canon {
         Canon(Slot::Cymbal(slot, artic))
     }
 
@@ -168,7 +173,7 @@ impl Canon {
     }
 
     /// Which cymbal and how it is played, when this drum is a cymbal other than a ride.
-    pub(crate) fn cymbal(self) -> Option<(CymSlot, CymArtic)> {
+    pub fn cymbal(self) -> Option<(CymSlot, CymArtic)> {
         match self.0 {
             Slot::Cymbal(slot, artic) => Some((slot, artic)),
             _ => None,
@@ -176,7 +181,7 @@ impl Canon {
     }
 
     /// The stroke of a cymbal or a ride this drum is, when it is one.
-    pub(crate) fn cymbal_stroke(self) -> Option<CymStroke> {
+    pub fn cymbal_stroke(self) -> Option<CymStroke> {
         match self.0 {
             Slot::Cymbal(slot, artic) => Some(CymStroke::Cymbal(slot, artic)),
             Slot::Ride(ride, artic) => Some(CymStroke::Ride(ride, artic)),
@@ -186,8 +191,8 @@ impl Canon {
 }
 
 /// The canon of `key`, for tests.
-#[cfg(test)]
-pub(crate) fn k(key: &str) -> Canon {
+#[cfg(any(test, feature = "testing"))]
+pub fn k(key: &str) -> Canon {
     key.parse().expect("test canon key is valid")
 }
 

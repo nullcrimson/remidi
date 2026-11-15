@@ -1,9 +1,8 @@
 use std::collections::BTreeMap;
 
+use midiremap_kit::canon::Canon;
 use midiremap_note::Note;
 use serde::{Deserialize, Serialize};
-
-use crate::canon::Canon;
 
 /// Edits layered over a source and a target engine: the note each edited target drum plays
 /// on, and the drum each edited source note plays, or `None` for a note that plays none.
@@ -44,10 +43,10 @@ impl Overrides {
 
 #[cfg(test)]
 mod tests {
+    use midiremap_kit::canon::k;
     use midiremap_note::n;
 
     use super::*;
-    use crate::canon::k;
 
     fn read(json: &str) -> Overrides {
         serde_json::from_str(json).unwrap()

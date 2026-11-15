@@ -1,6 +1,5 @@
+use midiremap_kit::canon::Canon;
 use serde::{Deserialize, Serialize};
-
-use crate::canon::Canon;
 
 /// What happens to a drum the target engine lacks.
 #[derive(

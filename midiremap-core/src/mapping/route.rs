@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
-use super::{chain::resolve_on, settings::MissingDrums};
-use crate::{
+use midiremap_kit::{
     canon::{Canon, OpenLevel},
     engine::EngineMap,
     spread::{SpreadStroke, Spreads},
 };
+
+use super::{chain::resolve_on, settings::MissingDrums};
 
 /// How a drum finds the target drum that plays it.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

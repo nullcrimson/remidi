@@ -5,15 +5,15 @@ mod pairs;
 mod toms;
 
 use expect_test::expect_file;
-
-use crate::{
+use midiremap_kit::{
     canon::{
         rules::{rules, snapshot, Anchor, DrumKind},
         Canon,
     },
     engine::{Catalog, EngineMap},
-    mapping::{resolve_on, Mapping, MissingDrums},
 };
+
+use crate::mapping::{resolve_on, Mapping, MissingDrums};
 
 /// Every ordered pair of built-in engines, an engine with itself included.
 fn all_pairs() -> Vec<(&'static EngineMap, &'static EngineMap)> {

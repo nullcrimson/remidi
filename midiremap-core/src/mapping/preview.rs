@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 
+use midiremap_kit::canon::{Canon, CanonEntry};
 use midiremap_note::Note;
 use serde::Serialize;
 
 use super::{Mapping, Outcome};
-use crate::canon::{Canon, CanonEntry};
 
 /// One drum of the edit preview, derived from the same [`Mapping`] the converter uses.
 #[derive(Debug, PartialEq, Eq, Serialize)]
@@ -85,12 +85,14 @@ impl Mapping<'_> {
 
 #[cfg(test)]
 mod tests {
+    use midiremap_kit::{
+        canon::k,
+        engine::{from_toml, Catalog},
+    };
     use midiremap_note::n;
 
     use super::*;
     use crate::{
-        canon::k,
-        engine::{from_toml, Catalog},
         mapping::{Landing, StandIn},
         MissingDrums, Overrides,
     };

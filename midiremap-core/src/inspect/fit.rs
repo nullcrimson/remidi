@@ -1,9 +1,9 @@
 use std::cmp::Reverse;
 
+use midiremap_kit::engine::{Catalog, EngineId};
 use serde::Serialize;
 
 use super::hits::NoteHits;
-use crate::engine::{Catalog, EngineId};
 
 /// How many of the hits one engine's layout recognizes.
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
@@ -72,13 +72,13 @@ pub fn source_fits(catalog: &Catalog, hits: &NoteHits) -> SourceFits {
 
 #[cfg(test)]
 mod tests {
+    use midiremap_kit::engine::EngineMap;
     use midiremap_smf::parts::ChannelScope;
     use midiremap_testkit::{drums, engine_json, on, tracks, DRUMS};
 
     use super::*;
     use crate::{
         convert::convert,
-        engine::EngineMap,
         inspect::note_hits,
         mapping::{Mapping, MissingDrums, Overrides},
     };

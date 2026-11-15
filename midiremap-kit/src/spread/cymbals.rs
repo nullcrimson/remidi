@@ -10,7 +10,7 @@ use crate::canon::{
 
 /// A cymbal or a ride's bell: where a spread places a source cymbal or a crash's bell.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-pub(crate) enum CymbalPlace {
+pub enum CymbalPlace {
     Cymbal(CymSlot),
     RideBell(RideIdx),
 }
@@ -23,7 +23,7 @@ impl From<CymSlot> for CymbalPlace {
 
 impl CymbalPlace {
     /// The cymbal or ride bell `canon` is a stroke of, when it is one.
-    pub(crate) fn of(canon: Canon) -> Option<Self> {
+    pub fn of(canon: Canon) -> Option<Self> {
         match canon.cymbal_stroke()? {
             CymStroke::Cymbal(slot, _) => Some(Self::Cymbal(slot)),
             CymStroke::Ride(ride, artic) => artic.is_bell().then_some(Self::RideBell(ride)),
@@ -40,7 +40,7 @@ impl CymbalPlace {
     }
 
     /// How far this place's number sits from the cymbal `from`'s.
-    pub(crate) fn distance(self, from: CymSlot) -> CymDistance {
+    pub fn distance(self, from: CymSlot) -> CymDistance {
         match self {
             Self::Cymbal(slot) => from.distance(slot),
             Self::RideBell(ride) => from.ride_distance(ride),
@@ -51,7 +51,7 @@ impl CymbalPlace {
 /// The cymbals and rides an engine plays: each cymbal and each ride stroke it has a note for,
 /// in canon order.
 #[derive(Debug)]
-pub(crate) struct CymbalKit {
+pub struct CymbalKit {
     cymbals: Vec<(CymSlot, CymArtic)>,
     rides: Vec<(RideIdx, RideArtic)>,
 }
@@ -78,7 +78,7 @@ impl CymbalKit {
     }
 
     /// The cymbals of `kind` the engine plays by a stroke other than the bell.
-    pub(crate) fn cymbals(&self, kind: CymKind) -> Places<CymSlot> {
+    pub fn cymbals(&self, kind: CymKind) -> Places<CymSlot> {
         Places::of(
             self.cymbals
                 .iter()
@@ -100,7 +100,7 @@ impl CymbalKit {
     }
 
     /// The rides whose bell the engine plays, in order.
-    pub(crate) fn ride_bells(&self) -> Places<RideIdx> {
+    pub fn ride_bells(&self) -> Places<RideIdx> {
         Places::of(
             self.rides
                 .iter()
@@ -119,7 +119,7 @@ impl CymbalKit {
 
     /// The places of this kit that can take a source cymbal `from` of a kind it lacks: the
     /// cymbals of the first other kind on `from`'s chain it plays, or its ride bells.
-    pub(crate) fn substitutes(&self, from: CymSlot) -> Vec<CymbalPlace> {
+    pub fn substitutes(&self, from: CymSlot) -> Vec<CymbalPlace> {
         let ride_bells = self.ride_bells();
         Canon::of_cymbal(from, CymArtic::Hit)
             .fallback_chain()
