@@ -7,12 +7,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     canon::{Canon, CanonEntry, OpenLevel},
-    cymbal_spread::CymbalKit,
     non_blank::NonBlank,
     note::Note,
     open_levels::OpenLevels,
     resolution::{self, MissingDrums, Outcome},
-    tom_spread::TomKit,
+    spread::Kit,
 };
 
 /// The note General MIDI plays its open hi-hat on; the open hi-hat an engine plays there is the
@@ -109,8 +108,7 @@ pub struct EngineMap {
     variant: Option<Variant>,
     grooves_from: Option<Note>,
     open_levels: Option<OpenLevels>,
-    toms: TomKit,
-    cymbals: CymbalKit,
+    kit: Kit,
     to_canon: HashMap<Note, Canon>,
     from_canon: HashMap<Canon, Note>,
 }
@@ -233,14 +231,9 @@ impl EngineMap {
         self.open_levels.as_ref()
     }
 
-    /// The toms it plays a hit or a rim on.
-    pub(crate) fn toms(&self) -> &TomKit {
-        &self.toms
-    }
-
-    /// The cymbals and rides it plays.
-    pub(crate) fn cymbals(&self) -> &CymbalKit {
-        &self.cymbals
+    /// The toms and cymbals it plays, as the spreads place them.
+    pub(crate) fn kit(&self) -> &Kit {
+        &self.kit
     }
 
     /// What makes this engine another mapping of a base engine, when it is one.
@@ -343,8 +336,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
     }
 
     let open_levels = open_levels(&raw.id, raw.open_hat_level, &to_canon)?;
-    let toms = TomKit::of(from_canon.keys().copied());
-    let cymbals = CymbalKit::of(from_canon.keys().copied());
+    let kit = Kit::of(from_canon.keys().copied());
     Ok(EngineMap {
         id: raw.id,
         name: raw.name,
@@ -354,8 +346,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
         variant,
         grooves_from: raw.grooves_from,
         open_levels,
-        toms,
-        cymbals,
+        kit,
         to_canon,
         from_canon,
     })

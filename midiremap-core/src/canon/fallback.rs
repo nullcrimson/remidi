@@ -56,13 +56,8 @@ fn cym_order(a: CymArtic) -> &'static [CymArtic] {
     }
 }
 
-fn ride_bell_for(a: CymArtic) -> Option<Canon> {
-    let ride = |r| Some(Canon(Slot::Ride(RideIdx::FIRST, r)));
-    match a {
-        CymArtic::Bell => ride(RideArtic::Bell),
-        CymArtic::BellTip => ride(RideArtic::BellTip),
-        CymArtic::Hit | CymArtic::Edge | CymArtic::Bow | CymArtic::BowTip | CymArtic::Mute => None,
-    }
+fn ride_bell_for(a: CymArtic) -> Canon {
+    Canon(Slot::Ride(RideIdx::FIRST, a.on_ride_bell()))
 }
 
 fn ride_order(a: RideArtic) -> &'static [RideArtic] {
@@ -200,7 +195,7 @@ fn neighbours(c: Canon) -> Vec<Canon> {
                     .map(move |s| Canon(Slot::Cymbal(s, a)))
             };
             let next: Vec<Canon> = match slot {
-                CymSlot::Crash(_) => ride_bell_for(a).into_iter().collect(),
+                CymSlot::Crash(_) => a.is_bell().then(|| ride_bell_for(a)).into_iter().collect(),
                 CymSlot::China(_) => every(|s| matches!(s, CymSlot::Stack(_)))
                     .chain(once(crash(a)))
                     .collect(),
@@ -208,7 +203,7 @@ fn neighbours(c: Canon) -> Vec<Canon> {
                     .chain(once(crash(a)))
                     .collect(),
                 CymSlot::Splash(_) => vec![crash(a)],
-                CymSlot::Bell(_) => vec![Canon(Slot::Ride(RideIdx::FIRST, RideArtic::Bell))],
+                CymSlot::Bell(_) => vec![ride_bell_for(a)],
             };
             same_kind.chain(next).collect()
         }

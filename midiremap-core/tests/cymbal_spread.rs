@@ -76,11 +76,15 @@ fn an_edit_of_a_cymbal_the_spread_moved_moves_no_cymbal_landing_on_its_name() {
 }
 
 #[test]
-fn drop_keeps_cymbals_on_their_names_and_leaves_out_the_missing_ones() {
+fn drop_keeps_a_cymbal_the_target_names_on_its_name() {
     let catalog = Catalog::builtin();
     let m = alesis_on_numetal(&catalog, NO_EDITS, MissingDrums::Drop);
-    assert_eq!(
-        [lands(&m, "crash.1.hit"), lands(&m, "crash.2.hit")],
-        [None, Some(58)]
-    );
+    assert_eq!(lands(&m, "crash.2.hit"), Some(58));
+}
+
+#[test]
+fn drop_leaves_out_a_cymbal_the_target_lacks() {
+    let catalog = Catalog::builtin();
+    let m = alesis_on_numetal(&catalog, NO_EDITS, MissingDrums::Drop);
+    assert_eq!(lands(&m, "crash.1.hit"), None);
 }

@@ -8,7 +8,7 @@ use crate::{
     engine_map::EngineMap,
     overrides::Overrides,
     resolution::{MissingDrums, Outcome},
-    tom_spread::TomKit,
+    spread::TomKit,
     translate::Mapping,
 };
 
@@ -33,11 +33,12 @@ struct Spread<'a> {
 
 impl<'a> Spread<'a> {
     fn new(src: &'a EngineMap, tgt: &'a EngineMap) -> Option<Self> {
-        if src.toms().hits().is_empty() || tgt.toms().hits().is_empty() {
+        if src.kit().toms().hits().is_empty() || tgt.kit().toms().hits().is_empty() {
             return None;
         }
         let near = Mapping::new(src, tgt, &Overrides::default(), MissingDrums::Nearest);
         let hits = src
+            .kit()
             .toms()
             .hits()
             .iter()
@@ -53,11 +54,11 @@ impl<'a> Spread<'a> {
     }
 
     fn source(&self) -> &TomKit {
-        self.src.toms()
+        self.src.kit().toms()
     }
 
     fn target(&self) -> &TomKit {
-        self.tgt.toms()
+        self.tgt.kit().toms()
     }
 
     fn landings(&self) -> Vec<TomPos> {
@@ -108,8 +109,8 @@ fn every_builtin_pair_lands_its_tom_hits_in_order_on_as_many_toms_as_it_can() {
 
 /// The fewest toms that must cross between rack and floor to land `source` in order on as
 /// many of `target`'s toms as possible.
-fn fewest_crossings(source: &BTreeSet<TomPos>, target: &BTreeSet<TomPos>) -> usize {
-    let racks = |set: &BTreeSet<TomPos>| set.iter().filter(|p| p.is_rack()).count();
+fn fewest_crossings(source: &[TomPos], target: &[TomPos]) -> usize {
+    let racks = |set: &[TomPos]| set.iter().filter(|p| p.is_rack()).count();
     let (sr, tr) = (racks(source), racks(target));
     let (sf, tf) = (source.len() - sr, target.len() - tr);
     if tr == 0 {
@@ -152,7 +153,11 @@ fn every_builtin_pair_crosses_toms_between_rack_and_floor_only_where_it_must() {
 #[test]
 fn every_builtin_pair_keeps_its_toms_in_place_on_a_target_with_all_of_them() {
     let failures = every_spread(|s| {
-        let all_there = s.source().hits().is_subset(s.target().hits());
+        let all_there = s
+            .source()
+            .hits()
+            .iter()
+            .all(|p| s.target().hits().contains(p));
         (all_there && s.hits.iter().any(|(from, to)| from != to))
             .then(|| s.fail(format_args!("moves toms it need not: {:?}", s.hits)))
             .into_iter()
@@ -235,7 +240,7 @@ fn free_runs(
 fn most_distinct_rims(
     rims: &[TomPos],
     anchor: impl Fn(TomPos) -> TomPos,
-    target: &BTreeSet<TomPos>,
+    target: &[TomPos],
 ) -> usize {
     let fixed: Vec<Option<TomPos>> = rims
         .iter()
@@ -257,7 +262,7 @@ fn most_distinct_rims(
 #[test]
 fn every_builtin_rim_stays_on_its_drum_and_uses_as_many_rims_as_it_can() {
     let failures = every_spread(|s| {
-        let rims: Vec<TomPos> = s.source().rims().iter().copied().collect();
+        let rims = s.source().rims();
         if rims.is_empty() || s.target().rims().is_empty() {
             return Vec::new();
         }
@@ -278,7 +283,7 @@ fn every_builtin_rim_stays_on_its_drum_and_uses_as_many_rims_as_it_can() {
             .filter(|&(&r, &to)| s.target().rims().contains(&anchor(r)) && to != anchor(r))
             .map(|(&r, &to)| s.fail(format_args!("rim {r:?} leaves its drum for {to:?}")));
         let used = landings.iter().collect::<BTreeSet<_>>().len();
-        let most = most_distinct_rims(&rims, anchor, s.target().rims());
+        let most = most_distinct_rims(rims, anchor, s.target().rims());
         split
             .chain(
                 (!landings.is_sorted())

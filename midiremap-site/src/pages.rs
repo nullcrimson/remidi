@@ -1746,28 +1746,37 @@ mod tests {
     }
 
     #[test]
-    fn core_notes_show_both_crashes_the_core_crashes_spread_onto_where_crash_1_is_missing() {
-        for id in [
-            "ggd_numetal_ggd",
-            "ggd_numetal_gm",
-            "ggd_numetal_halpern",
-            "ggd_p5_halpern_ggd",
-            "ggd_p5_halpern_gm",
-            "ggd_p5_halpern_halpern",
-        ] {
-            let p = engine(id);
-            let crashes: Vec<Canon> = p
-                .core
-                .iter()
-                .map(|c| c.entry.canon())
-                .filter(|c| c.to_string().starts_with("crash."))
-                .collect();
-            assert_eq!(
-                crashes,
-                ["crash.2.hit", "crash.3.hit"].map(|c| c.parse::<Canon>().unwrap()),
-                "{id}"
-            );
-        }
+    fn core_notes_show_the_first_crashes_an_engine_without_crash_1_has() {
+        let crash_hits: Vec<Canon> = Canon::all()
+            .iter()
+            .copied()
+            .filter(|c| c.to_string().starts_with("crash.") && c.to_string().ends_with(".hit"))
+            .collect();
+        let crash_1 = crash_hits[0];
+        let wrong: Vec<String> = site()
+            .engines
+            .iter()
+            .filter_map(|p| {
+                let map = Catalog::shared().get(&p.engine.id).unwrap();
+                let played: Vec<Canon> = crash_hits
+                    .iter()
+                    .copied()
+                    .filter(|&c| map.encode(c).is_some())
+                    .collect();
+                (map.encode(crash_1).is_none() && !played.is_empty()).then_some((p, played))
+            })
+            .filter_map(|(p, played)| {
+                let shown: Vec<Canon> = p
+                    .core
+                    .iter()
+                    .map(|c| c.entry.canon())
+                    .filter(|c| crash_hits.contains(c))
+                    .collect();
+                let want = &played[..played.len().min(2)];
+                (shown != want).then(|| format!("{}: {shown:?}, want {want:?}", p.engine.id))
+            })
+            .collect();
+        assert_eq!(wrong, Vec::<String>::new());
     }
 
     #[test]

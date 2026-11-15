@@ -1,16 +1,22 @@
-use std::{iter::once, ops::Add};
+use std::{
+    iter::once,
+    ops::{Add, Deref},
+};
 
+use super::landings::Landings;
 use crate::canon::{CymDistance, CymSlot, TomDistance, TomPos};
 
 /// A place on a kit that a spread lands drums on: ordered along the kit, the first the one a
 /// tie goes to, with how far apart two places sit and whether moving between them crosses
-/// from one part of the kit to another.
+/// from one part of the kit to another, which no move does unless the place says so.
 pub(crate) trait SpreadPos: Copy + Ord {
     type Distance: Copy + Ord + Default + Add<Output = Self::Distance>;
 
     fn distance(self, other: Self) -> Self::Distance;
 
-    fn crosses(self, other: Self) -> bool;
+    fn crosses(self, _other: Self) -> bool {
+        false
+    }
 }
 
 impl SpreadPos for TomPos {
@@ -31,9 +37,29 @@ impl SpreadPos for CymSlot {
     fn distance(self, other: Self) -> CymDistance {
         CymSlot::distance(self, other)
     }
+}
 
-    fn crosses(self, other: Self) -> bool {
-        self.kind() != other.kind()
+/// Places along a kit, in kit order, each once.
+#[derive(Debug)]
+pub(crate) struct Places<P>(Vec<P>);
+
+impl<P: Ord> Places<P> {
+    pub(crate) fn of(places: impl IntoIterator<Item = P>) -> Self {
+        let mut sorted = Vec::new();
+        for place in places {
+            if let Err(at) = sorted.binary_search(&place) {
+                sorted.insert(at, place);
+            }
+        }
+        Self(sorted)
+    }
+}
+
+impl<P> Deref for Places<P> {
+    type Target = [P];
+
+    fn deref(&self) -> &[P] {
+        &self.0
     }
 }
 
@@ -91,20 +117,18 @@ fn merge<D: Default>() -> Cost<D> {
     }
 }
 
-/// The landing of each of `source`'s places on `target`'s, both in order, that costs least,
-/// the first target places on a tie.
+/// The landing of each of `from`'s places on `to`'s, in order, that costs least, the first
+/// target places on a tie.
 pub(crate) fn spread<P: SpreadPos>(
-    source: impl IntoIterator<Item = P>,
-    target: impl IntoIterator<Item = P>,
+    from: &Places<P>,
+    to: &Places<P>,
     aim: impl Fn(P) -> Aim<P>,
-) -> Vec<(P, P)> {
-    let from: Vec<P> = source.into_iter().collect();
-    let to: Vec<P> = target.into_iter().collect();
+) -> Landings<P, P> {
     let Some(&last) = from.last() else {
-        return Vec::new();
+        return Landings::default();
     };
     if to.is_empty() {
-        return Vec::new();
+        return Landings::default();
     }
     let mut suffix: Vec<(Cost<P::Distance>, Vec<usize>)> = (0..to.len())
         .map(|j| (aim(last).cost(to[j]), vec![j]))
@@ -125,7 +149,18 @@ pub(crate) fn spread<P: SpreadPos>(
             .collect();
     }
     let (_, landings) = suffix.into_iter().min().expect("the target has a place");
-    from.into_iter()
+    from.iter()
+        .copied()
         .zip(landings.into_iter().map(|j| to[j]))
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn places_are_in_order_each_once() {
+        assert_eq!(&*Places::of([3, 1, 3, 2, 1]), &[1, 2, 3]);
+    }
 }

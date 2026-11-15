@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    canon::{Canon, OpenLevel, SpreadTo},
+    canon::{Canon, OpenLevel},
     note::Note,
+    spread::SpreadStroke,
 };
 
 /// Where a drum lands on the target: on its own note, on the note of the drum that stands
@@ -66,13 +67,9 @@ impl Landing {
         }
     }
 
-    /// `canon`'s stroke played on the target drum `to` a spread moves it to, on `note`.
-    pub(crate) fn spread_to(canon: Canon, to: SpreadTo, note: Note) -> Self {
-        Self {
-            canon,
-            plays: to.plays(canon),
-            note,
-        }
+    /// `canon` played as `plays`, the stroke a spread moves it to, on `note`.
+    pub(crate) fn spread_to(canon: Canon, plays: Canon, note: Note) -> Self {
+        Self { canon, plays, note }
     }
 
     pub fn canon(&self) -> Canon {
@@ -165,9 +162,10 @@ impl Outcome {
             (
                 Self::Direct(landing),
                 Match::Spread {
-                    to, named: true, ..
+                    stroke,
+                    named: true,
                 },
-            ) => Self::Direct(Landing::spread_to(canon, to, landing.note)),
+            ) => Self::Direct(Landing::spread_to(canon, stroke.plays(), landing.note)),
             (Self::Direct(landing), Match::Spread { .. }) => Self::Fallback(StandIn::new(
                 canon,
                 matched.drum(canon),
@@ -187,13 +185,8 @@ impl Outcome {
 pub(crate) enum Match {
     /// An open main hi-hat, on the target's opening at the level that matches the source's.
     Opening(OpenLevel),
-    /// A stroke, played on the target drum `to` a spread moves its drum to; `named` when the
-    /// target has the drum itself, `drum` the target drum its strokes count as.
-    Spread {
-        to: SpreadTo,
-        drum: SpreadTo,
-        named: bool,
-    },
+    /// A stroke a spread moves, `named` when the target has the stroke itself.
+    Spread { stroke: SpreadStroke, named: bool },
 }
 
 impl Match {
@@ -201,7 +194,7 @@ impl Match {
     pub(crate) fn plays(self, canon: Canon) -> Canon {
         match self {
             Self::Opening(level) => canon.at_open_level(level),
-            Self::Spread { to, .. } => to.plays(canon),
+            Self::Spread { stroke, .. } => stroke.plays(),
         }
     }
 
@@ -209,7 +202,7 @@ impl Match {
     fn drum(self, canon: Canon) -> Canon {
         match self {
             Self::Opening(_) => canon,
-            Self::Spread { drum, .. } => drum.plays(canon),
+            Self::Spread { stroke, .. } => stroke.drum(),
         }
     }
 }

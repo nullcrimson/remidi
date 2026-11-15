@@ -5,10 +5,11 @@ use strum::VariantArray;
 
 use super::{all_pairs, assert_none};
 use crate::{
-    canon::{Canon, CymArtic, CymKind, CymSlot, SpreadTo},
+    canon::{Canon, CymArtic, CymKind, CymSlot, CymStroke},
     engine_map::EngineMap,
     overrides::Overrides,
     resolution::{MissingDrums, Outcome},
+    spread::CymbalPlace,
     translate::Mapping,
 };
 
@@ -16,19 +17,32 @@ fn hit(slot: CymSlot) -> Canon {
     Canon::of_cymbal(slot, CymArtic::Hit)
 }
 
-/// The cymbal or ride bell `canon` is a stroke of, when it is one.
-fn place_of(canon: Canon) -> Option<SpreadTo> {
-    match (canon.cymbal(), canon.ride()) {
-        (Some((slot, _)), _) => Some(SpreadTo::Cymbal(slot)),
-        (_, Some((ride, artic))) if artic.is_bell() => Some(SpreadTo::RideBell(ride)),
-        _ => None,
-    }
+/// Whether `canon` is a stroke of a cymbal's bell or a ride's bell.
+fn is_bell(canon: Canon) -> bool {
+    canon.cymbal_stroke().is_some_and(CymStroke::is_bell)
 }
 
-/// Whether `canon` is a stroke of a crash's bell or a ride's bell.
-fn is_bell(canon: Canon) -> bool {
-    canon.cymbal().is_some_and(|(_, artic)| artic.is_bell())
-        || canon.ride().is_some_and(|(_, artic)| artic.is_bell())
+/// Which source strokes keep a place busy: any stroke or spread placement, or bell strokes
+/// only.
+#[derive(Copy, Clone)]
+enum Strokes {
+    Any,
+    Bells,
+}
+
+/// The bell a crash's bell can play on: another crash's or a ride's.
+#[derive(Copy, Clone, PartialEq, Eq)]
+enum Bell {
+    Crash,
+    Ride,
+}
+
+fn bell_of(place: CymbalPlace) -> Option<Bell> {
+    match place {
+        CymbalPlace::Cymbal(CymSlot::Crash(_)) => Some(Bell::Crash),
+        CymbalPlace::RideBell(_) => Some(Bell::Ride),
+        CymbalPlace::Cymbal(_) => None,
+    }
 }
 
 /// A pair whose source plays a cymbal, with its mapping under `Nearest`.
@@ -62,15 +76,15 @@ impl<'a> Pair<'a> {
 
     /// The cymbal or ride bell the source cymbal `slot` plays on: where a spread places it,
     /// else its own cymbal on a target that has it, else where its hit lands.
-    fn place(&self, slot: CymSlot) -> Option<SpreadTo> {
+    fn place(&self, slot: CymSlot) -> Option<CymbalPlace> {
         let own = kit(self.tgt, slot.kind())
             .contains(&slot)
-            .then_some(SpreadTo::Cymbal(slot));
+            .then_some(CymbalPlace::Cymbal(slot));
         self.near
             .matched_drum(hit(slot))
-            .and_then(place_of)
+            .and_then(CymbalPlace::of)
             .or(own)
-            .or_else(|| self.played(hit(slot)).and_then(place_of))
+            .or_else(|| self.played(hit(slot)).and_then(CymbalPlace::of))
     }
 
     /// Where every cymbal and ride stroke the source plays lands.
@@ -78,25 +92,29 @@ impl<'a> Pair<'a> {
         Canon::all()
             .iter()
             .copied()
-            .filter(|&c| {
-                (c.cymbal().is_some() || c.ride().is_some()) && self.src.encode(c).is_some()
-            })
+            .filter(|&c| c.cymbal_stroke().is_some() && self.src.encode(c).is_some())
             .filter_map(|c| Some((c, self.played(c)?)))
             .collect()
     }
 
-    /// Whether no cymbal or ride stroke of the source plays on `place`, nor does a spread place
-    /// a source cymbal there (`bells` only: on its bell).
-    fn idle(&self, place: SpreadTo, bells: bool) -> bool {
+    /// Whether no source stroke of `strokes` plays on `place`, nor, for any stroke, does a
+    /// spread place a source cymbal there.
+    fn idle(&self, place: CymbalPlace, strokes: Strokes) -> bool {
+        let counts = |landed: Canon| match strokes {
+            Strokes::Any => true,
+            Strokes::Bells => is_bell(landed),
+        };
         let landed = self
             .landings()
             .into_iter()
-            .any(|(_, landed)| place_of(landed) == Some(place) && (!bells || is_bell(landed)));
-        let placed = !bells
-            && CymKind::VARIANTS
+            .any(|(_, landed)| CymbalPlace::of(landed) == Some(place) && counts(landed));
+        let placed = match strokes {
+            Strokes::Any => CymKind::VARIANTS
                 .iter()
                 .flat_map(|&kind| kit(self.src, kind))
-                .any(|slot| self.place(slot) == Some(place));
+                .any(|slot| self.place(slot) == Some(place)),
+            Strokes::Bells => false,
+        };
         !landed && !placed
     }
 
@@ -105,48 +123,9 @@ impl<'a> Pair<'a> {
     }
 }
 
-/// The cymbals of `kind` `engine` plays by a stroke other than the bell.
-fn kit(engine: &EngineMap, kind: CymKind) -> BTreeSet<CymSlot> {
-    Canon::all()
-        .iter()
-        .filter_map(|&c| c.cymbal().filter(|_| engine.encode(c).is_some()))
-        .filter(|&(slot, artic)| slot.kind() == kind && !artic.is_bell())
-        .map(|(slot, _)| slot)
-        .collect()
-}
-
-/// The places on `engine` a cymbal of a kind it lacks may take: the cymbals of the first other
-/// kind on `from`'s chain it plays, or its ride bells.
-fn next_kind(engine: &EngineMap, from: CymSlot) -> Vec<SpreadTo> {
-    let ride_bells: Vec<SpreadTo> = Canon::all()
-        .iter()
-        .filter(|&&c| c.ride().is_some_and(|(_, a)| a.is_bell()) && engine.encode(c).is_some())
-        .filter_map(|&c| place_of(c))
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect();
-    hit(from)
-        .fallback_chain()
-        .iter()
-        .find_map(|&c| match (c.cymbal(), c.ride()) {
-            (Some((slot, _)), _) if slot.kind() != from.kind() => {
-                let kit = kit(engine, slot.kind());
-                (!kit.is_empty()).then(|| kit.into_iter().map(SpreadTo::Cymbal).collect())
-            }
-            (_, Some((_, artic))) if artic.is_bell() && !ride_bells.is_empty() => {
-                Some(ride_bells.clone())
-            }
-            _ => None,
-        })
-        .unwrap_or_default()
-}
-
-fn number(place: SpreadTo) -> u8 {
-    match place {
-        SpreadTo::Cymbal(slot) => slot.number(),
-        SpreadTo::RideBell(ride) => ride.get(),
-        SpreadTo::Tom(_) => unreachable!("a cymbal never spreads onto a tom"),
-    }
+/// The cymbals of `kind` `engine` plays by a stroke other than the bell, in order.
+fn kit(engine: &EngineMap, kind: CymKind) -> Vec<CymSlot> {
+    engine.kit().cymbals().cymbals(kind).to_vec()
 }
 
 fn every_pair(check: impl Fn(&Pair) -> Vec<String> + Sync) -> Vec<String> {
@@ -167,11 +146,11 @@ fn every_builtin_pair_spreads_a_kind_the_target_has_in_order_over_as_many_of_its
                 if source.is_empty() || target.is_empty() {
                     return None;
                 }
-                let places: Vec<Option<SpreadTo>> = source.iter().map(|&s| p.place(s)).collect();
-                let distinct: BTreeSet<Option<SpreadTo>> = places.iter().copied().collect();
+                let places: Vec<Option<CymbalPlace>> = source.iter().map(|&s| p.place(s)).collect();
+                let distinct: BTreeSet<Option<CymbalPlace>> = places.iter().copied().collect();
                 let in_kind = places
                     .iter()
-                    .all(|place| matches!(place, Some(SpreadTo::Cymbal(s)) if s.kind() == kind));
+                    .all(|place| matches!(place, Some(CymbalPlace::Cymbal(s)) if s.kind() == kind));
                 let most = source.len().min(target.len());
                 (!in_kind || !places.is_sorted() || distinct.len() != most)
                     .then(|| p.fail(format_args!("{kind:?}: {source:?} on {places:?}")))
@@ -193,20 +172,18 @@ fn every_builtin_cymbal_of_a_kind_the_target_lacks_takes_the_nearest_idle_cymbal
             .filter(|&&kind| kit(p.tgt, kind).is_empty())
             .flat_map(|&kind| kit(p.src, kind))
             .filter_map(|from| {
-                let pool = next_kind(p.tgt, from);
-                let idle: Vec<SpreadTo> =
-                    pool.iter().copied().filter(|&c| p.idle(c, false)).collect();
-                let place = p.place(from)?;
-                let distance = |c: SpreadTo| (number(c).abs_diff(from.number()), number(c));
-                let shared = p
-                    .landings()
+                let pool = p.tgt.kit().cymbals().substitutes(from);
+                let idle: Vec<CymbalPlace> = pool
                     .iter()
-                    .filter(|&&(c, landed)| {
-                        place_of(landed) == Some(place)
-                            && c.cymbal().is_none_or(|(slot, _)| slot != from)
-                    })
-                    .count()
-                    > 0;
+                    .copied()
+                    .filter(|&c| p.idle(c, Strokes::Any))
+                    .collect();
+                let place = p.place(from)?;
+                let distance = |c: CymbalPlace| (c.distance(from), c);
+                let shared = p.landings().iter().any(|&(c, landed)| {
+                    CymbalPlace::of(landed) == Some(place)
+                        && c.cymbal().is_none_or(|(slot, _)| slot != from)
+                });
                 let nearer = idle.iter().any(|&c| distance(c) < distance(place));
                 let ok = idle.is_empty() || (pool.contains(&place) && !shared && !nearer);
                 (!ok).then(|| p.fail(format_args!("{from:?} on {place:?}, idle {idle:?}")))
@@ -223,38 +200,39 @@ fn every_builtin_cymbal_of_a_kind_the_target_lacks_takes_the_nearest_idle_cymbal
 fn every_builtin_crash_bell_plays_on_its_crashs_bell_else_an_idle_crash_bell_else_an_idle_ride_bell(
 ) {
     let failures = every_pair(|p| {
-        let target_bells: Vec<SpreadTo> = Canon::all()
+        let target_bells: Vec<CymbalPlace> = Canon::all()
             .iter()
             .filter(|&&c| is_bell(c) && p.tgt.encode(c).is_some())
-            .filter_map(|&c| place_of(c))
+            .filter_map(|&c| CymbalPlace::of(c))
             .collect::<BTreeSet<_>>()
             .into_iter()
             .collect();
-        let idle = |crash: bool| {
+        let idle = |bell: Bell| {
             target_bells
                 .iter()
                 .copied()
-                .filter(|b| !matches!(b, SpreadTo::Cymbal(s) if !matches!(s, CymSlot::Crash(_))))
-                .any(|b| {
-                    matches!(b, SpreadTo::Cymbal(CymSlot::Crash(_))) == crash && p.idle(b, true)
-                })
+                .any(|b| bell_of(b) == Some(bell) && p.idle(b, Strokes::Bells))
         };
         p.landings()
             .into_iter()
-            .filter(|&(c, _)| matches!(c.cymbal(), Some((CymSlot::Crash(_), a)) if a.is_bell()))
-            .filter_map(|(c, landed)| {
-                let (slot, _) = c.cymbal()?;
+            .filter_map(|(c, landed)| match c.cymbal() {
+                Some((slot @ CymSlot::Crash(_), artic)) if artic.is_bell() => {
+                    Some((c, slot, landed))
+                }
+                _ => None,
+            })
+            .filter_map(|(c, slot, landed)| {
                 let own = p.place(slot).filter(|own| target_bells.contains(own));
-                let on = place_of(landed);
+                let on = CymbalPlace::of(landed);
                 let shared = p
                     .landings()
                     .iter()
-                    .any(|&(o, l)| !o.same_drum(c) && is_bell(l) && place_of(l) == on);
+                    .any(|&(o, l)| !o.same_drum(c) && is_bell(l) && CymbalPlace::of(l) == on);
                 let ok = match own {
                     Some(own) => on == Some(own),
                     None => {
-                        !(matches!(on, Some(SpreadTo::RideBell(_))) && idle(true))
-                            && !(shared && (idle(true) || idle(false)))
+                        !(matches!(on, Some(CymbalPlace::RideBell(_))) && idle(Bell::Crash))
+                            && !(shared && (idle(Bell::Crash) || idle(Bell::Ride)))
                     }
                 };
                 (!ok).then(|| p.fail(format_args!("{c} on {landed}")))
@@ -267,9 +245,7 @@ fn every_builtin_crash_bell_plays_on_its_crashs_bell_else_an_idle_crash_bell_els
 #[test]
 fn every_builtin_bell_cymbal_stroke_plays_on_a_ride_bell_where_the_target_has_one() {
     let failures = every_pair(|p| {
-        let rides_have_bells = Canon::all()
-            .iter()
-            .any(|&c| c.ride().is_some_and(|(_, a)| a.is_bell()) && p.tgt.encode(c).is_some());
+        let rides_have_bells = !p.tgt.kit().cymbals().ride_bells().is_empty();
         if !kit(p.tgt, CymKind::Bell).is_empty() || !rides_have_bells {
             return Vec::new();
         }
@@ -277,7 +253,7 @@ fn every_builtin_bell_cymbal_stroke_plays_on_a_ride_bell_where_the_target_has_on
             .into_iter()
             .filter(|&(c, landed)| {
                 matches!(c.cymbal(), Some((CymSlot::Bell(_), _)))
-                    && !matches!(place_of(landed), Some(SpreadTo::RideBell(_)))
+                    && !matches!(CymbalPlace::of(landed), Some(CymbalPlace::RideBell(_)))
             })
             .map(|(c, landed)| p.fail(format_args!("{c} on {landed}")))
             .collect()

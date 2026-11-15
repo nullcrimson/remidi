@@ -268,13 +268,6 @@ fn own_strokes(c: Canon) -> Vec<Canon> {
     }
 }
 
-fn is_bell(a: CymArtic) -> bool {
-    match a {
-        CymArtic::Bell | CymArtic::BellTip => true,
-        CymArtic::Hit | CymArtic::Mute | CymArtic::Bow | CymArtic::BowTip | CymArtic::Edge => false,
-    }
-}
-
 fn cymbal_kind(s: CymSlot) -> DrumKind {
     DrumKind::from(Canon(Slot::Cymbal(s, CymArtic::Hit)))
 }
@@ -297,7 +290,7 @@ fn lands_on(c: Canon) -> Vec<DrumKind> {
                 CymSlot::Splash(_) => (vec![own, Crash], false),
                 CymSlot::Bell(_) => (vec![own], true),
             };
-            if bell_cymbal || is_bell(a) {
+            if bell_cymbal || a.is_bell() {
                 kinds.push(Ride);
             }
             kinds
@@ -314,7 +307,7 @@ fn crash_hits() -> Vec<Canon> {
 }
 
 fn ride_bells() -> Vec<Canon> {
-    all_where(|s| matches!(s, Slot::Ride(_, RideArtic::Bell | RideArtic::BellTip)))
+    all_where(|s| matches!(s, Slot::Ride(_, a) if a.is_bell()))
 }
 
 fn ride_bows() -> Vec<Canon> {
@@ -380,7 +373,7 @@ fn anchor(c: Canon) -> Anchor {
         Slot::Cymbal(s, a) => match s {
             CymSlot::Bell(_) => any(bells_or_bows()),
             CymSlot::Crash(_) | CymSlot::China(_) | CymSlot::Splash(_) | CymSlot::Stack(_) => {
-                if is_bell(a) {
+                if a.is_bell() {
                     any(bells_or_bows())
                 } else {
                     any(crash_hits())

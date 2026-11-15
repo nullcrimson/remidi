@@ -68,12 +68,13 @@ conversion   ── convert(bytes, &Mapping, Selection) → Conversion (Done | A
           ├── report      ── Report: what a conversion did with each hit
           └── translate   ── Mapping: every drum's and every source note's Outcome, compiled once
                  ├── resolution  ── Outcome { Direct(Landing) | Fallback(StandIn) | Dropped }, MissingDrums
-                 ├── spreads     ── Spreads: a pair's tom and cymbal spreads, as Match per drum
-                 │      ├── tom_spread    ── TomKit, TomSpread: a pair's toms in order onto the target's
-                 │      ├── cymbal_spread ── CymbalKit, CymbalSpread: a pair's cymbals by kind
-                 │      └── spread        ── spread(): the least-cost ordered assignment both use
+                 ├── spread/     ── Kit, Spreads: where a pair's spreads play each tom and cymbal stroke
+                 │      ├── toms    ── TomKit, TomSpread: a pair's toms in order onto the target's
+                 │      ├── cymbals ── CymbalKit, CymbalPlace, CymbalSpread: a pair's cymbals by kind
+                 │      └── assign  ── spread() over Places, into Landings and Moved: the least-cost
+                 │                     ordered assignment both use
                  ├── engine_map  ── EngineMap, Drum, EngineId
-                 │      └── canon, family, note, non_blank, open_levels, tom_spread, cymbal_spread
+                 │      └── canon, family, note, non_blank, open_levels, spread (its Kit)
                  ├── overrides   ── Overrides: edits to either side, as two maps
                  └── canon       ── Canon (opaque) + its key, label and fallback chains
                         ├── family ── Family, declared in display order
@@ -208,8 +209,9 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
   bells), else lands as its chain would. A crash's bell plays on its spread crash's bell,
   else on the nearest unused bell of another crash, else on the first unused ride bell (a
   ride bell the source's own ride bell lands on is used). Every other stroke follows its
-  cymbal: `SpreadTo` (a tom, a cymbal or a ride bell) plays a stroke the same way there, and
-  a bell cymbal's strokes on a ride bell. Rides are not spread. Outcomes and edits follow
+  cymbal: a `CymbalPlace` (a cymbal or a ride's bell) plays a stroke the same way on a
+  cymbal, and on a ride's bell as `CymArtic::on_ride_bell` names it, the one rule the
+  fallback chains use too. Rides are not spread. Outcomes and edits follow
   the tom rules; `proofs/cymbals.rs` checks the spread over every built-in pair.
 - Readers: `resolve_canon(canon)` (a drum's outcome), `played()` (each source note that
   plays a drum, with its outcome), `dropped_drums()` (the one rule for "a drum the source

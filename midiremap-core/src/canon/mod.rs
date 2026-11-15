@@ -122,7 +122,7 @@ pub(crate) enum HatZone {
     strum::EnumDiscriminants,
 )]
 #[strum(serialize_all = "lowercase")]
-#[strum_discriminants(name(CymKind), derive(Hash, PartialOrd, Ord, VariantArray))]
+#[strum_discriminants(name(CymKind), derive(Hash, VariantArray))]
 pub(crate) enum CymSlot {
     Crash(CrashIdx),
     China(Idx<3>),
@@ -144,7 +144,21 @@ pub(crate) enum CymArtic {
 
 impl CymArtic {
     pub(crate) fn is_bell(self) -> bool {
-        matches!(self, Self::Bell | Self::BellTip)
+        match self {
+            Self::Bell | Self::BellTip => true,
+            Self::Hit | Self::Mute | Self::Bow | Self::BowTip | Self::Edge => false,
+        }
+    }
+
+    /// The stroke this cymbal stroke plays as on a ride's bell: the bell tip for a bell tip,
+    /// the bell for any other.
+    pub(crate) fn on_ride_bell(self) -> RideArtic {
+        match self {
+            Self::BellTip => RideArtic::BellTip,
+            Self::Hit | Self::Mute | Self::Bell | Self::Bow | Self::BowTip | Self::Edge => {
+                RideArtic::Bell
+            }
+        }
     }
 }
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
@@ -160,7 +174,10 @@ pub(crate) enum RideArtic {
 
 impl RideArtic {
     pub(crate) fn is_bell(self) -> bool {
-        matches!(self, Self::Bell | Self::BellTip)
+        match self {
+            Self::Bell | Self::BellTip => true,
+            Self::Bow | Self::BowTip | Self::Edge | Self::Mute => false,
+        }
     }
 }
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
@@ -237,7 +254,7 @@ impl CymSlot {
     }
 
     /// The cymbal's number among the cymbals of its kind.
-    pub(crate) fn number(self) -> u8 {
+    fn number(self) -> u8 {
         match self {
             Self::Crash(i) => i.get(),
             Self::China(i) | Self::Splash(i) => i.get(),
@@ -250,14 +267,37 @@ impl CymSlot {
         CymKind::from(self)
     }
 
-    /// How far apart this cymbal's number sits from `other`'s, two cymbals of one kind.
+    /// How far apart this cymbal's number sits from `other`'s.
     pub(crate) fn distance(self, other: Self) -> CymDistance {
         CymDistance(self.number().abs_diff(other.number()))
     }
+
+    /// How far apart this cymbal's number sits from the number of the ride `ride`.
+    pub(crate) fn ride_distance(self, ride: RideIdx) -> CymDistance {
+        CymDistance(self.number().abs_diff(ride.get()))
+    }
 }
 
-/// How far apart the numbers of two cymbals of one kind sit.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
+/// A stroke of a cymbal or of a ride.
+#[derive(Copy, Clone)]
+pub(crate) enum CymStroke {
+    Cymbal(CymSlot, CymArtic),
+    Ride(RideIdx, RideArtic),
+}
+
+impl CymStroke {
+    /// Whether it is a stroke of a cymbal's bell or a ride's bell.
+    #[cfg(test)]
+    pub(crate) fn is_bell(self) -> bool {
+        match self {
+            Self::Cymbal(_, artic) => artic.is_bell(),
+            Self::Ride(_, artic) => artic.is_bell(),
+        }
+    }
+}
+
+/// How far apart the numbers of two cymbals, or of a cymbal and a ride, sit.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub(crate) struct CymDistance(u8);
 
 impl Add for CymDistance {
@@ -377,30 +417,6 @@ impl TomPos {
 
     pub(crate) fn is_rack(self) -> bool {
         matches!(self, Self::Rack(_))
-    }
-}
-
-/// The target drum a spread moves a source drum to: a tom, a cymbal, or a ride's bell.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub(crate) enum SpreadTo {
-    Tom(TomPos),
-    Cymbal(CymSlot),
-    RideBell(RideIdx),
-}
-
-impl SpreadTo {
-    /// `canon`'s stroke played on this drum: the same stroke on a tom or a cymbal, and on a
-    /// ride's bell the bell tip for a bell tip and the bell for every other stroke.
-    pub(crate) fn plays(self, canon: Canon) -> Canon {
-        match self {
-            Self::Tom(pos) => canon.at_tom_pos(pos),
-            Self::Cymbal(slot) => canon.at_cymbal(slot),
-            Self::RideBell(ride) => match canon.cymbal() {
-                Some((_, CymArtic::BellTip)) => Canon::of_ride(ride, RideArtic::BellTip),
-                Some(_) => Canon::of_ride(ride, RideArtic::Bell),
-                None => canon,
-            },
-        }
     }
 }
 
@@ -546,19 +562,12 @@ impl Canon {
         }
     }
 
-    /// Which ride and how it is played, when this drum is a ride.
-    pub(crate) fn ride(self) -> Option<(RideIdx, RideArtic)> {
+    /// The stroke of a cymbal or a ride this drum is, when it is one.
+    pub(crate) fn cymbal_stroke(self) -> Option<CymStroke> {
         match self.0 {
-            Slot::Ride(ride, artic) => Some((ride, artic)),
+            Slot::Cymbal(slot, artic) => Some(CymStroke::Cymbal(slot, artic)),
+            Slot::Ride(ride, artic) => Some(CymStroke::Ride(ride, artic)),
             _ => None,
-        }
-    }
-
-    /// The same stroke on the cymbal `slot`; any other drum as it is.
-    pub(crate) fn at_cymbal(self, slot: CymSlot) -> Canon {
-        match self.0 {
-            Slot::Cymbal(_, artic) => Canon(Slot::Cymbal(slot, artic)),
-            _ => self,
         }
     }
 

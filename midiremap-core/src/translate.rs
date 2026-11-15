@@ -8,7 +8,7 @@ use crate::{
     note::Note,
     overrides::Overrides,
     resolution::{resolve, Encoding, Match, MissingDrums, Outcome},
-    spreads::Spreads,
+    spread::Spreads,
 };
 
 /// What happens to a note the source layout does not recognize.
@@ -100,7 +100,14 @@ impl<'a> Mapping<'a> {
         overrides: &Overrides,
         missing: MissingDrums,
     ) -> Self {
-        let spreads = Spreads::new(src, tgt, missing);
+        let spreads = match missing {
+            MissingDrums::Nearest => Spreads::new(src.kit(), tgt.kit(), |c| {
+                tgt.resolve(c, MissingDrums::Nearest)
+                    .played()
+                    .map(|(c, _)| c)
+            }),
+            MissingDrums::Drop => Spreads::default(),
+        };
         let matched: HashMap<Canon, Match> = Canon::all()
             .iter()
             .filter_map(|&canon| matching(src, tgt, &spreads, canon).map(|m| (canon, m)))
@@ -234,7 +241,10 @@ fn matching(src: &EngineMap, tgt: &EngineMap, spreads: &Spreads, canon: Canon) -
     {
         return Some(Match::Opening(from.toward(to, level, zone)));
     }
-    spreads.matched(tgt, canon)
+    spreads.stroke(canon).map(|stroke| Match::Spread {
+        stroke,
+        named: tgt.encode(canon).is_some(),
+    })
 }
 
 fn decoding(src: &EngineMap, overrides: &Overrides) -> Decoding {

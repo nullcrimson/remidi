@@ -4,7 +4,6 @@ mod canon;
 mod catalog;
 mod channel;
 mod conversion;
-mod cymbal_spread;
 mod daw;
 mod engine_map;
 mod family;
@@ -25,8 +24,6 @@ mod resolution;
 mod rewrite;
 mod sample;
 mod spread;
-mod spreads;
-mod tom_spread;
 mod translate;
 pub mod xml;
 
