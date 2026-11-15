@@ -4,10 +4,10 @@ use serde::Serialize;
 
 use super::{file::FileStem, packing::Packing};
 use crate::{
-    engine_map::EngineMap,
+    engine::EngineMap,
+    mapping::{Destination, Mapping},
     note::Note,
     preset::PresetName,
-    translate::{Destination, Mapping},
     xml::{self, nest, Indent, Xml},
 };
 

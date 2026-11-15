@@ -2,11 +2,10 @@ use std::collections::HashSet;
 
 use serde::Serialize;
 
+use super::{Mapping, Outcome};
 use crate::{
     canon::{Canon, CanonEntry},
     note::Note,
-    resolution::Outcome,
-    translate::Mapping,
 };
 
 /// One drum of the edit preview, derived from the same [`Mapping`] the converter uses.
@@ -90,10 +89,9 @@ mod tests {
     use super::*;
     use crate::{
         canon::k,
-        catalog::Catalog,
-        engine_map::from_toml,
+        engine::{from_toml, Catalog},
+        mapping::{Landing, StandIn},
         note::n,
-        resolution::{Landing, StandIn},
         MissingDrums, Overrides,
     };
 

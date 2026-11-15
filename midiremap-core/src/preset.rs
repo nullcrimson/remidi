@@ -4,8 +4,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    canon::Canon, catalog::Catalog, engine_map::EngineId, non_blank::NonBlank, note::Note,
-    overrides::Overrides,
+    canon::Canon,
+    engine::{Catalog, EngineId},
+    mapping::Overrides,
+    non_blank::NonBlank,
+    note::Note,
 };
 
 const PRESET_FORMAT: &str = "drumverter-preset";

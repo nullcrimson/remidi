@@ -5,11 +5,9 @@ use rayon::prelude::*;
 use super::{all_pairs, assert_none};
 use crate::{
     canon::{k, Canon, TomArtic, TomPos},
-    engine_map::EngineMap,
-    overrides::Overrides,
-    resolution::{MissingDrums, Outcome},
+    engine::EngineMap,
+    mapping::{Mapping, MissingDrums, Outcome, Overrides},
     spread::TomKit,
-    translate::Mapping,
 };
 
 fn stroke(pos: TomPos, stroke: TomArtic) -> Canon {

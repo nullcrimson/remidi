@@ -3,7 +3,7 @@ use std::cmp::Reverse;
 use serde::Serialize;
 
 use super::hits::NoteHits;
-use crate::{catalog::Catalog, engine_map::EngineId};
+use crate::engine::{Catalog, EngineId};
 
 /// How many of the hits one engine's layout recognizes.
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
@@ -76,8 +76,11 @@ mod tests {
 
     use super::*;
     use crate::{
-        convert::convert, engine_map::EngineMap, inspect::note_hits, overrides::Overrides,
-        parts::ChannelScope, resolution::MissingDrums, translate::Mapping,
+        convert::convert,
+        engine::EngineMap,
+        inspect::note_hits,
+        mapping::{Mapping, MissingDrums, Overrides},
+        parts::ChannelScope,
     };
 
     fn engine(id: &str, notes: &[u8]) -> EngineMap {

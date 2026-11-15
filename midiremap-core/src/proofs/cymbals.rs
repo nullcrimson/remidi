@@ -6,11 +6,9 @@ use strum::VariantArray;
 use super::{all_pairs, assert_none};
 use crate::{
     canon::{Canon, CymArtic, CymKind, CymSlot, CymStroke},
-    engine_map::EngineMap,
-    overrides::Overrides,
-    resolution::{MissingDrums, Outcome},
+    engine::EngineMap,
+    mapping::{Mapping, MissingDrums, Outcome, Overrides},
     spread::CymbalPlace,
-    translate::Mapping,
 };
 
 fn hit(slot: CymSlot) -> Canon {

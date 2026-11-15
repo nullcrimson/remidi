@@ -3,8 +3,7 @@ use strum::VariantArray;
 use super::assert_none;
 use crate::{
     canon::{HatZone, OpenLevel},
-    catalog::Catalog,
-    open_levels::OpenLevels,
+    engine::{Catalog, OpenLevels},
 };
 
 /// Every engine whose hi-hat opens in one zone: each set of levels it plays, with each of them

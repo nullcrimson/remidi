@@ -11,7 +11,7 @@ pub use self::{
     file::FileStem,
     packing::Packing,
 };
-use crate::engine_map::EngineMap;
+use crate::engine::EngineMap;
 
 /// A DAW that reads a file naming the notes of a drum engine.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, VariantArray)]

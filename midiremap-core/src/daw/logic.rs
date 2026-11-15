@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::{
     canon::{Family, PercKind, Piece, RackIdx},
-    engine_map::EngineMap,
+    engine::EngineMap,
     note::Note,
 };
 

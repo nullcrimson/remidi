@@ -11,10 +11,8 @@ use crate::{
         rules::{rules, snapshot, Anchor, DrumKind},
         Canon,
     },
-    catalog::Catalog,
-    engine_map::EngineMap,
-    resolution::{resolve_on, MissingDrums},
-    translate::Mapping,
+    engine::{Catalog, EngineMap},
+    mapping::{resolve_on, Mapping, MissingDrums},
 };
 
 /// Every ordered pair of built-in engines, an engine with itself included.

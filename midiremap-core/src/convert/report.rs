@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
-use crate::{canon::Canon, note::Note, resolution::Outcome};
+use crate::{canon::Canon, mapping::Outcome, note::Note};
 
 /// How a drum the target lacks was played: on which stand-in drum, on which note, how often.
 #[derive(Serialize, Debug, PartialEq, Eq)]
@@ -105,8 +105,8 @@ mod tests {
     use super::*;
     use crate::{
         canon::k,
+        mapping::{Landing, StandIn},
         note::n,
-        resolution::{Landing, StandIn},
     };
 
     fn open3() -> Canon {

@@ -8,10 +8,9 @@ use crate::{
         rules::{rules, DrumKind},
         Canon,
     },
-    engine_map::EngineMap,
+    engine::EngineMap,
+    mapping::{Mapping, MissingDrums},
     note::Note,
-    resolution::MissingDrums,
-    translate::Mapping,
 };
 
 fn first_agreed(tgt: &EngineMap, canon: Canon) -> Option<Note> {

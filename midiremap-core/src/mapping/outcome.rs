@@ -1,10 +1,7 @@
-use std::collections::HashMap;
-
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::{
     canon::{Canon, OpenLevel},
-    engine_map::EngineMap,
     note::Note,
     spread::SpreadStroke,
 };
@@ -28,7 +25,7 @@ pub enum Outcome {
     /// Another drum plays it.
     Fallback(StandIn),
     /// Nothing plays it; `other_drum` when only another drum could have, so the
-    /// [`MissingDrums`] setting decided it.
+    /// [`MissingDrums`](super::MissingDrums) setting decided it.
     Dropped {
         #[serde(skip)]
         canon: Canon,
@@ -121,7 +118,7 @@ impl StandIn {
 
 impl Outcome {
     /// Whether the target lacks the drum and its nearest stand-in is another drum, so the
-    /// [`MissingDrums`] setting decides what plays it.
+    /// [`MissingDrums`](super::MissingDrums) setting decides what plays it.
     pub fn moves_to_other_drum(&self) -> bool {
         match *self {
             Self::Direct(_) => false,
@@ -205,141 +202,5 @@ impl Match {
             Self::Opening(_) => canon,
             Self::Spread { stroke, .. } => stroke.drum(),
         }
-    }
-}
-
-/// What happens to a drum the target engine lacks.
-#[derive(
-    Copy,
-    Clone,
-    Debug,
-    Default,
-    PartialEq,
-    Eq,
-    Serialize,
-    Deserialize,
-    strum::Display,
-    strum::EnumString,
-)]
-#[serde(rename_all = "lowercase")]
-#[strum(
-    serialize_all = "lowercase",
-    parse_err_ty = MissingDrumsParseError,
-    parse_err_fn = MissingDrumsParseError::of
-)]
-#[cfg_attr(
-    feature = "ts",
-    derive(tsify::Tsify),
-    tsify(missing_as_null, hashmap_as_object)
-)]
-pub enum MissingDrums {
-    /// Play it on the nearest drum the target has.
-    #[default]
-    Nearest,
-    /// Leave it out; another way of playing the same drum still stands in for it.
-    Drop,
-}
-
-impl MissingDrums {
-    fn allows(self, canon: Canon, alt: Canon) -> bool {
-        match self {
-            Self::Nearest => true,
-            Self::Drop => canon.same_drum(alt),
-        }
-    }
-}
-
-#[derive(thiserror::Error, Debug, PartialEq, Eq)]
-#[error("missing drums must be 'nearest' or 'drop', not '{0}'")]
-pub struct MissingDrumsParseError(String);
-
-impl MissingDrumsParseError {
-    fn of(s: &str) -> Self {
-        Self(s.to_owned())
-    }
-}
-
-pub(crate) type Encoding = HashMap<Canon, Note>;
-
-fn substitute(
-    canon: Canon,
-    encode: impl Fn(Canon) -> Option<Note>,
-    missing: MissingDrums,
-) -> Option<(Canon, Note)> {
-    canon
-        .fallback_chain()
-        .iter()
-        .copied()
-        .filter(|&alt| missing.allows(canon, alt))
-        .find_map(|alt| encode(alt).map(|note| (alt, note)))
-}
-
-/// Where `canon` lands on a target whose note for each drum `encode` gives.
-pub(crate) fn resolve(
-    canon: Canon,
-    encode: impl Fn(Canon) -> Option<Note>,
-    missing: MissingDrums,
-) -> Outcome {
-    if let Some(note) = encode(canon) {
-        return Outcome::Direct(Landing::itself(canon, note));
-    }
-    substitute(canon, &encode, missing).map_or_else(
-        || Outcome::Dropped {
-            canon,
-            other_drum: substitute(canon, &encode, MissingDrums::Nearest).is_some(),
-        },
-        |(stand_in, note)| Outcome::Fallback(StandIn::new(canon, canon, stand_in, note)),
-    )
-}
-
-/// Where a drum lands on `map` with no edits: what the converter writes for it.
-pub fn resolve_on(map: &EngineMap, canon: Canon, missing: MissingDrums) -> Outcome {
-    resolve(canon, |c| map.encode(c), missing)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn missing_drums_serializes_as_its_lowercase_name() {
-        assert_eq!(
-            serde_json::to_string(&MissingDrums::Drop).unwrap(),
-            r#""drop""#
-        );
-    }
-
-    #[test]
-    fn missing_drums_deserializes_from_its_lowercase_name() {
-        assert_eq!(
-            serde_json::from_str::<MissingDrums>(r#""nearest""#).unwrap(),
-            MissingDrums::Nearest
-        );
-    }
-
-    #[test]
-    fn an_unknown_missing_drums_name_does_not_deserialize() {
-        assert!(serde_json::from_str::<MissingDrums>(r#""maybe""#).is_err());
-    }
-
-    #[test]
-    fn nearest_round_trips_through_its_name() {
-        let m = MissingDrums::Nearest;
-        assert_eq!(m.to_string().parse::<MissingDrums>().unwrap(), m);
-    }
-
-    #[test]
-    fn drop_round_trips_through_its_name() {
-        let m = MissingDrums::Drop;
-        assert_eq!(m.to_string().parse::<MissingDrums>().unwrap(), m);
-    }
-
-    #[test]
-    fn an_unknown_missing_drums_value_names_the_choices() {
-        let err = "maybe".parse::<MissingDrums>().unwrap_err().to_string();
-        assert!(
-            err.contains("maybe") && err.contains("nearest") && err.contains("drop"),
-            "{err}"
-        );
     }
 }

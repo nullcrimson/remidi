@@ -7,9 +7,9 @@ pub use self::report::{FallbackTally, Report};
 use self::rewrite::rewrite;
 use crate::{
     inspect::{summaries, PartSummary},
+    mapping::Mapping,
     midi::{self, Damage},
     parts::{choose, Choice, ConvertError, Part, Parts, Selection},
-    translate::Mapping,
 };
 
 /// A converted file, what happened to its notes, and what the file had lost before it was read.
@@ -107,8 +107,11 @@ mod tests {
 
     use super::*;
     use crate::{
-        canon::k, catalog::Catalog, note::n, overrides::Overrides, parts::ChannelScope,
-        resolution::MissingDrums, translate::Unrecognized,
+        canon::k,
+        engine::Catalog,
+        mapping::{MissingDrums, Overrides, Unrecognized},
+        note::n,
+        parts::ChannelScope,
     };
 
     fn convert_ids(mid: &[u8], src_id: &str, tgt_id: &str) -> Converted {

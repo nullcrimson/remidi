@@ -3,7 +3,7 @@ use serde::Serialize;
 use super::hits::NoteHits;
 use crate::{
     canon::Canon,
-    engine_map::EngineMap,
+    engine::EngineMap,
     midi::{self, CodecError, Parsed},
     parts::{choose, part_hits, track_names, ChannelScope, Choice, Part, Selection},
 };
@@ -89,7 +89,7 @@ mod tests {
     use midiremap_testkit::{on, tracks, DRUMS};
 
     use super::*;
-    use crate::catalog::Catalog;
+    use crate::engine::Catalog;
 
     #[test]
     fn a_part_summary_names_its_track_and_what_its_hits_play_as_the_source() {

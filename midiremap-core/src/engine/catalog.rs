@@ -3,7 +3,7 @@ use std::{
     sync::LazyLock,
 };
 
-use crate::engine_map::{many_from_json, EngineMap, MapError, Variant};
+use super::map::{many_from_json, EngineMap, MapError, Variant};
 
 const EMBEDDED: &str = include_str!(concat!(env!("OUT_DIR"), "/engines.json"));
 
@@ -113,8 +113,8 @@ mod tests {
     use super::*;
     use crate::{
         canon::{k, Canon},
+        engine::OpenLevels,
         note::n,
-        open_levels::OpenLevels,
     };
 
     #[test]

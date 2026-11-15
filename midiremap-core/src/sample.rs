@@ -8,9 +8,9 @@ use strum::VariantArray;
 
 use crate::{
     canon::Canon,
-    engine_map::EngineMap,
+    engine::EngineMap,
+    mapping::{resolve_on, MissingDrums},
     midi::{self, Channel},
-    resolution::{resolve_on, MissingDrums},
 };
 
 const TICKS_PER_BEAT: u16 = 480;
@@ -115,7 +115,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        catalog::Catalog,
+        engine::Catalog,
         inspect::{note_hits, source_fits},
         parts::ChannelScope,
     };

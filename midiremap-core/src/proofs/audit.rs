@@ -11,11 +11,9 @@ use crate::{
         rules::{kind_rank, rules, stand_in_rank, Anchor, DrumKind},
         Canon, CymArtic,
     },
-    engine_map::EngineMap,
+    engine::EngineMap,
+    mapping::{Mapping, MissingDrums, Outcome, Overrides},
     note::Note,
-    overrides::Overrides,
-    resolution::{MissingDrums, Outcome},
-    translate::Mapping,
 };
 
 /// A way a pair breaks the agreed rules, short of a wrong chain (which L1 rejects outright).

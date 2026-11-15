@@ -5,12 +5,12 @@ use midly::{
 
 use super::report::Report;
 use crate::{
+    mapping::Mapping,
     midi::{
         hit, is_closed, note_from_key, note_key, Channel, ChannelFilter, CodecError, END_OF_TRACK,
     },
     note::Note,
     parts::TrackFilters,
-    translate::Mapping,
 };
 
 #[derive(Default)]
@@ -155,10 +155,8 @@ mod tests {
 
     use super::*;
     use crate::{
-        catalog::Catalog,
-        overrides::Overrides,
-        resolution::MissingDrums,
-        translate::{Mapping, Unrecognized},
+        engine::Catalog,
+        mapping::{Mapping, MissingDrums, Overrides, Unrecognized},
     };
 
     fn bytes() -> impl Iterator<Item = u7> + Clone {

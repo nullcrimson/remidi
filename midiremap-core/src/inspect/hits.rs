@@ -3,7 +3,7 @@ use std::{cmp::Reverse, collections::BTreeMap, iter::Sum, ops::AddAssign};
 use super::summary::{PlayedDrum, Plays};
 use crate::{
     canon::Canon,
-    engine_map::EngineMap,
+    engine::EngineMap,
     midi,
     note::Note,
     parts::{hit_notes, ConvertError, Selection},

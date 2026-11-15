@@ -1,66 +1,23 @@
+mod chain;
+mod outcome;
+mod overrides;
+mod preview;
+mod settings;
+
 use std::collections::{HashMap, HashSet};
 
-use serde::{Deserialize, Serialize};
-
-use crate::{
-    canon::Canon,
-    engine_map::EngineMap,
-    note::Note,
+pub use self::{
+    chain::resolve_on,
+    outcome::{Landing, Outcome, StandIn},
     overrides::Overrides,
-    resolution::{resolve, resolve_on, Encoding, Match, MissingDrums, Outcome},
-    spread::Spreads,
+    preview::VoicePlan,
+    settings::{MissingDrums, MissingDrumsParseError, Unrecognized, UnrecognizedParseError},
 };
-
-/// What happens to a note the source layout does not recognize.
-#[derive(
-    Copy,
-    Clone,
-    Debug,
-    Default,
-    PartialEq,
-    Eq,
-    Serialize,
-    Deserialize,
-    strum::Display,
-    strum::EnumString,
-)]
-#[serde(rename_all = "lowercase")]
-#[strum(
-    serialize_all = "lowercase",
-    parse_err_ty = UnrecognizedParseError,
-    parse_err_fn = UnrecognizedParseError::of
-)]
-#[cfg_attr(
-    feature = "ts",
-    derive(tsify::Tsify),
-    tsify(missing_as_null, hashmap_as_object)
-)]
-pub enum Unrecognized {
-    /// Leave it out of the output.
-    #[default]
-    Remove,
-    /// Write it out as it is: the same note on the same channel, at the same time and velocity.
-    Keep,
-}
-
-impl Unrecognized {
-    pub(crate) fn keeps(self) -> bool {
-        match self {
-            Self::Remove => false,
-            Self::Keep => true,
-        }
-    }
-}
-
-#[derive(thiserror::Error, Debug, PartialEq, Eq)]
-#[error("unrecognized notes must be 'remove' or 'keep', not '{0}'")]
-pub struct UnrecognizedParseError(String);
-
-impl UnrecognizedParseError {
-    fn of(s: &str) -> Self {
-        Self(s.to_owned())
-    }
-}
+use self::{
+    chain::{resolve, Encoding},
+    outcome::Match,
+};
+use crate::{canon::Canon, engine::EngineMap, note::Note, spread::Spreads};
 
 /// Where a source note plays on the target: on the note of the drum it decodes to, or
 /// unchanged, when the source does not recognize it and the mapping keeps such notes.
@@ -271,10 +228,8 @@ mod tests {
     use super::*;
     use crate::{
         canon::k,
-        catalog::Catalog,
-        engine_map::from_toml,
+        engine::{from_toml, Catalog},
         note::n,
-        resolution::{Landing, StandIn},
     };
 
     const SRC: &str = r#"
@@ -686,43 +641,6 @@ notes = [ {} ]",
         assert!(!mapping
             .resolve_canon(k("snare1.rimshot"))
             .moves_to_other_drum());
-    }
-
-    #[test]
-    fn unrecognized_serializes_as_its_lowercase_name() {
-        assert_eq!(
-            serde_json::to_string(&Unrecognized::Keep).unwrap(),
-            r#""keep""#
-        );
-    }
-
-    #[test]
-    fn unrecognized_deserializes_from_its_lowercase_name() {
-        assert_eq!(
-            serde_json::from_str::<Unrecognized>(r#""remove""#).unwrap(),
-            Unrecognized::Remove
-        );
-    }
-
-    #[test]
-    fn remove_round_trips_through_its_name() {
-        let u = Unrecognized::Remove;
-        assert_eq!(u.to_string().parse::<Unrecognized>().unwrap(), u);
-    }
-
-    #[test]
-    fn keep_round_trips_through_its_name() {
-        let u = Unrecognized::Keep;
-        assert_eq!(u.to_string().parse::<Unrecognized>().unwrap(), u);
-    }
-
-    #[test]
-    fn an_unknown_unrecognized_value_names_the_choices() {
-        let err = "maybe".parse::<Unrecognized>().unwrap_err().to_string();
-        assert!(
-            err.contains("maybe") && err.contains("remove") && err.contains("keep"),
-            "{err}"
-        );
     }
 
     #[test]

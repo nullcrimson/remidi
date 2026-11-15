@@ -5,11 +5,11 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
+use super::open_levels::OpenLevels;
 use crate::{
     canon::{Canon, CanonEntry, OpenLevel},
     non_blank::NonBlank,
     note::Note,
-    open_levels::OpenLevels,
     spread::Kit,
 };
 
