@@ -58,41 +58,56 @@ impl Fate {
     }
 }
 
-/// One event of a conversion: when `filter` accepts its channel, its key moves to where
-/// `mapping` plays it.
-fn step(mapping: &Mapping, filter: ChannelFilter, kind: &mut TrackEventKind) -> Fate {
-    let hit = hit(kind);
+/// One event of a conversion: the event written, whose key, when `filter` accepts its
+/// channel, moves to where `mapping` plays it, and what it adds to the report.
+fn step<'a>(
+    mapping: &Mapping,
+    filter: ChannelFilter,
+    kind: TrackEventKind<'a>,
+) -> (TrackEventKind<'a>, Fate) {
+    let hit = hit(&kind);
     let TrackEventKind::Midi { channel, message } = kind else {
-        return Fate::Kept;
+        return (kind, Fate::Kept);
     };
-    if !filter.accepts(Channel::of(*channel)) {
-        return if hit.is_some() {
+    if !filter.accepts(Channel::of(channel)) {
+        let fate = if hit.is_some() {
             Fate::Untouched
         } else {
             Fate::Kept
         };
+        return (kind, fate);
     }
-    let stays = match message {
-        MidiMessage::NoteOn { key, .. }
-        | MidiMessage::NoteOff { key, .. }
-        | MidiMessage::Aftertouch { key, .. } => apply(mapping, key),
-        _ => true,
+    let (written, stays) = match moved(mapping, message) {
+        Some(message) => (TrackEventKind::Midi { channel, message }, true),
+        None => (kind, false),
     };
-    match (hit, stays) {
+    let fate = match (hit, stays) {
         (Some((_, note)), true) => Fate::Played(note),
         (Some((_, note)), false) => Fate::Dropped(note),
         (None, true) => Fate::Kept,
         (None, false) => Fate::Removed,
-    }
+    };
+    (written, fate)
 }
 
-fn apply(mapping: &Mapping, key: &mut u7) -> bool {
-    match mapping.destination(note_from_key(*key)) {
-        Some(to) => {
-            *key = note_key(to.note());
-            true
+/// `message` with its key moved to where `mapping` plays it, or `None` when nothing plays
+/// it; a message without a key as it is.
+fn moved(mapping: &Mapping, message: MidiMessage) -> Option<MidiMessage> {
+    let to = |key: u7| {
+        mapping
+            .destination(note_from_key(key))
+            .map(|to| note_key(to.note()))
+    };
+    match message {
+        MidiMessage::NoteOn { key, vel } => to(key).map(|key| MidiMessage::NoteOn { key, vel }),
+        MidiMessage::NoteOff { key, vel } => to(key).map(|key| MidiMessage::NoteOff { key, vel }),
+        MidiMessage::Aftertouch { key, vel } => {
+            to(key).map(|key| MidiMessage::Aftertouch { key, vel })
         }
-        None => false,
+        MidiMessage::Controller { .. }
+        | MidiMessage::ProgramChange { .. }
+        | MidiMessage::ChannelAftertouch { .. }
+        | MidiMessage::PitchBend { .. } => Some(message),
     }
 }
 
@@ -134,7 +149,8 @@ pub(crate) fn rewrite<'a>(
     let mut report = Report::default();
     for (track, filter) in smf.tracks.iter_mut().zip(filters) {
         *track = thin(std::mem::take(track), |ev| {
-            let fate = step(mapping, filter, &mut ev.kind);
+            let (kind, fate) = step(mapping, filter, ev.kind);
+            ev.kind = kind;
             match fate {
                 Fate::Played(note) | Fate::Dropped(note) => report.record(note, mapping.get(note)),
                 Fate::Untouched => report.record_untouched(),
@@ -301,8 +317,7 @@ mod tests {
         for mapping in &mappings {
             for &filter in &filters {
                 for &kind in &events {
-                    let mut stepped = kind;
-                    let fate = step(mapping, filter, &mut stepped);
+                    let (stepped, fate) = step(mapping, filter, kind);
                     let (want, stays) = expected(mapping, filter, kind);
                     assert_eq!(fate.stays(), stays, "{kind:?} under {filter:?}");
                     if stays {
