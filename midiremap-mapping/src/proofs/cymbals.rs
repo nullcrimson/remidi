@@ -9,7 +9,7 @@ use rayon::prelude::*;
 use strum::VariantArray;
 
 use super::{all_pairs, assert_none};
-use crate::mapping::{Mapping, MissingDrums, Outcome, Overrides};
+use crate::{Mapping, MissingDrums, Outcome, Overrides};
 
 fn hit(slot: CymSlot) -> Canon {
     Canon::of_cymbal(slot, CymArtic::Hit)

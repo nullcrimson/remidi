@@ -44,7 +44,7 @@ pub struct Landing {
 
 impl Landing {
     /// `canon` on its own note.
-    pub(crate) fn itself(canon: Canon, note: Note) -> Self {
+    pub fn itself(canon: Canon, note: Note) -> Self {
         Self {
             canon,
             plays: canon,
@@ -94,7 +94,7 @@ pub struct StandIn {
 }
 
 impl StandIn {
-    pub(crate) fn new(canon: Canon, drum: Canon, stand_in: Canon, note: Note) -> Self {
+    pub fn new(canon: Canon, drum: Canon, stand_in: Canon, note: Note) -> Self {
         Self {
             canon,
             stand_in,

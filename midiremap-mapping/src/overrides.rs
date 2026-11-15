@@ -23,20 +23,17 @@ pub struct Overrides {
 }
 
 impl Overrides {
-    pub(crate) fn new(
-        edits: BTreeMap<Canon, Note>,
-        src_edits: BTreeMap<Note, Option<Canon>>,
-    ) -> Self {
+    pub fn new(edits: BTreeMap<Canon, Note>, src_edits: BTreeMap<Note, Option<Canon>>) -> Self {
         Self { edits, src_edits }
     }
 
     /// The note each edited target drum plays on.
-    pub(crate) fn target(&self) -> &BTreeMap<Canon, Note> {
+    pub fn target(&self) -> &BTreeMap<Canon, Note> {
         &self.edits
     }
 
     /// The drum each edited source note plays, or `None` for a note that plays none.
-    pub(crate) fn source(&self) -> &BTreeMap<Note, Option<Canon>> {
+    pub fn source(&self) -> &BTreeMap<Note, Option<Canon>> {
         &self.src_edits
     }
 }

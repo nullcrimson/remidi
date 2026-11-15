@@ -1075,7 +1075,7 @@ dependencies = [
  "expect-test",
  "flate2",
  "midiremap-kit",
- "midiremap-layers",
+ "midiremap-mapping",
  "midiremap-note",
  "midiremap-smf",
  "midiremap-testkit",
@@ -1128,6 +1128,22 @@ dependencies = [
  "proc-macro2",
  "syn 3.0.9",
  "walkdir",
+]
+
+[[package]]
+name = "midiremap-mapping"
+version = "0.1.0"
+dependencies = [
+ "expect-test",
+ "midiremap-kit",
+ "midiremap-note",
+ "rayon",
+ "serde",
+ "serde_json",
+ "strum",
+ "thiserror",
+ "tsify",
+ "wasm-bindgen",
 ]
 
 [[package]]

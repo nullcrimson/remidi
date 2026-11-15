@@ -1,6 +1,7 @@
 mod report;
 mod rewrite;
 
+use midiremap_mapping::Mapping;
 use midiremap_smf::{
     midi::{self, Damage},
     parts::{choose, Choice, ConvertError, Part, PartIndex, Parts, Selection},
@@ -9,10 +10,7 @@ use serde::Serialize;
 
 pub use self::report::{FallbackTally, Report};
 use self::rewrite::rewrite;
-use crate::{
-    inspect::{summaries, PartSummary},
-    mapping::Mapping,
-};
+use crate::inspect::{summaries, PartSummary};
 
 /// A converted file, what happened to its notes, and what the file had lost before it was read.
 #[derive(Serialize)]
@@ -101,13 +99,13 @@ pub fn convert(
 #[cfg(test)]
 mod tests {
     use midiremap_kit::{canon::k, engine::Catalog};
+    use midiremap_mapping::{MissingDrums, Overrides, Unrecognized};
     use midiremap_note::n;
     use midiremap_smf::parts::ChannelScope;
     use midiremap_testkit::{drums, events, hit_keys, off, on};
     use midly::{num::u7, MidiMessage};
 
     use super::*;
-    use crate::mapping::{MissingDrums, Overrides, Unrecognized};
 
     fn convert_ids(mid: &[u8], src_id: &str, tgt_id: &str) -> Converted {
         convert_ids_with(mid, src_id, tgt_id, MissingDrums::Nearest)

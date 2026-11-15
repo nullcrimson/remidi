@@ -73,15 +73,12 @@ pub fn source_fits(catalog: &Catalog, hits: &NoteHits) -> SourceFits {
 #[cfg(test)]
 mod tests {
     use midiremap_kit::engine::EngineMap;
+    use midiremap_mapping::{Mapping, MissingDrums, Overrides};
     use midiremap_smf::parts::ChannelScope;
     use midiremap_testkit::{drums, engine_json, on, tracks, DRUMS};
 
     use super::*;
-    use crate::{
-        convert::convert,
-        inspect::note_hits,
-        mapping::{Mapping, MissingDrums, Overrides},
-    };
+    use crate::{convert::convert, inspect::note_hits};
 
     fn engine(id: &str, notes: &[u8]) -> EngineMap {
         let canons = ["kick.main", "snare1.hit", "hat.closed"];

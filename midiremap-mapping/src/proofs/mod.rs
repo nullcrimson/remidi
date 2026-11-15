@@ -13,7 +13,7 @@ use midiremap_kit::{
     engine::{Catalog, EngineMap},
 };
 
-use crate::mapping::{resolve_on, Mapping, MissingDrums};
+use crate::{resolve_on, Mapping, MissingDrums};
 
 /// Every ordered pair of built-in engines, an engine with itself included.
 fn all_pairs() -> Vec<(&'static EngineMap, &'static EngineMap)> {
@@ -47,7 +47,7 @@ fn lands_by_match(near: &Mapping, tgt: &EngineMap, c: Canon) -> bool {
 
 #[test]
 fn the_rule_table_matches_its_reviewed_snapshot() {
-    expect_file!["../../tests/golden/rules.txt"].assert_eq(&snapshot());
+    expect_file!["../../../midiremap-core/tests/golden/rules.txt"].assert_eq(&snapshot());
 }
 
 #[test]

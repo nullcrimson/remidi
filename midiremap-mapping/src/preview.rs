@@ -92,10 +92,7 @@ mod tests {
     use midiremap_note::n;
 
     use super::*;
-    use crate::{
-        mapping::{Landing, StandIn},
-        MissingDrums, Overrides,
-    };
+    use crate::{Landing, MissingDrums, Overrides, StandIn};
 
     const NO_EDITS: &str = r#"{"edits":{},"srcEdits":{}}"#;
 

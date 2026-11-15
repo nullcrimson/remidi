@@ -7,6 +7,7 @@ publish = false
 
 [dependencies]
 midiremap-kit = { path = "../midiremap-kit" }
+midiremap-mapping = { path = "../midiremap-mapping" }
 midiremap-note = { path = "../midiremap-note" }
 midiremap-smf = { path = "../midiremap-smf" }
 flate2 = { version = "1", optional = true }
@@ -28,6 +29,7 @@ ts = [
     "dep:tsify",
     "dep:wasm-bindgen",
     "midiremap-kit/ts",
+    "midiremap-mapping/ts",
     "midiremap-note/ts",
     "midiremap-smf/ts",
 ]
@@ -35,7 +37,6 @@ ts = [
 [dev-dependencies]
 expect-test = "1.5.1"
 midiremap-kit = { path = "../midiremap-kit", features = ["testing"] }
-midiremap-layers = { path = "../midiremap-layers" }
 midiremap-note = { path = "../midiremap-note", features = ["testing"] }
 midiremap-testkit = { path = "../midiremap-testkit" }
 proptest = "1"

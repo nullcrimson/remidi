@@ -1,3 +1,5 @@
+#![warn(unreachable_pub)]
+
 mod chain;
 mod drums;
 mod outcome;
@@ -5,6 +7,9 @@ mod overrides;
 mod preview;
 mod route;
 mod settings;
+
+#[cfg(test)]
+mod proofs;
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -23,13 +28,13 @@ use self::{drums::DrumTable, route::Routes};
 /// Where a source note plays on the target: on the note of the drum it decodes to, or
 /// unchanged, when the source does not recognize it and the mapping keeps such notes.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub(crate) enum Destination {
+pub enum Destination {
     Drum { canon: Canon, note: Note },
     Kept(Note),
 }
 
 impl Destination {
-    pub(crate) fn note(&self) -> Note {
+    pub fn note(&self) -> Note {
         match *self {
             Self::Drum { note, .. } | Self::Kept(note) => note,
         }
@@ -83,11 +88,11 @@ impl<'a> Mapping<'a> {
         }
     }
 
-    pub(crate) fn source(&self) -> &'a EngineMap {
+    pub fn source(&self) -> &'a EngineMap {
         self.source
     }
 
-    pub(crate) fn target(&self) -> &'a EngineMap {
+    pub fn target(&self) -> &'a EngineMap {
         self.target
     }
 
@@ -98,7 +103,7 @@ impl<'a> Mapping<'a> {
 
     /// Where the drum `note` decodes to lands; `None` when the source does not recognize the
     /// note.
-    pub(crate) fn get(&self, note: Note) -> Option<Outcome> {
+    pub fn get(&self, note: Note) -> Option<Outcome> {
         self.notes[note.index()]
     }
 
@@ -111,7 +116,7 @@ impl<'a> Mapping<'a> {
 
     /// Where `note` plays, or `None` when nothing plays it: its drum is dropped, or the source
     /// does not recognize it and the mapping removes such notes.
-    pub(crate) fn destination(&self, note: Note) -> Option<Destination> {
+    pub fn destination(&self, note: Note) -> Option<Destination> {
         match self.get(note) {
             Some(Outcome::Direct(landing)) => Some(Destination::Drum {
                 canon: landing.canon(),

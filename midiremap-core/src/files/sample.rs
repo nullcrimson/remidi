@@ -1,14 +1,13 @@
 use std::iter::once;
 
 use midiremap_kit::{canon::Canon, engine::EngineMap};
+use midiremap_mapping::{resolve_on, MissingDrums};
 use midiremap_smf::midi::{self, Channel};
 use midly::{
     num::{u15, u24, u7},
     Format, Header, MetaMessage, MidiMessage, Smf, Timing, TrackEventKind,
 };
 use strum::VariantArray;
-
-use crate::mapping::{resolve_on, MissingDrums};
 
 const TICKS_PER_BEAT: u16 = 480;
 const TICKS_PER_STEP: u32 = TICKS_PER_BEAT as u32 / 2;

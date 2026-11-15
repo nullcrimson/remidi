@@ -391,6 +391,7 @@ mod tests {
                 "midiremap-idx",
                 "midiremap-kit",
                 "midiremap-layers",
+                "midiremap-mapping",
                 "midiremap-note",
                 "midiremap-site",
                 "midiremap-smf",

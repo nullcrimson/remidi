@@ -8,7 +8,7 @@ use midiremap_kit::{
 use rayon::prelude::*;
 
 use super::{all_pairs, assert_none};
-use crate::mapping::{Mapping, MissingDrums, Outcome, Overrides};
+use crate::{Mapping, MissingDrums, Outcome, Overrides};
 
 fn stroke(pos: TomPos, stroke: TomArtic) -> Canon {
     let key = match stroke {

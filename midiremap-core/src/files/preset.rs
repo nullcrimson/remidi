@@ -5,11 +5,10 @@ use midiremap_kit::{
     engine::{Catalog, EngineId},
     non_blank::NonBlank,
 };
+use midiremap_mapping::Overrides;
 use midiremap_note::Note;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
-use crate::mapping::Overrides;
 
 const PRESET_FORMAT: &str = "drumverter-preset";
 const PRESET_VERSION: u64 = 1;

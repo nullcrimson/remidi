@@ -1,3 +1,4 @@
+use midiremap_mapping::Mapping;
 use midiremap_note::Note;
 use midiremap_smf::{
     midi::{
@@ -12,7 +13,6 @@ use midly::{
 };
 
 use super::report::Report;
-use crate::mapping::Mapping;
 
 #[derive(Default)]
 struct DeltaFold(u28);
@@ -166,13 +166,13 @@ pub(crate) fn rewrite<'a>(
 #[cfg(test)]
 mod tests {
     use midiremap_kit::engine::Catalog;
+    use midiremap_mapping::{Mapping, MissingDrums, Overrides, Unrecognized};
     use midly::{
         num::{u14, u4},
         MetaMessage, PitchBend,
     };
 
     use super::*;
-    use crate::mapping::{Mapping, MissingDrums, Overrides, Unrecognized};
 
     fn bytes() -> impl Iterator<Item = u7> + Clone {
         (0..=127).map(u7::from_int_lossy)
