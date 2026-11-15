@@ -63,6 +63,7 @@ impl Mapping<'_> {
     pub fn preview(&self) -> Vec<VoicePlan> {
         let src = self.source();
         let mut notes_by_canon = self.played_drums();
+        let unedited = self.unedited();
         Canon::all()
             .iter()
             .filter_map(|&canon| {
@@ -76,7 +77,7 @@ impl Mapping<'_> {
                 Some(VoicePlan {
                     entry: outcome.canon().into(),
                     src_notes,
-                    default_tgt_note: self.unedited(canon).note(),
+                    default_tgt_note: unedited.get(canon).note(),
                     outcome,
                 })
             })

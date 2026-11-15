@@ -3,7 +3,6 @@ use serde::Serialize;
 use crate::{
     canon::{Canon, OpenLevel},
     note::Note,
-    spread::SpreadStroke,
 };
 
 /// Where a drum lands on the target: on its own note, on the note of the drum that stands
@@ -147,60 +146,5 @@ impl Outcome {
 
     pub fn note(&self) -> Option<Note> {
         self.played().map(|(_, note)| note)
-    }
-
-    /// This landing of the drum `canon` is matched to, as the landing of `canon`: what plays
-    /// and on which note stay, the drum it is about becomes `canon`. A tom the target lacks
-    /// stands in, and a stand-in is judged against the drum `canon`'s strokes count as.
-    pub(crate) fn matched(self, canon: Canon, matched: Match) -> Self {
-        match (self, matched) {
-            (Self::Direct(landing), Match::Opening(level)) => {
-                Self::Direct(Landing::opened_to(canon, level, landing.note))
-            }
-            (
-                Self::Direct(landing),
-                Match::Spread {
-                    stroke,
-                    named: true,
-                },
-            ) => Self::Direct(Landing::spread_to(canon, stroke.plays(), landing.note)),
-            (Self::Direct(landing), Match::Spread { .. }) => Self::Fallback(StandIn::new(
-                canon,
-                matched.drum(canon),
-                landing.plays,
-                landing.note,
-            )),
-            (Self::Fallback(s), _) => {
-                Self::Fallback(StandIn::new(canon, matched.drum(canon), s.stand_in, s.note))
-            }
-            (Self::Dropped { other_drum, .. }, _) => Self::Dropped { canon, other_drum },
-        }
-    }
-}
-
-/// How a drum lands by matching the source's rather than by walking its chain.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub(crate) enum Match {
-    /// An open main hi-hat, on the target's opening at the level that matches the source's.
-    Opening(OpenLevel),
-    /// A stroke a spread moves, `named` when the target has the stroke itself.
-    Spread { stroke: SpreadStroke, named: bool },
-}
-
-impl Match {
-    /// The target drum `canon` plays as.
-    pub(crate) fn plays(self, canon: Canon) -> Canon {
-        match self {
-            Self::Opening(level) => canon.at_open_level(level),
-            Self::Spread { stroke, .. } => stroke.plays(),
-        }
-    }
-
-    /// The drum a stand-in for `canon` is judged against.
-    fn drum(self, canon: Canon) -> Canon {
-        match self {
-            Self::Opening(_) => canon,
-            Self::Spread { stroke, .. } => stroke.drum(),
-        }
     }
 }

@@ -1,10 +1,12 @@
 mod chain;
+mod drums;
 mod outcome;
 mod overrides;
 mod preview;
+mod route;
 mod settings;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 pub use self::{
     chain::resolve_on,
@@ -13,11 +15,8 @@ pub use self::{
     preview::VoicePlan,
     settings::{MissingDrums, MissingDrumsParseError, Unrecognized, UnrecognizedParseError},
 };
-use self::{
-    chain::{resolve, Encoding},
-    outcome::Match,
-};
-use crate::{canon::Canon, engine::EngineMap, note::Note, spread::Spreads};
+use self::{drums::DrumTable, route::Routes};
+use crate::{canon::Canon, engine::EngineMap, note::Note};
 
 /// Where a source note plays on the target: on the note of the drum it decodes to, or
 /// unchanged, when the source does not recognize it and the mapping keeps such notes.
@@ -41,10 +40,10 @@ pub struct Mapping<'a> {
     source: &'a EngineMap,
     target: &'a EngineMap,
     missing: MissingDrums,
-    matched: HashMap<Canon, Match>,
+    routes: Routes,
     edited: HashSet<Note>,
     notes: [Option<Outcome>; Note::COUNT],
-    drums: HashMap<Canon, Outcome>,
+    drums: DrumTable,
     unrecognized: Unrecognized,
 }
 
@@ -57,46 +56,16 @@ impl<'a> Mapping<'a> {
         overrides: &Overrides,
         missing: MissingDrums,
     ) -> Self {
-        let spreads = match missing {
-            MissingDrums::Nearest => Spreads::new(src.kit(), tgt.kit(), |c| {
-                resolve_on(tgt, c, MissingDrums::Nearest)
-                    .played()
-                    .map(|(c, _)| c)
-            }),
-            MissingDrums::Drop => Spreads::default(),
-        };
-        let matched: HashMap<Canon, Match> = Canon::all()
-            .iter()
-            .filter_map(|&canon| matching(src, tgt, &spreads, canon).map(|m| (canon, m)))
-            .collect();
-        let edits = overrides.target();
-        let encode = encoding(tgt, edits.iter());
-        let follow = encoding(tgt, edits.iter().filter(|&(&c, _)| !spreads.moved(c)));
-        let drums: HashMap<Canon, Outcome> = Canon::all()
-            .iter()
-            .map(|&canon| {
-                let outcome = match matched.get(&canon) {
-                    Some(_) if edits.contains_key(&canon) => {
-                        resolve(canon, |c| encode.get(&c).copied(), missing)
-                    }
-                    Some(&m @ Match::Spread { .. }) => {
-                        resolve(m.plays(canon), |c| follow.get(&c).copied(), missing)
-                            .matched(canon, m)
-                    }
-                    Some(&m) => resolve_on(tgt, m.plays(canon), missing).matched(canon, m),
-                    None => resolve(canon, |c| encode.get(&c).copied(), missing),
-                };
-                (canon, outcome)
-            })
-            .collect();
+        let routes = Routes::new(src, tgt, missing);
+        let drums = DrumTable::compile(&routes, tgt, overrides.target(), missing);
         let decode = decoding(src, overrides);
         Self {
             source: src,
             target: tgt,
             missing,
-            matched,
+            routes,
             edited: overrides.source().keys().copied().collect(),
-            notes: Note::ALL.map(|note| decode.get(&note).map(|canon| drums[canon])),
+            notes: Note::ALL.map(|note| decode.get(&note).map(|&canon| drums.get(canon))),
             drums,
             unrecognized: Unrecognized::default(),
         }
@@ -156,15 +125,13 @@ impl<'a> Mapping<'a> {
     }
 
     pub fn resolve_canon(&self, canon: Canon) -> Outcome {
-        self.drums[&canon]
+        self.drums.get(canon)
     }
 
-    /// Where `canon` lands with no target edits.
-    pub(crate) fn unedited(&self, canon: Canon) -> Outcome {
-        match self.matched.get(&canon) {
-            Some(&m) => resolve_on(self.target, m.plays(canon), self.missing).matched(canon, m),
-            None => resolve_on(self.target, canon, self.missing),
-        }
+    /// Where every drum lands with no target edits: the same routes over the target as it
+    /// ships.
+    pub(crate) fn unedited(&self) -> DrumTable {
+        DrumTable::compile(&self.routes, self.target, &BTreeMap::new(), self.missing)
     }
 
     /// The target drum `canon` lands on by matching the source's, rather than by walking its
@@ -172,7 +139,7 @@ impl<'a> Mapping<'a> {
     /// the source, when both name their normal open hat; under [`MissingDrums::Nearest`], the
     /// same stroke on the target drum a spread moves it to.
     pub fn matched_drum(&self, canon: Canon) -> Option<Canon> {
-        self.matched.get(&canon).map(|m| m.plays(canon))
+        self.routes.of(canon).matched_drum(canon)
     }
 
     /// Each drum some source note decodes to, edits applied, with those notes ascending.
@@ -192,18 +159,6 @@ impl<'a> Mapping<'a> {
     }
 }
 
-fn matching(src: &EngineMap, tgt: &EngineMap, spreads: &Spreads, canon: Canon) -> Option<Match> {
-    if let (Some((level, zone)), Some(from), Some(to)) =
-        (canon.opening(), src.open_levels(), tgt.open_levels())
-    {
-        return Some(Match::Opening(from.toward(to, level, zone)));
-    }
-    spreads.stroke(canon).map(|stroke| Match::Spread {
-        stroke,
-        named: tgt.encode(canon).is_some(),
-    })
-}
-
 fn decoding(src: &EngineMap, overrides: &Overrides) -> Decoding {
     let mut decode: Decoding = src.decodings().collect();
     for (&note, &canon) in overrides.source() {
@@ -213,12 +168,6 @@ fn decoding(src: &EngineMap, overrides: &Overrides) -> Decoding {
         };
     }
     decode
-}
-
-fn encoding<'e>(tgt: &EngineMap, edits: impl Iterator<Item = (&'e Canon, &'e Note)>) -> Encoding {
-    tgt.encodings()
-        .chain(edits.map(|(&canon, &note)| (canon, note)))
-        .collect()
 }
 
 #[cfg(test)]
