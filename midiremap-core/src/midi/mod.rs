@@ -12,7 +12,7 @@ pub use self::{
 };
 pub(crate) use self::{
     channel::{ChannelFilter, ChannelIdx},
-    codec::{parse, write, Parsed},
+    codec::{parse, write},
     event::{hit, note_from_key, note_key},
     track::{is_closed, track_at, END_OF_TRACK},
 };

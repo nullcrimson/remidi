@@ -1,63 +1,28 @@
-use std::collections::{BTreeMap, BTreeSet};
-
-use midly::{MetaMessage, Smf, TrackEventKind};
+use std::collections::BTreeSet;
 
 use super::{
     part::{Part, PartSet, Parts},
+    scan::PartIndex,
     selection::{ChannelScope, Selection},
 };
 use crate::{
-    midi::{hit, Channel, ChannelFilter, TrackNo},
+    midi::{Channel, ChannelFilter, TrackNo},
     note::Note,
 };
-
-/// The note of every hit of each part of `smf`, in order.
-pub(crate) fn part_hits(smf: &Smf) -> BTreeMap<Part, Vec<Note>> {
-    let mut hits: BTreeMap<Part, Vec<Note>> = BTreeMap::new();
-    for (index, track) in smf.tracks.iter().enumerate() {
-        for (channel, note) in track.iter().filter_map(|ev| hit(&ev.kind)) {
-            let part = Part {
-                track: TrackNo::at(index),
-                channel,
-            };
-            hits.entry(part).or_default().push(note);
-        }
-    }
-    hits
-}
-
-/// The name each track of `smf` gives itself, when it gives a non-empty one.
-pub(crate) fn track_names(smf: &Smf) -> Vec<Option<String>> {
-    smf.tracks
-        .iter()
-        .map(|track| {
-            track.iter().find_map(|ev| match ev.kind {
-                TrackEventKind::Meta(MetaMessage::TrackName(name)) => {
-                    let name = String::from_utf8_lossy(name).trim().to_owned();
-                    (!name.is_empty()).then_some(name)
-                }
-                TrackEventKind::Midi { .. }
-                | TrackEventKind::SysEx(_)
-                | TrackEventKind::Escape(_)
-                | TrackEventKind::Meta(_) => None,
-            })
-        })
-        .collect()
-}
 
 /// One filter per track of the file it was made for, in track order.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct TrackFilters(Vec<ChannelFilter>);
 
 impl TrackFilters {
-    fn uniform(smf: &Smf, filter: ChannelFilter) -> Self {
-        Self(vec![filter; smf.tracks.len()])
+    fn uniform(index: &PartIndex, filter: ChannelFilter) -> Self {
+        Self(vec![filter; index.tracks()])
     }
 
-    /// Accepting in each track of `smf` the channels `parts` names in it, every one of which
-    /// has hits in `smf`.
-    fn of<'p>(smf: &Smf, parts: impl IntoIterator<Item = &'p Part>) -> Self {
-        let mut filters = vec![ChannelFilter::NONE; smf.tracks.len()];
+    /// Accepting in each track of `index`'s file the channels `parts` names in it, every one of
+    /// which has hits in the file.
+    fn of<'p>(index: &PartIndex, parts: impl IntoIterator<Item = &'p Part>) -> Self {
+        let mut filters = vec![ChannelFilter::NONE; index.tracks()];
         for part in parts {
             let filter = &mut filters[part.track.index()];
             *filter = filter.with(part.channel);
@@ -96,22 +61,22 @@ pub(crate) enum Choice {
     Ask(Parts),
 }
 
-/// What `selection` rewrites in `smf`, or the picked part `smf` has no hit in. `Auto` takes
-/// every channel-10 part when the file has one, offering the other parts of their tracks;
-/// else its one part with hits; else it asks.
-pub(crate) fn choose(smf: &Smf, selection: &Selection) -> Result<Choice, Part> {
-    let present: PartSet = part_hits(smf).into_keys().collect();
+/// What `selection` rewrites in `index`'s file, or the picked part the file has no hit in.
+/// `Auto` takes every channel-10 part when the file has one, offering the other parts of their
+/// tracks; else its one part with hits; else it asks.
+pub(crate) fn choose(index: &PartIndex, selection: &Selection) -> Result<Choice, Part> {
+    let present = index.parts();
     let (filters, offers) = match selection {
         Selection::Parts(parts) => match parts.iter().find(|p| !present.contains(p)) {
             Some(&missing) => return Err(missing),
-            None => (TrackFilters::of(smf, parts.iter()), PartSet::new()),
+            None => (TrackFilters::of(index, parts.iter()), PartSet::new()),
         },
         Selection::Scope(ChannelScope::All) => (
-            TrackFilters::uniform(smf, ChannelFilter::ALL),
+            TrackFilters::uniform(index, ChannelFilter::ALL),
             PartSet::new(),
         ),
         Selection::Scope(ChannelScope::Only(channel)) => (
-            TrackFilters::uniform(smf, ChannelFilter::NONE.with(*channel)),
+            TrackFilters::uniform(index, ChannelFilter::NONE.with(*channel)),
             PartSet::new(),
         ),
         Selection::Scope(ChannelScope::Auto) => {
@@ -125,7 +90,7 @@ pub(crate) fn choose(smf: &Smf, selection: &Selection) -> Result<Choice, Part> {
                 .into_iter()
                 .partition(|p| drum_tracks.contains(&p.track));
             let picked = if drums.is_empty() { alone } else { drums };
-            (TrackFilters::of(smf, &picked), offers)
+            (TrackFilters::of(index, &picked), offers)
         }
     };
     let picked = present
@@ -139,22 +104,16 @@ pub(crate) fn choose(smf: &Smf, selection: &Selection) -> Result<Choice, Part> {
     })
 }
 
-/// The note of every hit in `smf` that a conversion with `selection` rewrites, track by
-/// track; none when it would ask.
-pub(crate) fn hit_notes(smf: &Smf, selection: &Selection) -> Result<Vec<Note>, Part> {
-    let Choice::Convert { filters, .. } = choose(smf, selection)? else {
+/// The note of every hit of `index`'s file that a conversion with `selection` rewrites; none
+/// when it would ask. The notes come part by part, in part order, not in file order: the only
+/// reader, `note_hits`, counts them per note, which no order changes.
+pub(crate) fn hit_notes(index: &PartIndex, selection: &Selection) -> Result<Vec<Note>, Part> {
+    let Choice::Convert { picked, .. } = choose(index, selection)? else {
         return Ok(Vec::new());
     };
-    Ok(smf
-        .tracks
-        .iter()
-        .zip(filters)
-        .flat_map(|(track, filter)| {
-            track.iter().filter_map(move |ev| {
-                hit(&ev.kind)
-                    .filter(|&(channel, _)| filter.accepts(channel))
-                    .map(|(_, note)| note)
-            })
-        })
+    Ok(index
+        .hits()
+        .filter(|(part, _)| picked.contains(part))
+        .flat_map(|(_, notes)| notes.iter().copied())
         .collect())
 }

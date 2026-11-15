@@ -9,7 +9,7 @@ use crate::{
     inspect::{summaries, PartSummary},
     mapping::Mapping,
     midi::{self, Damage},
-    parts::{choose, Choice, ConvertError, Part, Parts, Selection},
+    parts::{choose, Choice, ConvertError, Part, PartIndex, Parts, Selection},
 };
 
 /// A converted file, what happened to its notes, and what the file had lost before it was read.
@@ -72,7 +72,8 @@ pub fn convert(
     selection: impl Into<Selection>,
 ) -> Result<Conversion, ConvertError> {
     let parsed = midi::parse(midi)?;
-    let (filters, picked, offers) = match choose(&parsed.smf, &selection.into()) {
+    let index = PartIndex::of(&parsed.smf);
+    let (filters, picked, offers) = match choose(&index, &selection.into()) {
         Err(missing) => return Err(ConvertError::NoSuchPart(missing)),
         Ok(Choice::Ask(parts)) => {
             return Ok(Conversion::Ask {
@@ -86,7 +87,7 @@ pub fn convert(
             offers,
         }) => (filters, picked, offers),
     };
-    let offers = summaries(&parsed, Some(mapping.source()), |part| {
+    let offers = summaries(&index, Some(mapping.source()), |part| {
         offers.contains(&part)
     });
     let (smf, report) = rewrite(parsed.smf, mapping, filters)?;

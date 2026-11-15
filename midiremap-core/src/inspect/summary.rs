@@ -4,8 +4,8 @@ use super::hits::NoteHits;
 use crate::{
     canon::Canon,
     engine::EngineMap,
-    midi::{self, CodecError, Parsed},
-    parts::{choose, part_hits, track_names, ChannelScope, Choice, Part, Selection},
+    midi::{self, CodecError},
+    parts::{choose, ChannelScope, Choice, Part, PartIndex, Selection},
 };
 
 /// One drum a part plays as a source layout, and how many hits it gets.
@@ -44,7 +44,11 @@ pub fn part_summaries(
     midi: &[u8],
     source: Option<&EngineMap>,
 ) -> Result<Vec<PartSummary>, CodecError> {
-    Ok(summaries(&midi::parse(midi)?, source, |_| true))
+    Ok(summaries(
+        &PartIndex::of(&midi::parse(midi)?.smf),
+        source,
+        |_| true,
+    ))
 }
 
 /// The parts of `midi`, as [`part_summaries`] gives them, when `Auto` would ask which are the
@@ -53,30 +57,29 @@ pub fn auto_question(
     midi: &[u8],
     source: Option<&EngineMap>,
 ) -> Result<Option<Vec<PartSummary>>, CodecError> {
-    let parsed = midi::parse(midi)?;
+    let index = PartIndex::of(&midi::parse(midi)?.smf);
     let auto = Selection::from(ChannelScope::Auto);
-    Ok(match choose(&parsed.smf, &auto) {
-        Ok(Choice::Ask(_)) => Some(summaries(&parsed, source, |_| true)),
+    Ok(match choose(&index, &auto) {
+        Ok(Choice::Ask(_)) => Some(summaries(&index, source, |_| true)),
         Ok(Choice::Convert { .. }) | Err(_) => None,
     })
 }
 
-/// The parts of `parsed` with hits that `keep` keeps, in track and channel order, each played
-/// as `source` when one is given.
+/// The parts of `index`'s file with hits that `keep` keeps, in track and channel order, each
+/// played as `source` when one is given.
 pub(crate) fn summaries(
-    parsed: &Parsed,
+    index: &PartIndex,
     source: Option<&EngineMap>,
     keep: impl Fn(Part) -> bool,
 ) -> Vec<PartSummary> {
-    let names = track_names(&parsed.smf);
-    part_hits(&parsed.smf)
-        .into_iter()
+    index
+        .hits()
         .filter(|&(part, _)| keep(part))
         .map(|(part, notes)| {
-            let hits: NoteHits = notes.into_iter().collect();
+            let hits: NoteHits = notes.iter().copied().collect();
             PartSummary {
                 part,
-                track_name: names[part.track.index()].clone(),
+                track_name: index.track_name(part).map(str::to_owned),
                 hits: hits.total(),
                 plays: source.map(|engine| hits.played_on(engine)),
             }
