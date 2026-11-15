@@ -1,6 +1,6 @@
 use super::{
-    Canon, CymArtic, CymSlot, HandDrum, HandLength, HandPart, HandPitch, HandStroke, HatOpen,
-    HatZone, Idx, KickKind, PercKind, RideArtic, Slot, SnareArtic, TomArtic, TomPos,
+    Canon, CymArtic, CymSlot, Family, HandDrum, HandLength, HandPart, HandPitch, HandStroke,
+    HatOpen, HatZone, Idx, KickKind, PercKind, RideArtic, Slot, SnareArtic, TomArtic, TomPos,
 };
 
 impl CymSlot {
@@ -150,6 +150,47 @@ impl Canon {
             }
             .into(),
             Slot::Hand(d) => d.label(),
+        }
+    }
+}
+
+/// A drum as people read it: its key, its name and the family it is listed under.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(missing_as_null, hashmap_as_object)
+)]
+pub struct CanonEntry {
+    canon: Canon,
+    label: String,
+    family: Family,
+}
+
+impl CanonEntry {
+    pub fn canon(&self) -> Canon {
+        self.canon
+    }
+
+    pub fn label(&self) -> &str {
+        &self.label
+    }
+
+    pub(crate) fn into_label(self) -> String {
+        self.label
+    }
+
+    pub fn family(&self) -> Family {
+        self.family
+    }
+}
+
+impl From<Canon> for CanonEntry {
+    fn from(canon: Canon) -> Self {
+        Self {
+            canon,
+            label: canon.label(),
+            family: canon.family(),
         }
     }
 }
