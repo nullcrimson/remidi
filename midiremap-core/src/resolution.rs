@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    canon::{Canon, OpenLevel, TomPos},
+    canon::{Canon, OpenLevel, SpreadTo},
     note::Note,
 };
 
@@ -66,11 +66,11 @@ impl Landing {
         }
     }
 
-    /// The tom `canon` played with the same stroke on the target's tom at `pos`, on `note`.
-    pub(crate) fn spread_to(canon: Canon, pos: TomPos, note: Note) -> Self {
+    /// `canon`'s stroke played on the target drum `to` a spread moves it to, on `note`.
+    pub(crate) fn spread_to(canon: Canon, to: SpreadTo, note: Note) -> Self {
         Self {
             canon,
-            plays: canon.at_tom_pos(pos),
+            plays: to.plays(canon),
             note,
         }
     }
@@ -187,11 +187,11 @@ impl Outcome {
 pub(crate) enum Match {
     /// An open main hi-hat, on the target's opening at the level that matches the source's.
     Opening(OpenLevel),
-    /// A tom stroke, on the same stroke of the target tom `to` the source's toms spread it to;
-    /// `named` when the target has the drum itself, `drum` the target tom its strokes count as.
+    /// A stroke, played on the target drum `to` a spread moves its drum to; `named` when the
+    /// target has the drum itself, `drum` the target drum its strokes count as.
     Spread {
-        to: TomPos,
-        drum: TomPos,
+        to: SpreadTo,
+        drum: SpreadTo,
         named: bool,
     },
 }
@@ -201,7 +201,7 @@ impl Match {
     pub(crate) fn plays(self, canon: Canon) -> Canon {
         match self {
             Self::Opening(level) => canon.at_open_level(level),
-            Self::Spread { to, .. } => canon.at_tom_pos(to),
+            Self::Spread { to, .. } => to.plays(canon),
         }
     }
 
@@ -209,7 +209,7 @@ impl Match {
     fn drum(self, canon: Canon) -> Canon {
         match self {
             Self::Opening(_) => canon,
-            Self::Spread { drum, .. } => canon.at_tom_pos(drum),
+            Self::Spread { drum, .. } => drum.plays(canon),
         }
     }
 }

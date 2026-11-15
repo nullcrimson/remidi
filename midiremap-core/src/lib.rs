@@ -24,6 +24,7 @@ mod resolution;
 mod rewrite;
 mod sample;
 mod spread;
+mod spreads;
 mod tom_spread;
 mod translate;
 pub mod xml;

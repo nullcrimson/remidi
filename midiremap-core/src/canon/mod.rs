@@ -367,6 +367,21 @@ impl TomPos {
     }
 }
 
+/// The target drum a spread moves a source drum to.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub(crate) enum SpreadTo {
+    Tom(TomPos),
+}
+
+impl SpreadTo {
+    /// `canon`'s stroke played on this drum.
+    pub(crate) fn plays(self, canon: Canon) -> Canon {
+        match self {
+            Self::Tom(pos) => canon.at_tom_pos(pos),
+        }
+    }
+}
+
 fn build_all() -> Vec<Canon> {
     each::<KickKind>()
         .map(Slot::Kick)

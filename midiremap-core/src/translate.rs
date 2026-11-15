@@ -3,12 +3,12 @@ use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    canon::{Canon, TomArtic},
+    canon::Canon,
     engine_map::EngineMap,
     note::Note,
     overrides::Overrides,
     resolution::{resolve, Encoding, Match, MissingDrums, Outcome},
-    tom_spread::TomSpread,
+    spreads::Spreads,
 };
 
 /// What happens to a note the source layout does not recognize.
@@ -100,22 +100,14 @@ impl<'a> Mapping<'a> {
         overrides: &Overrides,
         missing: MissingDrums,
     ) -> Self {
-        let spread = match missing {
-            MissingDrums::Nearest => TomSpread::new(src.toms(), tgt.toms()),
-            MissingDrums::Drop => TomSpread::default(),
-        };
+        let spreads = Spreads::new(src, tgt, missing);
         let matched: HashMap<Canon, Match> = Canon::all()
             .iter()
-            .filter_map(|&canon| matching(src, tgt, &spread, canon).map(|m| (canon, m)))
+            .filter_map(|&canon| matching(src, tgt, &spreads, canon).map(|m| (canon, m)))
             .collect();
         let edits = overrides.target();
         let encode = encoding(tgt, edits.iter());
-        let follow = encoding(
-            tgt,
-            edits
-                .iter()
-                .filter(|&(c, _)| !c.tom().is_some_and(|(pos, _)| spread.moved(pos))),
-        );
+        let follow = encoding(tgt, edits.iter().filter(|&(&c, _)| !spreads.moved(c)));
         let drums: HashMap<Canon, Outcome> = Canon::all()
             .iter()
             .map(|&canon| {
@@ -213,9 +205,8 @@ impl<'a> Mapping<'a> {
 
     /// The target drum `canon` lands on by matching the source's, rather than by walking its
     /// chain: for an open main hi-hat, the opening of the target that matches the opening of
-    /// the source, when both name their normal open hat; for a tom under
-    /// [`MissingDrums::Nearest`], the same stroke on the target tom the [`TomSpread`] moves it
-    /// to.
+    /// the source, when both name their normal open hat; under [`MissingDrums::Nearest`], the
+    /// same stroke on the target drum a spread moves it to.
     pub fn matched_drum(&self, canon: Canon) -> Option<Canon> {
         self.matched.get(&canon).map(|m| m.plays(canon))
     }
@@ -237,22 +228,13 @@ impl<'a> Mapping<'a> {
     }
 }
 
-fn matching(src: &EngineMap, tgt: &EngineMap, spread: &TomSpread, canon: Canon) -> Option<Match> {
+fn matching(src: &EngineMap, tgt: &EngineMap, spreads: &Spreads, canon: Canon) -> Option<Match> {
     if let (Some((level, zone)), Some(from), Some(to)) =
         (canon.opening(), src.open_levels(), tgt.open_levels())
     {
         return Some(Match::Opening(from.toward(to, level, zone)));
     }
-    let (pos, artic) = canon.tom()?;
-    let to = match artic {
-        TomArtic::Hit | TomArtic::Rimshot => spread.hit(pos),
-        TomArtic::Rim => spread.rim(pos),
-    }?;
-    (to != pos).then(|| Match::Spread {
-        to,
-        drum: spread.drum(pos),
-        named: tgt.encode(canon).is_some(),
-    })
+    spreads.matched(tgt, canon)
 }
 
 fn decoding(src: &EngineMap, overrides: &Overrides) -> Decoding {

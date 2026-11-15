@@ -84,6 +84,10 @@ const ALLOWED_USES: &Table = &[
         &["canon", "channel", "engine_map", "midi", "resolution"],
     ),
     ("spread", &["canon"]),
+    (
+        "spreads",
+        &["canon", "engine_map", "resolution", "tom_spread"],
+    ),
     ("tom_spread", &["canon", "spread"]),
     (
         "translate",
@@ -93,7 +97,7 @@ const ALLOWED_USES: &Table = &[
             "note",
             "overrides",
             "resolution",
-            "tom_spread",
+            "spreads",
         ],
     ),
     ("xml", &[]),
