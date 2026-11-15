@@ -1,4 +1,4 @@
-use midiremap_core::{Canon, Catalog, Mapping, MissingDrums, Outcome, Overrides};
+use midiremap_core::{resolve_on, Canon, Catalog, Mapping, MissingDrums, Outcome, Overrides};
 
 fn k(s: &str) -> Canon {
     s.parse().unwrap()
@@ -81,9 +81,7 @@ fn a_source_note_edited_onto_a_tom_the_source_lacks_walks_the_nearest_tom() {
     let (_, outcome) = m.played().find(|(n, _)| n.get() == 45).unwrap();
     assert_eq!(
         outcome.note(),
-        krimh
-            .resolve(k("tom.rack5.hit"), MissingDrums::Nearest)
-            .note()
+        resolve_on(krimh, k("tom.rack5.hit"), MissingDrums::Nearest).note()
     );
 }
 

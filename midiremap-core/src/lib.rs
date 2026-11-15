@@ -41,6 +41,6 @@ pub use parts::{
 };
 pub use plan::VoicePlan;
 pub use preset::{parse_preset, LoadedPreset, PresetError, PresetName, SavedPreset, SkippedEdit};
-pub use resolution::{Landing, MissingDrums, MissingDrumsParseError, Outcome, StandIn};
+pub use resolution::{resolve_on, Landing, MissingDrums, MissingDrumsParseError, Outcome, StandIn};
 pub use sample::sample_file;
 pub use translate::{Mapping, Unrecognized, UnrecognizedParseError};

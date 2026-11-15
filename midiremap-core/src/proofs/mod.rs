@@ -13,7 +13,7 @@ use crate::{
     },
     catalog::Catalog,
     engine_map::EngineMap,
-    resolution::MissingDrums,
+    resolution::{resolve_on, MissingDrums},
     translate::Mapping,
 };
 
@@ -44,7 +44,7 @@ fn assert_none(failures: &[String], what: &str) {
 /// of that match judge (`main_open_hat.rs` for an open main hi-hat), not the stand-in table.
 fn lands_by_match(near: &Mapping, tgt: &EngineMap, c: Canon) -> bool {
     near.matched_drum(c).is_some()
-        && near.resolve_canon(c).note() != tgt.resolve(c, MissingDrums::Nearest).note()
+        && near.resolve_canon(c).note() != resolve_on(tgt, c, MissingDrums::Nearest).note()
 }
 
 #[test]

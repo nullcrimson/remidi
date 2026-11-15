@@ -10,7 +10,7 @@ use crate::{
     canon::Canon,
     engine_map::EngineMap,
     midi::{self, Channel},
-    resolution::MissingDrums,
+    resolution::{resolve_on, MissingDrums},
 };
 
 const TICKS_PER_BEAT: u16 = 480;
@@ -66,7 +66,7 @@ pub fn sample_file(engine: &EngineMap) -> Vec<u8> {
             let note = voice
                 .drums()
                 .iter()
-                .find_map(|&drum| engine.resolve(drum, MissingDrums::Nearest).note())?;
+                .find_map(|&drum| resolve_on(engine, drum, MissingDrums::Nearest).note())?;
             Some((voice, midi::note_key(note)))
         })
         .collect();

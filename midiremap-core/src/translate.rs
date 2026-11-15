@@ -7,7 +7,7 @@ use crate::{
     engine_map::EngineMap,
     note::Note,
     overrides::Overrides,
-    resolution::{resolve, Encoding, Match, MissingDrums, Outcome},
+    resolution::{resolve, resolve_on, Encoding, Match, MissingDrums, Outcome},
     spread::Spreads,
 };
 
@@ -102,7 +102,7 @@ impl<'a> Mapping<'a> {
     ) -> Self {
         let spreads = match missing {
             MissingDrums::Nearest => Spreads::new(src.kit(), tgt.kit(), |c| {
-                tgt.resolve(c, MissingDrums::Nearest)
+                resolve_on(tgt, c, MissingDrums::Nearest)
                     .played()
                     .map(|(c, _)| c)
             }),
@@ -119,12 +119,15 @@ impl<'a> Mapping<'a> {
             .iter()
             .map(|&canon| {
                 let outcome = match matched.get(&canon) {
-                    Some(_) if edits.contains_key(&canon) => resolve(canon, &encode, missing),
-                    Some(&m @ Match::Spread { .. }) => {
-                        resolve(m.plays(canon), &follow, missing).matched(canon, m)
+                    Some(_) if edits.contains_key(&canon) => {
+                        resolve(canon, |c| encode.get(&c).copied(), missing)
                     }
-                    Some(&m) => tgt.resolve(m.plays(canon), missing).matched(canon, m),
-                    None => resolve(canon, &encode, missing),
+                    Some(&m @ Match::Spread { .. }) => {
+                        resolve(m.plays(canon), |c| follow.get(&c).copied(), missing)
+                            .matched(canon, m)
+                    }
+                    Some(&m) => resolve_on(tgt, m.plays(canon), missing).matched(canon, m),
+                    None => resolve(canon, |c| encode.get(&c).copied(), missing),
                 };
                 (canon, outcome)
             })
@@ -202,11 +205,8 @@ impl<'a> Mapping<'a> {
     /// Where `canon` lands with no target edits.
     pub(crate) fn unedited(&self, canon: Canon) -> Outcome {
         match self.matched.get(&canon) {
-            Some(&m) => self
-                .target
-                .resolve(m.plays(canon), self.missing)
-                .matched(canon, m),
-            None => self.target.resolve(canon, self.missing),
+            Some(&m) => resolve_on(self.target, m.plays(canon), self.missing).matched(canon, m),
+            None => resolve_on(self.target, canon, self.missing),
         }
     }
 
@@ -588,7 +588,7 @@ notes = [ {} ]",
                 for &canon in Canon::all().iter().filter(|&&c| !unplayed_opening(c)) {
                     assert_eq!(
                         mapping.resolve_canon(canon),
-                        map.resolve(canon, missing),
+                        resolve_on(map, canon, missing),
                         "{}: {canon}",
                         map.id()
                     );

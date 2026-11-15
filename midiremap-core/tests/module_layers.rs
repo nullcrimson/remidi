@@ -31,14 +31,7 @@ const ALLOWED_USES: &Table = &[
     ),
     (
         "engine_map",
-        &[
-            "canon",
-            "non_blank",
-            "note",
-            "open_levels",
-            "resolution",
-            "spread",
-        ],
+        &["canon", "non_blank", "note", "open_levels", "spread"],
     ),
     ("idx", &[]),
     (
@@ -77,7 +70,7 @@ const ALLOWED_USES: &Table = &[
             "translate",
         ],
     ),
-    ("resolution", &["canon", "note", "spread"]),
+    ("resolution", &["canon", "engine_map", "note", "spread"]),
     ("sample", &["canon", "engine_map", "midi", "resolution"]),
     ("spread", &["canon"]),
     (

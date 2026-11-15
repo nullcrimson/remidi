@@ -10,7 +10,6 @@ use crate::{
     non_blank::NonBlank,
     note::Note,
     open_levels::OpenLevels,
-    resolution::{self, MissingDrums, Outcome},
     spread::Kit,
 };
 
@@ -189,11 +188,6 @@ impl EngineMap {
     /// The note that plays a drum on this engine.
     pub fn encode(&self, canon: Canon) -> Option<Note> {
         self.from_canon.get(&canon).copied()
-    }
-
-    /// Where a drum lands on this engine with no edits: what the converter writes for it.
-    pub fn resolve(&self, canon: Canon, missing: MissingDrums) -> Outcome {
-        resolution::resolve(canon, &self.from_canon, missing)
     }
 
     pub(crate) fn decodings(&self) -> impl Iterator<Item = (Note, Canon)> + '_ {
