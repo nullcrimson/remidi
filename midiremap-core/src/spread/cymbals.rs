@@ -177,13 +177,17 @@ impl CymbalSpread {
         target: &CymbalKit,
         stand_in: impl Fn(Canon) -> Option<Canon>,
     ) -> Self {
-        let mut cymbals = spread_kinds(source, target);
-        let mut used: Vec<CymbalPlace> = cymbals.iter().map(|(_, to)| to).collect();
-        used.extend(own_ride_bells(source, &stand_in));
-        place_missing_kinds(source, target, &stand_in, &mut cymbals, &mut used);
-        let bells = place_crash_bells(source, target, &cymbals, &mut used);
+        let placed = missing_kinds(
+            source,
+            target,
+            &stand_in,
+            own_kinds(source, target, &stand_in),
+        );
+        let bells = crash_bells(source, target, &placed);
         Self {
-            cymbals: Moved::new(cymbals, |from| target.cymbals(from.kind()).contains(&from)),
+            cymbals: Moved::new(placed.cymbals, |from| {
+                target.cymbals(from.kind()).contains(&from)
+            }),
             bells,
         }
     }
@@ -215,36 +219,72 @@ impl CymbalSpread {
     }
 }
 
-/// Each cymbal of a kind both kits have, spread over the target's cymbals of its kind.
-fn spread_kinds(source: &CymbalKit, target: &CymbalKit) -> Landings<CymSlot, CymbalPlace> {
-    CymKind::VARIANTS
-        .iter()
-        .flat_map(|&kind| spread(&source.cymbals(kind), &target.cymbals(kind), Aim::Near))
-        .map(|(from, to)| (from, CymbalPlace::Cymbal(to)))
-        .collect()
+/// The target places source cymbals already play on, which no later cymbal doubles up on.
+struct Taken(Vec<CymbalPlace>);
+
+impl Taken {
+    fn has(&self, place: CymbalPlace) -> bool {
+        self.0.contains(&place)
+    }
 }
 
-/// The ride bells the source's own ride bell strokes play on, as `stand_in` lands them.
-fn own_ride_bells<'a>(
-    source: &'a CymbalKit,
-    stand_in: &'a impl Fn(Canon) -> Option<Canon>,
-) -> impl Iterator<Item = CymbalPlace> + 'a {
-    source
-        .ride_bell_strokes()
-        .filter_map(|c| stand_in(c).and_then(CymbalPlace::of))
-        .filter(|place| matches!(place, CymbalPlace::RideBell(_)))
+impl FromIterator<CymbalPlace> for Taken {
+    fn from_iter<I: IntoIterator<Item = CymbalPlace>>(places: I) -> Self {
+        Self(places.into_iter().collect())
+    }
 }
 
-/// Places each cymbal of a kind `target` lacks, kinds in canon order: on the unused place of its
-/// next kind nearest its number, else nowhere, only marking used the place `stand_in` plays its
-/// hit on.
-fn place_missing_kinds(
+impl Extend<CymbalPlace> for Taken {
+    fn extend<I: IntoIterator<Item = CymbalPlace>>(&mut self, places: I) {
+        self.0.extend(places);
+    }
+}
+
+/// What one step of the cymbal spread hands the next: the cymbals placed so far and the places
+/// taken.
+struct Placed {
+    cymbals: Landings<CymSlot, CymbalPlace>,
+    taken: Taken,
+}
+
+/// The first step: each cymbal of a kind both kits have, spread over the target's cymbals of its
+/// kind. The places they land on are taken, and so is each ride bell `stand_in` plays a source
+/// ride bell stroke on.
+fn own_kinds(
     source: &CymbalKit,
     target: &CymbalKit,
     stand_in: &impl Fn(Canon) -> Option<Canon>,
-    cymbals: &mut Landings<CymSlot, CymbalPlace>,
-    used: &mut Vec<CymbalPlace>,
-) {
+) -> Placed {
+    let cymbals: Landings<CymSlot, CymbalPlace> = CymKind::VARIANTS
+        .iter()
+        .flat_map(|&kind| spread(&source.cymbals(kind), &target.cymbals(kind), Aim::Near))
+        .map(|(from, to)| (from, CymbalPlace::Cymbal(to)))
+        .collect();
+    let own_ride_bells = source
+        .ride_bell_strokes()
+        .filter_map(|c| stand_in(c).and_then(CymbalPlace::of))
+        .filter(|place| matches!(place, CymbalPlace::RideBell(_)));
+    let taken = cymbals
+        .iter()
+        .map(|(_, to)| to)
+        .chain(own_ride_bells)
+        .collect();
+    Placed { cymbals, taken }
+}
+
+/// The second step: each cymbal of a kind `target` lacks, kinds in canon order, on the free place
+/// of its next kind nearest its number, else nowhere, only taking the place `stand_in` plays its
+/// hit on.
+fn missing_kinds(
+    source: &CymbalKit,
+    target: &CymbalKit,
+    stand_in: &impl Fn(Canon) -> Option<Canon>,
+    placed: Placed,
+) -> Placed {
+    let Placed {
+        mut cymbals,
+        mut taken,
+    } = placed;
     for &kind in CymKind::VARIANTS {
         if !target.cymbals(kind).is_empty() {
             continue;
@@ -253,31 +293,31 @@ fn place_missing_kinds(
             let free = target
                 .substitutes(from)
                 .into_iter()
-                .filter(|to| !used.contains(to))
+                .filter(|&to| !taken.has(to))
                 .min_by_key(|&to| (to.distance(from), to));
             match free {
                 Some(to) => {
                     cymbals.place(from, to);
-                    used.push(to);
+                    taken.extend([to]);
                 }
-                None => used.extend(
+                None => taken.extend(
                     stand_in(Canon::of_cymbal(from, CymArtic::Hit)).and_then(CymbalPlace::of),
                 ),
             }
         }
     }
+    Placed { cymbals, taken }
 }
 
-/// Where each crash bell of `source` plays on `target`: first every one on its spread crash's
-/// bell, then, in crash order, each other one on the nearest unused bell of another crash, else
-/// on the first unused ride bell.
-fn place_crash_bells(
+/// The third step: where each crash bell of `source` plays on `target`: first every one on its
+/// spread crash's bell, then, in crash order, each other one on the nearest free bell of another
+/// crash, else on the first ride bell neither `placed` took nor an earlier crash bell claimed.
+fn crash_bells(
     source: &CymbalKit,
     target: &CymbalKit,
-    cymbals: &Landings<CymSlot, CymbalPlace>,
-    used: &mut Vec<CymbalPlace>,
+    placed: &Placed,
 ) -> Landings<CrashIdx, CrashBell> {
-    let spread_crash = |crash: CrashIdx| match cymbals.get(CymSlot::Crash(crash)) {
+    let spread_crash = |crash: CrashIdx| match placed.cymbals.get(CymSlot::Crash(crash)) {
         Some(CymbalPlace::Cymbal(CymSlot::Crash(to))) => to,
         _ => crash,
     };
@@ -287,7 +327,8 @@ fn place_crash_bells(
         .iter()
         .copied()
         .partition(|&crash| targets.contains(&spread_crash(crash)));
-    let mut taken: Vec<CrashIdx> = kept.iter().map(|&crash| spread_crash(crash)).collect();
+    let mut crashes: Vec<CrashIdx> = kept.iter().map(|&crash| spread_crash(crash)).collect();
+    let mut rides: Vec<RideIdx> = Vec::new();
     let mut bells: Landings<CrashIdx, CrashBell> = kept
         .into_iter()
         .map(|crash| (crash, CrashBell::Crash(spread_crash(crash))))
@@ -297,20 +338,22 @@ fn place_crash_bells(
         let other = targets
             .iter()
             .copied()
-            .filter(|c| !taken.contains(c))
+            .filter(|c| !crashes.contains(c))
             .min_by_key(|&c| (CymSlot::Crash(c).distance(near), c));
         let bell = other.map(CrashBell::Crash).or_else(|| {
             target
                 .ride_bells()
                 .iter()
                 .copied()
-                .find(|&ride| !used.contains(&CymbalPlace::RideBell(ride)))
+                .find(|&ride| {
+                    !placed.taken.has(CymbalPlace::RideBell(ride)) && !rides.contains(&ride)
+                })
                 .map(CrashBell::Ride)
         });
         if let Some(bell) = bell {
             match bell {
-                CrashBell::Crash(c) => taken.push(c),
-                CrashBell::Ride(_) => used.push(bell.into()),
+                CrashBell::Crash(c) => crashes.push(c),
+                CrashBell::Ride(ride) => rides.push(ride),
             }
             bells.place(crash, bell);
         }
