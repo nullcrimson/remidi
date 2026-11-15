@@ -7,7 +7,8 @@ use super::report::Report;
 use crate::{
     mapping::Mapping,
     midi::{
-        hit, is_closed, note_from_key, note_key, Channel, ChannelFilter, CodecError, END_OF_TRACK,
+        channel_from_wire, hit, is_closed, note_from_key, note_key, ChannelFilter, CodecError,
+        END_OF_TRACK,
     },
     note::Note,
     parts::TrackFilters,
@@ -69,7 +70,7 @@ fn step<'a>(
     let TrackEventKind::Midi { channel, message } = kind else {
         return (kind, Fate::Kept);
     };
-    if !filter.accepts(Channel::of(channel)) {
+    if !filter.accepts(channel_from_wire(channel)) {
         let fate = if hit.is_some() {
             Fate::Untouched
         } else {
@@ -238,7 +239,7 @@ mod tests {
         let TrackEventKind::Midi { channel, message } = kind else {
             return (kind, true);
         };
-        match key_of(message).filter(|_| filter.accepts(Channel::of(channel))) {
+        match key_of(message).filter(|_| filter.accepts(channel_from_wire(channel))) {
             None => (kind, true),
             Some(key) => match mapping.destination(note_from_key(key)) {
                 Some(to) => (
@@ -269,7 +270,7 @@ mod tests {
 
     fn expected_fate(filter: ChannelFilter, kind: TrackEventKind, stays: bool) -> Fate {
         let accepted = match kind {
-            TrackEventKind::Midi { channel, .. } => filter.accepts(Channel::of(channel)),
+            TrackEventKind::Midi { channel, .. } => filter.accepts(channel_from_wire(channel)),
             TrackEventKind::SysEx(_) | TrackEventKind::Escape(_) | TrackEventKind::Meta(_) => true,
         };
         match (struck(kind), accepted, stays) {
@@ -296,10 +297,10 @@ mod tests {
         let filters = [
             ChannelFilter::ALL,
             ChannelFilter::NONE,
-            ChannelFilter::NONE.with(Channel::of(u4::from_int_lossy(9))),
+            ChannelFilter::NONE.with(channel_from_wire(u4::from_int_lossy(9))),
             ChannelFilter::NONE
-                .with(Channel::of(u4::from_int_lossy(0)))
-                .with(Channel::of(u4::from_int_lossy(9))),
+                .with(channel_from_wire(u4::from_int_lossy(0)))
+                .with(channel_from_wire(u4::from_int_lossy(9))),
         ];
         let midi = every_channel_message().into_iter().flat_map(|message| {
             (0..16).map(move |c| TrackEventKind::Midi {

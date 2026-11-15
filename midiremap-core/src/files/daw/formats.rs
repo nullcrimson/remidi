@@ -2,7 +2,7 @@ use std::io;
 
 use crate::{
     engine::EngineMap,
-    midi::Channel,
+    midi::{channel_wire, Channel},
     note::Note,
     xml::{self, element, empty, nest, Indent, Xml},
 };
@@ -90,7 +90,7 @@ pub(super) fn cubase(map: &EngineMap) -> String {
                     item(w, |w| {
                         int(w, "INote", n.get())?;
                         int(w, "ONote", n.get())?;
-                        int(w, "Channel", Channel::DRUMS.wire().as_int())?;
+                        int(w, "Channel", channel_wire(Channel::DRUMS).as_int())?;
                         value(w, "float", "Length", "200")?;
                         int(w, "Mute", 0)?;
                         int(w, "DisplayNote", n.get())?;

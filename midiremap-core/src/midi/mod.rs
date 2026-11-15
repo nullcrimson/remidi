@@ -13,6 +13,6 @@ pub use self::{
 pub(crate) use self::{
     channel::{ChannelFilter, ChannelIdx},
     codec::{parse, write},
-    event::{hit, note_from_key, note_key},
+    event::{channel_from_wire, channel_wire, hit, note_from_key, note_key},
     track::{is_closed, track_at, END_OF_TRACK},
 };

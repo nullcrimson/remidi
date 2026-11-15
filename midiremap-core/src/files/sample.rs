@@ -71,7 +71,7 @@ pub fn sample_file(engine: &EngineMap) -> Vec<u8> {
         })
         .collect();
     let note = |message| TrackEventKind::Midi {
-        channel: Channel::DRUMS.wire(),
+        channel: midi::channel_wire(Channel::DRUMS),
         message,
     };
     let steps = (0..STEPS).flat_map(|step| {
