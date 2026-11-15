@@ -5,10 +5,9 @@ use midiremap_layers::{Layers, Table};
 const ALLOWED_USES: &Table = &[
     ("canon", &["idx"]),
     ("catalog", &["engine_map"]),
-    ("channel", &["midi", "note"]),
     (
         "conversion",
-        &["channel", "fit", "midi", "report", "rewrite", "translate"],
+        &["fit", "midi", "parts", "report", "rewrite", "translate"],
     ),
     (
         "daw",
@@ -35,7 +34,7 @@ const ALLOWED_USES: &Table = &[
     ),
     (
         "fit",
-        &["canon", "catalog", "channel", "engine_map", "midi", "note"],
+        &["canon", "catalog", "engine_map", "midi", "note", "parts"],
     ),
     ("idx", &[]),
     ("midi", &["idx", "note"]),
@@ -43,6 +42,7 @@ const ALLOWED_USES: &Table = &[
     ("note", &[]),
     ("open_levels", &["canon"]),
     ("overrides", &["canon", "note"]),
+    ("parts", &["midi", "note"]),
     ("plan", &["canon", "note", "resolution", "translate"]),
     (
         "preset",
@@ -71,10 +71,7 @@ const ALLOWED_USES: &Table = &[
     ),
     ("report", &["canon", "note", "resolution"]),
     ("resolution", &["canon", "note", "spread"]),
-    (
-        "rewrite",
-        &["channel", "midi", "note", "report", "translate"],
-    ),
+    ("rewrite", &["midi", "note", "parts", "report", "translate"]),
     ("sample", &["canon", "engine_map", "midi", "resolution"]),
     ("spread", &["canon"]),
     (

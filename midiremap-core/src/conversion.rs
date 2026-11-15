@@ -1,9 +1,9 @@
 use serde::Serialize;
 
 use crate::{
-    channel::{choose, Choice, ConvertError, Part, Parts, Selection},
     fit::{summaries, PartSummary},
     midi::{self, Damage},
+    parts::{choose, Choice, ConvertError, Part, Parts, Selection},
     report::Report,
     rewrite::rewrite,
     translate::Mapping,
@@ -104,7 +104,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        canon::k, catalog::Catalog, channel::ChannelScope, note::n, overrides::Overrides,
+        canon::k, catalog::Catalog, note::n, overrides::Overrides, parts::ChannelScope,
         report::FallbackTally, resolution::MissingDrums, translate::Unrecognized,
     };
 

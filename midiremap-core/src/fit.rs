@@ -5,13 +5,13 @@ use serde::Serialize;
 use crate::{
     canon::Canon,
     catalog::Catalog,
-    channel::{
-        choose, hit_notes, part_hits, track_names, ChannelScope, Choice, ConvertError, Part,
-        Selection,
-    },
     engine_map::{EngineId, EngineMap},
     midi::{self, CodecError, Parsed},
     note::Note,
+    parts::{
+        choose, hit_notes, part_hits, track_names, ChannelScope, Choice, ConvertError, Part,
+        Selection,
+    },
 };
 
 /// How many hits each note has among the note-ons a conversion reads.

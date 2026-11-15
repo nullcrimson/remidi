@@ -4,11 +4,11 @@ use midly::{
 };
 
 use crate::{
-    channel::TrackFilters,
     midi::{
         hit, is_closed, note_from_key, note_key, Channel, ChannelFilter, CodecError, END_OF_TRACK,
     },
     note::Note,
+    parts::TrackFilters,
     report::Report,
     translate::Mapping,
 };

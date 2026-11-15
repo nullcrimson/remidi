@@ -116,8 +116,8 @@ mod tests {
     use super::*;
     use crate::{
         catalog::Catalog,
-        channel::ChannelScope,
         fit::{note_hits, source_fits},
+        parts::ChannelScope,
     };
 
     const HITS_PER_GROOVE: u32 = 1 + 6 + 4 + 15;

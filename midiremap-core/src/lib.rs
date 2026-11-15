@@ -2,7 +2,6 @@
 
 mod canon;
 mod catalog;
-mod channel;
 mod conversion;
 mod daw;
 mod engine_map;
@@ -13,6 +12,7 @@ mod non_blank;
 mod note;
 mod open_levels;
 mod overrides;
+mod parts;
 mod plan;
 mod preset;
 #[cfg(test)]
@@ -27,10 +27,6 @@ pub mod xml;
 
 pub use canon::{Canon, CanonEntry, CanonParseError, Family};
 pub use catalog::Catalog;
-pub use channel::{
-    ChannelScope, ChannelScopeError, ConvertError, NoParts, Part, PartError, PartSet, Parts,
-    Selection,
-};
 pub use conversion::{convert, Conversion, Converted};
 pub use daw::{rack_file, Daw, FileStem, Packing, RackFile};
 pub use engine_map::{Drum, EngineId, EngineMap, MapError};
@@ -41,6 +37,10 @@ pub use fit::{
 pub use midi::{Bar, Channel, CodecError, Damage, Position, Tick, TrackNo};
 pub use note::{Note, NoteParseError, OctaveBase};
 pub use overrides::Overrides;
+pub use parts::{
+    ChannelScope, ChannelScopeError, ConvertError, NoParts, Part, PartError, PartSet, Parts,
+    Selection,
+};
 pub use plan::VoicePlan;
 pub use preset::{parse_preset, LoadedPreset, PresetError, PresetName, SavedPreset, SkippedEdit};
 pub use report::{FallbackTally, Report};
