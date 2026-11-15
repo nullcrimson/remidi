@@ -14,6 +14,8 @@ async function downloadOf(page: Page, name: string): Promise<Download> {
   return download;
 }
 
+const downloadLink = (page: Page, label: string) => page.locator(`#drum-maps a[aria-label="${label}"]`).first();
+
 const pickDaw = (page: Page, daw: string) => press(page.getByRole('radiogroup', { name: 'Your DAW' }).getByText(daw, { exact: true }));
 
 const textOf = async (download: Download) => readFile((await download.path()), 'utf8');
@@ -60,12 +62,12 @@ test('Logic Pro downloads a Step Sequencer template', async ({ page }) => {
 
 test('picking PDF shows only the note maps and downloads one', async ({ page }) => {
   await page.goto('/drum-maps/');
-  const pdf = page.getByRole('link', { name: 'GetGood Drums Invasion note map (PDF)' }).first();
+  const pdf = downloadLink(page, 'GetGood Drums Invasion note map (PDF)');
   await expect(pdf).toBeHidden();
   await pickDaw(page, 'PDF');
   await expect(pdf).toBeVisible();
   for (const daw of ['Reaper', 'Cubase', 'Studio One', 'Ableton Live', 'Logic Pro']) {
-    await expect(page.getByRole('link', { name: `GetGood Drums Invasion drum map for ${daw}` }).first()).toBeHidden();
+    await expect(downloadLink(page, `GetGood Drums Invasion drum map for ${daw}`)).toBeHidden();
   }
   await expect(page.getByText('Open the .pdf in any PDF viewer', { exact: false })).toBeVisible();
   const download = await downloadOf(page, 'GetGood Drums Invasion note map (PDF)');
@@ -88,8 +90,8 @@ test('the drum maps page filters its engines', async ({ page }) => {
 
 test('the drum maps page shows only the picked DAW’s files and how to load them', async ({ page }) => {
   await page.goto('/drum-maps/');
-  const reaper = page.getByRole('link', { name: 'EZdrummer 3 drum map for Reaper' }).first();
-  const studioOne = page.getByRole('link', { name: 'EZdrummer 3 drum map for Studio One' }).first();
+  const reaper = downloadLink(page, 'EZdrummer 3 drum map for Reaper');
+  const studioOne = downloadLink(page, 'EZdrummer 3 drum map for Studio One');
   await expect(reaper).toBeVisible();
   await expect(studioOne).toBeHidden();
 
