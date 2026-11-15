@@ -68,9 +68,12 @@ conversion   ── convert(bytes, &Mapping, Selection) → Conversion (Done | A
           ├── report      ── Report: what a conversion did with each hit
           └── translate   ── Mapping: every drum's and every source note's Outcome, compiled once
                  ├── resolution  ── Outcome { Direct(Landing) | Fallback(StandIn) | Dropped }, MissingDrums
-                 ├── tom_spread  ── TomKit, TomSpread: a pair's toms in order onto the target's
+                 ├── spreads     ── Spreads: a pair's tom and cymbal spreads, as Match per drum
+                 │      ├── tom_spread    ── TomKit, TomSpread: a pair's toms in order onto the target's
+                 │      ├── cymbal_spread ── CymbalKit, CymbalSpread: a pair's cymbals by kind
+                 │      └── spread        ── spread(): the least-cost ordered assignment both use
                  ├── engine_map  ── EngineMap, Drum, EngineId
-                 │      └── canon, family, note, non_blank, open_levels, tom_spread
+                 │      └── canon, family, note, non_blank, open_levels, tom_spread, cymbal_spread
                  ├── overrides   ── Overrides: edits to either side, as two maps
                  └── canon       ── Canon (opaque) + its key, label and fallback chains
                         ├── family ── Family, declared in display order
@@ -146,9 +149,10 @@ crash 1 for china/splash/stack and for a ride edge, the ride bell for a bell cym
 and for a crash bell,
 the main hat for an aux hat), each with its own allow-list. "Nearest" is one rule
 (`nearest`: the others by distance, the first in order on a tie) shared by toms, cymbals
-and hat openings; toms measure it by `TomPos::distance`, as the tom spread does.
+and hat openings; toms measure it by `TomPos::distance` and cymbals by `CymSlot::distance`,
+as the spreads do.
 A chain judges one drum alone; where a pair matches a drum as a whole (open hats by level,
-toms by the spread), `Mapping` does that before any chain is walked. No stand-in → the drum is dropped. Chains are built
+toms and cymbals by the spreads), `Mapping` does that before any chain is walked. No stand-in → the drum is dropped. Chains are built
 once for every slot. `tests/same_drum_stands_in.rs` holds the agreed rules as an
 independent table and checks every slot's chain against it, and every built-in engine
 pair in both missing-drum modes: the first agreed stand-in the target has is played,
@@ -194,6 +198,19 @@ nothing else on the same drum, and Nearest only crosses to drums the rules allow
   tom its hit plays. An edit of a row the spread moved off its own name moves only that
   row; every other stand-in follows the edit of the drum it lands on. `proofs/toms.rs`
   checks the spread over every built-in pair.
+- Under `Nearest`, cymbals land by the `CymbalSpread` the same way, kind first. A cymbal is
+  in a kit when the engine plays any stroke of it other than its bell. Each kind spreads over
+  the target's cymbals of that kind like the toms (`spread`, generic over `SpreadPos`, which
+  `TomPos` and `CymSlot` implement), so a kind the target has never leaves its kind. A kind
+  the target lacks (claimed in canon order: china, splash, stack, bell cymbal) takes the
+  unused cymbal nearest its number of the first other kind its chain reaches that the target
+  plays (china and stack: each other, then crashes; splash: crashes; bell cymbal: ride
+  bells), else lands as its chain would. A crash's bell plays on its spread crash's bell,
+  else on the nearest unused bell of another crash, else on the first unused ride bell (a
+  ride bell the source's own ride bell lands on is used). Every other stroke follows its
+  cymbal: `SpreadTo` (a tom, a cymbal or a ride bell) plays a stroke the same way there, and
+  a bell cymbal's strokes on a ride bell. Rides are not spread. Outcomes and edits follow
+  the tom rules; `proofs/cymbals.rs` checks the spread over every built-in pair.
 - Readers: `resolve_canon(canon)` (a drum's outcome), `played()` (each source note that
   plays a drum, with its outcome), `dropped_drums()` (the one rule for "a drum the source
   plays that the target leaves out", read by the site's pair pages and the rack's
