@@ -47,7 +47,7 @@ fn lands_by_match(near: &Mapping, tgt: &EngineMap, c: Canon) -> bool {
 
 #[test]
 fn the_rule_table_matches_its_reviewed_snapshot() {
-    expect_file!["../../../midiremap-core/tests/golden/rules.txt"].assert_eq(&snapshot());
+    expect_file!["../../tests/golden/rules.txt"].assert_eq(&snapshot());
 }
 
 #[test]

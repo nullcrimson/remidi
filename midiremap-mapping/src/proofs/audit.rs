@@ -147,7 +147,7 @@ fn every_gap_of_every_builtin_pair_is_a_known_gap() {
         .collect();
     let text: String = found.iter().map(|l| format!("{l}\n")).collect();
     if std::env::var_os("UPDATE_EXPECT").is_some() {
-        expect_file!["../../../midiremap-core/tests/golden/known_gaps.txt"].assert_eq(&text);
+        expect_file!["../../tests/golden/known_gaps.txt"].assert_eq(&text);
         return;
     }
     let known: BTreeSet<&str> = KNOWN_GAPS.lines().collect();
@@ -167,7 +167,7 @@ fn every_gap_of_every_builtin_pair_is_a_known_gap() {
 
 /// The gaps as last reviewed. The golden is compared line by line here, not with
 /// expect-test's diff, which does not finish on a file of ten thousand lines.
-const KNOWN_GAPS: &str = include_str!("../../../midiremap-core/tests/golden/known_gaps.txt");
+const KNOWN_GAPS: &str = include_str!("../../tests/golden/known_gaps.txt");
 
 /// The note `t` is edited to: half the keyboard away, so it is never its own.
 fn edited_note(note: Note) -> Note {
