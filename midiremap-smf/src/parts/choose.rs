@@ -11,7 +11,7 @@ use crate::midi::{Channel, ChannelFilter, TrackNo};
 
 /// One filter per track of the file it was made for, in track order.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct TrackFilters(Vec<ChannelFilter>);
+pub struct TrackFilters(Vec<ChannelFilter>);
 
 impl TrackFilters {
     fn uniform(index: &PartIndex, filter: ChannelFilter) -> Self {
@@ -46,7 +46,7 @@ impl IntoIterator for TrackFilters {
 
 /// What a selection comes to for one file.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum Choice {
+pub enum Choice {
     /// Rewrites what `filters` accept, which are the parts with hits in `picked`; leaves
     /// `offers` as they are: parts beside channel-10 hits in their track that nothing says
     /// are drums.
@@ -63,7 +63,7 @@ pub(crate) enum Choice {
 /// What `selection` rewrites in `index`'s file, or the picked part the file has no hit in.
 /// `Auto` takes every channel-10 part when the file has one, offering the other parts of their
 /// tracks; else its one part with hits; else it asks.
-pub(crate) fn choose(index: &PartIndex, selection: &Selection) -> Result<Choice, Part> {
+pub fn choose(index: &PartIndex, selection: &Selection) -> Result<Choice, Part> {
     let present = index.parts();
     let (filters, offers) = match selection {
         Selection::Parts(parts) => match parts.iter().find(|p| !present.contains(p)) {
@@ -106,7 +106,7 @@ pub(crate) fn choose(index: &PartIndex, selection: &Selection) -> Result<Choice,
 /// The note of every hit of `index`'s file that a conversion with `selection` rewrites; none
 /// when it would ask. The notes come part by part, in part order, not in file order: the only
 /// reader, `note_hits`, counts them per note, which no order changes.
-pub(crate) fn hit_notes(index: &PartIndex, selection: &Selection) -> Result<Vec<Note>, Part> {
+pub fn hit_notes(index: &PartIndex, selection: &Selection) -> Result<Vec<Note>, Part> {
     let Choice::Convert { picked, .. } = choose(index, selection)? else {
         return Ok(Vec::new());
     };

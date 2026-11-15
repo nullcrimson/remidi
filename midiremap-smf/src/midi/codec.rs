@@ -47,24 +47,24 @@ pub enum Damage {
 
 /// A file as read, and what it had lost.
 #[derive(Debug)]
-pub(crate) struct Parsed<'a> {
+pub struct Parsed<'a> {
     smf: Smf<'a>,
     damage: Vec<Damage>,
 }
 
 impl<'a> Parsed<'a> {
     /// The file's header and tracks.
-    pub(crate) fn smf(&self) -> &Smf<'a> {
+    pub fn smf(&self) -> &Smf<'a> {
         &self.smf
     }
 
     /// The file, and what it had lost.
-    pub(crate) fn into_parts(self) -> (Smf<'a>, Vec<Damage>) {
+    pub fn into_parts(self) -> (Smf<'a>, Vec<Damage>) {
         (self.smf, self.damage)
     }
 }
 
-pub(crate) fn parse(bytes: &[u8]) -> Result<Parsed<'_>, CodecError> {
+pub fn parse(bytes: &[u8]) -> Result<Parsed<'_>, CodecError> {
     if has_smpte_rate_minus_128(bytes) {
         return Err(CodecError::SmpteRate);
     }
@@ -141,7 +141,7 @@ fn chunks(mut raw: &[u8], chunking: Chunking) -> impl Iterator<Item = (&[u8; 4],
     })
 }
 
-pub(crate) fn write(smf: &Smf) -> Result<Vec<u8>, CodecError> {
+pub fn write(smf: &Smf) -> Result<Vec<u8>, CodecError> {
     let mut bytes = Vec::new();
     smf.write_std(&mut bytes).map_err(CodecError::Write)?;
     Ok(bytes)

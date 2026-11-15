@@ -50,17 +50,17 @@ impl fmt::Display for Channel {
 
 /// The channels one track's conversion rewrites: a set of the sixteen, one bit each.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct ChannelFilter(u16);
+pub struct ChannelFilter(u16);
 
 impl ChannelFilter {
-    pub(crate) const ALL: Self = Self(u16::MAX);
-    pub(crate) const NONE: Self = Self(0);
+    pub const ALL: Self = Self(u16::MAX);
+    pub const NONE: Self = Self(0);
 
-    pub(crate) fn with(self, channel: Channel) -> Self {
+    pub fn with(self, channel: Channel) -> Self {
         Self(self.0 | Self::bit(channel))
     }
 
-    pub(crate) fn accepts(self, channel: Channel) -> bool {
+    pub fn accepts(self, channel: Channel) -> bool {
         self.0 & Self::bit(channel) != 0
     }
 

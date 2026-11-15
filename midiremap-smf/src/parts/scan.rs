@@ -43,7 +43,7 @@ fn track_names(smf: &Smf) -> Vec<Option<String>> {
 /// The parts of one file: how many tracks it has, the note of every hit of each part in order,
 /// and the name each track gives itself. Read from the file once; the choice of what to convert,
 /// the hit notes and the part summaries all read it.
-pub(crate) struct PartIndex {
+pub struct PartIndex {
     tracks: usize,
     hits: BTreeMap<Part, Vec<Note>>,
     names: Vec<Option<String>>,
@@ -51,7 +51,7 @@ pub(crate) struct PartIndex {
 
 impl PartIndex {
     /// The parts of `smf`.
-    pub(crate) fn of(smf: &Smf) -> Self {
+    pub fn of(smf: &Smf) -> Self {
         Self {
             tracks: smf.tracks.len(),
             hits: part_hits(smf),
@@ -65,7 +65,7 @@ impl PartIndex {
     }
 
     /// Every part with hits, in part order, and the note of each of its hits in order.
-    pub(crate) fn hits(&self) -> impl Iterator<Item = (Part, &[Note])> {
+    pub fn hits(&self) -> impl Iterator<Item = (Part, &[Note])> {
         self.hits
             .iter()
             .map(|(&part, notes)| (part, notes.as_slice()))
@@ -77,7 +77,7 @@ impl PartIndex {
     }
 
     /// The name the track of `part` gives itself, when it gives one.
-    pub(crate) fn track_name(&self, part: Part) -> Option<&str> {
+    pub fn track_name(&self, part: Part) -> Option<&str> {
         self.names[part.track.index()].as_deref()
     }
 }

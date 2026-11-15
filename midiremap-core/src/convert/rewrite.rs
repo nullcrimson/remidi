@@ -1,18 +1,18 @@
 use midiremap_note::Note;
-use midly::{
-    num::{u28, u7},
-    MidiMessage, Smf, Track, TrackEvent, TrackEventKind,
-};
-
-use super::report::Report;
-use crate::{
-    mapping::Mapping,
+use midiremap_smf::{
     midi::{
         channel_from_wire, hit, is_closed, note_from_key, note_key, ChannelFilter, CodecError,
         END_OF_TRACK,
     },
     parts::TrackFilters,
 };
+use midly::{
+    num::{u28, u7},
+    MidiMessage, Smf, Track, TrackEvent, TrackEventKind,
+};
+
+use super::report::Report;
+use crate::mapping::Mapping;
 
 #[derive(Default)]
 struct DeltaFold(u28);

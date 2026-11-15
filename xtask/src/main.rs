@@ -392,6 +392,7 @@ mod tests {
                 "midiremap-layers",
                 "midiremap-note",
                 "midiremap-site",
+                "midiremap-smf",
                 "midiremap-testkit",
                 "midiremap-wasm",
                 "xtask",

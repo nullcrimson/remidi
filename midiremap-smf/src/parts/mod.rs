@@ -4,12 +4,10 @@ mod part;
 mod scan;
 mod selection;
 
-pub(crate) use self::{
-    choose::{choose, hit_notes, Choice, TrackFilters},
-    scan::PartIndex,
-};
 pub use self::{
+    choose::{choose, hit_notes, Choice, TrackFilters},
     error::ConvertError,
     part::{NoParts, Part, PartError, PartSet, Parts},
+    scan::PartIndex,
     selection::{ChannelScope, ChannelScopeError, Selection},
 };

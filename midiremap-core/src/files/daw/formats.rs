@@ -1,10 +1,10 @@
 use std::io;
 
 use midiremap_note::Note;
+use midiremap_smf::midi::{channel_wire, Channel};
 
 use crate::{
     engine::EngineMap,
-    midi::{channel_wire, Channel},
     xml::{self, element, empty, nest, Indent, Xml},
 };
 

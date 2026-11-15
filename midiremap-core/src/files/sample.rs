@@ -1,5 +1,6 @@
 use std::iter::once;
 
+use midiremap_smf::midi::{self, Channel};
 use midly::{
     num::{u15, u24, u7},
     Format, Header, MetaMessage, MidiMessage, Smf, Timing, TrackEventKind,
@@ -10,7 +11,6 @@ use crate::{
     canon::Canon,
     engine::EngineMap,
     mapping::{resolve_on, MissingDrums},
-    midi::{self, Channel},
 };
 
 const TICKS_PER_BEAT: u16 = 480;
@@ -111,13 +111,13 @@ pub fn sample_file(engine: &EngineMap) -> Vec<u8> {
 mod tests {
     use std::collections::BTreeSet;
 
+    use midiremap_smf::parts::ChannelScope;
     use midiremap_testkit::{engine_json, events, hit_keys, DRUMS};
 
     use super::*;
     use crate::{
         engine::Catalog,
         inspect::{note_hits, source_fits},
-        parts::ChannelScope,
     };
 
     const HITS_PER_GROOVE: u32 = 1 + 6 + 4 + 15;

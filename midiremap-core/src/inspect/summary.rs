@@ -1,12 +1,11 @@
-use serde::Serialize;
-
-use super::hits::NoteHits;
-use crate::{
-    canon::Canon,
-    engine::EngineMap,
+use midiremap_smf::{
     midi::{self, CodecError},
     parts::{choose, ChannelScope, Choice, Part, PartIndex, Selection},
 };
+use serde::Serialize;
+
+use super::hits::NoteHits;
+use crate::{canon::Canon, engine::EngineMap};
 
 /// One drum a part plays as a source layout, and how many hits it gets.
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]

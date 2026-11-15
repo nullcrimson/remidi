@@ -72,6 +72,7 @@ pub fn source_fits(catalog: &Catalog, hits: &NoteHits) -> SourceFits {
 
 #[cfg(test)]
 mod tests {
+    use midiremap_smf::parts::ChannelScope;
     use midiremap_testkit::{drums, engine_json, on, tracks, DRUMS};
 
     use super::*;
@@ -80,7 +81,6 @@ mod tests {
         engine::EngineMap,
         inspect::note_hits,
         mapping::{Mapping, MissingDrums, Overrides},
-        parts::ChannelScope,
     };
 
     fn engine(id: &str, notes: &[u8]) -> EngineMap {

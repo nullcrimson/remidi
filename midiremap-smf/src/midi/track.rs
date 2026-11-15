@@ -32,11 +32,10 @@ impl fmt::Display for TrackNo {
 }
 
 /// The event that closes every track of a file.
-pub(crate) const END_OF_TRACK: TrackEventKind<'static> =
-    TrackEventKind::Meta(MetaMessage::EndOfTrack);
+pub const END_OF_TRACK: TrackEventKind<'static> = TrackEventKind::Meta(MetaMessage::EndOfTrack);
 
 /// Whether `track` ends with its End-of-Track, as a whole track does.
-pub(crate) fn is_closed(track: &[TrackEvent]) -> bool {
+pub fn is_closed(track: &[TrackEvent]) -> bool {
     track.last().is_some_and(|ev| ev.kind == END_OF_TRACK)
 }
 
@@ -45,9 +44,7 @@ pub(crate) fn is_closed(track: &[TrackEvent]) -> bool {
 /// # Panics
 ///
 /// When a tick is below the one before it, or the gap between them does not fit a delta.
-pub(crate) fn track_at<'a>(
-    events: impl IntoIterator<Item = (u32, TrackEventKind<'a>)>,
-) -> Track<'a> {
+pub fn track_at<'a>(events: impl IntoIterator<Item = (u32, TrackEventKind<'a>)>) -> Track<'a> {
     let mut last = 0;
     events
         .into_iter()

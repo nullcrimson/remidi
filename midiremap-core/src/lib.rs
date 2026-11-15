@@ -6,9 +6,7 @@ mod engine;
 mod files;
 mod inspect;
 mod mapping;
-mod midi;
 mod non_blank;
-mod parts;
 #[cfg(test)]
 mod proofs;
 mod spread;
@@ -29,9 +27,11 @@ pub use mapping::{
     resolve_on, Landing, Mapping, MissingDrums, MissingDrumsParseError, Outcome, Overrides,
     StandIn, Unrecognized, UnrecognizedParseError, VoicePlan,
 };
-pub use midi::{Bar, Channel, CodecError, Damage, Position, Tick, TrackNo};
 pub use midiremap_note::{Note, NoteParseError, OctaveBase};
-pub use parts::{
-    ChannelScope, ChannelScopeError, ConvertError, NoParts, Part, PartError, PartSet, Parts,
-    Selection,
+pub use midiremap_smf::{
+    midi::{Bar, Channel, CodecError, Damage, Position, Tick, TrackNo},
+    parts::{
+        ChannelScope, ChannelScopeError, ConvertError, NoParts, Part, PartError, PartSet, Parts,
+        Selection,
+    },
 };

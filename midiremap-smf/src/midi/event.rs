@@ -7,7 +7,7 @@ use midly::{
 use super::channel::{Channel, ChannelIdx};
 
 /// The channel and note of `kind` when it sounds a note: a note-on with a velocity.
-pub(crate) fn hit(kind: &TrackEventKind) -> Option<(Channel, Note)> {
+pub fn hit(kind: &TrackEventKind) -> Option<(Channel, Note)> {
     match *kind {
         TrackEventKind::Midi {
             channel,
@@ -18,22 +18,22 @@ pub(crate) fn hit(kind: &TrackEventKind) -> Option<(Channel, Note)> {
 }
 
 /// The channel a MIDI file stores as `wire`, counted from zero.
-pub(crate) fn channel_from_wire(wire: u4) -> Channel {
+pub fn channel_from_wire(wire: u4) -> Channel {
     Channel::from_idx(ChannelIdx::new(wire.as_int() + 1).expect("a 4-bit channel is 1..=16"))
 }
 
 /// The channel as a MIDI file stores it, counted from zero.
-pub(crate) fn channel_wire(channel: Channel) -> u4 {
+pub fn channel_wire(channel: Channel) -> u4 {
     u4::new(channel.offset())
 }
 
 /// The note a MIDI file stores as `key`.
-pub(crate) fn note_from_key(key: u7) -> Note {
+pub fn note_from_key(key: u7) -> Note {
     Note::ALL[usize::from(key.as_int())]
 }
 
 /// The key a MIDI file stores `note` as.
-pub(crate) fn note_key(note: Note) -> u7 {
+pub fn note_key(note: Note) -> u7 {
     u7::from_int_lossy(note.get())
 }
 
