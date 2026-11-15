@@ -2,13 +2,14 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use expect_test::expect_file;
 use rayon::prelude::*;
+use strum::VariantArray;
 
 use super::{all_pairs, assert_none};
 use crate::{
     canon::{
         k,
         rules::{kind_rank, rules, stand_in_rank, Anchor, DrumKind},
-        Canon,
+        Canon, CymArtic,
     },
     engine_map::EngineMap,
     note::Note,
@@ -175,13 +176,17 @@ fn edited_note(note: Note) -> Note {
     Note::new((note.get() + 64) % 128).expect("a note below 128")
 }
 
-/// Whether `landed` is a stroke of a tom the target has whose source tom the spread moved
-/// onto another, so an edit of its row moves that row alone.
+/// Whether `landed` is a stroke of a tom or a cymbal the target has whose source drum a spread
+/// moved onto another, so an edit of its row moves that row alone.
 fn moved_off_its_name(near: &Mapping, landed: Canon) -> bool {
-    landed.tom().is_some_and(|(pos, _)| {
-        let hit = k("tom.rack1.hit").at_tom_pos(pos);
-        matches!(near.resolve_canon(hit), Outcome::Direct(l) if l.plays() != hit)
-    })
+    let moved = |c: Canon| matches!(near.resolve_canon(c), Outcome::Direct(l) if l.plays() != c);
+    match (landed.tom(), landed.cymbal()) {
+        (Some((pos, _)), _) => moved(k("tom.rack1.hit").at_tom_pos(pos)),
+        (_, Some((slot, _))) => CymArtic::VARIANTS
+            .iter()
+            .any(|&artic| moved(Canon::of_cymbal(slot, artic))),
+        (None, None) => false,
+    }
 }
 
 fn edits_not_followed(src: &EngineMap, tgt: &EngineMap) -> Vec<String> {

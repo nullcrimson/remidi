@@ -689,7 +689,8 @@ fn family_groups(map: &EngineMap) -> Vec<FamilyGroup<EngineRow>> {
 
 /// The notes the converter writes for the core drums on this engine, each note once; a
 /// drum the engine plays only on another drum is left out, but for one it lands on by match,
-/// such as a tom spread onto another tom, so every tom the core toms play on shows.
+/// such as a tom or a cymbal spread onto another, so every tom and cymbal the core kit plays on
+/// shows.
 fn core_notes(map: &EngineMap) -> Vec<Drum> {
     let mut shown = HashSet::new();
     let mapping = default_mapping(EngineMap::core_kit(), map);
@@ -1742,6 +1743,31 @@ mod tests {
             [33, 34, 35, 36, 37].iter().all(|n| notes.contains(n)),
             "{notes:?}"
         );
+    }
+
+    #[test]
+    fn core_notes_show_both_crashes_the_core_crashes_spread_onto_where_crash_1_is_missing() {
+        for id in [
+            "ggd_numetal_ggd",
+            "ggd_numetal_gm",
+            "ggd_numetal_halpern",
+            "ggd_p5_halpern_ggd",
+            "ggd_p5_halpern_gm",
+            "ggd_p5_halpern_halpern",
+        ] {
+            let p = engine(id);
+            let crashes: Vec<Canon> = p
+                .core
+                .iter()
+                .map(|c| c.entry.canon())
+                .filter(|c| c.to_string().starts_with("crash."))
+                .collect();
+            assert_eq!(
+                crashes,
+                ["crash.2.hit", "crash.3.hit"].map(|c| c.parse::<Canon>().unwrap()),
+                "{id}"
+            );
+        }
     }
 
     #[test]

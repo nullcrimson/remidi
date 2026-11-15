@@ -1,8 +1,4 @@
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    iter::once,
-    ops::Add,
-};
+use std::{iter::once, ops::Add};
 
 use crate::canon::{CymDistance, CymSlot, TomDistance, TomPos};
 
@@ -95,20 +91,20 @@ fn merge<D: Default>() -> Cost<D> {
     }
 }
 
-/// The landing of each of `source`'s places on `target`'s, in order, that costs least, the
-/// first target places on a tie.
+/// The landing of each of `source`'s places on `target`'s, both in order, that costs least,
+/// the first target places on a tie.
 pub(crate) fn spread<P: SpreadPos>(
-    source: &BTreeSet<P>,
-    target: &BTreeSet<P>,
+    source: impl IntoIterator<Item = P>,
+    target: impl IntoIterator<Item = P>,
     aim: impl Fn(P) -> Aim<P>,
-) -> BTreeMap<P, P> {
-    let from: Vec<P> = source.iter().copied().collect();
-    let to: Vec<P> = target.iter().copied().collect();
+) -> Vec<(P, P)> {
+    let from: Vec<P> = source.into_iter().collect();
+    let to: Vec<P> = target.into_iter().collect();
     let Some(&last) = from.last() else {
-        return BTreeMap::new();
+        return Vec::new();
     };
     if to.is_empty() {
-        return BTreeMap::new();
+        return Vec::new();
     }
     let mut suffix: Vec<(Cost<P::Distance>, Vec<usize>)> = (0..to.len())
         .map(|j| (aim(last).cost(to[j]), vec![j]))

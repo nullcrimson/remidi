@@ -76,7 +76,7 @@ impl fmt::Display for Canon {
             Slot::Tom(p, a) => write!(f, "tom.{}.{}", tom_pos_key(p), key(a)),
             Slot::Hat(o, z) => write!(f, "hat.{}", hat_key(o, z)),
             Slot::Aux(i, o, z) => write!(f, "aux{i}.{}", hat_key(o, z)),
-            Slot::Cymbal(s, a) => write!(f, "{}.{}.{}", key(s), s.index(), key(a)),
+            Slot::Cymbal(s, a) => write!(f, "{}.{}.{}", key(s), s.number(), key(a)),
             Slot::Ride(i, a) => f.write_str(&dotted(format!("ride.{i}"), ride_artic_key(a))),
             Slot::Perc(k) => write!(f, "perc.{}", key(k)),
             Slot::Hand(d) => f.write_str(&hand_key(d)),

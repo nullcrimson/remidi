@@ -51,15 +51,27 @@ pub(crate) struct TomSpread {
 
 impl TomSpread {
     pub(crate) fn new(source: &TomKit, target: &TomKit) -> Self {
-        let hits = spread(&source.hits, &target.hits, Aim::Near);
-        let rims = spread(&source.rims, &target.rims, |rim| {
-            let anchor = hits.get(&rim).copied().unwrap_or(rim);
-            if target.rims.contains(&anchor) {
-                Aim::Kept(anchor)
-            } else {
-                Aim::Near(anchor)
-            }
-        });
+        let hits: BTreeMap<TomPos, TomPos> = spread(
+            source.hits.iter().copied(),
+            target.hits.iter().copied(),
+            Aim::Near,
+        )
+        .into_iter()
+        .collect();
+        let rims = spread(
+            source.rims.iter().copied(),
+            target.rims.iter().copied(),
+            |rim| {
+                let anchor = hits.get(&rim).copied().unwrap_or(rim);
+                if target.rims.contains(&anchor) {
+                    Aim::Kept(anchor)
+                } else {
+                    Aim::Near(anchor)
+                }
+            },
+        )
+        .into_iter()
+        .collect();
         let moved = hits
             .iter()
             .filter(|&(from, to)| from != to && target.hits.contains(from))

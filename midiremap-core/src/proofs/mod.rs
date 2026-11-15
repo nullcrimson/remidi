@@ -1,4 +1,5 @@
 mod audit;
+mod cymbals;
 mod open_hats;
 mod pairs;
 mod toms;

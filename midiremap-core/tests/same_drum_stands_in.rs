@@ -5,7 +5,7 @@ fn k(s: &str) -> Canon {
 }
 
 #[test]
-fn a_bfd3_crash_bell_plays_on_the_addictive_drums_ride_bell() {
+fn a_bfd3_crash_bell_plays_on_the_addictive_drums_ride_bell_its_own_ride_leaves_free() {
     let catalog = Catalog::shared();
     let mapping = Mapping::new(
         catalog.get("bfd3").unwrap(),
@@ -18,7 +18,8 @@ fn a_bfd3_crash_bell_plays_on_the_addictive_drums_ride_bell() {
             .resolve_canon(k("crash.1.bell"))
             .note()
             .map(Note::get),
-        Some(61)
+        Some(85),
+        "ride 2's bell; ride 1's plays BFD3's own ride bell"
     );
 }
 

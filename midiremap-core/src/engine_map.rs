@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     canon::{Canon, CanonEntry, OpenLevel},
+    cymbal_spread::CymbalKit,
     non_blank::NonBlank,
     note::Note,
     open_levels::OpenLevels,
@@ -109,6 +110,7 @@ pub struct EngineMap {
     grooves_from: Option<Note>,
     open_levels: Option<OpenLevels>,
     toms: TomKit,
+    cymbals: CymbalKit,
     to_canon: HashMap<Note, Canon>,
     from_canon: HashMap<Canon, Note>,
 }
@@ -236,6 +238,11 @@ impl EngineMap {
         &self.toms
     }
 
+    /// The cymbals and rides it plays.
+    pub(crate) fn cymbals(&self) -> &CymbalKit {
+        &self.cymbals
+    }
+
     /// What makes this engine another mapping of a base engine, when it is one.
     pub(crate) fn variant(&self) -> Option<&Variant> {
         self.variant.as_ref()
@@ -337,6 +344,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
 
     let open_levels = open_levels(&raw.id, raw.open_hat_level, &to_canon)?;
     let toms = TomKit::of(from_canon.keys().copied());
+    let cymbals = CymbalKit::of(from_canon.keys().copied());
     Ok(EngineMap {
         id: raw.id,
         name: raw.name,
@@ -347,6 +355,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
         grooves_from: raw.grooves_from,
         open_levels,
         toms,
+        cymbals,
         to_canon,
         from_canon,
     })

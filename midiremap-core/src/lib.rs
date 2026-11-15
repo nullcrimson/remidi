@@ -4,6 +4,7 @@ mod canon;
 mod catalog;
 mod channel;
 mod conversion;
+mod cymbal_spread;
 mod daw;
 mod engine_map;
 mod family;

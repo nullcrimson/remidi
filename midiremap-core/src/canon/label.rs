@@ -117,7 +117,7 @@ impl Canon {
             Slot::Hat(o, z) => hat_label("Hi-Hat", o, z),
             Slot::Aux(i, o, z) => hat_label(&format!("Aux Hat {i}"), o, z),
             Slot::Cymbal(s, a) => {
-                let base = format!("{} {}", s.label(), s.index());
+                let base = format!("{} {}", s.label(), s.number());
                 match a {
                     CymArtic::Hit => base,
                     CymArtic::Mute => format!("{base} (Mute)"),

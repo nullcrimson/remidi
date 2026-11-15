@@ -23,10 +23,12 @@ const ALLOWED_USES: &Table = &[
             "xml",
         ],
     ),
+    ("cymbal_spread", &["canon", "spread"]),
     (
         "engine_map",
         &[
             "canon",
+            "cymbal_spread",
             "non_blank",
             "note",
             "open_levels",
@@ -86,7 +88,13 @@ const ALLOWED_USES: &Table = &[
     ("spread", &["canon"]),
     (
         "spreads",
-        &["canon", "engine_map", "resolution", "tom_spread"],
+        &[
+            "canon",
+            "cymbal_spread",
+            "engine_map",
+            "resolution",
+            "tom_spread",
+        ],
     ),
     ("tom_spread", &["canon", "spread"]),
     (
