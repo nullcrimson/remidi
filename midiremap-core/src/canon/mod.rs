@@ -1,4 +1,5 @@
 mod fallback;
+mod family;
 mod key;
 mod label;
 #[cfg(test)]
@@ -8,8 +9,8 @@ use std::{iter::once, ops::Add, sync::LazyLock};
 
 use strum::{IntoStaticStr, VariantArray};
 
-pub use self::key::CanonParseError;
-use crate::{family::Family, idx::Idx};
+pub use self::{family::Family, key::CanonParseError};
+use crate::idx::Idx;
 
 pub(crate) type SnareIdx = Idx<2>;
 pub(crate) type AuxIdx = Idx<2>;

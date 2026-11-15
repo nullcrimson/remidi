@@ -395,7 +395,10 @@ pub(crate) fn many_from_json(s: &str) -> Result<Vec<EngineMap>, MapError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{canon::k, family::Family, note::n};
+    use crate::{
+        canon::{k, Family},
+        note::n,
+    };
 
     const SAMPLE: &str = r#"
         id = "demo"

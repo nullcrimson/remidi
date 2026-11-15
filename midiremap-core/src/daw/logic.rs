@@ -2,9 +2,8 @@ use plist::{Dictionary, Value};
 use uuid::Uuid;
 
 use crate::{
-    canon::{PercKind, Piece, RackIdx},
+    canon::{Family, PercKind, Piece, RackIdx},
     engine_map::EngineMap,
-    family::Family,
     note::Note,
 };
 

@@ -6,7 +6,6 @@ mod channel;
 mod conversion;
 mod daw;
 mod engine_map;
-mod family;
 mod fit;
 mod idx;
 mod meter;
@@ -27,7 +26,7 @@ mod spread;
 mod translate;
 pub mod xml;
 
-pub use canon::{Canon, CanonEntry, CanonParseError};
+pub use canon::{Canon, CanonEntry, CanonParseError, Family};
 pub use catalog::Catalog;
 pub use channel::{
     Channel, ChannelScope, ChannelScopeError, ConvertError, NoParts, Part, PartError, PartSet,
@@ -36,7 +35,6 @@ pub use channel::{
 pub use conversion::{convert, Conversion, Converted};
 pub use daw::{rack_file, Daw, FileStem, Packing, RackFile};
 pub use engine_map::{Drum, EngineId, EngineMap, MapError};
-pub use family::Family;
 pub use fit::{
     auto_question, note_hits, part_summaries, source_fits, NoteHits, PartSummary, PlayedDrum,
     Plays, SourceFit, SourceFits,
