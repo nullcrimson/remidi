@@ -1,8 +1,7 @@
-use midiremap_core::{Canon, Catalog, Mapping, MissingDrums, Overrides};
+use midiremap_core::{Catalog, Mapping, MissingDrums, Overrides};
+use support::k;
 
-fn k(s: &str) -> Canon {
-    s.parse().unwrap()
-}
+pub mod support;
 
 fn mapping<'a>(catalog: &'a Catalog, src: &str, tgt: &str, edits: &str) -> Mapping<'a> {
     let overrides: Overrides = serde_json::from_str(edits).unwrap();

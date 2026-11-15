@@ -1,8 +1,7 @@
-use midiremap_core::{Canon, Catalog, Mapping, MissingDrums, Note};
+use midiremap_core::{Catalog, Mapping, MissingDrums, Note};
+use support::k;
 
-fn k(s: &str) -> Canon {
-    s.parse().unwrap()
-}
+pub mod support;
 
 #[test]
 fn a_bfd3_crash_bell_plays_on_the_addictive_drums_ride_bell_its_own_ride_leaves_free() {

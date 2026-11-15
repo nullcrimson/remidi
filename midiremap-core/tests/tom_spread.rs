@@ -1,8 +1,7 @@
-use midiremap_core::{resolve_on, Canon, Catalog, Mapping, MissingDrums, Outcome, Overrides};
+use midiremap_core::{resolve_on, Catalog, Mapping, MissingDrums, Outcome, Overrides};
+use support::k;
 
-fn k(s: &str) -> Canon {
-    s.parse().unwrap()
-}
+pub mod support;
 
 const NO_EDITS: &str = r#"{"edits":{},"srcEdits":{}}"#;
 
