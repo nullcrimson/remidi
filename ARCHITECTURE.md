@@ -33,147 +33,190 @@ drum (a China on a crash, Tom 4 on Tom 3); `Drop` keeps only entries on the same
 
 ## Workspace
 
-Seven crates, a web app, and embedded engine presets:
+Twelve crates, a web app, and embedded engine presets:
 
 | Component | Role | Depends on |
 |-------|------|------------|
-| `midiremap-core` | Pure engine. No I/O beyond parsing bytes handed to it. All the logic below. | `midly`, `quick-xml`, `serde`, `serde_bytes`, `serde_json`, `strum`, `thiserror` (`toml` at build and test time only; `flate2` behind the feature `gzip`; `tsify` and `wasm-bindgen` behind the feature `ts`) |
+| `midiremap-core` | Pure engine. No I/O beyond parsing bytes handed to it. What a file plays, the conversion, the files for other programs, and the facade: the one crate the CLI, the WASM and the site depend on. | kit, mapping, note, smf, `midly`, `plist`, `quick-xml`, `uuid`, `serde`, `serde_bytes`, `serde_json`, `strum`, `thiserror` (`flate2` behind the feature `gzip`; `tsify` and `wasm-bindgen` behind the feature `ts`) |
+| `midiremap-mapping` | One engine pair compiled into where each note and drum lands, and the all-pairs proofs. | kit, note, `serde`, `strum`, `thiserror` |
+| `midiremap-kit` | The drum vocabulary (`canon`), the spreads (`spread`), each engine's note table and the catalog (`engine`), `NonBlank`. | idx, note, `serde`, `serde_json`, `strum`, `thiserror` (`toml` at build time and behind `testing`) |
+| `midiremap-smf` | A MIDI file as bytes, tracks and channels (`midi`), and its parts (`parts`). | idx, note, `midly`, `serde`, `thiserror` |
+| `midiremap-note` | `Note`, `OctaveBase` and note names. | `serde`, `strum`, `thiserror` |
+| `midiremap-idx` | `Idx<MAX>`, a 1-based position in `1..=MAX`. | `serde`, `thiserror` |
 | `midiremap-cli` | Offline `convert` / `list` binary. | core, `clap`, `anyhow` |
 | `midiremap-wasm` | Browser bindings for the web app. | core (feature `ts`), `wasm-bindgen`, `tsify`, `serde`, `serde_bytes`, `console_error_panic_hook` |
 | `app/` | Vite + React + TypeScript converter UI over the WASM bindings. | Vite, React, Tailwind, Vitest |
 | `midiremap-site` | Static SEO pages (engine note maps, pair tables, drum maps, FAQ / guide / legal pages) in the app's style. | core (feature `gzip`), `askama`, `fluent-bundle`, `fluent-syntax`, `clap`, `serde`, `serde_json`, `thiserror` (`fluent-syntax`, `heck`, `serde` in `build.rs`) |
 | `midiremap-testkit` | Test-only: builds and reads small SMFs (channels `1..=16`) and engine maps for the other crates' tests; a key, channel or delta out of range panics. | `midly`, `serde_json` |
-| `midiremap-layers` | Test-only: reads which module of a crate uses which (on `syn`) and lists every use outside a table of allowed uses; core and the site check themselves with it. | `syn`, `proc-macro2`, `walkdir` |
+| `midiremap-layers` | Test-only: reads which module of a crate uses which (on `syn`) and lists every use outside a table of allowed uses; the site checks itself with it. | `syn`, `proc-macro2`, `walkdir` |
 | `xtask` | `cargo xtask gate`: every check, scheduled over the steps' needs. | `cargo_metadata`, `clap`, `anyhow`, `blake3`, `walkdir`, `serde`, `strum` |
-| `engines/*.toml` | Preset note↔canon maps; core's `build.rs` converts them to one embedded JSON table. | — |
+| `engines/*.toml` | Preset note↔canon maps; kit's `build.rs` converts them to one embedded JSON table. | — |
 
-Inside `midiremap-core` only the `midi` folder, `parts/scan.rs`, `convert/rewrite.rs` and
-`files/sample.rs` name `midly` (outside tests), and nothing reads a file; the CLI, WASM, and app
-layers own all real-world I/O and presentation.
+Outside tests only `midiremap-smf` (its `midi` folder and `parts/scan.rs`) and core's
+`convert/rewrite.rs` and `files/sample.rs` name `midly`, and nothing in the engine crates reads
+a file; the CLI, WASM, and app layers own all real-world I/O and presentation.
 
-## Core modules (`midiremap-core/src`)
+## Core crates
 
-The core is two sides and three modules on top of them. The **drum side** (`canon`,
-`spread`, `engine`, `mapping`) knows drums and notes and never names `midly` or a MIDI
-event. The **MIDI side** (`midi`, `parts`) knows files, tracks and channels and never names
-a drum. **`inspect`, `convert` and `files`** are the only modules that use both. Under them
-all sit three small value modules at the crate root (`idx`, `non_blank`, `note`); `xml`
-stands alone, and only `files` uses it.
-
-| Module | May use |
-|---|---|
-| `idx`, `non_blank`, `note`, `xml` | nothing |
-| `canon` | `idx` |
-| `spread` | `canon` |
-| `engine` | `canon`, `non_blank`, `note`, `spread` |
-| `mapping` | `canon`, `engine`, `note`, `spread` |
-| `midi` | `idx`, `note` |
-| `parts` | `midi`, `note` |
-| `inspect` | `canon`, `engine`, `midi`, `note`, `parts` |
-| `convert` | `canon`, `inspect`, `mapping`, `midi`, `note`, `parts` |
-| `files` | `canon`, `engine`, `mapping`, `midi`, `non_blank`, `note`, `xml` |
-| `proofs` (tests only) | `canon`, `engine`, `mapping`, `note`, `spread` |
-
-This table lives in `tests/module_layers.rs`. The test reads every `crate::` path in the
-source (through `midiremap-layers`) and fails on a use outside the table, a module with no
-row, a row with no module, or a table that lets a module reach itself (an allowed use a
-module does not make is no failure). A folder is one row. Each folder's `mod.rs` declares
-its files privately and re-exports what other modules use, so other modules write
-`crate::mapping::Outcome`, never a path into a file; the one exception is the test-only
-`canon::rules`, which the proofs read.
+The engine is six crates: two sides and one crate on top of them. The **drum side**
+(`midiremap-kit`: `canon`, `spread`, `engine`; `midiremap-mapping`) knows drums and notes and
+never names `midly` or a MIDI event. The **MIDI side** (`midiremap-smf`: `midi`, `parts`)
+knows files, tracks and channels and never names a drum. **`midiremap-core`** (`inspect`,
+`convert`, `files`, `xml`) is the only crate that uses both. Under them all sit two
+one-concept crates, `midiremap-idx` and `midiremap-note`; `NonBlank` lives in kit, its first
+user.
 
 ```
-lib.rs          ── re-exports only: the public API
-idx.rs          ── Idx<MAX>: a 1-based position in 1..=MAX
-non_blank.rs    ── NonBlank: a string that is not blank (inside core only)
-note.rs         ── Note (0..=127), OctaveBase, note names
-xml.rs          ── the one XML writer (quick-xml), public: the site writes its sitemap with it
+          midiremap-cli   midiremap-wasm   midiremap-site
+                    \          |          /
+                         midiremap-core            (inspect, convert, files, xml, facade)
+                        /       |       \
+          midiremap-mapping     |     midiremap-smf      (midi, parts; midly)
+                   |            |        /     \
+             midiremap-kit -----+       /       \        (non_blank, canon, spread, engine)
+               /        \              /         \
+   midiremap-idx <-------\------------+           |
+                          +---- midiremap-note ---+
+```
 
-canon/          ── Canon (opaque), Canon::all, the named drums, CORE_KIT, same_drum
-   ├── slot.rs        ── Slot, its part enums and positions (TomPos, CymSlot, OpenLevel, …)
-   ├── key.rs         ── the dotted key: Display, FromStr, serde
-   ├── label.rs       ── each drum's label, CanonEntry
-   ├── family.rs      ── Family, declared in display order
-   ├── piece.rs       ── Piece: the part of the kit a drum is
-   ├── fallback.rs    ── fallback_chain: the stand-in rules
-   └── rules.rs       ── (tests) the agreed rule table
-spread/         ── Kit, Spreads, SpreadStroke: where a pair's spreads play each tom and cymbal stroke
-   ├── toms.rs        ── TomKit, TomSpread
-   ├── cymbals.rs     ── CymbalKit, CymbalPlace, CymbalSpread, the three steps over Placed
-   ├── assign.rs      ── SpreadPos, Places, Aim, spread(): the least-cost ordered assignment
-   └── landings.rs    ── Landings, Moved: where each place landed, and which moved
-engine/         ── one engine's notes, and every engine
-   ├── map.rs         ── EngineMap, Drum, EngineId, MapError, reading a map
-   ├── open_levels.rs ── OpenLevels: how far the main hi-hat opens
-   └── catalog.rs     ── Catalog: the built-in presets and user maps
-mapping/        ── Mapping: the stages composed, and its readers; Destination
-   ├── route.rs       ── Route, Routes                                   (stage 1)
-   ├── drums.rs       ── DrumTable and its one land()                    (stage 2)
-   ├── chain.rs       ── resolve, resolve_on: one drum against one note lookup
-   ├── outcome.rs     ── Outcome { Direct(Landing) | Fallback(StandIn) | Dropped }
-   ├── settings.rs    ── MissingDrums, Unrecognized
-   ├── overrides.rs   ── Overrides: edits to either side, as two maps
-   └── preview.rs     ── VoicePlan, Mapping::preview: per-drum rows for the editor
-midi/           ── a MIDI file as bytes and events
-   ├── codec.rs       ── parse / write (midly), CodecError, Damage
-   ├── track.rs       ── TrackNo, END_OF_TRACK, track_at
-   ├── meter.rs       ── Tick, Bar, Position, Meter: a track's ticks as bars
-   ├── channel.rs     ── Channel (Idx<16>), ChannelFilter
-   └── event.rs       ── hit(), note_from_key / note_key
-parts/          ── the parts of a file and what a selection selects in it
-   ├── part.rs        ── Part, Parts, PartSet
-   ├── selection.rs   ── Selection, ChannelScope
-   ├── scan.rs        ── PartIndex: a file's parts, read once
-   ├── choose.rs      ── choose → Choice, TrackFilters, hit_notes
-   └── error.rs       ── ConvertError
-inspect/        ── what a file plays, without converting it
-   ├── hits.rs        ── NoteHits, note_hits
-   ├── summary.rs     ── PartSummary, Plays, part_summaries, auto_question
-   └── fit.rs         ── SourceFit, SourceFits, source_fits
-convert/        ── convert(bytes, &Mapping, Selection) → Conversion (Done | Ask)
-   ├── rewrite.rs     ── rewrite(): one pure step per event, DeltaFold
-   └── report.rs      ── Report, FallbackTally: what a conversion did with each hit
-files/          ── files for other programs
-   ├── preset.rs      ── parse_preset: the preset file the app exports and the CLI reads
-   ├── sample.rs      ── sample_file: a two-bar groove on the notes one engine plays
-   └── daw/           ── Daw and its Format registry
-          ├── formats.rs ── Reaper, Cubase and Studio One drum maps
-          ├── logic.rs   ── the Logic Pro Step Sequencer template
-          ├── ableton.rs ── rack_file, RackFile, the note-name rack
-          ├── file.rs    ── FileStem
-          └── packing.rs ── Packing { Text | Gzip }
-proofs/         ── (tests) the all-pairs proofs: chains, pairs, open hats, toms, cymbals, gaps
+| Crate | Uses (workspace) | Dev-dependencies (workspace) |
+|---|---|---|
+| `midiremap-idx`, `midiremap-note` | nothing | none |
+| `midiremap-kit` | idx, note | note (`testing`), testkit |
+| `midiremap-mapping` | kit, note | kit (`testing`), note (`testing`) |
+| `midiremap-smf` | idx, note | note (`testing`) |
+| `midiremap-core` | kit, mapping, note, smf | kit (`testing`), note (`testing`), testkit |
+
+Cargo holds these edges: kit cannot name the mapping, smf cannot name a drum, kit and the
+mapping cannot name `midly` or a MIDI event, and nothing below core can name `inspect`,
+`convert` or `files`. It does not hold the order of the folders inside one crate. That order
+is written in the rustdoc of each crate's `lib.rs` and held by review:
+
+| Crate | Order, lowest first |
+|---|---|
+| `midiremap-kit` | `non_blank`; `canon` → `spread` → `engine` |
+| `midiremap-smf` | `midi` → `parts` |
+| `midiremap-core` | `xml`; `inspect` → `convert`; `files` (uses `xml`, not `inspect` or `convert`) |
+
+Each folder's `mod.rs` declares its files privately and re-exports what other folders and
+crates use, so they write `midiremap_mapping::Outcome` or `crate::canon::Canon`, never a path
+into a file; the one exception is `canon::rules`, which only the proofs read.
+
+**Features.** `midiremap-note` and `midiremap-kit` have a feature `testing` that adds test
+helpers and nothing else (`n`; `k`, `canon::rules`, `engine::from_toml` and the kit
+accessors the proofs read). Only dev-dependencies enable it, so no shipped build has it.
+Each engine crate but idx has a feature `ts` (the `tsify` derives); core's `ts` forwards to
+kit, mapping, note and smf.
+
+```
+midiremap-idx/src/lib.rs     ── Idx<MAX>: a 1-based position in 1..=MAX
+midiremap-note/src/lib.rs    ── Note (0..=127), OctaveBase, note names
+
+midiremap-kit/build.rs       ── engines/*.toml → one embedded JSON table
+midiremap-kit/src/
+   lib.rs          ── the four folders, public; their order in its rustdoc
+   non_blank.rs    ── NonBlank: a string that is not blank
+   canon/          ── Canon (opaque), Canon::all, the named drums, CORE_KIT, same_drum
+      ├── slot.rs        ── Slot, its part enums and positions (TomPos, CymSlot, OpenLevel, …)
+      ├── key.rs         ── the dotted key: Display, FromStr, serde
+      ├── label.rs       ── each drum's label, CanonEntry
+      ├── family.rs      ── Family, declared in display order
+      ├── piece.rs       ── Piece: the part of the kit a drum is
+      ├── fallback.rs    ── fallback_chain: the stand-in rules
+      └── rules.rs       ── (tests, `testing`) the agreed rule table
+   spread/         ── Kit, Spreads, SpreadStroke: where a pair's spreads play each tom and cymbal stroke
+      ├── toms.rs        ── TomKit, TomSpread
+      ├── cymbals.rs     ── CymbalKit, CymbalPlace, CymbalSpread, the three steps over Placed
+      ├── assign.rs      ── SpreadPos, Places, Aim, spread(): the least-cost ordered assignment
+      └── landings.rs    ── Landings, Moved: where each place landed, and which moved
+   engine/         ── one engine's notes, and every engine
+      ├── map.rs         ── EngineMap, Drum, EngineId, MapError, reading a map
+      ├── open_levels.rs ── OpenLevels: how far the main hi-hat opens
+      └── catalog.rs     ── Catalog: the built-in presets and user maps
+
+midiremap-mapping/src/
+   lib.rs          ── Mapping: the stages composed, and its readers; Destination
+   route.rs        ── Route, Routes                                   (stage 1)
+   drums.rs        ── DrumTable and its one land()                    (stage 2)
+   chain.rs        ── resolve, resolve_on: one drum against one note lookup
+   outcome.rs      ── Outcome { Direct(Landing) | Fallback(StandIn) | Dropped }
+   settings.rs     ── MissingDrums, Unrecognized
+   overrides.rs    ── Overrides: edits to either side, as two maps
+   preview.rs      ── VoicePlan, Mapping::preview: per-drum rows for the editor
+   proofs/         ── (tests) the all-pairs proofs: chains, pairs, open hats, toms, cymbals, gaps
+midiremap-mapping/tests/golden/  ── rules.txt, known_gaps.txt: what the proofs compare with
+
+midiremap-smf/src/
+   lib.rs          ── the two folders, public; their order in its rustdoc
+   midi/           ── a MIDI file as bytes and events
+      ├── codec.rs       ── parse / write (midly), Parsed, CodecError, Damage
+      ├── track.rs       ── TrackNo, END_OF_TRACK, track_at
+      ├── meter.rs       ── Tick, Bar, Position, Meter: a track's ticks as bars
+      ├── channel.rs     ── Channel (Idx<16>), ChannelFilter
+      └── event.rs       ── hit(), channel_from_wire / channel_wire, note_from_key / note_key
+   parts/          ── the parts of a file and what a selection selects in it
+      ├── part.rs        ── Part, Parts, PartSet
+      ├── selection.rs   ── Selection, ChannelScope
+      ├── scan.rs        ── PartIndex: a file's parts, read once
+      ├── choose.rs      ── choose → Choice, TrackFilters, hit_notes
+      └── error.rs       ── ConvertError
+
+midiremap-core/src/
+   lib.rs          ── the facade: re-exports only, the public API; the folders' order in its rustdoc
+   xml.rs          ── the one XML writer (quick-xml), public: the site writes its sitemap with it
+   inspect/        ── what a file plays, without converting it
+      ├── hits.rs        ── NoteHits, note_hits
+      ├── summary.rs     ── PartSummary, Plays, part_summaries, auto_question
+      └── fit.rs         ── SourceFit, SourceFits, source_fits
+   convert/        ── convert(bytes, &Mapping, Selection) → Conversion (Done | Ask)
+      ├── rewrite.rs     ── rewrite(): one pure step per event, DeltaFold
+      └── report.rs      ── Report, FallbackTally: what a conversion did with each hit
+   files/          ── files for other programs
+      ├── preset.rs      ── parse_preset: the preset file the app exports and the CLI reads
+      ├── sample.rs      ── sample_file: a two-bar groove on the notes one engine plays
+      └── daw/           ── Daw and its Format registry
+             ├── formats.rs ── Reaper, Cubase and Studio One drum maps
+             ├── logic.rs   ── the Logic Pro Step Sequencer template
+             ├── ableton.rs ── rack_file, RackFile, the note-name rack
+             ├── file.rs    ── FileStem
+             └── packing.rs ── Packing { Text | Gzip }
 ```
 
 Every concept is one concrete type or function. The one trait, the crate-private
 `SpreadPos`, lets one assignment serve both spreads.
 
-**Public surface.** Every module but `xml` is private; the crate root re-exports the API the
-CLI, the WASM and the site use (`Canon`, `Catalog`, `EngineMap`, `Mapping`, `Outcome`,
-`resolve_on`, `convert`, `Report`, `Channel`, `ChannelScope`, `Daw`, the preset and error
-types). `#![warn(unreachable_pub)]` keeps anything else from becoming public by accident,
-and no `midly` type appears in a public signature. Errors keep their causes as `source()`
+**Public surface.** The CLI, the WASM and the site depend on `midiremap-core` alone. Every
+module of core but `xml` is private; its root re-exports the API they use (`Canon`,
+`Catalog`, `EngineMap`, `Mapping`, `Outcome`, `resolve_on`, `convert`, `Report`, `Channel`,
+`ChannelScope`, `Daw`, the preset and error types) from its own folders and the crates below
+it. The crates below make public what the crates above them use, and every crate has
+`#![warn(unreachable_pub)]`, which keeps anything else from becoming public by accident. No
+`midly` type appears in a signature reachable from `midiremap-core`: smf's conversions
+between `Channel` and `midly`'s `u4` are the functions `channel_from_wire` and
+`channel_wire`, which core does not re-export, and `Parsed` keeps its fields private behind
+`smf()` and `into_parts()`. Errors keep their causes as `source()`
 (`CodecError`, `MapError::Parse`, `PresetError::Parse`); the CLI prints the chain through
 anyhow and the WASM joins it into one message (`outer: inner`).
 
 ### `note`, `idx`, `non_blank` — checked values
 
-- `Note` (`note.rs`): a MIDI note number that is always in `0..=127`. It deserializes from a
-  plain number, rejecting anything larger. Every note in the core — engine maps, edits, the
-  mapping, the report and the preview — is a `Note`. `midi/event.rs` converts it to and from
-  `midly`'s `u7` (`note_from_key`, `note_key`), so `note.rs` does not name `midly`.
+- `Note` (`midiremap-note`): a MIDI note number that is always in `0..=127`. It deserializes
+  from a plain number, rejecting anything larger. Every note in the engine — engine maps,
+  edits, the mapping, the report and the preview — is a `Note`. smf's `midi/event.rs`
+  converts it to and from `midly`'s `u7` (`note_from_key`, `note_key`), so
+  `midiremap-note` does not name `midly`.
 - `Note::name(OctaveBase)` names a note (`F#2`) and `Note::octave(OctaveBase)` numbers
   its octave; `OctaveBase::{C1, C2}` (`OctaveBase::ALL`) is the octave convention. The
   site calls them directly. The app reads a table of them: its wasm build calls the
   module's `note_naming` and writes the result to `app/src/wasm/note_naming.json`, which
   `core/notes.ts` imports, so the app names notes before the module has loaded and holds
   no naming rule of its own.
-- `Idx<const MAX: u8>` (`idx.rs`, shared by `canon` and `Channel`) holds a 1-based position
-  that is always in `1..=MAX` (`SnareIdx = Idx<2>`, `RackIdx = Idx<8>`, `FloorIdx = Idx<4>`,
-  `OpenLevel = Idx<6>`, …). Every valid range is written once, as a type, so an
-  out-of-range slot cannot be constructed.
-- `NonBlank` (`non_blank.rs`): a string that is not blank, for an engine's short name and
-  vendor and a preset's name.
+- `Idx<const MAX: u8>` (`midiremap-idx`, shared by `canon` and `Channel`, which must not see
+  each other) holds a 1-based position that is always in `1..=MAX` (`SnareIdx = Idx<2>`,
+  `RackIdx = Idx<8>`, `FloorIdx = Idx<4>`, `OpenLevel = Idx<6>`, …). Every valid range is
+  written once, as a type, so an out-of-range slot cannot be constructed.
+- `NonBlank` (kit's `non_blank.rs`): a string that is not blank, for an engine's short name
+  and vendor and a preset's name.
 
 ### `canon` — the hub vocabulary
 
@@ -222,8 +265,8 @@ cymbals by `CymSlot::distance`, as the spreads do. A chain judges one drum alone
 pair matches a drum as a whole (open hats by level, toms and cymbals by the spreads), the
 mapping's routes do that before any chain is walked. No stand-in → the drum is dropped.
 Chains are built once for every slot. `canon/rules.rs` writes the agreed rules as a table
-(its snapshot is `tests/golden/rules.txt`), and the proofs in `proofs/` check every chain
-and every built-in pair against it. `tests/same_drum_stands_in.rs` holds the agreed
+(its snapshot is `midiremap-mapping/tests/golden/rules.txt`), and the proofs in the
+mapping's `proofs/` check every chain and every built-in pair against it. `tests/same_drum_stands_in.rs` holds the agreed
 same-drum rules as an independent table and checks every slot's chain against it, and
 every built-in engine pair in both missing-drum modes: the first agreed stand-in the target
 has is played, nothing else on the same drum, and Nearest only crosses to drums the rules
@@ -288,7 +331,7 @@ allow.
   (`MapError::AliasCollision`). No built-in preset has an alias yet. A map may be a
   `variant` of another engine (another mapping of the same kit); `variants(base)` and
   `base_of(map)` relate them.
-- `Catalog::builtin()`: every `engines/*.toml` (dozens of presets). Core's `build.rs`
+- `Catalog::builtin()`: every `engines/*.toml` (dozens of presets). Kit's `build.rs`
   globs the directory, parses each file with `toml`, rejects invalid TOML or a
   duplicate engine id as a build error naming the file, and writes one JSON table
   that is embedded with `include_str!`. Adding a preset needs no code change, and
@@ -301,7 +344,8 @@ allow.
 - `tests/engine_facts.rs` pins what the built-in engines play on the notes worth checking
   (each names its vendor, UJAM's mute keys, BFD3's tom slots, …). It shares the drum-key
   helper `k` and the note helper `n` in `tests/support/mod.rs` with four other
-  integration tests.
+  integration tests; the module re-exports kit's and note's own, behind their `testing`
+  features.
 - `tests/stable_ids.rs` guards saved data: every drum key and engine id ever released is
   recorded in `tests/golden/`, must still parse or resolve (through an alias after a
   rename), and every new one must be appended.
@@ -369,7 +413,8 @@ whether those notes are written.
 - **Readers.** `resolve_canon(canon)` (a drum's outcome), `played()` (each source note
   that plays a drum, with its outcome), `dropped_drums()` (the one rule for "a drum the
   source plays that the target leaves out", read by the site's pair pages and the rack's
-  `dropped` count), and, inside the core, `destination(note)` → `Destination`, the one rule
+  `dropped` count), and `destination(note)` → `Destination` (a type the facade does not
+  re-export, read by core), the one rule
   for where a source note plays: on a drum and its note, unchanged
   (`Unrecognized::Keep`), or nowhere. `rewrite` and the Ableton rack both read it, so the
   rack plays every note where the converted file puts it (`tests/ableton_racks.rs` checks
@@ -398,16 +443,16 @@ whether those notes are written.
   - A row's drum comes from its outcome, so the two cannot disagree.
   `tests/preview_matches_conversion.rs` converts every note for every builtin pair
   (Nearest, Drop, and with edits) and checks the preview against the output.
-- **Proofs.** `proofs/` (tests only) checks the mapping over every built-in pair:
+- **Proofs.** The mapping's `proofs/` (tests only) checks it over every built-in pair:
   `proofs/pairs.rs` the agreed stand-ins, `proofs/open_hats.rs` the openings,
   `proofs/toms.rs` the tom spread, `proofs/cymbals.rs` the cymbal spread, and
   `proofs/audit.rs` that every gap a pair leaves is a known one
-  (`tests/golden/known_gaps.txt`).
+  (`midiremap-mapping/tests/golden/known_gaps.txt`).
 
 ### `midi` and `parts` — the MIDI side
 
-- `midi/codec.rs`: `parse(bytes)` → `Parsed { smf, damage }` / `write(&smf)`, the `midly`
-  codec. `parse` refuses a header whose SMPTE rate byte is `0x80` (`CodecError::SmpteRate`)
+- `midi/codec.rs`: `parse(bytes)` → `Parsed` (the file and its `damage`, read through
+  `smf()` and `into_parts()`) / `write(&smf)`, the `midly` codec. `parse` refuses a header whose SMPTE rate byte is `0x80` (`CodecError::SmpteRate`)
   before midly sees it: midly 0.5.3 negates it with an overflow, a panic in builds with
   overflow checks (found by fuzzing). `damage` lists what the file had lost before it was
   read, since midly (not strict) reads a damaged file as far as it goes without saying so:
@@ -424,7 +469,8 @@ whether those notes are written.
   (`ALL`, `NONE`, `with(channel)`).
 - `midi/event.rs`: `hit(kind)` is the one predicate for a hit (a note-on with velocity
   > 0), read by the converter, the part scan (so the hit counts `inspect` ranks engines
-  by) and the `Auto` scope.
+  by) and the `Auto` scope. `channel_from_wire` and `channel_wire` convert a `Channel` to and
+  from the `u4` a MIDI file stores, as `note_from_key` and `note_key` do for a `Note`.
 - `ChannelScope { Auto | Only(Channel) | All }` (`parts/selection.rs`) chooses which
   channels a conversion rewrites; it parses from `auto`, `all` or `1`..=`16`. A `Selection`
   is a scope or a user's `Parts`.
@@ -468,7 +514,7 @@ whether those notes are written.
 
   | # | Stage | Function | Produces |
   |---|---|---|---|
-  | 1 | parse | `midi::parse` | `Parsed { smf, damage }` |
+  | 1 | parse | `midi::parse`, `Parsed::into_parts` | the `smf` and its `damage` |
   | 2 | scan | `PartIndex::of` | the file's parts |
   | 3 | choose | `choose` | `Choice::Convert { filters, picked, offers }` or `Choice::Ask(parts)` |
   | 4 | summarize offers | `summaries` | the offers, as the source plays them |

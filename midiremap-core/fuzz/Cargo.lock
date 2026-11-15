@@ -125,6 +125,10 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 name = "midiremap-core"
 version = "0.1.0"
 dependencies = [
+ "midiremap-kit",
+ "midiremap-mapping",
+ "midiremap-note",
+ "midiremap-smf",
  "midly",
  "plist",
  "quick-xml",
@@ -133,7 +137,6 @@ dependencies = [
  "serde_json",
  "strum",
  "thiserror",
- "toml",
  "uuid",
 ]
 
@@ -145,6 +148,58 @@ dependencies = [
  "midiremap-core",
  "midiremap-testkit",
  "midly",
+]
+
+[[package]]
+name = "midiremap-idx"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "midiremap-kit"
+version = "0.1.0"
+dependencies = [
+ "midiremap-idx",
+ "midiremap-note",
+ "serde",
+ "serde_json",
+ "strum",
+ "thiserror",
+ "toml",
+]
+
+[[package]]
+name = "midiremap-mapping"
+version = "0.1.0"
+dependencies = [
+ "midiremap-kit",
+ "midiremap-note",
+ "serde",
+ "strum",
+ "thiserror",
+]
+
+[[package]]
+name = "midiremap-note"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "strum",
+ "thiserror",
+]
+
+[[package]]
+name = "midiremap-smf"
+version = "0.1.0"
+dependencies = [
+ "midiremap-idx",
+ "midiremap-note",
+ "midly",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]

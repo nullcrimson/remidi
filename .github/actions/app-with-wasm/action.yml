@@ -14,7 +14,7 @@ runs:
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: app/src/wasm
-        key: wasm-binaryen${{ steps.binaryen.outputs.v }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-wasm/**', 'engines/**', 'app/scripts/build-wasm.mjs') }}
+        key: wasm-binaryen${{ steps.binaryen.outputs.v }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'midiremap-core/**', 'midiremap-idx/**', 'midiremap-note/**', 'midiremap-kit/**', 'midiremap-mapping/**', 'midiremap-smf/**', 'midiremap-wasm/**', 'engines/**', 'app/scripts/build-wasm.mjs') }}
 
     - name: Install Rust (from rust-toolchain.toml)
       shell: bash
