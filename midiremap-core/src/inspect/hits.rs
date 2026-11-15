@@ -1,11 +1,12 @@
 use std::{cmp::Reverse, collections::BTreeMap, iter::Sum, ops::AddAssign};
 
+use midiremap_note::Note;
+
 use super::summary::{PlayedDrum, Plays};
 use crate::{
     canon::Canon,
     engine::EngineMap,
     midi,
-    note::Note,
     parts::{hit_notes, ConvertError, PartIndex, Selection},
 };
 
@@ -91,10 +92,11 @@ pub fn note_hits(midi: &[u8], selection: impl Into<Selection>) -> Result<NoteHit
 
 #[cfg(test)]
 mod tests {
+    use midiremap_note::n;
     use midiremap_testkit::{drums, off, on, silent_on, tracks, DRUMS};
 
     use super::*;
-    use crate::{midi::Channel, note::n, parts::ChannelScope};
+    use crate::{midi::Channel, parts::ChannelScope};
 
     fn hits_of(midi: &[u8], scope: ChannelScope) -> Vec<(u8, u32)> {
         let hits = note_hits(midi, scope).unwrap();

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["midiremap-idx", "midiremap-core", "midiremap-cli", "midiremap-wasm", "midiremap-site", "midiremap-testkit", "midiremap-layers", "xtask"]
+members = ["midiremap-idx", "midiremap-note", "midiremap-core", "midiremap-cli", "midiremap-wasm", "midiremap-site", "midiremap-testkit", "midiremap-layers", "xtask"]
 
 [profile.wasm]
 inherits = "release"
@@ -11,6 +11,9 @@ codegen-units = 1
 opt-level = 2
 
 [profile.dev.package.midiremap-idx]
+opt-level = 2
+
+[profile.dev.package.midiremap-note]
 opt-level = 2
 
 [profile.dev]

@@ -8,7 +8,6 @@ mod inspect;
 mod mapping;
 mod midi;
 mod non_blank;
-mod note;
 mod parts;
 #[cfg(test)]
 mod proofs;
@@ -31,7 +30,7 @@ pub use mapping::{
     StandIn, Unrecognized, UnrecognizedParseError, VoicePlan,
 };
 pub use midi::{Bar, Channel, CodecError, Damage, Position, Tick, TrackNo};
-pub use note::{Note, NoteParseError, OctaveBase};
+pub use midiremap_note::{Note, NoteParseError, OctaveBase};
 pub use parts::{
     ChannelScope, ChannelScopeError, ConvertError, NoParts, Part, PartError, PartSet, Parts,
     Selection,

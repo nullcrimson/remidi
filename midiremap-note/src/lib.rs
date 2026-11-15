@@ -1,3 +1,5 @@
+#![warn(unreachable_pub)]
+
 use std::{collections::BTreeMap, fmt, str::FromStr};
 
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
@@ -60,7 +62,7 @@ pub struct NoteParseError(String);
 impl Note {
     pub(crate) const MAX: u8 = 127;
 
-    pub(crate) const COUNT: usize = Self::MAX as usize + 1;
+    pub const COUNT: usize = Self::MAX as usize + 1;
 
     /// Every note, ascending.
     pub const ALL: [Self; Self::COUNT] = {
@@ -82,12 +84,12 @@ impl Note {
     }
 
     /// The note's position in [`Note::ALL`].
-    pub(crate) const fn index(self) -> usize {
+    pub const fn index(self) -> usize {
         self.0 as usize
     }
 
     /// How many semitones `to` lies above this note; negative when it lies below.
-    pub(crate) fn semitones_to(self, to: Note) -> i16 {
+    pub fn semitones_to(self, to: Note) -> i16 {
         i16::from(to.0) - i16::from(self.0)
     }
 
@@ -101,7 +103,7 @@ impl Note {
     }
 
     /// Reads a map keyed by note numbers written as text, as [`Note::text_keys`] writes it.
-    pub(crate) fn from_text_keys<'de, V: Deserialize<'de>, D: Deserializer<'de>>(
+    pub fn from_text_keys<'de, V: Deserialize<'de>, D: Deserializer<'de>>(
         d: D,
     ) -> Result<BTreeMap<Self, V>, D::Error> {
         BTreeMap::<String, V>::deserialize(d)?
@@ -164,8 +166,8 @@ impl<'de> Deserialize<'de> for Note {
     }
 }
 
-#[cfg(test)]
-pub(crate) fn n(x: u8) -> Note {
+#[cfg(any(test, feature = "testing"))]
+pub fn n(x: u8) -> Note {
     Note::new(x).expect("test note in range")
 }
 

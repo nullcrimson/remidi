@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use expect_test::expect_file;
+use midiremap_note::Note;
 use rayon::prelude::*;
 use strum::VariantArray;
 
@@ -13,7 +14,6 @@ use crate::{
     },
     engine::EngineMap,
     mapping::{Mapping, MissingDrums, Outcome, Overrides},
-    note::Note,
 };
 
 /// A way a pair breaks the agreed rules, short of a wrong chain (which L1 rejects outright).

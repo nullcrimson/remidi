@@ -1,10 +1,10 @@
+use midiremap_note::Note;
 use midly::{
     num::{u4, u7},
     MidiMessage, TrackEventKind,
 };
 
 use super::channel::{Channel, ChannelIdx};
-use crate::note::Note;
 
 /// The channel and note of `kind` when it sounds a note: a note-on with a velocity.
 pub(crate) fn hit(kind: &TrackEventKind) -> Option<(Channel, Note)> {

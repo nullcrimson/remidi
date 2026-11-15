@@ -4,30 +4,18 @@ use midiremap_layers::{Layers, Table};
 
 const ALLOWED_USES: &Table = &[
     ("canon", &[]),
-    (
-        "convert",
-        &["canon", "inspect", "mapping", "midi", "note", "parts"],
-    ),
-    ("engine", &["canon", "non_blank", "note", "spread"]),
+    ("convert", &["canon", "inspect", "mapping", "midi", "parts"]),
+    ("engine", &["canon", "non_blank", "spread"]),
     (
         "files",
-        &[
-            "canon",
-            "engine",
-            "mapping",
-            "midi",
-            "non_blank",
-            "note",
-            "xml",
-        ],
+        &["canon", "engine", "mapping", "midi", "non_blank", "xml"],
     ),
-    ("inspect", &["canon", "engine", "midi", "note", "parts"]),
-    ("mapping", &["canon", "engine", "note", "spread"]),
-    ("midi", &["note"]),
+    ("inspect", &["canon", "engine", "midi", "parts"]),
+    ("mapping", &["canon", "engine", "spread"]),
+    ("midi", &[]),
     ("non_blank", &[]),
-    ("note", &[]),
-    ("parts", &["midi", "note"]),
-    ("proofs", &["canon", "engine", "mapping", "note", "spread"]),
+    ("parts", &["midi"]),
+    ("proofs", &["canon", "engine", "mapping", "spread"]),
     ("spread", &["canon"]),
     ("xml", &[]),
 ];

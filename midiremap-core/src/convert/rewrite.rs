@@ -1,3 +1,4 @@
+use midiremap_note::Note;
 use midly::{
     num::{u28, u7},
     MidiMessage, Smf, Track, TrackEvent, TrackEventKind,
@@ -10,7 +11,6 @@ use crate::{
         channel_from_wire, hit, is_closed, note_from_key, note_key, ChannelFilter, CodecError,
         END_OF_TRACK,
     },
-    note::Note,
     parts::TrackFilters,
 };
 

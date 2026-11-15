@@ -1,9 +1,7 @@
+use midiremap_note::Note;
 use serde::Serialize;
 
-use crate::{
-    canon::{Canon, OpenLevel},
-    note::Note,
-};
+use crate::canon::{Canon, OpenLevel};
 
 /// Where a drum lands on the target: on its own note, on the note of the drum that stands
 /// in for it, or nowhere. Serialized tagged by `status`, without the drum itself.

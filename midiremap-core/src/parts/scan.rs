@@ -1,12 +1,10 @@
 use std::collections::BTreeMap;
 
+use midiremap_note::Note;
 use midly::{MetaMessage, Smf, TrackEventKind};
 
 use super::part::{Part, PartSet};
-use crate::{
-    midi::{hit, TrackNo},
-    note::Note,
-};
+use crate::midi::{hit, TrackNo};
 
 /// The note of every hit of each part of `smf`, in order.
 fn part_hits(smf: &Smf) -> BTreeMap<Part, Vec<Note>> {

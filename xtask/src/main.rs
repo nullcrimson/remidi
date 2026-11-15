@@ -390,6 +390,7 @@ mod tests {
                 "midiremap-core",
                 "midiremap-idx",
                 "midiremap-layers",
+                "midiremap-note",
                 "midiremap-site",
                 "midiremap-testkit",
                 "midiremap-wasm",

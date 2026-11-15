@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use midiremap_note::Note;
 use rayon::prelude::*;
 
 use super::{all_pairs, assert_none, lands_by_match};
@@ -10,7 +11,6 @@ use crate::{
     },
     engine::EngineMap,
     mapping::{Mapping, MissingDrums},
-    note::Note,
 };
 
 fn first_agreed(tgt: &EngineMap, canon: Canon) -> Option<Note> {

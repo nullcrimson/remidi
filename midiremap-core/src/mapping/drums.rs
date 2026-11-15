@@ -1,5 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 
+use midiremap_note::Note;
+
 use super::{
     chain::{resolve, resolve_on, Encoding},
     outcome::{Landing, Outcome, StandIn},
@@ -9,7 +11,6 @@ use super::{
 use crate::{
     canon::{Canon, OpenLevel},
     engine::EngineMap,
-    note::Note,
     spread::SpreadStroke,
 };
 

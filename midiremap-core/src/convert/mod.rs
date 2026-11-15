@@ -98,6 +98,7 @@ pub fn convert(
 
 #[cfg(test)]
 mod tests {
+    use midiremap_note::n;
     use midiremap_testkit::{drums, events, hit_keys, off, on};
     use midly::{num::u7, MidiMessage};
 
@@ -106,7 +107,6 @@ mod tests {
         canon::k,
         engine::Catalog,
         mapping::{MissingDrums, Overrides, Unrecognized},
-        note::n,
         parts::ChannelScope,
     };
 

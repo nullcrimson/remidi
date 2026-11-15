@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use midiremap_note::Note;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -8,7 +9,6 @@ use crate::{
     engine::{Catalog, EngineId},
     mapping::Overrides,
     non_blank::NonBlank,
-    note::Note,
 };
 
 const PRESET_FORMAT: &str = "drumverter-preset";
@@ -183,8 +183,10 @@ fn source_edit(key: String, value: Value) -> Result<(Note, Option<Canon>), Skipp
 
 #[cfg(test)]
 mod tests {
+    use midiremap_note::n;
+
     use super::*;
-    use crate::{canon::k, note::n};
+    use crate::canon::k;
 
     const FIXTURE: &str = include_str!("../../tests/golden/my-kit.drumverter.json");
 

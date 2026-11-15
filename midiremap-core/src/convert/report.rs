@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
+use midiremap_note::Note;
 use serde::Serialize;
 
-use crate::{canon::Canon, mapping::Outcome, note::Note};
+use crate::{canon::Canon, mapping::Outcome};
 
 /// How a drum the target lacks was played: on which stand-in drum, on which note, how often.
 #[derive(Serialize, Debug, PartialEq, Eq)]
@@ -102,11 +103,12 @@ impl Report {
 
 #[cfg(test)]
 mod tests {
+    use midiremap_note::n;
+
     use super::*;
     use crate::{
         canon::k,
         mapping::{Landing, StandIn},
-        note::n,
     };
 
     fn open3() -> Canon {

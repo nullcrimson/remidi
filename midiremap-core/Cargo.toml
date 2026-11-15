@@ -7,6 +7,7 @@ publish = false
 
 [dependencies]
 midiremap-idx = { path = "../midiremap-idx" }
+midiremap-note = { path = "../midiremap-note" }
 flate2 = { version = "1", optional = true }
 midly = { version = "0.5", default-features = false, features = ["alloc", "std"] }
 plist = { version = "1.10", default-features = false }
@@ -22,11 +23,12 @@ wasm-bindgen = { version = "0.2", optional = true }
 
 [features]
 gzip = ["dep:flate2"]
-ts = ["dep:tsify", "dep:wasm-bindgen"]
+ts = ["dep:tsify", "dep:wasm-bindgen", "midiremap-note/ts"]
 
 [dev-dependencies]
 expect-test = "1.5.1"
 midiremap-layers = { path = "../midiremap-layers" }
+midiremap-note = { path = "../midiremap-note", features = ["testing"] }
 midiremap-testkit = { path = "../midiremap-testkit" }
 proptest = "1"
 rayon = "1"

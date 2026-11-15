@@ -1,5 +1,6 @@
 use std::io;
 
+use midiremap_note::Note;
 use serde::Serialize;
 
 use super::{file::FileStem, packing::Packing};
@@ -7,7 +8,6 @@ use crate::{
     engine::EngineMap,
     files::PresetName,
     mapping::{Destination, Mapping},
-    note::Note,
     xml::{self, nest, Indent, Xml},
 };
 

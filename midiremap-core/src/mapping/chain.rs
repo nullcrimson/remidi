@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
+use midiremap_note::Note;
+
 use super::{
     outcome::{Landing, Outcome, StandIn},
     settings::MissingDrums,
 };
-use crate::{canon::Canon, engine::EngineMap, note::Note};
+use crate::{canon::Canon, engine::EngineMap};
 
 pub(crate) type Encoding = HashMap<Canon, Note>;
 

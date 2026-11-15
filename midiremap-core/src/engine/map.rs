@@ -3,13 +3,13 @@ use std::{
     sync::LazyLock,
 };
 
+use midiremap_note::Note;
 use serde::{Deserialize, Serialize};
 
 use super::open_levels::OpenLevels;
 use crate::{
     canon::{Canon, CanonEntry, OpenLevel},
     non_blank::NonBlank,
-    note::Note,
     spread::Kit,
 };
 
@@ -388,11 +388,10 @@ pub(crate) fn many_from_json(s: &str) -> Result<Vec<EngineMap>, MapError> {
 
 #[cfg(test)]
 mod tests {
+    use midiremap_note::n;
+
     use super::*;
-    use crate::{
-        canon::{k, Family},
-        note::n,
-    };
+    use crate::canon::{k, Family};
 
     const SAMPLE: &str = r#"
         id = "demo"

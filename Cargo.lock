@@ -1076,6 +1076,7 @@ dependencies = [
  "flate2",
  "midiremap-idx",
  "midiremap-layers",
+ "midiremap-note",
  "midiremap-testkit",
  "midly",
  "plist",
@@ -1110,6 +1111,18 @@ dependencies = [
  "proc-macro2",
  "syn 3.0.9",
  "walkdir",
+]
+
+[[package]]
+name = "midiremap-note"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "strum",
+ "thiserror",
+ "tsify",
+ "wasm-bindgen",
 ]
 
 [[package]]

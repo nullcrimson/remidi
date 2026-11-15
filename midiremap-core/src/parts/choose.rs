@@ -1,14 +1,13 @@
 use std::collections::BTreeSet;
 
+use midiremap_note::Note;
+
 use super::{
     part::{Part, PartSet, Parts},
     scan::PartIndex,
     selection::{ChannelScope, Selection},
 };
-use crate::{
-    midi::{Channel, ChannelFilter, TrackNo},
-    note::Note,
-};
+use crate::midi::{Channel, ChannelFilter, TrackNo};
 
 /// One filter per track of the file it was made for, in track order.
 #[derive(Debug, Clone, PartialEq, Eq)]

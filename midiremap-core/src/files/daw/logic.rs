@@ -1,10 +1,10 @@
+use midiremap_note::Note;
 use plist::{Dictionary, Value};
 use uuid::Uuid;
 
 use crate::{
     canon::{Family, PercKind, Piece, RackIdx},
     engine::EngineMap,
-    note::Note,
 };
 
 /// The steps of each row, all off: a template holds rows, not a groove.

@@ -108,10 +108,11 @@ fn embedded() -> Result<Catalog, MapError> {
 
 #[cfg(test)]
 mod tests {
+    use midiremap_note::n;
     use midiremap_testkit::engine_json;
 
     use super::*;
-    use crate::{canon::k, engine::OpenLevels, note::n};
+    use crate::{canon::k, engine::OpenLevels};
 
     #[test]
     fn a_mapping_variant_opens_its_hat_like_its_base_kit() {
