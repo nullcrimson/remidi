@@ -45,7 +45,7 @@ pub fn part_summaries(
     source: Option<&EngineMap>,
 ) -> Result<Vec<PartSummary>, CodecError> {
     Ok(summaries(
-        &PartIndex::of(&midi::parse(midi)?.smf),
+        &PartIndex::of(midi::parse(midi)?.smf()),
         source,
         |_| true,
     ))
@@ -57,7 +57,7 @@ pub fn auto_question(
     midi: &[u8],
     source: Option<&EngineMap>,
 ) -> Result<Option<Vec<PartSummary>>, CodecError> {
-    let index = PartIndex::of(&midi::parse(midi)?.smf);
+    let index = PartIndex::of(midi::parse(midi)?.smf());
     let auto = Selection::from(ChannelScope::Auto);
     Ok(match choose(&index, &auto) {
         Ok(Choice::Ask(_)) => Some(summaries(&index, source, |_| true)),

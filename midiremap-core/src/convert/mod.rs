@@ -71,16 +71,11 @@ pub fn convert(
     mapping: &Mapping,
     selection: impl Into<Selection>,
 ) -> Result<Conversion, ConvertError> {
-    let parsed = midi::parse(midi)?;
-    let index = PartIndex::of(&parsed.smf);
+    let (smf, damage) = midi::parse(midi)?.into_parts();
+    let index = PartIndex::of(&smf);
     let (filters, picked, offers) = match choose(&index, &selection.into()) {
         Err(missing) => return Err(ConvertError::NoSuchPart(missing)),
-        Ok(Choice::Ask(parts)) => {
-            return Ok(Conversion::Ask {
-                parts,
-                damage: parsed.damage,
-            })
-        }
+        Ok(Choice::Ask(parts)) => return Ok(Conversion::Ask { parts, damage }),
         Ok(Choice::Convert {
             filters,
             picked,
@@ -90,12 +85,12 @@ pub fn convert(
     let offers = summaries(&index, Some(mapping.source()), |part| {
         offers.contains(&part)
     });
-    let (smf, report) = rewrite(parsed.smf, mapping, filters)?;
+    let (smf, report) = rewrite(smf, mapping, filters)?;
     let bytes = midi::write(&smf)?;
     Ok(Conversion::Done(Converted {
         bytes,
         report,
-        damage: parsed.damage,
+        damage,
         picked: picked.into_iter().collect(),
         offers,
     }))

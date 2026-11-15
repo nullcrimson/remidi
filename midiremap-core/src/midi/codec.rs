@@ -48,8 +48,20 @@ pub enum Damage {
 /// A file as read, and what it had lost.
 #[derive(Debug)]
 pub(crate) struct Parsed<'a> {
-    pub(crate) smf: Smf<'a>,
-    pub(crate) damage: Vec<Damage>,
+    smf: Smf<'a>,
+    damage: Vec<Damage>,
+}
+
+impl<'a> Parsed<'a> {
+    /// The file's header and tracks.
+    pub(crate) fn smf(&self) -> &Smf<'a> {
+        &self.smf
+    }
+
+    /// The file, and what it had lost.
+    pub(crate) fn into_parts(self) -> (Smf<'a>, Vec<Damage>) {
+        (self.smf, self.damage)
+    }
 }
 
 pub(crate) fn parse(bytes: &[u8]) -> Result<Parsed<'_>, CodecError> {
