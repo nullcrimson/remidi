@@ -1066,7 +1066,9 @@ loads another locale's `.ftl` and `docs.json` together as lazy chunks
 (`assets/locale-<code>-messages-*.js` and `-docs-*.js`, named by
 `scripts/localeChunk.ts`, budgeted per file apart from the app's JS). `LocaleProvider` holds
 the current translator in a React context; components read `useT()` / `useLocale()`, so a
-language change re-renders text in place and keeps every other state.
+language change re-renders text in place and keeps every other state. A list a message names
+(files, notes, drums) is formatted by `listed(locale, items)` (`src/locale/list.ts`, over
+`Intl.ListFormat`), the one way the app joins one.
 
 - Start (`main.tsx`): the address names the locale (`src/locale/locale.ts`, the only reader of
   `location.pathname`). On `/`, the stored choice, or with none the first browser language

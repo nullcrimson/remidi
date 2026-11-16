@@ -20,20 +20,20 @@ function result(name: string, report: Loose<FileResult['report']>): FileResult {
 const empty = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 10, merged: 0 };
 
 describe('buildReport', () => {
-  it('sums the hits merged into another note of their tick, which are no loss', () => {
+  it('counts no hit merged into another note of its tick as a loss', () => {
     const view = buildReport(
       [result('a.mid', { ...empty, merged: 2 }), result('b.mid', { ...empty, merged: 1 })],
       canons,
       drums,
       'c1',
     );
-    expect([view.totals.merged, view.files.map((f) => f.totals.merged), view.clean]).toEqual([3, [2, 1], true]);
+    expect(view.clean).toBe(true);
   });
 
   it('reports a clean conversion when nothing is lost', () => {
     const view = buildReport([result('a.mid', empty)], canons, drums, 'c1');
     expect(view.clean).toBe(true);
-    expect(view.totals).toEqual({ dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 10, merged: 0 });
+    expect(view.totals).toEqual({ dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 10 });
   });
 
   it('is not clean when nothing was converted', () => {
@@ -151,12 +151,12 @@ describe('buildReport', () => {
 
   it('totals the converted notes of each file and the notes of each of its groups', () => {
     const view = lossy();
-    expect(view.files[0].totals).toEqual({ dropped: 4, approximated: 3, unrecognized: 1, untouched: 0, converted: 10, merged: 0 });
+    expect(view.files[0].totals).toEqual({ dropped: 4, approximated: 3, unrecognized: 1, untouched: 0, converted: 10 });
   });
 
   it('totals dropped, approximated and unrecognized notes', () => {
     const view = lossy();
-    expect(view.totals).toEqual({ dropped: 4, approximated: 3, unrecognized: 1, untouched: 0, converted: 10, merged: 0 });
+    expect(view.totals).toEqual({ dropped: 4, approximated: 3, unrecognized: 1, untouched: 0, converted: 10 });
   });
 
   const twoFiles = () => buildReport(

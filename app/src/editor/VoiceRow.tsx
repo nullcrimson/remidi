@@ -1,5 +1,7 @@
+import type { Locale } from '../generated/i18n';
 import type { Translate } from '../locale/i18n';
-import { useT } from '../locale/localeContext';
+import { listed } from '../locale/list';
+import { useLocale } from '../locale/localeContext';
 import { useId, useState, type ReactNode } from 'react';
 import type { VoicePlan } from '../core/midiremap';
 import { noteName, type OctaveBase } from '../core/notes';
@@ -26,8 +28,8 @@ function noteChip(active: boolean, changed: boolean): string {
   return chip(active ? 'on' : changed ? 'changed' : 'off', 'md');
 }
 
-function extrasHint(label: string, extras: string[], target: string | null, t: Translate): string {
-  const args = { count: extras.length, drum: label, notes: extras.join(', ') };
+function extrasHint(label: string, extras: string[], target: string | null, t: Translate, locale: Locale): string {
+  const args = { count: extras.length, drum: label, notes: listed(locale, extras) };
   return target === null
     ? t({ id: 'row-extras-dropped', args })
     : t({ id: 'row-extras', args: { ...args, target } });
@@ -56,7 +58,7 @@ export function VoiceRow({
   onReset?: () => void;
   children?: ReactNode;
 }) {
-  const t = useT();
+  const { t, locale } = useLocale().translator;
   const [rowEl, setRowEl] = useState<HTMLDivElement | null>(null);
   const { show, hide, tooltip } = useTruncationTooltip();
   const playsId = useId();
@@ -69,6 +71,7 @@ export function VoiceRow({
     extraNotes.map((n) => noteName(n, base)),
     tgt === null ? null : noteName(tgt, base),
     t,
+    locale,
   );
   return (
     <div

@@ -1,4 +1,6 @@
 import type { MessageId } from '../generated/i18n';
+import type { Locale } from '../generated/i18n';
+import { listed } from '../locale/list';
 import { useLocale } from '../locale/localeContext';
 import type { Unrecognized } from '../core/midiremap';
 import { track } from '../core/stats';
@@ -11,12 +13,12 @@ const UNRECOGNIZED_SENTENCE = {
 } as const satisfies Record<Unrecognized, MessageId>;
 
 /** The kept notes that play a target drum, each as its note and that drum, and their hits. */
-function playing(entries: UnrecognizedEntry[], locale: string): { count: number; list: string } | null {
+function playing(entries: UnrecognizedEntry[], locale: Locale): { count: number; list: string } | null {
   const onto = entries.flatMap((e) => (e.kept?.drum == null ? [] : [{ count: e.count, text: `${e.label} ${e.kept.drum}` }]));
   if (onto.length === 0) return null;
   return {
     count: onto.reduce((n, e) => n + e.count, 0),
-    list: new Intl.ListFormat(locale, { style: 'short', type: 'unit' }).format(onto.map((e) => e.text)),
+    list: listed(locale, onto.map((e) => e.text)),
   };
 }
 

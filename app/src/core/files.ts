@@ -1,4 +1,3 @@
-import type { Message } from '../generated/i18n';
 import type { Damage, Part, PartSummary, Report } from './midiremap';
 import type { PickedParts } from './part';
 
@@ -59,11 +58,6 @@ async function readEach<T>(files: File[], read: (f: File) => Promise<T>): Promis
     read: settled.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : [])),
     failed: files.filter((_, i) => settled[i].status === 'rejected').map((f) => f.name),
   };
-}
-
-/** The notice for files the browser could not read. */
-export function unreadableNotice(names: string[]): Message {
-  return { id: 'files-unreadable', args: { names: names.join(', '), count: names.length } };
 }
 
 /** Reads picked or dropped files and hands MIDI and preset files to `onFiles`. */

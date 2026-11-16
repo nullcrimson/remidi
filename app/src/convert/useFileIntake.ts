@@ -1,13 +1,21 @@
 import { useCallback } from 'react';
 import { wasmUnavailable } from '../core/errors';
-import { unreadableNotice, type LoadedFile, type OnFiles } from '../core/files';
+import type { LoadedFile, OnFiles } from '../core/files';
 import type { LoadMidiremap } from '../core/midiremap';
 import type { NoticeLine } from '../core/notice';
+import type { Locale, Message } from '../generated/i18n';
+import { listed } from '../locale/list';
+import { useLocale } from '../locale/localeContext';
 import { importPresets, type ImportResult } from '../presets/presetImport';
 import type { FocusTarget } from '../ui/useFocusIntent';
 import type { SavedMappings } from '../presets/useSavedMappings';
 import { track } from '../core/stats';
 import type { StatEvents } from '../core/umami';
+
+/** The notice for files the browser could not read, listing them in the words of `locale`. */
+function unreadableNotice(names: string[], locale: Locale): Message {
+  return { id: 'files-unreadable', args: { names: listed(locale, names), count: names.length } };
+}
 
 /** Where files taken in go, and what taking them in reads and reports to. */
 export interface IntakeSetup {
@@ -37,10 +45,11 @@ export function useFileIntake({
   via,
 }: IntakeSetup & { via: StatEvents['midi-added']['via'] }): OnFiles {
   const { mappings, save } = saved;
+  const { locale } = useLocale().translator;
   return useCallback<OnFiles>(
     (files, skipped, presets = [], unreadable = { mid: [], presets: [] }) => {
       const names = [...unreadable.mid, ...unreadable.presets];
-      const unread: NoticeLine[] = names.length > 0 ? [{ message: unreadableNotice(names) }] : [];
+      const unread: NoticeLine[] = names.length > 0 ? [{ message: unreadableNotice(names, locale) }] : [];
       if (presets.length > 0) {
         void load()
           .then(
@@ -64,6 +73,6 @@ export function useFileIntake({
       track('midi-added', { files: files.length, via, unreadable: unreadable.mid.length });
       focus(src === null ? 'from' : tgt === null ? 'to' : 'convert');
     },
-    [load, storeFiles, src, tgt, mappings, save, notify, focus, via],
+    [load, storeFiles, src, tgt, mappings, save, notify, focus, via, locale],
   );
 }

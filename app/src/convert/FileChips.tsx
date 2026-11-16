@@ -1,4 +1,5 @@
-import { useT } from '../locale/localeContext';
+import { listed } from '../locale/list';
+import { useLocale } from '../locale/localeContext';
 import type { FailedFile } from './batch';
 import type { LoadedFile, OnFiles } from '../core/files';
 import { track } from '../core/stats';
@@ -44,10 +45,10 @@ export function FileChips({
   onRemove: (name: string) => void;
   onClear: () => void;
 }) {
-  const t = useT();
+  const { t, locale } = useLocale().translator;
   const skippedLine = skipped.length > 0 && (
     <p role="status" className="w-full text-label text-t4">
-      {t({ id: 'files-skipped', args: { names: skipped.join(', ') } })}
+      {t({ id: 'files-skipped', args: { names: listed(locale, skipped) } })}
     </p>
   );
   if (files.length === 0) {

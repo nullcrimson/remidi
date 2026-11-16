@@ -48,14 +48,13 @@ export interface ReportGroups {
   approximated: ApproximatedEntry[];
   unrecognized: UnrecognizedEntry[];
 }
-/** How many notes each group holds, beside the notes left unchanged, those converted, and the hits merged into another's note at one tick. */
+/** How many notes each group holds, beside the notes left unchanged and those converted. */
 export interface ReportTotals {
   dropped: number;
   approximated: number;
   unrecognized: number;
   untouched: number;
   converted: number;
-  merged: number;
 }
 export interface ReportFile {
   name: string;
@@ -116,7 +115,6 @@ export function buildReport(
         unrecognized: sum(groups.unrecognized),
         untouched: report.untouched,
         converted: report.converted,
-        merged: report.merged,
       },
     };
   };
@@ -152,7 +150,6 @@ export function buildReport(
     unrecognized: total('unrecognized'),
     untouched: total('untouched'),
     converted: total('converted'),
-    merged: total('merged'),
   };
   const clean
     = totals.converted > 0
