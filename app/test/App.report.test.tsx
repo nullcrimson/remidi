@@ -13,7 +13,7 @@ function reportWith(untouched: number, converted = 10) {
   return typed<Conversion>({ kind: 'done', picked: [], offers: [],
     bytes: new Uint8Array([1]),
     damage: [],
-    report: { unmappedSource: {}, fallbackUsed: {}, dropped: { 'china.1.hit': 2 }, untouched, converted },
+    report: { unmappedSource: {}, fallbackUsed: {}, dropped: { 'china.1.hit': 2 }, untouched, converted, merged: 0 },
   });
 }
 

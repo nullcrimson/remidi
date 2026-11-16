@@ -10,7 +10,7 @@ import { fakeUmami } from './umami';
 const reportOf = (report: Partial<Loose<Converted['report']>>) => typed<Conversion>({ kind: 'done', picked: [], offers: [],
   bytes: new Uint8Array([1]),
   damage: [],
-  report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 10, ...report },
+  report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 10, merged: 0, ...report },
 });
 
 const swappedChina = () => {

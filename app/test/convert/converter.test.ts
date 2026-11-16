@@ -7,7 +7,7 @@ import { moduleLoader, type LoadMidiremap, type Report, type SourceFits } from '
 import * as stub from '../stubs/wasm';
 import { enginePair, typed } from '../typed';
 
-const REPORT = typed<Report>({ unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 });
+const REPORT = typed<Report>({ unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0 });
 const noWasm: LoadMidiremap = () => Promise.reject(new Error('no wasm'));
 const remapMock = vi.mocked(stub.remap);
 const FILES = [{ name: 'a.mid', bytes: new Uint8Array([1]) }];

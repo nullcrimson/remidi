@@ -20,6 +20,7 @@ const remapWithNotes = () => typed<Conversion>({ kind: 'done', picked: [], offer
     dropped: { 'china.1.hit': 1, 'hat.cc': 1, 'crash.1.hit': 1 },
     untouched: 0,
     converted: 4,
+    merged: 0,
   },
 });
 

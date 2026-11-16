@@ -17,13 +17,23 @@ const drums = typed<Drum[]>([
 function result(name: string, report: Loose<FileResult['report']>): FileResult {
   return { name, url: 'blob:x', bytes: new Uint8Array(), report: typed<FileResult['report']>(report), damage: [], input: { name, bytes: new Uint8Array() }, picked: [], offers: [] };
 }
-const empty = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 10 };
+const empty = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 10, merged: 0 };
 
 describe('buildReport', () => {
+  it('sums the hits merged into another note of their tick, which are no loss', () => {
+    const view = buildReport(
+      [result('a.mid', { ...empty, merged: 2 }), result('b.mid', { ...empty, merged: 1 })],
+      canons,
+      drums,
+      'c1',
+    );
+    expect([view.totals.merged, view.files.map((f) => f.totals.merged), view.clean]).toEqual([3, [2, 1], true]);
+  });
+
   it('reports a clean conversion when nothing is lost', () => {
     const view = buildReport([result('a.mid', empty)], canons, drums, 'c1');
     expect(view.clean).toBe(true);
-    expect(view.totals).toEqual({ dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 10 });
+    expect(view.totals).toEqual({ dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 10, merged: 0 });
   });
 
   it('is not clean when nothing was converted', () => {
@@ -68,6 +78,7 @@ describe('buildReport', () => {
         unmappedSource: { 63: { hits: 1, fate: 'removed' } },
         untouched: 0,
         converted: 10,
+        merged: 0,
       }),
     ],
     canons,
@@ -140,18 +151,18 @@ describe('buildReport', () => {
 
   it('totals the converted notes of each file and the notes of each of its groups', () => {
     const view = lossy();
-    expect(view.files[0].totals).toEqual({ dropped: 4, approximated: 3, unrecognized: 1, untouched: 0, converted: 10 });
+    expect(view.files[0].totals).toEqual({ dropped: 4, approximated: 3, unrecognized: 1, untouched: 0, converted: 10, merged: 0 });
   });
 
   it('totals dropped, approximated and unrecognized notes', () => {
     const view = lossy();
-    expect(view.totals).toEqual({ dropped: 4, approximated: 3, unrecognized: 1, untouched: 0, converted: 10 });
+    expect(view.totals).toEqual({ dropped: 4, approximated: 3, unrecognized: 1, untouched: 0, converted: 10, merged: 0 });
   });
 
   const twoFiles = () => buildReport(
     [
-      result('a.mid', { dropped: { 'china.1.hit': 4 }, fallbackUsed: {}, unmappedSource: {}, untouched: 0, converted: 10 }),
-      result('b.mid', { dropped: { 'china.1.hit': 2 }, fallbackUsed: {}, unmappedSource: {}, untouched: 0, converted: 10 }),
+      result('a.mid', { dropped: { 'china.1.hit': 4 }, fallbackUsed: {}, unmappedSource: {}, untouched: 0, converted: 10, merged: 0 }),
+      result('b.mid', { dropped: { 'china.1.hit': 2 }, fallbackUsed: {}, unmappedSource: {}, untouched: 0, converted: 10, merged: 0 }),
     ],
     canons,
     drums,
@@ -182,6 +193,7 @@ describe('buildReport', () => {
           unmappedSource: {},
           untouched: 0,
           converted: 10,
+          merged: 0,
         }),
       ],
       canons,
@@ -193,7 +205,7 @@ describe('buildReport', () => {
 
   it('labels the substitute with the note the conversion actually used', () => {
     const view = buildReport(
-      [result('a.mid', { dropped: {}, fallbackUsed: { 'ride.1.bell': { standIn: 'crash.2.hit', note: 57, count: 2 } }, unmappedSource: {}, untouched: 0, converted: 10 })],
+      [result('a.mid', { dropped: {}, fallbackUsed: { 'ride.1.bell': { standIn: 'crash.2.hit', note: 57, count: 2 } }, unmappedSource: {}, untouched: 0, converted: 10, merged: 0 })],
       canons,
       drums,
       'c1',
@@ -203,7 +215,7 @@ describe('buildReport', () => {
 
   it('falls back to the canon id when the catalog lacks it', () => {
     const view = buildReport(
-      [result('a.mid', { dropped: { 'tom.floor9.hit': 1 }, fallbackUsed: {}, unmappedSource: {}, untouched: 0, converted: 10 })],
+      [result('a.mid', { dropped: { 'tom.floor9.hit': 1 }, fallbackUsed: {}, unmappedSource: {}, untouched: 0, converted: 10, merged: 0 })],
       canons,
       drums,
       'c1',
@@ -213,7 +225,7 @@ describe('buildReport', () => {
 
   it('names the substitute note when it is not a known target drum', () => {
     const view = buildReport(
-      [result('a.mid', { dropped: {}, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.cup', note: 60, count: 1 } }, unmappedSource: {}, untouched: 0, converted: 10 })],
+      [result('a.mid', { dropped: {}, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.cup', note: 60, count: 1 } }, unmappedSource: {}, untouched: 0, converted: 10, merged: 0 })],
       canons,
       drums,
       'c1',
@@ -223,7 +235,7 @@ describe('buildReport', () => {
 });
 
 describe('lossProps', () => {
-  const lossy = result('a.mid', { dropped: { 'china.1.hit': 4 }, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.cup', note: 60, count: 1 } }, unmappedSource: { 51: { hits: 2, fate: 'removed' } }, untouched: 0, converted: 10 });
+  const lossy = result('a.mid', { dropped: { 'china.1.hit': 4 }, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.cup', note: 60, count: 1 } }, unmappedSource: { 51: { hits: 2, fate: 'removed' } }, untouched: 0, converted: 10, merged: 0 });
 
   it('counts and lists the entries of each group of one file', () => {
     expect(lossProps([lossy.report])).toEqual({

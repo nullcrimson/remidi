@@ -87,6 +87,7 @@ export const remap = vi.fn<typeof Wasm.remap>(() => ({
     dropped: { 'china.1.hit': 1 },
     untouched: 5,
     converted: 40,
+    merged: 0,
   }),
 }));
 

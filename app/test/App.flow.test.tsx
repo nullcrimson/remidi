@@ -57,6 +57,7 @@ describe('App convert flow', () => {
         dropped: { 'china.1.hit': 2 },
         untouched: 5,
         converted: 10,
+        merged: 0,
       },
     }));
   });

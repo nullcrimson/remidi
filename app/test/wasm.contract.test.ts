@@ -124,7 +124,7 @@ describe('real WASM module', () => {
 
   it('reports a conversion with a camelCase report', () => {
     const out = done(real.remap(MIDI, 'ggd_invasion', 'ezdrummer'));
-    expect(keys(out.report)).toEqual(['converted', 'dropped', 'fallbackUsed', 'unmappedSource', 'untouched']);
+    expect(keys(out.report)).toEqual(['converted', 'dropped', 'fallbackUsed', 'merged', 'unmappedSource', 'untouched']);
     expect(out.report.converted).toBe(2);
   });
 

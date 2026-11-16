@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 
 use midiremap_mapping::{Destination, Mapping};
 use midiremap_note::Note;
@@ -16,26 +16,22 @@ use midly::{
 
 use super::report::{Report, UnmappedFate};
 
-/// The delta of the events removed since the last one written, which the next one written
-/// carries so that timing does not shift.
+/// The ticks since the last event written, which the next one written carries so that
+/// timing does not shift when events are removed.
 #[derive(Default)]
 struct DeltaFold(u28);
 
 impl DeltaFold {
-    fn carried(&self, delta: u28) -> Result<u28, CodecError> {
-        u28::try_from(self.0.as_int() + delta.as_int()).ok_or(CodecError::DeltaOverflow)
-    }
-
-    fn remove(&mut self, delta: u28) -> Result<(), CodecError> {
-        self.0 = self.carried(delta)?;
+    /// Folds in the `delta` of the next event read; a gap past the `u28` maximum fails.
+    fn add(&mut self, delta: u28) -> Result<(), CodecError> {
+        self.0 =
+            u28::try_from(self.0.as_int() + delta.as_int()).ok_or(CodecError::DeltaOverflow)?;
         Ok(())
     }
 
-    /// The delta an event written after `delta` ticks carries.
-    fn keep(&mut self, delta: u28) -> Result<u28, CodecError> {
-        let carried = self.carried(delta)?;
-        self.0 = u28::default();
-        Ok(carried)
+    /// The delta the next event written carries: every delta folded in since the last one.
+    fn take(&mut self) -> u28 {
+        std::mem::take(&mut self.0)
     }
 }
 
@@ -153,21 +149,35 @@ fn step<'a>(mapping: &Mapping, filter: ChannelFilter, kind: TrackEventKind<'a>) 
     }
 }
 
-/// A hit still waiting for its release, and the target key it went to.
+/// How an open hit sounds on its key: on a note-on of its own, written at `tick` as the
+/// event `at` of the output, or inside another hit's note-on of the same tick.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Sound {
+    Written { at: usize, tick: u64 },
+    Merged,
+}
+
+/// A hit still waiting for its release: the target key it went to, and how it sounds there.
 #[derive(Debug, Clone, Copy)]
 struct Open {
     key: u7,
+    sound: Sound,
 }
 
-/// One track as it is converted: the events written so far, the delta of the events removed
-/// since the last one written, and the open hits of each source note per channel, in the
-/// order they came. A release takes the oldest open hit of its note and a choke aims at the
-/// newest, so both go to the key their hit went to.
+/// One track as it is converted: the events written so far, the ticks since the last one
+/// written, the tick it has reached, and the open hits of each source note per channel, in
+/// the order they came, the one table that says what sounds on a key. A release takes the
+/// oldest open hit of its note and a choke aims at the newest, so both go to the key their hit
+/// went to. A hit on a key where another source note's note-on was written at the same tick
+/// is not written: it merges into that note-on, which takes the higher velocity, and a note
+/// ends when the last of the hits sounding in it ends.
 #[derive(Default)]
 struct Voicing<'a> {
     out: Track<'a>,
     fold: DeltaFold,
-    open: HashMap<(u4, Note), VecDeque<Open>>,
+    tick: u64,
+    open: BTreeMap<(u4, Note), VecDeque<Open>>,
+    merged: u32,
 }
 
 impl<'a> Voicing<'a> {
@@ -180,10 +190,12 @@ impl<'a> Voicing<'a> {
 
     /// Adds the event `stepped`, which came `delta` ticks after the one before it.
     fn push(&mut self, delta: u28, stepped: Stepped<'a>) -> Result<(), CodecError> {
-        match self.voiced(stepped) {
-            Some(kind) => self.write(delta, kind),
-            None => self.fold.remove(delta),
+        self.fold.add(delta)?;
+        self.tick += u64::from(delta.as_int());
+        if let Some(kind) = self.voiced(stepped) {
+            self.write(kind);
         }
+        Ok(())
     }
 
     /// The event `stepped` writes, or `None` when it goes.
@@ -198,11 +210,15 @@ impl<'a> Voicing<'a> {
                 key,
             } => {
                 let key = key?;
+                let sound = self.struck(channel, source, key, vel);
                 self.open
                     .entry((channel, source))
                     .or_default()
-                    .push_back(Open { key });
-                Some(midi(channel, MidiMessage::NoteOn { key, vel }))
+                    .push_back(Open { key, sound });
+                match sound {
+                    Sound::Written { .. } => Some(midi(channel, MidiMessage::NoteOn { key, vel })),
+                    Sound::Merged => None,
+                }
             }
             Stepped::Off {
                 channel,
@@ -211,11 +227,10 @@ impl<'a> Voicing<'a> {
                 form,
                 mapped,
             } => {
-                let oldest = self
-                    .open
-                    .get_mut(&(channel, source))
-                    .and_then(VecDeque::pop_front);
-                let key = oldest.map(|hit| hit.key).or(mapped)?;
+                let key = match self.take_oldest(channel, source) {
+                    Some(hit) => self.released(channel, hit)?,
+                    None => mapped?,
+                };
                 Some(midi(channel, form.message(key, vel)))
             }
             Stepped::Choke {
@@ -231,19 +246,105 @@ impl<'a> Voicing<'a> {
         }
     }
 
-    fn write(&mut self, delta: u28, kind: TrackEventKind<'a>) -> Result<(), CodecError> {
-        let delta = self.fold.keep(delta)?;
-        self.out.push(TrackEvent { delta, kind });
-        Ok(())
+    /// How a hit of `source` at `vel` sounds on `key`: merged into the newest note-on there
+    /// when another source note sounds on `key` and that note-on is of this tick, which then
+    /// takes the higher velocity; else on a note-on of its own.
+    fn struck(&mut self, channel: u4, source: Note, key: u7, vel: u7) -> Sound {
+        let others = self.sounding(channel, key).any(|(note, _)| note != source);
+        let newest = self
+            .sounding(channel, key)
+            .filter_map(|(_, sound)| match sound {
+                Sound::Written { at, tick } => Some((at, tick)),
+                Sound::Merged => None,
+            })
+            .max();
+        match newest {
+            Some((at, tick)) if others && tick == self.tick => {
+                self.raise(at, vel);
+                self.merged += 1;
+                Sound::Merged
+            }
+            Some(_) | None => Sound::Written {
+                at: self.out.len(),
+                tick: self.tick,
+            },
+        }
     }
 
-    /// The track written, closed with End-of-Track: a track that lacks one (a damaged file)
-    /// gains it, carrying the delta of the events removed after the last one written.
-    fn close(mut self) -> Result<Track<'a>, CodecError> {
-        if !is_closed(&self.out) {
-            self.write(u28::default(), END_OF_TRACK)?;
+    /// Raises the velocity of the note-on written at `at` to `vel` when it is lower.
+    fn raise(&mut self, at: usize, vel: u7) {
+        if let Some(TrackEvent {
+            kind:
+                TrackEventKind::Midi {
+                    message: MidiMessage::NoteOn { vel: written, .. },
+                    ..
+                },
+            ..
+        }) = self.out.get_mut(at)
+        {
+            *written = (*written).max(vel);
         }
-        Ok(self.out)
+    }
+
+    /// The key the release of `hit`, just taken off the table, is written on; `None` when
+    /// other hits still sound in its note, which then goes on for them. A written hit whose
+    /// release goes hands its note-on to a hit merged into one on its key.
+    fn released(&mut self, channel: u4, hit: Open) -> Option<u7> {
+        let (mut sounding, mut written) = (1, usize::from(hit.sound != Sound::Merged));
+        for (_, sound) in self.sounding(channel, hit.key) {
+            sounding += 1;
+            written += usize::from(sound != Sound::Merged);
+        }
+        if sounding == written {
+            return Some(hit.key);
+        }
+        if let Sound::Written { .. } = hit.sound {
+            let heir = self
+                .open
+                .iter_mut()
+                .filter(|((c, _), _)| *c == channel)
+                .flat_map(|(_, hits)| hits.iter_mut())
+                .find(|open| open.key == hit.key && open.sound == Sound::Merged);
+            if let Some(heir) = heir {
+                heir.sound = hit.sound;
+            }
+        }
+        None
+    }
+
+    /// The oldest open hit of `source` on `channel`, taken off the table.
+    fn take_oldest(&mut self, channel: u4, source: Note) -> Option<Open> {
+        let hits = self.open.get_mut(&(channel, source))?;
+        let oldest = hits.pop_front();
+        if hits.is_empty() {
+            self.open.remove(&(channel, source));
+        }
+        oldest
+    }
+
+    /// Every open hit on `key` of `channel`, with its source note and how it sounds.
+    fn sounding(&self, channel: u4, key: u7) -> impl Iterator<Item = (Note, Sound)> + '_ {
+        self.open
+            .iter()
+            .filter(move |((c, _), _)| *c == channel)
+            .flat_map(|(&(_, note), hits)| hits.iter().map(move |hit| (note, hit)))
+            .filter(move |(_, hit)| hit.key == key)
+            .map(|(note, hit)| (note, hit.sound))
+    }
+
+    fn write(&mut self, kind: TrackEventKind<'a>) {
+        let delta = self.fold.take();
+        self.out.push(TrackEvent { delta, kind });
+    }
+
+    /// The track written, closed with End-of-Track, and how many hits merged into another:
+    /// a track that lacks its End-of-Track (a damaged file) gains it, carrying the delta of
+    /// the events removed after the last one written.
+    fn close(mut self) -> (Track<'a>, u32) {
+        if !is_closed(&self.out) {
+            self.write(END_OF_TRACK);
+        }
+        (self.out, self.merged)
     }
 }
 
@@ -290,7 +391,9 @@ fn thin<'a>(
         tally(report, mapping, &stepped);
         voicing.push(ev.delta, stepped)?;
     }
-    voicing.close()
+    let (track, merged) = voicing.close();
+    report.record_merged(merged);
+    Ok(track)
 }
 
 /// `smf` with every note event its track's filter accepts rewritten through `mapping`, the

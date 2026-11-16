@@ -38,7 +38,7 @@ describe('keyboard use', () => {
     vi.mocked(stub.remap).mockReturnValue(typed<Conversion>({ kind: 'done', picked: [], offers: [],
       bytes: new Uint8Array([1]),
       damage: [],
-      report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 10 },
+      report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 10, merged: 0 },
     }));
   });
 

@@ -23,7 +23,7 @@ const converted = (offers: PartSummary[] = []) =>
     offers,
     bytes: new Uint8Array([1]),
     damage: [],
-    report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 },
+    report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0 },
   });
 
 async function ready() {

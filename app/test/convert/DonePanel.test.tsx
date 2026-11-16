@@ -14,7 +14,7 @@ import { storedName } from '../../src/core/storage';
 
 const TIP_KEY = storedName('tip');
 
-const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 };
+const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0 };
 const NONE: ReportGroups = { dropped: [], approximated: [], unrecognized: [] };
 
 const result = (name: string, url: string): FileResult => ({
@@ -29,7 +29,7 @@ const result = (name: string, url: string): FileResult => ({
 });
 
 function view(overrides: Partial<ReportView['totals']> = {}, files: ReportView['files'] = []): ReportView {
-  const totals = { dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 45, ...overrides };
+  const totals = { dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 45, merged: 0, ...overrides };
   return {
     clean: totals.converted > 0 && !totals.dropped && !totals.approximated && !totals.unrecognized,
     totals,
@@ -131,11 +131,11 @@ describe('DonePanel', () => {
       results: [result('a-ezd.mid', 'blob:a'), result('b-ezd.mid', 'blob:b')],
       failures: [{ name: 'c.mid', error: { kind: 'badMidi', detail: 'invalid midi' } }],
       report: view({ approximated: 2 }, typed<ReportView['files']>([
-        { name: 'a-ezd.mid', groups: NONE, totals: { dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 10 } },
+        { name: 'a-ezd.mid', groups: NONE, totals: { dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 10, merged: 0 } },
         {
           name: 'b-ezd.mid',
           groups: { ...NONE, approximated: [{ label: 'Ride Bell', sub: 'Ride', count: 2, canon: 'ride.1.bell' }] },
-          totals: { dropped: 0, approximated: 2, unrecognized: 0, untouched: 0, converted: 10 },
+          totals: { dropped: 0, approximated: 2, unrecognized: 0, untouched: 0, converted: 10, merged: 0 },
         },
       ])),
     });

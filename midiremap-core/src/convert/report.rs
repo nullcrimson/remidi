@@ -54,6 +54,7 @@ pub struct Report {
     dropped: BTreeMap<Canon, u32>,
     untouched: u32,
     converted: u32,
+    merged: u32,
 }
 
 impl Report {
@@ -82,9 +83,17 @@ impl Report {
         self.untouched
     }
 
-    /// Note hits written to the output, directly or on a substitute.
+    /// Note hits the output plays, directly or on a substitute: each written on its own
+    /// note-on, or merged into another hit's note-on of the same tick on its key.
     pub fn converted(&self) -> u32 {
         self.converted
+    }
+
+    /// Hits not written because they sound inside another hit's note-on of the same tick on
+    /// their key, converted or kept alike: the output holds `converted + kept unrecognized +
+    /// untouched - merged` note-ons.
+    pub fn merged(&self) -> u32 {
+        self.merged
     }
 
     /// Every note hit the conversion saw: converted, dropped, unmapped or untouched.
@@ -97,6 +106,10 @@ impl Report {
 
     pub(crate) fn record_untouched(&mut self) {
         self.untouched += 1;
+    }
+
+    pub(crate) fn record_merged(&mut self, hits: u32) {
+        self.merged += hits;
     }
 
     /// Tallies one hit on `note`, which the source does not recognize and whose hits all
@@ -256,7 +269,7 @@ mod tests {
         }
         assert_eq!(
             serde_json::to_string(&r).unwrap(),
-            r#"{"unmappedSource":{"5":{"hits":2,"fate":{"keptOnto":"kick.main"}},"12":{"hits":1,"fate":"keptFree"},"99":{"hits":1,"fate":"removed"}},"fallbackUsed":{},"dropped":{"china.1.hit":1,"splash.1.hit":1},"untouched":0,"converted":0}"#
+            r#"{"unmappedSource":{"5":{"hits":2,"fate":{"keptOnto":"kick.main"}},"12":{"hits":1,"fate":"keptFree"},"99":{"hits":1,"fate":"removed"}},"fallbackUsed":{},"dropped":{"china.1.hit":1,"splash.1.hit":1},"untouched":0,"converted":0,"merged":0}"#
         );
     }
 }

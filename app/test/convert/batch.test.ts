@@ -4,7 +4,7 @@ import { WasmCallError } from '../../src/core/errors';
 import type { Conversion, Midiremap, Overrides } from '../../src/core/midiremap';
 import { enginePair, typed } from '../typed';
 
-const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 };
+const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0 };
 
 const done = (bytes: Uint8Array<ArrayBuffer>): Conversion => ({ kind: 'done', bytes, report: REPORT, damage: [], picked: [], offers: [] });
 

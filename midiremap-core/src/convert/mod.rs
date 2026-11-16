@@ -108,7 +108,7 @@ mod tests {
     use midiremap_mapping::{MissingDrums, Overrides, Unrecognized};
     use midiremap_note::{n, Note};
     use midiremap_smf::parts::ChannelScope;
-    use midiremap_testkit::{drums, events, hit_keys, off, on};
+    use midiremap_testkit::{drums, events, hit_keys, off, on, DRUMS};
     use midly::{num::u7, MidiMessage};
 
     use super::*;
@@ -191,6 +191,96 @@ mod tests {
             "ezdrummer",
         );
         assert_eq!(hit_keys(&out.bytes), vec![36, 36]);
+    }
+
+    fn hit(key: u8, vel: u8) -> MidiMessage {
+        MidiMessage::NoteOn {
+            key: u7::from_int_lossy(key),
+            vel: u7::from_int_lossy(vel),
+        }
+    }
+
+    fn convert_kept(mid: &[u8], src_id: &str, tgt_id: &str) -> Converted {
+        let b = Catalog::builtin();
+        let mapping = Mapping::new(
+            b.get(src_id).unwrap(),
+            b.get(tgt_id).unwrap(),
+            &Overrides::default(),
+            MissingDrums::Nearest,
+        )
+        .with_unrecognized(Unrecognized::Keep);
+        convert(mid, &mapping, ChannelScope::Auto)
+            .map(|c| c.done().expect("converted"))
+            .unwrap()
+    }
+
+    #[test]
+    fn two_kicks_at_one_tick_sound_as_one_note_at_the_higher_velocity_until_the_last_ends() {
+        let mid = drums(&[
+            (0, hit(35, 100)),
+            (0, hit(36, 80)),
+            (10, off(35)),
+            (2, off(36)),
+        ]);
+        let out = convert_ids(&mid, "general_midi", "ggd_invasion");
+        assert_eq!(
+            events(&out.bytes, 0),
+            [(0, DRUMS, hit(24, 100)), (12, DRUMS, off(24))]
+        );
+        assert_eq!((out.report.converted(), out.report.merged()), (2, 1));
+    }
+
+    #[test]
+    fn a_hit_merges_into_the_newest_note_on_of_its_tick_while_an_older_one_sounds() {
+        let mid = drums(&[
+            (0, hit(23, 100)),
+            (7, hit(23, 60)),
+            (0, hit(24, 90)),
+            (13, off(23)),
+            (5, off(23)),
+            (5, off(24)),
+        ]);
+        let out = convert_ids(&mid, "ggd_invasion", "ezdrummer");
+        assert_eq!(
+            events(&out.bytes, 0),
+            [
+                (0, DRUMS, hit(36, 100)),
+                (7, DRUMS, hit(36, 90)),
+                (18, DRUMS, off(36)),
+                (5, DRUMS, off(36)),
+            ]
+        );
+        assert_eq!(out.report.merged(), 1);
+    }
+
+    #[test]
+    fn a_kept_note_and_a_converted_one_on_one_key_at_one_tick_sound_as_one_note() {
+        let mid = drums(&[(0, on(24)), (0, on(36)), (10, off(24)), (0, off(36))]);
+        let out = convert_kept(&mid, "general_midi", "ggd_invasion");
+        assert_eq!(
+            events(&out.bytes, 0),
+            [(0, DRUMS, on(24)), (10, DRUMS, off(24))]
+        );
+        let unrecognized: u32 = out.report.unmapped_source().map(|(_, u)| u.hits).sum();
+        assert_eq!(
+            (out.report.converted(), unrecognized, out.report.merged()),
+            (1, 1, 1)
+        );
+    }
+
+    #[test]
+    fn a_release_without_a_hit_moves_with_the_mapping() {
+        let b = Catalog::builtin();
+        let mapping = Mapping::new(
+            b.get("ggd_invasion").unwrap(),
+            b.get("ezdrummer").unwrap(),
+            &Overrides::default(),
+            MissingDrums::Nearest,
+        );
+        let out = convert(&drums(&[(0, off(24))]), &mapping, ChannelScope::All)
+            .map(|c| c.done().expect("converted"))
+            .unwrap();
+        assert_eq!(events(&out.bytes, 0), [(0, DRUMS, off(36))]);
     }
 
     fn convert_china_one() -> Converted {

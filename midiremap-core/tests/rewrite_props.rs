@@ -98,8 +98,13 @@ fn item() -> impl Strategy<Value = Item> {
     ]
 }
 
+/// The ticks between one item and the next: often none, so that hits meet at one tick.
+fn gap() -> impl Strategy<Value = u32> {
+    prop_oneof![1 => Just(0u32), 3 => 0u32..=2000]
+}
+
 fn track_items() -> impl Strategy<Value = Vec<(u32, Item)>> {
-    prop::collection::vec((0u32..=2000, item()), 0..40)
+    prop::collection::vec((gap(), item()), 0..40)
 }
 
 fn file() -> impl Strategy<Value = Vec<u8>> {
@@ -221,10 +226,30 @@ fn is_note(kind: &TrackEventKind) -> bool {
     )
 }
 
+/// Whether `written` is `read` as a conversion may write it: the same event at the same
+/// tick, but for the key of a note event, and a note-on's velocity, which a hit merged into
+/// it may raise.
+fn writes(read: (u64, TrackEventKind), written: (u64, TrackEventKind)) -> bool {
+    let (read, written) = ((read.0, keyless(read.1)), (written.0, keyless(written.1)));
+    match (read.1, written.1) {
+        (
+            TrackEventKind::Midi {
+                channel: from,
+                message: MidiMessage::NoteOn { vel: before, .. },
+            },
+            TrackEventKind::Midi {
+                channel: to,
+                message: MidiMessage::NoteOn { vel: after, .. },
+            },
+        ) if before.as_int() > 0 => read.0 == written.0 && from == to && after >= before,
+        _ => read == written,
+    }
+}
+
 fn is_thinned(input: &[(u64, TrackEventKind)], output: &[(u64, TrackEventKind)]) -> bool {
-    let mut rest = output.iter().map(|&(t, k)| (t, keyless(k))).peekable();
+    let mut rest = output.iter().copied().peekable();
     for &(tick, kind) in input {
-        if rest.peek() == Some(&(tick, keyless(kind))) {
+        if rest.peek().is_some_and(|&out| writes((tick, kind), out)) {
             rest.next();
         } else if !is_note(&kind) {
             return false;
@@ -469,7 +494,7 @@ proptest! {
     ) {
         let Some(out) = converted(&midi, &pair.mapping_with(Unrecognized::Keep), scope) else { return Ok(()) };
         let unrecognized: u32 = out.report.unmapped_source().map(|(_, u)| u.hits).sum();
-        let written = out.report.converted() + unrecognized + out.report.untouched();
+        let written = out.report.converted() + unrecognized + out.report.untouched() - out.report.merged();
         prop_assert_eq!(hits(&out.bytes), written);
     }
 }

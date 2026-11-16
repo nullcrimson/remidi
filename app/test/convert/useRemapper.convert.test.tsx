@@ -17,7 +17,7 @@ const converted = () =>
   typed<Conversion>({ kind: 'done', picked: [], offers: [],
     bytes: new Uint8Array([1, 2, 3]),
     damage: [],
-    report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 },
+    report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0 },
   });
 
 describe('useRemapper convert path', () => {

@@ -19,6 +19,7 @@ function remapFor(missing: MissingDrums | null | undefined) {
       dropped: missing === 'drop' ? { 'china.1.hit': 3 } : {},
       untouched: 0,
       converted: 10,
+      merged: 0,
     },
   });
 }

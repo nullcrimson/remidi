@@ -10,7 +10,7 @@ import { storedName } from '../../src/core/storage';
 
 const MISSING_KEY = storedName('missing');
 
-const REPORT = typed<Report>({ unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 });
+const REPORT = typed<Report>({ unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0 });
 
 async function ready() {
   const hook = renderHook(() => useRemapper(RUNTIME));
