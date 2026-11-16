@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt, str::FromStr, sync::LazyLock};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use super::{
-    Canon, HandDrum, HandPart, HandStroke, HatOpen, HatZone, RideArtic, RideIdx, Slot, TomPos,
+    Canon, HandDrum, HandPart, HandStroke, HatOpen, HatZone, RideArtic, RideIdx, Rung, Slot, TomPos,
 };
 
 static BY_KEY: LazyLock<HashMap<String, Canon>> = LazyLock::new(|| {
@@ -21,13 +21,11 @@ static BY_KEY: LazyLock<HashMap<String, Canon>> = LazyLock::new(|| {
 
 fn hat_open_key(o: HatOpen) -> String {
     match o {
-        HatOpen::Open(n) => format!("{}{n}", key(o)),
-        HatOpen::Tight
-        | HatOpen::Closed
-        | HatOpen::Loose
-        | HatOpen::Cc
-        | HatOpen::Pedal
-        | HatOpen::PedalSplash => key(o).to_owned(),
+        HatOpen::Rung(Rung::Loose) => "loose".to_owned(),
+        HatOpen::Rung(Rung::Level(n)) => format!("open{n}"),
+        HatOpen::Tight | HatOpen::Closed | HatOpen::Cc | HatOpen::Pedal | HatOpen::PedalSplash => {
+            key(o).to_owned()
+        }
     }
 }
 pub(super) fn hat_key(o: HatOpen, z: HatZone) -> String {
@@ -144,7 +142,7 @@ mod tests {
             "hat.closed"
         );
         assert_eq!(
-            Canon(Slot::Hat(HatOpen::Open(idx(3)), HatZone::Edge)).to_string(),
+            Canon(Slot::Hat(HatOpen::Rung(Rung::Level(idx(3))), HatZone::Edge)).to_string(),
             "hat.open3.edge"
         );
         assert_eq!(

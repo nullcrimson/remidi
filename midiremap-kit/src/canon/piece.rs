@@ -1,4 +1,4 @@
-use super::{Canon, CymSlot, HatOpen, PercKind, RackIdx, Slot, TomPos};
+use super::{Canon, CymSlot, HatOpen, PercKind, RackIdx, Rung, Slot, TomPos};
 
 /// A part of the kit, as a DAW draws it beside a drum's row.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -23,8 +23,10 @@ impl Canon {
     /// The part of the kit this drum is, whichever way it is played.
     pub fn piece(self) -> Piece {
         let hat = |open| match open {
-            HatOpen::Tight | HatOpen::Closed | HatOpen::Loose | HatOpen::Cc => Piece::HatClosed,
-            HatOpen::Open(_) => Piece::HatOpen,
+            HatOpen::Tight | HatOpen::Closed | HatOpen::Rung(Rung::Loose) | HatOpen::Cc => {
+                Piece::HatClosed
+            }
+            HatOpen::Rung(Rung::Level(_)) => Piece::HatOpen,
             HatOpen::Pedal | HatOpen::PedalSplash => Piece::HatPedal,
         };
         match self.0 {

@@ -6,7 +6,7 @@ use std::{
 
 use super::{
     tom_positions, Canon, CymArtic, CymSlot, HandStroke, HatOpen, HatZone, Idx, KickKind,
-    OpenLevel, RideArtic, RideIdx, Slot, SnareArtic, SnareIdx, TomArtic, TomPos,
+    RideArtic, RideIdx, Rung, Slot, SnareArtic, SnareIdx, TomArtic, TomPos,
 };
 
 fn kick_order(k: KickKind) -> &'static [KickKind] {
@@ -72,38 +72,23 @@ fn ride_order(a: RideArtic) -> &'static [RideArtic] {
     }
 }
 
-fn open_level(o: HatOpen) -> u8 {
-    match o {
-        HatOpen::Open(n) => n.get(),
-        HatOpen::Tight
-        | HatOpen::Closed
-        | HatOpen::Loose
-        | HatOpen::Cc
-        | HatOpen::Pedal
-        | HatOpen::PedalSplash => 0,
-    }
-}
-
 fn opening_order(o: HatOpen) -> Vec<HatOpen> {
-    use HatOpen::*;
     match o {
-        Tight => vec![Closed, Cc],
-        Closed => vec![Tight, Cc],
-        Cc => vec![Closed, Tight],
-        Pedal => Vec::new(),
-        PedalSplash => vec![Pedal],
-        Loose | Open(_) => nearest(o, once(Loose).chain(OpenLevel::all().map(Open)), |a, b| {
-            open_level(a).abs_diff(open_level(b))
-        }),
+        HatOpen::Tight => vec![HatOpen::Closed, HatOpen::Cc],
+        HatOpen::Closed => vec![HatOpen::Tight, HatOpen::Cc],
+        HatOpen::Cc => vec![HatOpen::Closed, HatOpen::Tight],
+        HatOpen::Pedal => Vec::new(),
+        HatOpen::PedalSplash => vec![HatOpen::Pedal],
+        HatOpen::Rung(r) => nearest(r, Rung::all(), Rung::distance)
+            .into_iter()
+            .map(HatOpen::Rung)
+            .collect(),
     }
 }
 
 fn zone_order(from: HatZone, opening: HatOpen) -> &'static [HatZone] {
     use HatZone::*;
-    let sounds_open = matches!(
-        opening,
-        HatOpen::Loose | HatOpen::Open(_) | HatOpen::PedalSplash
-    );
+    let sounds_open = matches!(opening, HatOpen::Rung(_) | HatOpen::PedalSplash);
     match from {
         Plain if sounds_open => &[Plain, Edge, Tip],
         Plain => &[Plain, Tip, Edge],

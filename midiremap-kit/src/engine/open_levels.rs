@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::canon::{HatZone, OpenLevel};
+use crate::canon::{HatZone, OpenLevel, Rung};
 
 /// How far an engine's main hi-hat opens: the levels it plays in each zone and which level is
 /// its normal open hat.
@@ -80,7 +80,7 @@ impl OpenLevels {
 
 /// The member of `among` nearest `to`, the less open one on a tie.
 fn closest(to: OpenLevel, among: impl Iterator<Item = OpenLevel>) -> Option<OpenLevel> {
-    among.min_by_key(|&l| (l.distance(to), l))
+    among.min_by_key(|&l| (Rung::Level(l).distance(Rung::Level(to)), l))
 }
 
 #[cfg(test)]

@@ -77,11 +77,40 @@ pub enum TomArtic {
 pub(crate) enum HatOpen {
     Tight,
     Closed,
-    Loose,
-    Open(OpenLevel),
+    Rung(Rung),
     Cc,
     Pedal,
     PedalSplash,
+}
+/// A step of a hi-hat's opening, from the least open: loose, then each open level.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum Rung {
+    Loose,
+    Level(OpenLevel),
+}
+
+impl Rung {
+    /// Every rung from the least open: loose, then each open level.
+    pub fn all() -> impl Iterator<Item = Self> {
+        once(Self::Loose).chain(OpenLevel::all().map(Self::Level))
+    }
+
+    /// The open level this rung is; `None` for loose.
+    pub fn level(self) -> Option<OpenLevel> {
+        match self {
+            Self::Loose => None,
+            Self::Level(level) => Some(level),
+        }
+    }
+
+    /// How many rungs apart this rung and `other` sit, loose counted as level 0.
+    pub fn distance(self, other: Self) -> u8 {
+        self.number().abs_diff(other.number())
+    }
+
+    fn number(self) -> u8 {
+        self.level().map_or(0, OpenLevel::get)
+    }
 }
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
@@ -357,10 +386,12 @@ pub(super) fn each<T: VariantArray + Copy>() -> impl Iterator<Item = T> + Clone 
 }
 
 fn hat_openings() -> impl Iterator<Item = HatOpen> {
-    use HatOpen::*;
-    [Tight, Closed, Loose, Cc, Pedal, PedalSplash]
+    let (levels, below): (Vec<Rung>, Vec<Rung>) = Rung::all().partition(|r| r.level().is_some());
+    [HatOpen::Tight, HatOpen::Closed]
         .into_iter()
-        .chain(OpenLevel::all().map(Open))
+        .chain(below.into_iter().map(HatOpen::Rung))
+        .chain([HatOpen::Cc, HatOpen::Pedal, HatOpen::PedalSplash])
+        .chain(levels.into_iter().map(HatOpen::Rung))
 }
 
 pub(super) fn hat_slots() -> impl Iterator<Item = (HatOpen, HatZone)> {

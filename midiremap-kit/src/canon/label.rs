@@ -1,6 +1,6 @@
 use super::{
     Canon, CymArtic, CymSlot, Family, HandDrum, HandLength, HandPart, HandPitch, HandStroke,
-    HatOpen, HatZone, Idx, KickKind, PercKind, RideArtic, Slot, SnareArtic, TomArtic, TomPos,
+    HatOpen, HatZone, Idx, KickKind, PercKind, RideArtic, Rung, Slot, SnareArtic, TomArtic, TomPos,
 };
 
 impl CymSlot {
@@ -58,8 +58,8 @@ fn hat_label(prefix: &str, o: HatOpen, z: HatZone) -> String {
     let open = match o {
         HatOpen::Tight => "Tight".to_string(),
         HatOpen::Closed => "Closed".to_string(),
-        HatOpen::Loose => "Loose".to_string(),
-        HatOpen::Open(n) => format!("Open {n}"),
+        HatOpen::Rung(Rung::Loose) => "Loose".to_string(),
+        HatOpen::Rung(Rung::Level(n)) => format!("Open {n}"),
         HatOpen::Cc => "CC".to_string(),
         HatOpen::Pedal => "Pedal".to_string(),
         HatOpen::PedalSplash => "Pedal Splash".to_string(),
@@ -203,7 +203,11 @@ mod tests {
     #[test]
     fn an_open_hat_is_labelled_with_its_level() {
         assert_eq!(
-            Canon(Slot::Hat(HatOpen::Open(idx(1)), HatZone::Plain)).label(),
+            Canon(Slot::Hat(
+                HatOpen::Rung(Rung::Level(idx(1))),
+                HatZone::Plain
+            ))
+            .label(),
             "Hi-Hat Open 1"
         );
     }

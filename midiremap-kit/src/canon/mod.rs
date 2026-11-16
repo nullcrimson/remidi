@@ -25,7 +25,7 @@ pub use self::{
     piece::Piece,
     slot::{
         CymArtic, CymDistance, CymKind, CymSlot, CymStroke, HatZone, OpenLevel, PercKind, RackIdx,
-        TomArtic, TomPos,
+        Rung, TomArtic, TomPos,
     },
 };
 
@@ -73,7 +73,10 @@ impl Canon {
         Canon(Slot::Snare(Idx::FIRST, SnareArtic::Rimshot)),
         Self::CLOSED_HAT,
         Canon(Slot::Hat(HatOpen::Pedal, HatZone::Plain)),
-        Canon(Slot::Hat(HatOpen::Open(Idx::FIRST), HatZone::Plain)),
+        Canon(Slot::Hat(
+            HatOpen::Rung(Rung::Level(Idx::FIRST)),
+            HatZone::Plain,
+        )),
         Self::RACK_TOM,
         Self::SECOND_RACK_TOM,
         Canon(Slot::Tom(TomPos::Rack(idx(3)), TomArtic::Hit)),
@@ -123,7 +126,7 @@ impl Canon {
     /// hi-hat.
     pub fn opening(self) -> Option<(OpenLevel, HatZone)> {
         match self.0 {
-            Slot::Hat(HatOpen::Open(level), zone) => Some((level, zone)),
+            Slot::Hat(HatOpen::Rung(Rung::Level(level)), zone) => Some((level, zone)),
             _ => None,
         }
     }
@@ -135,13 +138,15 @@ impl Canon {
 
     /// The main hi-hat open to `level`.
     pub(crate) fn open_main_hat(level: OpenLevel) -> Canon {
-        Canon(Slot::Hat(HatOpen::Open(level), HatZone::Plain))
+        Canon(Slot::Hat(HatOpen::Rung(Rung::Level(level)), HatZone::Plain))
     }
 
     /// The same open main hi-hat, in the same zone, opened to `level`; any other drum as it is.
     pub fn at_open_level(self, level: OpenLevel) -> Canon {
         match self.0 {
-            Slot::Hat(HatOpen::Open(_), zone) => Canon(Slot::Hat(HatOpen::Open(level), zone)),
+            Slot::Hat(HatOpen::Rung(Rung::Level(_)), zone) => {
+                Canon(Slot::Hat(HatOpen::Rung(Rung::Level(level)), zone))
+            }
             _ => self,
         }
     }
@@ -260,6 +265,22 @@ mod tests {
             }
             _ => None,
         }));
+    }
+
+    #[test]
+    fn all_reaches_every_rung_on_the_main_hat_and_on_an_aux_hat() {
+        let rungs = |on: fn(Canon) -> Option<Rung>| -> HashSet<Rung> {
+            Canon::all().iter().copied().filter_map(on).collect()
+        };
+        let main = rungs(|c| match c.0 {
+            Slot::Hat(HatOpen::Rung(r), _) => Some(r),
+            _ => None,
+        });
+        let aux = rungs(|c| match c.0 {
+            Slot::Aux(_, HatOpen::Rung(r), _) => Some(r),
+            _ => None,
+        });
+        assert!(Rung::all().all(|r| main.contains(&r) && aux.contains(&r)));
     }
 
     #[test]

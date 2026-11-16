@@ -5,7 +5,7 @@ use std::fmt;
 use super::{
     key::{hand_key, hat_key, key},
     Canon, CongaPitch, CymArtic, CymSlot, HandDrum, HandStroke, HatOpen, HatZone, KickKind,
-    OpenLevel, PercKind, RideArtic, Slot, SnareArtic, TomArtic,
+    PercKind, RideArtic, Rung, Slot, SnareArtic, TomArtic,
 };
 
 /// A kind of drum a stand-in may be, with cymbals told apart by type.
@@ -172,14 +172,12 @@ fn hand_order(d: HandDrum) -> Vec<HandDrum> {
 
 /// The open openings from least to most open: loose, then each open level.
 fn open_sequence() -> Vec<HatOpen> {
-    std::iter::once(HatOpen::Loose)
-        .chain(OpenLevel::all().map(HatOpen::Open))
-        .collect()
+    Rung::all().map(HatOpen::Rung).collect()
 }
 
 fn sounds_open(o: HatOpen) -> bool {
     match o {
-        HatOpen::Loose | HatOpen::Open(_) | HatOpen::PedalSplash => true,
+        HatOpen::Rung(_) | HatOpen::PedalSplash => true,
         HatOpen::Tight | HatOpen::Closed | HatOpen::Cc | HatOpen::Pedal => false,
     }
 }
@@ -219,7 +217,7 @@ fn openings_after(o: HatOpen) -> Vec<HatOpen> {
         HatOpen::Cc => vec![HatOpen::Closed, HatOpen::Tight],
         HatOpen::Pedal => Vec::new(),
         HatOpen::PedalSplash => vec![HatOpen::Pedal],
-        HatOpen::Loose | HatOpen::Open(_) => open_neighbours(o),
+        HatOpen::Rung(_) => open_neighbours(o),
     }
 }
 
@@ -335,8 +333,7 @@ fn hat_anchor<I: IntoIterator<Item = Canon>>(
         HatOpen::Pedal => Anchor::MayDrop(DropReason::PedalHat),
         HatOpen::Tight
         | HatOpen::Closed
-        | HatOpen::Loose
-        | HatOpen::Open(_)
+        | HatOpen::Rung(_)
         | HatOpen::Cc
         | HatOpen::PedalSplash => Anchor::Any(
             hat_landings(o, z)
