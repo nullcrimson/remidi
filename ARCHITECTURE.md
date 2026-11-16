@@ -558,7 +558,7 @@ whether those notes are written.
   `step` per event, which says what it is on its own (`Stepped`): an event that passes as it
   is (no note, or one on a rejected channel; `Untouched` when it is a hit there), a hit on its
   source note with the key its destination plays it on (or none), or a release or a choke of
-  its source note with the key the mapping gives. `thin` tallies each in the report and
+  its source note with the key the mapping gives. `rewrite_track` tallies each in the report and
   drives the track's one `Voicing`, which owns the output, the `DeltaFold`, the running tick
   and the voice table: for each channel and source note, its open hits in the order they
   came, each with the key it went to and whether it is *written* (a note-on of its own),

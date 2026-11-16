@@ -397,7 +397,7 @@ fn tally(report: &mut Tally, stepped: &Stepped) {
 }
 
 /// `events` stepped one by one through a [`Voicing`], tallied in `report`, and closed.
-fn thin<'a>(
+fn rewrite_track<'a>(
     events: Track<'a>,
     mapping: &Mapping,
     filter: ChannelFilter,
@@ -423,7 +423,7 @@ pub(crate) fn rewrite<'a>(
 ) -> Result<(Smf<'a>, Report), CodecError> {
     let mut report = Tally::default();
     for (track, filter) in smf.tracks.iter_mut().zip(filters) {
-        *track = thin(std::mem::take(track), mapping, filter, &mut report)?;
+        *track = rewrite_track(std::mem::take(track), mapping, filter, &mut report)?;
     }
     let report = report.closed(|note| UnmappedFate::of(mapping.kept(note)));
     Ok((smf, report))
