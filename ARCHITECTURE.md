@@ -160,7 +160,7 @@ midiremap-smf/src/
       ├── part.rs        ── Part, Parts, PartSet
       ├── selection.rs   ── Selection, ChannelScope
       ├── scan.rs        ── PartIndex: a file's parts, read once
-      ├── choose.rs      ── choose → Choice, TrackFilters, hit_notes
+      ├── choose.rs      ── choose (judged by HitFate) → Choice, AskReason, TrackFilters, hit_notes
       └── error.rs       ── ConvertError
 
 midiremap-core/src/
@@ -168,11 +168,11 @@ midiremap-core/src/
    xml.rs          ── the one XML writer (quick-xml), public: the site writes its sitemap with it
    inspect/        ── what a file plays, without converting it
       ├── hits.rs        ── NoteHits, note_hits
-      ├── summary.rs     ── PartSummary, Plays, part_summaries, auto_question
+      ├── summary.rs     ── PartSummary, Plays, part_summaries, auto_question (Known → AutoQuestion)
       └── fit.rs         ── SourceFit, SourceFits, source_fits
    convert/        ── convert(bytes, &Mapping, Selection) → Conversion (Done | Ask)
       ├── rewrite.rs     ── rewrite(): one pure step per event, DeltaFold
-      └── report.rs      ── Report, FallbackTally: what a conversion did with each hit
+      └── report.rs      ── Report, FallbackTally, Unmapped: what a conversion did with each hit
    files/          ── files for other programs
       ├── preset.rs      ── parse_preset: the preset file the app exports and the CLI reads
       ├── sample.rs      ── sample_file: a two-bar groove on the notes one engine plays
@@ -493,15 +493,26 @@ whether those notes are written.
   has, the note of every hit of each part in order, and the name each track gives itself.
   The choice of what to convert, the hit notes and the part summaries all read it instead
   of scanning the file again.
-- `choose(&index, &selection)` (`parts/choose.rs`) is the one place a selection becomes
-  `Choice::Convert { filters, picked, offers }` or `Choice::Ask(parts)`: `TrackFilters` is
+- `choose(&index, &selection, judge)` (`parts/choose.rs`) is the one place a selection becomes
+  `Choice::Convert { filters, picked, offers }` or `Choice::Ask { parts, why }`. `judge` is
+  what the caller knows of each note, `HitFate { Played, Dropped, Unknown }`: `convert`
+  judges by its mapping (`Unknown` for a note the source does not know, `Dropped` for a
+  drum the target has none of), `auto_question` the same when it is given the mapping, and
+  `hit_notes` (so `note_hits` and `source_fits`) judges every note played, since no mapping
+  exists while a source is fitted. `TrackFilters` is
   one `ChannelFilter` per track of that file, built only there. `Auto` (the default) picks
   parts and never guesses: a file with channel-10 hits converts its channel-10 parts and
   offers each other part of the tracks those are in (Mjód: 168 drum hits on channel 1
   beside channel 10, which nothing in the file tells from a one-track band file's piano); a
   file whose hits are all on one part converts it (drum packs); any other file converts
-  nothing and asks which parts are the drums, since 123 of 160 layouts read half a piano or
-  bass range and only the user can tell. Nothing is deleted without saying so: an
+  nothing and asks which parts are the drums (`AskReason::NoChannelTen`), since 123 of 160
+  layouts read half a piano or bass range and only the user can tell. It also asks, listing
+  every part, when channel 10 has hits on notes the source knows, the target plays none of
+  them, and other parts have hits (`AskReason::ChannelTenUnplayed`: a kit on channel 1
+  beside a tambourine on channel 10 would otherwise convert to nothing); hits on notes the
+  source does not know take no part in it, so a kit read with the wrong source converts
+  and the done card asks "Wrong source?". A file whose only parts are on channel 10 never
+  asks. Nothing is deleted without saying so: an
   untouched part is counted `untouched`. `hit_notes` is the note of every hit a selection
   would rewrite.
 
@@ -512,9 +523,11 @@ whether those notes are written.
 - `source_fits(&catalog, &hits) → SourceFits` (`inspect/fit.rs`): every engine fitted to the
   same hits, best first (the most hits its map decodes, ties in catalog order).
 - `part_summaries(midi, source?)` (`inspect/summary.rs`) lists a file's parts (track name,
-  hits, and what they `Plays` as a source), and `auto_question(midi, source?)` lists them
-  only when `Auto` would ask. Both, and `convert`'s offers, come from one crate-private
-  `summaries`.
+  hits, and what they `Plays` as a source), and `auto_question(midi, known)` gives
+  `AutoQuestion { parts, why }` only when `Auto` would ask. `known` is what the caller has,
+  `Known { Nothing | Source(map) | Mapping(&mapping) }`; given the mapping it asks exactly
+  when `convert` through that mapping does. Both, and `convert`'s offers, come from one
+  crate-private `summaries`.
 
 ### `convert` — the entry point
 
@@ -526,13 +539,13 @@ whether those notes are written.
   |---|---|---|---|
   | 1 | parse | `midi::parse`, `Parsed::into_parts` | the `smf` and its `damage` |
   | 2 | scan | `PartIndex::of` | the file's parts |
-  | 3 | choose | `choose` | `Choice::Convert { filters, picked, offers }` or `Choice::Ask(parts)` |
+  | 3 | choose | `choose`, judged by the mapping | `Choice::Convert { filters, picked, offers }` or `Choice::Ask { parts, why }` |
   | 4 | summarize offers | `summaries` | the offers, as the source plays them |
   | 5 | rewrite | `rewrite` | the new `smf` and its `Report` |
   | 6 | write | `midi::write` | bytes |
 
   The result is `Conversion::Done(Converted { bytes, report, damage, picked, offers })`, or
-  `Conversion::Ask { parts, damage }` when `Auto` must ask (nothing written). The CLI
+  `Conversion::Ask { parts, why, damage }` when `Auto` must ask (nothing written). The CLI
   prints the damage and exits 3; the app names each damaged file on the done panel.
 - `rewrite(smf, &Mapping, filters) → (Smf, Report)` (`convert/rewrite.rs`) runs one pure
   `step` per event, which returns the event as written and its `Fate` (`Kept`, `Removed`,
@@ -688,7 +701,7 @@ number; the report lists them as `unmappedSource` either way, each with its hits
 `--channel`. `list` prints available engine ids. The exit code is 0 when the file was
 written whole (even with dropped notes: read the report), 3 when the input was damaged
 (what it still held is written, and the damage printed), 4 when `auto` asks which parts are
-the drums (nothing is written; the parts and a `--parts` value are printed), 1 on any other
+the drums (nothing is written; why, the parts and a `--parts` value are printed), 1 on any other
 error and 2 on a usage error. Parts left beside channel-10 drums are printed with the
 `--parts` value that converts them too.
 
@@ -697,8 +710,9 @@ error and 2 on a usage error. Parts left beside channel-10 drums are printed wit
 `wasm-bindgen` exports for the browser app:
 
 - `remap(mid, src_id, tgt_id, overrides?, selection?, missing?, unrecognized?) → Conversion`
-  (`auto_question(mid, src_id?) → PartSummary[] | undefined` lists the parts `auto` would
-  ask about) — `overrides` is an `Overrides` object; `selection` is `{ scope }` with `auto`
+  (`auto_question(mid, src_id?, tgt_id?, overrides?, missing?) → AutoQuestion | undefined`
+  gives the parts `auto` would ask about and why, the same question `remap` asks when the
+  engines and settings are its own) — `overrides` is an `Overrides` object; `selection` is `{ scope }` with `auto`
   (the default), `all` or `1`-`16`, or `{ parts }`, a non-empty `Part[]` (a picked part the
   file lacks is `noSuchPart`); `missing` is `nearest` (the default) or `drop`; `unrecognized` is `remove`
   (the default) or `keep`. Like `selection`, a value outside its set is `internal`: the app
@@ -825,8 +839,9 @@ test in that file fails on any import outside it.
 - **Screen state** (`convert/useRemapper.ts` and the hooks of each feature) — `useRemapper` is the facade the UI consumes. It composes
   `useEngineCatalog` (one `Catalog` union: loading, ready with the module and its engine list, or the error), `useConverter` (files → results, and the drum parts picked per file),
   `usePartQuestions` (`convert/partQuestions.ts`: the files `auto` would ask about through
-  `auto_question`, the ones still waiting for a pick, and the parts a conversion offers;
-  `PartPicker` asks under the files, Convert takes only the files that do not wait, and
+  `auto_question`, given the pair, the edits and the missing-drums setting the conversion
+  reads, the ones still waiting for a pick, and the parts a conversion offers;
+  `PartPicker` asks under the files, saying why by the question's reason, Convert takes only the files that do not wait, and
   `PartOffers` in the done panel converts an offer by picking the file's parts again),
   and `useEditor` (per-note edits, the live `plan` preview, and derived
   counts) behind a stable return contract, plus a small selection reducer
