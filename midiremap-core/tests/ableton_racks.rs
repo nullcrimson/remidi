@@ -28,6 +28,7 @@ const OVERRIDES: &str = r#"{
 
 static CATALOG: LazyLock<Catalog> = LazyLock::new(Catalog::builtin);
 const CREDIT: &str = "drumverter.com";
+const UNKNOWN: &str = "Unknown, ";
 
 #[derive(Debug, Default)]
 struct Chain {
@@ -171,35 +172,46 @@ fn a_remap_rack_plays_every_note_where_the_converter_puts_it() {
 }
 
 #[test]
-fn a_kept_unknown_note_has_its_own_chain_and_no_device() {
+fn a_kept_unknown_note_has_its_own_chain_named_after_the_drum_it_plays_and_no_device() {
     let src = CATALOG.get("ggd_invasion").unwrap();
+    let tgt = CATALOG.get("ezdrummer").unwrap();
     let rack = read(&rack_xml(&unedited(
         "ggd_invasion",
         "ezdrummer",
         Unrecognized::Keep,
     )));
-    let kept: Vec<u8> = rack
+    let kept: Vec<(u8, String)> = rack
         .chains
         .iter()
-        .filter(|c| c.name == "Unknown, kept")
+        .filter(|c| c.name.starts_with(UNKNOWN))
         .map(|c| {
             assert_eq!(c.devices, 0, "chain {}", c.id);
-            single_key(c)
+            (single_key(c), c.name.clone())
         })
         .collect();
-    let unknown: Vec<u8> = Note::ALL
+    let unknown: Vec<(u8, String)> = Note::ALL
         .into_iter()
         .filter(|&note| src.decode(note).is_none())
-        .map(Note::get)
+        .map(|note| {
+            let name = tgt.decode(note).map_or_else(
+                || "Unknown, kept".to_owned(),
+                |canon| format!("Unknown, plays {}", canon.label()),
+            );
+            (note.get(), name)
+        })
         .collect();
-    assert!(!unknown.is_empty());
+    let named = |prefix: &str| unknown.iter().any(|(_, name)| name.starts_with(prefix));
+    assert!(named("Unknown, kept") && named("Unknown, plays "));
     assert_eq!(kept, unknown);
 }
 
 #[test]
 fn a_removed_unknown_note_has_no_chain() {
     let xml = rack_xml(&unedited("ggd_invasion", "ezdrummer", Unrecognized::Remove));
-    assert!(read(&xml).chains.iter().all(|c| c.name != "Unknown, kept"));
+    assert!(read(&xml)
+        .chains
+        .iter()
+        .all(|c| !c.name.starts_with(UNKNOWN)));
 }
 
 #[test]

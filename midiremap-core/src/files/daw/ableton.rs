@@ -14,6 +14,7 @@ use crate::{
 const PROTECTION: &str = "2818";
 const MACROS: usize = 16;
 const KEPT: &str = "Unknown, kept";
+const KEPT_ONTO: &str = "Unknown, plays ";
 
 /// The extension of an Ableton Live device preset file.
 pub(crate) const ADG_EXTENSION: &str = "adg";
@@ -74,8 +75,8 @@ fn rack_file_name(mapping: &Mapping, preset: Option<&PresetName>) -> String {
 /// file holds, before gzip), that plays drum MIDI written for the mapping's source on its
 /// target: one chain per source note that lands on the target, shifting it to the target's
 /// note, and one chain without a device per note the source does not recognize when the
-/// mapping keeps those. Notes that nothing plays have no chain, so the rack drops them, as the
-/// converter does.
+/// mapping keeps those, named after the target drum that note plays, if any. Notes that
+/// nothing plays have no chain, so the rack drops them, as the converter does.
 fn remap_rack(mapping: &Mapping) -> String {
     let chains = Note::ALL
         .into_iter()
@@ -89,9 +90,12 @@ fn remap_rack(mapping: &Mapping) -> String {
                         shift: (shift != 0).then_some(shift),
                     }
                 }
-                Destination::Kept { note, .. } => Chain {
+                Destination::Kept { note, plays } => Chain {
                     note,
-                    name: KEPT.to_owned(),
+                    name: plays.map_or_else(
+                        || KEPT.to_owned(),
+                        |canon| format!("{KEPT_ONTO}{}", canon.label()),
+                    ),
                     shift: None,
                 },
             })
