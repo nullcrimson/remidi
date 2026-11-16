@@ -8,7 +8,7 @@ use midiremap_smf::{
 };
 use serde::Serialize;
 
-pub use self::report::{FallbackTally, Report};
+pub use self::report::{FallbackTally, Report, Unmapped, UnmappedFate};
 use self::rewrite::rewrite;
 use crate::inspect::{summaries, PartSummary};
 
@@ -98,9 +98,12 @@ pub fn convert(
 
 #[cfg(test)]
 mod tests {
-    use midiremap_kit::{canon::k, engine::Catalog};
+    use midiremap_kit::{
+        canon::{k, Canon},
+        engine::Catalog,
+    };
     use midiremap_mapping::{MissingDrums, Overrides, Unrecognized};
-    use midiremap_note::n;
+    use midiremap_note::{n, Note};
     use midiremap_smf::parts::ChannelScope;
     use midiremap_testkit::{drums, events, hit_keys, off, on};
     use midly::{num::u7, MidiMessage};
@@ -236,8 +239,12 @@ mod tests {
         let out = convert_unmapped_note();
         assert_eq!(
             out.report.unmapped_source().collect::<Vec<_>>(),
-            [(n(99), 1)]
+            [(n(99), &unmapped(1, UnmappedFate::Removed))]
         );
+    }
+
+    fn unmapped(hits: u32, fate: UnmappedFate) -> Unmapped {
+        Unmapped { hits, fate }
     }
 
     fn convert_unrecognized(mid: &[u8], unrecognized: Unrecognized) -> Converted {
@@ -304,19 +311,77 @@ mod tests {
         assert_eq!(hit_keys(&out.bytes), vec![36]);
     }
 
+    type Counts = (
+        Vec<(Note, u32)>,
+        Vec<(Canon, Canon, Note, u32)>,
+        Vec<(Canon, u32)>,
+        u32,
+        u32,
+    );
+
+    fn counts(report: &Report) -> Counts {
+        (
+            report
+                .unmapped_source()
+                .map(|(note, unmapped)| (note, unmapped.hits))
+                .collect(),
+            report
+                .fallback_used()
+                .map(|(canon, t)| (canon, t.stand_in, t.note, t.count))
+                .collect(),
+            report.dropped().collect(),
+            report.untouched(),
+            report.converted(),
+        )
+    }
+
     #[test]
     fn keep_and_remove_report_the_same_counts() {
         let kept = convert_unrecognized(&kick_and_unrecognized(), Unrecognized::Keep);
         let removed = convert_unrecognized(&kick_and_unrecognized(), Unrecognized::Remove);
-        assert_eq!(kept.report, removed.report);
+        assert_eq!(counts(&kept.report), counts(&removed.report));
     }
 
     #[test]
     fn keep_still_reports_the_kept_note_as_unrecognized() {
         let out = convert_unrecognized(&kick_and_unrecognized(), Unrecognized::Keep);
         assert_eq!(
+            out.report
+                .unmapped_source()
+                .map(|(note, _)| note)
+                .collect::<Vec<_>>(),
+            [n(99)]
+        );
+    }
+
+    #[test]
+    fn a_kept_note_on_a_target_drum_is_reported_onto_that_drum() {
+        let out = convert_unrecognized(&kick_and_unrecognized(), Unrecognized::Keep);
+        assert_eq!(
             out.report.unmapped_source().collect::<Vec<_>>(),
-            [(n(99), 1)]
+            [(
+                n(99),
+                &unmapped(1, UnmappedFate::KeptOnto(k("crash.4.mute")))
+            )]
+        );
+    }
+
+    #[test]
+    fn a_kept_note_on_a_free_number_is_reported_kept_free() {
+        let mid = drums(&[(0, on(5)), (48, off(5))]);
+        let out = convert_unrecognized(&mid, Unrecognized::Keep);
+        assert_eq!(
+            out.report.unmapped_source().collect::<Vec<_>>(),
+            [(n(5), &unmapped(1, UnmappedFate::KeptFree))]
+        );
+    }
+
+    #[test]
+    fn a_removed_note_is_reported_removed() {
+        let out = convert_unrecognized(&kick_and_unrecognized(), Unrecognized::Remove);
+        assert_eq!(
+            out.report.unmapped_source().collect::<Vec<_>>(),
+            [(n(99), &unmapped(1, UnmappedFate::Removed))]
         );
     }
 

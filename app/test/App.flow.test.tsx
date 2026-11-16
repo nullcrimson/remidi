@@ -52,7 +52,7 @@ describe('App convert flow', () => {
       bytes: new Uint8Array([1]),
       damage: [],
       report: {
-        unmappedSource: { 51: 3 },
+        unmappedSource: { 51: { hits: 3, fate: 'removed' } },
         fallbackUsed: {},
         dropped: { 'china.1.hit': 2 },
         untouched: 5,

@@ -44,7 +44,7 @@ describe('the events of the report', () => {
   });
 
   it('sends report-fix-used for assigning an unrecognized note', async () => {
-    vi.mocked(stub.remap).mockReturnValue(reportOf({ unmappedSource: { 51: 2 } }));
+    vi.mocked(stub.remap).mockReturnValue(reportOf({ unmappedSource: { 51: { hits: 2, fate: 'removed' } } }));
     await convertThenOpenReport();
     await userEvent.click(screen.getByRole('button', { name: 'Assign →' }));
     expect(umami).toHaveBeenCalledWith('report-fix-used', { fix: 'assign' });
@@ -76,7 +76,7 @@ describe('the events of the report', () => {
   });
 
   it('sends done-wrong-source when Pick another source is pressed on the done panel', async () => {
-    vi.mocked(stub.remap).mockReturnValue(reportOf({ unmappedSource: { 51: 2 } }));
+    vi.mocked(stub.remap).mockReturnValue(reportOf({ unmappedSource: { 51: { hits: 2, fate: 'removed' } } }));
     await startApp();
     await pickEngines();
     await addMidi('groove.mid');
@@ -86,7 +86,7 @@ describe('the events of the report', () => {
   });
 
   it('sends done-assign-unrecognized when Assign the notes is pressed on the done panel', async () => {
-    vi.mocked(stub.remap).mockReturnValue(reportOf({ unmappedSource: { 51: 2 } }));
+    vi.mocked(stub.remap).mockReturnValue(reportOf({ unmappedSource: { 51: { hits: 2, fate: 'removed' } } }));
     await startApp();
     await pickEngines();
     await addMidi('groove.mid');

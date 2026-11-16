@@ -15,7 +15,7 @@ const remapWithNotes = () => typed<Conversion>({ kind: 'done', picked: [], offer
   bytes: new Uint8Array([1]),
   damage: [],
   report: {
-    unmappedSource: { 51: 1, 52: 1 },
+    unmappedSource: { 51: { hits: 1, fate: 'removed' }, 52: { hits: 1, fate: 'removed' } },
     fallbackUsed: { 'hat.open3': { standIn: 'hat.open1', note: 46, count: 2 } },
     dropped: { 'china.1.hit': 1, 'hat.cc': 1, 'crash.1.hit': 1 },
     untouched: 0,

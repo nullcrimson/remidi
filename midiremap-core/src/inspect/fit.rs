@@ -144,7 +144,7 @@ mod tests {
             .iter()
             .find(|fit| fit.engine().as_str() == "ggd_invasion")
             .unwrap();
-        let unmapped: u32 = report.unmapped_source().map(|(_, count)| count).sum();
+        let unmapped: u32 = report.unmapped_source().map(|(_, u)| u.hits).sum();
         assert_eq!(
             (fits.hits(), fits.hits() - fit.recognized()),
             (report.hits() - report.untouched(), unmapped)

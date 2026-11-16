@@ -65,7 +65,7 @@ describe('buildReport', () => {
       result('a.mid', {
         dropped: { 'china.1.hit': 4 },
         fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1', note: 51, count: 3 } },
-        unmappedSource: { 63: 1 },
+        unmappedSource: { 63: { hits: 1, fate: 'removed' } },
         untouched: 0,
         converted: 10,
       }),
@@ -202,7 +202,7 @@ describe('buildReport', () => {
 });
 
 describe('lossProps', () => {
-  const lossy = result('a.mid', { dropped: { 'china.1.hit': 4 }, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.cup', note: 60, count: 1 } }, unmappedSource: { 51: 2 }, untouched: 0, converted: 10 });
+  const lossy = result('a.mid', { dropped: { 'china.1.hit': 4 }, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.cup', note: 60, count: 1 } }, unmappedSource: { 51: { hits: 2, fate: 'removed' } }, untouched: 0, converted: 10 });
 
   it('counts and lists the entries of each group of one file', () => {
     expect(lossProps([lossy.report])).toEqual({
@@ -216,8 +216,8 @@ describe('lossProps', () => {
   });
 
   it('lists the unrecognized notes of all files once each, lowest first', () => {
-    const a = result('a.mid', { ...empty, unmappedSource: { 51: 1, 7: 1 } });
-    const b = result('b.mid', { ...empty, unmappedSource: { 7: 1, 100: 1 } });
+    const a = result('a.mid', { ...empty, unmappedSource: { 51: { hits: 1, fate: 'removed' }, 7: { hits: 1, fate: 'removed' } } });
+    const b = result('b.mid', { ...empty, unmappedSource: { 7: { hits: 1, fate: 'removed' }, 100: { hits: 1, fate: 'removed' } } });
     expect(lossProps([a.report, b.report]).unrecognizedNotes).toBe('7,51,100');
   });
 

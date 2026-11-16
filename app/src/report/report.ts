@@ -83,7 +83,7 @@ export function buildReport(
       })),
     ),
     unrecognized: sortEntries(
-      byNote(report.unmappedSource).map(([note, count]) => ({ label: noteName(note, oct), count, note })),
+      byNote(report.unmappedSource).map(([note, { hits }]) => ({ label: noteName(note, oct), count: hits, note })),
     ),
   });
 

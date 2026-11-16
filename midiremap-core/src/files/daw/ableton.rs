@@ -89,7 +89,7 @@ fn remap_rack(mapping: &Mapping) -> String {
                         shift: (shift != 0).then_some(shift),
                     }
                 }
-                Destination::Kept(note) => Chain {
+                Destination::Kept { note, .. } => Chain {
                     note,
                     name: KEPT.to_owned(),
                     shift: None,

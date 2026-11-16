@@ -19,6 +19,25 @@ pub struct FallbackTally {
     pub count: u32,
 }
 
+/// What became of the hits on a note the source does not recognize: removed, or kept on its
+/// number, where the target plays no drum or the drum it names.
+#[derive(Serialize, Debug, PartialEq, Eq, Clone, Copy)]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify))]
+pub enum UnmappedFate {
+    Removed,
+    KeptFree,
+    KeptOnto(Canon),
+}
+
+/// The hits on a note the source does not recognize, and what became of them.
+#[derive(Serialize, Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify))]
+pub struct Unmapped {
+    pub hits: u32,
+    pub fate: UnmappedFate,
+}
+
 /// What a conversion did with each note hit; only the converter tallies it.
 #[derive(Default, Serialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -29,8 +48,8 @@ pub struct FallbackTally {
 )]
 pub struct Report {
     #[serde(serialize_with = "Note::text_keys")]
-    #[cfg_attr(feature = "ts", tsify(type = "Record<Note, number>"))]
-    unmapped_source: BTreeMap<Note, u32>,
+    #[cfg_attr(feature = "ts", tsify(type = "Record<Note, Unmapped>"))]
+    unmapped_source: BTreeMap<Note, Unmapped>,
     fallback_used: BTreeMap<Canon, FallbackTally>,
     dropped: BTreeMap<Canon, u32>,
     untouched: u32,
@@ -38,11 +57,12 @@ pub struct Report {
 }
 
 impl Report {
-    /// Hits on source notes the source engine does not map, by note, ascending.
-    pub fn unmapped_source(&self) -> impl Iterator<Item = (Note, u32)> + '_ {
+    /// Hits on source notes the source engine does not map, with what became of them, by
+    /// note, ascending.
+    pub fn unmapped_source(&self) -> impl Iterator<Item = (Note, &Unmapped)> {
         self.unmapped_source
             .iter()
-            .map(|(&note, &count)| (note, count))
+            .map(|(&note, unmapped)| (note, unmapped))
     }
 
     /// Hits played on a stand-in because the target lacks the drum, by drum, in drum order.
@@ -71,7 +91,7 @@ impl Report {
     pub fn hits(&self) -> u32 {
         self.converted
             + self.dropped.values().sum::<u32>()
-            + self.unmapped_source.values().sum::<u32>()
+            + self.unmapped_source.values().map(|u| u.hits).sum::<u32>()
             + self.untouched
     }
 
@@ -79,11 +99,19 @@ impl Report {
         self.untouched += 1;
     }
 
-    /// Tallies one source hit; direct hits only count as converted.
-    pub(crate) fn record(&mut self, source_note: Note, outcome: Option<Outcome>) {
+    /// Tallies one hit on `note`, which the source does not recognize and whose hits all
+    /// meet `fate`.
+    pub(crate) fn record_unmapped(&mut self, note: Note, fate: UnmappedFate) {
+        self.unmapped_source
+            .entry(note)
+            .or_insert(Unmapped { hits: 0, fate })
+            .hits += 1;
+    }
+
+    /// Tallies one hit on a source note the source recognizes, by where its drum lands.
+    pub(crate) fn record(&mut self, outcome: Outcome) {
         match outcome {
-            None => *self.unmapped_source.entry(source_note).or_default() += 1,
-            Some(fallback @ Outcome::Fallback(s)) => {
+            fallback @ Outcome::Fallback(s) => {
                 let (canon, stand_in, note) = (fallback.canon(), s.stand_in(), s.note());
                 self.converted += 1;
                 self.fallback_used
@@ -95,8 +123,8 @@ impl Report {
                     })
                     .count += 1
             }
-            Some(Outcome::Dropped { canon, .. }) => *self.dropped.entry(canon).or_default() += 1,
-            Some(Outcome::Direct(_)) => self.converted += 1,
+            Outcome::Dropped { canon, .. } => *self.dropped.entry(canon).or_default() += 1,
+            Outcome::Direct(_) => self.converted += 1,
         }
     }
 }
@@ -120,34 +148,34 @@ mod tests {
     fn tallied_report() -> Report {
         let (open3, snare) = (open3(), snare());
         let mut r = Report::default();
-        r.record(n(99), None);
-        r.record(
-            n(11),
-            Some(Outcome::Fallback(StandIn::new(
-                open3,
-                open3,
-                k("hat.closed"),
-                n(60),
-            ))),
-        );
-        r.record(
-            n(10),
-            Some(Outcome::Dropped {
-                canon: snare,
-                other_drum: false,
-            }),
-        );
-        r.record(
-            n(12),
-            Some(Outcome::Direct(Landing::itself(k("kick.main"), n(50)))),
-        );
+        r.record_unmapped(n(99), UnmappedFate::Removed);
+        r.record(Outcome::Fallback(StandIn::new(
+            open3,
+            open3,
+            k("hat.closed"),
+            n(60),
+        )));
+        r.record(Outcome::Dropped {
+            canon: snare,
+            other_drum: false,
+        });
+        r.record(Outcome::Direct(Landing::itself(k("kick.main"), n(50))));
         r
     }
 
     #[test]
     fn report_tallies_an_unmapped_note() {
         let r = tallied_report();
-        assert_eq!(r.unmapped_source().collect::<Vec<_>>(), [(n(99), 1)]);
+        assert_eq!(
+            r.unmapped_source().collect::<Vec<_>>(),
+            [(
+                n(99),
+                &Unmapped {
+                    hits: 1,
+                    fate: UnmappedFate::Removed
+                }
+            )]
+        );
     }
 
     #[test]
@@ -211,21 +239,24 @@ mod tests {
     #[test]
     fn report_serializes_sorted_with_string_note_keys() {
         let mut r = Report::default();
-        for note in [99, 5, 12, 5] {
-            r.record(n(note), None);
+        let kick = UnmappedFate::KeptOnto(k("kick.main"));
+        for (note, fate) in [
+            (99, UnmappedFate::Removed),
+            (5, kick),
+            (12, UnmappedFate::KeptFree),
+            (5, kick),
+        ] {
+            r.record_unmapped(n(note), fate);
         }
         for key in ["splash.1.hit", "china.1.hit"] {
-            r.record(
-                n(1),
-                Some(Outcome::Dropped {
-                    canon: key.parse().unwrap(),
-                    other_drum: false,
-                }),
-            );
+            r.record(Outcome::Dropped {
+                canon: key.parse().unwrap(),
+                other_drum: false,
+            });
         }
         assert_eq!(
             serde_json::to_string(&r).unwrap(),
-            r#"{"unmappedSource":{"5":2,"12":1,"99":1},"fallbackUsed":{},"dropped":{"china.1.hit":1,"splash.1.hit":1},"untouched":0,"converted":0}"#
+            r#"{"unmappedSource":{"5":{"hits":2,"fate":{"keptOnto":"kick.main"}},"12":{"hits":1,"fate":"keptFree"},"99":{"hits":1,"fate":"removed"}},"fallbackUsed":{},"dropped":{"china.1.hit":1,"splash.1.hit":1},"untouched":0,"converted":0}"#
         );
     }
 }

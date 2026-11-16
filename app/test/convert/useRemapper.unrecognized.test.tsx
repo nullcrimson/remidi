@@ -7,7 +7,7 @@ import { loadSession } from '../../src/convert/session';
 import * as stub from '../stubs/wasm';
 import { engineId, typed } from '../typed';
 
-const REPORT = typed<Report>({ unmappedSource: { 99: 1 }, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 });
+const REPORT = typed<Report>({ unmappedSource: { 99: { hits: 1, fate: 'removed' } }, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1 });
 
 async function ready() {
   const hook = renderHook(() => useRemapper(RUNTIME));

@@ -148,10 +148,14 @@ fn unrecognized_keep_writes_the_note_out_unchanged() {
 }
 
 #[test]
-fn unrecognized_keep_still_reports_the_note() {
+fn unrecognized_keep_still_reports_the_note_with_the_drum_it_plays() {
     let (out, _) = convert_note(99, &["--unrecognized", "keep"]);
     let err = String::from_utf8_lossy(&out.stderr);
-    assert!(err.contains(r#""99": 1"#), "report: {err}");
+    assert!(err.contains(r#""99": {"#), "report: {err}");
+    assert!(
+        err.contains(r#""keptOnto": "crash.4.mute""#),
+        "report: {err}"
+    );
 }
 
 #[test]

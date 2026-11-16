@@ -18,7 +18,7 @@ mod files;
 mod inspect;
 pub mod xml;
 
-pub use convert::{convert, Conversion, Converted, FallbackTally, Report};
+pub use convert::{convert, Conversion, Converted, FallbackTally, Report, Unmapped, UnmappedFate};
 pub use files::{
     parse_preset, rack_file, sample_file, Daw, FileStem, LoadedPreset, Packing, PresetError,
     PresetName, RackFile, SavedPreset, SkippedEdit,

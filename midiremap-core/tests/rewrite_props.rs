@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use midiremap_core::{
-    convert, Catalog, Channel, ChannelScope, Conversion, Converted, Mapping, MissingDrums,
-    Overrides, Part, Unrecognized,
+    convert, Canon, Catalog, Channel, ChannelScope, Conversion, Converted, Mapping, MissingDrums,
+    Note, Overrides, Part, Report, UnmappedFate, Unrecognized,
 };
 use midiremap_testkit::{cc, choke, event, hits, off, on, silent_on, smf, DRUMS};
 use midly::{
@@ -263,6 +263,32 @@ fn converted(midi: &[u8], mapping: &Mapping, scope: ChannelScope) -> Option<Conv
     convert(midi, mapping, scope).unwrap().done()
 }
 
+type Counts = (
+    Vec<(Note, u32)>,
+    Vec<(Canon, Canon, Note, u32)>,
+    Vec<(Canon, u32)>,
+    u32,
+    u32,
+);
+
+/// Every count of `report`: each unrecognized note with its hits but not what became of
+/// them, each stand-in, each dropped drum, the untouched and the converted hits.
+fn counts(report: &Report) -> Counts {
+    (
+        report
+            .unmapped_source()
+            .map(|(note, unmapped)| (note, unmapped.hits))
+            .collect(),
+        report
+            .fallback_used()
+            .map(|(canon, t)| (canon, t.stand_in, t.note, t.count))
+            .collect(),
+        report.dropped().collect(),
+        report.untouched(),
+        report.converted(),
+    )
+}
+
 /// The hits of each part of `midi`, named `track:channel` counted from 1, read straight
 /// from the file.
 fn part_hits_of(midi: &[u8]) -> BTreeMap<String, u32> {
@@ -379,7 +405,17 @@ proptest! {
     ) {
         let kept = converted(&midi, &pair.mapping_with(Unrecognized::Keep), scope);
         let removed = converted(&midi, &pair.mapping_with(Unrecognized::Remove), scope);
-        prop_assert_eq!(kept.map(|k| k.report), removed.map(|r| r.report));
+        let (kept, removed) = (kept.map(|k| k.report), removed.map(|r| r.report));
+        prop_assert_eq!(kept.as_ref().map(counts), removed.as_ref().map(counts));
+        let fates = |report: Option<&Report>| -> Vec<bool> {
+            report
+                .into_iter()
+                .flat_map(Report::unmapped_source)
+                .map(|(_, unmapped)| unmapped.fate == UnmappedFate::Removed)
+                .collect()
+        };
+        prop_assert!(fates(kept.as_ref()).iter().all(|&removed| !removed));
+        prop_assert!(fates(removed.as_ref()).iter().all(|&removed| removed));
     }
 
     #[test]
@@ -389,7 +425,7 @@ proptest! {
         scope in scope(),
     ) {
         let Some(out) = converted(&midi, &pair.mapping_with(Unrecognized::Keep), scope) else { return Ok(()) };
-        let unrecognized: u32 = out.report.unmapped_source().map(|(_, count)| count).sum();
+        let unrecognized: u32 = out.report.unmapped_source().map(|(_, u)| u.hits).sum();
         let written = out.report.converted() + unrecognized + out.report.untouched();
         prop_assert_eq!(hits(&out.bytes), written);
     }

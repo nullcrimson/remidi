@@ -26,17 +26,18 @@ pub use self::{
 use self::{drums::DrumTable, route::Routes};
 
 /// Where a source note plays on the target: on the note of the drum it decodes to, or
-/// unchanged, when the source does not recognize it and the mapping keeps such notes.
+/// unchanged, when the source does not recognize it and the mapping keeps such notes; a kept
+/// note `plays` the target drum on its number, if any.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Destination {
     Drum { canon: Canon, note: Note },
-    Kept(Note),
+    Kept { note: Note, plays: Option<Canon> },
 }
 
 impl Destination {
     pub fn note(&self) -> Note {
         match *self {
-            Self::Drum { note, .. } | Self::Kept(note) => note,
+            Self::Drum { note, .. } | Self::Kept { note, .. } => note,
         }
     }
 }
@@ -51,6 +52,7 @@ pub struct Mapping<'a> {
     edited: HashSet<Note>,
     notes: [Option<Outcome>; Note::COUNT],
     drums: DrumTable,
+    on_target: [Option<Canon>; Note::COUNT],
     unrecognized: Unrecognized,
 }
 
@@ -74,6 +76,7 @@ impl<'a> Mapping<'a> {
             edited: overrides.source().keys().copied().collect(),
             notes: Note::ALL.map(|note| decode.get(&note).map(|&canon| drums.get(canon))),
             drums,
+            on_target: Note::ALL.map(|note| drum_on(tgt, overrides, note)),
             unrecognized: Unrecognized::default(),
         }
     }
@@ -127,8 +130,18 @@ impl<'a> Mapping<'a> {
                 note: s.note(),
             }),
             Some(Outcome::Dropped { .. }) => None,
-            None => self.unrecognized.keeps().then_some(Destination::Kept(note)),
+            None => self.unrecognized.keeps().then(|| Destination::Kept {
+                note,
+                plays: self.target_drum_on(note),
+            }),
         }
+    }
+
+    /// The target drum that plays on `note`: the drum a target edit puts there (of two, the
+    /// first in drum order), else the drum the target as it ships plays there, also when an
+    /// edit moved that drum to another note.
+    pub fn target_drum_on(&self, note: Note) -> Option<Canon> {
+        self.on_target[note.index()]
     }
 
     pub fn resolve_canon(&self, canon: Canon) -> Outcome {
@@ -164,6 +177,14 @@ impl<'a> Mapping<'a> {
             .into_keys()
             .filter(|&canon| matches!(self.resolve_canon(canon), Outcome::Dropped { .. }))
     }
+}
+
+fn drum_on(tgt: &EngineMap, overrides: &Overrides, note: Note) -> Option<Canon> {
+    overrides
+        .target()
+        .iter()
+        .find_map(|(&canon, &edited)| (edited == note).then_some(canon))
+        .or_else(|| tgt.decode(note))
 }
 
 fn decoding(src: &EngineMap, overrides: &Overrides) -> Decoding {
@@ -608,7 +629,65 @@ notes = [ {} ]",
     #[test]
     fn a_mapping_keeps_unrecognized_notes_when_told_to() {
         let kept = mapping().with_unrecognized(Unrecognized::Keep);
-        assert_eq!(kept.destination(n(99)), Some(Destination::Kept(n(99))));
+        assert_eq!(
+            kept.destination(n(99)),
+            Some(Destination::Kept {
+                note: n(99),
+                plays: None
+            })
+        );
+    }
+
+    #[test]
+    fn a_kept_note_on_a_target_drum_plays_that_drum() {
+        let kept = mapping().with_unrecognized(Unrecognized::Keep);
+        assert_eq!(
+            kept.destination(n(50)),
+            Some(Destination::Kept {
+                note: n(50),
+                plays: Some(k("kick.main"))
+            })
+        );
+    }
+
+    fn edited_onto(edits: &str) -> Mapping<'static> {
+        Mapping::new(
+            &SRC_MAP,
+            &TGT_MAP,
+            &serde_json::from_str(edits).unwrap(),
+            MissingDrums::Nearest,
+        )
+    }
+
+    #[test]
+    fn the_target_drum_on_a_stock_note_is_the_drum_the_target_plays_there() {
+        assert_eq!(mapping().target_drum_on(n(60)), Some(k("hat.closed")));
+    }
+
+    #[test]
+    fn no_target_drum_is_on_a_note_the_target_leaves_free() {
+        assert_eq!(mapping().target_drum_on(n(99)), None);
+    }
+
+    #[test]
+    fn the_target_drum_on_an_edited_note_is_the_drum_the_edit_puts_there() {
+        let mapping = edited_onto(r#"{"edits":{"snare1.hit":50},"srcEdits":{}}"#);
+        assert_eq!(mapping.target_drum_on(n(50)), Some(k("snare1.hit")));
+    }
+
+    #[test]
+    fn of_two_drums_edited_onto_one_note_the_first_in_drum_order_is_on_it() {
+        let (first, second) = (k("hat.open1"), k("hat.pedal"));
+        let listed = |c| Canon::all().iter().position(|&a| a == c);
+        assert!(first < second && listed(first) > listed(second));
+        let mapping = edited_onto(r#"{"edits":{"hat.pedal":99,"hat.open1":99},"srcEdits":{}}"#);
+        assert_eq!(mapping.target_drum_on(n(99)), Some(first));
+    }
+
+    #[test]
+    fn a_note_an_edit_moved_its_drum_off_still_names_that_drum() {
+        let mapping = edited_onto(r#"{"edits":{"kick.main":99},"srcEdits":{}}"#);
+        assert_eq!(mapping.target_drum_on(n(50)), Some(k("kick.main")));
     }
 
     #[test]

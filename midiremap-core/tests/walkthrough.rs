@@ -69,8 +69,9 @@ fn outcome_line(tgt_id: &str, out: &Converted) -> String {
         listed(out.report.dropped(), |(canon, count)| format!(
             "{canon}x{count}"
         )),
-        listed(out.report.unmapped_source(), |(note, count)| format!(
-            "{note}x{count}"
+        listed(out.report.unmapped_source(), |(note, unmapped)| format!(
+            "{note}x{}",
+            unmapped.hits
         )),
     )
 }

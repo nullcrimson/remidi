@@ -1,4 +1,4 @@
-use midiremap_mapping::Mapping;
+use midiremap_mapping::{Destination, Mapping};
 use midiremap_note::Note;
 use midiremap_smf::{
     midi::{
@@ -12,7 +12,7 @@ use midly::{
     MidiMessage, Smf, Track, TrackEvent, TrackEventKind,
 };
 
-use super::report::Report;
+use super::report::{Report, UnmappedFate};
 
 #[derive(Default)]
 struct DeltaFold(u28);
@@ -140,6 +140,17 @@ fn thin<'a>(
     Ok(out)
 }
 
+/// What becomes of the hits on `note`, which the source of `mapping` does not recognize.
+fn unmapped_fate(mapping: &Mapping, note: Note) -> UnmappedFate {
+    match mapping.destination(note) {
+        Some(Destination::Kept {
+            plays: Some(canon), ..
+        }) => UnmappedFate::KeptOnto(canon),
+        Some(Destination::Kept { plays: None, .. }) => UnmappedFate::KeptFree,
+        Some(Destination::Drum { .. }) | None => UnmappedFate::Removed,
+    }
+}
+
 /// `smf` with every note event its track's filter accepts rewritten through `mapping`, the
 /// notes nothing plays removed, and the report of what happened to each hit.
 pub(crate) fn rewrite<'a>(
@@ -153,7 +164,10 @@ pub(crate) fn rewrite<'a>(
             let (kind, fate) = step(mapping, filter, ev.kind);
             ev.kind = kind;
             match fate {
-                Fate::Played(note) | Fate::Dropped(note) => report.record(note, mapping.get(note)),
+                Fate::Played(note) | Fate::Dropped(note) => match mapping.get(note) {
+                    Some(outcome) => report.record(outcome),
+                    None => report.record_unmapped(note, unmapped_fate(mapping, note)),
+                },
                 Fate::Untouched => report.record_untouched(),
                 Fate::Kept | Fate::Removed => {}
             }

@@ -140,7 +140,7 @@ describe('real WASM module', () => {
 
   it('reports a kept note as unrecognized', () => {
     const out = done(real.remap(UNKNOWN_MIDI, 'ggd_invasion', 'ezdrummer', undefined, undefined, undefined, 'keep'));
-    expect(out.report.unmappedSource).toEqual({ 99: 1 });
+    expect(out.report.unmappedSource).toEqual({ 99: { hits: 1, fate: { keptOnto: 'crash.4.mute' } } });
   });
 
   it('reports the stand-in a swapped drum played on', () => {
