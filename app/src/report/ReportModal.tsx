@@ -8,7 +8,7 @@ import { Modal } from '../ui/Modal';
 import { MonoLabel } from '../ui/MonoLabel';
 import type { LabelTone } from '../ui/styles';
 import { TextButton } from '../ui/TextButton';
-import { entryText, type ReportEntry, type ReportFile, ReportGroups, ReportView } from './report';
+import { entryText, type Kept, type ReportEntry, type ReportFile, ReportGroups, ReportView } from './report';
 import { ContactFooter } from './ContactFooter';
 
 interface ReportFixes {
@@ -83,6 +83,14 @@ function Group<E extends LineEntry>({
   );
 }
 
+/** What a kept note plays on `target`, or nothing for a removed one. */
+function keptText(kept: Kept | null, target: string, t: Translate): string | undefined {
+  if (kept === null) return undefined;
+  return kept.drum === null
+    ? t({ id: 'report-kept-free', args: { target } })
+    : t({ id: 'report-kept-plays', args: { drum: kept.drum, target } });
+}
+
 const UNRECOGNIZED_HINT = {
   remove: 'report-unrecognized-hint',
   keep: 'report-unrecognized-hint-kept',
@@ -122,7 +130,7 @@ function GroupList({
         title={t({ id: 'report-unrecognized' })}
         hint={t({ id: UNRECOGNIZED_HINT[unrecognized], args: { source: names.source } })}
         color="muted"
-        entries={groups.unrecognized}
+        entries={groups.unrecognized.map((e) => ({ ...e, sub: keptText(e.kept, names.target, t) }))}
         fixOf={(e) => ({ label: t({ id: 'report-assign' }), run: () => fixes.onAssignSource(e.note) })}
       />
       <Group

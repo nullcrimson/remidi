@@ -111,7 +111,9 @@ export function DonePanel({
           {view.totals.unrecognized > 0 && (
             <UnrecognizedNotes
               count={view.totals.unrecognized}
+              entries={view.groups.unrecognized}
               source={names.source}
+              target={names.target}
               unrecognized={unrecognized}
               onPickSource={onPickSource}
               onAssign={onViewReport}

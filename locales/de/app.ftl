@@ -88,11 +88,11 @@ missing-tip-title = Wenn das Ziel-Plugin ein Instrument nicht hat
 missing-tip = „Ersetzen“ nimmt stattdessen das ähnlichste Instrument im Ziel-Plugin – etwa ein Crash statt eines China, Tom 3 statt Tom 4. „Entfernen“ lässt die Noten weg. Fehlt nur eine Spieltechnik wie Ghost Notes oder Rimshots, wird daraus immer ein normaler Schlag auf dasselbe Instrument. Toms werden der Reihe nach auf die Toms des Ziel-Plugins verteilt, damit Fills ihre Tonhöhen behalten.
 unrecognized-label = Unbekannte Noten
 unrecognized-tip-title = Wenn das Quell-Plugin eine Note nicht kennt
-unrecognized-tip = Manche Noten einer Datei stehen nicht in der Notenbelegung des Quell-Plugins – etwa ein Part, der für ein anderes Kit geschrieben wurde. „Entfernen“ lässt sie weg. „Unverändert lassen“ übernimmt sie so, wie sie sind, auf derselben Note. Der Bericht führt sie in beiden Fällen auf.
+unrecognized-tip = Manche Noten einer Datei stehen nicht in der Notenbelegung des Quell-Plugins – etwa ein Part, der für ein anderes Kit geschrieben wurde. „Entfernen“ lässt sie weg. „Unverändert lassen“ lässt jede auf ihrer Notennummer, wo sie das Instrument spielt, das das Ziel-Plugin dort hat. Der Bericht führt sie in beiden Fällen auf, mit dem Instrument, das eine beibehaltene Note spielt.
 unrecognized-remove = Entfernen
 unrecognized-keep = Unverändert lassen
 unrecognized-hint-remove = werden aus der Datei entfernt
-unrecognized-hint-keep = bleiben unverändert in der Datei
+unrecognized-hint-keep = bleiben auf ihren Notennummern
 edited-review =
     { $count ->
         [one] { $count } Instrument
@@ -330,8 +330,13 @@ done-removed =
     }
 done-kept =
     { $count ->
-        [one] { $count } Note Ihrer Datei ist nicht in der Notenbelegung von { $source } und wurde deshalb unverändert übernommen. Falsche Quelle?
-       *[other] { $count } Noten Ihrer Datei sind nicht in der Notenbelegung von { $source } und wurden deshalb unverändert übernommen. Falsche Quelle?
+        [one] { $count } Note Ihrer Datei ist nicht in der Notenbelegung von { $source } und bleibt deshalb auf ihrer Notennummer. Falsche Quelle?
+       *[other] { $count } Noten Ihrer Datei sind nicht in der Notenbelegung von { $source } und bleiben deshalb auf ihren Notennummern. Falsche Quelle?
+    }
+done-kept-plays =
+    { $count ->
+        [one] { $count } davon spielt jetzt ein Instrument von { $target }: { $list }.
+       *[other] { $count } davon spielen jetzt Instrumente von { $target }: { $list }.
     }
 done-pick-source = Andere Quelle wählen
 done-assign-notes = Noten zuweisen
@@ -383,7 +388,9 @@ report-unrecognized = Unbekannt
 report-dropped-hint = { $target } hat dieses Instrument nicht
 report-approximated-hint = durch das ähnlichste Instrument ersetzt
 report-unrecognized-hint = nicht in der Notenbelegung von { $source } – aus der Datei entfernt
-report-unrecognized-hint-kept = nicht in der Notenbelegung von { $source } – unverändert in der Datei
+report-unrecognized-hint-kept = nicht in der Notenbelegung von { $source } – auf ihren Notennummern belassen
+report-kept-plays = spielt { $drum } in { $target }
+report-kept-free = { $target } hat dort kein Instrument
 report-pick-target = Ziel wählen →
 report-assign = Zuweisen →
 report-across = { $summary } in { $count } Dateien

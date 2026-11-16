@@ -9,7 +9,7 @@ import type { Converted } from '../../src/convert/useConverter';
 import type { FileResult } from '../../src/core/files';
 import type { Unrecognized } from '../../src/core/midiremap';
 import type { ReportGroups, ReportView } from '../../src/report/report';
-import { enginePair, typed } from '../typed';
+import { enginePair, type Loose, typed } from '../typed';
 import { storedName } from '../../src/core/storage';
 
 const TIP_KEY = storedName('tip');
@@ -372,18 +372,45 @@ describe('DonePanel', () => {
   describe('kept notes', () => {
     const kept = (count: number) => renderPanel({ report: view({ unrecognized: count }), unrecognized: 'keep' });
 
-    it('says the notes the source layout did not have were kept unchanged', () => {
+    it('says the notes the source layout did not have stayed on their note numbers', () => {
       kept(7);
       expect(
-        screen.getByText("7 notes in your file aren't in the GGD Invasion layout, so they were kept unchanged. Wrong source?"),
+        screen.getByText("7 notes in your file aren't in the GGD Invasion layout, so they stayed on their note numbers. Wrong source?"),
       ).toBeInTheDocument();
     });
 
     it('says it of a single note', () => {
       kept(1);
       expect(
-        screen.getByText("1 note in your file isn't in the GGD Invasion layout, so it was kept unchanged. Wrong source?"),
+        screen.getByText("1 note in your file isn't in the GGD Invasion layout, so it stayed on its note number. Wrong source?"),
       ).toBeInTheDocument();
+    });
+
+    const onto = (entries: Loose<ReportGroups['unrecognized']>) => renderPanel({
+      report: {
+        ...view({ unrecognized: entries.reduce((n, e) => n + e.count, 0) }),
+        groups: { ...NONE, unrecognized: typed<ReportGroups['unrecognized']>(entries) },
+      },
+      unrecognized: 'keep',
+    });
+
+    it('names the target drums the kept notes now play', () => {
+      onto([
+        { label: 'C0', count: 2, note: 24, kept: { drum: 'Kick' } },
+        { label: 'D0', count: 1, note: 26, kept: { drum: 'Snare' } },
+        { label: 'C#-1', count: 4, note: 1, kept: { drum: null } },
+      ]);
+      expect(screen.getByText('3 of them now play Toontrack EZdrummer 3 drums: C0 Kick, D0 Snare.')).toBeInTheDocument();
+    });
+
+    it('names the one target drum a single kept note now plays', () => {
+      onto([{ label: 'C0', count: 1, note: 24, kept: { drum: 'Kick' } }]);
+      expect(screen.getByText('1 of them now plays a Toontrack EZdrummer 3 drum: C0 Kick.')).toBeInTheDocument();
+    });
+
+    it('says nothing of target drums when every kept note is on a free number', () => {
+      onto([{ label: 'C#-1', count: 4, note: 1, kept: { drum: null } }]);
+      expect(screen.queryByText(/of them now play/)).not.toBeInTheDocument();
     });
 
     it('does not say they were removed', () => {

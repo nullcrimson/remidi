@@ -92,11 +92,11 @@ missing-tip-title = Se nel plugin di destinazione manca uno strumento
 missing-tip = “Sostituisci” usa al suo posto lo strumento più simile del plugin di destinazione: un crash al posto di un China, il Tom 3 al posto del Tom 4. “Rimuovi” toglie le sue note dal file. Se manca solo un'articolazione (ghost note, rimshot…), la nota diventa sempre un colpo normale sullo stesso strumento. I tom vengono distribuiti in ordine sui tom del plugin di destinazione, così i fill mantengono le loro altezze.
 unrecognized-label = Note non riconosciute
 unrecognized-tip-title = Se il plugin di origine non riconosce una nota
-unrecognized-tip = Alcune note di un file possono non essere nella mappatura del plugin di origine, per esempio una parte scritta per un altro kit. “Rimuovi” le toglie dal file. “Lascia invariate” le scrive senza modifiche, sulla stessa nota. Il report le elenca in entrambi i casi.
+unrecognized-tip = Alcune note di un file possono non essere nella mappatura del plugin di origine, per esempio una parte scritta per un altro kit. “Rimuovi” le toglie dal file. “Lascia invariate” lascia ognuna sul suo numero di nota, dove suona lo strumento che il plugin di destinazione ha lì. Il report le elenca in entrambi i casi, con lo strumento che suona una nota lasciata.
 unrecognized-remove = Rimuovi
 unrecognized-keep = Lascia invariate
 unrecognized-hint-remove = rimosse dal file
-unrecognized-hint-keep = lasciate invariate
+unrecognized-hint-keep = restano sul loro numero di nota
 edited-review =
     { $count ->
         [one] { $count } strumento modificato
@@ -362,8 +362,13 @@ done-removed =
     }
 done-kept =
     { $count ->
-        [one] { $count } nota del tuo file non è nella mappatura di { $source }, quindi è stata lasciata invariata. Origine sbagliata?
-       *[other] { $count } note del tuo file non sono nella mappatura di { $source }, quindi sono state lasciate invariate. Origine sbagliata?
+        [one] { $count } nota del tuo file non è nella mappatura di { $source }, quindi è rimasta sul suo numero di nota. Origine sbagliata?
+       *[other] { $count } note del tuo file non sono nella mappatura di { $source }, quindi sono rimaste sul loro numero di nota. Origine sbagliata?
+    }
+done-kept-plays =
+    { $count ->
+        [one] { $count } di queste ora suona uno strumento di { $target }: { $list }.
+       *[other] { $count } di queste ora suonano strumenti di { $target }: { $list }.
     }
 done-pick-source = Scegli un'altra origine
 done-assign-notes = Assegna le note
@@ -415,7 +420,9 @@ report-unrecognized = Non riconosciute
 report-dropped-hint = { $target } non ha questo strumento
 report-approximated-hint = sostituite con lo strumento più simile
 report-unrecognized-hint = assenti nella mappa di { $source }: rimosse dal file
-report-unrecognized-hint-kept = assenti nella mappa di { $source }: lasciate invariate
+report-unrecognized-hint-kept = assenti nella mappa di { $source }: rimaste sul loro numero di nota
+report-kept-plays = suona { $drum } su { $target }
+report-kept-free = { $target } non ha nessuno strumento lì
 report-pick-target = Scegli destinazione →
 report-assign = Assegna →
 report-across = { $summary } in { $count } file

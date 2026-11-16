@@ -90,6 +90,27 @@ describe('buildReport', () => {
     expect(view.groups.approximated).toEqual([{ label: 'Ride Bell', sub: 'Ride', count: 3, canon: 'ride.1.bell' }]);
   });
 
+  it('names the drum a kept note plays by its drum, not by what the target lists on its note', () => {
+    const view = buildReport(
+      [result('a.mid', {
+        ...empty,
+        unmappedSource: {
+          51: { hits: 2, fate: { keptOnto: 'china.1.hit' } },
+          60: { hits: 1, fate: 'keptFree' },
+          63: { hits: 1, fate: 'removed' },
+        },
+      })],
+      canons,
+      drums,
+      'c1',
+    );
+    expect(view.groups.unrecognized.map((e) => [e.note, e.kept])).toEqual([
+      [51, { drum: 'China 1' }],
+      [60, { drum: null }],
+      [63, null],
+    ]);
+  });
+
   it('names the stand-in the converter chose, then the stock drum on the note an edit moved it to', () => {
     const view = buildReport(
       [result('a.mid', { ...empty, fallbackUsed: { 'china.1.hit': { standIn: 'crash.2.hit', note: 51, count: 2 } } })],

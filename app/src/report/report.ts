@@ -1,5 +1,5 @@
 import type { FileResult } from '../core/files';
-import type { Canon, Drum, MissingDrums, Note, Report, CanonEntry } from '../core/midiremap';
+import type { Canon, Drum, MissingDrums, Note, Report, CanonEntry, UnmappedFate } from '../core/midiremap';
 import type { EnginePair } from '../core/enginePair';
 import { listProp } from '../core/stats';
 import type { StatEvents } from '../core/umami';
@@ -20,11 +20,22 @@ export interface ApproximatedEntry {
   count: number;
   canon: Canon;
 }
-/** A source note the engine does not use. */
+/** Where a kept unrecognized note stayed: on its number, where the target plays `drum`, or no drum when `drum` is null. */
+export interface Kept {
+  drum: string | null;
+}
+/** A source note the engine does not use; `kept` is null when it was removed. */
 export interface UnrecognizedEntry {
   label: string;
   count: number;
   note: Note;
+  kept: Kept | null;
+}
+
+function keptOf(fate: UnmappedFate, canonLabel: (canon: Canon) => string): Kept | null {
+  if (fate === 'removed') return null;
+  if (fate === 'keptFree') return { drum: null };
+  return { drum: canonLabel(fate.keptOnto) };
 }
 export type ReportEntry = DroppedEntry | ApproximatedEntry | UnrecognizedEntry;
 
@@ -83,7 +94,12 @@ export function buildReport(
       })),
     ),
     unrecognized: sortEntries(
-      byNote(report.unmappedSource).map(([note, { hits }]) => ({ label: noteName(note, oct), count: hits, note })),
+      byNote(report.unmappedSource).map(([note, { hits, fate }]) => ({
+        label: noteName(note, oct),
+        count: hits,
+        note,
+        kept: keptOf(fate, canonLabel),
+      })),
     ),
   });
 

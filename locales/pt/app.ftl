@@ -88,11 +88,11 @@ missing-tip-title = Quando falta uma peça no destino
 missing-tip = Substituir troca a peça pela mais parecida que o destino tem — um China vira crash, o Tom 4 vira Tom 3. Remover tira a peça do arquivo. Ghost notes, rimshots e outras formas de tocar uma peça que o destino tem sempre viram uma nota normal nessa peça. Os tons são distribuídos em ordem pelos tons do plugin de destino, para que as viradas mantenham suas alturas.
 unrecognized-label = Notas não reconhecidas
 unrecognized-tip-title = Quando a origem não reconhece uma nota
-unrecognized-tip = Algumas notas do arquivo podem não estar no mapa do plugin de origem — por exemplo, uma parte escrita para outro kit. Remover tira essas notas do arquivo. Manter como estão deixa as notas no arquivo sem nenhuma mudança. O relatório mostra essas notas nos dois casos.
+unrecognized-tip = Algumas notas do arquivo podem não estar no mapa do plugin de origem — por exemplo, uma parte escrita para outro kit. Remover tira essas notas do arquivo. Manter como estão deixa cada nota no seu número, onde toca a peça que o plugin de destino tiver ali. O relatório mostra essas notas nos dois casos, com a peça que cada nota mantida toca.
 unrecognized-remove = Remover
 unrecognized-keep = Manter como estão
 unrecognized-hint-remove = removidas do arquivo
-unrecognized-hint-keep = mantidas sem mudança
+unrecognized-hint-keep = ficam no mesmo número de nota
 edited-review =
     { $count ->
         [one] { $count } peça editada
@@ -360,8 +360,13 @@ done-removed =
     }
 done-kept =
     { $count ->
-        [one] { $count } nota do seu arquivo não está no mapa de { $source }, então foi mantida sem mudança. Origem errada?
-       *[other] { $count } notas do seu arquivo não estão no mapa de { $source }, então foram mantidas sem mudança. Origem errada?
+        [one] { $count } nota do seu arquivo não está no mapa de { $source }, então ficou no mesmo número de nota. Origem errada?
+       *[other] { $count } notas do seu arquivo não estão no mapa de { $source }, então ficaram nos mesmos números de nota. Origem errada?
+    }
+done-kept-plays =
+    { $count ->
+        [one] { $count } delas agora toca uma peça do { $target }: { $list }.
+       *[other] { $count } delas agora tocam peças do { $target }: { $list }.
     }
 done-pick-source = Escolher outra origem
 done-assign-notes = Atribuir as notas
@@ -413,7 +418,9 @@ report-unrecognized = Não reconhecidas
 report-dropped-hint = { $target } não tem essa peça
 report-approximated-hint = trocadas pela peça mais parecida
 report-unrecognized-hint = fora do mapa de { $source } — removidas do arquivo
-report-unrecognized-hint-kept = fora do mapa de { $source } — mantidas sem mudança
+report-unrecognized-hint-kept = fora do mapa de { $source } — ficaram no mesmo número de nota
+report-kept-plays = toca { $drum } no { $target }
+report-kept-free = o { $target } não tem peça ali
 report-pick-target = Escolher destino →
 report-assign = Atribuir →
 report-across = { $summary } em { $count } arquivos

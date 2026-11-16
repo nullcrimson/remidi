@@ -23,7 +23,7 @@ const lossy = typed<ReportView>({
   groups: {
     dropped: [{ label: 'China 1', count: 4, canon: 'china.1.hit' }],
     approximated: [{ label: 'Ride Bell', sub: 'Ride', count: 3, canon: 'ride.1.bell' }],
-    unrecognized: [{ label: 'D#3', count: 51, note: 51 }],
+    unrecognized: [{ label: 'D#3', count: 51, note: 51, kept: null }],
   },
   files: [
     {
@@ -41,6 +41,17 @@ const lossy = typed<ReportView>({
       totals: { dropped: 0, approximated: 3, unrecognized: 0, untouched: 0, converted: 6 },
     },
   ],
+});
+
+const keptNotes = [
+  { label: 'C0', count: 2, note: 24, kept: { drum: 'Kick' } },
+  { label: 'C#-1', count: 1, note: 1, kept: { drum: null } },
+];
+
+const kept = typed<ReportView>({
+  ...lossy,
+  totals: { ...lossy.totals, unrecognized: 3 },
+  groups: { ...lossy.groups, unrecognized: keptNotes },
 });
 
 const cleanWithUnchanged: ReportView = {
@@ -177,10 +188,20 @@ describe('ReportModal', () => {
   });
 
   it('explains the unrecognized group as kept when the notes were kept', () => {
-    show(lossy, undefined, 'keep');
+    show(kept, undefined, 'keep');
     expect(screen.getAllByText(/^Unrecognized/)[0].parentElement).toHaveTextContent(
-      'not in the GGD Invasion map — kept unchanged in the file',
+      'not in the GGD Invasion map — kept on their note numbers',
     );
+  });
+
+  it('names the target drum a kept note plays', () => {
+    show(kept, undefined, 'keep');
+    expect(screen.getAllByText('C0 → plays Kick on EZdrummer')[0]).toBeInTheDocument();
+  });
+
+  it('says when the target plays no drum on a kept note', () => {
+    show(kept, undefined, 'keep');
+    expect(screen.getAllByText('C#-1 → EZdrummer has no drum there')[0]).toBeInTheDocument();
   });
 
   it('sends a dropped drum to its target picker and closes', async () => {

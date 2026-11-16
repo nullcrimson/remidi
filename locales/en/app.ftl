@@ -88,11 +88,11 @@ missing-tip-title = When the target lacks a drum
 missing-tip = Nearest plays it on the closest drum the target has — a China on a crash, Tom 4 on Tom 3. Drop leaves it out. Ghost notes, rimshots and other ways of playing a drum the target does have always fall back to a plain hit on that drum. Toms spread over the target's toms in order, so fills keep their pitches.
 unrecognized-label = Unknown notes
 unrecognized-tip-title = When the source doesn't know a note
-unrecognized-tip = Some notes in a file may not be in the source layout — a part written for another kit, say. Remove leaves them out of the file. Keep as they are writes them out unchanged, on the same note. The report lists them either way.
+unrecognized-tip = Some notes in a file may not be in the source layout — a part written for another kit, say. Remove leaves them out of the file. Keep as they are leaves each on its note number, where it plays whatever drum the target has there. The report lists them either way, with the drum a kept note plays.
 unrecognized-remove = Remove
 unrecognized-keep = Keep as they are
 unrecognized-hint-remove = leave them out of the file
-unrecognized-hint-keep = write them out unchanged
+unrecognized-hint-keep = leave them on their note numbers
 edited-review =
     { $count ->
         [one] { $count } drum
@@ -330,8 +330,13 @@ done-removed =
     }
 done-kept =
     { $count ->
-        [one] { $count } note in your file isn't in the { $source } layout, so it was kept unchanged. Wrong source?
-       *[other] { $count } notes in your file aren't in the { $source } layout, so they were kept unchanged. Wrong source?
+        [one] { $count } note in your file isn't in the { $source } layout, so it stayed on its note number. Wrong source?
+       *[other] { $count } notes in your file aren't in the { $source } layout, so they stayed on their note numbers. Wrong source?
+    }
+done-kept-plays =
+    { $count ->
+        [one] { $count } of them now plays a { $target } drum: { $list }.
+       *[other] { $count } of them now play { $target } drums: { $list }.
     }
 done-pick-source = Pick another source
 done-assign-notes = Assign the notes
@@ -383,7 +388,9 @@ report-unrecognized = Unrecognized
 report-dropped-hint = { $target } has no such drum
 report-approximated-hint = played on the nearest drum
 report-unrecognized-hint = not in the { $source } map — removed from the file
-report-unrecognized-hint-kept = not in the { $source } map — kept unchanged in the file
+report-unrecognized-hint-kept = not in the { $source } map — kept on their note numbers
+report-kept-plays = plays { $drum } on { $target }
+report-kept-free = { $target } has no drum there
 report-pick-target = Pick a target →
 report-assign = Assign →
 report-across = { $summary } across { $count } files

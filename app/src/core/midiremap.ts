@@ -50,6 +50,7 @@ export type {
   SourceFit,
   SourceFits,
   Unrecognized,
+  UnmappedFate,
   CanonEntry,
   VoicePlan,
 } from '@wasm';

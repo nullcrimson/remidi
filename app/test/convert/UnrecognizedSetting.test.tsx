@@ -16,9 +16,9 @@ describe('UnrecognizedSetting', () => {
     expect(screen.getByText('leave them out of the file')).toBeInTheDocument();
   });
 
-  it('says that Keep as they are writes the notes out unchanged', () => {
+  it('says that Keep as they are leaves the notes on their note numbers', () => {
     render(<UnrecognizedSetting value="keep" onChange={() => {}} />);
-    expect(screen.getByText('write them out unchanged')).toBeInTheDocument();
+    expect(screen.getByText('leave them on their note numbers')).toBeInTheDocument();
   });
 
   it('reports the clicked choice', async () => {
@@ -31,7 +31,7 @@ describe('UnrecognizedSetting', () => {
   it('explains both choices in its tip', () => {
     render(<UnrecognizedSetting value="remove" onChange={() => {}} />);
     expect(screen.getByRole('radiogroup', { name: 'Unknown notes' })).toHaveAccessibleDescription(
-      /Remove leaves them out of the file\. Keep as they are writes them out unchanged/,
+      /Remove leaves them out of the file\. Keep as they are leaves each on its note number, where it plays whatever drum the target has there/,
     );
   });
 });

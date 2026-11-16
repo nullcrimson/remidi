@@ -88,11 +88,11 @@ missing-tip-title = Si al plugin de destino le falta una pieza
 missing-tip = Reemplazar la cambia por la pieza más parecida que tenga el plugin de destino: un China pasa a un crash, el Tom 4 al Tom 3. Quitar la saca del archivo. Las ghost notes, los rimshots y otras formas de tocar una pieza que el destino sí tiene siempre pasan a un golpe normal en esa pieza. Los toms se reparten en orden entre los toms del plugin de destino, así los fills mantienen sus alturas.
 unrecognized-label = Notas no reconocidas
 unrecognized-tip-title = Si el plugin de origen no reconoce una nota
-unrecognized-tip = Puede que algunas notas del archivo no estén en el mapa del plugin de origen, por ejemplo una parte escrita para otro kit. Quitar las saca del archivo. Dejar tal cual las deja sin cambios, en la misma nota. El informe las muestra en los dos casos.
+unrecognized-tip = Puede que algunas notas del archivo no estén en el mapa del plugin de origen, por ejemplo una parte escrita para otro kit. Quitar las saca del archivo. Dejar tal cual deja cada una en su número de nota, donde suena la pieza que el plugin de destino tenga ahí. El informe las muestra en los dos casos, con la pieza que suena en cada nota que se dejó.
 unrecognized-remove = Quitar
 unrecognized-keep = Dejar tal cual
 unrecognized-hint-remove = se quitan del archivo
-unrecognized-hint-keep = se dejan sin cambios
+unrecognized-hint-keep = se quedan en su número de nota
 edited-review =
     { $count ->
         [one] { $count } pieza editada
@@ -350,8 +350,13 @@ done-removed =
     }
 done-kept =
     { $count ->
-        [one] { $count } nota de tu archivo no está en el mapa de { $source }, así que se dejó sin cambios. ¿Origen equivocado?
-       *[other] { $count } notas de tu archivo no están en el mapa de { $source }, así que se dejaron sin cambios. ¿Origen equivocado?
+        [one] { $count } nota de tu archivo no está en el mapa de { $source }, así que se quedó en su número de nota. ¿Origen equivocado?
+       *[other] { $count } notas de tu archivo no están en el mapa de { $source }, así que se quedaron en sus números de nota. ¿Origen equivocado?
+    }
+done-kept-plays =
+    { $count ->
+        [one] { $count } de ellas ahora suena como una pieza de { $target }: { $list }.
+       *[other] { $count } de ellas ahora suenan como piezas de { $target }: { $list }.
     }
 done-pick-source = Elegir otro origen
 done-assign-notes = Asignar las notas
@@ -403,7 +408,9 @@ report-unrecognized = No reconocidas
 report-dropped-hint = { $target } no tiene esta pieza
 report-approximated-hint = se reemplazaron por la pieza más parecida
 report-unrecognized-hint = no están en el mapa de { $source } — se quitaron del archivo
-report-unrecognized-hint-kept = no están en el mapa de { $source } — se dejaron sin cambios
+report-unrecognized-hint-kept = no están en el mapa de { $source } — se quedaron en su número de nota
+report-kept-plays = suena como { $drum } en { $target }
+report-kept-free = { $target } no tiene ninguna pieza ahí
 report-pick-target = Elegir destino →
 report-assign = Asignar →
 report-across =

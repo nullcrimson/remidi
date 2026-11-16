@@ -92,11 +92,11 @@ missing-tip-title = Gdy wtyczce docelowej brakuje instrumentu
 missing-tip = Zastąp wstawia zamiast niego najbardziej podobny instrument wtyczki docelowej — China zamienia się w crash, Tom 4 w Tom 3. Usuń po prostu wyrzuca jego nuty z pliku. Ghost notes, rimshoty i inne warianty gry na instrumencie, który jest we wtyczce docelowej, zawsze zamieniają się w zwykłe uderzenie w ten instrument. Tomy są rozkładane po kolei na tomy docelowej wtyczki, więc przejścia zachowują swoje wysokości.
 unrecognized-label = Nierozpoznane nuty
 unrecognized-tip-title = Gdy wtyczka źródłowa nie zna nuty
-unrecognized-tip = Niektórych nut z pliku może nie być w mapie wtyczki źródłowej — na przykład partii napisanej dla innego zestawu. Usuń wyrzuca je z pliku. Zostaw bez zmian zapisuje je tak, jak są, na tej samej nucie. Raport pokazuje je w obu przypadkach.
+unrecognized-tip = Niektórych nut z pliku może nie być w mapie wtyczki źródłowej — na przykład partii napisanej dla innego zestawu. Usuń wyrzuca je z pliku. Zostaw bez zmian zostawia każdą na jej numerze nuty, gdzie gra instrument, który ma tam wtyczka docelowa. Raport pokazuje je w obu przypadkach, razem z instrumentem, który gra zostawiona nuta.
 unrecognized-remove = Usuń
 unrecognized-keep = Zostaw bez zmian
 unrecognized-hint-remove = usuwane z pliku
-unrecognized-hint-keep = zostają bez zmian
+unrecognized-hint-keep = zostają na swoich numerach nut
 edited-review =
     { $count ->
         [one] { $count } instrument zmieniony
@@ -349,8 +349,14 @@ done-removed =
     }
 done-kept =
     { $count ->
-        [one] W mapie { $source } brakuje { $count } nuty z pliku, więc zostawiono ją bez zmian. Złe źródło?
-       *[other] W mapie { $source } brakuje { $count } nut z pliku, więc zostawiono je bez zmian. Złe źródło?
+        [one] W mapie { $source } brakuje { $count } nuty z pliku, więc została na swoim numerze nuty. Złe źródło?
+       *[other] W mapie { $source } brakuje { $count } nut z pliku, więc zostały na swoich numerach nut. Złe źródło?
+    }
+done-kept-plays =
+    { $count ->
+        [one] { $count } z nich gra teraz instrument wtyczki { $target }: { $list }.
+        [few] { $count } z nich grają teraz instrumenty wtyczki { $target }: { $list }.
+       *[other] { $count } z nich gra teraz instrumenty wtyczki { $target }: { $list }.
     }
 done-pick-source = Wybierz inne źródło
 done-assign-notes = Przypisz nuty
@@ -405,7 +411,9 @@ report-unrecognized = Nierozpoznane
 report-dropped-hint = { $target } nie ma takiego instrumentu
 report-approximated-hint = zastąpione podobnym instrumentem
 report-unrecognized-hint = brak w mapie { $source } — usunięte z pliku
-report-unrecognized-hint-kept = brak w mapie { $source } — zostawione bez zmian
+report-unrecognized-hint-kept = brak w mapie { $source } — zostawione na swoich numerach nut
+report-kept-plays = gra { $drum } we wtyczce { $target }
+report-kept-free = wtyczka { $target } nie ma tu instrumentu
 report-pick-target = Wybierz cel →
 report-assign = Przypisz →
 report-across =

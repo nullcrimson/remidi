@@ -17,6 +17,6 @@ describe('unrecognized notes setting', () => {
   });
 
   it('explains Keep as they are', () => {
-    expect(t(unrecognizedHint('keep'))).toBe('write them out unchanged');
+    expect(t(unrecognizedHint('keep'))).toBe('leave them on their note numbers');
   });
 });
