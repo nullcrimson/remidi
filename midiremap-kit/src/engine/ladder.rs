@@ -2,28 +2,25 @@ use std::collections::BTreeSet;
 
 use crate::canon::{HatZone, OpenLevel, Rung};
 
-/// How far an engine's main hi-hat opens: the levels it plays in each zone and which level is
-/// its normal open hat.
+/// The rungs an engine's main hi-hat plays in each zone, loose first and then its open levels,
+/// and which open level is its normal open hat.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HatLadder {
-    played: BTreeSet<(HatZone, OpenLevel)>,
+    played: BTreeSet<(HatZone, Rung)>,
     main: OpenLevel,
 }
 
 impl HatLadder {
-    /// The levels `played`, each in its zone, `main` the normal open hat among them; `None`
-    /// when no zone plays `main`.
-    pub fn new(
-        played: impl IntoIterator<Item = (OpenLevel, HatZone)>,
-        main: OpenLevel,
-    ) -> Option<Self> {
-        let played: BTreeSet<(HatZone, OpenLevel)> = played
+    /// The rungs `played`, each in its zone, `main` the normal open hat's level among them;
+    /// `None` when no zone plays `main`.
+    pub fn new(played: impl IntoIterator<Item = (Rung, HatZone)>, main: OpenLevel) -> Option<Self> {
+        let played: BTreeSet<(HatZone, Rung)> = played
             .into_iter()
-            .map(|(level, zone)| (zone, level))
+            .map(|(rung, zone)| (zone, rung))
             .collect();
         played
             .iter()
-            .any(|&(_, level)| level == main)
+            .any(|&(_, rung)| rung == Rung::Level(main))
             .then_some(Self { played, main })
     }
 
@@ -33,54 +30,77 @@ impl HatLadder {
         self.main
     }
 
-    /// Every level played, each in its zone.
+    /// The rungs [`toward`](Self::toward) counts among in `zone`, from the least open.
     #[cfg(any(test, feature = "testing"))]
-    pub fn played(&self) -> &BTreeSet<(HatZone, OpenLevel)> {
-        &self.played
+    pub fn rungs_in(&self, zone: HatZone) -> Vec<Rung> {
+        self.rungs(zone)
     }
 
-    /// The level `target` plays this engine's `level` at, hit in `zone`. Each engine counts
-    /// among the levels it plays in `zone` (in any zone when it plays none there), its main there
-    /// the one nearest its main: the main lands on `target`'s main, a less open level on the
-    /// nearest of `target`'s less open ones, a more open level on the nearest of its more open
-    /// ones, and on the main when `target` has none on that side.
-    pub fn toward(&self, target: &HatLadder, level: OpenLevel, zone: HatZone) -> OpenLevel {
-        let (_, from_main) = self.in_zone(zone);
-        let (among, main) = target.in_zone(zone);
-        let side = level.cmp(&from_main);
+    /// Whether `zone` plays an open level of its own, so that [`toward`](Self::toward) counts
+    /// among its own rungs there.
+    #[cfg(any(test, feature = "testing"))]
+    pub fn plays_in(&self, zone: HatZone) -> bool {
+        self.plays_level_in(zone)
+    }
+
+    /// The rung `target` plays this engine's `rung` at, hit in `zone`. Each engine counts among
+    /// the rungs it plays in `zone`, or in every zone when `zone` plays no open level. The main
+    /// level lands on `target`'s main level, or, where `target` does not play it there, on the
+    /// rung nearest it, the less open one on a tie. A rung `k` steps from this engine's main
+    /// level (one more than the rungs it plays between them) lands on the `k`-th of `target`'s
+    /// rungs on that side of its main level, on the last of them when it has fewer, and where
+    /// the main level lands when it has none.
+    pub fn toward(&self, target: &HatLadder, rung: Rung, zone: HatZone) -> Rung {
+        let (from_main, to_main) = (Rung::Level(self.main), Rung::Level(target.main));
+        let among = target.rungs(zone);
+        let main = closest(to_main, &among);
+        let side = rung.cmp(&from_main);
         if side.is_eq() {
             return main;
         }
-        closest(level, among.into_iter().filter(|l| l.cmp(&main) == side)).unwrap_or(main)
+        let between = self
+            .rungs(zone)
+            .into_iter()
+            .filter(|r| {
+                r.cmp(&from_main) == side && r.distance(from_main) < rung.distance(from_main)
+            })
+            .count();
+        let mut outward: Vec<Rung> = among
+            .into_iter()
+            .filter(|r| r.cmp(&to_main) == side)
+            .collect();
+        outward.sort_by_key(|r| r.distance(to_main));
+        outward
+            .get(between)
+            .or(outward.last())
+            .copied()
+            .unwrap_or(main)
     }
 
-    /// The levels played in `zone`, in any zone when none is, and the one of them nearest the
-    /// main level.
-    fn in_zone(&self, zone: HatZone) -> (Vec<OpenLevel>, OpenLevel) {
-        let among = self.levels_in(zone);
-        let main = closest(self.main, among.iter().copied())
-            .expect("played holds the main level, so every zone has a level");
-        (among, main)
+    fn plays_level_in(&self, zone: HatZone) -> bool {
+        self.played
+            .iter()
+            .any(|&(z, rung)| z == zone && rung.level().is_some())
     }
 
-    fn levels_in(&self, zone: HatZone) -> Vec<OpenLevel> {
-        let in_zone: Vec<OpenLevel> = self
+    fn rungs(&self, zone: HatZone) -> Vec<Rung> {
+        let every_zone = !self.plays_level_in(zone);
+        let rungs: BTreeSet<Rung> = self
             .played
             .iter()
-            .filter(|&&(z, _)| z == zone)
-            .map(|&(_, level)| level)
+            .filter(|&&(z, _)| every_zone || z == zone)
+            .map(|&(_, rung)| rung)
             .collect();
-        if in_zone.is_empty() {
-            self.played.iter().map(|&(_, level)| level).collect()
-        } else {
-            in_zone
-        }
+        rungs.into_iter().collect()
     }
 }
 
 /// The member of `among` nearest `to`, the less open one on a tie.
-fn closest(to: OpenLevel, among: impl Iterator<Item = OpenLevel>) -> Option<OpenLevel> {
-    among.min_by_key(|&l| (Rung::Level(l).distance(Rung::Level(to)), l))
+fn closest(to: Rung, among: &[Rung]) -> Rung {
+    *among
+        .iter()
+        .min_by_key(|&&r| (r.distance(to), r))
+        .expect("played holds the main level, so every zone has a rung")
 }
 
 #[cfg(test)]
@@ -88,81 +108,61 @@ mod tests {
     use super::*;
     use crate::canon::idx;
 
-    fn plain(played: &[u8], main: u8) -> HatLadder {
-        let played = played.iter().map(|&n| (idx(n), HatZone::Plain));
-        HatLadder::new(played, idx(main)).unwrap()
+    fn level(n: u8) -> Rung {
+        Rung::Level(idx(n))
     }
 
-    fn landings(from: &HatLadder, to: &HatLadder, played: &[u8]) -> Vec<u8> {
-        played
-            .iter()
-            .map(|&n| from.toward(to, idx(n), HatZone::Plain).get())
-            .collect()
+    fn ladder(played: &[(Rung, HatZone)], main: u8) -> HatLadder {
+        HatLadder::new(played.iter().copied(), idx(main)).unwrap()
+    }
+
+    fn plain(levels: &[u8]) -> Vec<(Rung, HatZone)> {
+        levels.iter().map(|&n| (level(n), HatZone::Plain)).collect()
     }
 
     #[test]
     fn the_main_level_must_be_played() {
-        let played = [(idx(1), HatZone::Plain), (idx(3), HatZone::Tip)];
+        let played = [(level(1), HatZone::Plain), (level(3), HatZone::Tip)];
         assert_eq!(HatLadder::new(played, idx(2)), None);
     }
 
     #[test]
-    fn a_less_open_level_stays_below_and_a_more_open_one_above_the_main() {
-        let ggd = plain(&[1, 2, 3], 2);
-        let krimh = plain(&[1, 2, 3, 4, 5], 4);
-        assert_eq!(landings(&ggd, &krimh, &[1, 3]), [1, 5]);
-        assert_eq!(landings(&krimh, &ggd, &[1, 2, 3, 5]), [1, 1, 1, 3]);
-    }
-
-    #[test]
-    fn a_side_the_target_lacks_lands_on_its_main() {
-        let ggd = plain(&[1, 2, 3], 2);
-        let mangini = plain(&[1, 2, 3], 3);
-        assert_eq!(landings(&ggd, &mangini, &[1, 3]), [1, 3]);
-        let ezd2 = plain(&[1, 2, 3, 4], 1);
-        assert_eq!(landings(&ggd, &ezd2, &[1, 3]), [1, 3]);
-    }
-
-    #[test]
     fn a_level_lands_among_the_levels_the_target_plays_in_its_zone() {
-        let ggd = plain(&[1, 2, 3], 2);
-        let hertz2 = HatLadder::new(
-            [1, 2, 3, 4]
-                .map(|n| (idx(n), HatZone::Plain))
-                .into_iter()
-                .chain([(idx(5), HatZone::Tip)]),
-            idx(4),
-        )
-        .unwrap();
-        assert_eq!(ggd.toward(&hertz2, idx(3), HatZone::Plain), idx(4));
-        assert_eq!(ggd.toward(&hertz2, idx(3), HatZone::Tip), idx(5));
+        let ggd = ladder(&plain(&[1, 2, 3]), 2);
+        let mut hertz2 = plain(&[1, 2, 3, 4]);
+        hertz2.push((level(5), HatZone::Tip));
+        let hertz2 = ladder(&hertz2, 4);
+        assert_eq!(ggd.toward(&hertz2, level(3), HatZone::Plain), level(4));
+        assert_eq!(ggd.toward(&hertz2, level(3), HatZone::Tip), level(5));
     }
 
     #[test]
-    fn ties_go_to_the_less_open_level() {
-        let one_to_five = plain(&[1, 2, 3, 4, 5], 1);
-        let drumlab = plain(&[2, 4, 6], 2);
-        assert_eq!(one_to_five.toward(&drumlab, idx(5), HatZone::Plain), idx(4));
-    }
-
-    #[test]
-    fn a_zone_counts_from_its_own_level_nearest_the_main_on_both_sides() {
-        let trivium = HatLadder::new(
-            [(idx(4), HatZone::Edge)]
-                .into_iter()
-                .chain([1, 2, 3, 5].map(|n| (idx(n), HatZone::Tip))),
-            idx(4),
-        )
-        .unwrap();
-        assert_eq!(trivium.toward(&trivium, idx(3), HatZone::Tip), idx(3));
-        assert_eq!(trivium.toward(&trivium, idx(2), HatZone::Tip), idx(2));
+    fn a_zone_without_the_main_level_counts_its_steps_from_the_real_main() {
+        let mut krimh = plain(&[1, 2, 3, 4, 5]);
+        krimh.push((level(1), HatZone::Tip));
+        let krimh = ladder(&krimh, 4);
+        let ggd = ladder(&plain(&[1, 2, 3]), 2);
+        assert_eq!(krimh.toward(&ggd, level(1), HatZone::Tip), level(1));
     }
 
     #[test]
     fn a_zone_without_the_main_level_takes_its_level_nearest_the_main() {
-        let bfd3 = HatLadder::new([(idx(1), HatZone::Tip)], idx(1)).unwrap();
-        let krimh =
-            HatLadder::new([(idx(4), HatZone::Plain), (idx(1), HatZone::Tip)], idx(4)).unwrap();
-        assert_eq!(bfd3.toward(&krimh, idx(1), HatZone::Tip), idx(1));
+        let bfd3 = ladder(&[(level(1), HatZone::Tip)], 1);
+        let krimh = ladder(&[(level(4), HatZone::Plain), (level(1), HatZone::Tip)], 4);
+        assert_eq!(bfd3.toward(&krimh, level(1), HatZone::Tip), level(1));
+    }
+
+    #[test]
+    fn a_zone_without_the_main_level_takes_the_less_open_of_two_rungs_as_near() {
+        let source = ladder(&[(level(1), HatZone::Tip)], 1);
+        let target = ladder(
+            &[
+                (level(1), HatZone::Plain),
+                (Rung::Loose, HatZone::Tip),
+                (level(2), HatZone::Tip),
+            ],
+            1,
+        );
+        assert_eq!(source.toward(&target, level(1), HatZone::Tip), Rung::Loose);
     }
 }

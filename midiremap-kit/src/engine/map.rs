@@ -217,7 +217,7 @@ impl EngineMap {
         &self.aliases
     }
 
-    /// How far the main hi-hat opens, when the engine names its normal open hat.
+    /// The rungs the main hi-hat plays, when the engine names its normal open hat.
     pub fn hat_ladder(&self) -> Option<&HatLadder> {
         self.hat_ladder.as_ref()
     }
@@ -343,7 +343,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
     })
 }
 
-/// The main hi-hat's open levels, the normal open hat the `declared` level or else the one on
+/// The main hi-hat's ladder, the normal open hat the `declared` level or else the open level on
 /// [`GM_OPEN_HAT`]; `None` when neither names one.
 fn hat_ladder(
     engine: &str,
@@ -364,11 +364,7 @@ fn hat_ladder(
         (Some(level), _) | (None, Some(level)) => level,
         (None, None) => return Ok(None),
     };
-    let levels = to_canon.values().filter_map(|c| {
-        let (rung, zone) = c.rung()?;
-        Some((rung.level()?, zone))
-    });
-    HatLadder::new(levels, main)
+    HatLadder::new(to_canon.values().filter_map(|c| c.rung()), main)
         .map(Some)
         .ok_or_else(|| MapError::OpenHatLevelNotPlayed {
             engine: engine.to_owned(),

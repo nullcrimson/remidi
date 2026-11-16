@@ -16,6 +16,14 @@ fn decoded(engine: &str, note: u8) -> Option<Canon> {
 }
 
 #[test]
+fn impact_xt_roomyrock_has_no_hat_ladder_for_its_loose_hat_on_46() {
+    let catalog = Catalog::builtin();
+    let roomyrock = catalog.get("impact_xt_roomyrock").unwrap();
+    assert_eq!(roomyrock.decode(n(46)), Some(k("hat.loose")));
+    assert!(roomyrock.hat_ladder().is_none());
+}
+
+#[test]
 fn ujam_plays_no_drum_on_its_mute_keys() {
     assert_eq!(decoded("ujam_heavy", 58), None);
     assert_eq!(decoded("ujam_heavy", 59), None);

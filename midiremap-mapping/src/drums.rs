@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 
 use midiremap_kit::{
-    canon::{Canon, OpenLevel, Rung},
+    canon::{Canon, Rung},
     engine::EngineMap,
     spread::SpreadStroke,
 };
@@ -71,7 +71,7 @@ impl DrumTable {
 
 /// Where `canon` lands along `route`. A drum with an edit of its own plays that edit,
 /// whatever its route; a spread stroke follows the edits of the drum it lands on; a matched
-/// opening follows no edit but its own.
+/// rung of the main hi-hat, loose or open, follows no edit but its own.
 fn land(canon: Canon, route: Route, notes: &TargetNotes, missing: MissingDrums) -> Outcome {
     let edited = |c: Canon| notes.edited.get(&c).copied();
     match route {
@@ -79,10 +79,10 @@ fn land(canon: Canon, route: Route, notes: &TargetNotes, missing: MissingDrums) 
         Route::Opening(_) | Route::Spread { .. } if notes.edits.contains_key(&canon) => {
             resolve(canon, edited, missing)
         }
-        Route::Opening(level) => opened(
+        Route::Opening(rung) => opened(
             canon,
-            level,
-            resolve_on(notes.stock, canon.at_rung(Rung::Level(level)), missing),
+            rung,
+            resolve_on(notes.stock, canon.at_rung(rung), missing),
         ),
         Route::Spread { stroke, named } => spread(
             canon,
@@ -97,11 +97,11 @@ fn land(canon: Canon, route: Route, notes: &TargetNotes, missing: MissingDrums) 
     }
 }
 
-/// The landing of the opening at `level`, as the landing of the open main hi-hat `canon`.
-fn opened(canon: Canon, level: OpenLevel, landed: Outcome) -> Outcome {
+/// The landing of the main hi-hat at `rung`, as the landing of the main hi-hat rung `canon`.
+fn opened(canon: Canon, rung: Rung, landed: Outcome) -> Outcome {
     match landed {
         Outcome::Direct(landing) => {
-            Outcome::Direct(Landing::opened_to(canon, level, landing.note()))
+            Outcome::Direct(Landing::opened_to(canon, rung, landing.note()))
         }
         Outcome::Fallback(s) => {
             Outcome::Fallback(StandIn::new(canon, canon, s.stand_in(), s.note()))

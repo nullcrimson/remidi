@@ -267,13 +267,13 @@ notes = [ {} ]",
     }
 
     fn plays_in_zone(tgt: &EngineMap, canon: Canon) -> bool {
-        openings(tgt)
-            .iter()
-            .any(|c| c.rung().map(|(_, z)| z) == canon.rung().map(|(_, z)| z))
+        canon
+            .rung()
+            .is_some_and(|(_, zone)| tgt.hat_ladder().is_some_and(|l| l.plays_in(zone)))
     }
 
     #[test]
-    fn an_opening_lands_exactly_in_its_zone_on_a_target_playing_that_zone() {
+    fn a_rung_lands_exactly_in_its_zone_on_a_target_playing_a_level_in_that_zone() {
         for (src, tgt, mapping) in named_pairs() {
             for canon in openings(src).into_iter().filter(|&c| plays_in_zone(tgt, c)) {
                 let outcome = mapping.resolve_canon(canon);

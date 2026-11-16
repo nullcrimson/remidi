@@ -123,15 +123,15 @@ impl Canon {
     }
 
     /// The rung of the main hi-hat's ladder this drum is and where it is hit, when this drum is
-    /// the main hi-hat played at an open level.
+    /// the main hi-hat played loose or at an open level.
     pub fn rung(self) -> Option<(Rung, HatZone)> {
         match self.0 {
-            Slot::Hat(HatOpen::Rung(rung @ Rung::Level(_)), zone) => Some((rung, zone)),
+            Slot::Hat(HatOpen::Rung(rung), zone) => Some((rung, zone)),
             _ => None,
         }
     }
 
-    /// Whether this drum is a rung of the main hi-hat's ladder, in any zone.
+    /// Whether this drum is a rung of the main hi-hat's ladder, loose or open, in any zone.
     pub fn is_main_hat_rung(self) -> bool {
         self.rung().is_some()
     }
@@ -145,9 +145,7 @@ impl Canon {
     /// its ladder; any other drum as it is.
     pub fn at_rung(self, rung: Rung) -> Canon {
         match self.0 {
-            Slot::Hat(HatOpen::Rung(Rung::Level(_)), zone) => {
-                Canon(Slot::Hat(HatOpen::Rung(rung), zone))
-            }
+            Slot::Hat(HatOpen::Rung(_), zone) => Canon(Slot::Hat(HatOpen::Rung(rung), zone)),
             _ => self,
         }
     }
@@ -225,7 +223,7 @@ mod tests {
     }
 
     #[test]
-    fn an_open_main_hat_is_a_rung_in_its_zone() {
+    fn a_loose_or_open_main_hat_is_a_rung_in_its_zone() {
         assert_eq!(
             k("hat.open2").rung(),
             Some((Rung::Level(idx(2)), HatZone::Plain))
@@ -234,28 +232,31 @@ mod tests {
             k("hat.open4.edge").rung(),
             Some((Rung::Level(idx(4)), HatZone::Edge))
         );
+        assert_eq!(k("hat.loose.tip").rung(), Some((Rung::Loose, HatZone::Tip)));
     }
 
     #[test]
-    fn only_an_open_main_hat_is_a_rung() {
+    fn only_a_loose_or_open_main_hat_is_a_rung() {
         assert_eq!(k("aux1.open2").rung(), None);
-        assert_eq!(k("hat.loose").rung(), None);
+        assert_eq!(k("aux1.loose").rung(), None);
+        assert_eq!(k("hat.closed").rung(), None);
         assert_eq!(k("hat.cc").rung(), None);
         assert_eq!(k("snare1.hit").rung(), None);
     }
 
     #[test]
-    fn an_open_main_hat_moves_to_another_rung_in_its_zone() {
+    fn a_main_hat_rung_moves_to_another_rung_in_its_zone() {
         let level = |n| Rung::Level(idx(n));
         assert_eq!(k("hat.open1.tip").at_rung(level(4)), k("hat.open4.tip"));
-        assert_eq!(k("hat.open3").at_rung(level(1)), k("hat.open1"));
+        assert_eq!(k("hat.open3").at_rung(Rung::Loose), k("hat.loose"));
+        assert_eq!(k("hat.loose.edge").at_rung(level(2)), k("hat.open2.edge"));
     }
 
     #[test]
     fn a_drum_that_is_no_rung_stays_itself_at_any_rung() {
         let level = Rung::Level(idx(4));
         assert_eq!(k("aux1.open2").at_rung(level), k("aux1.open2"));
-        assert_eq!(k("hat.loose").at_rung(level), k("hat.loose"));
+        assert_eq!(k("hat.closed").at_rung(level), k("hat.closed"));
         assert_eq!(k("snare1.hit").at_rung(level), k("snare1.hit"));
     }
 

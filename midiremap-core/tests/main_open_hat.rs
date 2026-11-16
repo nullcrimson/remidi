@@ -68,7 +68,11 @@ fn a_main_open_hat_lands_on_halpern_open_2_as_its_general_midi_map_plays_it() {
 #[test]
 fn gm_open_hat_lands_on_duplantier_2_edge_open_3() {
     assert_eq!(lands("general_midi", "mixwave_duplantier2", 46), Some(46));
-    assert_eq!(lands("ggd_invasion", "mixwave_duplantier2", 45), Some(77));
+}
+
+#[test]
+fn ggd_open_levels_keep_their_order_on_duplantier_2() {
+    assert_eq!(lands("ggd_invasion", "mixwave_duplantier2", 45), Some(78));
 }
 
 #[test]
@@ -84,15 +88,71 @@ fn gm_closed_hat_lands_on_hertz_2_closed_tip_not_its_choke() {
 
 #[test]
 fn ggd_open_levels_keep_their_order_on_krimh() {
-    assert_eq!(lands("ggd_invasion", "bogren_krimh", 45), Some(43));
+    assert_eq!(lands("ggd_invasion", "bogren_krimh", 45), Some(45));
     assert_eq!(lands("ggd_invasion", "bogren_krimh", 46), Some(46));
     assert_eq!(lands("ggd_invasion", "bogren_krimh", 47), Some(47));
 }
 
 #[test]
 fn ggd_open_levels_keep_their_order_on_mangini() {
-    assert_eq!(lands("ggd_invasion", "mixwave_mangini", 45), Some(77));
+    assert_eq!(lands("ggd_invasion", "mixwave_mangini", 45), Some(78));
     assert_eq!(lands("ggd_invasion", "mixwave_mangini", 46), Some(46));
+}
+
+fn each_lands(src: &str, tgt: &str, notes: &[(u8, u8)]) {
+    for &(from, to) in notes {
+        assert_eq!(lands(src, tgt, from), Some(to), "{src} {from} -> {tgt}");
+    }
+}
+
+#[test]
+fn addictive_drums_2_rungs_each_take_their_own_step_on_ezdrummer_3() {
+    each_lands(
+        "addictive_drums2",
+        "ezdrummer",
+        &[(54, 24), (55, 25), (56, 26), (57, 60)],
+    );
+}
+
+#[test]
+fn superior_drummer_3_rungs_skip_no_rung_on_addictive_drums_2() {
+    each_lands(
+        "superior_drummer3",
+        "addictive_drums2",
+        &[(64, 54), (24, 54), (25, 55), (26, 56), (60, 57), (17, 57)],
+    );
+}
+
+#[test]
+fn superior_drummer_3_bell_rungs_stay_on_the_one_addictive_drums_2_bell_rung() {
+    each_lands(
+        "superior_drummer3",
+        "addictive_drums2",
+        &[(120, 58), (121, 58), (122, 58), (123, 58), (124, 58)],
+    );
+}
+
+#[test]
+fn ggd_open_levels_reach_guitar_pros_half_open_hat() {
+    each_lands(
+        "ggd_invasion",
+        "guitar_pro",
+        &[(45, 92), (46, 46), (47, 46)],
+    );
+}
+
+#[test]
+fn krimhs_tip_open_hat_counts_its_steps_from_krimhs_main_on_ggd() {
+    each_lands("bogren_krimh", "ggd_invasion", &[(50, 45), (46, 46)]);
+}
+
+#[test]
+fn superior_drummer_3_tip_rungs_count_among_every_fotis_benardo_rung() {
+    each_lands(
+        "superior_drummer3",
+        "fotis_benardo",
+        &[(13, 54), (14, 46), (15, 49), (16, 49), (17, 49)],
+    );
 }
 
 #[test]
@@ -139,6 +199,15 @@ fn an_edit_of_a_target_open_hat_row_moves_no_source_open_hat_landing_on_it() {
     let lands = |key| m.resolve_canon(k(key)).note().map(|n| n.get());
     assert_eq!(lands("hat.open2.tip"), Some(79));
     assert_eq!(lands("hat.open3.tip"), Some(79));
+}
+
+#[test]
+fn an_edit_of_a_target_loose_hat_moves_no_source_loose_hat_landing_on_it() {
+    let catalog = Catalog::builtin();
+    let edited = r#"{"edits":{"hat.loose":100},"srcEdits":{}}"#;
+    let m = mapping(&catalog, "superior_drummer3", "addictive_drums2", edited);
+    let lands = |key| m.resolve_canon(k(key)).note().map(|n| n.get());
+    assert_eq!(lands("hat.loose.edge"), Some(54));
 }
 
 #[test]

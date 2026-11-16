@@ -1,4 +1,4 @@
-use midiremap_kit::canon::{Canon, OpenLevel, Rung};
+use midiremap_kit::canon::{Canon, Rung};
 use midiremap_note::Note;
 use serde::Serialize;
 
@@ -30,7 +30,7 @@ pub enum Outcome {
 }
 
 /// The target drum that plays `canon` on `note`: `canon` itself, or the same drum matched to
-/// the source's, the main hi-hat at the opening that matches the source's or the same stroke on
+/// the source's, the main hi-hat at the rung that matches the source's or the same stroke on
 /// the target tom the source's toms spread it to.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize)]
 #[cfg_attr(feature = "ts", derive(tsify::Tsify))]
@@ -52,11 +52,11 @@ impl Landing {
         }
     }
 
-    /// The open main hi-hat `canon` played at `level` on `note`.
-    pub(crate) fn opened_to(canon: Canon, level: OpenLevel, note: Note) -> Self {
+    /// The main hi-hat rung `canon` played at `rung` on `note`.
+    pub(crate) fn opened_to(canon: Canon, rung: Rung, note: Note) -> Self {
         Self {
             canon,
-            plays: canon.at_rung(Rung::Level(level)),
+            plays: canon.at_rung(rung),
             note,
         }
     }

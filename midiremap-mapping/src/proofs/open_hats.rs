@@ -1,128 +1,171 @@
+use std::cmp::Ordering;
+
 use midiremap_kit::{
-    canon::{HatZone, OpenLevel},
+    canon::{HatZone, OpenLevel, Rung},
     engine::{Catalog, HatLadder},
 };
 use strum::VariantArray;
 
 use super::assert_none;
 
-/// Every engine whose hi-hat opens in one zone: each set of levels it plays, with each of them
-/// as its main level.
-fn every_one_zone_hat(zone: HatZone) -> Vec<(Vec<OpenLevel>, HatLadder)> {
+/// Every engine whose hi-hat plays some open levels, loose or not: each set of rungs it plays,
+/// each rung in the zone `place` gives it, with each of its levels as its main level.
+fn every_hat(place: impl Fn(Rung) -> HatZone) -> Vec<HatLadder> {
     let all: Vec<OpenLevel> = OpenLevel::all().collect();
-    (1..1u32 << all.len())
-        .flat_map(|mask| {
-            let played: Vec<OpenLevel> = all
+    let mut hats = Vec::new();
+    for loose in [false, true] {
+        for mask in 1..1u32 << all.len() {
+            let levels: Vec<OpenLevel> = all
                 .iter()
                 .enumerate()
                 .filter(|&(i, _)| mask & (1 << i) != 0)
                 .map(|(_, &l)| l)
                 .collect();
-            played
-                .clone()
+            let rungs: Vec<Rung> = loose
+                .then_some(Rung::Loose)
                 .into_iter()
-                .map(move |main| {
-                    let levels = HatLadder::new(played.iter().map(|&l| (l, zone)), main)
-                        .expect("the main level is among the played ones");
-                    (played.clone(), levels)
-                })
-                .collect::<Vec<_>>()
-        })
-        .collect()
-}
-
-/// What breaks the agreed rules when `from` plays its levels on `to`, both in one zone.
-fn broken(from: &(Vec<OpenLevel>, HatLadder), to: &(Vec<OpenLevel>, HatLadder)) -> Vec<String> {
-    let ((played, src), (among, tgt)) = (from, to);
-    let land = |l: OpenLevel| src.toward(tgt, l, HatZone::Plain);
-    let (from_main, to_main) = (src.main(), tgt.main());
-    let mut out = Vec::new();
-    for &l in played {
-        let at = land(l);
-        let side = l.cmp(&from_main);
-        let target_side = among.iter().any(|t| t.cmp(&to_main) == side);
-        let lands_on_side = at.cmp(&to_main) == side;
-        if !among.contains(&at) {
-            out.push(format!("{l} lands on {at}, which the target does not play"));
-        }
-        if side.is_eq() && at != to_main {
-            out.push(format!("main {l} lands on {at}, not the main {to_main}"));
-        }
-        if side.is_ne() && lands_on_side != target_side {
-            out.push(format!("{l} lands on {at}, on the wrong side of {to_main}"));
+                .chain(levels.iter().copied().map(Rung::Level))
+                .collect();
+            for &main in &levels {
+                let played = rungs.iter().map(|&r| (r, place(r)));
+                hats.push(
+                    HatLadder::new(played, main).expect("the main level is among the played ones"),
+                );
+            }
         }
     }
-    for pair in played.windows(2) {
-        if land(pair[0]) > land(pair[1]) {
-            out.push(format!("{} lands more open than {}", pair[0], pair[1]));
+    hats
+}
+
+/// The rungs of `rungs` on `side` of `main`, nearest it first.
+fn outward(rungs: &[Rung], main: Rung, side: Ordering) -> Vec<Rung> {
+    let mut on_side: Vec<Rung> = rungs
+        .iter()
+        .copied()
+        .filter(|r| r.cmp(&main) == side)
+        .collect();
+    on_side.sort_by_key(|r| r.distance(main));
+    on_side
+}
+
+/// What breaks the agreed rules when `src` plays its rungs of `zone` on `tgt`, each engine
+/// counted among the rungs its ladder counts among there.
+fn breaks(src: &HatLadder, tgt: &HatLadder, zone: HatZone) -> Vec<String> {
+    let (from, to) = (src.rungs_in(zone), tgt.rungs_in(zone));
+    let (from_main, to_main) = (Rung::Level(src.main()), Rung::Level(tgt.main()));
+    let land = |r: Rung| src.toward(tgt, r, zone);
+    let main_at = land(from_main);
+    let mut out = Vec::new();
+    let nearest = to
+        .iter()
+        .all(|t| t.distance(to_main) >= main_at.distance(to_main));
+    if !to.contains(&main_at) || (to.contains(&to_main) && main_at != to_main) || !nearest {
+        out.push(format!(
+            "the main level lands on {main_at:?}, not the zone's rung nearest {to_main:?}"
+        ));
+    }
+    for &r in &from {
+        let at = land(r);
+        let side = r.cmp(&from_main);
+        let room = to.iter().any(|t| t.cmp(&to_main) == side);
+        if !to.contains(&at) {
+            out.push(format!(
+                "{r:?} lands on {at:?}, which the zone does not play"
+            ));
+        }
+        let on_side = if side.is_ne() && room {
+            at.cmp(&to_main) == side
+        } else {
+            at == main_at
+        };
+        if !on_side {
+            out.push(format!(
+                "{r:?} lands on {at:?}, off its side of {to_main:?}"
+            ));
+        }
+    }
+    let landed: Vec<Rung> = from.iter().map(|&r| land(r)).collect();
+    if landed.windows(2).any(|w| w[0] > w[1]) {
+        out.push(format!("order {landed:?}"));
+    }
+    for side in [Ordering::Less, Ordering::Greater] {
+        let theirs = outward(&to, to_main, side);
+        let mine: Vec<Rung> = outward(&from, from_main, side)
+            .into_iter()
+            .map(land)
+            .collect();
+        if mine
+            .windows(2)
+            .any(|w| w[0] == w[1] && theirs.last().is_some_and(|&last| w[0] != last))
+        {
+            out.push(format!(
+                "{side:?}: {mine:?} share a rung before the last of {theirs:?}"
+            ));
+        }
+        let mut used: Vec<Rung> = mine
+            .iter()
+            .copied()
+            .filter(|at| at.cmp(&to_main) == side)
+            .collect();
+        used.dedup();
+        if theirs.get(..used.len()) != Some(&used[..]) {
+            out.push(format!("{side:?}: {mine:?} skip a rung of {theirs:?}"));
         }
     }
     out
 }
 
 #[test]
-fn every_open_level_lands_on_a_played_level_on_its_side_of_the_main_in_order() {
-    let hats = every_one_zone_hat(HatZone::Plain);
+fn every_rung_lands_on_a_played_rung_on_its_side_of_the_main_in_order() {
+    let hats = every_hat(|_| HatZone::Plain);
     let failures: Vec<String> = hats
         .iter()
-        .flat_map(|from| hats.iter().map(move |to| (from, to)))
-        .flat_map(|(from, to)| {
-            broken(from, to).into_iter().map(move |f| {
+        .flat_map(|src| hats.iter().map(move |tgt| (src, tgt)))
+        .flat_map(|(src, tgt)| {
+            breaks(src, tgt, HatZone::Plain).into_iter().map(move |f| {
                 format!(
                     "{:?} main {} -> {:?} main {}: {f}",
-                    from.0,
-                    from.1.main(),
-                    to.0,
-                    to.1.main()
+                    src.rungs_in(HatZone::Plain),
+                    src.main(),
+                    tgt.rungs_in(HatZone::Plain),
+                    tgt.main()
                 )
             })
         })
         .collect();
-    assert_eq!(hats.len(), 192);
+    assert_eq!(hats.len(), 384);
     assert_none(&failures, "breaks");
 }
 
 #[test]
 fn a_zone_that_plays_no_level_counts_among_the_levels_of_every_zone() {
-    let in_plain = every_one_zone_hat(HatZone::Plain);
-    let in_tip = every_one_zone_hat(HatZone::Tip);
-    for ((played, src), (_, src_tip)) in in_plain.iter().zip(&in_tip) {
-        for ((_, tgt), (_, tgt_tip)) in in_plain.iter().zip(&in_tip) {
-            for &l in played {
-                let plain = src.toward(tgt, l, HatZone::Plain);
-                assert_eq!(src_tip.toward(tgt, l, HatZone::Plain), plain);
-                assert_eq!(src.toward(tgt_tip, l, HatZone::Plain), plain);
+    let in_plain = every_hat(|_| HatZone::Plain);
+    let in_tip = every_hat(|_| HatZone::Tip);
+    let loose_apart = every_hat(|r| match r {
+        Rung::Loose => HatZone::Plain,
+        Rung::Level(_) => HatZone::Tip,
+    });
+    let hats: Vec<(&HatLadder, &HatLadder, &HatLadder)> = in_plain
+        .iter()
+        .zip(&in_tip)
+        .zip(&loose_apart)
+        .map(|((plain, tip), apart)| (plain, tip, apart))
+        .collect();
+    for &(src, src_tip, src_apart) in &hats {
+        for &(tgt, tgt_tip, tgt_apart) in &hats {
+            for r in src.rungs_in(HatZone::Plain) {
+                let plain = src.toward(tgt, r, HatZone::Plain);
+                assert_eq!(src_tip.toward(tgt, r, HatZone::Plain), plain);
+                assert_eq!(src.toward(tgt_tip, r, HatZone::Plain), plain);
+                assert_eq!(src_apart.toward(tgt, r, HatZone::Plain), plain);
+                assert_eq!(src.toward(tgt_apart, r, HatZone::Plain), plain);
             }
         }
     }
 }
 
-/// The levels `hat` plays in `zone`, or in any zone when it plays none there.
-fn levels_in_zone(hat: &HatLadder, zone: HatZone) -> Vec<OpenLevel> {
-    let all: Vec<OpenLevel> = hat.played().iter().map(|&(_, l)| l).collect();
-    let in_zone: Vec<OpenLevel> = hat
-        .played()
-        .iter()
-        .filter(|&&(z, _)| z == zone)
-        .map(|&(_, l)| l)
-        .collect();
-    let mut levels = if in_zone.is_empty() { all } else { in_zone };
-    levels.sort();
-    levels.dedup();
-    levels
-}
-
-/// The level of `levels` nearest `hat`'s main level, the less open one on a tie.
-fn zone_main(hat: &HatLadder, levels: &[OpenLevel]) -> OpenLevel {
-    let main = hat.main().get();
-    *levels
-        .iter()
-        .min_by_key(|l| (l.get().abs_diff(main), l.get()))
-        .expect("every zone has a level")
-}
-
 #[test]
-fn every_builtin_pair_lands_each_open_level_in_its_zone_on_its_side_in_order() {
+fn every_builtin_pair_lands_each_rung_in_its_zone_on_its_side_in_order() {
     let catalog = Catalog::shared();
     let hats: Vec<(&str, &HatLadder)> = catalog
         .engines()
@@ -132,29 +175,17 @@ fn every_builtin_pair_lands_each_open_level_in_its_zone_on_its_side_in_order() {
     for &(src_id, src) in &hats {
         for &(tgt_id, tgt) in &hats {
             for &zone in HatZone::VARIANTS {
-                let (from, to) = (levels_in_zone(src, zone), levels_in_zone(tgt, zone));
-                let (from_main, to_main) = (zone_main(src, &from), zone_main(tgt, &to));
-                let landed: Vec<OpenLevel> =
-                    from.iter().map(|&l| src.toward(tgt, l, zone)).collect();
-                for (&l, &at) in from.iter().zip(&landed) {
-                    let side = l.cmp(&from_main);
-                    let room = to.iter().any(|t| t.cmp(&to_main) == side);
-                    let ok = to.contains(&at)
-                        && (side.is_ne() || at == to_main)
-                        && (side.is_eq() || (at.cmp(&to_main) == side) == room);
-                    if !ok {
-                        failures.push(format!("{src_id} -> {tgt_id} {zone:?}: {l} lands on {at}"));
-                    }
-                }
-                if landed.windows(2).any(|w| w[0] > w[1]) {
-                    failures.push(format!("{src_id} -> {tgt_id} {zone:?}: order {landed:?}"));
-                }
+                failures.extend(
+                    breaks(src, tgt, zone)
+                        .into_iter()
+                        .map(|f| format!("{src_id} -> {tgt_id} {zone:?}: {f}")),
+                );
             }
         }
     }
     assert!(
         hats.len() > 40,
-        "only {} engines have open levels",
+        "only {} engines have a hat ladder",
         hats.len()
     );
     assert_none(&failures, "breaks");

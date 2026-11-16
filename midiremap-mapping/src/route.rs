@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use midiremap_kit::{
-    canon::{Canon, OpenLevel, Rung},
+    canon::{Canon, Rung},
     engine::EngineMap,
     spread::{SpreadStroke, Spreads},
 };
@@ -14,8 +14,9 @@ pub(crate) enum Route {
     /// By its own name: the target's drum of that name, else the first drum of its fallback
     /// chain the target has.
     Chain,
-    /// An open main hi-hat, on the target's opening at the level that matches the source's.
-    Opening(OpenLevel),
+    /// A rung of the main hi-hat, loose or open, on the target's rung as many steps from its
+    /// normal open hat as the source's is from the source's.
+    Opening(Rung),
     /// A stroke a spread moves, `named` when the target has the stroke itself.
     Spread { stroke: SpreadStroke, named: bool },
 }
@@ -26,7 +27,7 @@ impl Route {
     pub(crate) fn matched_drum(self, canon: Canon) -> Option<Canon> {
         match self {
             Self::Chain => None,
-            Self::Opening(level) => Some(canon.at_rung(Rung::Level(level))),
+            Self::Opening(rung) => Some(canon.at_rung(rung)),
             Self::Spread { stroke, .. } => Some(stroke.plays()),
         }
     }
@@ -68,10 +69,10 @@ impl Routes {
 }
 
 fn route(src: &EngineMap, tgt: &EngineMap, spreads: &Spreads, canon: Canon) -> Route {
-    if let (Some((Rung::Level(level), zone)), Some(from), Some(to)) =
+    if let (Some((rung, zone)), Some(from), Some(to)) =
         (canon.rung(), src.hat_ladder(), tgt.hat_ladder())
     {
-        return Route::Opening(from.toward(to, level, zone));
+        return Route::Opening(from.toward(to, rung, zone));
     }
     spreads
         .stroke(canon)
