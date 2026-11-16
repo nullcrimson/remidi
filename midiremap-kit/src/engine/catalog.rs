@@ -112,7 +112,10 @@ mod tests {
     use midiremap_testkit::engine_json;
 
     use super::*;
-    use crate::{canon::k, engine::OpenLevels};
+    use crate::{
+        canon::{k, Rung},
+        engine::HatLadder,
+    };
 
     #[test]
     fn a_mapping_variant_opens_its_hat_like_its_base_kit() {
@@ -121,13 +124,13 @@ mod tests {
             .engines()
             .filter_map(|v| Some((v, catalog.get(v.variant()?.of())?)))
             .filter(|(v, base)| {
-                let base_main = base.open_levels().map(OpenLevels::main);
+                let base_main = base.hat_ladder().map(HatLadder::main);
                 let plays = |l| {
-                    v.drums()
-                        .iter()
-                        .any(|d| d.entry.canon().opening().map(|(level, _)| level) == Some(l))
+                    v.drums().iter().any(|d| {
+                        d.entry.canon().rung().map(|(rung, _)| rung) == Some(Rung::Level(l))
+                    })
                 };
-                base_main.is_some_and(plays) && v.open_levels().map(OpenLevels::main) != base_main
+                base_main.is_some_and(plays) && v.hat_ladder().map(HatLadder::main) != base_main
             })
             .map(|(v, _)| v.id())
             .collect();

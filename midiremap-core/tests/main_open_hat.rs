@@ -147,7 +147,7 @@ fn the_preview_shows_the_source_open_hat_on_the_targets_main_open_hat() {
     let rows = mapping(&catalog, "general_midi", "ezdrummer", NO_EDITS).preview();
     let open: Vec<(String, Vec<u8>, Option<u8>)> = rows
         .iter()
-        .filter(|r| r.entry().canon().is_open_main_hat())
+        .filter(|r| r.entry().canon().is_main_hat_rung())
         .map(|r| {
             let src: Vec<u8> = r.src_notes.iter().map(|n| n.get()).collect();
             (

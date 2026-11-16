@@ -41,7 +41,7 @@ impl<'a> Pair<'a> {
             .iter()
             .copied()
             .filter(|&c| src.encode(c).is_some() && tgt.encode(c).is_none())
-            .filter(|&c| !(c.is_open_main_hat() && lands_by_match(&near, tgt, c)))
+            .filter(|&c| !(c.is_main_hat_rung() && lands_by_match(&near, tgt, c)))
             .collect();
         let matched = missing
             .iter()

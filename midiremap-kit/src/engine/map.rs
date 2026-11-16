@@ -6,7 +6,7 @@ use std::{
 use midiremap_note::Note;
 use serde::{Deserialize, Serialize};
 
-use super::open_levels::OpenLevels;
+use super::ladder::HatLadder;
 use crate::{
     canon::{Canon, CanonEntry, OpenLevel},
     non_blank::NonBlank,
@@ -106,7 +106,7 @@ pub struct EngineMap {
     aliases: Vec<String>,
     variant: Option<Variant>,
     grooves_from: Option<Note>,
-    open_levels: Option<OpenLevels>,
+    hat_ladder: Option<HatLadder>,
     kit: Kit,
     to_canon: HashMap<Note, Canon>,
     from_canon: HashMap<Canon, Note>,
@@ -148,10 +148,7 @@ impl EngineMap {
                 aliases: Vec::new(),
                 variant: None,
                 grooves_from: None,
-                open_hat_level: Canon::CORE_KIT
-                    .iter()
-                    .find_map(|c| c.opening())
-                    .map(|(level, _)| level),
+                open_hat_level: Canon::CORE_KIT.iter().find_map(|c| c.rung()?.0.level()),
                 notes: notes
                     .map(|(note, canon)| RawEntry {
                         note,
@@ -221,8 +218,8 @@ impl EngineMap {
     }
 
     /// How far the main hi-hat opens, when the engine names its normal open hat.
-    pub fn open_levels(&self) -> Option<&OpenLevels> {
-        self.open_levels.as_ref()
+    pub fn hat_ladder(&self) -> Option<&HatLadder> {
+        self.hat_ladder.as_ref()
     }
 
     /// The toms and cymbals it plays, as the spreads place them.
@@ -329,7 +326,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
         }
     }
 
-    let open_levels = open_levels(&raw.id, raw.open_hat_level, &to_canon)?;
+    let hat_ladder = hat_ladder(&raw.id, raw.open_hat_level, &to_canon)?;
     let kit = Kit::of(from_canon.keys().copied());
     Ok(EngineMap {
         id: raw.id,
@@ -339,7 +336,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
         aliases: raw.aliases,
         variant,
         grooves_from: raw.grooves_from,
-        open_levels,
+        hat_ladder,
         kit,
         to_canon,
         from_canon,
@@ -348,15 +345,15 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
 
 /// The main hi-hat's open levels, the normal open hat the `declared` level or else the one on
 /// [`GM_OPEN_HAT`]; `None` when neither names one.
-fn open_levels(
+fn hat_ladder(
     engine: &str,
     declared: Option<OpenLevel>,
     to_canon: &HashMap<Note, Canon>,
-) -> Result<Option<OpenLevels>, MapError> {
+) -> Result<Option<HatLadder>, MapError> {
     let on_gm_open_hat = to_canon
         .get(&GM_OPEN_HAT)
-        .and_then(|c| c.opening())
-        .map(|(level, _)| level);
+        .and_then(|c| c.rung())
+        .and_then(|(rung, _)| rung.level());
     let main = match (declared, on_gm_open_hat) {
         (Some(level), Some(evident)) if level == evident => {
             return Err(MapError::OpenHatLevelRedundant {
@@ -367,7 +364,11 @@ fn open_levels(
         (Some(level), _) | (None, Some(level)) => level,
         (None, None) => return Ok(None),
     };
-    OpenLevels::new(to_canon.values().filter_map(|c| c.opening()), main)
+    let levels = to_canon.values().filter_map(|c| {
+        let (rung, zone) = c.rung()?;
+        Some((rung.level()?, zone))
+    });
+    HatLadder::new(levels, main)
         .map(Some)
         .ok_or_else(|| MapError::OpenHatLevelNotPlayed {
             engine: engine.to_owned(),
@@ -545,7 +546,7 @@ mod tests {
     }
 
     fn main_level(m: &EngineMap) -> Option<u8> {
-        m.open_levels().map(|l| l.main().get())
+        m.hat_ladder().map(|l| l.main().get())
     }
 
     #[test]

@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 
 use midiremap_kit::{
-    canon::{Canon, OpenLevel},
+    canon::{Canon, OpenLevel, Rung},
     engine::EngineMap,
     spread::SpreadStroke,
 };
@@ -82,7 +82,7 @@ fn land(canon: Canon, route: Route, notes: &TargetNotes, missing: MissingDrums) 
         Route::Opening(level) => opened(
             canon,
             level,
-            resolve_on(notes.stock, canon.at_open_level(level), missing),
+            resolve_on(notes.stock, canon.at_rung(Rung::Level(level)), missing),
         ),
         Route::Spread { stroke, named } => spread(
             canon,

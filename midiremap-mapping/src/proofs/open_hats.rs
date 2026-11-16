@@ -1,6 +1,6 @@
 use midiremap_kit::{
     canon::{HatZone, OpenLevel},
-    engine::{Catalog, OpenLevels},
+    engine::{Catalog, HatLadder},
 };
 use strum::VariantArray;
 
@@ -8,7 +8,7 @@ use super::assert_none;
 
 /// Every engine whose hi-hat opens in one zone: each set of levels it plays, with each of them
 /// as its main level.
-fn every_one_zone_hat(zone: HatZone) -> Vec<(Vec<OpenLevel>, OpenLevels)> {
+fn every_one_zone_hat(zone: HatZone) -> Vec<(Vec<OpenLevel>, HatLadder)> {
     let all: Vec<OpenLevel> = OpenLevel::all().collect();
     (1..1u32 << all.len())
         .flat_map(|mask| {
@@ -22,7 +22,7 @@ fn every_one_zone_hat(zone: HatZone) -> Vec<(Vec<OpenLevel>, OpenLevels)> {
                 .clone()
                 .into_iter()
                 .map(move |main| {
-                    let levels = OpenLevels::new(played.iter().map(|&l| (l, zone)), main)
+                    let levels = HatLadder::new(played.iter().map(|&l| (l, zone)), main)
                         .expect("the main level is among the played ones");
                     (played.clone(), levels)
                 })
@@ -32,7 +32,7 @@ fn every_one_zone_hat(zone: HatZone) -> Vec<(Vec<OpenLevel>, OpenLevels)> {
 }
 
 /// What breaks the agreed rules when `from` plays its levels on `to`, both in one zone.
-fn broken(from: &(Vec<OpenLevel>, OpenLevels), to: &(Vec<OpenLevel>, OpenLevels)) -> Vec<String> {
+fn broken(from: &(Vec<OpenLevel>, HatLadder), to: &(Vec<OpenLevel>, HatLadder)) -> Vec<String> {
     let ((played, src), (among, tgt)) = (from, to);
     let land = |l: OpenLevel| src.toward(tgt, l, HatZone::Plain);
     let (from_main, to_main) = (src.main(), tgt.main());
@@ -98,7 +98,7 @@ fn a_zone_that_plays_no_level_counts_among_the_levels_of_every_zone() {
 }
 
 /// The levels `hat` plays in `zone`, or in any zone when it plays none there.
-fn levels_in_zone(hat: &OpenLevels, zone: HatZone) -> Vec<OpenLevel> {
+fn levels_in_zone(hat: &HatLadder, zone: HatZone) -> Vec<OpenLevel> {
     let all: Vec<OpenLevel> = hat.played().iter().map(|&(_, l)| l).collect();
     let in_zone: Vec<OpenLevel> = hat
         .played()
@@ -113,7 +113,7 @@ fn levels_in_zone(hat: &OpenLevels, zone: HatZone) -> Vec<OpenLevel> {
 }
 
 /// The level of `levels` nearest `hat`'s main level, the less open one on a tie.
-fn zone_main(hat: &OpenLevels, levels: &[OpenLevel]) -> OpenLevel {
+fn zone_main(hat: &HatLadder, levels: &[OpenLevel]) -> OpenLevel {
     let main = hat.main().get();
     *levels
         .iter()
@@ -124,9 +124,9 @@ fn zone_main(hat: &OpenLevels, levels: &[OpenLevel]) -> OpenLevel {
 #[test]
 fn every_builtin_pair_lands_each_open_level_in_its_zone_on_its_side_in_order() {
     let catalog = Catalog::shared();
-    let hats: Vec<(&str, &OpenLevels)> = catalog
+    let hats: Vec<(&str, &HatLadder)> = catalog
         .engines()
-        .filter_map(|e| e.open_levels().map(|l| (e.id(), l)))
+        .filter_map(|e| e.hat_ladder().map(|l| (e.id(), l)))
         .collect();
     let mut failures = Vec::new();
     for &(src_id, src) in &hats {

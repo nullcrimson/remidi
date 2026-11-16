@@ -1,4 +1,4 @@
-use midiremap_kit::canon::{Canon, OpenLevel};
+use midiremap_kit::canon::{Canon, OpenLevel, Rung};
 use midiremap_note::Note;
 use serde::Serialize;
 
@@ -56,7 +56,7 @@ impl Landing {
     pub(crate) fn opened_to(canon: Canon, level: OpenLevel, note: Note) -> Self {
         Self {
             canon,
-            plays: canon.at_open_level(level),
+            plays: canon.at_rung(Rung::Level(level)),
             note,
         }
     }

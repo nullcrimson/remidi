@@ -5,12 +5,12 @@ use crate::canon::{HatZone, OpenLevel, Rung};
 /// How far an engine's main hi-hat opens: the levels it plays in each zone and which level is
 /// its normal open hat.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct OpenLevels {
+pub struct HatLadder {
     played: BTreeSet<(HatZone, OpenLevel)>,
     main: OpenLevel,
 }
 
-impl OpenLevels {
+impl HatLadder {
     /// The levels `played`, each in its zone, `main` the normal open hat among them; `None`
     /// when no zone plays `main`.
     pub fn new(
@@ -44,7 +44,7 @@ impl OpenLevels {
     /// the one nearest its main: the main lands on `target`'s main, a less open level on the
     /// nearest of `target`'s less open ones, a more open level on the nearest of its more open
     /// ones, and on the main when `target` has none on that side.
-    pub fn toward(&self, target: &OpenLevels, level: OpenLevel, zone: HatZone) -> OpenLevel {
+    pub fn toward(&self, target: &HatLadder, level: OpenLevel, zone: HatZone) -> OpenLevel {
         let (_, from_main) = self.in_zone(zone);
         let (among, main) = target.in_zone(zone);
         let side = level.cmp(&from_main);
@@ -88,12 +88,12 @@ mod tests {
     use super::*;
     use crate::canon::idx;
 
-    fn plain(played: &[u8], main: u8) -> OpenLevels {
+    fn plain(played: &[u8], main: u8) -> HatLadder {
         let played = played.iter().map(|&n| (idx(n), HatZone::Plain));
-        OpenLevels::new(played, idx(main)).unwrap()
+        HatLadder::new(played, idx(main)).unwrap()
     }
 
-    fn landings(from: &OpenLevels, to: &OpenLevels, played: &[u8]) -> Vec<u8> {
+    fn landings(from: &HatLadder, to: &HatLadder, played: &[u8]) -> Vec<u8> {
         played
             .iter()
             .map(|&n| from.toward(to, idx(n), HatZone::Plain).get())
@@ -103,7 +103,7 @@ mod tests {
     #[test]
     fn the_main_level_must_be_played() {
         let played = [(idx(1), HatZone::Plain), (idx(3), HatZone::Tip)];
-        assert_eq!(OpenLevels::new(played, idx(2)), None);
+        assert_eq!(HatLadder::new(played, idx(2)), None);
     }
 
     #[test]
@@ -126,7 +126,7 @@ mod tests {
     #[test]
     fn a_level_lands_among_the_levels_the_target_plays_in_its_zone() {
         let ggd = plain(&[1, 2, 3], 2);
-        let hertz2 = OpenLevels::new(
+        let hertz2 = HatLadder::new(
             [1, 2, 3, 4]
                 .map(|n| (idx(n), HatZone::Plain))
                 .into_iter()
@@ -147,7 +147,7 @@ mod tests {
 
     #[test]
     fn a_zone_counts_from_its_own_level_nearest_the_main_on_both_sides() {
-        let trivium = OpenLevels::new(
+        let trivium = HatLadder::new(
             [(idx(4), HatZone::Edge)]
                 .into_iter()
                 .chain([1, 2, 3, 5].map(|n| (idx(n), HatZone::Tip))),
@@ -160,9 +160,9 @@ mod tests {
 
     #[test]
     fn a_zone_without_the_main_level_takes_its_level_nearest_the_main() {
-        let bfd3 = OpenLevels::new([(idx(1), HatZone::Tip)], idx(1)).unwrap();
+        let bfd3 = HatLadder::new([(idx(1), HatZone::Tip)], idx(1)).unwrap();
         let krimh =
-            OpenLevels::new([(idx(4), HatZone::Plain), (idx(1), HatZone::Tip)], idx(4)).unwrap();
+            HatLadder::new([(idx(4), HatZone::Plain), (idx(1), HatZone::Tip)], idx(4)).unwrap();
         assert_eq!(bfd3.toward(&krimh, idx(1), HatZone::Tip), idx(1));
     }
 }

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use midiremap_kit::{
-    canon::{Canon, OpenLevel},
+    canon::{Canon, OpenLevel, Rung},
     engine::EngineMap,
     spread::{SpreadStroke, Spreads},
 };
@@ -26,7 +26,7 @@ impl Route {
     pub(crate) fn matched_drum(self, canon: Canon) -> Option<Canon> {
         match self {
             Self::Chain => None,
-            Self::Opening(level) => Some(canon.at_open_level(level)),
+            Self::Opening(level) => Some(canon.at_rung(Rung::Level(level))),
             Self::Spread { stroke, .. } => Some(stroke.plays()),
         }
     }
@@ -68,8 +68,8 @@ impl Routes {
 }
 
 fn route(src: &EngineMap, tgt: &EngineMap, spreads: &Spreads, canon: Canon) -> Route {
-    if let (Some((level, zone)), Some(from), Some(to)) =
-        (canon.opening(), src.open_levels(), tgt.open_levels())
+    if let (Some((Rung::Level(level), zone)), Some(from), Some(to)) =
+        (canon.rung(), src.hat_ladder(), tgt.hat_ladder())
     {
         return Route::Opening(from.toward(to, level, zone));
     }

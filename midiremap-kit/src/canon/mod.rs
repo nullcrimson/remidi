@@ -122,18 +122,18 @@ impl Canon {
         }
     }
 
-    /// How far open the main hi-hat is and where it is hit, when this drum is an open main
-    /// hi-hat.
-    pub fn opening(self) -> Option<(OpenLevel, HatZone)> {
+    /// The rung of the main hi-hat's ladder this drum is and where it is hit, when this drum is
+    /// the main hi-hat played at an open level.
+    pub fn rung(self) -> Option<(Rung, HatZone)> {
         match self.0 {
-            Slot::Hat(HatOpen::Rung(Rung::Level(level)), zone) => Some((level, zone)),
+            Slot::Hat(HatOpen::Rung(rung @ Rung::Level(_)), zone) => Some((rung, zone)),
             _ => None,
         }
     }
 
-    /// Whether this drum is the main hi-hat played open, at any level and in any zone.
-    pub fn is_open_main_hat(self) -> bool {
-        self.opening().is_some()
+    /// Whether this drum is a rung of the main hi-hat's ladder, in any zone.
+    pub fn is_main_hat_rung(self) -> bool {
+        self.rung().is_some()
     }
 
     /// The main hi-hat open to `level`.
@@ -141,11 +141,12 @@ impl Canon {
         Canon(Slot::Hat(HatOpen::Rung(Rung::Level(level)), HatZone::Plain))
     }
 
-    /// The same open main hi-hat, in the same zone, opened to `level`; any other drum as it is.
-    pub fn at_open_level(self, level: OpenLevel) -> Canon {
+    /// The same main hi-hat, in the same zone, played at `rung`, when this drum is a rung of
+    /// its ladder; any other drum as it is.
+    pub fn at_rung(self, rung: Rung) -> Canon {
         match self.0 {
             Slot::Hat(HatOpen::Rung(Rung::Level(_)), zone) => {
-                Canon(Slot::Hat(HatOpen::Rung(Rung::Level(level)), zone))
+                Canon(Slot::Hat(HatOpen::Rung(rung), zone))
             }
             _ => self,
         }
@@ -224,30 +225,38 @@ mod tests {
     }
 
     #[test]
-    fn an_open_main_hat_has_an_opening_in_its_zone() {
-        assert_eq!(k("hat.open2").opening(), Some((idx(2), HatZone::Plain)));
-        assert_eq!(k("hat.open4.edge").opening(), Some((idx(4), HatZone::Edge)));
+    fn an_open_main_hat_is_a_rung_in_its_zone() {
+        assert_eq!(
+            k("hat.open2").rung(),
+            Some((Rung::Level(idx(2)), HatZone::Plain))
+        );
+        assert_eq!(
+            k("hat.open4.edge").rung(),
+            Some((Rung::Level(idx(4)), HatZone::Edge))
+        );
     }
 
     #[test]
-    fn only_an_open_main_hat_has_an_opening() {
-        assert_eq!(k("aux1.open2").opening(), None);
-        assert_eq!(k("hat.loose").opening(), None);
-        assert_eq!(k("hat.cc").opening(), None);
-        assert_eq!(k("snare1.hit").opening(), None);
+    fn only_an_open_main_hat_is_a_rung() {
+        assert_eq!(k("aux1.open2").rung(), None);
+        assert_eq!(k("hat.loose").rung(), None);
+        assert_eq!(k("hat.cc").rung(), None);
+        assert_eq!(k("snare1.hit").rung(), None);
     }
 
     #[test]
-    fn an_open_main_hat_moves_to_another_level_in_its_zone() {
-        assert_eq!(k("hat.open1.tip").at_open_level(idx(4)), k("hat.open4.tip"));
-        assert_eq!(k("hat.open3").at_open_level(idx(1)), k("hat.open1"));
+    fn an_open_main_hat_moves_to_another_rung_in_its_zone() {
+        let level = |n| Rung::Level(idx(n));
+        assert_eq!(k("hat.open1.tip").at_rung(level(4)), k("hat.open4.tip"));
+        assert_eq!(k("hat.open3").at_rung(level(1)), k("hat.open1"));
     }
 
     #[test]
-    fn a_drum_without_an_opening_stays_itself_at_any_level() {
-        assert_eq!(k("aux1.open2").at_open_level(idx(4)), k("aux1.open2"));
-        assert_eq!(k("hat.loose").at_open_level(idx(4)), k("hat.loose"));
-        assert_eq!(k("snare1.hit").at_open_level(idx(4)), k("snare1.hit"));
+    fn a_drum_that_is_no_rung_stays_itself_at_any_rung() {
+        let level = Rung::Level(idx(4));
+        assert_eq!(k("aux1.open2").at_rung(level), k("aux1.open2"));
+        assert_eq!(k("hat.loose").at_rung(level), k("hat.loose"));
+        assert_eq!(k("snare1.hit").at_rung(level), k("snare1.hit"));
     }
 
     #[test]

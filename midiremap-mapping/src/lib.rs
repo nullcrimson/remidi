@@ -182,7 +182,7 @@ mod tests {
     use std::sync::LazyLock;
 
     use midiremap_kit::{
-        canon::k,
+        canon::{k, Rung},
         engine::{from_toml, Catalog},
     };
     use midiremap_note::n;
@@ -243,7 +243,7 @@ notes = [ {} ]",
             .drums()
             .iter()
             .map(|d| d.entry.canon())
-            .filter(|c| c.opening().is_some())
+            .filter(|c| c.rung().is_some())
             .collect();
         played.sort();
         played.dedup();
@@ -254,7 +254,7 @@ notes = [ {} ]",
         let catalog = Catalog::shared();
         let named: Vec<&EngineMap> = catalog
             .engines()
-            .filter(|m| m.open_levels().is_some())
+            .filter(|m| m.hat_ladder().is_some())
             .collect();
         named
             .iter()
@@ -269,7 +269,7 @@ notes = [ {} ]",
     fn plays_in_zone(tgt: &EngineMap, canon: Canon) -> bool {
         openings(tgt)
             .iter()
-            .any(|c| c.opening().map(|(_, z)| z) == canon.opening().map(|(_, z)| z))
+            .any(|c| c.rung().map(|(_, z)| z) == canon.rung().map(|(_, z)| z))
     }
 
     #[test]
@@ -277,13 +277,9 @@ notes = [ {} ]",
         for (src, tgt, mapping) in named_pairs() {
             for canon in openings(src).into_iter().filter(|&c| plays_in_zone(tgt, c)) {
                 let outcome = mapping.resolve_canon(canon);
-                let zone = outcome
-                    .played()
-                    .and_then(|(c, _)| c.opening())
-                    .map(|(_, z)| z);
+                let zone = outcome.played().and_then(|(c, _)| c.rung()).map(|(_, z)| z);
                 assert!(
-                    matches!(outcome, Outcome::Direct(_))
-                        && zone == canon.opening().map(|(_, z)| z),
+                    matches!(outcome, Outcome::Direct(_)) && zone == canon.rung().map(|(_, z)| z),
                     "{} -> {}: {canon} {outcome:?}",
                     src.id(),
                     tgt.id()
@@ -295,15 +291,16 @@ notes = [ {} ]",
     #[test]
     fn every_main_open_hat_lands_on_the_targets_main_open_hat() {
         for (src, tgt, mapping) in named_pairs() {
-            let (from, to) = (src.open_levels().unwrap(), tgt.open_levels().unwrap());
+            let (from, to) = (src.hat_ladder().unwrap(), tgt.hat_ladder().unwrap());
+            let (from_main, to_main) = (Rung::Level(from.main()), Rung::Level(to.main()));
             let mains = openings(src)
                 .into_iter()
-                .filter(|c| c.opening().is_some_and(|(l, _)| l == from.main()))
-                .filter(|c| tgt.encode(c.at_open_level(to.main())).is_some());
+                .filter(|c| c.rung().is_some_and(|(r, _)| r == from_main))
+                .filter(|c| tgt.encode(c.at_rung(to_main)).is_some());
             for canon in mains {
                 assert_eq!(
                     mapping.resolve_canon(canon).played().map(|(c, _)| c),
-                    Some(canon.at_open_level(to.main())),
+                    Some(canon.at_rung(to_main)),
                     "{} -> {}: {canon}",
                     src.id(),
                     tgt.id()
@@ -318,9 +315,9 @@ notes = [ {} ]",
             let mut landed: Vec<_> = openings(src)
                 .into_iter()
                 .filter_map(|c| {
-                    let (level, zone) = c.opening()?;
+                    let (rung, zone) = c.rung()?;
                     let (played, _) = mapping.resolve_canon(c).played()?;
-                    Some((zone, level, played.opening()?.0))
+                    Some((zone, rung, played.rung()?.0))
                 })
                 .collect();
             landed.sort();
@@ -493,8 +490,8 @@ notes = [ {} ]",
             for missing in [MissingDrums::Nearest, MissingDrums::Drop] {
                 let mapping = onto(map, missing);
                 let unplayed_opening = |canon: Canon| {
-                    canon.opening().is_some()
-                        && map.open_levels().is_some()
+                    canon.rung().is_some()
+                        && map.hat_ladder().is_some()
                         && map.encode(canon).is_none()
                 };
                 for &canon in Canon::all().iter().filter(|&&c| !unplayed_opening(c)) {
