@@ -3,6 +3,7 @@
 use std::fmt;
 
 use super::{
+    key::{hand_key, hat_key, key},
     Canon, CongaPitch, CymArtic, CymSlot, HandDrum, HandStroke, HatOpen, HatZone, KickKind,
     OpenLevel, PercKind, RideArtic, Slot, SnareArtic, TomArtic,
 };
@@ -414,6 +415,24 @@ enum Stroke {
     Hand(HandDrum),
 }
 
+impl fmt::Display for Stroke {
+    /// The stroke in the words its canon keys spell it with.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Self::Kick => f.write_str("kick"),
+            Self::Snare(a) => write!(f, "snare.{}", key(a)),
+            Self::Tom(a) => write!(f, "tom.{}", key(a)),
+            Self::Hat(o, z) => write!(f, "hat.{}", hat_key(o, z)),
+            Self::Cymbal(a) => write!(f, "cymbal.{}", key(a)),
+            Self::Bell => f.write_str(key(CymArtic::Bell)),
+            Self::BellTip => f.write_str(key(CymArtic::BellTip)),
+            Self::Ride(a) => write!(f, "ride.{}", key(a)),
+            Self::Perc(p) => write!(f, "perc.{}", key(p)),
+            Self::Hand(d) => f.write_str(&hand_key(d)),
+        }
+    }
+}
+
 fn cymbal_stroke(s: CymSlot, a: CymArtic) -> Stroke {
     let bell_cymbal = match s {
         CymSlot::Bell(_) => true,
@@ -479,7 +498,7 @@ pub fn snapshot() -> String {
                 Anchor::MayDrop(why) => format!("may drop: {why}"),
             };
             format!(
-                "{c} | stroke: {:?} | own: {} | lands on: {} | {anchor}\n",
+                "{c} | stroke: {} | own: {} | lands on: {} | {anchor}\n",
                 stroke(c),
                 keys(&r.own_strokes),
                 lands.join(" ")

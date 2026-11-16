@@ -30,7 +30,7 @@ fn hat_open_key(o: HatOpen) -> String {
         | HatOpen::PedalSplash => key(o).to_owned(),
     }
 }
-fn hat_key(o: HatOpen, z: HatZone) -> String {
+pub(super) fn hat_key(o: HatOpen, z: HatZone) -> String {
     dotted(hat_open_key(o), hat_zone_key(z))
 }
 fn dotted(stem: String, tail: Option<&str>) -> String {
@@ -51,14 +51,14 @@ fn hand_part_key(p: HandPart) -> &'static str {
         HandPart::Length(l) => l.into(),
     }
 }
-fn hand_key(d: HandDrum) -> String {
+pub(super) fn hand_key(d: HandDrum) -> String {
     let stroke = d.stroke();
     dotted(
         dotted(format!("perc.{}", key(d)), d.part().map(hand_part_key)),
         (stroke != HandStroke::Open).then(|| stroke.into()),
     )
 }
-fn key(part: impl Into<&'static str>) -> &'static str {
+pub(super) fn key(part: impl Into<&'static str>) -> &'static str {
     part.into()
 }
 fn tom_pos_key(p: TomPos) -> String {
