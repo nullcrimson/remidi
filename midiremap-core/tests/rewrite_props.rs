@@ -577,7 +577,7 @@ proptest! {
     }
 
     #[test]
-    fn keeping_unrecognized_notes_changes_no_count(
+    fn keeping_unrecognized_notes_changes_every_count_but_merged(
         midi in file(),
         pair in pair(),
         scope in scope(),
@@ -586,15 +586,23 @@ proptest! {
         let removed = converted(&midi, &pair.mapping_with(Unrecognized::Remove), scope);
         let (kept, removed) = (kept.map(|k| k.report), removed.map(|r| r.report));
         prop_assert_eq!(kept.as_ref().map(counts), removed.as_ref().map(counts));
-        let fates = |report: Option<&Report>| -> Vec<bool> {
-            report
-                .into_iter()
-                .flat_map(Report::unmapped_source)
-                .map(|(_, unmapped)| unmapped.fate == UnmappedFate::Removed)
-                .collect()
-        };
-        prop_assert!(fates(kept.as_ref()).iter().all(|&removed| !removed));
-        prop_assert!(fates(removed.as_ref()).iter().all(|&removed| removed));
+    }
+
+    #[test]
+    fn an_unrecognized_note_is_reported_removed_exactly_when_the_mapping_removes_such_notes(
+        midi in file(),
+        pair in pair(),
+        scope in scope(),
+        unrecognized in prop_oneof![Just(Unrecognized::Keep), Just(Unrecognized::Remove)],
+    ) {
+        let Some(out) = converted(&midi, &pair.mapping_with(unrecognized), scope) else { return Ok(()) };
+        for (note, unmapped) in out.report.unmapped_source() {
+            prop_assert_eq!(
+                unmapped.fate == UnmappedFate::Removed,
+                unrecognized == Unrecognized::Remove,
+                "note {}", note
+            );
+        }
     }
 
     #[test]

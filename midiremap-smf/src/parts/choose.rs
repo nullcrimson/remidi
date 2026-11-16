@@ -275,27 +275,33 @@ mod tests {
         );
     }
 
+    /// What `selection` picks of a kit beside a tambourine when the judge drops every hit.
+    fn picked_dropping_all(selection: impl Into<Selection>) -> Option<Vec<String>> {
+        let choice = chosen(&kit_beside(&[TAMBOURINE]), &selection.into(), |_| {
+            HitFate::Dropped
+        });
+        picked(&choice)
+    }
+
     #[test]
-    fn a_scope_or_picked_parts_convert_whatever_the_judge_says() {
-        let midi = kit_beside(&[TAMBOURINE]);
-        let parts = Parts::try_from(vec!["1:1".parse::<Part>().unwrap()]).unwrap();
-        let dropped = |_| HitFate::Dropped;
-        let selections: [Selection; 3] = [
-            ChannelScope::All.into(),
-            "10".parse::<ChannelScope>().unwrap().into(),
-            parts.into(),
-        ];
-        let picks: Vec<Option<Vec<String>>> = selections
-            .iter()
-            .map(|selection| picked(&chosen(&midi, selection, dropped)))
-            .collect();
+    fn all_converts_every_part_whatever_the_judge_says() {
         assert_eq!(
-            picks,
-            [
-                Some(vec!["1:1".to_owned(), "2:10".to_owned()]),
-                Some(vec!["2:10".to_owned()]),
-                Some(vec!["1:1".to_owned()]),
-            ]
+            picked_dropping_all(ChannelScope::All),
+            Some(vec!["1:1".to_owned(), "2:10".to_owned()])
         );
+    }
+
+    #[test]
+    fn one_channel_converts_its_parts_whatever_the_judge_says() {
+        assert_eq!(
+            picked_dropping_all("10".parse::<ChannelScope>().unwrap()),
+            Some(vec!["2:10".to_owned()])
+        );
+    }
+
+    #[test]
+    fn picked_parts_convert_whatever_the_judge_says() {
+        let parts = Parts::try_from(vec!["1:1".parse::<Part>().unwrap()]).unwrap();
+        assert_eq!(picked_dropping_all(parts), Some(vec!["1:1".to_owned()]));
     }
 }
