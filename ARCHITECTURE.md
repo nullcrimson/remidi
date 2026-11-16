@@ -171,7 +171,7 @@ midiremap-core/src/
       ├── summary.rs     ── PartSummary, Plays, part_summaries, auto_question (Known → AutoQuestion)
       └── fit.rs         ── SourceFit, SourceFits, source_fits
    convert/        ── convert(bytes, &Mapping, Selection) → Conversion (Done | Ask)
-      ├── rewrite.rs     ── rewrite(): one pure step per event, DeltaFold
+      ├── rewrite.rs     ── rewrite(): one pure step per event, Voicing (voice table, merge, retrigger), DeltaFold
       └── report.rs      ── Report, FallbackTally, Unmapped: what a conversion did with each hit
    files/          ── files for other programs
       ├── preset.rs      ── parse_preset: the preset file the app exports and the CLI reads
@@ -548,27 +548,45 @@ whether those notes are written.
   `Conversion::Ask { parts, why, damage }` when `Auto` must ask (nothing written). The CLI
   prints the damage and exits 3; the app names each damaged file on the done panel.
 - `rewrite(smf, &Mapping, filters) → (Smf, Report)` (`convert/rewrite.rs`) runs one pure
-  `step` per event, which returns the event as written and its `Fate` (`Kept`, `Removed`,
-  `Untouched`, `Played(note)` or `Dropped(note)`: whether it stays, and what it adds to the
-  report). `rewrite` records each fate in the report, and `thin` keeps the events that
-  stay:
-  - Note-on/off and poly aftertouch keys are rewritten to the destination note, so cymbal
-    chokes follow their cymbal.
-  - Dropped notes (and their aftertouch) are removed, and so are unmapped ones unless
-    the mapping's `Unrecognized` is `Keep`, which writes them out unchanged (same key,
-    channel, velocity and tick), where they play whatever target drum is on that key; a removed event's delta is folded into the next kept
-    event (`DeltaFold`) so timing does not shift. A folded gap past the `u28` maximum
-    fails the conversion with `CodecError::DeltaOverflow` instead of moving later events.
-    A track that lacks its End-of-Track gains one.
+  `step` per event, which says what it is on its own (`Stepped`): an event that passes as it
+  is (no note, or one on a rejected channel, `untouched` when it is a hit there), a hit on its
+  source note with the key its destination plays it on (or none), or a release or a choke of
+  its source note with the key the mapping gives. `thin` tallies each in the report and
+  drives the track's one `Voicing`, which owns the output, the `DeltaFold`, the running tick
+  and the voice table: for each channel and source note, its open hits in the order they
+  came, each with the key it went to and whether it is *written* (a note-on of its own),
+  *merged* (it sounds inside another hit's note-on) or *closed* (a retrigger ended it).
+  What sounds on a key, by whom and since which tick, is read from that table alone.
+  - A hit is written on its key when nothing, or only its own source note, sounds there.
+    When another source note sounds there and the newest note-on on the key is of the
+    same tick, the hit merges into it: not written, that note-on takes the higher velocity,
+    and the report counts it `merged` (GM 35 and 36 at one tick onto Invasion's one kick
+    are one note). When the newest note-on is older, the hit retriggers the key: one
+    `NoteOff` of velocity 0 per note-on still open there, every hit sounding there closed,
+    then the hit written. Kept unrecognized notes take part like any other. Notes in two
+    tracks are not merged, also on one channel.
+  - A release takes its source note's oldest open hit, first in, first out: a closed one's
+    release goes; a written or merged one's is written on its key unless other hits still
+    sound in that note (it then goes, and a written hit hands its note-on to a merged one),
+    so a merged note ends when the last of its hits ends and notes stay paired. A release
+    with no hit moves by the mapping. A choke (poly aftertouch) goes to the key of its
+    source note's newest hit that still sounds, and goes when all of them are closed, so a
+    choke of a cymbal another retriggered does not cut the other.
+  - Dropped notes are removed, and so are unmapped ones unless the mapping's
+    `Unrecognized` is `Keep`, which writes them out unchanged (same key, channel, velocity
+    and tick), where they play whatever target drum is on that key; a removed event's delta
+    is folded into the next written event (`DeltaFold`) so timing does not shift. A folded
+    gap past the `u28` maximum fails the conversion with `CodecError::DeltaOverflow`
+    instead of moving later events. A track that lacks its End-of-Track gains one.
   - Every other event, and every event on a rejected channel, passes through
     untouched.
   - Each real note-on (velocity > 0) is reported once; those on a rejected
     channel or skipped track count as `untouched`.
 
-  No active `(channel, note)` tracking is needed: translation is a pure function
-  of the note number, so a note-on and its note-off resolve identically and stay
-  paired. The only accepted loss is many-to-one collisions (e.g. L/R kick → one
-  note).
+  With a mapping that gives each source note one key, the key of a release or a choke from
+  the table is the one the mapping gives, so a file in which no two source notes share a
+  target key converts as each event would alone. A source note that overlaps itself is
+  written as it comes (not this table's business).
 - `Report` (`convert/report.rs`) keeps its counters private and hands them out as
   iterators and totals (`hits()` is every note-on seen); only the converter tallies
   them (`record`, `record_unmapped`, `record_untouched`). `record` keeps the counting
@@ -578,10 +596,12 @@ whether those notes are written.
   not recognize as one `Unmapped { hits, fate }` per note, its `UnmappedFate` (`Removed`,
   `KeptFree`, `KeptOnto(canon)`) set from the note's `Destination` by its first hit, since
   every hit of a note meets the same fate; the app names a kept note's drum from that
-  canon. `converted` counts hits written to the output
-  (direct or approximated); `untouched` counts note-ons the channel scope left alone,
-  which are not loss. It serializes in camelCase (`unmappedSource`, `fallbackUsed`,
-  `dropped`, `untouched`, `converted`) with its `BTreeMap`s in a stable order and note
+  canon. `converted` counts hits the output plays (direct or approximated), each on its
+  own note-on or merged into another's; `untouched` counts note-ons the channel scope left
+  alone, which are not loss; `merged` counts hits, converted or kept, that sound inside
+  another's note-on of their tick, so the output holds `converted + kept unrecognized +
+  untouched - merged` note-ons. It serializes in camelCase (`unmappedSource`, `fallbackUsed`,
+  `dropped`, `untouched`, `converted`, `merged`) with its `BTreeMap`s in a stable order and note
   keys as strings, so the CLI and WASM print the same JSON. An `unmappedSource` entry is
   `{ hits, fate }`, the fate `"removed"`, `"keptFree"` or `{ "keptOnto": canon }`. A `fallbackUsed` entry is
   `{ standIn, note, count }`; the app names the report line after `standIn`, and when a
@@ -589,11 +609,15 @@ whether those notes are written.
   there ("China → Crash 2 → Ride").
 - `tests/rewrite_props.rs` (proptest) checks this on generated multi-track files, with
   the built-in pair, missing setting, unrecognized setting and scope drawn at random:
-  kept events keep their absolute tick and everything but the key, only note events are
-  removed, notes stay paired per channel and key, and
+  kept events keep their absolute tick and everything but the key and a merged note-on's
+  raised velocity, only note events are removed, and the only events added are the
+  retrigger's `NoteOff`s before a hit on its key; notes stay paired per channel and key, and
   `converted + dropped + unmapped + untouched` equals the input's note-ons; keeping
-  unrecognized notes changes no count, only the fates (`Removed` against `KeptFree` or
-  `KeptOnto`), and writes `converted + unmapped + untouched` note-ons.
+  unrecognized notes changes no count but `merged`, only the fates (`Removed` against
+  `KeptFree` or `KeptOnto`), and writes `converted + unmapped + untouched - merged`
+  note-ons. On files where no note overlaps itself and every note lasts a tick, no key of a
+  converted channel sounds two notes at once or starts twice at one tick (a note of no
+  length ends where it starts, so a hit after it at that tick starts again).
 - `fuzz/` (cargo-fuzz, its own workspace) feeds `convert` arbitrary bytes: no panic,
   the output parses, and the counts add up. It runs daily in CI (`fuzz.yml`); locally,
   on Linux or WSL with a nightly toolchain:
