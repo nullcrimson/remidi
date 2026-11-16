@@ -82,7 +82,7 @@ convert-error = Error: { $error }
 notice-dismiss = Descartar
 channel-label = Canal de batería
 channel-tip-title = Qué notas se convierten
-channel-tip = Auto convierte el canal 10 —el canal de batería de General MIDI— y deja en paz los demás instrumentos; los otros canales de una pista de batería se ofrecen después de convertir. Un archivo sin canal 10 convierte su única parte con notas o te pregunta qué partes son la batería. Elige un canal o Todos para convertir por canal.
+channel-tip = Auto convierte el canal 10 —el canal de batería de General MIDI— y deja en paz los demás instrumentos; los otros canales de una pista de batería se ofrecen después de convertir. Un archivo sin canal 10 convierte su única parte con notas o te pregunta qué partes son la batería. También pregunta cuando el plugin de destino no tiene pieza para nada del canal 10 y otras partes tienen notas. Elige un canal o Todos para convertir por canal.
 missing-label = Piezas que faltan
 missing-tip-title = Si al plugin de destino le falta una pieza
 missing-tip = Reemplazar la cambia por la pieza más parecida que tenga el plugin de destino: un China pasa a un crash, el Tom 4 al Tom 3. Quitar la saca del archivo. Las ghost notes, los rimshots y otras formas de tocar una pieza que el destino sí tiene siempre pasan a un golpe normal en esa pieza. Los toms se reparten en orden entre los toms del plugin de destino, así los fills mantienen sus alturas.
@@ -364,9 +364,14 @@ done-damaged-file = { $file } estaba dañado: faltaba una parte y se convirtió 
 done-damage-track-cut-bar = La pista { $track } se corta en el compás { $bar }; el resto no estaba en el archivo.
 done-damage-track-cut-tick = La pista { $track } se corta en el tick { $tick }; el resto no estaba en el archivo.
 done-damage-tracks-missing = El archivo dice tener { $declared } pistas; solo se pudieron leer { $read }.
-error-needs-parts = Primero elige las partes de batería de este archivo: tiene notas en varias partes y ninguna en el canal 10.
+error-needs-parts = Primero elige las partes de batería de este archivo.
 parts-question = ¿Qué partes de { $file } son la batería?
 parts-why = Nada en él está en el canal 10, el canal habitual de batería, y { $count } partes tienen notas. Marca cada parte de batería; el resto queda como está.
+parts-why-unplayed =
+    { $count ->
+        [one] El canal 10 tiene { $count } nota, y { $target } no tiene ninguna pieza para ella. Marca cada parte de batería; el resto queda como está.
+       *[other] El canal 10 tiene { $count } notas, y { $target } no tiene ninguna pieza para ellas. Marca cada parte de batería; el resto queda como está.
+    }
 parts-plays-as = Lo que tocaría cada una como { $source }:
 parts-track-named = Pista «{ $name }» · canal { $channel }
 parts-track-unnamed = Pista { $track } · canal { $channel }

@@ -86,7 +86,7 @@ convert-error = Błąd: { $error }
 notice-dismiss = Zamknij
 channel-label = Kanał perkusji
 channel-tip-title = Które nuty są konwertowane
-channel-tip = Auto konwertuje kanał 10 — kanał perkusji General MIDI — i zostawia inne instrumenty w spokoju; pozostałe kanały ścieżki perkusji są proponowane po konwersji. Plik bez kanału 10 konwertuje swoją jedyną partię z nutami albo pyta, które partie to perkusja. Wybierz kanał lub Wszystkie, aby konwertować według kanału.
+channel-tip = Auto konwertuje kanał 10 — kanał perkusji General MIDI — i zostawia inne instrumenty w spokoju; pozostałe kanały ścieżki perkusji są proponowane po konwersji. Plik bez kanału 10 konwertuje swoją jedyną partię z nutami albo pyta, które partie to perkusja. Pyta też, gdy wtyczka docelowa nie ma instrumentu dla żadnej nuty z kanału 10, a inne partie mają nuty. Wybierz kanał lub Wszystkie, aby konwertować według kanału.
 missing-label = Brakujące instrumenty
 missing-tip-title = Gdy wtyczce docelowej brakuje instrumentu
 missing-tip = Zastąp wstawia zamiast niego najbardziej podobny instrument wtyczki docelowej — China zamienia się w crash, Tom 4 w Tom 3. Usuń po prostu wyrzuca jego nuty z pliku. Ghost notes, rimshoty i inne warianty gry na instrumencie, który jest we wtyczce docelowej, zawsze zamieniają się w zwykłe uderzenie w ten instrument. Tomy są rozkładane po kolei na tomy docelowej wtyczki, więc przejścia zachowują swoje wysokości.
@@ -364,9 +364,15 @@ done-damaged-file = Plik { $file } był uszkodzony: brakowało jego części, a 
 done-damage-track-cut-bar = Ścieżka { $track } urywa się w takcie { $bar }; reszty nie było w pliku.
 done-damage-track-cut-tick = Ścieżka { $track } urywa się na ticku { $tick }; reszty nie było w pliku.
 done-damage-tracks-missing = Plik deklaruje { $declared } ścieżek; udało się odczytać tylko { $read }.
-error-needs-parts = Najpierw wybierz partie perkusji w tym pliku: ma nuty w kilku partiach i żadnej na kanale 10.
+error-needs-parts = Najpierw wybierz partie perkusji w tym pliku.
 parts-question = Które partie { $file } to perkusja?
 parts-why = Nic w nim nie jest na kanale 10, zwykłym kanale perkusji, a { $count } partii ma nuty. Zaznacz każdą partię perkusji; reszta zostaje bez zmian.
+parts-why-unplayed =
+    { $count ->
+        [one] Kanał 10 ma { $count } nutę, a wtyczka { $target } nie ma dla niej instrumentu. Zaznacz każdą partię perkusji; reszta zostaje bez zmian.
+        [few] Kanał 10 ma { $count } nuty, a wtyczka { $target } nie ma dla nich instrumentu. Zaznacz każdą partię perkusji; reszta zostaje bez zmian.
+       *[other] Kanał 10 ma { $count } nut, a wtyczka { $target } nie ma dla nich instrumentu. Zaznacz każdą partię perkusji; reszta zostaje bez zmian.
+    }
 parts-plays-as = Co każda zagrałaby jako { $source }:
 parts-track-named = Ścieżka „{ $name }” · kanał { $channel }
 parts-track-unnamed = Ścieżka { $track } · kanał { $channel }

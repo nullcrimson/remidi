@@ -86,7 +86,7 @@ convert-error = Errore: { $error }
 notice-dismiss = Ignora
 channel-label = Canale batteria
 channel-tip-title = Quali note vengono convertite
-channel-tip = Auto converte il canale 10 — il canale batteria del General MIDI — e lascia stare gli altri strumenti; gli altri canali di una traccia di batteria vengono proposti dopo la conversione. Un file senza canale 10 converte la sua unica parte con note, oppure ti chiede quali parti sono la batteria. Scegli un canale o Tutti per convertire per canale.
+channel-tip = Auto converte il canale 10 — il canale batteria del General MIDI — e lascia stare gli altri strumenti; gli altri canali di una traccia di batteria vengono proposti dopo la conversione. Un file senza canale 10 converte la sua unica parte con note, oppure ti chiede quali parti sono la batteria. Chiede anche quando il plugin di destinazione non ha strumenti per nulla del canale 10 e altre parti hanno note. Scegli un canale o Tutti per convertire per canale.
 missing-label = Strumenti mancanti
 missing-tip-title = Se nel plugin di destinazione manca uno strumento
 missing-tip = “Sostituisci” usa al suo posto lo strumento più simile del plugin di destinazione: un crash al posto di un China, il Tom 3 al posto del Tom 4. “Rimuovi” toglie le sue note dal file. Se manca solo un'articolazione (ghost note, rimshot…), la nota diventa sempre un colpo normale sullo stesso strumento. I tom vengono distribuiti in ordine sui tom del plugin di destinazione, così i fill mantengono le loro altezze.
@@ -376,9 +376,14 @@ done-damaged-file = { $file } era danneggiato: ne mancava una parte, e tutto ci�
 done-damage-track-cut-bar = La traccia { $track } si interrompe alla battuta { $bar }; il resto non era nel file.
 done-damage-track-cut-tick = La traccia { $track } si interrompe al tick { $tick }; il resto non era nel file.
 done-damage-tracks-missing = Il file dichiara { $declared } tracce; se ne sono potute leggere solo { $read }.
-error-needs-parts = Scegli prima le parti di batteria di questo file: ha note su più parti e nessuna sul canale 10.
+error-needs-parts = Scegli prima le parti di batteria di questo file.
 parts-question = Quali parti di { $file } sono la batteria?
 parts-why = Niente è sul canale 10, il solito canale della batteria, e { $count } parti hanno note. Spunta ogni parte di batteria; il resto resta com’è.
+parts-why-unplayed =
+    { $count ->
+        [one] Il canale 10 contiene { $count } nota, e { $target } non ha nessuno strumento per suonarla. Spunta ogni parte di batteria; il resto resta com’è.
+       *[other] Il canale 10 contiene { $count } note, e { $target } non ha nessuno strumento per suonarle. Spunta ogni parte di batteria; il resto resta com’è.
+    }
 parts-plays-as = Cosa suonerebbe ciascuna come { $source }:
 parts-track-named = Traccia «{ $name }» · canale { $channel }
 parts-track-unnamed = Traccia { $track } · canale { $channel }

@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use midiremap_core::{
-    convert, Canon, Catalog, Channel, ChannelScope, Conversion, Converted, Mapping, MissingDrums,
-    Note, Overrides, Part, Report, UnmappedFate, Unrecognized,
+    convert, AskReason, Canon, Catalog, Channel, ChannelScope, Conversion, Converted, Mapping,
+    MissingDrums, Note, Outcome, Overrides, Part, Report, UnmappedFate, Unrecognized,
 };
 use midiremap_testkit::{cc, choke, event, hits, off, on, silent_on, smf, DRUMS};
 use midly::{
@@ -311,6 +311,39 @@ fn part_hits_of(midi: &[u8]) -> BTreeMap<String, u32> {
     hits
 }
 
+/// The note of every hit on channel 10 in `midi`, read straight from the file.
+fn channel_ten_notes(midi: &[u8]) -> Vec<Note> {
+    Smf::parse(midi)
+        .unwrap()
+        .tracks
+        .iter()
+        .flatten()
+        .filter_map(|ev| match ev.kind {
+            TrackEventKind::Midi {
+                channel,
+                message: MidiMessage::NoteOn { key, vel },
+            } if channel.as_int() == DRUMS - 1 && vel.as_int() > 0 => Note::new(key.as_int()),
+            TrackEventKind::Midi { .. }
+            | TrackEventKind::SysEx(_)
+            | TrackEventKind::Escape(_)
+            | TrackEventKind::Meta(_) => None,
+        })
+        .collect()
+}
+
+/// Whether channel 10 of `midi` has hits on notes the source of `mapping` knows, and
+/// `mapping` drops every one of them.
+fn channel_ten_unplayed(midi: &[u8], mapping: &Mapping) -> bool {
+    let known: Vec<Outcome> = channel_ten_notes(midi)
+        .into_iter()
+        .filter_map(|note| mapping.get(note))
+        .collect();
+    !known.is_empty()
+        && known
+            .iter()
+            .all(|outcome| matches!(outcome, Outcome::Dropped { .. }))
+}
+
 fn names(parts: &[Part]) -> BTreeSet<String> {
     parts.iter().map(ToString::to_string).collect()
 }
@@ -350,20 +383,30 @@ proptest! {
         let present = part_hits_of(&midi);
         let all: BTreeSet<String> = present.keys().cloned().collect();
         let drums: BTreeSet<String> = all.iter().filter(|p| p.ends_with(":10")).cloned().collect();
-        match convert(&midi, &pair.mapping(), ChannelScope::Auto).unwrap() {
+        let mapping = pair.mapping();
+        let unplayed = drums.len() < all.len() && channel_ten_unplayed(&midi, &mapping);
+        match convert(&midi, &mapping, ChannelScope::Auto).unwrap() {
             Conversion::Done(out) => {
                 let picked = names(&out.picked);
                 if drums.is_empty() {
                     prop_assert!(all.len() <= 1, "converted {:?} of {:?}", picked, all);
                     prop_assert_eq!(&picked, &all);
                 } else {
+                    prop_assert!(!unplayed, "converted {:?}, which plays none of its known hits", picked);
                     prop_assert_eq!(&picked, &drums);
                 }
                 let outside: u32 = present.iter().filter(|(p, _)| !picked.contains(*p)).map(|(_, n)| n).sum();
                 prop_assert_eq!(out.report.untouched(), outside);
             }
-            Conversion::Ask { parts, .. } => {
-                prop_assert!(drums.is_empty() && all.len() > 1, "asked about {:?}", all);
+            Conversion::Ask { parts, why, .. } => {
+                match why {
+                    AskReason::NoChannelTen => {
+                        prop_assert!(drums.is_empty() && all.len() > 1, "asked about {:?}", all);
+                    }
+                    AskReason::ChannelTenUnplayed => {
+                        prop_assert!(!drums.is_empty() && unplayed, "asked about {:?}", all);
+                    }
+                }
                 prop_assert_eq!(names(&Vec::from(parts)), all);
             }
         }

@@ -82,7 +82,7 @@ convert-error = Error: { $error }
 notice-dismiss = Dismiss
 channel-label = Drum channel
 channel-tip-title = Which notes get converted
-channel-tip = Auto converts channel 10 — the General MIDI drum channel — and leaves the other instruments alone; other channels in a drum track are offered after converting. A file with no channel 10 converts its one part with notes, or asks you which parts are the drums. Pick a channel or All to convert by channel instead.
+channel-tip = Auto converts channel 10 — the General MIDI drum channel — and leaves the other instruments alone; other channels in a drum track are offered after converting. A file with no channel 10 converts its one part with notes, or asks you which parts are the drums. It also asks when the target has no drum for anything on channel 10 and other parts have notes. Pick a channel or All to convert by channel instead.
 missing-label = Missing drums
 missing-tip-title = When the target lacks a drum
 missing-tip = Nearest plays it on the closest drum the target has — a China on a crash, Tom 4 on Tom 3. Drop leaves it out. Ghost notes, rimshots and other ways of playing a drum the target does have always fall back to a plain hit on that drum. Toms spread over the target's toms in order, so fills keep their pitches.
@@ -344,9 +344,14 @@ done-damaged-file = { $file } was damaged: part of it was missing, and everythin
 done-damage-track-cut-bar = Track { $track } stops at bar { $bar }; the rest of it was not in the file.
 done-damage-track-cut-tick = Track { $track } stops at tick { $tick }; the rest of it was not in the file.
 done-damage-tracks-missing = The file says it has { $declared } tracks; only { $read } could be read.
-error-needs-parts = Pick this file's drum parts first: it has notes on several parts and none on channel 10.
+error-needs-parts = Pick this file's drum parts first.
 parts-question = Which parts of { $file } are the drums?
 parts-why = Nothing in it is on channel 10, the usual drum channel, and { $count } parts have notes. Tick every drum part; the rest stays as it is.
+parts-why-unplayed =
+    { $count ->
+        [one] Channel 10 holds { $count } note, and { $target } has no drum for it. Tick every drum part; the rest stays as it is.
+       *[other] Channel 10 holds { $count } notes, and { $target } has no drum for them. Tick every drum part; the rest stays as it is.
+    }
 parts-plays-as = What each would play as { $source }:
 parts-track-named = Track “{ $name }” · channel { $channel }
 parts-track-unnamed = Track { $track } · channel { $channel }

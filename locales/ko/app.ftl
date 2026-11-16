@@ -77,7 +77,7 @@ convert-error = 오류: { $error }
 notice-dismiss = 닫기
 channel-label = 드럼 채널
 channel-tip-title = 어떤 노트가 변환되나요
-channel-tip = 자동은 10번 채널(General MIDI 드럼 채널)을 변환하고 다른 악기는 그대로 둡니다. 드럼 트랙의 다른 채널은 변환 후에 제안됩니다. 10번 채널이 없는 파일은 노트가 있는 유일한 파트를 변환하거나, 어느 파트가 드럼인지 묻습니다. 채널별로 변환하려면 채널이나 전체를 고르세요.
+channel-tip = 자동은 10번 채널(General MIDI 드럼 채널)을 변환하고 다른 악기는 그대로 둡니다. 드럼 트랙의 다른 채널은 변환 후에 제안됩니다. 10번 채널이 없는 파일은 노트가 있는 유일한 파트를 변환하거나, 어느 파트가 드럼인지 묻습니다. 10번 채널의 어떤 노트에도 대상 음원의 악기가 없고 다른 파트에 노트가 있을 때도 묻습니다. 채널별로 변환하려면 채널이나 전체를 고르세요.
 missing-label = 없는 악기
 missing-tip-title = 대상 음원에 없는 악기가 있을 때
 missing-tip = '대체'는 대상 음원에 있는 가장 비슷한 악기로 연주합니다(예: China는 crash로, Tom 4는 Tom 3으로). '제외'는 그 악기의 노트를 파일에서 뺍니다. 고스트 노트, 림샷처럼 대상 음원에 있는 악기를 다른 주법으로 친 노트는 항상 그 악기의 기본 타격으로 바뀝니다. 탐은 대상 음원의 탐에 순서대로 나뉘어 배치되므로 필인의 음높이가 유지됩니다.
@@ -309,9 +309,13 @@ done-damaged-file = { $file } 파일이 손상되어 일부가 빠져 있었습�
 done-damage-track-cut-bar = 트랙 { $track }이(가) { $bar }마디에서 끊깁니다. 그 뒤는 파일에 없었습니다.
 done-damage-track-cut-tick = 트랙 { $track }이(가) 틱 { $tick }에서 끊깁니다. 그 뒤는 파일에 없었습니다.
 done-damage-tracks-missing = 파일에는 트랙이 { $declared }개 있다고 되어 있지만 { $read }개만 읽을 수 있었습니다.
-error-needs-parts = 먼저 이 파일의 드럼 파트를 고르세요. 여러 파트에 노트가 있고 10번 채널에는 없습니다.
+error-needs-parts = 먼저 이 파일의 드럼 파트를 고르세요.
 parts-question = { $file }의 어느 파트가 드럼인가요?
 parts-why = 보통 드럼 채널인 10번 채널에는 아무것도 없고, { $count }개 파트에 노트가 있습니다. 드럼 파트를 모두 체크하세요. 나머지는 그대로 둡니다.
+parts-why-unplayed =
+    { $count ->
+       *[other] 10번 채널에 노트가 { $count }개 있지만 { $target }에는 이를 연주할 악기가 없습니다. 드럼 파트를 모두 체크하세요. 나머지는 그대로 둡니다.
+    }
 parts-plays-as = { $source }(으)로 연주하면:
 parts-track-named = 트랙 “{ $name }” · 채널 { $channel }
 parts-track-unnamed = 트랙 { $track } · 채널 { $channel }

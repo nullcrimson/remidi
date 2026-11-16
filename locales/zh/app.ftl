@@ -78,7 +78,7 @@ convert-error = 错误：{ $error }
 notice-dismiss = 关闭
 channel-label = 鼓通道
 channel-tip-title = 转换哪些音符
-channel-tip = 自动会转换第 10 通道（General MIDI 鼓通道），不动其他乐器；鼓音轨中的其他通道会在转换后提供。没有第 10 通道的文件会转换它唯一有音符的分轨，或询问你哪些分轨是鼓。要按通道转换，请选择某个通道或“全部”。
+channel-tip = 自动会转换第 10 通道（General MIDI 鼓通道），不动其他乐器；鼓音轨中的其他通道会在转换后提供。没有第 10 通道的文件会转换它唯一有音符的分轨，或询问你哪些分轨是鼓。当目标鼓音源对第 10 通道上的任何音符都没有鼓件、而其他分轨有音符时，也会询问。要按通道转换，请选择某个通道或“全部”。
 missing-label = 缺少的鼓件
 missing-tip-title = 目标鼓音源里没有某个鼓件时
 missing-tip = “替换”会换成目标鼓音源里最接近的鼓件，例如 China 换成 crash，Tom 4 换成 Tom 3。“删除”会把这些音符从文件中删掉。如果目标鼓音源有这个鼓件，只是没有鬼音、rimshot 等演奏法，这些音符一律按该鼓件的普通敲击处理。通鼓会按顺序分配到目标鼓音源的通鼓上，让过门保留各自的音高。
@@ -311,9 +311,13 @@ done-damaged-file = { $file } 已损坏：缺少一部分，剩余内容已全�
 done-damage-track-cut-bar = 音轨 { $track } 在第 { $bar } 小节中断；之后的部分不在文件中。
 done-damage-track-cut-tick = 音轨 { $track } 在 tick { $tick } 处中断；之后的部分不在文件中。
 done-damage-tracks-missing = 文件声明有 { $declared } 条音轨，但只能读取 { $read } 条。
-error-needs-parts = 请先选出这个文件的鼓分轨：多个分轨上有音符，而第 10 通道上没有。
+error-needs-parts = 请先选出这个文件的鼓分轨。
 parts-question = { $file } 的哪些分轨是鼓？
 parts-why = 通常的鼓通道第 10 通道上没有任何内容，有 { $count } 个分轨有音符。勾选每个鼓分轨；其余保持不变。
+parts-why-unplayed =
+    { $count ->
+       *[other] 第 10 通道上有 { $count } 个音符，但 { $target } 没有能演奏它们的鼓件。勾选每个鼓分轨；其余保持不变。
+    }
 parts-plays-as = 每个按 { $source } 演奏的结果：
 parts-track-named = 音轨「{ $name }」· 通道 { $channel }
 parts-track-unnamed = 音轨 { $track } · 通道 { $channel }

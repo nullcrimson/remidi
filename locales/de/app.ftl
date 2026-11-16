@@ -82,7 +82,7 @@ convert-error = Fehler: { $error }
 notice-dismiss = Schließen
 channel-label = Drum-Kanal
 channel-tip-title = Welche Noten konvertiert werden
-channel-tip = Auto konvertiert Kanal 10 — den General-MIDI-Drum-Kanal — und lässt die anderen Instrumente in Ruhe; andere Kanäle einer Drum-Spur werden nach dem Konvertieren angeboten. Eine Datei ohne Kanal 10 konvertiert ihren einzigen Part mit Noten oder fragt dich, welche Parts die Drums sind. Wähle einen Kanal oder Alle, um stattdessen nach Kanal zu konvertieren.
+channel-tip = Auto konvertiert Kanal 10 — den General-MIDI-Drum-Kanal — und lässt die anderen Instrumente in Ruhe; andere Kanäle einer Drum-Spur werden nach dem Konvertieren angeboten. Eine Datei ohne Kanal 10 konvertiert ihren einzigen Part mit Noten oder fragt dich, welche Parts die Drums sind. Es fragt auch, wenn das Ziel-Plugin für nichts auf Kanal 10 ein Instrument hat und andere Parts Noten haben. Wähle einen Kanal oder Alle, um stattdessen nach Kanal zu konvertieren.
 missing-label = Fehlende Instrumente
 missing-tip-title = Wenn das Ziel-Plugin ein Instrument nicht hat
 missing-tip = „Ersetzen“ nimmt stattdessen das ähnlichste Instrument im Ziel-Plugin – etwa ein Crash statt eines China, Tom 3 statt Tom 4. „Entfernen“ lässt die Noten weg. Fehlt nur eine Spieltechnik wie Ghost Notes oder Rimshots, wird daraus immer ein normaler Schlag auf dasselbe Instrument. Toms werden der Reihe nach auf die Toms des Ziel-Plugins verteilt, damit Fills ihre Tonhöhen behalten.
@@ -344,9 +344,14 @@ done-damaged-file = { $file } war beschädigt: Ein Teil fehlte, alles Übrige wu
 done-damage-track-cut-bar = Spur { $track } endet in Takt { $bar }; der Rest fehlte in der Datei.
 done-damage-track-cut-tick = Spur { $track } endet bei Tick { $tick }; der Rest fehlte in der Datei.
 done-damage-tracks-missing = Die Datei gibt { $declared } Spuren an; nur { $read } konnten gelesen werden.
-error-needs-parts = Wähle zuerst die Drum-Parts dieser Datei: Sie hat Noten auf mehreren Parts und keine auf Kanal 10.
+error-needs-parts = Wähle zuerst die Drum-Parts dieser Datei.
 parts-question = Welche Parts von { $file } sind die Drums?
 parts-why = Nichts darin liegt auf Kanal 10, dem üblichen Drum-Kanal, und { $count } Parts haben Noten. Hake jeden Drum-Part an; der Rest bleibt, wie er ist.
+parts-why-unplayed =
+    { $count ->
+        [one] Kanal 10 enthält { $count } Note, und { $target } hat kein Instrument dafür. Hake jeden Drum-Part an; der Rest bleibt, wie er ist.
+       *[other] Kanal 10 enthält { $count } Noten, und { $target } hat für keine davon ein Instrument. Hake jeden Drum-Part an; der Rest bleibt, wie er ist.
+    }
 parts-plays-as = Was jeder als { $source } spielen würde:
 parts-track-named = Spur „{ $name }“ · Kanal { $channel }
 parts-track-unnamed = Spur { $track } · Kanal { $channel }

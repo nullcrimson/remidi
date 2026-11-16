@@ -294,6 +294,20 @@ fn a_file_with_several_parts_and_no_channel_10_writes_nothing_and_exits_with_4()
 }
 
 #[test]
+fn a_kit_off_channel_10_beside_a_tambourine_the_target_lacks_writes_nothing_and_exits_with_4() {
+    let midi = tracks(&[&[(0, 1, on(36)), (0, 1, on(38))], &[(0, DRUMS, on(54))]]);
+    let (out, written) = run(&midi, ["general_midi", "ggd_invasion"], None, &[]);
+    assert_eq!(out.status.code(), Some(4));
+    assert!(written.is_empty());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("notes on channel 10 that GetGood Drums Invasion has no drum for")
+            && err.contains("--parts 1:1,2:10"),
+        "stderr: {err}"
+    );
+}
+
+#[test]
 fn the_hint_names_parts_that_then_convert() {
     let midi = tracks(&[&[(0, 1, on(24))], &[(0, 2, on(24))]]);
     let (out, written) = run(&midi, PAIR, None, &["--parts", "1:1,2:2"]);

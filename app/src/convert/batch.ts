@@ -21,7 +21,7 @@ export interface FailedFile {
 export interface BatchResult {
   ok: ConvertedFile[];
   failed: FailedFile[];
-  /** The files that converted nothing: several parts have notes, none on channel 10, and none were picked. */
+  /** The files that converted nothing: `auto` asks which parts are the drums, and none were picked. */
   asked: string[];
 }
 

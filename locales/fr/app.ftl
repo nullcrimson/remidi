@@ -86,7 +86,7 @@ convert-error = Erreur : { $error }
 notice-dismiss = Fermer
 channel-label = Canal batterie
 channel-tip-title = Quelles notes sont converties
-channel-tip = Auto convertit le canal 10 — le canal batterie de General MIDI — et laisse les autres instruments tranquilles ; les autres canaux d’une piste de batterie sont proposés après la conversion. Un fichier sans canal 10 convertit sa seule partie avec des notes, ou te demande quelles parties sont la batterie. Choisis un canal ou Tous pour convertir par canal.
+channel-tip = Auto convertit le canal 10 — le canal batterie de General MIDI — et laisse les autres instruments tranquilles ; les autres canaux d’une piste de batterie sont proposés après la conversion. Un fichier sans canal 10 convertit sa seule partie avec des notes, ou te demande quelles parties sont la batterie. Il demande aussi quand le plugin cible n’a aucun élément pour les notes du canal 10 et que d’autres parties ont des notes. Choisis un canal ou Tous pour convertir par canal.
 missing-label = Éléments manquants
 missing-tip-title = Quand le plugin cible n’a pas l’élément
 missing-tip = « Remplacer » prend à la place l’élément le plus proche du plugin cible : une crash au lieu d’une China, le Tom 3 au lieu du Tom 4. « Supprimer » retire ses notes du fichier. S’il ne manque qu’un mode de jeu (ghost notes, rimshots…), la note devient toujours un coup simple sur le même élément. Les toms se répartissent dans l’ordre sur ceux du plugin cible, pour que les fills gardent leurs hauteurs.
@@ -372,9 +372,14 @@ done-damaged-file = { $file } était endommagé : une partie manquait, et tout c
 done-damage-track-cut-bar = La piste { $track } s’arrête à la mesure { $bar } ; la suite n’était pas dans le fichier.
 done-damage-track-cut-tick = La piste { $track } s’arrête au tick { $tick } ; la suite n’était pas dans le fichier.
 done-damage-tracks-missing = Le fichier annonce { $declared } pistes ; seules { $read } ont pu être lues.
-error-needs-parts = Choisis d’abord les parties de batterie de ce fichier : il a des notes sur plusieurs parties et aucune sur le canal 10.
+error-needs-parts = Choisis d’abord les parties de batterie de ce fichier.
 parts-question = Quelles parties de { $file } sont la batterie ?
 parts-why = Rien n’y est sur le canal 10, le canal habituel de la batterie, et { $count } parties ont des notes. Coche chaque partie de batterie ; le reste reste tel quel.
+parts-why-unplayed =
+    { $count ->
+        [one] Le canal 10 contient { $count } note, et { $target } n’a aucun élément pour elle. Coche chaque partie de batterie ; le reste reste tel quel.
+       *[other] Le canal 10 contient { $count } notes, et { $target } n’a aucun élément pour elles. Coche chaque partie de batterie ; le reste reste tel quel.
+    }
 parts-plays-as = Ce que chacune jouerait en { $source } :
 parts-track-named = Piste « { $name } » · canal { $channel }
 parts-track-unnamed = Piste { $track } · canal { $channel }

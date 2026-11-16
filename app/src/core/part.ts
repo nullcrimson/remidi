@@ -1,6 +1,9 @@
 import type { Message } from '../generated/i18n';
 import type { ChannelScope, Part, PartSummary, Selection } from './midiremap';
 
+/** The General MIDI drum channel, counted from 1 as a part names its channel. */
+export const DRUM_CHANNEL = 10;
+
 /** The parts picked as a file's drums: at least one. */
 export type PickedParts = [Part, ...Part[]];
 

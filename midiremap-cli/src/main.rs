@@ -149,7 +149,13 @@ fn run_convert(a: ConvertArgs) -> Result<ExitCode> {
         Conversion::Done(out) => out,
         Conversion::Ask { parts, why, damage } => {
             let reason = match why {
-                AskReason::NoChannelTen => "has notes on several parts and none on channel 10",
+                AskReason::NoChannelTen => {
+                    "has notes on several parts and none on channel 10".to_owned()
+                }
+                AskReason::ChannelTenUnplayed => format!(
+                    "has notes on channel 10 that {} has no drum for, and notes on other parts",
+                    tgt.display_name()
+                ),
             };
             eprintln!(
                 "{} {reason}, so nothing was converted; name the drum parts among them with \

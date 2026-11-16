@@ -61,6 +61,9 @@ pub enum HitFate {
 pub enum AskReason {
     /// Several parts have hits, none on channel 10.
     NoChannelTen,
+    /// Channel 10 has hits on notes the source knows, the conversion plays none of them, and
+    /// other parts have hits.
+    ChannelTenUnplayed,
 }
 
 /// What a selection comes to for one file.
@@ -79,14 +82,28 @@ pub enum Choice {
     Ask { parts: Parts, why: AskReason },
 }
 
+/// Whether the hits of `parts` include one on a note `judge` knows, and the conversion plays
+/// none of those: every hit on a known note is dropped.
+fn plays_none(index: &PartIndex, parts: &PartSet, judge: impl Fn(Note) -> HitFate) -> bool {
+    let mut known = index
+        .hits()
+        .filter(|(part, _)| parts.contains(part))
+        .flat_map(|(_, notes)| notes.iter().map(|&note| judge(note)))
+        .filter(|&fate| fate != HitFate::Unknown)
+        .peekable();
+    known.peek().is_some() && known.all(|fate| fate == HitFate::Dropped)
+}
+
 /// What `selection` rewrites in `index`'s file, or the picked part the file has no hit in.
 /// `Auto` takes every channel-10 part when the file has one, offering the other parts of their
-/// tracks; else its one part with hits; else it asks. `judge` tells what the conversion does
+/// tracks; else its one part with hits; else it asks. It also asks, listing every part, when
+/// channel 10 has hits on notes the source knows, the conversion plays none of them, and other
+/// parts have hits: the drums are likely elsewhere. `judge` tells what the conversion does
 /// with a hit on each note.
 pub fn choose(
     index: &PartIndex,
     selection: &Selection,
-    _judge: impl Fn(Note) -> HitFate,
+    judge: impl Fn(Note) -> HitFate,
 ) -> Result<Choice, Part> {
     let present = index.parts();
     let (filters, offers) = match selection {
@@ -109,6 +126,12 @@ pub fn choose(
                 return Ok(Choice::Ask {
                     parts: Parts::from_set(others),
                     why: AskReason::NoChannelTen,
+                });
+            }
+            if !others.is_empty() && plays_none(index, &drums, &judge) {
+                return Ok(Choice::Ask {
+                    parts: Parts::from_set(present),
+                    why: AskReason::ChannelTenUnplayed,
                 });
             }
             let drum_tracks: BTreeSet<TrackNo> = drums.iter().map(|p| p.track).collect();
@@ -143,4 +166,137 @@ pub fn hit_notes(index: &PartIndex, selection: &Selection) -> Result<Vec<Note>, 
         .filter(|(part, _)| picked.contains(part))
         .flat_map(|(_, notes)| notes.iter().copied())
         .collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use midiremap_note::n;
+    use midiremap_testkit::{on, tracks, DRUMS};
+
+    use super::*;
+    use crate::midi;
+
+    const BASS: u8 = 1;
+    const KICK: u8 = 36;
+    const TAMBOURINE: u8 = 54;
+    const STRANGER: u8 = 99;
+
+    /// Plays the kick, drops the tambourine, and knows no other note.
+    fn judge(note: Note) -> HitFate {
+        if note == n(KICK) {
+            HitFate::Played
+        } else if note == n(TAMBOURINE) {
+            HitFate::Dropped
+        } else {
+            HitFate::Unknown
+        }
+    }
+
+    fn chosen(midi: &[u8], selection: &Selection, judge: impl Fn(Note) -> HitFate) -> Choice {
+        let index = PartIndex::of(midi::parse(midi).unwrap().smf());
+        choose(&index, selection, judge).unwrap()
+    }
+
+    fn auto(midi: &[u8], judge: impl Fn(Note) -> HitFate) -> Choice {
+        chosen(midi, &ChannelScope::Auto.into(), judge)
+    }
+
+    fn names<'p>(parts: impl IntoIterator<Item = &'p Part>) -> Vec<String> {
+        parts.into_iter().map(ToString::to_string).collect()
+    }
+
+    fn picked(choice: &Choice) -> Option<Vec<String>> {
+        match choice {
+            Choice::Convert { picked, .. } => Some(names(picked)),
+            Choice::Ask { .. } => None,
+        }
+    }
+
+    fn kit_beside(drums: &[u8]) -> Vec<u8> {
+        let channel_ten: Vec<_> = drums.iter().map(|&key| (0, DRUMS, on(key))).collect();
+        tracks(&[&[(0, BASS, on(KICK)), (0, BASS, on(KICK))], &channel_ten])
+    }
+
+    #[test]
+    fn auto_asks_with_every_part_when_channel_10_plays_none_of_its_known_hits() {
+        let choice = auto(&kit_beside(&[TAMBOURINE, STRANGER]), judge);
+        let Choice::Ask { parts, why } = choice else {
+            panic!("converted: {choice:?}");
+        };
+        assert_eq!(
+            (names(parts.iter()), why),
+            (
+                vec!["1:1".to_owned(), "2:10".to_owned()],
+                AskReason::ChannelTenUnplayed
+            )
+        );
+    }
+
+    #[test]
+    fn auto_converts_channel_10_when_it_plays_one_hit() {
+        let choice = auto(&kit_beside(&[TAMBOURINE, KICK]), judge);
+        assert_eq!(picked(&choice), Some(vec!["2:10".to_owned()]));
+    }
+
+    #[test]
+    fn auto_converts_channel_10_when_its_hits_are_all_on_notes_the_source_does_not_know() {
+        let choice = auto(&kit_beside(&[STRANGER, STRANGER]), judge);
+        assert_eq!(picked(&choice), Some(vec!["2:10".to_owned()]));
+    }
+
+    #[test]
+    fn auto_never_asks_of_a_file_whose_only_parts_are_on_channel_10() {
+        let midi = tracks(&[&[(0, DRUMS, on(TAMBOURINE))], &[(0, DRUMS, on(TAMBOURINE))]]);
+        let choice = auto(&midi, judge);
+        assert_eq!(
+            picked(&choice),
+            Some(vec!["1:10".to_owned(), "2:10".to_owned()])
+        );
+    }
+
+    #[test]
+    fn auto_with_every_note_played_converts_channel_10_beside_other_parts() {
+        let choice = auto(&kit_beside(&[TAMBOURINE]), |_| HitFate::Played);
+        assert_eq!(picked(&choice), Some(vec!["2:10".to_owned()]));
+    }
+
+    #[test]
+    fn auto_with_every_note_played_asks_of_several_parts_without_channel_10() {
+        let midi = tracks(&[&[(0, BASS, on(KICK))], &[(0, 2, on(KICK))]]);
+        let choice = auto(&midi, |_| HitFate::Played);
+        assert!(
+            matches!(
+                choice,
+                Choice::Ask {
+                    why: AskReason::NoChannelTen,
+                    ..
+                }
+            ),
+            "{choice:?}"
+        );
+    }
+
+    #[test]
+    fn a_scope_or_picked_parts_convert_whatever_the_judge_says() {
+        let midi = kit_beside(&[TAMBOURINE]);
+        let parts = Parts::try_from(vec!["1:1".parse::<Part>().unwrap()]).unwrap();
+        let dropped = |_| HitFate::Dropped;
+        let selections: [Selection; 3] = [
+            ChannelScope::All.into(),
+            "10".parse::<ChannelScope>().unwrap().into(),
+            parts.into(),
+        ];
+        let picks: Vec<Option<Vec<String>>> = selections
+            .iter()
+            .map(|selection| picked(&chosen(&midi, selection, dropped)))
+            .collect();
+        assert_eq!(
+            picks,
+            [
+                Some(vec!["1:1".to_owned(), "2:10".to_owned()]),
+                Some(vec!["2:10".to_owned()]),
+                Some(vec!["1:1".to_owned()]),
+            ]
+        );
+    }
 }

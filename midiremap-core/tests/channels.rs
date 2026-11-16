@@ -1,6 +1,6 @@
 use midiremap_core::{
-    convert, Catalog, Channel, ChannelScope, CodecError, Conversion, ConvertError, Converted,
-    Mapping, MissingDrums, Overrides, Part, PartSet, Parts, Selection,
+    convert, AskReason, Catalog, Channel, ChannelScope, CodecError, Conversion, ConvertError,
+    Converted, Mapping, MissingDrums, Overrides, Part, PartSet, Parts, Selection, Unrecognized,
 };
 use midiremap_testkit::{cc, choke, events, off, on, silent_on, tracks, Ev, DRUMS};
 use midly::num::u28;
@@ -398,4 +398,72 @@ fn a_picked_channel_its_track_lacks_is_refused() {
 fn a_picked_track_past_the_end_of_the_file_is_refused() {
     let midi = drum_track_beside_a_bass_track();
     assert_eq!(refused_part(&midi, "3:10").as_deref(), Some("3:10"));
+}
+
+fn auto_between(midi: &[u8], src: &str, tgt: &str, unrecognized: Unrecognized) -> Conversion {
+    let b = Catalog::builtin();
+    let mapping = Mapping::new(
+        b.get(src).unwrap(),
+        b.get(tgt).unwrap(),
+        &Overrides::default(),
+        MissingDrums::Nearest,
+    )
+    .with_unrecognized(unrecognized);
+    convert(midi, &mapping, ChannelScope::Auto).unwrap()
+}
+
+/// A General MIDI kit on channel 1, and one tambourine on channel 10 in a track of its own.
+fn kit_on_channel_1_beside_a_tambourine() -> Vec<u8> {
+    let kit: Vec<Ev> = [36, 42, 38, 42]
+        .iter()
+        .cycle()
+        .take(40)
+        .map(|&key| (0, BASS, on(key)))
+        .collect();
+    tracks(&[&kit, &[(0, DRUMS, on(54))]])
+}
+
+#[test]
+fn auto_asks_with_every_part_when_channel_10_holds_only_drums_the_target_lacks() {
+    let midi = kit_on_channel_1_beside_a_tambourine();
+    let conversion = auto_between(&midi, "general_midi", "ggd_invasion", Unrecognized::Remove);
+    let Conversion::Ask { parts, why, .. } = conversion else {
+        panic!("converted without asking");
+    };
+    assert_eq!(
+        (listed(parts.iter()), why),
+        (
+            vec!["1:1".to_owned(), "2:10".to_owned()],
+            AskReason::ChannelTenUnplayed
+        )
+    );
+}
+
+#[test]
+fn auto_converts_channel_10_beside_a_kit_when_the_target_plays_it() {
+    let midi = kit_on_channel_1_beside_a_tambourine();
+    let out = auto_between(&midi, "general_midi", "ezdrummer", Unrecognized::Remove)
+        .done()
+        .expect("converted");
+    assert_eq!((out.report.converted(), out.report.untouched()), (1, 40));
+    assert_eq!(listed(&out.picked), ["2:10"]);
+}
+
+#[test]
+fn auto_converts_a_kit_read_with_a_source_that_knows_none_of_its_notes() {
+    let midi = tracks(&[
+        &[(0, DRUMS, on(24)), (0, DRUMS, on(26)), (0, DRUMS, on(28))],
+        &[(0, BASS, on(40)), (0, BASS, on(43))],
+    ]);
+    for unrecognized in [Unrecognized::Remove, Unrecognized::Keep] {
+        let out = auto_between(&midi, "general_midi", "ggd_invasion", unrecognized)
+            .done()
+            .expect("converted");
+        let unknown: u32 = out.report.unmapped_source().map(|(_, u)| u.hits).sum();
+        assert_eq!(
+            (listed(&out.picked), unknown, out.report.untouched()),
+            (vec!["1:10".to_owned()], 3, 2),
+            "{unrecognized}"
+        );
+    }
 }

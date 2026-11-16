@@ -138,6 +138,7 @@ pub(crate) fn summaries(
 #[cfg(test)]
 mod tests {
     use midiremap_kit::engine::Catalog;
+    use midiremap_mapping::{MissingDrums, Overrides};
     use midiremap_testkit::{on, tracks, DRUMS};
 
     use super::*;
@@ -197,5 +198,22 @@ mod tests {
         assert_eq!(question.why, AskReason::NoChannelTen);
         let drums = tracks(&[&[(0, DRUMS, on(36)), (0, 1, on(38))]]);
         assert!(auto_question(&drums, Known::Nothing).unwrap().is_none());
+    }
+
+    #[test]
+    fn auto_question_asks_as_converting_does_only_when_it_knows_the_mapping() {
+        let midi = tracks(&[&[(0, 1, on(36)), (0, 1, on(38))], &[(0, DRUMS, on(54))]]);
+        let catalog = Catalog::builtin();
+        let (gm, invasion) = (
+            catalog.get("general_midi").unwrap(),
+            catalog.get("ggd_invasion").unwrap(),
+        );
+        let mapping = Mapping::new(gm, invasion, &Overrides::default(), MissingDrums::Nearest);
+        let asked = auto_question(&midi, Known::Mapping(&mapping)).unwrap();
+        assert_eq!(
+            asked.map(|q| (q.parts.len(), q.why)),
+            Some((2, AskReason::ChannelTenUnplayed))
+        );
+        assert!(auto_question(&midi, Known::Source(gm)).unwrap().is_none());
     }
 }

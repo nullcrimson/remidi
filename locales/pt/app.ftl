@@ -82,7 +82,7 @@ convert-error = Erro: { $error }
 notice-dismiss = Dispensar
 channel-label = Canal de bateria
 channel-tip-title = Quais notas são convertidas
-channel-tip = Auto converte o canal 10 — o canal de bateria do General MIDI — e deixa os outros instrumentos em paz; os outros canais de uma faixa de bateria são oferecidos depois de converter. Um arquivo sem canal 10 converte a sua única parte com notas, ou pergunta quais partes são a bateria. Escolha um canal ou Todos para converter por canal.
+channel-tip = Auto converte o canal 10 — o canal de bateria do General MIDI — e deixa os outros instrumentos em paz; os outros canais de uma faixa de bateria são oferecidos depois de converter. Um arquivo sem canal 10 converte a sua única parte com notas, ou pergunta quais partes são a bateria. Também pergunta quando o plugin de destino não tem peça para nada do canal 10 e outras partes têm notas. Escolha um canal ou Todos para converter por canal.
 missing-label = Peças que faltam
 missing-tip-title = Quando falta uma peça no destino
 missing-tip = Substituir troca a peça pela mais parecida que o destino tem — um China vira crash, o Tom 4 vira Tom 3. Remover tira a peça do arquivo. Ghost notes, rimshots e outras formas de tocar uma peça que o destino tem sempre viram uma nota normal nessa peça. Os tons são distribuídos em ordem pelos tons do plugin de destino, para que as viradas mantenham suas alturas.
@@ -374,9 +374,14 @@ done-damaged-file = { $file } estava danificado: faltava uma parte, e tudo o que
 done-damage-track-cut-bar = A faixa { $track } para no compasso { $bar }; o resto não estava no arquivo.
 done-damage-track-cut-tick = A faixa { $track } para no tick { $tick }; o resto não estava no arquivo.
 done-damage-tracks-missing = O arquivo diz ter { $declared } faixas; só foi possível ler { $read }.
-error-needs-parts = Escolha primeiro as partes de bateria deste arquivo: ele tem notas em várias partes e nenhuma no canal 10.
+error-needs-parts = Escolha primeiro as partes de bateria deste arquivo.
 parts-question = Quais partes de { $file } são a bateria?
 parts-why = Nada nele está no canal 10, o canal habitual da bateria, e { $count } partes têm notas. Marque cada parte de bateria; o resto fica como está.
+parts-why-unplayed =
+    { $count ->
+        [one] O canal 10 tem { $count } nota, e o { $target } não tem peça para ela. Marque cada parte de bateria; o resto fica como está.
+       *[other] O canal 10 tem { $count } notas, e o { $target } não tem peça para elas. Marque cada parte de bateria; o resto fica como está.
+    }
 parts-plays-as = O que cada uma tocaria como { $source }:
 parts-track-named = Faixa “{ $name }” · canal { $channel }
 parts-track-unnamed = Faixa { $track } · canal { $channel }
