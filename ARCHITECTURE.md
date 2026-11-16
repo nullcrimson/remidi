@@ -24,7 +24,9 @@ a plain hit: `snare1.rimshot → snare1.hit`), then a neighbouring drum. If the 
 hit is **dropped** and recorded in a loss report. A source note with no canonical
 meaning is **unmapped**: removed, or written out unchanged when the **unrecognized notes**
 setting (`Unrecognized { Remove | Keep }`, default `Remove`) says `Keep`; the report lists
-it as unmapped either way.
+it as unmapped either way, with its fate: removed, kept on a number the target leaves
+free, or kept onto the target drum that plays on its number
+(`Mapping::target_drum_on`).
 
 The **missing drums** setting (`MissingDrums`) decides how far the chain may reach:
 `Nearest` (the default) takes the first entry the target plays, which may be another
@@ -420,7 +422,11 @@ whether those notes are written.
   `dropped` count), and `destination(note)` → `Destination` (a type the facade does not
   re-export, read by core), the one rule
   for where a source note plays: on a drum and its note, unchanged
-  (`Unrecognized::Keep`), or nowhere. `rewrite` and the Ableton rack both read it, so the
+  (`Unrecognized::Keep`: `Kept { note, plays }`), or nowhere. `plays` is
+  `target_drum_on(note)`, the one rule for which target drum sits on a note: the drum a
+  target edit puts there (of two, the first in `Canon` order, the edits map's own), else
+  the drum the stock target plays there, also when an edit moved that drum off it, since
+  the stock note may still sound. `rewrite` and the Ableton rack both read it, so the
   rack plays every note where the converted file puts it (`tests/ableton_racks.rs` checks
   that note for note over five engines' pairs, both Missing drums and both Unrecognized
   settings, with and without edits).
@@ -537,7 +543,7 @@ whether those notes are written.
     chokes follow their cymbal.
   - Dropped notes (and their aftertouch) are removed, and so are unmapped ones unless
     the mapping's `Unrecognized` is `Keep`, which writes them out unchanged (same key,
-    channel, velocity and tick); a removed event's delta is folded into the next kept
+    channel, velocity and tick), where they play whatever target drum is on that key; a removed event's delta is folded into the next kept
     event (`DeltaFold`) so timing does not shift. A folded gap past the `u28` maximum
     fails the conversion with `CodecError::DeltaOverflow` instead of moving later events.
     A track that lacks its End-of-Track gains one.
@@ -552,14 +558,19 @@ whether those notes are written.
   note).
 - `Report` (`convert/report.rs`) keeps its counters private and hands them out as
   iterators and totals (`hits()` is every note-on seen); only the converter tallies
-  them (`record`, `record_untouched`). `record` keeps the counting policy in one place: it
-  tallies unmapped source notes, fallbacks used (each a `FallbackTally`: the stand-in drum
-  the converter chose, the target note it landed on and the hit count), and dropped
-  canons; direct hits are not recorded. `converted` counts hits written to the output
+  them (`record`, `record_unmapped`, `record_untouched`). `record` keeps the counting
+  policy in one place: it tallies fallbacks used (each a `FallbackTally`: the stand-in drum
+  the converter chose, the target note it landed on and the hit count) and dropped
+  canons; direct hits are not recorded. `record_unmapped` tallies a note the source does
+  not recognize as one `Unmapped { hits, fate }` per note, its `UnmappedFate` (`Removed`,
+  `KeptFree`, `KeptOnto(canon)`) set from the note's `Destination` by its first hit, since
+  every hit of a note meets the same fate; the app names a kept note's drum from that
+  canon. `converted` counts hits written to the output
   (direct or approximated); `untouched` counts note-ons the channel scope left alone,
   which are not loss. It serializes in camelCase (`unmappedSource`, `fallbackUsed`,
   `dropped`, `untouched`, `converted`) with its `BTreeMap`s in a stable order and note
-  keys as strings, so the CLI and WASM print the same JSON. A `fallbackUsed` entry is
+  keys as strings, so the CLI and WASM print the same JSON. An `unmappedSource` entry is
+  `{ hits, fate }`, the fate `"removed"`, `"keptFree"` or `{ "keptOnto": canon }`. A `fallbackUsed` entry is
   `{ standIn, note, count }`; the app names the report line after `standIn`, and when a
   target edit moved the stand-in onto another note it adds what the stock target has
   there ("China → Crash 2 → Ride").
@@ -568,8 +579,8 @@ whether those notes are written.
   kept events keep their absolute tick and everything but the key, only note events are
   removed, notes stay paired per channel and key, and
   `converted + dropped + unmapped + untouched` equals the input's note-ons; keeping
-  unrecognized notes changes no count and writes `converted + unmapped + untouched`
-  note-ons.
+  unrecognized notes changes no count, only the fates (`Removed` against `KeptFree` or
+  `KeptOnto`), and writes `converted + unmapped + untouched` note-ons.
 - `fuzz/` (cargo-fuzz, its own workspace) feeds `convert` arbitrary bytes: no panic,
   the output parses, and the counts add up. It runs daily in CI (`fuzz.yml`); locally,
   on Linux or WSL with a nightly toolchain:
@@ -606,7 +617,9 @@ whether those notes are written.
   its drum and set to its note, every step off).
 - `rack_file(&Mapping, Option<&PresetName>) → RackFile { file_name, xml, packing, dropped }`
   (`files/daw/ableton.rs`) is the Ableton Live MIDI Effect Rack that plays a mapping: one
-  chain per source note, shifted onto where the conversion puts it.
+  chain per source note, shifted onto where the conversion puts it; a kept unrecognized
+  note's chain has no device and is named "Unknown, plays Kick" after the target drum on
+  its number, or "Unknown, kept" when there is none.
 - They write their XML with the core's one XML writer (`xml`: `document`, `element`, `nest`,
   `empty`, `text`), which the site's sitemap uses too. The tests read the files back with
   `roxmltree`. `FileStem` (`files/daw/file.rs`) cleans a name into a file name every system
@@ -669,8 +682,9 @@ stderr. `--preset` takes the note edits of a preset exported from the web app (i
 engines, resolved through aliases, must be the command's; skipped edits are printed).
 `--missing drop` leaves out drums the target lacks instead of playing them on the
 nearest drum. `--unrecognized keep` writes notes the source layout does not recognize
-out unchanged instead of removing them; the report lists them as `unmappedSource` either
-way. `--parts` names the drum parts as `track:channel` (both from 1) in place of
+out unchanged instead of removing them, where they play whatever target drum is on their
+number; the report lists them as `unmappedSource` either way, each with its hits and fate
+(`removed`, `keptFree`, or `keptOnto` naming that drum). `--parts` names the drum parts as `track:channel` (both from 1) in place of
 `--channel`. `list` prints available engine ids. The exit code is 0 when the file was
 written whole (even with dropped notes: read the report), 3 when the input was damaged
 (what it still held is written, and the damage printed), 4 when `auto` asks which parts are

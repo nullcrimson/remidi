@@ -59,7 +59,8 @@ struct ConvertArgs {
     #[arg(long, value_name = "MODE", default_value_t)]
     missing: MissingDrums,
     /// Notes the source layout does not recognize: remove (leave out) or keep (write out
-    /// unchanged); the report lists them either way
+    /// unchanged, playing whatever target drum is on their number); the report lists them
+    /// either way, naming the drum a kept note plays
     #[arg(long, value_name = "MODE", default_value_t)]
     unrecognized: Unrecognized,
 }
