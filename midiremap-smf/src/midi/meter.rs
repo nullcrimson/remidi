@@ -1,6 +1,6 @@
 use std::{fmt, num::NonZeroU32};
 
-use midly::{MetaMessage, Smf, Timing, TrackEvent, TrackEventKind};
+use midly::{num::u28, MetaMessage, Smf, Timing, TrackEvent, TrackEventKind};
 use serde::Serialize;
 
 /// A bar of a piece, counted from 1 as people count them.
@@ -40,6 +40,12 @@ impl Tick {
         Self(n)
     }
 
+    /// The moment `delta` ticks later, the last tick a `u32` holds at most.
+    #[must_use]
+    pub fn after(self, delta: u28) -> Self {
+        Self(self.0.saturating_add(delta.as_int()))
+    }
+
     /// The ticks from `start` to this moment; none when `start` comes later.
     fn since(self, start: Self) -> u32 {
         self.0.saturating_sub(start.0)
@@ -57,7 +63,7 @@ pub(crate) fn ticks<'t, 'a>(
     track: &'t [TrackEvent<'a>],
 ) -> impl Iterator<Item = (Tick, &'t TrackEvent<'a>)> {
     track.iter().scan(Tick::default(), |tick, ev| {
-        *tick = Tick(tick.0.saturating_add(ev.delta.as_int()));
+        *tick = tick.after(ev.delta);
         Some((*tick, ev))
     })
 }

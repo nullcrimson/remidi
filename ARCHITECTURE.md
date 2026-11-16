@@ -155,7 +155,7 @@ midiremap-smf/src/
       ├── track.rs       ── TrackNo, END_OF_TRACK, track_at
       ├── meter.rs       ── Tick, Bar, Position, Meter: a track's ticks as bars
       ├── channel.rs     ── Channel (Idx<16>), ChannelFilter
-      └── event.rs       ── hit(), channel_from_wire / channel_wire, note_from_key / note_key
+      └── event.rs       ── NoteEvent (Touch, Release), hit(), channel and note wire converters
    parts/          ── the parts of a file and what a selection selects in it
       ├── part.rs        ── Part, Parts, PartSet
       ├── selection.rs   ── Selection, ChannelScope
@@ -477,9 +477,11 @@ whether those notes are written.
 - `midi/channel.rs`: `Channel` is a MIDI channel `1..=16` (an `Idx<16>`), numbered as people
   count them (`Channel::DRUMS` is 10). `ChannelFilter` is a set of the sixteen channels
   (`ALL`, `NONE`, `with(channel)`).
-- `midi/event.rs`: `hit(kind)` is the one predicate for a hit (a note-on with velocity
-  > 0), read by the converter, the part scan (so the hit counts `inspect` ranks engines
-  by) and the `Auto` scope. `channel_from_wire` and `channel_wire` convert a `Channel` to and
+- `midi/event.rs`: `NoteEvent::of(kind)` reads an event as a note event (its `Channel`,
+  `Note`, velocity and `Touch`: a hit, a note-on with velocity > 0; a `Release` by note-off
+  or by silent note-on; a choke, poly aftertouch) and `kind()` writes it back. `hit(kind)`,
+  the one predicate for a hit, reads it, as do the converter, the part scan (so the hit
+  counts `inspect` ranks engines by) and the `Auto` scope. `channel_from_wire` and `channel_wire` convert a `Channel` to and
   from the `u4` a MIDI file stores, as `note_from_key` and `note_key` do for a `Note`.
 - `ChannelScope { Auto | Only(Channel) | All }` (`parts/selection.rs`) chooses which
   channels a conversion rewrites; it parses from `auto`, `all` or `1`..=`16`. A `Selection`
@@ -549,7 +551,7 @@ whether those notes are written.
   prints the damage and exits 3; the app names each damaged file on the done panel.
 - `rewrite(smf, &Mapping, filters) → (Smf, Report)` (`convert/rewrite.rs`) runs one pure
   `step` per event, which says what it is on its own (`Stepped`): an event that passes as it
-  is (no note, or one on a rejected channel, `untouched` when it is a hit there), a hit on its
+  is (no note, or one on a rejected channel; `Untouched` when it is a hit there), a hit on its
   source note with the key its destination plays it on (or none), or a release or a choke of
   its source note with the key the mapping gives. `thin` tallies each in the report and
   drives the track's one `Voicing`, which owns the output, the `DeltaFold`, the running tick

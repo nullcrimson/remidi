@@ -4,13 +4,13 @@ use midiremap_mapping::{Destination, Mapping};
 use midiremap_note::Note;
 use midiremap_smf::{
     midi::{
-        channel_from_wire, hit, is_closed, note_from_key, note_key, ChannelFilter, CodecError,
+        is_closed, Channel, ChannelFilter, CodecError, NoteEvent, Release, Tick, Touch,
         END_OF_TRACK,
     },
     parts::TrackFilters,
 };
 use midly::{
-    num::{u28, u4, u7},
+    num::{u28, u7},
     MidiMessage, Smf, Track, TrackEvent, TrackEventKind,
 };
 
@@ -35,55 +35,37 @@ impl DeltaFold {
     }
 }
 
-/// How a file writes the release of a note: a note-off, or a note-on without velocity.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-enum Release {
-    NoteOff,
-    SilentNoteOn,
-}
-
-impl Release {
-    fn message(self, key: u7, vel: u7) -> MidiMessage {
-        match self {
-            Self::NoteOff => MidiMessage::NoteOff { key, vel },
-            Self::SilentNoteOn => MidiMessage::NoteOn { key, vel },
-        }
-    }
-}
-
 /// One event of a conversion as `step` decides it on its own; the key a release or a choke
 /// goes to is decided by the track's [`Voicing`].
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum Stepped<'a> {
-    /// Stays as it is: an event that is no note, or one on a channel the scope leaves alone,
-    /// `untouched` when it is a hit there, which the report counts.
-    Pass {
-        kind: TrackEventKind<'a>,
-        untouched: bool,
-    },
+    /// Stays as it is: an event that is no note hit on a channel the scope leaves alone.
+    Pass(TrackEventKind<'a>),
+    /// A hit on a channel the scope leaves alone: stays as it is, and the report counts it.
+    Untouched(TrackEventKind<'a>),
     /// A hit on `source` on a channel in scope: written on `key`, or removed when nothing
     /// plays it.
     Hit {
-        channel: u4,
+        channel: Channel,
         source: Note,
         vel: u7,
-        key: Option<u7>,
+        key: Option<Note>,
     },
     /// The release of `source` on a channel in scope; `mapped` is the key the mapping gives
     /// `source`, or `None` when nothing plays it.
     Off {
-        channel: u4,
+        channel: Channel,
         source: Note,
         vel: u7,
         form: Release,
-        mapped: Option<u7>,
+        mapped: Option<Note>,
     },
     /// Poly aftertouch on `source` (a choke) on a channel in scope; `mapped` as for a release.
     Choke {
-        channel: u4,
+        channel: Channel,
         source: Note,
         vel: u7,
-        mapped: Option<u7>,
+        mapped: Option<Note>,
     },
 }
 
@@ -91,60 +73,41 @@ enum Stepped<'a> {
 /// plays its source note: a hit to the key of its destination, a release or a choke with the
 /// key the mapping gives, for the voicing to follow when it holds no hit of that note.
 fn step<'a>(mapping: &Mapping, filter: ChannelFilter, kind: TrackEventKind<'a>) -> Stepped<'a> {
-    let TrackEventKind::Midi { channel, message } = kind else {
-        return Stepped::Pass {
-            kind,
-            untouched: false,
-        };
+    let Some(NoteEvent {
+        channel,
+        note: source,
+        vel,
+        touch,
+    }) = NoteEvent::of(&kind)
+    else {
+        return Stepped::Pass(kind);
     };
-    if !filter.accepts(channel_from_wire(channel)) {
-        return Stepped::Pass {
-            kind,
-            untouched: hit(&kind).is_some(),
+    if !filter.accepts(channel) {
+        return match touch {
+            Touch::Hit => Stepped::Untouched(kind),
+            Touch::Release(_) | Touch::Choke => Stepped::Pass(kind),
         };
     }
-    let mapped = |key: u7| {
-        let source = note_from_key(key);
-        let to = mapping.destination(source).map(|to| note_key(to.note()));
-        (source, to)
-    };
-    let off = |key, vel, form| {
-        let (source, mapped) = mapped(key);
-        Stepped::Off {
+    let mapped = mapping.destination(source).map(|to| to.note());
+    match touch {
+        Touch::Hit => Stepped::Hit {
+            channel,
+            source,
+            vel,
+            key: mapped,
+        },
+        Touch::Release(form) => Stepped::Off {
             channel,
             source,
             vel,
             form,
             mapped,
-        }
-    };
-    match message {
-        MidiMessage::NoteOn { key, vel } if vel.as_int() > 0 => {
-            let (source, key) = mapped(key);
-            Stepped::Hit {
-                channel,
-                source,
-                vel,
-                key,
-            }
-        }
-        MidiMessage::NoteOn { key, vel } => off(key, vel, Release::SilentNoteOn),
-        MidiMessage::NoteOff { key, vel } => off(key, vel, Release::NoteOff),
-        MidiMessage::Aftertouch { key, vel } => {
-            let (source, mapped) = mapped(key);
-            Stepped::Choke {
-                channel,
-                source,
-                vel,
-                mapped,
-            }
-        }
-        MidiMessage::Controller { .. }
-        | MidiMessage::ProgramChange { .. }
-        | MidiMessage::ChannelAftertouch { .. }
-        | MidiMessage::PitchBend { .. } => Stepped::Pass {
-            kind,
-            untouched: false,
+        },
+        Touch::Choke => Stepped::Choke {
+            channel,
+            source,
+            vel,
+            mapped,
         },
     }
 }
@@ -154,7 +117,7 @@ fn step<'a>(mapping: &Mapping, filter: ChannelFilter, kind: TrackEventKind<'a>) 
 /// another source note retriggered its key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Sound {
-    Written { at: usize, tick: u64 },
+    Written { at: usize, tick: Tick },
     Merged,
     Closed,
 }
@@ -162,7 +125,7 @@ enum Sound {
 /// A hit still waiting for its release: the target key it went to, and how it sounds there.
 #[derive(Debug, Clone, Copy)]
 struct Open {
-    key: u7,
+    key: Note,
     sound: Sound,
 }
 
@@ -179,8 +142,8 @@ struct Open {
 struct Voicing<'a> {
     out: Track<'a>,
     fold: DeltaFold,
-    tick: u64,
-    open: BTreeMap<(u4, Note), VecDeque<Open>>,
+    tick: Tick,
+    open: BTreeMap<(Channel, Note), VecDeque<Open>>,
     merged: u32,
 }
 
@@ -195,7 +158,7 @@ impl<'a> Voicing<'a> {
     /// Adds the event `stepped`, which came `delta` ticks after the one before it.
     fn push(&mut self, delta: u28, stepped: Stepped<'a>) -> Result<(), CodecError> {
         self.fold.add(delta)?;
-        self.tick += u64::from(delta.as_int());
+        self.tick = self.tick.after(delta);
         if let Some(kind) = self.voiced(stepped) {
             self.write(kind);
         }
@@ -204,9 +167,17 @@ impl<'a> Voicing<'a> {
 
     /// The event `stepped` writes, or `None` when it goes.
     fn voiced(&mut self, stepped: Stepped<'a>) -> Option<TrackEventKind<'a>> {
-        let midi = |channel, message| TrackEventKind::Midi { channel, message };
+        let event = |channel, note, vel, touch| {
+            NoteEvent {
+                channel,
+                note,
+                vel,
+                touch,
+            }
+            .kind()
+        };
         match stepped {
-            Stepped::Pass { kind, .. } => Some(kind),
+            Stepped::Pass(kind) | Stepped::Untouched(kind) => Some(kind),
             Stepped::Hit {
                 channel,
                 source,
@@ -220,7 +191,7 @@ impl<'a> Voicing<'a> {
                     .or_default()
                     .push_back(Open { key, sound });
                 match sound {
-                    Sound::Written { .. } => Some(midi(channel, MidiMessage::NoteOn { key, vel })),
+                    Sound::Written { .. } => Some(event(channel, key, vel, Touch::Hit)),
                     Sound::Merged | Sound::Closed => None,
                 }
             }
@@ -235,7 +206,7 @@ impl<'a> Voicing<'a> {
                     Some(hit) => self.released(channel, hit)?,
                     None => mapped?,
                 };
-                Some(midi(channel, form.message(key, vel)))
+                Some(event(channel, key, vel, Touch::Release(form)))
             }
             Stepped::Choke {
                 channel,
@@ -251,7 +222,7 @@ impl<'a> Voicing<'a> {
                         .map(|hit| hit.key)?,
                     None => mapped?,
                 };
-                Some(midi(channel, MidiMessage::Aftertouch { key, vel }))
+                Some(event(channel, key, vel, Touch::Choke))
             }
         }
     }
@@ -260,7 +231,7 @@ impl<'a> Voicing<'a> {
     /// source note sounds there; merged into the newest note-on there when that is of this
     /// tick, which then takes the higher velocity; else on a note-on of its own after a
     /// retrigger of the key.
-    fn struck(&mut self, channel: u4, source: Note, key: u7, vel: u7) -> Sound {
+    fn struck(&mut self, channel: Channel, source: Note, key: Note, vel: u7) -> Sound {
         let written = |voicing: &Self| Sound::Written {
             at: voicing.out.len(),
             tick: voicing.tick,
@@ -290,24 +261,20 @@ impl<'a> Voicing<'a> {
 
     /// Releases `key` of `channel` for a hit that retriggers it: one `NoteOff` of velocity 0
     /// for each note-on still open there, and every hit sounding there closed.
-    fn retrigger(&mut self, channel: u4, key: u7) {
+    fn retrigger(&mut self, channel: Channel, key: Note) {
         let mut open = 0;
-        let hits = self
-            .open
-            .iter_mut()
-            .filter(|((c, _), _)| *c == channel)
-            .flat_map(|(_, hits)| hits.iter_mut())
-            .filter(|hit| hit.key == key);
-        for hit in hits {
+        for hit in self.on_key_mut(channel, key) {
             open += usize::from(matches!(hit.sound, Sound::Written { .. }));
             hit.sound = Sound::Closed;
         }
-        let vel = u7::default();
+        let release = NoteEvent {
+            channel,
+            note: key,
+            vel: u7::default(),
+            touch: Touch::Release(Release::NoteOff),
+        };
         for _ in 0..open {
-            self.write(TrackEventKind::Midi {
-                channel,
-                message: MidiMessage::NoteOff { key, vel },
-            });
+            self.write(release.kind());
         }
     }
 
@@ -330,7 +297,7 @@ impl<'a> Voicing<'a> {
     /// retrigger closed it, or other hits still sound in its note, which then goes on for
     /// them. A written hit whose release goes hands its note-on to a hit merged into one on its
     /// key.
-    fn released(&mut self, channel: u4, hit: Open) -> Option<u7> {
+    fn released(&mut self, channel: Channel, hit: Open) -> Option<Note> {
         if hit.sound == Sound::Closed {
             return None;
         }
@@ -344,11 +311,8 @@ impl<'a> Voicing<'a> {
         }
         if let Sound::Written { .. } = hit.sound {
             let heir = self
-                .open
-                .iter_mut()
-                .filter(|((c, _), _)| *c == channel)
-                .flat_map(|(_, hits)| hits.iter_mut())
-                .find(|open| open.key == hit.key && open.sound == Sound::Merged);
+                .on_key_mut(channel, hit.key)
+                .find(|open| open.sound == Sound::Merged);
             if let Some(heir) = heir {
                 heir.sound = hit.sound;
             }
@@ -357,7 +321,7 @@ impl<'a> Voicing<'a> {
     }
 
     /// The oldest open hit of `source` on `channel`, taken off the table.
-    fn take_oldest(&mut self, channel: u4, source: Note) -> Option<Open> {
+    fn take_oldest(&mut self, channel: Channel, source: Note) -> Option<Open> {
         let hits = self.open.get_mut(&(channel, source))?;
         let oldest = hits.pop_front();
         if hits.is_empty() {
@@ -366,14 +330,30 @@ impl<'a> Voicing<'a> {
         oldest
     }
 
-    /// Every open hit that still sounds on `key` of `channel`, with its source note and how
-    /// it sounds.
-    fn sounding(&self, channel: u4, key: u7) -> impl Iterator<Item = (Note, Sound)> + '_ {
+    /// Every open hit on `key` of `channel`, closed ones too, with its source note.
+    fn on_key(&self, channel: Channel, key: Note) -> impl Iterator<Item = (Note, &Open)> {
         self.open
             .iter()
             .filter(move |((c, _), _)| *c == channel)
             .flat_map(|(&(_, note), hits)| hits.iter().map(move |hit| (note, hit)))
-            .filter(move |(_, hit)| hit.key == key && hit.sound != Sound::Closed)
+            .filter(move |(_, hit)| hit.key == key)
+    }
+
+    /// Every open hit on `key` of `channel`, closed ones too, to change, in the order of
+    /// [`Self::on_key`].
+    fn on_key_mut(&mut self, channel: Channel, key: Note) -> impl Iterator<Item = &mut Open> {
+        self.open
+            .iter_mut()
+            .filter(move |((c, _), _)| *c == channel)
+            .flat_map(|(_, hits)| hits.iter_mut())
+            .filter(move |hit| hit.key == key)
+    }
+
+    /// Every open hit that still sounds on `key` of `channel`, with its source note and how
+    /// it sounds.
+    fn sounding(&self, channel: Channel, key: Note) -> impl Iterator<Item = (Note, Sound)> + '_ {
+        self.on_key(channel, key)
+            .filter(|(_, hit)| hit.sound != Sound::Closed)
             .map(|(note, hit)| (note, hit.sound))
     }
 
@@ -412,14 +392,8 @@ fn tally(report: &mut Report, mapping: &Mapping, stepped: &Stepped) {
             Some(outcome) => report.record(outcome),
             None => report.record_unmapped(source, unmapped_fate(mapping, source)),
         },
-        Stepped::Pass {
-            untouched: true, ..
-        } => report.record_untouched(),
-        Stepped::Pass {
-            untouched: false, ..
-        }
-        | Stepped::Off { .. }
-        | Stepped::Choke { .. } => {}
+        Stepped::Untouched(_) => report.record_untouched(),
+        Stepped::Pass(_) | Stepped::Off { .. } | Stepped::Choke { .. } => {}
     }
 }
 
@@ -459,7 +433,11 @@ pub(crate) fn rewrite<'a>(
 mod tests {
     use midiremap_kit::engine::Catalog;
     use midiremap_mapping::{Mapping, MissingDrums, Overrides, Unrecognized};
-    use midly::{num::u14, MetaMessage, PitchBend};
+    use midiremap_smf::midi::{channel_from_wire, note_from_key, note_key};
+    use midly::{
+        num::{u14, u4},
+        MetaMessage, PitchBend,
+    };
 
     use super::*;
 
@@ -548,14 +526,8 @@ mod tests {
     fn counted(stepped: Stepped) -> Counted {
         match stepped {
             Stepped::Hit { source, .. } => Counted::Hit(source),
-            Stepped::Pass {
-                untouched: true, ..
-            } => Counted::Untouched,
-            Stepped::Pass {
-                untouched: false, ..
-            }
-            | Stepped::Off { .. }
-            | Stepped::Choke { .. } => Counted::Nothing,
+            Stepped::Untouched(_) => Counted::Untouched,
+            Stepped::Pass(_) | Stepped::Off { .. } | Stepped::Choke { .. } => Counted::Nothing,
         }
     }
 
