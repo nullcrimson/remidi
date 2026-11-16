@@ -4,13 +4,13 @@ mod rewrite;
 use midiremap_mapping::Mapping;
 use midiremap_smf::{
     midi::{self, Damage},
-    parts::{choose, Choice, ConvertError, Part, PartIndex, Parts, Selection},
+    parts::{choose, AskReason, Choice, ConvertError, Part, PartIndex, Parts, Selection},
 };
 use serde::Serialize;
 
 pub use self::report::{FallbackTally, Report, Unmapped, UnmappedFate};
 use self::rewrite::rewrite;
-use crate::inspect::{summaries, PartSummary};
+use crate::inspect::{hit_fate, summaries, PartSummary};
 
 /// A converted file, what happened to its notes, and what the file had lost before it was read.
 #[derive(Serialize)]
@@ -47,9 +47,11 @@ pub struct Converted {
 )]
 pub enum Conversion {
     Done(Converted),
-    /// Several parts have hits, none on channel 10; `parts` lists them.
+    /// Several parts have hits and, for the reason `why`, only the user can tell which are
+    /// the drums; `parts` lists them.
     Ask {
         parts: Parts,
+        why: AskReason,
         damage: Vec<Damage>,
     },
 }
@@ -73,9 +75,10 @@ pub fn convert(
 ) -> Result<Conversion, ConvertError> {
     let (smf, damage) = midi::parse(midi)?.into_parts();
     let index = PartIndex::of(&smf);
-    let (filters, picked, offers) = match choose(&index, &selection.into()) {
+    let judge = |note| hit_fate(mapping, note);
+    let (filters, picked, offers) = match choose(&index, &selection.into(), judge) {
         Err(missing) => return Err(ConvertError::NoSuchPart(missing)),
-        Ok(Choice::Ask(parts)) => return Ok(Conversion::Ask { parts, damage }),
+        Ok(Choice::Ask { parts, why }) => return Ok(Conversion::Ask { parts, why, damage }),
         Ok(Choice::Convert {
             filters,
             picked,

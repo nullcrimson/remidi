@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use midiremap_note::Note;
+use serde::Serialize;
 
 use super::{
     part::{Part, PartSet, Parts},
@@ -44,6 +45,24 @@ impl IntoIterator for TrackFilters {
     }
 }
 
+/// What a conversion does with a hit on a note, as its caller knows it: plays it, drops it
+/// since the target has no drum for it, or meets a note the source does not know.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HitFate {
+    Played,
+    Dropped,
+    Unknown,
+}
+
+/// Why `Auto` asks which parts of a file are the drums.
+#[derive(Serialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify))]
+pub enum AskReason {
+    /// Several parts have hits, none on channel 10.
+    NoChannelTen,
+}
+
 /// What a selection comes to for one file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Choice {
@@ -55,15 +74,20 @@ pub enum Choice {
         picked: PartSet,
         offers: PartSet,
     },
-    /// Rewrites nothing: these parts have hits, none on channel 10, and only the user can
+    /// Rewrites nothing: these parts have hits, and for the reason `why` only the user can
     /// tell which are the drums.
-    Ask(Parts),
+    Ask { parts: Parts, why: AskReason },
 }
 
 /// What `selection` rewrites in `index`'s file, or the picked part the file has no hit in.
 /// `Auto` takes every channel-10 part when the file has one, offering the other parts of their
-/// tracks; else its one part with hits; else it asks.
-pub fn choose(index: &PartIndex, selection: &Selection) -> Result<Choice, Part> {
+/// tracks; else its one part with hits; else it asks. `judge` tells what the conversion does
+/// with a hit on each note.
+pub fn choose(
+    index: &PartIndex,
+    selection: &Selection,
+    _judge: impl Fn(Note) -> HitFate,
+) -> Result<Choice, Part> {
     let present = index.parts();
     let (filters, offers) = match selection {
         Selection::Parts(parts) => match parts.iter().find(|p| !present.contains(p)) {
@@ -82,7 +106,10 @@ pub fn choose(index: &PartIndex, selection: &Selection) -> Result<Choice, Part> 
             let (drums, others): (PartSet, PartSet) =
                 present.iter().partition(|p| p.channel == Channel::DRUMS);
             if drums.is_empty() && others.len() > 1 {
-                return Ok(Choice::Ask(Parts::from_set(others)));
+                return Ok(Choice::Ask {
+                    parts: Parts::from_set(others),
+                    why: AskReason::NoChannelTen,
+                });
             }
             let drum_tracks: BTreeSet<TrackNo> = drums.iter().map(|p| p.track).collect();
             let (offers, alone): (PartSet, PartSet) = others
@@ -104,10 +131,11 @@ pub fn choose(index: &PartIndex, selection: &Selection) -> Result<Choice, Part> 
 }
 
 /// The note of every hit of `index`'s file that a conversion with `selection` rewrites; none
-/// when it would ask. The notes come part by part, in part order, not in file order: the only
-/// reader, `note_hits`, counts them per note, which no order changes.
+/// when it would ask, for any reason, judging every note played: no mapping is known while a
+/// source is being fitted. The notes come part by part, in part order, not in file order: the
+/// only reader, `note_hits`, counts them per note, which no order changes.
 pub fn hit_notes(index: &PartIndex, selection: &Selection) -> Result<Vec<Note>, Part> {
-    let Choice::Convert { picked, .. } = choose(index, selection)? else {
+    let Choice::Convert { picked, .. } = choose(index, selection, |_| HitFate::Played)? else {
         return Ok(Vec::new());
     };
     Ok(index

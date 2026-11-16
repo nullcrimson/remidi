@@ -2,10 +2,10 @@ use std::{collections::BTreeMap, error::Error};
 
 use midiremap_core::{
     auto_question as core_auto_question, convert, note_hits, parse_preset, rack_file,
-    sample_file as core_sample_file, source_fits as core_source_fits, Canon, CanonEntry, Catalog,
-    Conversion, ConvertError, Drum, EngineId, EngineMap, Family, LoadedPreset, Mapping,
-    MissingDrums, Note, NoteHits, OctaveBase, Overrides, PartSummary, PresetError, PresetName,
-    RackFile, Selection, SourceFits, Unrecognized, VoicePlan,
+    sample_file as core_sample_file, source_fits as core_source_fits, AutoQuestion, Canon,
+    CanonEntry, Catalog, Conversion, ConvertError, Drum, EngineId, EngineMap, Family, Known,
+    LoadedPreset, Mapping, MissingDrums, Note, NoteHits, OctaveBase, Overrides, PresetError,
+    PresetName, RackFile, Selection, SourceFits, Unrecognized, VoicePlan,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -160,19 +160,39 @@ pub fn remap(
     Ok(out.into_ts()?)
 }
 
-/// The parts of `mid`, played as `src_id`'s layout when one is given, when converting it under
-/// `auto` would ask which are the drums; nothing when it would convert without asking.
+/// The question converting `mid` under `auto` would ask, its parts played as `src_id`'s layout
+/// when one is given: the same question [`remap`] asks when `tgt_id` and the settings are its
+/// own; nothing when it would convert without asking.
 #[wasm_bindgen]
 pub fn auto_question(
     mid: &[u8],
     src_id: Option<String>,
-) -> Result<Option<Vec<Ts<PartSummary>>>, WasmError> {
+    tgt_id: Option<String>,
+    overrides: Option<Ts<Overrides>>,
+    missing: Option<Ts<MissingDrums>>,
+) -> Result<Option<Ts<AutoQuestion>>, WasmError> {
+    let catalog = Catalog::shared();
+    let ov = from_js(overrides, |detail| WasmError::BadOverrides { detail })?;
+    let missing = from_js(missing, |detail| WasmError::BadMissing { detail })?;
     let source = src_id
-        .map(|id| engine(Catalog::shared(), &id, Role::Source))
+        .map(|id| engine(catalog, &id, Role::Source))
         .transpose()?;
+    let target = tgt_id
+        .map(|id| engine(catalog, &id, Role::Target))
+        .transpose()?;
+    let paired = source
+        .zip(target)
+        .map(|(src, tgt)| Mapping::new(src, tgt, &ov, missing));
+    let known = match (&paired, source) {
+        (Some(mapping), _) => Known::Mapping(mapping),
+        (None, Some(source)) => Known::Source(source),
+        (None, None) => Known::Nothing,
+    };
     let question =
-        core_auto_question(mid, source).map_err(|e| WasmError::BadMidi { detail: chain(&e) })?;
-    question.as_deref().map(to_js_all).transpose()
+        core_auto_question(mid, known).map_err(|e| WasmError::BadMidi { detail: chain(&e) })?;
+    question
+        .map(|q| q.into_ts().map_err(WasmError::from))
+        .transpose()
 }
 
 /// The Ableton rack that plays drum MIDI written for `src_id` on `tgt_id` with these edits and

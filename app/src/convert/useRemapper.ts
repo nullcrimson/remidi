@@ -61,7 +61,8 @@ export function useRemapper({ load, converter: batches }: Runtime) {
   const picked = useMemo(() => withPicks(converter.files, converter.picks, channel), [converter.files, converter.picks, channel]);
   const fits = useSourceFits(batches, picked, channel);
   const core = catalog.status === 'ready' ? catalog.core : null;
-  const questions = usePartQuestions(core, converter.files, src, channel, converter.picks, converter.results);
+  const questionSetup = useMemo(() => ({ src, tgt, overrides, missing }), [src, tgt, overrides, missing]);
+  const questions = usePartQuestions(core, converter.files, questionSetup, channel, converter.picks, converter.results);
   const askedReported = useRef(new Set<string>());
   useEffect(() => {
     for (const q of questions.asked) {

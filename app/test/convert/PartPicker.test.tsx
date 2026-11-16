@@ -6,6 +6,7 @@ import { PartOffers } from '../../src/convert/PartOffers';
 import type { PartSummary } from '../../src/core/midiremap';
 import type { PickedParts } from '../../src/core/part';
 import type { Picks } from '../../src/convert/useConverter';
+import type { PartQuestion } from '../../src/convert/partQuestions';
 import { typed } from '../typed';
 
 const KIT = typed<PartSummary>({
@@ -24,9 +25,9 @@ const KIT = typed<PartSummary>({
 });
 const BASS = typed<PartSummary>({ part: { track: 2, channel: 2 }, trackName: null, hits: 30, plays: null });
 
-function remapper(asked: { file: string; parts: PartSummary[] }[], picks: Picks, setParts = vi.fn()) {
+function remapper(asked: Omit<PartQuestion, 'why'>[], picks: Picks, setParts = vi.fn()) {
   return typed<PartPickerSource>({
-    questions: { asked, unreadable: [], waiting: new Set(), offers: [] },
+    questions: { asked: asked.map((q) => ({ ...q, why: 'noChannelTen' })), unreadable: [], waiting: new Set(), offers: [] },
     picks,
     src: 'ggd_invasion',
     engines: [{ id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GetGood Drums Invasion' }],

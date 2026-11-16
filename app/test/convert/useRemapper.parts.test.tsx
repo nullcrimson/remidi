@@ -47,13 +47,26 @@ describe('useRemapper drum parts', () => {
     localStorage.clear();
     vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([]));
     vi.mocked(stub.remap).mockReturnValue(converted());
-    vi.mocked(stub.auto_question).mockImplementation((mid) => (mid[0] === 7 ? PARTS : undefined));
+    vi.mocked(stub.auto_question).mockImplementation((mid) => (mid[0] === 7 ? { parts: PARTS, why: 'noChannelTen' } : undefined));
+  });
+
+  it('asks the question with the pair and the settings the conversion reads', async () => {
+    const result = await ready();
+    act(() => result.current.setMissing('drop'));
+    act(() => result.current.addFiles([{ name: 'song.mid', bytes: new Uint8Array([7]) }]));
+    expect(vi.mocked(stub.auto_question)).toHaveBeenLastCalledWith(
+      new Uint8Array([7]),
+      'ggd_invasion',
+      'ezdrummer',
+      { edits: {}, srcEdits: {} },
+      'drop',
+    );
   });
 
   it('asks about a file whose drum parts auto cannot tell, and waits for a pick', async () => {
     const result = await ready();
     act(() => result.current.addFiles([{ name: 'song.mid', bytes: new Uint8Array([7]) }]));
-    expect(result.current.questions.asked).toEqual([{ file: 'song.mid', parts: PARTS }]);
+    expect(result.current.questions.asked).toEqual([{ file: 'song.mid', parts: PARTS, why: 'noChannelTen' }]);
     expect([...result.current.questions.waiting]).toEqual(['song.mid']);
     act(() => result.current.setParts('song.mid', [PARTS[0].part]));
     expect(result.current.questions.waiting.size).toBe(0);
@@ -132,7 +145,7 @@ describe('the events of picking drum parts', () => {
     localStorage.clear();
     vi.mocked(stub.plan).mockReturnValue(typed<VoicePlan[]>([]));
     vi.mocked(stub.remap).mockReturnValue(converted());
-    vi.mocked(stub.auto_question).mockImplementation((mid) => (mid[0] === 7 ? PARTS : undefined));
+    vi.mocked(stub.auto_question).mockImplementation((mid) => (mid[0] === 7 ? { parts: PARTS, why: 'noChannelTen' } : undefined));
   });
 
   it('sends parts-asked once for a file the converter asks about, with how many parts it shows', async () => {

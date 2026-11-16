@@ -24,8 +24,8 @@ pub use files::{
     PresetName, RackFile, SavedPreset, SkippedEdit,
 };
 pub use inspect::{
-    auto_question, note_hits, part_summaries, source_fits, NoteHits, PartSummary, PlayedDrum,
-    Plays, SourceFit, SourceFits,
+    auto_question, note_hits, part_summaries, source_fits, AutoQuestion, Known, NoteHits,
+    PartSummary, PlayedDrum, Plays, SourceFit, SourceFits,
 };
 pub use midiremap_kit::{
     canon::{Canon, CanonEntry, CanonParseError, Family},
@@ -39,7 +39,7 @@ pub use midiremap_note::{Note, NoteParseError, OctaveBase};
 pub use midiremap_smf::{
     midi::{Bar, Channel, CodecError, Damage, Position, Tick, TrackNo},
     parts::{
-        ChannelScope, ChannelScopeError, ConvertError, NoParts, Part, PartError, PartSet, Parts,
-        Selection,
+        AskReason, ChannelScope, ChannelScopeError, ConvertError, NoParts, Part, PartError,
+        PartSet, Parts, Selection,
     },
 };

@@ -82,7 +82,8 @@ impl Sum for NoteHits {
 }
 
 /// The hits on each note among the note-ons a conversion with `selection` rewrites in
-/// `midi`; none when it would ask which parts are the drums.
+/// `midi`, every note judged played since no mapping is known while a source is fitted; none
+/// when it would ask which parts are the drums.
 pub fn note_hits(midi: &[u8], selection: impl Into<Selection>) -> Result<NoteHits, ConvertError> {
     let index = PartIndex::of(midi::parse(midi)?.smf());
     let notes = hit_notes(&index, &selection.into()).map_err(ConvertError::NoSuchPart)?;

@@ -6,9 +6,9 @@ use std::{
 use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand};
 use midiremap_core::{
-    convert, parse_preset, part_summaries, Catalog, ChannelScope, Conversion, Damage, EngineId,
-    EngineMap, Mapping, MissingDrums, Overrides, Part, PartSummary, Parts, Position, Selection,
-    Unrecognized,
+    convert, parse_preset, part_summaries, AskReason, Catalog, ChannelScope, Conversion, Damage,
+    EngineId, EngineMap, Mapping, MissingDrums, Overrides, Part, PartSummary, Parts, Position,
+    Selection, Unrecognized,
 };
 
 #[derive(Parser)]
@@ -147,10 +147,13 @@ fn run_convert(a: ConvertArgs) -> Result<ExitCode> {
     .context("remap failed")?;
     let out = match conversion {
         Conversion::Done(out) => out,
-        Conversion::Ask { parts, damage } => {
+        Conversion::Ask { parts, why, damage } => {
+            let reason = match why {
+                AskReason::NoChannelTen => "has notes on several parts and none on channel 10",
+            };
             eprintln!(
-                "{} has notes on several parts and none on channel 10, so nothing was converted; \
-                 name the drum parts among them with --parts, as in --parts {}:",
+                "{} {reason}, so nothing was converted; name the drum parts among them with \
+                 --parts, as in --parts {}:",
                 a.input.display(),
                 listed(parts.iter())
             );

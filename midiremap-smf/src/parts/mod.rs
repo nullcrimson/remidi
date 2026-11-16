@@ -5,7 +5,7 @@ mod scan;
 mod selection;
 
 pub use self::{
-    choose::{choose, hit_notes, Choice, TrackFilters},
+    choose::{choose, hit_notes, AskReason, Choice, HitFate, TrackFilters},
     error::ConvertError,
     part::{NoParts, Part, PartError, PartSet, Parts},
     scan::PartIndex,

@@ -1,7 +1,9 @@
 use midiremap_kit::{canon::Canon, engine::EngineMap};
+use midiremap_mapping::{Mapping, Outcome};
+use midiremap_note::Note;
 use midiremap_smf::{
     midi::{self, CodecError},
-    parts::{choose, ChannelScope, Choice, Part, PartIndex, Selection},
+    parts::{choose, AskReason, ChannelScope, Choice, HitFate, Part, PartIndex, Selection},
 };
 use serde::Serialize;
 
@@ -50,16 +52,63 @@ pub fn part_summaries(
     ))
 }
 
-/// The parts of `midi`, as [`part_summaries`] gives them, when `Auto` would ask which are the
-/// drums; `None` when it converts without asking.
-pub fn auto_question(
-    midi: &[u8],
-    source: Option<&EngineMap>,
-) -> Result<Option<Vec<PartSummary>>, CodecError> {
+/// What a caller knows of the conversion it asks about: nothing, the source layout, or the
+/// whole mapping, whose source it reads.
+#[derive(Clone, Copy)]
+pub enum Known<'m, 'a> {
+    Nothing,
+    Source(&'a EngineMap),
+    Mapping(&'m Mapping<'a>),
+}
+
+impl<'a> Known<'_, 'a> {
+    fn source(self) -> Option<&'a EngineMap> {
+        match self {
+            Self::Nothing => None,
+            Self::Source(source) => Some(source),
+            Self::Mapping(mapping) => Some(mapping.source()),
+        }
+    }
+
+    /// What a conversion does with a hit on `note`, as far as this tells: played, unless a
+    /// mapping says otherwise.
+    fn judge(self, note: Note) -> HitFate {
+        match self {
+            Self::Nothing | Self::Source(_) => HitFate::Played,
+            Self::Mapping(mapping) => hit_fate(mapping, note),
+        }
+    }
+}
+
+/// What a conversion through `mapping` does with a hit on `note`.
+pub(crate) fn hit_fate(mapping: &Mapping, note: Note) -> HitFate {
+    match mapping.get(note) {
+        None => HitFate::Unknown,
+        Some(Outcome::Dropped { .. }) => HitFate::Dropped,
+        Some(Outcome::Direct(_) | Outcome::Fallback(_)) => HitFate::Played,
+    }
+}
+
+/// What `Auto` asks of a file: which of `parts`, each as [`part_summaries`] gives it, are the
+/// drums, and why it asks.
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify), tsify(missing_as_null))]
+pub struct AutoQuestion {
+    pub parts: Vec<PartSummary>,
+    pub why: AskReason,
+}
+
+/// The question `Auto` asks of `midi`, its parts played as the source `known` gives, the same
+/// question converting asks when `known` is that conversion's mapping; `None` when it converts
+/// without asking.
+pub fn auto_question(midi: &[u8], known: Known) -> Result<Option<AutoQuestion>, CodecError> {
     let index = PartIndex::of(midi::parse(midi)?.smf());
     let auto = Selection::from(ChannelScope::Auto);
-    Ok(match choose(&index, &auto) {
-        Ok(Choice::Ask(_)) => Some(summaries(&index, source, |_| true)),
+    Ok(match choose(&index, &auto, |note| known.judge(note)) {
+        Ok(Choice::Ask { why, .. }) => Some(AutoQuestion {
+            parts: summaries(&index, known.source(), |_| true),
+            why,
+        }),
         Ok(Choice::Convert { .. }) | Err(_) => None,
     })
 }
@@ -142,14 +191,11 @@ mod tests {
     #[test]
     fn auto_question_lists_the_parts_only_of_a_file_auto_asks_about() {
         let asked = tracks(&[&[(0, 1, on(36))], &[(0, 2, on(38))]]);
-        let parts: Vec<String> = auto_question(&asked, None)
-            .unwrap()
-            .unwrap()
-            .iter()
-            .map(|s| s.part.to_string())
-            .collect();
+        let question = auto_question(&asked, Known::Nothing).unwrap().unwrap();
+        let parts: Vec<String> = question.parts.iter().map(|s| s.part.to_string()).collect();
         assert_eq!(parts, ["1:1", "2:2"]);
+        assert_eq!(question.why, AskReason::NoChannelTen);
         let drums = tracks(&[&[(0, DRUMS, on(36)), (0, 1, on(38))]]);
-        assert!(auto_question(&drums, None).unwrap().is_none());
+        assert!(auto_question(&drums, Known::Nothing).unwrap().is_none());
     }
 }

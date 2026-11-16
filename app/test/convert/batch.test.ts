@@ -71,7 +71,7 @@ describe('runBatch', () => {
       'auto',
       'nearest',
       'remove',
-      { remap: () => ({ kind: 'ask', parts: [{ track: 1, channel: 1 }, { track: 2, channel: 1 }], damage: [] }) },
+      { remap: () => ({ kind: 'ask', parts: [{ track: 1, channel: 1 }, { track: 2, channel: 1 }], why: 'noChannelTen', damage: [] }) },
     );
     expect(result).toEqual({ ok: [], failed: [], asked: ['a.mid'] });
   });

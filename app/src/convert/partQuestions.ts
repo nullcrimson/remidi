@@ -1,15 +1,24 @@
 import { useMemo } from 'react';
 import { toAppError } from '../core/errors';
 import type { FileResult, LoadedFile } from '../core/files';
-import type { ChannelScope, EngineId, Midiremap, Part, PartSummary } from '../core/midiremap';
+import type { AskReason, ChannelScope, EngineId, MissingDrums, Midiremap, Overrides, Part, PartSummary } from '../core/midiremap';
 import { asksForParts, samePart, type PickedParts } from '../core/part';
 import type { FailedFile } from './batch';
 import type { Picks } from './useConverter';
 
-/** A file converting under `auto` would ask about: several parts have notes, none on channel 10. */
+/** A file converting under `auto` would ask about, and why it asks. */
 export interface PartQuestion {
   file: string;
   parts: PartSummary[];
+  why: AskReason;
+}
+
+/** What a conversion would read that decides whether `auto` asks: the engines, the edits and the missing-drums setting. */
+export interface QuestionSetup {
+  src: EngineId | null;
+  tgt: EngineId | null;
+  overrides: Overrides;
+  missing: MissingDrums;
 }
 
 /** Parts a conversion left as they are beside channel-10 drums in their track, and the pick that converts them too. */
@@ -32,10 +41,10 @@ export interface PartQuestions {
 
 type Asking = { kind: 'asked'; question: PartQuestion } | { kind: 'unreadable'; failure: FailedFile } | { kind: 'converts' };
 
-function asking(core: Midiremap, file: LoadedFile, source: EngineId | undefined): Asking {
+function asking(core: Midiremap, file: LoadedFile, { src, tgt, overrides, missing }: QuestionSetup): Asking {
   try {
-    const parts = core.autoQuestion(file.bytes, source);
-    return parts === undefined ? { kind: 'converts' } : { kind: 'asked', question: { file: file.name, parts } };
+    const question = core.autoQuestion(file.bytes, src ?? undefined, tgt ?? undefined, overrides, missing);
+    return question === undefined ? { kind: 'converts' } : { kind: 'asked', question: { file: file.name, ...question } };
   } catch (err) {
     return { kind: 'unreadable', failure: { name: file.name, error: toAppError(err) } };
   }
@@ -56,15 +65,14 @@ function offerOf(result: FileResult): Offer[] {
 export function usePartQuestions(
   core: Midiremap | null,
   files: LoadedFile[],
-  src: EngineId | null,
+  setup: QuestionSetup,
   channel: ChannelScope,
   picks: Picks,
   results: FileResult[],
 ): PartQuestions {
-  const source = src ?? undefined;
   const askings = useMemo(
-    () => (core === null || !asksForParts(channel) ? [] : files.map((f) => asking(core, f, source))),
-    [core, files, source, channel],
+    () => (core === null || !asksForParts(channel) ? [] : files.map((f) => asking(core, f, setup))),
+    [core, files, setup, channel],
   );
   const asked = useMemo(() => askings.flatMap((a) => (a.kind === 'asked' ? [a.question] : [])), [askings]);
   const unreadable = useMemo(() => askings.flatMap((a) => (a.kind === 'unreadable' ? [a.failure] : [])), [askings]);
