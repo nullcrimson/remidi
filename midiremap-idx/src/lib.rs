@@ -42,11 +42,6 @@ impl<const MAX: u8> Idx<MAX> {
         self.0 - 1
     }
 
-    /// How many positions lie between this one and `other`.
-    pub const fn distance(self, other: Self) -> u8 {
-        self.0.abs_diff(other.0)
-    }
-
     /// Every position, ascending.
     pub fn all() -> impl Iterator<Item = Self> {
         (1..=MAX).map(Self)
@@ -73,12 +68,6 @@ mod tests {
     fn idx_reads_from_a_number_in_range_only() {
         assert_eq!(Idx::<2>::try_from(2), Ok(Idx(2)));
         assert_eq!(Idx::<2>::try_from(3), Err(IdxRangeError(3, 2)));
-    }
-
-    #[test]
-    fn distance_counts_positions_either_way() {
-        assert_eq!(Idx::<6>(2).distance(Idx(5)), 3);
-        assert_eq!(Idx::<6>(5).distance(Idx(2)), 3);
     }
 
     #[test]

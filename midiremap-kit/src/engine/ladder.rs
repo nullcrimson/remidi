@@ -30,19 +30,6 @@ impl HatLadder {
         self.main
     }
 
-    /// The rungs [`toward`](Self::toward) counts among in `zone`, from the least open.
-    #[cfg(any(test, feature = "testing"))]
-    pub fn rungs_in(&self, zone: HatZone) -> Vec<Rung> {
-        self.rungs(zone)
-    }
-
-    /// Whether `zone` plays an open level of its own, so that [`toward`](Self::toward) counts
-    /// among its own rungs there.
-    #[cfg(any(test, feature = "testing"))]
-    pub fn plays_in(&self, zone: HatZone) -> bool {
-        self.plays_level_in(zone)
-    }
-
     /// The rung `target` plays this engine's `rung` at, hit in `zone`. Each engine counts among
     /// the rungs it plays in `zone`, or in every zone when `zone` plays no open level. The main
     /// level lands on `target`'s main level, or, where `target` does not play it there, on the
@@ -83,20 +70,18 @@ impl HatLadder {
             .any(|&(z, rung)| z == zone && rung.level().is_some())
     }
 
-    fn rungs(&self, zone: HatZone) -> Vec<Rung> {
+    fn rungs(&self, zone: HatZone) -> BTreeSet<Rung> {
         let every_zone = !self.plays_level_in(zone);
-        let rungs: BTreeSet<Rung> = self
-            .played
+        self.played
             .iter()
             .filter(|&&(z, _)| every_zone || z == zone)
             .map(|&(_, rung)| rung)
-            .collect();
-        rungs.into_iter().collect()
+            .collect()
     }
 }
 
 /// The member of `among` nearest `to`, the less open one on a tie.
-fn closest(to: Rung, among: &[Rung]) -> Rung {
+fn closest(to: Rung, among: &BTreeSet<Rung>) -> Rung {
     *among
         .iter()
         .min_by_key(|&&r| (r.distance(to), r))

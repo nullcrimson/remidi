@@ -267,9 +267,12 @@ notes = [ {} ]",
     }
 
     fn plays_in_zone(tgt: &EngineMap, canon: Canon) -> bool {
-        canon
-            .rung()
-            .is_some_and(|(_, zone)| tgt.hat_ladder().is_some_and(|l| l.plays_in(zone)))
+        let plays_level_in = |zone| {
+            openings(tgt)
+                .iter()
+                .any(|c| matches!(c.rung(), Some((Rung::Level(_), z)) if z == zone))
+        };
+        tgt.hat_ladder().is_some() && canon.rung().is_some_and(|(_, zone)| plays_level_in(zone))
     }
 
     #[test]

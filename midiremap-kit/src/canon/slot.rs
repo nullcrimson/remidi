@@ -91,12 +91,12 @@ pub enum Rung {
 
 impl Rung {
     /// Every rung from the least open: loose, then each open level.
-    pub fn all() -> impl Iterator<Item = Self> {
+    pub(crate) fn all() -> impl Iterator<Item = Self> {
         once(Self::Loose).chain(OpenLevel::all().map(Self::Level))
     }
 
     /// The open level this rung is; `None` for loose.
-    pub fn level(self) -> Option<OpenLevel> {
+    pub(crate) fn level(self) -> Option<OpenLevel> {
         match self {
             Self::Loose => None,
             Self::Level(level) => Some(level),
@@ -104,14 +104,18 @@ impl Rung {
     }
 
     /// How many rungs apart this rung and `other` sit, loose counted as level 0.
-    pub fn distance(self, other: Self) -> u8 {
-        self.number().abs_diff(other.number())
+    pub(crate) fn distance(self, other: Self) -> RungDistance {
+        RungDistance(self.number().abs_diff(other.number()))
     }
 
     fn number(self) -> u8 {
         self.level().map_or(0, OpenLevel::get)
     }
 }
+
+/// How many rungs apart two rungs of a hi-hat's ladder sit.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct RungDistance(u8);
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, VariantArray, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
 pub enum HatZone {

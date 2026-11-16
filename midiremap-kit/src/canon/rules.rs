@@ -3,9 +3,8 @@
 use std::fmt;
 
 use super::{
-    key::{hand_key, hat_key, key},
-    Canon, CongaPitch, CymArtic, CymSlot, HandDrum, HandStroke, HatOpen, HatZone, KickKind,
-    PercKind, RideArtic, Rung, Slot, SnareArtic, TomArtic,
+    key::stroke_key, Canon, CongaPitch, CymArtic, CymSlot, HandDrum, HandStroke, HatOpen, HatZone,
+    KickKind, PercKind, RideArtic, Rung, Slot, SnareArtic, TomArtic,
 };
 
 /// A kind of drum a stand-in may be, with cymbals told apart by type.
@@ -399,7 +398,7 @@ fn anchor(c: Canon) -> Anchor {
 /// What a stroke does, whichever drum plays it: two drums with the same stroke can stand in
 /// for each other where their kinds allow it.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-enum Stroke {
+pub(super) enum Stroke {
     Kick,
     Snare(SnareArtic),
     Tom(TomArtic),
@@ -415,18 +414,7 @@ enum Stroke {
 impl fmt::Display for Stroke {
     /// The stroke in the words its canon keys spell it with.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            Self::Kick => f.write_str("kick"),
-            Self::Snare(a) => write!(f, "snare.{}", key(a)),
-            Self::Tom(a) => write!(f, "tom.{}", key(a)),
-            Self::Hat(o, z) => write!(f, "hat.{}", hat_key(o, z)),
-            Self::Cymbal(a) => write!(f, "cymbal.{}", key(a)),
-            Self::Bell => f.write_str(key(CymArtic::Bell)),
-            Self::BellTip => f.write_str(key(CymArtic::BellTip)),
-            Self::Ride(a) => write!(f, "ride.{}", key(a)),
-            Self::Perc(p) => write!(f, "perc.{}", key(p)),
-            Self::Hand(d) => f.write_str(&hand_key(d)),
-        }
+        f.write_str(&stroke_key(*self))
     }
 }
 

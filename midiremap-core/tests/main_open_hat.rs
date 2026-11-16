@@ -73,6 +73,8 @@ fn gm_open_hat_lands_on_duplantier_2_edge_open_3() {
 #[test]
 fn ggd_open_levels_keep_their_order_on_duplantier_2() {
     assert_eq!(lands("ggd_invasion", "mixwave_duplantier2", 45), Some(78));
+    assert_eq!(lands("ggd_invasion", "mixwave_duplantier2", 46), Some(46));
+    assert_eq!(lands("ggd_invasion", "mixwave_duplantier2", 47), Some(46));
 }
 
 #[test]
@@ -99,60 +101,68 @@ fn ggd_open_levels_keep_their_order_on_mangini() {
     assert_eq!(lands("ggd_invasion", "mixwave_mangini", 46), Some(46));
 }
 
-fn each_lands(src: &str, tgt: &str, notes: &[(u8, u8)]) {
-    for &(from, to) in notes {
-        assert_eq!(lands(src, tgt, from), Some(to), "{src} {from} -> {tgt}");
-    }
-}
-
 #[test]
 fn addictive_drums_2_rungs_each_take_their_own_step_on_ezdrummer_3() {
-    each_lands(
-        "addictive_drums2",
-        "ezdrummer",
-        &[(54, 24), (55, 25), (56, 26), (57, 60)],
-    );
+    assert_eq!(lands("addictive_drums2", "ezdrummer", 54), Some(24));
+    assert_eq!(lands("addictive_drums2", "ezdrummer", 55), Some(25));
+    assert_eq!(lands("addictive_drums2", "ezdrummer", 56), Some(26));
+    assert_eq!(lands("addictive_drums2", "ezdrummer", 57), Some(60));
 }
 
 #[test]
 fn superior_drummer_3_rungs_skip_no_rung_on_addictive_drums_2() {
-    each_lands(
-        "superior_drummer3",
-        "addictive_drums2",
-        &[(64, 54), (24, 54), (25, 55), (26, 56), (60, 57), (17, 57)],
-    );
+    assert_eq!(lands("superior_drummer3", "addictive_drums2", 64), Some(54));
+    assert_eq!(lands("superior_drummer3", "addictive_drums2", 24), Some(54));
+    assert_eq!(lands("superior_drummer3", "addictive_drums2", 25), Some(55));
+    assert_eq!(lands("superior_drummer3", "addictive_drums2", 26), Some(56));
+    assert_eq!(lands("superior_drummer3", "addictive_drums2", 60), Some(57));
+    assert_eq!(lands("superior_drummer3", "addictive_drums2", 17), Some(57));
 }
 
 #[test]
 fn superior_drummer_3_bell_rungs_stay_on_the_one_addictive_drums_2_bell_rung() {
-    each_lands(
-        "superior_drummer3",
-        "addictive_drums2",
-        &[(120, 58), (121, 58), (122, 58), (123, 58), (124, 58)],
+    assert_eq!(
+        lands("superior_drummer3", "addictive_drums2", 120),
+        Some(58)
+    );
+    assert_eq!(
+        lands("superior_drummer3", "addictive_drums2", 121),
+        Some(58)
+    );
+    assert_eq!(
+        lands("superior_drummer3", "addictive_drums2", 122),
+        Some(58)
+    );
+    assert_eq!(
+        lands("superior_drummer3", "addictive_drums2", 123),
+        Some(58)
+    );
+    assert_eq!(
+        lands("superior_drummer3", "addictive_drums2", 124),
+        Some(58)
     );
 }
 
 #[test]
 fn ggd_open_levels_reach_guitar_pros_half_open_hat() {
-    each_lands(
-        "ggd_invasion",
-        "guitar_pro",
-        &[(45, 92), (46, 46), (47, 46)],
-    );
+    assert_eq!(lands("ggd_invasion", "guitar_pro", 45), Some(92));
+    assert_eq!(lands("ggd_invasion", "guitar_pro", 46), Some(46));
+    assert_eq!(lands("ggd_invasion", "guitar_pro", 47), Some(46));
 }
 
 #[test]
 fn krimhs_tip_open_hat_counts_its_steps_from_krimhs_main_on_ggd() {
-    each_lands("bogren_krimh", "ggd_invasion", &[(50, 45), (46, 46)]);
+    assert_eq!(lands("bogren_krimh", "ggd_invasion", 50), Some(45));
+    assert_eq!(lands("bogren_krimh", "ggd_invasion", 46), Some(46));
 }
 
 #[test]
 fn superior_drummer_3_tip_rungs_count_among_every_fotis_benardo_rung() {
-    each_lands(
-        "superior_drummer3",
-        "fotis_benardo",
-        &[(13, 54), (14, 46), (15, 49), (16, 49), (17, 49)],
-    );
+    assert_eq!(lands("superior_drummer3", "fotis_benardo", 13), Some(54));
+    assert_eq!(lands("superior_drummer3", "fotis_benardo", 14), Some(46));
+    assert_eq!(lands("superior_drummer3", "fotis_benardo", 15), Some(49));
+    assert_eq!(lands("superior_drummer3", "fotis_benardo", 16), Some(49));
+    assert_eq!(lands("superior_drummer3", "fotis_benardo", 17), Some(49));
 }
 
 #[test]

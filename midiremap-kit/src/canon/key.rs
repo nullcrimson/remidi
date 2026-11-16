@@ -2,9 +2,21 @@ use std::{collections::HashMap, fmt, str::FromStr, sync::LazyLock};
 
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
+#[cfg(any(test, feature = "testing"))]
+use super::{rules::Stroke, CymArtic};
 use super::{
     Canon, HandDrum, HandPart, HandStroke, HatOpen, HatZone, RideArtic, RideIdx, Rung, Slot, TomPos,
 };
+
+const KICK: &str = "kick";
+const SNARE: &str = "snare";
+const TOM: &str = "tom";
+const HAT: &str = "hat";
+const AUX: &str = "aux";
+const RIDE: &str = "ride";
+const PERC: &str = "perc";
+#[cfg(any(test, feature = "testing"))]
+const CYMBAL: &str = "cymbal";
 
 static BY_KEY: LazyLock<HashMap<String, Canon>> = LazyLock::new(|| {
     Canon::all()
@@ -12,7 +24,7 @@ static BY_KEY: LazyLock<HashMap<String, Canon>> = LazyLock::new(|| {
         .map(|&c| (c.to_string(), c))
         .chain(RideIdx::all().map(|i| {
             (
-                format!("ride.{i}.bow"),
+                format!("{RIDE}.{i}.bow"),
                 Canon(Slot::Ride(i, RideArtic::Bow)),
             )
         }))
@@ -28,7 +40,7 @@ fn hat_open_key(o: HatOpen) -> String {
         }
     }
 }
-pub(super) fn hat_key(o: HatOpen, z: HatZone) -> String {
+fn hat_key(o: HatOpen, z: HatZone) -> String {
     dotted(hat_open_key(o), hat_zone_key(z))
 }
 fn dotted(stem: String, tail: Option<&str>) -> String {
@@ -49,14 +61,14 @@ fn hand_part_key(p: HandPart) -> &'static str {
         HandPart::Length(l) => l.into(),
     }
 }
-pub(super) fn hand_key(d: HandDrum) -> String {
+fn hand_key(d: HandDrum) -> String {
     let stroke = d.stroke();
     dotted(
-        dotted(format!("perc.{}", key(d)), d.part().map(hand_part_key)),
+        dotted(format!("{PERC}.{}", key(d)), d.part().map(hand_part_key)),
         (stroke != HandStroke::Open).then(|| stroke.into()),
     )
 }
-pub(super) fn key(part: impl Into<&'static str>) -> &'static str {
+fn key(part: impl Into<&'static str>) -> &'static str {
     part.into()
 }
 fn tom_pos_key(p: TomPos) -> String {
@@ -69,16 +81,33 @@ fn tom_pos_key(p: TomPos) -> String {
 impl fmt::Display for Canon {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
-            Slot::Kick(k) => write!(f, "kick.{}", key(k)),
-            Slot::Snare(i, a) => write!(f, "snare{i}.{}", key(a)),
-            Slot::Tom(p, a) => write!(f, "tom.{}.{}", tom_pos_key(p), key(a)),
-            Slot::Hat(o, z) => write!(f, "hat.{}", hat_key(o, z)),
-            Slot::Aux(i, o, z) => write!(f, "aux{i}.{}", hat_key(o, z)),
+            Slot::Kick(k) => write!(f, "{KICK}.{}", key(k)),
+            Slot::Snare(i, a) => write!(f, "{SNARE}{i}.{}", key(a)),
+            Slot::Tom(p, a) => write!(f, "{TOM}.{}.{}", tom_pos_key(p), key(a)),
+            Slot::Hat(o, z) => write!(f, "{HAT}.{}", hat_key(o, z)),
+            Slot::Aux(i, o, z) => write!(f, "{AUX}{i}.{}", hat_key(o, z)),
             Slot::Cymbal(s, a) => write!(f, "{}.{}.{}", key(s), s.number(), key(a)),
-            Slot::Ride(i, a) => f.write_str(&dotted(format!("ride.{i}"), ride_artic_key(a))),
-            Slot::Perc(k) => write!(f, "perc.{}", key(k)),
+            Slot::Ride(i, a) => f.write_str(&dotted(format!("{RIDE}.{i}"), ride_artic_key(a))),
+            Slot::Perc(k) => write!(f, "{PERC}.{}", key(k)),
             Slot::Hand(d) => f.write_str(&hand_key(d)),
         }
+    }
+}
+
+/// The stroke in the words its canon keys spell it with.
+#[cfg(any(test, feature = "testing"))]
+pub(super) fn stroke_key(s: Stroke) -> String {
+    match s {
+        Stroke::Kick => KICK.to_owned(),
+        Stroke::Snare(a) => format!("{SNARE}.{}", key(a)),
+        Stroke::Tom(a) => format!("{TOM}.{}", key(a)),
+        Stroke::Hat(o, z) => format!("{HAT}.{}", hat_key(o, z)),
+        Stroke::Cymbal(a) => format!("{CYMBAL}.{}", key(a)),
+        Stroke::Bell => key(CymArtic::Bell).to_owned(),
+        Stroke::BellTip => key(CymArtic::BellTip).to_owned(),
+        Stroke::Ride(a) => format!("{RIDE}.{}", key(a)),
+        Stroke::Perc(p) => format!("{PERC}.{}", key(p)),
+        Stroke::Hand(d) => hand_key(d),
     }
 }
 

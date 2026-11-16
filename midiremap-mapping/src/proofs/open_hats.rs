@@ -2,15 +2,62 @@ use std::cmp::Ordering;
 
 use midiremap_kit::{
     canon::{HatZone, OpenLevel, Rung},
-    engine::{Catalog, HatLadder},
+    engine::{Catalog, EngineMap, HatLadder},
 };
 use strum::VariantArray;
 
 use super::assert_none;
 
+/// A hi-hat's ladder and the rungs it is built from, each in its zone.
+struct Hat {
+    played: Vec<(Rung, HatZone)>,
+    ladder: HatLadder,
+}
+
+impl Hat {
+    fn new(played: Vec<(Rung, HatZone)>, main: OpenLevel) -> Self {
+        let ladder = HatLadder::new(played.iter().copied(), main)
+            .expect("the main level is among the played ones");
+        Self { played, ladder }
+    }
+
+    /// The main hi-hat of `engine`, when it names its normal open hat.
+    fn of(engine: &EngineMap) -> Option<Self> {
+        let played = engine
+            .drums()
+            .iter()
+            .filter_map(|d| d.entry.canon().rung())
+            .collect();
+        let ladder = engine.hat_ladder()?.clone();
+        Some(Self { played, ladder })
+    }
+
+    fn main(&self) -> Rung {
+        Rung::Level(self.ladder.main())
+    }
+
+    /// The rungs it plays in `zone`, or in every zone when `zone` plays no open level, from
+    /// the least open.
+    fn rungs_in(&self, zone: HatZone) -> Vec<Rung> {
+        let plays_level = self
+            .played
+            .iter()
+            .any(|&(r, z)| z == zone && matches!(r, Rung::Level(_)));
+        let mut rungs: Vec<Rung> = self
+            .played
+            .iter()
+            .filter(|&&(_, z)| !plays_level || z == zone)
+            .map(|&(r, _)| r)
+            .collect();
+        rungs.sort();
+        rungs.dedup();
+        rungs
+    }
+}
+
 /// Every engine whose hi-hat plays some open levels, loose or not: each set of rungs it plays,
 /// each rung in the zone `place` gives it, with each of its levels as its main level.
-fn every_hat(place: impl Fn(Rung) -> HatZone) -> Vec<HatLadder> {
+fn every_hat(place: impl Fn(Rung) -> HatZone) -> Vec<Hat> {
     let all: Vec<OpenLevel> = OpenLevel::all().collect();
     let mut hats = Vec::new();
     for loose in [false, true] {
@@ -27,14 +74,23 @@ fn every_hat(place: impl Fn(Rung) -> HatZone) -> Vec<HatLadder> {
                 .chain(levels.iter().copied().map(Rung::Level))
                 .collect();
             for &main in &levels {
-                let played = rungs.iter().map(|&r| (r, place(r)));
-                hats.push(
-                    HatLadder::new(played, main).expect("the main level is among the played ones"),
-                );
+                hats.push(Hat::new(
+                    rungs.iter().map(|&r| (r, place(r))).collect(),
+                    main,
+                ));
             }
         }
     }
     hats
+}
+
+/// How many rungs apart `a` and `b` sit, loose counted as level 0.
+fn steps(a: Rung, b: Rung) -> u8 {
+    let number = |r| match r {
+        Rung::Loose => 0,
+        Rung::Level(level) => OpenLevel::get(level),
+    };
+    number(a).abs_diff(number(b))
 }
 
 /// The rungs of `rungs` on `side` of `main`, nearest it first.
@@ -44,21 +100,21 @@ fn outward(rungs: &[Rung], main: Rung, side: Ordering) -> Vec<Rung> {
         .copied()
         .filter(|r| r.cmp(&main) == side)
         .collect();
-    on_side.sort_by_key(|r| r.distance(main));
+    on_side.sort_by_key(|&r| steps(r, main));
     on_side
 }
 
 /// What breaks the agreed rules when `src` plays its rungs of `zone` on `tgt`, each engine
-/// counted among the rungs its ladder counts among there.
-fn breaks(src: &HatLadder, tgt: &HatLadder, zone: HatZone) -> Vec<String> {
+/// counted among the rungs it plays there, or in every zone when it plays no level there.
+fn breaks(src: &Hat, tgt: &Hat, zone: HatZone) -> Vec<String> {
     let (from, to) = (src.rungs_in(zone), tgt.rungs_in(zone));
-    let (from_main, to_main) = (Rung::Level(src.main()), Rung::Level(tgt.main()));
-    let land = |r: Rung| src.toward(tgt, r, zone);
+    let (from_main, to_main) = (src.main(), tgt.main());
+    let land = |r: Rung| src.ladder.toward(&tgt.ladder, r, zone);
     let main_at = land(from_main);
     let mut out = Vec::new();
     let nearest = to
         .iter()
-        .all(|t| t.distance(to_main) >= main_at.distance(to_main));
+        .all(|&t| steps(t, to_main) >= steps(main_at, to_main));
     if !to.contains(&main_at) || (to.contains(&to_main) && main_at != to_main) || !nearest {
         out.push(format!(
             "the main level lands on {main_at:?}, not the zone's rung nearest {to_main:?}"
@@ -126,9 +182,9 @@ fn every_rung_lands_on_a_played_rung_on_its_side_of_the_main_in_order() {
                 format!(
                     "{:?} main {} -> {:?} main {}: {f}",
                     src.rungs_in(HatZone::Plain),
-                    src.main(),
+                    src.ladder.main(),
                     tgt.rungs_in(HatZone::Plain),
-                    tgt.main()
+                    tgt.ladder.main()
                 )
             })
         })
@@ -145,7 +201,7 @@ fn a_zone_that_plays_no_level_counts_among_the_levels_of_every_zone() {
         Rung::Loose => HatZone::Plain,
         Rung::Level(_) => HatZone::Tip,
     });
-    let hats: Vec<(&HatLadder, &HatLadder, &HatLadder)> = in_plain
+    let hats: Vec<(&Hat, &Hat, &Hat)> = in_plain
         .iter()
         .zip(&in_tip)
         .zip(&loose_apart)
@@ -154,11 +210,13 @@ fn a_zone_that_plays_no_level_counts_among_the_levels_of_every_zone() {
     for &(src, src_tip, src_apart) in &hats {
         for &(tgt, tgt_tip, tgt_apart) in &hats {
             for r in src.rungs_in(HatZone::Plain) {
-                let plain = src.toward(tgt, r, HatZone::Plain);
-                assert_eq!(src_tip.toward(tgt, r, HatZone::Plain), plain);
-                assert_eq!(src.toward(tgt_tip, r, HatZone::Plain), plain);
-                assert_eq!(src_apart.toward(tgt, r, HatZone::Plain), plain);
-                assert_eq!(src.toward(tgt_apart, r, HatZone::Plain), plain);
+                let toward =
+                    |from: &Hat, to: &Hat| from.ladder.toward(&to.ladder, r, HatZone::Plain);
+                let plain = toward(src, tgt);
+                assert_eq!(toward(src_tip, tgt), plain);
+                assert_eq!(toward(src, tgt_tip), plain);
+                assert_eq!(toward(src_apart, tgt), plain);
+                assert_eq!(toward(src, tgt_apart), plain);
             }
         }
     }
@@ -167,13 +225,13 @@ fn a_zone_that_plays_no_level_counts_among_the_levels_of_every_zone() {
 #[test]
 fn every_builtin_pair_lands_each_rung_in_its_zone_on_its_side_in_order() {
     let catalog = Catalog::shared();
-    let hats: Vec<(&str, &HatLadder)> = catalog
+    let hats: Vec<(&str, Hat)> = catalog
         .engines()
-        .filter_map(|e| e.hat_ladder().map(|l| (e.id(), l)))
+        .filter_map(|e| Hat::of(e).map(|hat| (e.id(), hat)))
         .collect();
     let mut failures = Vec::new();
-    for &(src_id, src) in &hats {
-        for &(tgt_id, tgt) in &hats {
+    for (src_id, src) in &hats {
+        for (tgt_id, tgt) in &hats {
             for &zone in HatZone::VARIANTS {
                 failures.extend(
                     breaks(src, tgt, zone)
