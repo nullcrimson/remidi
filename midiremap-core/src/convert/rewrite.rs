@@ -1,3 +1,5 @@
+use std::collections::{HashMap, VecDeque};
+
 use midiremap_mapping::{Destination, Mapping};
 use midiremap_note::Note;
 use midiremap_smf::{
@@ -8,136 +10,241 @@ use midiremap_smf::{
     parts::TrackFilters,
 };
 use midly::{
-    num::{u28, u7},
+    num::{u28, u4, u7},
     MidiMessage, Smf, Track, TrackEvent, TrackEventKind,
 };
 
 use super::report::{Report, UnmappedFate};
 
+/// The delta of the events removed since the last one written, which the next one written
+/// carries so that timing does not shift.
 #[derive(Default)]
 struct DeltaFold(u28);
 
 impl DeltaFold {
-    fn carried(&self, ev: &TrackEvent) -> Result<u28, CodecError> {
-        u28::try_from(self.0.as_int() + ev.delta.as_int()).ok_or(CodecError::DeltaOverflow)
+    fn carried(&self, delta: u28) -> Result<u28, CodecError> {
+        u28::try_from(self.0.as_int() + delta.as_int()).ok_or(CodecError::DeltaOverflow)
     }
 
-    fn remove(&mut self, ev: &TrackEvent) -> Result<(), CodecError> {
-        self.0 = self.carried(ev)?;
+    fn remove(&mut self, delta: u28) -> Result<(), CodecError> {
+        self.0 = self.carried(delta)?;
         Ok(())
     }
 
-    fn keep(&mut self, ev: &mut TrackEvent) -> Result<(), CodecError> {
-        ev.delta = self.carried(ev)?;
+    /// The delta an event written after `delta` ticks carries.
+    fn keep(&mut self, delta: u28) -> Result<u28, CodecError> {
+        let carried = self.carried(delta)?;
         self.0 = u28::default();
-        Ok(())
+        Ok(carried)
     }
 }
 
-/// What a conversion does with one event: whether it stays in the file, and what it adds
-/// to the report.
+/// How a file writes the release of a note: a note-off, or a note-on without velocity.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-enum Fate {
-    /// Stays, adding nothing: no hit, such as a controller or the release of a played note.
-    Kept,
-    /// Goes, adding nothing: the release of a note nothing plays.
-    Removed,
-    /// A hit on a channel the scope leaves as it is: stays as it is.
-    Untouched,
-    /// A hit on its source note that stays, on the note that plays it.
-    Played(Note),
-    /// A hit on its source note that goes, since nothing plays it.
-    Dropped(Note),
+enum Release {
+    NoteOff,
+    SilentNoteOn,
 }
 
-impl Fate {
-    fn stays(self) -> bool {
+impl Release {
+    fn message(self, key: u7, vel: u7) -> MidiMessage {
         match self {
-            Fate::Kept | Fate::Untouched | Fate::Played(_) => true,
-            Fate::Removed | Fate::Dropped(_) => false,
+            Self::NoteOff => MidiMessage::NoteOff { key, vel },
+            Self::SilentNoteOn => MidiMessage::NoteOn { key, vel },
         }
     }
 }
 
-/// One event of a conversion: the event written, whose key, when `filter` accepts its
-/// channel, moves to where `mapping` plays it, and what it adds to the report.
-fn step<'a>(
-    mapping: &Mapping,
-    filter: ChannelFilter,
-    kind: TrackEventKind<'a>,
-) -> (TrackEventKind<'a>, Fate) {
-    let hit = hit(&kind);
-    let TrackEventKind::Midi { channel, message } = kind else {
-        return (kind, Fate::Kept);
-    };
-    if !filter.accepts(channel_from_wire(channel)) {
-        let fate = if hit.is_some() {
-            Fate::Untouched
-        } else {
-            Fate::Kept
-        };
-        return (kind, fate);
-    }
-    let (written, stays) = match moved(mapping, message) {
-        Some(message) => (TrackEventKind::Midi { channel, message }, true),
-        None => (kind, false),
-    };
-    let fate = match (hit, stays) {
-        (Some((_, note)), true) => Fate::Played(note),
-        (Some((_, note)), false) => Fate::Dropped(note),
-        (None, true) => Fate::Kept,
-        (None, false) => Fate::Removed,
-    };
-    (written, fate)
+/// One event of a conversion as `step` decides it on its own; the key a release or a choke
+/// goes to is decided by the track's [`Voicing`].
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum Stepped<'a> {
+    /// Stays as it is: an event that is no note, or one on a channel the scope leaves alone,
+    /// `untouched` when it is a hit there, which the report counts.
+    Pass {
+        kind: TrackEventKind<'a>,
+        untouched: bool,
+    },
+    /// A hit on `source` on a channel in scope: written on `key`, or removed when nothing
+    /// plays it.
+    Hit {
+        channel: u4,
+        source: Note,
+        vel: u7,
+        key: Option<u7>,
+    },
+    /// The release of `source` on a channel in scope; `mapped` is the key the mapping gives
+    /// `source`, or `None` when nothing plays it.
+    Off {
+        channel: u4,
+        source: Note,
+        vel: u7,
+        form: Release,
+        mapped: Option<u7>,
+    },
+    /// Poly aftertouch on `source` (a choke) on a channel in scope; `mapped` as for a release.
+    Choke {
+        channel: u4,
+        source: Note,
+        vel: u7,
+        mapped: Option<u7>,
+    },
 }
 
-/// `message` with its key moved to where `mapping` plays it, or `None` when nothing plays
-/// it; a message without a key as it is.
-fn moved(mapping: &Mapping, message: MidiMessage) -> Option<MidiMessage> {
-    let to = |key: u7| {
-        mapping
-            .destination(note_from_key(key))
-            .map(|to| note_key(to.note()))
+/// One event of a conversion, when `filter` accepts its channel moved to where `mapping`
+/// plays its source note: a hit to the key of its destination, a release or a choke with the
+/// key the mapping gives, for the voicing to follow when it holds no hit of that note.
+fn step<'a>(mapping: &Mapping, filter: ChannelFilter, kind: TrackEventKind<'a>) -> Stepped<'a> {
+    let TrackEventKind::Midi { channel, message } = kind else {
+        return Stepped::Pass {
+            kind,
+            untouched: false,
+        };
+    };
+    if !filter.accepts(channel_from_wire(channel)) {
+        return Stepped::Pass {
+            kind,
+            untouched: hit(&kind).is_some(),
+        };
+    }
+    let mapped = |key: u7| {
+        let source = note_from_key(key);
+        let to = mapping.destination(source).map(|to| note_key(to.note()));
+        (source, to)
+    };
+    let off = |key, vel, form| {
+        let (source, mapped) = mapped(key);
+        Stepped::Off {
+            channel,
+            source,
+            vel,
+            form,
+            mapped,
+        }
     };
     match message {
-        MidiMessage::NoteOn { key, vel } => to(key).map(|key| MidiMessage::NoteOn { key, vel }),
-        MidiMessage::NoteOff { key, vel } => to(key).map(|key| MidiMessage::NoteOff { key, vel }),
+        MidiMessage::NoteOn { key, vel } if vel.as_int() > 0 => {
+            let (source, key) = mapped(key);
+            Stepped::Hit {
+                channel,
+                source,
+                vel,
+                key,
+            }
+        }
+        MidiMessage::NoteOn { key, vel } => off(key, vel, Release::SilentNoteOn),
+        MidiMessage::NoteOff { key, vel } => off(key, vel, Release::NoteOff),
         MidiMessage::Aftertouch { key, vel } => {
-            to(key).map(|key| MidiMessage::Aftertouch { key, vel })
+            let (source, mapped) = mapped(key);
+            Stepped::Choke {
+                channel,
+                source,
+                vel,
+                mapped,
+            }
         }
         MidiMessage::Controller { .. }
         | MidiMessage::ProgramChange { .. }
         | MidiMessage::ChannelAftertouch { .. }
-        | MidiMessage::PitchBend { .. } => Some(message),
+        | MidiMessage::PitchBend { .. } => Stepped::Pass {
+            kind,
+            untouched: false,
+        },
     }
 }
 
-/// The events `keep` keeps, in order, each removed event's delta folded into the next kept
-/// one, closed with End-of-Track: a track that lacks one (a damaged file) gains it, carrying
-/// the delta of the events removed after the last kept one.
-fn thin<'a>(
-    events: Track<'a>,
-    mut keep: impl FnMut(&mut TrackEvent<'a>) -> bool,
-) -> Result<Track<'a>, CodecError> {
-    let mut fold = DeltaFold::default();
-    let mut out = Vec::with_capacity(events.len() + 1);
-    for mut ev in events {
-        if keep(&mut ev) {
-            fold.keep(&mut ev)?;
-            out.push(ev);
-        } else {
-            fold.remove(&ev)?;
+/// A hit still waiting for its release, and the target key it went to.
+#[derive(Debug, Clone, Copy)]
+struct Open {
+    key: u7,
+}
+
+/// One track as it is converted: the events written so far, the delta of the events removed
+/// since the last one written, and the open hits of each source note per channel, in the
+/// order they came. A release takes the oldest open hit of its note and a choke aims at the
+/// newest, so both go to the key their hit went to.
+#[derive(Default)]
+struct Voicing<'a> {
+    out: Track<'a>,
+    fold: DeltaFold,
+    open: HashMap<(u4, Note), VecDeque<Open>>,
+}
+
+impl<'a> Voicing<'a> {
+    fn with_capacity(events: usize) -> Self {
+        Self {
+            out: Vec::with_capacity(events),
+            ..Self::default()
         }
     }
-    if !is_closed(&out) {
-        let mut end = TrackEvent {
-            delta: u28::default(),
-            kind: END_OF_TRACK,
-        };
-        fold.keep(&mut end)?;
-        out.push(end);
+
+    /// Adds the event `stepped`, which came `delta` ticks after the one before it.
+    fn push(&mut self, delta: u28, stepped: Stepped<'a>) -> Result<(), CodecError> {
+        match self.voiced(stepped) {
+            Some(kind) => self.write(delta, kind),
+            None => self.fold.remove(delta),
+        }
     }
-    Ok(out)
+
+    /// The event `stepped` writes, or `None` when it goes.
+    fn voiced(&mut self, stepped: Stepped<'a>) -> Option<TrackEventKind<'a>> {
+        let midi = |channel, message| TrackEventKind::Midi { channel, message };
+        match stepped {
+            Stepped::Pass { kind, .. } => Some(kind),
+            Stepped::Hit {
+                channel,
+                source,
+                vel,
+                key,
+            } => {
+                let key = key?;
+                self.open
+                    .entry((channel, source))
+                    .or_default()
+                    .push_back(Open { key });
+                Some(midi(channel, MidiMessage::NoteOn { key, vel }))
+            }
+            Stepped::Off {
+                channel,
+                source,
+                vel,
+                form,
+                mapped,
+            } => {
+                let oldest = self
+                    .open
+                    .get_mut(&(channel, source))
+                    .and_then(VecDeque::pop_front);
+                let key = oldest.map(|hit| hit.key).or(mapped)?;
+                Some(midi(channel, form.message(key, vel)))
+            }
+            Stepped::Choke {
+                channel,
+                source,
+                vel,
+                mapped,
+            } => {
+                let newest = self.open.get(&(channel, source)).and_then(VecDeque::back);
+                let key = newest.map(|hit| hit.key).or(mapped)?;
+                Some(midi(channel, MidiMessage::Aftertouch { key, vel }))
+            }
+        }
+    }
+
+    fn write(&mut self, delta: u28, kind: TrackEventKind<'a>) -> Result<(), CodecError> {
+        let delta = self.fold.keep(delta)?;
+        self.out.push(TrackEvent { delta, kind });
+        Ok(())
+    }
+
+    /// The track written, closed with End-of-Track: a track that lacks one (a damaged file)
+    /// gains it, carrying the delta of the events removed after the last one written.
+    fn close(mut self) -> Result<Track<'a>, CodecError> {
+        if !is_closed(&self.out) {
+            self.write(u28::default(), END_OF_TRACK)?;
+        }
+        Ok(self.out)
+    }
 }
 
 /// What becomes of the hits on `note`, which the source of `mapping` does not recognize.
@@ -151,6 +258,41 @@ fn unmapped_fate(mapping: &Mapping, note: Note) -> UnmappedFate {
     }
 }
 
+/// Adds to `report` what `stepped` is: a hit in scope, by where its drum lands, or a hit the
+/// scope leaves untouched.
+fn tally(report: &mut Report, mapping: &Mapping, stepped: &Stepped) {
+    match *stepped {
+        Stepped::Hit { source, .. } => match mapping.get(source) {
+            Some(outcome) => report.record(outcome),
+            None => report.record_unmapped(source, unmapped_fate(mapping, source)),
+        },
+        Stepped::Pass {
+            untouched: true, ..
+        } => report.record_untouched(),
+        Stepped::Pass {
+            untouched: false, ..
+        }
+        | Stepped::Off { .. }
+        | Stepped::Choke { .. } => {}
+    }
+}
+
+/// `events` stepped one by one through a [`Voicing`], tallied in `report`, and closed.
+fn thin<'a>(
+    events: Track<'a>,
+    mapping: &Mapping,
+    filter: ChannelFilter,
+    report: &mut Report,
+) -> Result<Track<'a>, CodecError> {
+    let mut voicing = Voicing::with_capacity(events.len() + 1);
+    for ev in events {
+        let stepped = step(mapping, filter, ev.kind);
+        tally(report, mapping, &stepped);
+        voicing.push(ev.delta, stepped)?;
+    }
+    voicing.close()
+}
+
 /// `smf` with every note event its track's filter accepts rewritten through `mapping`, the
 /// notes nothing plays removed, and the report of what happened to each hit.
 pub(crate) fn rewrite<'a>(
@@ -160,19 +302,7 @@ pub(crate) fn rewrite<'a>(
 ) -> Result<(Smf<'a>, Report), CodecError> {
     let mut report = Report::default();
     for (track, filter) in smf.tracks.iter_mut().zip(filters) {
-        *track = thin(std::mem::take(track), |ev| {
-            let (kind, fate) = step(mapping, filter, ev.kind);
-            ev.kind = kind;
-            match fate {
-                Fate::Played(note) | Fate::Dropped(note) => match mapping.get(note) {
-                    Some(outcome) => report.record(outcome),
-                    None => report.record_unmapped(note, unmapped_fate(mapping, note)),
-                },
-                Fate::Untouched => report.record_untouched(),
-                Fate::Kept | Fate::Removed => {}
-            }
-            fate.stays()
-        })?;
+        *track = thin(std::mem::take(track), mapping, filter, &mut report)?;
     }
     Ok((smf, report))
 }
@@ -181,10 +311,7 @@ pub(crate) fn rewrite<'a>(
 mod tests {
     use midiremap_kit::engine::Catalog;
     use midiremap_mapping::{Mapping, MissingDrums, Overrides, Unrecognized};
-    use midly::{
-        num::{u14, u4},
-        MetaMessage, PitchBend,
-    };
+    use midly::{num::u14, MetaMessage, PitchBend};
 
     use super::*;
 
@@ -240,62 +367,73 @@ mod tests {
         }
     }
 
-    /// The event `step` must leave, and whether it stays: a note event on an accepted channel
-    /// moves to its destination's key or goes when nothing plays it; every other event stays
-    /// exactly as it was.
+    /// The event a conversion must write for `kind` alone, or `None` when it goes: a note
+    /// event on an accepted channel moves to its destination's key or goes when nothing plays
+    /// it; every other event stays exactly as it was.
     fn expected<'a>(
         mapping: &Mapping,
         filter: ChannelFilter,
         kind: TrackEventKind<'a>,
-    ) -> (TrackEventKind<'a>, bool) {
+    ) -> Option<TrackEventKind<'a>> {
         let TrackEventKind::Midi { channel, message } = kind else {
-            return (kind, true);
+            return Some(kind);
         };
         match key_of(message).filter(|_| filter.accepts(channel_from_wire(channel))) {
-            None => (kind, true),
-            Some(key) => match mapping.destination(note_from_key(key)) {
-                Some(to) => (
-                    TrackEventKind::Midi {
-                        channel,
-                        message: with_key(message, note_key(to.note())),
-                    },
-                    true,
-                ),
-                None => (kind, false),
-            },
+            None => Some(kind),
+            Some(key) => mapping
+                .destination(note_from_key(key))
+                .map(|to| TrackEventKind::Midi {
+                    channel,
+                    message: with_key(message, note_key(to.note())),
+                }),
         }
     }
 
-    /// The struck note of a note-on with a velocity: a hit, which the report counts.
-    fn struck(kind: TrackEventKind) -> Option<Note> {
+    /// What the report counts of one event.
+    #[derive(Debug, PartialEq, Eq)]
+    enum Counted {
+        Hit(Note),
+        Untouched,
+        Nothing,
+    }
+
+    fn counted(stepped: Stepped) -> Counted {
+        match stepped {
+            Stepped::Hit { source, .. } => Counted::Hit(source),
+            Stepped::Pass {
+                untouched: true, ..
+            } => Counted::Untouched,
+            Stepped::Pass {
+                untouched: false, ..
+            }
+            | Stepped::Off { .. }
+            | Stepped::Choke { .. } => Counted::Nothing,
+        }
+    }
+
+    /// What the report must count of `kind`: a note-on with a velocity is a hit, counted by
+    /// its note in scope and as untouched outside it.
+    fn expected_count(filter: ChannelFilter, kind: TrackEventKind) -> Counted {
         match kind {
             TrackEventKind::Midi {
+                channel,
                 message: MidiMessage::NoteOn { key, vel },
-                ..
-            } if vel.as_int() > 0 => Some(note_from_key(key)),
+            } if vel.as_int() > 0 => {
+                if filter.accepts(channel_from_wire(channel)) {
+                    Counted::Hit(note_from_key(key))
+                } else {
+                    Counted::Untouched
+                }
+            }
             TrackEventKind::Midi { .. }
             | TrackEventKind::SysEx(_)
             | TrackEventKind::Escape(_)
-            | TrackEventKind::Meta(_) => None,
-        }
-    }
-
-    fn expected_fate(filter: ChannelFilter, kind: TrackEventKind, stays: bool) -> Fate {
-        let accepted = match kind {
-            TrackEventKind::Midi { channel, .. } => filter.accepts(channel_from_wire(channel)),
-            TrackEventKind::SysEx(_) | TrackEventKind::Escape(_) | TrackEventKind::Meta(_) => true,
-        };
-        match (struck(kind), accepted, stays) {
-            (Some(_), false, _) => Fate::Untouched,
-            (Some(note), true, true) => Fate::Played(note),
-            (Some(note), true, false) => Fate::Dropped(note),
-            (None, _, true) => Fate::Kept,
-            (None, _, false) => Fate::Removed,
+            | TrackEventKind::Meta(_) => Counted::Nothing,
         }
     }
 
     #[test]
-    fn a_step_moves_only_the_key_of_a_note_in_scope_and_leaves_every_other_event_as_it_was() {
+    fn an_event_alone_moves_only_the_key_of_a_note_in_scope_and_leaves_every_other_as_it_was() {
         let catalog = Catalog::shared();
         let (src, tgt) = (
             catalog.get("ggd_invasion").unwrap(),
@@ -330,15 +468,15 @@ mod tests {
         for mapping in &mappings {
             for &filter in &filters {
                 for &kind in &events {
-                    let (stepped, fate) = step(mapping, filter, kind);
-                    let (want, stays) = expected(mapping, filter, kind);
-                    assert_eq!(fate.stays(), stays, "{kind:?} under {filter:?}");
-                    if stays {
-                        assert_eq!(stepped, want, "{kind:?} under {filter:?}");
-                    }
+                    let stepped = step(mapping, filter, kind);
                     assert_eq!(
-                        fate,
-                        expected_fate(filter, kind, stays),
+                        Voicing::default().voiced(stepped),
+                        expected(mapping, filter, kind),
+                        "{kind:?} under {filter:?}"
+                    );
+                    assert_eq!(
+                        counted(stepped),
+                        expected_count(filter, kind),
                         "{kind:?} under {filter:?}"
                     );
                     checked += 1;
