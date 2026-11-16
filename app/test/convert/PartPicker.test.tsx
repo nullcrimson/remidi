@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { PartPicker, type PartPickerSource } from '../../src/convert/PartPicker';
 import { PartOffers } from '../../src/convert/PartOffers';
-import type { AskReason, PartSummary } from '../../src/core/midiremap';
+import type { PartSummary, QuestionReason } from '../../src/core/midiremap';
 import type { PickedParts } from '../../src/core/part';
 import type { Picks } from '../../src/convert/useConverter';
 import type { PartQuestion } from '../../src/convert/partQuestions';
@@ -25,12 +25,11 @@ const KIT = typed<PartSummary>({
 });
 const BASS = typed<PartSummary>({ part: { track: 2, channel: 2 }, trackName: null, hits: 30, plays: null });
 
-function remapper(asked: (Omit<PartQuestion, 'why'> & { why?: AskReason })[], picks: Picks, setParts = vi.fn()) {
+function remapper(asked: (Omit<PartQuestion, 'why'> & { why?: QuestionReason })[], picks: Picks, setParts = vi.fn()) {
   return typed<PartPickerSource>({
-    questions: { asked: asked.map((q) => ({ why: 'noChannelTen', ...q })), unreadable: [], waiting: new Set(), offers: [] },
+    questions: { asked: asked.map((q) => ({ why: { kind: 'noChannelTen' }, ...q })), unreadable: [], waiting: new Set(), offers: [] },
     picks,
     src: 'ggd_invasion',
-    tgt: 'ezdrummer',
     engines: [
       { id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GetGood Drums Invasion' },
       { id: 'ezdrummer', name: 'EZdrummer 3', fullName: 'Toontrack EZdrummer 3' },
@@ -61,9 +60,10 @@ describe('PartPicker', () => {
     expect(screen.getByText(/^Nothing in it is on channel 10, the usual drum channel, and 2 parts have notes\./)).toBeInTheDocument();
   });
 
-  it('says why it asks of a file whose channel 10 the target plays none of', () => {
-    const tambourine = typed<PartSummary>({ part: { track: 2, channel: 10 }, trackName: null, hits: 1, plays: null });
-    render(<PartPicker remapper={remapper([{ file: 'song.mid', parts: [KIT, tambourine], why: 'channelTenUnplayed' }], {})} />);
+  it('says why it asks of a file whose channel 10 the target plays none of, counting the notes it would drop', () => {
+    const tambourine = typed<PartSummary>({ part: { track: 2, channel: 10 }, trackName: null, hits: 3, plays: null });
+    const why = typed<QuestionReason>({ kind: 'channelTenUnplayed', dropped: 1, target: 'ezdrummer' });
+    render(<PartPicker remapper={remapper([{ file: 'song.mid', parts: [KIT, tambourine], why }], {})} />);
     expect(screen.getByText(
       'Channel 10 holds 1 note, and EZdrummer 3 has no drum for it. Tick every drum part; the rest stays as it is.',
     )).toBeInTheDocument();

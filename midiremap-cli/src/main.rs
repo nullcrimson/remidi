@@ -152,8 +152,12 @@ fn run_convert(a: ConvertArgs) -> Result<ExitCode> {
                 AskReason::NoChannelTen => {
                     "has notes on several parts and none on channel 10".to_owned()
                 }
-                AskReason::ChannelTenUnplayed => format!(
-                    "has notes on channel 10 that {} has no drum for, and notes on other parts",
+                AskReason::ChannelTenUnplayed { dropped } => format!(
+                    "has {} on channel 10 that {} has no drum for, and notes on other parts",
+                    match dropped {
+                        1 => "a note".to_owned(),
+                        _ => format!("{dropped} notes"),
+                    },
                     tgt.display_name()
                 ),
             };

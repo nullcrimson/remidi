@@ -455,17 +455,18 @@ fn channel_ten_notes(midi: &[u8]) -> Vec<Note> {
         .collect()
 }
 
-/// Whether channel 10 of `midi` has hits on notes the source of `mapping` knows, and
-/// `mapping` drops every one of them.
-fn channel_ten_unplayed(midi: &[u8], mapping: &Mapping) -> bool {
+/// How many hits channel 10 of `midi` has on notes the source of `mapping` knows, when it has
+/// one and `mapping` drops every one of them.
+fn channel_ten_unplayed(midi: &[u8], mapping: &Mapping) -> Option<u32> {
     let known: Vec<Outcome> = channel_ten_notes(midi)
         .into_iter()
         .filter_map(|note| mapping.get(note))
         .collect();
-    !known.is_empty()
+    let unplayed = !known.is_empty()
         && known
             .iter()
-            .all(|outcome| matches!(outcome, Outcome::Dropped { .. }))
+            .all(|outcome| matches!(outcome, Outcome::Dropped { .. }));
+    unplayed.then(|| u32::try_from(known.len()).unwrap())
 }
 
 fn names(parts: &[Part]) -> BTreeSet<String> {
@@ -508,7 +509,7 @@ proptest! {
         let all: BTreeSet<String> = present.keys().cloned().collect();
         let drums: BTreeSet<String> = all.iter().filter(|p| p.ends_with(":10")).cloned().collect();
         let mapping = pair.mapping();
-        let unplayed = drums.len() < all.len() && channel_ten_unplayed(&midi, &mapping);
+        let unplayed = channel_ten_unplayed(&midi, &mapping).filter(|_| drums.len() < all.len());
         match convert(&midi, &mapping, ChannelScope::Auto).unwrap() {
             Conversion::Done(out) => {
                 let picked = names(&out.picked);
@@ -516,7 +517,7 @@ proptest! {
                     prop_assert!(all.len() <= 1, "converted {:?} of {:?}", picked, all);
                     prop_assert_eq!(&picked, &all);
                 } else {
-                    prop_assert!(!unplayed, "converted {:?}, which plays none of its known hits", picked);
+                    prop_assert!(unplayed.is_none(), "converted {:?}, which plays none of its known hits", picked);
                     prop_assert_eq!(&picked, &drums);
                 }
                 let outside: u32 = present.iter().filter(|(p, _)| !picked.contains(*p)).map(|(_, n)| n).sum();
@@ -527,8 +528,9 @@ proptest! {
                     AskReason::NoChannelTen => {
                         prop_assert!(drums.is_empty() && all.len() > 1, "asked about {:?}", all);
                     }
-                    AskReason::ChannelTenUnplayed => {
-                        prop_assert!(!drums.is_empty() && unplayed, "asked about {:?}", all);
+                    AskReason::ChannelTenUnplayed { dropped } => {
+                        prop_assert!(!drums.is_empty(), "asked about {:?}", all);
+                        prop_assert_eq!(Some(dropped), unplayed);
                     }
                 }
                 prop_assert_eq!(names(&Vec::from(parts)), all);

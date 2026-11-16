@@ -1,4 +1,7 @@
-use midiremap_kit::{canon::Canon, engine::EngineMap};
+use midiremap_kit::{
+    canon::Canon,
+    engine::{EngineId, EngineMap},
+};
 use midiremap_mapping::{Mapping, Outcome};
 use midiremap_note::Note;
 use midiremap_smf::{
@@ -78,6 +81,22 @@ impl<'a> Known<'_, 'a> {
             Self::Mapping(mapping) => hit_fate(mapping, note),
         }
     }
+
+    /// Why a question asks, which a choice judged by [`Self::judge`] gave as `why`.
+    fn reason(self, why: AskReason) -> QuestionReason {
+        match (why, self) {
+            (AskReason::NoChannelTen, _) => QuestionReason::NoChannelTen,
+            (AskReason::ChannelTenUnplayed { dropped }, Self::Mapping(mapping)) => {
+                QuestionReason::ChannelTenUnplayed {
+                    dropped,
+                    target: EngineId::from(mapping.target()),
+                }
+            }
+            (AskReason::ChannelTenUnplayed { .. }, Self::Nothing | Self::Source(_)) => {
+                unreachable!("only a mapping judges a hit dropped")
+            }
+        }
+    }
 }
 
 /// What a conversion through `mapping` does with a hit on `note`.
@@ -89,13 +108,24 @@ pub(crate) fn hit_fate(mapping: &Mapping, note: Note) -> HitFate {
     }
 }
 
+/// Why `Auto` asks of a file, as its question tells it: several parts have hits, none on
+/// channel 10; or channel 10's `dropped` hits on notes the source knows are all on drums
+/// `target` has none for, and other parts have hits.
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+#[cfg_attr(feature = "ts", derive(tsify::Tsify))]
+pub enum QuestionReason {
+    NoChannelTen,
+    ChannelTenUnplayed { dropped: u32, target: EngineId },
+}
+
 /// What `Auto` asks of a file: which of `parts`, each as [`part_summaries`] gives it, are the
 /// drums, and why it asks.
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "ts", derive(tsify::Tsify), tsify(missing_as_null))]
 pub struct AutoQuestion {
     pub parts: Vec<PartSummary>,
-    pub why: AskReason,
+    pub why: QuestionReason,
 }
 
 /// The question `Auto` asks of `midi`, its parts played as the source `known` gives, the same
@@ -107,7 +137,7 @@ pub fn auto_question(midi: &[u8], known: Known) -> Result<Option<AutoQuestion>, 
     Ok(match choose(&index, &auto, |note| known.judge(note)) {
         Ok(Choice::Ask { why, .. }) => Some(AutoQuestion {
             parts: summaries(&index, known.source(), |_| true),
-            why,
+            why: known.reason(why),
         }),
         Ok(Choice::Convert { .. }) | Err(_) => None,
     })
@@ -195,7 +225,7 @@ mod tests {
         let question = auto_question(&asked, Known::Nothing).unwrap().unwrap();
         let parts: Vec<String> = question.parts.iter().map(|s| s.part.to_string()).collect();
         assert_eq!(parts, ["1:1", "2:2"]);
-        assert_eq!(question.why, AskReason::NoChannelTen);
+        assert_eq!(question.why, QuestionReason::NoChannelTen);
         let drums = tracks(&[&[(0, DRUMS, on(36)), (0, 1, on(38))]]);
         assert!(auto_question(&drums, Known::Nothing).unwrap().is_none());
     }
@@ -212,7 +242,13 @@ mod tests {
         let asked = auto_question(&midi, Known::Mapping(&mapping)).unwrap();
         assert_eq!(
             asked.map(|q| (q.parts.len(), q.why)),
-            Some((2, AskReason::ChannelTenUnplayed))
+            Some((
+                2,
+                QuestionReason::ChannelTenUnplayed {
+                    dropped: 1,
+                    target: EngineId::from(invasion)
+                }
+            ))
         );
         assert!(auto_question(&midi, Known::Source(gm)).unwrap().is_none());
     }

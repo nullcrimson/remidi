@@ -289,6 +289,21 @@ describe('test stub', () => {
     expect(stub.family_order()).toEqual(real.family_order());
   });
 
+  it('asks of a kit beside a channel 10 the target lacks, counting only the hits it would drop', () => {
+    const kitBesideTambourine = new Uint8Array([
+      0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 1, 0, 2, 0, 0x60,
+      0x4d, 0x54, 0x72, 0x6b, 0, 0, 0, 0x0c,
+      0x00, 0x90, 0x24, 0x64, 0x30, 0x80, 0x24, 0x00,
+      0x00, 0xff, 0x2f, 0x00,
+      0x4d, 0x54, 0x72, 0x6b, 0, 0, 0, 0x14,
+      0x00, 0x99, 0x36, 0x64, 0x30, 0x89, 0x36, 0x00,
+      0x00, 0x99, 0x7f, 0x64, 0x30, 0x89, 0x7f, 0x00,
+      0x00, 0xff, 0x2f, 0x00,
+    ]);
+    const question = real.auto_question(kitBesideTambourine, 'general_midi', 'ggd_invasion');
+    expect(question?.why).toEqual({ kind: 'channelTenUnplayed', dropped: 1, target: 'ggd_invasion' });
+  });
+
   it('returns the same remap fields as the real module', () => {
     const [s, r] = [done(stub.remap(MIDI, 'ggd_invasion', 'ezdrummer')), done(real.remap(MIDI, 'ggd_invasion', 'ezdrummer'))];
     expect(keys(s)).toEqual(keys(r));

@@ -434,7 +434,7 @@ fn auto_asks_with_every_part_when_channel_10_holds_only_drums_the_target_lacks()
         (listed(parts.iter()), why),
         (
             vec!["1:1".to_owned(), "2:10".to_owned()],
-            AskReason::ChannelTenUnplayed
+            AskReason::ChannelTenUnplayed { dropped: 1 }
         )
     );
 }

@@ -1,24 +1,31 @@
 import { useMemo } from 'react';
 import { toAppError } from '../core/errors';
 import type { FileResult, LoadedFile } from '../core/files';
-import type { AskReason, ChannelScope, EngineId, MissingDrums, Midiremap, Overrides, Part, PartSummary } from '../core/midiremap';
+import type {
+  AutoQuestion,
+  ChannelScope,
+  EngineId,
+  MissingDrums,
+  Midiremap,
+  Overrides,
+  Part,
+  PartSummary,
+  Unrecognized,
+} from '../core/midiremap';
 import { asksForParts, samePart, type PickedParts } from '../core/part';
 import type { FailedFile } from './batch';
 import type { Picks } from './useConverter';
 
-/** A file converting under `auto` would ask about, and why it asks. */
-export interface PartQuestion {
-  file: string;
-  parts: PartSummary[];
-  why: AskReason;
-}
+/** A file converting under `auto` would ask about, with the question it asks. */
+export type PartQuestion = AutoQuestion & { file: string };
 
-/** What a conversion would read that decides whether `auto` asks: the engines, the edits and the missing-drums setting. */
+/** What a conversion would read that decides whether `auto` asks: the engines, the edits and the settings. */
 export interface QuestionSetup {
   src: EngineId | null;
   tgt: EngineId | null;
   overrides: Overrides;
   missing: MissingDrums;
+  unrecognized: Unrecognized;
 }
 
 /** Parts a conversion left as they are beside channel-10 drums in their track, and the pick that converts them too. */
@@ -41,9 +48,9 @@ export interface PartQuestions {
 
 type Asking = { kind: 'asked'; question: PartQuestion } | { kind: 'unreadable'; failure: FailedFile } | { kind: 'converts' };
 
-function asking(core: Midiremap, file: LoadedFile, { src, tgt, overrides, missing }: QuestionSetup): Asking {
+function asking(core: Midiremap, file: LoadedFile, { src, tgt, overrides, missing, unrecognized }: QuestionSetup): Asking {
   try {
-    const question = core.autoQuestion(file.bytes, src ?? undefined, tgt ?? undefined, overrides, missing);
+    const question = core.autoQuestion(file.bytes, src ?? undefined, tgt ?? undefined, overrides, missing, unrecognized);
     return question === undefined ? { kind: 'converts' } : { kind: 'asked', question: { file: file.name, ...question } };
   } catch (err) {
     return { kind: 'unreadable', failure: { name: file.name, error: toAppError(err) } };

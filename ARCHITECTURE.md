@@ -168,7 +168,7 @@ midiremap-core/src/
    xml.rs          ── the one XML writer (quick-xml), public: the site writes its sitemap with it
    inspect/        ── what a file plays, without converting it
       ├── hits.rs        ── NoteHits, note_hits
-      ├── summary.rs     ── PartSummary, Plays, part_summaries, auto_question (Known → AutoQuestion)
+      ├── summary.rs     ── PartSummary, Plays, part_summaries, auto_question (Known → AutoQuestion, QuestionReason)
       └── fit.rs         ── SourceFit, SourceFits, source_fits
    convert/        ── convert(bytes, &Mapping, Selection) → Conversion (Done | Ask)
       ├── rewrite.rs     ── rewrite(): one pure step per event, Voicing (voice table, merge, retrigger), DeltaFold
@@ -512,8 +512,9 @@ whether those notes are written.
   nothing and asks which parts are the drums (`AskReason::NoChannelTen`), since 123 of 160
   layouts read half a piano or bass range and only the user can tell. It also asks, listing
   every part, when channel 10 has hits on notes the source knows, the target plays none of
-  them, and other parts have hits (`AskReason::ChannelTenUnplayed`: a kit on channel 1
-  beside a tambourine on channel 10 would otherwise convert to nothing); hits on notes the
+  them, and other parts have hits (`AskReason::ChannelTenUnplayed { dropped }`, the hits on
+  known notes it would drop: a kit on channel 1 beside a tambourine on channel 10 would
+  otherwise convert to nothing); hits on notes the
   source does not know take no part in it, so a kit read with the wrong source converts
   and the done card asks "Wrong source?". A file whose only parts are on channel 10 never
   asks. Nothing is deleted without saying so: an
@@ -530,7 +531,9 @@ whether those notes are written.
   hits, and what they `Plays` as a source), and `auto_question(midi, known)` gives
   `AutoQuestion { parts, why }` only when `Auto` would ask. `known` is what the caller has,
   `Known { Nothing | Source(map) | Mapping(&mapping) }`; given the mapping it asks exactly
-  when `convert` through that mapping does. Both, and `convert`'s offers, come from one
+  when `convert` through that mapping does. Its `why` is a `QuestionReason`, the
+  `AskReason` with the mapping's target added to `ChannelTenUnplayed { dropped, target }`
+  (only a mapping judges a hit dropped), so the app words it from the question alone. Both, and `convert`'s offers, come from one
   crate-private `summaries`.
 
 ### `convert` — the entry point
@@ -741,9 +744,9 @@ error and 2 on a usage error. Parts left beside channel-10 drums are printed wit
 `wasm-bindgen` exports for the browser app:
 
 - `remap(mid, src_id, tgt_id, overrides?, selection?, missing?, unrecognized?) → Conversion`
-  (`auto_question(mid, src_id?, tgt_id?, overrides?, missing?) → AutoQuestion | undefined`
-  gives the parts `auto` would ask about and why, the same question `remap` asks when the
-  engines and settings are its own) — `overrides` is an `Overrides` object; `selection` is `{ scope }` with `auto`
+  (`auto_question(mid, src_id?, tgt_id?, overrides?, missing?, unrecognized?) → AutoQuestion |
+  undefined` gives the parts `auto` would ask about and why, the same question `remap` asks
+  when the engines and settings are its own: both build their mapping through one `paired`) — `overrides` is an `Overrides` object; `selection` is `{ scope }` with `auto`
   (the default), `all` or `1`-`16`, or `{ parts }`, a non-empty `Part[]` (a picked part the
   file lacks is `noSuchPart`); `missing` is `nearest` (the default) or `drop`; `unrecognized` is `remove`
   (the default) or `keep`. Like `selection`, a value outside its set is `internal`: the app
@@ -870,7 +873,7 @@ test in that file fails on any import outside it.
 - **Screen state** (`convert/useRemapper.ts` and the hooks of each feature) — `useRemapper` is the facade the UI consumes. It composes
   `useEngineCatalog` (one `Catalog` union: loading, ready with the module and its engine list, or the error), `useConverter` (files → results, and the drum parts picked per file),
   `usePartQuestions` (`convert/partQuestions.ts`: the files `auto` would ask about through
-  `auto_question`, given the pair, the edits and the missing-drums setting the conversion
+  `auto_question`, given the pair, the edits and the settings the conversion
   reads, the ones still waiting for a pick, and the parts a conversion offers;
   `PartPicker` asks under the files, saying why by the question's reason, Convert takes only the files that do not wait, and
   `PartOffers` in the done panel converts an offer by picking the file's parts again),

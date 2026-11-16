@@ -25,7 +25,7 @@ pub use files::{
 };
 pub use inspect::{
     auto_question, note_hits, part_summaries, source_fits, AutoQuestion, Known, NoteHits,
-    PartSummary, PlayedDrum, Plays, SourceFit, SourceFits,
+    PartSummary, PlayedDrum, Plays, QuestionReason, SourceFit, SourceFits,
 };
 pub use midiremap_kit::{
     canon::{Canon, CanonEntry, CanonParseError, Family},

@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { engineName } from '../core/enginePair';
-import type { AskReason, Canon, Part, PartSummary, Plays } from '../core/midiremap';
-import { DRUM_CHANNEL } from '../core/part';
+import type { Canon, Engine, Part, PartSummary, Plays } from '../core/midiremap';
 import type { Translate } from '../locale/i18n';
 import { useT } from '../locale/localeContext';
 import { Checkbox } from '../ui/Checkbox';
@@ -54,13 +53,14 @@ function PartPlays({ summary, labelOf }: { summary: PartSummary; labelOf: (canon
 }
 
 /** Why `auto` asks about `question`, in the words for its reason. */
-const WHY: Record<AskReason, (question: PartQuestion, target: string, t: Translate) => string> = {
-  noChannelTen: (question, _target, t) => t({ id: 'parts-why', args: { count: question.parts.length } }),
-  channelTenUnplayed: (question, target, t) => {
-    const count = question.parts.filter((s) => s.part.channel === DRUM_CHANNEL).reduce((n, s) => n + s.hits, 0);
-    return t({ id: 'parts-why-unplayed', args: { count, target } });
-  },
-};
+function why({ parts, why: reason }: PartQuestion, engines: Engine[], t: Translate): string {
+  switch (reason.kind) {
+    case 'noChannelTen':
+      return t({ id: 'parts-why', args: { count: parts.length } });
+    case 'channelTenUnplayed':
+      return t({ id: 'parts-why-unplayed', args: { count: reason.dropped, target: engineName(engines, reason.target) } });
+  }
+}
 
 function toggled(parts: Part[], part: Part): Part[] {
   return parts.some((p) => samePart(p, part)) ? parts.filter((p) => !samePart(p, part)) : [...parts, part];
@@ -72,7 +72,7 @@ function Question({
   others,
   picks,
   source,
-  target,
+  engines,
   labelOf,
   onPick,
 }: {
@@ -80,7 +80,7 @@ function Question({
   others: PartQuestion[];
   picks: Picks;
   source: string | null;
-  target: string;
+  engines: Engine[];
   labelOf: (canon: Canon) => string;
   onPick: (name: string, parts: Part[]) => void;
 }) {
@@ -102,7 +102,7 @@ function Question({
         {t({ id: 'parts-question', args: { file: question.file } })}
       </legend>
       <div className="flex flex-col gap-1 text-ui/relaxed text-t3">
-        <p>{WHY[question.why](question, target, t)}</p>
+        <p>{why(question, engines, t)}</p>
         {source !== null && <p>{t({ id: 'parts-plays-as', args: { source } })}</p>}
       </div>
       <ul className="flex flex-col gap-2">
@@ -145,16 +145,15 @@ function Question({
 }
 
 /** The files `auto` asks about, each with its parts to tick as the drums. */
-export type PartPickerSource = Pick<Remapper, 'questions' | 'picks' | 'src' | 'tgt' | 'engines' | 'setParts'> & {
+export type PartPickerSource = Pick<Remapper, 'questions' | 'picks' | 'src' | 'engines' | 'setParts'> & {
   editor: Pick<Remapper['editor'], 'canonOptions'>;
 };
 
 export function PartPicker({ remapper }: { remapper: PartPickerSource }) {
-  const { questions: { asked }, picks, src, tgt, engines, editor: { canonOptions }, setParts } = remapper;
+  const { questions: { asked }, picks, src, engines, editor: { canonOptions }, setParts } = remapper;
   const labelOf = useMemo(() => canonLabels(canonOptions), [canonOptions]);
   if (asked.length === 0) return null;
   const source = src === null ? null : engineName(engines, src);
-  const target = tgt === null ? '' : engineName(engines, tgt);
   return (
     <div className="flex flex-col gap-3">
       {asked.map((q) => (
@@ -164,7 +163,7 @@ export function PartPicker({ remapper }: { remapper: PartPickerSource }) {
           others={asked.filter((o) => o.file !== q.file)}
           picks={picks}
           source={source}
-          target={target}
+          engines={engines}
           labelOf={labelOf}
           onPick={setParts}
         />

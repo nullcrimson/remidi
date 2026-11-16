@@ -301,7 +301,7 @@ fn a_kit_off_channel_10_beside_a_tambourine_the_target_lacks_writes_nothing_and_
     assert!(written.is_empty());
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(
-        err.contains("notes on channel 10 that GetGood Drums Invasion has no drum for")
+        err.contains("has a note on channel 10 that GetGood Drums Invasion has no drum for")
             && err.contains("--parts 1:1,2:10"),
         "stderr: {err}"
     );

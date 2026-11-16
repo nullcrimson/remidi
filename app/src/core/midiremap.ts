@@ -22,7 +22,6 @@ import { isWasmError, WasmCallError } from './errors';
 type WasmModule = typeof import('@wasm');
 
 export type {
-  AskReason,
   AutoQuestion,
   Canon,
   ChannelScope,
@@ -47,6 +46,7 @@ export type {
   Part,
   PartSummary,
   Plays,
+  QuestionReason,
   Report,
   Selection,
   SourceFit,
@@ -74,8 +74,15 @@ export interface Midiremap {
     missing?: MissingDrums,
     unrecognized?: Unrecognized,
   ): Conversion;
-  /** What converting `mid` under `auto` would ask, its parts played as `src`: the question `remap` asks when `tgt`, `ov` and `missing` are its own. */
-  autoQuestion(mid: Uint8Array, src?: string, tgt?: string, ov?: Overrides, missing?: MissingDrums): AutoQuestion | undefined;
+  /** What converting `mid` under `auto` would ask, its parts played as `src`: the question `remap` asks when `tgt`, `ov`, `missing` and `unrecognized` are its own. */
+  autoQuestion(
+    mid: Uint8Array,
+    src?: string,
+    tgt?: string,
+    ov?: Overrides,
+    missing?: MissingDrums,
+    unrecognized?: Unrecognized,
+  ): AutoQuestion | undefined;
   /** The Ableton rack that plays `pair.src` MIDI on `pair.tgt` as `remap` converts it, named after `presetName` when given. */
   remapRack(
     pair: EnginePair,
@@ -112,7 +119,8 @@ function calls(m: WasmModule): Midiremap {
     plan: ({ src, tgt }, ov, missing) => call(() => m.plan(src, tgt, ov, missing)),
     remap: (mid, { src, tgt }, ov, selection, missing, unrecognized) =>
       call(() => m.remap(mid, src, tgt, ov, selection, missing, unrecognized)),
-    autoQuestion: (mid, src, tgt, ov, missing) => call(() => m.auto_question(mid, src, tgt, ov, missing)),
+    autoQuestion: (mid, src, tgt, ov, missing, unrecognized) =>
+      call(() => m.auto_question(mid, src, tgt, ov, missing, unrecognized)),
     remapRack: ({ src, tgt }, ov, missing, unrecognized, presetName) =>
       call(() => m.remap_rack(src, tgt, ov, missing, unrecognized, presetName)),
     sourceFits: (files) => call(() => m.source_fits(files)),

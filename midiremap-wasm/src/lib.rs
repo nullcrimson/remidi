@@ -107,7 +107,19 @@ struct Settings {
     unrecognized: Unrecognized,
 }
 
-/// The mapping a conversion and a rack read their settings through, the one way both do.
+/// The mapping of `src` onto `tgt` with these edits and settings, the one way a conversion,
+/// a rack and a part question read them.
+fn paired<'c>(
+    src: &'c EngineMap,
+    tgt: &'c EngineMap,
+    ov: &Overrides,
+    missing: MissingDrums,
+    unrecognized: Unrecognized,
+) -> Mapping<'c> {
+    Mapping::new(src, tgt, ov, missing).with_unrecognized(unrecognized)
+}
+
+/// The [`paired`] mapping of the engines `src_id` and `tgt_id` name.
 fn mapping<'c>(
     catalog: &'c Catalog,
     src_id: &str,
@@ -118,7 +130,7 @@ fn mapping<'c>(
 ) -> Result<Mapping<'c>, WasmError> {
     let src = engine(catalog, src_id, Role::Source)?;
     let tgt = engine(catalog, tgt_id, Role::Target)?;
-    Ok(Mapping::new(src, tgt, ov, missing).with_unrecognized(unrecognized))
+    Ok(paired(src, tgt, ov, missing, unrecognized))
 }
 
 fn convert_file(
@@ -170,10 +182,12 @@ pub fn auto_question(
     tgt_id: Option<String>,
     overrides: Option<Ts<Overrides>>,
     missing: Option<Ts<MissingDrums>>,
+    unrecognized: Option<Ts<Unrecognized>>,
 ) -> Result<Option<Ts<AutoQuestion>>, WasmError> {
     let catalog = Catalog::shared();
     let ov = from_js(overrides, |detail| WasmError::BadOverrides { detail })?;
     let missing = from_js(missing, |detail| WasmError::BadMissing { detail })?;
+    let unrecognized = from_js(unrecognized, |detail| WasmError::Internal { detail })?;
     let source = src_id
         .map(|id| engine(catalog, &id, Role::Source))
         .transpose()?;
@@ -182,7 +196,7 @@ pub fn auto_question(
         .transpose()?;
     let paired = source
         .zip(target)
-        .map(|(src, tgt)| Mapping::new(src, tgt, &ov, missing));
+        .map(|(src, tgt)| paired(src, tgt, &ov, missing, unrecognized));
     let known = match (&paired, source) {
         (Some(mapping), _) => Known::Mapping(mapping),
         (None, Some(source)) => Known::Source(source),

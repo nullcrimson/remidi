@@ -71,6 +71,13 @@ impl PartIndex {
             .map(|(&part, notes)| (part, notes.as_slice()))
     }
 
+    /// The note of every hit of `parts`, part by part, in part order.
+    pub(crate) fn notes_in<'a>(&'a self, parts: &'a PartSet) -> impl Iterator<Item = Note> + 'a {
+        self.hits()
+            .filter(|(part, _)| parts.contains(part))
+            .flat_map(|(_, notes)| notes.iter().copied())
+    }
+
     /// Every part with hits.
     pub(crate) fn parts(&self) -> PartSet {
         self.hits.keys().copied().collect()

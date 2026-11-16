@@ -56,14 +56,14 @@ pub enum HitFate {
 
 /// Why `Auto` asks which parts of a file are the drums.
 #[derive(Serialize, Debug, Clone, Copy, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[serde(tag = "kind", rename_all = "camelCase")]
 #[cfg_attr(feature = "ts", derive(tsify::Tsify))]
 pub enum AskReason {
     /// Several parts have hits, none on channel 10.
     NoChannelTen,
-    /// Channel 10 has hits on notes the source knows, the conversion plays none of them, and
-    /// other parts have hits.
-    ChannelTenUnplayed,
+    /// Channel 10 has hits on notes the source knows, the conversion drops every one of them
+    /// (`dropped` hits), and other parts have hits.
+    ChannelTenUnplayed { dropped: u32 },
 }
 
 /// What a selection comes to for one file.
@@ -82,16 +82,18 @@ pub enum Choice {
     Ask { parts: Parts, why: AskReason },
 }
 
-/// Whether the hits of `parts` include one on a note `judge` knows, and the conversion plays
-/// none of those: every hit on a known note is dropped.
-fn plays_none(index: &PartIndex, parts: &PartSet, judge: impl Fn(Note) -> HitFate) -> bool {
-    let mut known = index
-        .hits()
-        .filter(|(part, _)| parts.contains(part))
-        .flat_map(|(_, notes)| notes.iter().map(|&note| judge(note)))
-        .filter(|&fate| fate != HitFate::Unknown)
-        .peekable();
-    known.peek().is_some() && known.all(|fate| fate == HitFate::Dropped)
+/// How many hits of `parts` are on notes `judge` knows, when there is one and the conversion
+/// plays none of them: every hit on a known note is dropped.
+fn all_dropped(index: &PartIndex, parts: &PartSet, judge: impl Fn(Note) -> HitFate) -> Option<u32> {
+    let mut dropped = 0;
+    for fate in index.notes_in(parts).map(judge) {
+        match fate {
+            HitFate::Played => return None,
+            HitFate::Dropped => dropped += 1,
+            HitFate::Unknown => {}
+        }
+    }
+    (dropped > 0).then_some(dropped)
 }
 
 /// What `selection` rewrites in `index`'s file, or the picked part the file has no hit in.
@@ -128,10 +130,11 @@ pub fn choose(
                     why: AskReason::NoChannelTen,
                 });
             }
-            if !others.is_empty() && plays_none(index, &drums, &judge) {
+            let unplayed = all_dropped(index, &drums, &judge).filter(|_| !others.is_empty());
+            if let Some(dropped) = unplayed {
                 return Ok(Choice::Ask {
                     parts: Parts::from_set(present),
-                    why: AskReason::ChannelTenUnplayed,
+                    why: AskReason::ChannelTenUnplayed { dropped },
                 });
             }
             let drum_tracks: BTreeSet<TrackNo> = drums.iter().map(|p| p.track).collect();
@@ -161,11 +164,7 @@ pub fn hit_notes(index: &PartIndex, selection: &Selection) -> Result<Vec<Note>, 
     let Choice::Convert { picked, .. } = choose(index, selection, |_| HitFate::Played)? else {
         return Ok(Vec::new());
     };
-    Ok(index
-        .hits()
-        .filter(|(part, _)| picked.contains(part))
-        .flat_map(|(_, notes)| notes.iter().copied())
-        .collect())
+    Ok(index.notes_in(&picked).collect())
 }
 
 #[cfg(test)]
@@ -227,7 +226,7 @@ mod tests {
             (names(parts.iter()), why),
             (
                 vec!["1:1".to_owned(), "2:10".to_owned()],
-                AskReason::ChannelTenUnplayed
+                AskReason::ChannelTenUnplayed { dropped: 1 }
             )
         );
     }
