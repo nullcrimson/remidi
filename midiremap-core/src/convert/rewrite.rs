@@ -291,46 +291,38 @@ impl<'a> Voicing<'a> {
         }
     }
 
-    /// Raises the velocity of the note-on written at `at` to `vel` when it is lower.
+    /// Raises the velocity of the note-on written at `at`, which a [`Sound::Written`] names,
+    /// to `vel` when it is lower.
     fn raise(&mut self, at: usize, vel: u7) {
-        if let Some(TrackEvent {
-            kind:
-                TrackEventKind::Midi {
-                    message: MidiMessage::NoteOn { vel: written, .. },
-                    ..
-                },
+        let TrackEventKind::Midi {
+            message: MidiMessage::NoteOn { vel: written, .. },
             ..
-        }) = self.out.get_mut(at)
-        {
-            *written = (*written).max(vel);
-        }
+        } = &mut self.out[at].kind
+        else {
+            unreachable!("a written hit names the note-on it wrote, and the output only grows");
+        };
+        *written = (*written).max(vel);
     }
 
     /// The key the release of `hit`, just taken off the table, is written on; `None` when a
-    /// retrigger closed it, or other hits still sound in its note, which then goes on for
-    /// them. A written hit whose release goes hands its note-on to a hit merged into one on its
-    /// key.
+    /// retrigger closed it, or it merged into another hit's note-on, or a hit merged into its
+    /// own note-on still sounds: that hit then takes the note-on over, which goes on for it.
     fn released(&mut self, channel: Channel, hit: Open) -> Option<Note> {
-        if hit.sound == Sound::Closed {
-            return None;
-        }
-        let (mut sounding, mut written) = (1, usize::from(hit.sound != Sound::Merged));
-        for (_, sound) in self.sounding(channel, hit.key) {
-            sounding += 1;
-            written += usize::from(sound != Sound::Merged);
-        }
-        if sounding == written {
-            return Some(hit.key);
-        }
-        if let Sound::Written { .. } = hit.sound {
-            let heir = self
-                .on_key_mut(channel, hit.key)
-                .find(|open| open.sound == Sound::Merged);
-            if let Some(heir) = heir {
-                heir.sound = hit.sound;
+        match hit.sound {
+            Sound::Closed | Sound::Merged => None,
+            Sound::Written { .. } => {
+                let heir = self
+                    .on_key_mut(channel, hit.key)
+                    .find(|open| open.sound == Sound::Merged);
+                match heir {
+                    Some(heir) => {
+                        heir.sound = hit.sound;
+                        None
+                    }
+                    None => Some(hit.key),
+                }
             }
         }
-        None
     }
 
     /// The oldest open hit of `source` on `channel`, taken off the table.
