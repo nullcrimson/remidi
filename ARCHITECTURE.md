@@ -26,7 +26,7 @@ meaning is **unmapped**: removed, or written out unchanged when the **unrecogniz
 setting (`Unrecognized { Remove | Keep }`, default `Remove`) says `Keep`; the report lists
 it as unmapped either way, with its fate: removed, kept on a number the target leaves
 free, or kept onto the target drum that plays on its number
-(`Mapping::target_drum_on`).
+(`Mapping::kept`).
 
 The **missing drums** setting (`MissingDrums`) decides how far the chain may reach:
 `Nearest` (the default) takes the first entry the target plays, which may be another
@@ -422,8 +422,10 @@ whether those notes are written.
   `dropped` count), and `destination(note)` → `Destination` (a type the facade does not
   re-export, read by core), the one rule
   for where a source note plays: on a drum and its note, unchanged
-  (`Unrecognized::Keep`: `Kept { note, plays }`), or nowhere. `plays` is
-  `target_drum_on(note)`, the one rule for which target drum sits on a note: the drum a
+  (`Unrecognized::Keep`: `Destination::Kept(Kept { note, plays })`), or nowhere. `kept(note)`
+  gives that `Kept` for a note the source does not recognize, or `None` under `Remove`; its
+  `plays` is the private `target_drum_on(note)`, the one rule for which target drum sits on
+  a note: the drum a
   target edit puts there (of two, the first in `Canon` order, the edits map's own), else
   the drum the stock target plays there, also when an edit moved that drum off it, since
   the stock note may still sound. `rewrite` and the Ableton rack both read it, so the
@@ -591,13 +593,16 @@ whether those notes are written.
   written as it comes (not this table's business).
 - `Report` (`convert/report.rs`) keeps its counters private and hands them out as
   iterators and totals (`hits()` is every note-on seen); only the converter tallies
-  them (`record`, `record_unmapped`, `record_untouched`). `record` keeps the counting
+  them, in a `Tally` (`record`, `record_unmapped`, `record_untouched`, `record_merged`),
+  which `closed` turns into the `Report`. `rewrite`'s `step` says on each hit in scope how
+  the source hears it (`Heard::Recognized(outcome)` or `Unrecognized`), which the tally
+  reads without asking the mapping again. `record` keeps the counting
   policy in one place: it tallies fallbacks used (each a `FallbackTally`: the stand-in drum
   the converter chose, the target note it landed on and the hit count) and dropped
-  canons; direct hits are not recorded. `record_unmapped` tallies a note the source does
-  not recognize as one `Unmapped { hits, fate }` per note, its `UnmappedFate` (`Removed`,
-  `KeptFree`, `KeptOnto(canon)`) set from the note's `Destination` by its first hit, since
-  every hit of a note meets the same fate; the app names a kept note's drum from that
+  canons; direct hits are not recorded. `record_unmapped` counts the hits of a note the
+  source does not recognize, and the closing tally gives each such note its `UnmappedFate`
+  (`Removed`, `KeptFree`, `KeptOnto(canon)`) once, from the mapping's `kept(note)`, making
+  one `Unmapped { hits, fate }` per note; the app names a kept note's drum from that
   canon. `converted` counts hits the output plays (direct or approximated), each on its
   own note-on or merged into another's; `untouched` counts note-ons the channel scope left
   alone, which are not loss; `merged` counts hits, converted or kept, that sound inside

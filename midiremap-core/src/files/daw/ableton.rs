@@ -1,7 +1,7 @@
 use std::io;
 
 use midiremap_kit::engine::EngineMap;
-use midiremap_mapping::{Destination, Mapping};
+use midiremap_mapping::{Destination, Kept, Mapping};
 use midiremap_note::Note;
 use serde::Serialize;
 
@@ -90,7 +90,7 @@ fn remap_rack(mapping: &Mapping) -> String {
                         shift: (shift != 0).then_some(shift),
                     }
                 }
-                Destination::Kept { note, plays } => Chain {
+                Destination::Kept(Kept { note, plays }) => Chain {
                     note,
                     name: plays.map_or_else(
                         || KEPT.to_owned(),

@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use midiremap_kit::canon::Canon;
-use midiremap_mapping::Outcome;
+use midiremap_mapping::{Kept, Outcome};
 use midiremap_note::Note;
 use serde::Serialize;
 
@@ -28,6 +28,20 @@ pub enum UnmappedFate {
     Removed,
     KeptFree,
     KeptOnto(Canon),
+}
+
+impl UnmappedFate {
+    /// The fate of the hits on a note the source does not recognize, which the mapping keeps
+    /// as `kept`, or removes when that is `None`.
+    pub(crate) fn of(kept: Option<Kept>) -> Self {
+        match kept {
+            None => Self::Removed,
+            Some(Kept { plays: None, .. }) => Self::KeptFree,
+            Some(Kept {
+                plays: Some(canon), ..
+            }) => Self::KeptOnto(canon),
+        }
+    }
 }
 
 /// The hits on a note the source does not recognize, and what became of them.
@@ -60,10 +74,10 @@ pub struct Report {
 impl Report {
     /// Hits on source notes the source engine does not map, with what became of them, by
     /// note, ascending.
-    pub fn unmapped_source(&self) -> impl Iterator<Item = (Note, &Unmapped)> {
+    pub fn unmapped_source(&self) -> impl Iterator<Item = (Note, Unmapped)> + '_ {
         self.unmapped_source
             .iter()
-            .map(|(&note, unmapped)| (note, unmapped))
+            .map(|(&note, &unmapped)| (note, unmapped))
     }
 
     /// Hits played on a stand-in because the target lacks the drum, by drum, in drum order.
@@ -103,31 +117,39 @@ impl Report {
             + self.unmapped_source.values().map(|u| u.hits).sum::<u32>()
             + self.untouched
     }
+}
 
+/// A conversion's [`Report`] while it is tallied: the hits on each note the source does not
+/// recognize are counted, and each such note is given its fate once, when the tally closes.
+#[derive(Default)]
+pub(crate) struct Tally {
+    report: Report,
+    unmapped: BTreeMap<Note, u32>,
+}
+
+impl Tally {
     pub(crate) fn record_untouched(&mut self) {
-        self.untouched += 1;
+        self.report.untouched += 1;
     }
 
     pub(crate) fn record_merged(&mut self, hits: u32) {
-        self.merged += hits;
+        self.report.merged += hits;
     }
 
-    /// Tallies one hit on `note`, which the source does not recognize and whose hits all
-    /// meet `fate`.
-    pub(crate) fn record_unmapped(&mut self, note: Note, fate: UnmappedFate) {
-        self.unmapped_source
-            .entry(note)
-            .or_insert(Unmapped { hits: 0, fate })
-            .hits += 1;
+    /// Tallies one hit on `note`, which the source does not recognize.
+    pub(crate) fn record_unmapped(&mut self, note: Note) {
+        *self.unmapped.entry(note).or_default() += 1;
     }
 
     /// Tallies one hit on a source note the source recognizes, by where its drum lands.
     pub(crate) fn record(&mut self, outcome: Outcome) {
+        let report = &mut self.report;
         match outcome {
             fallback @ Outcome::Fallback(s) => {
                 let (canon, stand_in, note) = (fallback.canon(), s.stand_in(), s.note());
-                self.converted += 1;
-                self.fallback_used
+                report.converted += 1;
+                report
+                    .fallback_used
                     .entry(canon)
                     .or_insert(FallbackTally {
                         stand_in,
@@ -136,8 +158,24 @@ impl Report {
                     })
                     .count += 1
             }
-            Outcome::Dropped { canon, .. } => *self.dropped.entry(canon).or_default() += 1,
-            Outcome::Direct(_) => self.converted += 1,
+            Outcome::Dropped { canon, .. } => *report.dropped.entry(canon).or_default() += 1,
+            Outcome::Direct(_) => report.converted += 1,
+        }
+    }
+
+    /// The report, each unrecognized note with its hits given its `fate`.
+    pub(crate) fn closed(self, fate: impl Fn(Note) -> UnmappedFate) -> Report {
+        let unmapped_source = self
+            .unmapped
+            .into_iter()
+            .map(|(note, hits)| {
+                let fate = fate(note);
+                (note, Unmapped { hits, fate })
+            })
+            .collect();
+        Report {
+            unmapped_source,
+            ..self.report
         }
     }
 }
@@ -158,10 +196,14 @@ mod tests {
         k("snare1.hit")
     }
 
-    fn tallied_report() -> Report {
+    fn removed(_: Note) -> UnmappedFate {
+        UnmappedFate::Removed
+    }
+
+    fn tally() -> Tally {
         let (open3, snare) = (open3(), snare());
-        let mut r = Report::default();
-        r.record_unmapped(n(99), UnmappedFate::Removed);
+        let mut r = Tally::default();
+        r.record_unmapped(n(99));
         r.record(Outcome::Fallback(StandIn::new(
             open3,
             open3,
@@ -176,6 +218,10 @@ mod tests {
         r
     }
 
+    fn tallied_report() -> Report {
+        tally().closed(removed)
+    }
+
     #[test]
     fn report_tallies_an_unmapped_note() {
         let r = tallied_report();
@@ -183,7 +229,7 @@ mod tests {
             r.unmapped_source().collect::<Vec<_>>(),
             [(
                 n(99),
-                &Unmapped {
+                Unmapped {
                     hits: 1,
                     fate: UnmappedFate::Removed
                 }
@@ -237,29 +283,23 @@ mod tests {
 
     #[test]
     fn report_counts_an_untouched_event() {
-        let mut r = tallied_report();
+        let mut r = tally();
         r.record_untouched();
-        assert_eq!(r.untouched(), 1);
+        assert_eq!(r.closed(removed).untouched(), 1);
     }
 
     #[test]
     fn report_hits_count_every_recorded_event() {
-        let mut r = tallied_report();
+        let mut r = tally();
         r.record_untouched();
-        assert_eq!(r.hits(), 5);
+        assert_eq!(r.closed(removed).hits(), 5);
     }
 
     #[test]
     fn report_serializes_sorted_with_string_note_keys() {
-        let mut r = Report::default();
-        let kick = UnmappedFate::KeptOnto(k("kick.main"));
-        for (note, fate) in [
-            (99, UnmappedFate::Removed),
-            (5, kick),
-            (12, UnmappedFate::KeptFree),
-            (5, kick),
-        ] {
-            r.record_unmapped(n(note), fate);
+        let mut r = Tally::default();
+        for note in [99, 5, 12, 5] {
+            r.record_unmapped(n(note));
         }
         for key in ["splash.1.hit", "china.1.hit"] {
             r.record(Outcome::Dropped {
@@ -267,6 +307,11 @@ mod tests {
                 other_drum: false,
             });
         }
+        let r = r.closed(|note| match note.get() {
+            5 => UnmappedFate::KeptOnto(k("kick.main")),
+            12 => UnmappedFate::KeptFree,
+            _ => UnmappedFate::Removed,
+        });
         assert_eq!(
             serde_json::to_string(&r).unwrap(),
             r#"{"unmappedSource":{"5":{"hits":2,"fate":{"keptOnto":"kick.main"}},"12":{"hits":1,"fate":"keptFree"},"99":{"hits":1,"fate":"removed"}},"fallbackUsed":{},"dropped":{"china.1.hit":1,"splash.1.hit":1},"untouched":0,"converted":0,"merged":0}"#

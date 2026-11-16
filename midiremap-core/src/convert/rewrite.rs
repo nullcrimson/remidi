@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, VecDeque};
 
-use midiremap_mapping::{Destination, Mapping};
+use midiremap_mapping::{Mapping, Outcome};
 use midiremap_note::Note;
 use midiremap_smf::{
     midi::{
@@ -14,7 +14,7 @@ use midly::{
     MidiMessage, Smf, Track, TrackEvent, TrackEventKind,
 };
 
-use super::report::{Report, UnmappedFate};
+use super::report::{Report, Tally, UnmappedFate};
 
 /// The ticks since the last event written, which the next one written carries so that
 /// timing does not shift when events are removed.
@@ -35,6 +35,14 @@ impl DeltaFold {
     }
 }
 
+/// What a hit in scope is to the source: a drum it recognizes, with where that lands, or a
+/// note it does not recognize.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum Heard {
+    Recognized(Outcome),
+    Unrecognized,
+}
+
 /// One event of a conversion as `step` decides it on its own; the key a release or a choke
 /// goes to is decided by the track's [`Voicing`].
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -43,13 +51,14 @@ enum Stepped<'a> {
     Pass(TrackEventKind<'a>),
     /// A hit on a channel the scope leaves alone: stays as it is, and the report counts it.
     Untouched(TrackEventKind<'a>),
-    /// A hit on `source` on a channel in scope: written on `key`, or removed when nothing
-    /// plays it.
+    /// A hit on `source` on a channel in scope, `heard` as the source hears it: written on
+    /// `key`, or removed when nothing plays it.
     Hit {
         channel: Channel,
         source: Note,
         vel: u7,
         key: Option<Note>,
+        heard: Heard,
     },
     /// The release of `source` on a channel in scope; `mapped` is the key the mapping gives
     /// `source`, or `None` when nothing plays it.
@@ -95,6 +104,9 @@ fn step<'a>(mapping: &Mapping, filter: ChannelFilter, kind: TrackEventKind<'a>) 
             source,
             vel,
             key: mapped,
+            heard: mapping
+                .get(source)
+                .map_or(Heard::Unrecognized, Heard::Recognized),
         },
         Touch::Release(form) => Stepped::Off {
             channel,
@@ -183,6 +195,7 @@ impl<'a> Voicing<'a> {
                 source,
                 vel,
                 key,
+                ..
             } => {
                 let key = key?;
                 let sound = self.struck(channel, source, key, vel);
@@ -373,25 +386,19 @@ impl<'a> Voicing<'a> {
     }
 }
 
-/// What becomes of the hits on `note`, which the source of `mapping` does not recognize.
-fn unmapped_fate(mapping: &Mapping, note: Note) -> UnmappedFate {
-    match mapping.destination(note) {
-        Some(Destination::Kept {
-            plays: Some(canon), ..
-        }) => UnmappedFate::KeptOnto(canon),
-        Some(Destination::Kept { plays: None, .. }) => UnmappedFate::KeptFree,
-        Some(Destination::Drum { .. }) | None => UnmappedFate::Removed,
-    }
-}
-
-/// Adds to `report` what `stepped` is: a hit in scope, by where its drum lands, or a hit the
-/// scope leaves untouched.
-fn tally(report: &mut Report, mapping: &Mapping, stepped: &Stepped) {
+/// Adds to `report` what `stepped` is: a hit in scope, by where its drum lands or by its
+/// note when the source does not recognize it, or a hit the scope leaves untouched.
+fn tally(report: &mut Tally, stepped: &Stepped) {
     match *stepped {
-        Stepped::Hit { source, .. } => match mapping.get(source) {
-            Some(outcome) => report.record(outcome),
-            None => report.record_unmapped(source, unmapped_fate(mapping, source)),
-        },
+        Stepped::Hit {
+            heard: Heard::Recognized(outcome),
+            ..
+        } => report.record(outcome),
+        Stepped::Hit {
+            source,
+            heard: Heard::Unrecognized,
+            ..
+        } => report.record_unmapped(source),
         Stepped::Untouched(_) => report.record_untouched(),
         Stepped::Pass(_) | Stepped::Off { .. } | Stepped::Choke { .. } => {}
     }
@@ -402,12 +409,12 @@ fn thin<'a>(
     events: Track<'a>,
     mapping: &Mapping,
     filter: ChannelFilter,
-    report: &mut Report,
+    report: &mut Tally,
 ) -> Result<Track<'a>, CodecError> {
     let mut voicing = Voicing::with_capacity(events.len() + 1);
     for ev in events {
         let stepped = step(mapping, filter, ev.kind);
-        tally(report, mapping, &stepped);
+        tally(report, &stepped);
         voicing.push(ev.delta, stepped)?;
     }
     let (track, merged) = voicing.close();
@@ -422,10 +429,11 @@ pub(crate) fn rewrite<'a>(
     mapping: &Mapping,
     filters: TrackFilters,
 ) -> Result<(Smf<'a>, Report), CodecError> {
-    let mut report = Report::default();
+    let mut report = Tally::default();
     for (track, filter) in smf.tracks.iter_mut().zip(filters) {
         *track = thin(std::mem::take(track), mapping, filter, &mut report)?;
     }
+    let report = report.closed(|note| UnmappedFate::of(mapping.kept(note)));
     Ok((smf, report))
 }
 
@@ -515,41 +523,38 @@ mod tests {
         }
     }
 
-    /// What the report counts of one event.
-    #[derive(Debug, PartialEq, Eq)]
-    enum Counted {
-        Hit(Note),
-        Untouched,
-        Nothing,
+    /// The report `tally` makes of `stepped` alone.
+    fn tallied(mapping: &Mapping, stepped: &Stepped) -> Report {
+        let mut report = Tally::default();
+        tally(&mut report, stepped);
+        report.closed(|note| UnmappedFate::of(mapping.kept(note)))
     }
 
-    fn counted(stepped: Stepped) -> Counted {
-        match stepped {
-            Stepped::Hit { source, .. } => Counted::Hit(source),
-            Stepped::Untouched(_) => Counted::Untouched,
-            Stepped::Pass(_) | Stepped::Off { .. } | Stepped::Choke { .. } => Counted::Nothing,
-        }
-    }
-
-    /// What the report must count of `kind`: a note-on with a velocity is a hit, counted by
-    /// its note in scope and as untouched outside it.
-    fn expected_count(filter: ChannelFilter, kind: TrackEventKind) -> Counted {
+    /// The report of `kind` alone: a note-on with a velocity is a hit, counted in scope by
+    /// where its drum lands, or by its note when the source does not recognize it, and as
+    /// untouched outside it.
+    fn expected_report(mapping: &Mapping, filter: ChannelFilter, kind: TrackEventKind) -> Report {
+        let mut report = Tally::default();
         match kind {
             TrackEventKind::Midi {
                 channel,
                 message: MidiMessage::NoteOn { key, vel },
             } if vel.as_int() > 0 => {
-                if filter.accepts(channel_from_wire(channel)) {
-                    Counted::Hit(note_from_key(key))
+                let note = note_from_key(key);
+                if !filter.accepts(channel_from_wire(channel)) {
+                    report.record_untouched();
+                } else if let Some(outcome) = mapping.get(note) {
+                    report.record(outcome);
                 } else {
-                    Counted::Untouched
+                    report.record_unmapped(note);
                 }
             }
             TrackEventKind::Midi { .. }
             | TrackEventKind::SysEx(_)
             | TrackEventKind::Escape(_)
-            | TrackEventKind::Meta(_) => Counted::Nothing,
+            | TrackEventKind::Meta(_) => {}
         }
+        report.closed(|note| UnmappedFate::of(mapping.kept(note)))
     }
 
     #[test]
@@ -595,8 +600,8 @@ mod tests {
                         "{kind:?} under {filter:?}"
                     );
                     assert_eq!(
-                        counted(stepped),
-                        expected_count(filter, kind),
+                        tallied(mapping, &stepped),
+                        expected_report(mapping, filter, kind),
                         "{kind:?} under {filter:?}"
                     );
                     checked += 1;

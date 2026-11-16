@@ -25,19 +25,26 @@ pub use self::{
 };
 use self::{drums::DrumTable, route::Routes};
 
+/// A note the source does not recognize, kept unchanged on its number, where it `plays` the
+/// target drum on that number, if any.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub struct Kept {
+    pub note: Note,
+    pub plays: Option<Canon>,
+}
+
 /// Where a source note plays on the target: on the note of the drum it decodes to, or
-/// unchanged, when the source does not recognize it and the mapping keeps such notes; a kept
-/// note `plays` the target drum on its number, if any.
+/// kept, when the source does not recognize it and the mapping keeps such notes.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Destination {
     Drum { canon: Canon, note: Note },
-    Kept { note: Note, plays: Option<Canon> },
+    Kept(Kept),
 }
 
 impl Destination {
     pub fn note(&self) -> Note {
         match *self {
-            Self::Drum { note, .. } | Self::Kept { note, .. } => note,
+            Self::Drum { note, .. } | Self::Kept(Kept { note, .. }) => note,
         }
     }
 }
@@ -130,17 +137,23 @@ impl<'a> Mapping<'a> {
                 note: s.note(),
             }),
             Some(Outcome::Dropped { .. }) => None,
-            None => self.unrecognized.keeps().then(|| Destination::Kept {
-                note,
-                plays: self.target_drum_on(note),
-            }),
+            None => self.kept(note).map(Destination::Kept),
         }
+    }
+
+    /// How `note` is kept when the source does not recognize it: on its number, playing the
+    /// target drum there, when the mapping keeps such notes; `None` when it removes them.
+    pub fn kept(&self, note: Note) -> Option<Kept> {
+        self.unrecognized.keeps().then(|| Kept {
+            note,
+            plays: self.target_drum_on(note),
+        })
     }
 
     /// The target drum that plays on `note`: the drum a target edit puts there (of two, the
     /// first in drum order), else the drum the target as it ships plays there, also when an
     /// edit moved that drum to another note.
-    pub fn target_drum_on(&self, note: Note) -> Option<Canon> {
+    fn target_drum_on(&self, note: Note) -> Option<Canon> {
         self.on_target[note.index()]
     }
 
@@ -631,10 +644,10 @@ notes = [ {} ]",
         let kept = mapping().with_unrecognized(Unrecognized::Keep);
         assert_eq!(
             kept.destination(n(99)),
-            Some(Destination::Kept {
+            Some(Destination::Kept(Kept {
                 note: n(99),
                 plays: None
-            })
+            }))
         );
     }
 
@@ -643,10 +656,10 @@ notes = [ {} ]",
         let kept = mapping().with_unrecognized(Unrecognized::Keep);
         assert_eq!(
             kept.destination(n(50)),
-            Some(Destination::Kept {
+            Some(Destination::Kept(Kept {
                 note: n(50),
                 plays: Some(k("kick.main"))
-            })
+            }))
         );
     }
 

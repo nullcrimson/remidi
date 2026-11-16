@@ -437,7 +437,7 @@ mod tests {
         let out = convert_unmapped_note();
         assert_eq!(
             out.report.unmapped_source().collect::<Vec<_>>(),
-            [(n(99), &unmapped(1, UnmappedFate::Removed))]
+            [(n(99), unmapped(1, UnmappedFate::Removed))]
         );
     }
 
@@ -559,7 +559,7 @@ mod tests {
             out.report.unmapped_source().collect::<Vec<_>>(),
             [(
                 n(99),
-                &unmapped(1, UnmappedFate::KeptOnto(k("crash.4.mute")))
+                unmapped(1, UnmappedFate::KeptOnto(k("crash.4.mute")))
             )]
         );
     }
@@ -570,7 +570,7 @@ mod tests {
         let out = convert_unrecognized(&mid, Unrecognized::Keep);
         assert_eq!(
             out.report.unmapped_source().collect::<Vec<_>>(),
-            [(n(5), &unmapped(1, UnmappedFate::KeptFree))]
+            [(n(5), unmapped(1, UnmappedFate::KeptFree))]
         );
     }
 
@@ -579,7 +579,7 @@ mod tests {
         let out = convert_unrecognized(&kick_and_unrecognized(), Unrecognized::Remove);
         assert_eq!(
             out.report.unmapped_source().collect::<Vec<_>>(),
-            [(n(99), &unmapped(1, UnmappedFate::Removed))]
+            [(n(99), unmapped(1, UnmappedFate::Removed))]
         );
     }
 
