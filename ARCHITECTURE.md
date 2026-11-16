@@ -117,7 +117,7 @@ midiremap-kit/src/
    lib.rs          ── the four folders, public; their order in its rustdoc
    non_blank.rs    ── NonBlank: a string that is not blank
    canon/          ── Canon (opaque), Canon::all, the named drums, CORE_KIT, same_drum
-      ├── slot.rs        ── Slot, its part enums and positions (TomPos, CymSlot, OpenLevel, …)
+      ├── slot.rs        ── Slot, its part enums and positions (TomPos, CymSlot, Rung, OpenLevel, …)
       ├── key.rs         ── the dotted key: Display, FromStr, serde
       ├── label.rs       ── each drum's label, CanonEntry
       ├── family.rs      ── Family, declared in display order
@@ -131,7 +131,7 @@ midiremap-kit/src/
       └── landings.rs    ── Landings, Moved: where each place landed, and which moved
    engine/         ── one engine's notes, and every engine
       ├── map.rs         ── EngineMap, Drum, EngineId, MapError, reading a map
-      ├── open_levels.rs ── OpenLevels: how far the main hi-hat opens
+      ├── ladder.rs      ── HatLadder: the main hi-hat's rungs, loose and open, per zone
       └── catalog.rs     ── Catalog: the built-in presets and user maps
 
 midiremap-mapping/src/
@@ -227,7 +227,10 @@ anyhow and the WASM joins it into one message (`outer: inner`).
   `Perc(PercKind)` and `Hand(HandDrum)`. Only `canon`'s own files see the `Slot`; the rest
   of the core names drums by key, by `Canon::all()`, by the named constants (`Canon::KICK`,
   `SNARE`, `CLOSED_HAT`, `CRASH`, `RIDE`, `CORE_KIT`), or through accessors that read one
-  kind of drum (`tom()`, `cymbal()`, `opening()`).
+  kind of drum (`tom()`, `cymbal()`, `rung()`).
+- A hi-hat's opening carries a `Rung { Loose | Level(OpenLevel) }` for every opening past
+  closed: `Rung::all()` lists them from the least open, `distance` counts loose as level 0.
+  `Canon::rung()` reads the main hi-hat's rung and zone, `at_rung` moves it to another.
 - `CymSlot { Crash(Idx<6>) | China(Idx<3>) | Splash(Idx<3>) | Stack(Idx<4>) | Bell(Idx<2>) }`
   gives each cymbal kind its own range.
 - `Canon::family() → Family`. `Family` (`canon/family.rs`) is declared in display order
@@ -316,9 +319,10 @@ allow.
     `primary` wins the reverse mapping; a duplicate primary for one canon is an error
     (`MapError::DuplicatePrimary`). Non-primary notes fill a canon only if no primary
     claimed it.
-- A map also keeps its `OpenLevels` (`engine/open_levels.rs`: the levels its main hi-hat
-  plays in each zone and which is its normal open hat; `toward` gives the level another
-  engine plays a level at) and its spread `Kit`, both read once when it loads.
+- A map also keeps its `HatLadder` (`engine/ladder.rs`: the rungs its main hi-hat plays in
+  each zone, loose first, and which open level is its normal open hat; `toward` gives the
+  rung another engine plays a rung at, as many steps from that engine's normal open hat as
+  it is from this one's) and its spread `Kit`, both read once when it loads.
 - `EngineId` is an engine's id as the catalog names it (a branded string in the app);
   `Drum` is a note and the `CanonEntry` it plays.
 - An `EngineMap` is never copied or patched: edits are applied by `Mapping`.
@@ -372,16 +376,16 @@ not decode (`Remove` unless set); it changes neither the outcomes nor the report
 whether those notes are written.
 
 - **Stage 1, routes.** A `Route` says how a drum finds the target drum that plays it:
-  `Chain` (by its own name, else its fallback chain), `Opening(OpenLevel)` (an open main
-  hi-hat on the target's opening that matches the source's, when both engines name their
-  normal open hat) or `Spread { stroke, named }` (under `Nearest`, a tom or cymbal stroke a
+  `Chain` (by its own name, else its fallback chain), `Opening(Rung)` (a loose or open main
+  hi-hat on the target's rung as many steps from its normal open hat as the source's, when
+  both engines name their normal open hat) or `Spread { stroke, named }` (under `Nearest`, a tom or cymbal stroke a
   spread moves; `named` when the target has the stroke itself). Routes are decided from the
   two engines as they ship, so no edit changes one. `Mapping::matched_drum(canon)` reads
   them: the target drum a drum lands on by match rather than by its chain.
 - **Stage 2, landing.** `DrumTable::compile` lands every drum through one total function,
   `land`. A drum with an edit of its own plays that edit, whatever its route. A `Chain`
-  drum resolves on the target with every edit. A matched opening resolves on the target as
-  it ships, so it follows only its own row's edit. A spread stroke resolves the stroke it
+  drum resolves on the target with every edit. A matched rung of the main hi-hat, loose or
+  open, resolves on the target as it ships, so it follows only its own row's edit. A spread stroke resolves the stroke it
   plays as on the target with every edit but those of the drums a spread moved off their
   own name, so an edit of a moved row moves only that row and every other stand-in follows
   the edit of the drum it lands on. `TargetNotes` names these three readings of the target
