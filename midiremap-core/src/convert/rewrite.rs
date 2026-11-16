@@ -150,11 +150,13 @@ fn step<'a>(mapping: &Mapping, filter: ChannelFilter, kind: TrackEventKind<'a>) 
 }
 
 /// How an open hit sounds on its key: on a note-on of its own, written at `tick` as the
-/// event `at` of the output, or inside another hit's note-on of the same tick.
+/// event `at` of the output, inside another hit's note-on of the same tick, or no more, since
+/// another source note retriggered its key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Sound {
     Written { at: usize, tick: u64 },
     Merged,
+    Closed,
 }
 
 /// A hit still waiting for its release: the target key it went to, and how it sounds there.
@@ -168,9 +170,11 @@ struct Open {
 /// written, the tick it has reached, and the open hits of each source note per channel, in
 /// the order they came, the one table that says what sounds on a key. A release takes the
 /// oldest open hit of its note and a choke aims at the newest, so both go to the key their hit
-/// went to. A hit on a key where another source note's note-on was written at the same tick
-/// is not written: it merges into that note-on, which takes the higher velocity, and a note
-/// ends when the last of the hits sounding in it ends.
+/// went to. A hit on a key where another source note sounds is not written when the newest
+/// note-on there is of the same tick: it merges into that note-on, which takes the higher
+/// velocity, and a note ends when the last of the hits sounding in it ends. When that note-on
+/// is older, the hit retriggers the key: every note-on still open there is released first,
+/// with a `NoteOff` of velocity 0, and the releases and chokes of the hits it closes go.
 #[derive(Default)]
 struct Voicing<'a> {
     out: Track<'a>,
@@ -217,7 +221,7 @@ impl<'a> Voicing<'a> {
                     .push_back(Open { key, sound });
                 match sound {
                     Sound::Written { .. } => Some(midi(channel, MidiMessage::NoteOn { key, vel })),
-                    Sound::Merged => None,
+                    Sound::Merged | Sound::Closed => None,
                 }
             }
             Stepped::Off {
@@ -239,35 +243,71 @@ impl<'a> Voicing<'a> {
                 vel,
                 mapped,
             } => {
-                let newest = self.open.get(&(channel, source)).and_then(VecDeque::back);
-                let key = newest.map(|hit| hit.key).or(mapped)?;
+                let key = match self.open.get(&(channel, source)) {
+                    Some(hits) => hits
+                        .iter()
+                        .rev()
+                        .find(|hit| hit.sound != Sound::Closed)
+                        .map(|hit| hit.key)?,
+                    None => mapped?,
+                };
                 Some(midi(channel, MidiMessage::Aftertouch { key, vel }))
             }
         }
     }
 
-    /// How a hit of `source` at `vel` sounds on `key`: merged into the newest note-on there
-    /// when another source note sounds on `key` and that note-on is of this tick, which then
-    /// takes the higher velocity; else on a note-on of its own.
+    /// How a hit of `source` at `vel` sounds on `key`: on a note-on of its own when no other
+    /// source note sounds there; merged into the newest note-on there when that is of this
+    /// tick, which then takes the higher velocity; else on a note-on of its own after a
+    /// retrigger of the key.
     fn struck(&mut self, channel: u4, source: Note, key: u7, vel: u7) -> Sound {
-        let others = self.sounding(channel, key).any(|(note, _)| note != source);
+        let written = |voicing: &Self| Sound::Written {
+            at: voicing.out.len(),
+            tick: voicing.tick,
+        };
+        if !self.sounding(channel, key).any(|(note, _)| note != source) {
+            return written(self);
+        }
         let newest = self
             .sounding(channel, key)
             .filter_map(|(_, sound)| match sound {
                 Sound::Written { at, tick } => Some((at, tick)),
-                Sound::Merged => None,
+                Sound::Merged | Sound::Closed => None,
             })
             .max();
         match newest {
-            Some((at, tick)) if others && tick == self.tick => {
+            Some((at, tick)) if tick == self.tick => {
                 self.raise(at, vel);
                 self.merged += 1;
                 Sound::Merged
             }
-            Some(_) | None => Sound::Written {
-                at: self.out.len(),
-                tick: self.tick,
-            },
+            Some(_) | None => {
+                self.retrigger(channel, key);
+                written(self)
+            }
+        }
+    }
+
+    /// Releases `key` of `channel` for a hit that retriggers it: one `NoteOff` of velocity 0
+    /// for each note-on still open there, and every hit sounding there closed.
+    fn retrigger(&mut self, channel: u4, key: u7) {
+        let mut open = 0;
+        let hits = self
+            .open
+            .iter_mut()
+            .filter(|((c, _), _)| *c == channel)
+            .flat_map(|(_, hits)| hits.iter_mut())
+            .filter(|hit| hit.key == key);
+        for hit in hits {
+            open += usize::from(matches!(hit.sound, Sound::Written { .. }));
+            hit.sound = Sound::Closed;
+        }
+        let vel = u7::default();
+        for _ in 0..open {
+            self.write(TrackEventKind::Midi {
+                channel,
+                message: MidiMessage::NoteOff { key, vel },
+            });
         }
     }
 
@@ -286,10 +326,14 @@ impl<'a> Voicing<'a> {
         }
     }
 
-    /// The key the release of `hit`, just taken off the table, is written on; `None` when
-    /// other hits still sound in its note, which then goes on for them. A written hit whose
-    /// release goes hands its note-on to a hit merged into one on its key.
+    /// The key the release of `hit`, just taken off the table, is written on; `None` when a
+    /// retrigger closed it, or other hits still sound in its note, which then goes on for
+    /// them. A written hit whose release goes hands its note-on to a hit merged into one on its
+    /// key.
     fn released(&mut self, channel: u4, hit: Open) -> Option<u7> {
+        if hit.sound == Sound::Closed {
+            return None;
+        }
         let (mut sounding, mut written) = (1, usize::from(hit.sound != Sound::Merged));
         for (_, sound) in self.sounding(channel, hit.key) {
             sounding += 1;
@@ -322,13 +366,14 @@ impl<'a> Voicing<'a> {
         oldest
     }
 
-    /// Every open hit on `key` of `channel`, with its source note and how it sounds.
+    /// Every open hit that still sounds on `key` of `channel`, with its source note and how
+    /// it sounds.
     fn sounding(&self, channel: u4, key: u7) -> impl Iterator<Item = (Note, Sound)> + '_ {
         self.open
             .iter()
             .filter(move |((c, _), _)| *c == channel)
             .flat_map(|(&(_, note), hits)| hits.iter().map(move |hit| (note, hit)))
-            .filter(move |(_, hit)| hit.key == key)
+            .filter(move |(_, hit)| hit.key == key && hit.sound != Sound::Closed)
             .map(|(note, hit)| (note, hit.sound))
     }
 

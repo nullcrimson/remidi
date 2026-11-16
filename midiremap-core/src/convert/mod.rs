@@ -108,7 +108,7 @@ mod tests {
     use midiremap_mapping::{MissingDrums, Overrides, Unrecognized};
     use midiremap_note::{n, Note};
     use midiremap_smf::parts::ChannelScope;
-    use midiremap_testkit::{drums, events, hit_keys, off, on, DRUMS};
+    use midiremap_testkit::{choke, drums, events, hit_keys, off, on, DRUMS};
     use midly::{num::u7, MidiMessage};
 
     use super::*;
@@ -265,6 +265,111 @@ mod tests {
         assert_eq!(
             (out.report.converted(), unrecognized, out.report.merged()),
             (1, 1, 1)
+        );
+    }
+
+    #[test]
+    fn a_hit_retriggers_a_key_another_drum_still_sounds_on() {
+        let mid = drums(&[(0, on(23)), (60, on(24)), (60, off(23)), (60, off(24))]);
+        let out = convert_ids(&mid, "ggd_invasion", "ezdrummer");
+        assert_eq!(
+            events(&out.bytes, 0),
+            [
+                (0, DRUMS, on(36)),
+                (60, DRUMS, off(36)),
+                (0, DRUMS, on(36)),
+                (120, DRUMS, off(36)),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_hit_written_before_the_release_of_the_last_one_at_its_tick_retriggers_the_key() {
+        let mid = drums(&[(0, on(23)), (120, on(24)), (0, off(23)), (120, off(24))]);
+        let out = convert_ids(&mid, "ggd_invasion", "ezdrummer");
+        assert_eq!(
+            events(&out.bytes, 0),
+            [
+                (0, DRUMS, on(36)),
+                (120, DRUMS, off(36)),
+                (0, DRUMS, on(36)),
+                (120, DRUMS, off(36)),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_hit_after_the_release_of_the_last_one_at_its_tick_is_written_as_it_was() {
+        let mid = drums(&[(0, on(23)), (120, off(23)), (0, on(24)), (120, off(24))]);
+        let out = convert_ids(&mid, "ggd_invasion", "ezdrummer");
+        assert_eq!(
+            events(&out.bytes, 0),
+            [
+                (0, DRUMS, on(36)),
+                (120, DRUMS, off(36)),
+                (0, DRUMS, on(36)),
+                (120, DRUMS, off(36)),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_note_overlapping_itself_is_written_as_it_was() {
+        let mid = drums(&[(0, on(36)), (10, on(36)), (10, off(36)), (10, off(36))]);
+        let out = convert_ids(&mid, "general_midi", "ggd_invasion");
+        assert_eq!(
+            events(&out.bytes, 0),
+            [
+                (0, DRUMS, on(24)),
+                (10, DRUMS, on(24)),
+                (10, DRUMS, off(24)),
+                (10, DRUMS, off(24)),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_retrigger_releases_each_note_on_still_open_and_their_releases_go() {
+        let mid = drums(&[
+            (0, on(23)),
+            (5, on(23)),
+            (2, on(24)),
+            (13, off(23)),
+            (5, off(23)),
+            (5, off(24)),
+        ]);
+        let out = convert_ids(&mid, "ggd_invasion", "ezdrummer");
+        assert_eq!(
+            events(&out.bytes, 0),
+            [
+                (0, DRUMS, on(36)),
+                (5, DRUMS, on(36)),
+                (2, DRUMS, off(36)),
+                (0, DRUMS, off(36)),
+                (0, DRUMS, on(36)),
+                (23, DRUMS, off(36)),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_choke_of_a_cymbal_another_retriggered_goes_so_the_other_rings() {
+        let mid = drums(&[
+            (0, on(52)),
+            (60, on(99)),
+            (30, choke(52)),
+            (30, off(52)),
+            (80, off(99)),
+        ]);
+        let out = convert_edited(&mid, r#"{"edits":{},"srcEdits":{"99":"crash.1.hit"}}"#);
+        assert_eq!(
+            events(&out.bytes, 0),
+            [
+                (0, DRUMS, on(86)),
+                (60, DRUMS, off(86)),
+                (0, DRUMS, on(86)),
+                (140, DRUMS, off(86)),
+            ]
         );
     }
 

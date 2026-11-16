@@ -107,29 +107,94 @@ fn track_items() -> impl Strategy<Value = Vec<(u32, Item)>> {
     prop::collection::vec((gap(), item()), 0..40)
 }
 
-fn file() -> impl Strategy<Value = Vec<u8>> {
-    prop::collection::vec(track_items(), 1..=4).prop_map(|tracks| {
+/// The events of one track of `items`; unless `self_overlaps`, a note that would start while
+/// the same note on its channel still sounds is left out, and so is a note of no length,
+/// which ends at the tick it starts.
+fn track_of(items: &[(u32, Item)], self_overlaps: bool) -> Vec<TrackEvent<'static>> {
+    let mut timed: Vec<Timed> = Vec::new();
+    let mut ends: HashMap<(u8, u8), u32> = HashMap::new();
+    let mut at = 0;
+    for (gap, item) in items {
+        at += gap;
+        if let Item::Note {
+            channel, key, len, ..
+        } = *item
+        {
+            let sounds = ends.get(&(channel, key)).is_some_and(|&end| end > at);
+            if !self_overlaps && (sounds || len == 0) {
+                continue;
+            }
+            ends.insert((channel, key), at + len);
+        }
+        timed.extend(item.events(at));
+    }
+    timed.sort_by_key(|(t, _)| *t);
+    let mut last = 0;
+    timed
+        .into_iter()
+        .map(|(t, mut ev)| {
+            ev.delta = u28::new(t - last);
+            last = t;
+            ev
+        })
+        .collect()
+}
+
+fn file_with(self_overlaps: bool) -> impl Strategy<Value = Vec<u8>> {
+    prop::collection::vec(track_items(), 1..=4).prop_map(move |tracks| {
         smf(tracks
             .iter()
-            .map(|items| {
-                let mut timed: Vec<Timed> = Vec::new();
-                let mut at = 0;
-                for (gap, item) in items {
-                    at += gap;
-                    timed.extend(item.events(at));
-                }
-                timed.sort_by_key(|(t, _)| *t);
-                let mut last = 0;
-                timed
-                    .into_iter()
-                    .map(|(t, mut ev)| {
-                        ev.delta = u28::new(t - last);
-                        last = t;
-                        ev
-                    })
-                    .collect()
-            })
+            .map(|items| track_of(items, self_overlaps))
             .collect())
+    })
+}
+
+fn file() -> impl Strategy<Value = Vec<u8>> {
+    file_with(true)
+}
+
+/// Files in which no note overlaps the same note on its channel in its track, and every note
+/// lasts at least a tick.
+fn file_without_self_overlaps() -> impl Strategy<Value = Vec<u8>> {
+    file_with(false)
+}
+
+/// Whether, on every key of the channels `picked` names in each track, no two notes sound
+/// at once and none starts twice at one tick.
+fn one_note_per_key(bytes: &[u8], picked: &[Part]) -> bool {
+    let converted: BTreeSet<String> = picked.iter().map(ToString::to_string).collect();
+    absolute(bytes).iter().enumerate().all(|(index, track)| {
+        let mut sounding: HashMap<(u8, u8), u32> = HashMap::new();
+        let mut started: HashMap<(u8, u8), u64> = HashMap::new();
+        track.iter().all(|&(tick, kind)| {
+            let TrackEventKind::Midi { channel, message } = kind else {
+                return true;
+            };
+            if !converted.contains(&format!("{}:{}", index + 1, channel.as_int() + 1)) {
+                return true;
+            }
+            match message {
+                MidiMessage::NoteOn { key, vel } if vel.as_int() > 0 => {
+                    let at = (channel.as_int(), key.as_int());
+                    let count = sounding.entry(at).or_default();
+                    *count += 1;
+                    let twice = started.insert(at, tick) == Some(tick);
+                    *count == 1 && !twice
+                }
+                MidiMessage::NoteOn { key, .. } | MidiMessage::NoteOff { key, .. } => {
+                    let count = sounding
+                        .entry((channel.as_int(), key.as_int()))
+                        .or_default();
+                    *count = count.saturating_sub(1);
+                    true
+                }
+                MidiMessage::Aftertouch { .. }
+                | MidiMessage::Controller { .. }
+                | MidiMessage::ProgramChange { .. }
+                | MidiMessage::ChannelAftertouch { .. }
+                | MidiMessage::PitchBend { .. } => true,
+            }
+        })
     })
 }
 
@@ -246,16 +311,50 @@ fn writes(read: (u64, TrackEventKind), written: (u64, TrackEventKind)) -> bool {
     }
 }
 
+/// Whether the event `at` of `output` is a release a retrigger inserted: a `NoteOff` of
+/// velocity 0 that only the same release and then a hit on its channel and key follow at its
+/// tick.
+fn is_inserted_off(output: &[(u64, TrackEventKind)], at: usize) -> bool {
+    let (tick, kind) = output[at];
+    let TrackEventKind::Midi {
+        channel,
+        message: MidiMessage::NoteOff { key, vel },
+    } = kind
+    else {
+        return false;
+    };
+    vel.as_int() == 0
+        && output[at + 1..]
+            .iter()
+            .take_while(|&&(t, _)| t == tick)
+            .find(|&&(_, next)| next != kind)
+            .is_some_and(|&(_, next)| {
+                matches!(
+                    next,
+                    TrackEventKind::Midi {
+                        channel: c,
+                        message: MidiMessage::NoteOn { key: k, vel: v },
+                    } if c == channel && k == key && v.as_int() > 0
+                )
+            })
+}
+
+/// Whether `output` is `input` with each event written as [`writes`] allows or, for a note
+/// event, removed, and with the releases a retrigger inserts before a hit.
 fn is_thinned(input: &[(u64, TrackEventKind)], output: &[(u64, TrackEventKind)]) -> bool {
-    let mut rest = output.iter().copied().peekable();
-    for &(tick, kind) in input {
-        if rest.peek().is_some_and(|&out| writes((tick, kind), out)) {
-            rest.next();
-        } else if !is_note(&kind) {
+    let mut at = 0;
+    for &read in input {
+        let matches = |at: usize| output.get(at).is_some_and(|&out| writes(read, out));
+        while !matches(at) && at < output.len() && is_inserted_off(output, at) {
+            at += 1;
+        }
+        if matches(at) {
+            at += 1;
+        } else if !is_note(&read.1) {
             return false;
         }
     }
-    rest.next().is_none()
+    at == output.len()
 }
 
 fn balanced(track: &[(u64, TrackEventKind)]) -> bool {
@@ -435,6 +534,16 @@ proptest! {
                 prop_assert_eq!(names(&Vec::from(parts)), all);
             }
         }
+    }
+
+    #[test]
+    fn no_key_sounds_two_notes_at_once_where_no_source_note_overlaps_itself_or_lasts_no_time(
+        midi in file_without_self_overlaps(),
+        pair in pair(),
+        scope in scope(),
+    ) {
+        let Some(out) = converted(&midi, &pair.mapping(), scope) else { return Ok(()) };
+        prop_assert!(one_note_per_key(&out.bytes, &out.picked), "{:?}", absolute(&out.bytes));
     }
 
     #[test]
