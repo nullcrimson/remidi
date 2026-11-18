@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,8 +13,9 @@ const engines = typed<Engine[]>([
   { id: 'ezdrummer', name: 'EZdrummer', fullName: 'EZdrummer' },
 ]);
 
-function side(value: string | null, onChange = vi.fn()) {
-  render(
+function Side({ value, onChange, onTaken }: { value: string | null; onChange: (id: string) => void; onTaken: (engine: Engine) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
     <EngineSide
       side="to"
       label="TO"
@@ -22,9 +24,16 @@ function side(value: string | null, onChange = vi.fn()) {
       engines={engines}
       next={value === null}
       onChange={onChange}
+      onTaken={onTaken}
       cardRef={() => {}}
-    />,
+      open={open}
+      onOpenChange={setOpen}
+    />
   );
+}
+
+function side(value: string | null, onChange = vi.fn(), onTaken = vi.fn()) {
+  render(<Side value={value} onChange={onChange} onTaken={onTaken} />);
   return onChange;
 }
 
@@ -88,7 +97,10 @@ describe('EngineSide', () => {
         ]}
         next
         onChange={() => {}}
+        onTaken={() => {}}
         cardRef={() => {}}
+        open={false}
+        onOpenChange={() => {}}
       />,
     );
     expect(within(screen.getByRole('list', { name: 'Favourites' })).getAllByRole('button')).toHaveLength(4);
@@ -124,5 +136,15 @@ describe('EngineSide', () => {
     expect(favourite('GGD Invasion')).toHaveAttribute('aria-disabled', 'true');
     await userEvent.click(favourite('GGD Invasion'));
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('says why when the other side’s engine is pressed among the favourites', async () => {
+    localStorage.setItem(storedName('favorites:to'), JSON.stringify(['ggd_invasion', 'ezdrummer']));
+    const onTaken = vi.fn();
+    side(null, vi.fn(), onTaken);
+    await userEvent.click(favourite('EZdrummer'));
+    expect(onTaken).not.toHaveBeenCalled();
+    await userEvent.click(favourite('GGD Invasion'));
+    expect(onTaken).toHaveBeenCalledExactlyOnceWith(engines[1]);
   });
 });

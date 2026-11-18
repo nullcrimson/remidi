@@ -145,6 +145,7 @@ engine-to = DESTINO
 engine-swap = Intercambiar origen y destino
 engine-choose = Elige un plugin de batería…
 engine-picker-heading = Elige el plugin de { $side }
+engine-taken = { $engine } ya es el plugin de { $side }.
 filter-clear = Borrar filtro
 note-picker-label = Nota de destino para { $drum }
 note-picker-heading = DESTINO · { $drum }
@@ -165,7 +166,11 @@ saved-heading = GUARDADOS
 edit-back = ← Atrás
 edit-heading = Editar notas
 edit-advanced = Avanzado — reasignar notas de origen
-summary-remapped = Piezas reasignadas: { $remapped } de { $total }
+summary-remapped =
+    { $total ->
+        [one] { $remapped } de { $total } pieza de { $source } tiene una pieza en { $target }
+       *[other] { $remapped } de { $total } piezas de { $source } tienen una pieza en { $target }
+    }
 summary-edit-tip-title = Ajusta cada pieza
 summary-edit-tip = Asigna cualquier pieza a otra nota de destino: elígela en la lista de piezas o en el piano. Tus cambios se aplican a la conversión y puedes guardarlos como preset.
 summary-edit = Editar notas una por una →
@@ -260,6 +265,17 @@ library-favourites = Favoritos
 library-all = Todos los plugins
 library-none = sin resultados
 files-skipped = Omitidos: { $names } — solo se pueden agregar archivos .mid y presets exportados (.json)
+files-failed-reason =
+    { $reason ->
+        [unreadable] ilegible
+        [parts] partes sin elegir
+       *[other] falló
+    }
+files-replaced =
+    { $count ->
+        [one] Se reemplazó { $names } por el archivo que acabas de agregar.
+       *[other] Se reemplazaron { $names } por los archivos que acabas de agregar.
+    }
 files-drop = Suelta uno o varios .mid en cualquier lugar
 files-choose = Elegir archivos
 files-presets = Los archivos de preset que exportaste (.json) se pueden soltar o elegir de la misma forma.
@@ -321,6 +337,11 @@ done-file-dropped =
     }
 done-file-unrecognized = { $count } no rec.
 done-file-clean = sin pérdidas
+done-badge =
+    { $tone ->
+        [danger] Advertencia
+       *[accent] Listo
+    }
 done-heading =
     { $count ->
         [one] { $count } archivo convertido
@@ -343,6 +364,11 @@ done-view-report = Ver informe →
 done-convert-more = Nueva conversión
 done-convert-more-hint = ¿Otro archivo? Los plugins y los ajustes se mantienen.
 done-report-mapping = ¿Mapeo incorrecto? Avísame
+done-lost-many =
+    { $lost ->
+        [one] { $lost } de { $read } notas se quedó fuera del archivo.
+       *[other] { $lost } de { $read } notas se quedaron fuera del archivo.
+    }
 done-removed =
     { $count ->
         [one] { $count } nota de tu archivo no está en el mapa de { $source }, así que se quitó. ¿Origen equivocado?
@@ -360,6 +386,11 @@ done-kept-plays =
     }
 done-pick-source = Elegir otro origen
 done-assign-notes = Asignar las notas
+done-convert-from = Convertir de nuevo desde { $engine }
+done-read-as = Leído con el mapa de { $source }.
+done-back-to = Volver a { $previous }
+done-left-out = { $file } quedó fuera: no se eligieron sus partes de batería.
+done-left-out-pick = Elegir sus partes de batería
 done-damaged-file = { $file } estaba dañado: faltaba una parte y se convirtió todo lo que quedaba.
 done-damage-track-cut-bar = La pista { $track } se corta en el compás { $bar }; el resto no estaba en el archivo.
 done-damage-track-cut-tick = La pista { $track } se corta en el tick { $tick }; el resto no estaba en el archivo.
@@ -396,16 +427,37 @@ done-offer =
     }
 done-offer-convert = Convertirlas también
 source-fit-missing =
-    { $missing ->
-        [one] { $missing } de { $hits } notas de tu archivo no está en el mapa de { $source }.
-       *[other] { $missing } de { $hits } notas de tu archivo no están en el mapa de { $source }.
-    } Encajan mejor: { $engines }
-source-fit-all = { $engine } (todas las notas)
-source-fit-some =
-    { $engine } ({ $count ->
-        [one] { $count } nota
-       *[other] { $count } notas
-    })
+    { $missed ->
+        [all]
+            { $hits ->
+                [one] { $source } no reconoce la única nota de tu archivo.
+               *[other] { $source } no reconoce ninguna de las { $hits } notas de tu archivo.
+            }
+       *[some] { $source } no reconoce { $missing } de las { $hits } notas de tu archivo.
+    }
+source-fit-all = { $engine } reconoce todas las notas.
+source-fit-some = { $engine } reconoce { $count } de ellas.
+source-use = Usar { $engine }
+source-fit-target =
+    { $known ->
+        [all] { $target } reconoce todas las notas: puede que tu archivo ya esté en su mapa.
+       *[some] { $target } reconoce { $count } de ellas: puede que tu archivo ya esté en su mapa.
+    }
+source-target-fits =
+    { $known ->
+        [all] { $target } reconoce todas las notas: puede que tu archivo ya esté en su mapa. { $swap }
+       *[some] { $target } reconoce { $count } de ellas: puede que tu archivo ya esté en su mapa. { $swap }
+    }
+source-swap = Convertir al revés: { $target } → { $source }
+source-ask =
+    { $lacks ->
+        [kick] { $source } no encuentra Kick en tu archivo y no reconoce { $missing } de sus { $hits } notas.
+        [snare] { $source } no encuentra Snare en tu archivo y no reconoce { $missing } de sus { $hits } notas.
+       *[kickAndSnare] { $source } no encuentra ni Kick ni Snare en tu archivo y no reconoce { $missing } de sus { $hits } notas.
+    }
+source-ask-switch = Convertir como { $engine }
+source-ask-pick = Elegir otro origen
+source-ask-anyway = Convertir de todos modos
 drop-missing = Quitar las piezas que faltan y convertir de nuevo
 report-dropped = Quitadas
 report-approximated = Reemplazadas

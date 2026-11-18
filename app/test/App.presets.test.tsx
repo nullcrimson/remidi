@@ -61,6 +61,7 @@ describe('App presets', () => {
     const status = screen.getByRole('status');
     await userEvent.click(within(status).getByRole('button', { name: 'Dismiss' }));
     expect(screen.queryByText(/this version doesn't know/)).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('main')).toHaveFocus());
   });
 
   it('exports a preset as a plain -drumverter.json file', async () => {

@@ -81,6 +81,12 @@ function loaded(edits: Edits, srcEdits: SrcEdits): EditorState {
   return { edits, srcEdits, overlay: null };
 }
 
+/** The edits after `event`, as the editor changes them: a new pair clears them, a restored one brings its own. */
+export function overridesAfter(overrides: Overrides, event: SelectionEvent): Overrides {
+  const { edits, srcEdits } = editorReducer({ ...EDITOR_START, ...overrides }, event);
+  return { edits, srcEdits };
+}
+
 export function editorReducer(state: EditorState, action: EditorAction): EditorState {
   switch (action.type) {
     case 'chooseSrc':

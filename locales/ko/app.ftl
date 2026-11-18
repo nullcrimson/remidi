@@ -124,6 +124,7 @@ engine-to = 대상
 engine-swap = 원본과 대상 바꾸기
 engine-choose = 드럼 음원 선택…
 engine-picker-heading = { $side } 음원 선택
+engine-taken = { $engine }은(는) 이미 { $side } 음원입니다.
 filter-clear = 검색어 지우기
 note-picker-label = { $drum }의 대상 노트
 note-picker-heading = 대상 · { $drum }
@@ -146,7 +147,7 @@ edit-heading = 노트 편집
 edit-advanced = 고급 — 원본 노트 다시 지정
 summary-remapped =
     { $total ->
-       *[other] 악기 { $total }개 중 { $remapped }개 리매핑됨
+       *[other] { $source } 악기 { $total }개 중 { $remapped }개에 { $target } 악기가 있음
     }
 summary-edit-tip-title = 악기별 세부 조정
 summary-edit-tip = 어떤 악기든 다른 대상 노트로 바꿀 수 있습니다. 악기 목록이나 피아노에서 고르세요. 바꾼 내용은 변환에 적용되고, 프리셋으로 저장할 수도 있습니다.
@@ -237,6 +238,16 @@ library-favourites = 즐겨찾기
 library-all = 전체 음원
 library-none = 검색 결과 없음
 files-skipped = { $names } 건너뜀 — .mid 파일과 내보낸 프리셋(.json)만 추가할 수 있습니다
+files-failed-reason =
+    { $reason ->
+        [unreadable] 읽을 수 없음
+        [parts] 파트 미선택
+       *[other] 실패
+    }
+files-replaced =
+    { $count ->
+       *[other] { $names }을(를) 방금 추가한 파일로 바꿨습니다.
+    }
 files-drop = { "." }mid 파일(여러 개 가능)을 아무 곳에나 끌어다 놓으세요
 files-choose = 파일 선택
 files-presets = 내보낸 프리셋 파일(.json)도 같은 방법으로 끌어다 놓거나 선택할 수 있습니다.
@@ -280,6 +291,11 @@ done-file-approximated = 대체 { $count }
 done-file-dropped = 제외 { $count }
 done-file-unrecognized = 미인식 { $count }
 done-file-clean = 문제 없음
+done-badge =
+    { $tone ->
+        [danger] 경고
+       *[accent] 완료
+    }
 done-heading =
     { $count ->
        *[other] 파일 { $count }개
@@ -300,11 +316,17 @@ done-view-report = 보고서 보기 →
 done-convert-more = 다른 파일 변환
 done-convert-more-hint = 다음 파일도 변환할 수 있습니다. 음원과 설정은 그대로 유지됩니다.
 done-report-mapping = 매핑이 잘못됐나요? 알려 주세요
+done-lost-many = 노트 { $read }개 중 { $lost }개가 파일에 들어가지 않았습니다.
 done-removed = 파일의 노트 { $count }개가 { $source } 노트 맵에 없어 제거되었습니다. 원본을 잘못 고르셨나요?
 done-kept = 파일의 노트 { $count }개가 { $source } 노트 맵에 없어 같은 노트 번호에 그대로 두었습니다. 원본을 잘못 고르셨나요?
 done-kept-plays = 그중 { $count }개는 이제 { $target }의 악기를 연주합니다: { $list }.
 done-pick-source = 다른 원본 선택
 done-assign-notes = 노트 지정
+done-convert-from = 원본 { $engine }에서 다시 변환
+done-read-as = { $source } 노트 맵으로 읽었습니다.
+done-back-to = 되돌리기: { $previous }
+done-left-out = { $file }은(는) 변환하지 않았습니다: 드럼 파트를 고르지 않았습니다.
+done-left-out-pick = 드럼 파트 고르기
 done-damaged-file = { $file } 파일이 손상되어 일부가 빠져 있었습니다. 남아 있던 내용은 모두 변환했습니다.
 done-damage-track-cut-bar = 트랙 { $track }이(가) { $bar }마디에서 끊깁니다. 그 뒤는 파일에 없었습니다.
 done-damage-track-cut-tick = 트랙 { $track }이(가) 틱 { $tick }에서 끊깁니다. 그 뒤는 파일에 없었습니다.
@@ -336,9 +358,34 @@ done-offer =
        *[other] { $file }의 { $part }에 있는 노트 { $count }개는 10번 채널 드럼 옆에서 그대로 남았습니다.
     }
 done-offer-convert = 이것도 변환
-source-fit-missing = 파일의 노트 { $hits }개 중 { $missing }개가 { $source } 노트 맵에 없습니다. 더 잘 맞는 원본: { $engines }
-source-fit-all = { $engine } (모든 노트)
-source-fit-some = { $engine } ({ $count }개)
+source-fit-missing =
+    { $missed ->
+        [all] { $source }에서는 파일의 노트 { $hits }개를 하나도 인식할 수 없습니다.
+       *[some] { $source }에서는 파일의 노트 { $hits }개 중 { $missing }개를 인식할 수 없습니다.
+    }
+source-fit-all = { $engine }에서는 모든 노트를 인식합니다.
+source-fit-some = { $engine }에서는 그중 { $count }개를 인식합니다.
+source-use = { $engine } 사용
+source-fit-target =
+    { $known ->
+        [all] { $target }에서는 모든 노트를 인식합니다. 파일이 이미 그 노트 맵일 수 있습니다.
+       *[some] { $target }에서는 그중 { $count }개를 인식합니다. 파일이 이미 그 노트 맵일 수 있습니다.
+    }
+source-target-fits =
+    { $known ->
+        [all] { $target }에서는 모든 노트를 인식합니다. 파일이 이미 그 노트 맵일 수 있습니다. { $swap }
+       *[some] { $target }에서는 그중 { $count }개를 인식합니다. 파일이 이미 그 노트 맵일 수 있습니다. { $swap }
+    }
+source-swap = 반대로 변환: { $target } → { $source }
+source-ask =
+    { $lacks ->
+        [kick] { $source }에서 파일의 Kick을 찾지 못했고, 노트 { $hits }개 중 { $missing }개를 인식할 수 없습니다.
+        [snare] { $source }에서 파일의 Snare를 찾지 못했고, 노트 { $hits }개 중 { $missing }개를 인식할 수 없습니다.
+       *[kickAndSnare] { $source }에서 파일의 Kick과 Snare를 모두 찾지 못했고, 노트 { $hits }개 중 { $missing }개를 인식할 수 없습니다.
+    }
+source-ask-switch = { $engine } 기준으로 변환
+source-ask-pick = 다른 원본 선택
+source-ask-anyway = 그대로 변환
 drop-missing = 없는 악기를 빼고 다시 변환
 report-dropped = 제외됨
 report-approximated = 대체됨

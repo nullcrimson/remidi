@@ -2,10 +2,15 @@ import { useT } from '../locale/localeContext';
 import { track } from '../core/stats';
 import type { FocusRef } from '../ui/useFocusIntent';
 import type { Engine, EngineId } from '../core/midiremap';
+import type { Message } from '../generated/i18n';
 import { IconButton } from '../ui/IconButton';
-import { EngineSide } from './EngineSide';
+import { EngineSide, type EngineSideName } from './EngineSide';
 
-/** The FROM and TO engine cards side by side, with the swap button between them. */
+/**
+ * The FROM and TO engine cards side by side, with the swap button between them; `picking`
+ * names the side whose picker is open; `onTaken` is told why a favourite chosen on the other
+ * side was not picked.
+ */
 export function EngineColumns({
   engines,
   src,
@@ -15,6 +20,9 @@ export function EngineColumns({
   onSwap,
   fromRef,
   toRef,
+  picking,
+  onPicking,
+  onTaken,
 }: {
   engines: Engine[];
   src: EngineId | null;
@@ -24,10 +32,19 @@ export function EngineColumns({
   onSwap: () => void;
   fromRef: FocusRef;
   toRef: FocusRef;
+  picking: EngineSideName | null;
+  onPicking: (side: EngineSideName | null) => void;
+  onTaken: (why: Message) => void;
 }) {
   const t = useT();
+  const pickerOf = (side: EngineSideName) => ({
+    open: picking === side,
+    onOpenChange: (open: boolean) => onPicking(open ? side : null),
+  });
+  const takenAs = (otherSide: string) => (engine: Engine) =>
+    onTaken({ id: 'engine-taken', args: { engine: engine.name, side: otherSide } });
   const swap = () => {
-    track('engines-swapped');
+    track('engines-swapped', { where: 'button' });
     onSwap();
   };
   return (
@@ -44,7 +61,9 @@ export function EngineColumns({
         engines={engines}
         next={src === null}
         onChange={onChooseSrc}
+        onTaken={takenAs(t({ id: 'engine-to' }))}
         cardRef={fromRef}
+        {...pickerOf('from')}
       />
       <div className="
         flex justify-center
@@ -68,7 +87,9 @@ export function EngineColumns({
         engines={engines}
         next={src !== null && tgt === null}
         onChange={onChooseTgt}
+        onTaken={takenAs(t({ id: 'engine-from' }))}
         cardRef={toRef}
+        {...pickerOf('to')}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildReport, entryText, lossProps } from '../../src/report/report';
+import { buildReport, entryText } from '../../src/report/report';
 import type { FileResult } from '../../src/core/files';
 import type { CanonEntry, Drum } from '../../src/core/midiremap';
 import { typed, type Loose } from '../typed';
@@ -17,7 +17,7 @@ const drums = typed<Drum[]>([
 function result(name: string, report: Loose<FileResult['report']>): FileResult {
   return { name, url: 'blob:x', bytes: new Uint8Array(), report: typed<FileResult['report']>(report), damage: [], input: { name, bytes: new Uint8Array() }, picked: [], offers: [] };
 }
-const empty = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 10, merged: 0 };
+const empty = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 10, merged: 0, read: 10, lost: 0 };
 
 describe('buildReport', () => {
   it('counts no hit merged into another note of its tick as a loss', () => {
@@ -33,7 +33,7 @@ describe('buildReport', () => {
   it('reports a clean conversion when nothing is lost', () => {
     const view = buildReport([result('a.mid', empty)], canons, drums, 'c1');
     expect(view.clean).toBe(true);
-    expect(view.totals).toEqual({ dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 10 });
+    expect(view.totals).toEqual({ dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 10, read: 10, lost: 0 });
   });
 
   it('is not clean when nothing was converted', () => {
@@ -79,6 +79,8 @@ describe('buildReport', () => {
         untouched: 0,
         converted: 10,
         merged: 0,
+        read: 15,
+        lost: 5,
       }),
     ],
     canons,
@@ -151,18 +153,18 @@ describe('buildReport', () => {
 
   it('totals the converted notes of each file and the notes of each of its groups', () => {
     const view = lossy();
-    expect(view.files[0].totals).toEqual({ dropped: 4, approximated: 3, unrecognized: 1, untouched: 0, converted: 10 });
+    expect(view.files[0].totals).toEqual({ dropped: 4, approximated: 3, unrecognized: 1, untouched: 0, converted: 10, read: 15, lost: 5 });
   });
 
   it('totals dropped, approximated and unrecognized notes', () => {
     const view = lossy();
-    expect(view.totals).toEqual({ dropped: 4, approximated: 3, unrecognized: 1, untouched: 0, converted: 10 });
+    expect(view.totals).toEqual({ dropped: 4, approximated: 3, unrecognized: 1, untouched: 0, converted: 10, read: 15, lost: 5 });
   });
 
   const twoFiles = () => buildReport(
     [
-      result('a.mid', { dropped: { 'china.1.hit': 4 }, fallbackUsed: {}, unmappedSource: {}, untouched: 0, converted: 10, merged: 0 }),
-      result('b.mid', { dropped: { 'china.1.hit': 2 }, fallbackUsed: {}, unmappedSource: {}, untouched: 0, converted: 10, merged: 0 }),
+      result('a.mid', { dropped: { 'china.1.hit': 4 }, fallbackUsed: {}, unmappedSource: {}, untouched: 0, converted: 10, merged: 0, read: 14, lost: 4 }),
+      result('b.mid', { dropped: { 'china.1.hit': 2 }, fallbackUsed: {}, unmappedSource: {}, untouched: 0, converted: 10, merged: 0, read: 12, lost: 2 }),
     ],
     canons,
     drums,
@@ -194,6 +196,8 @@ describe('buildReport', () => {
           untouched: 0,
           converted: 10,
           merged: 0,
+          read: 16,
+          lost: 6,
         }),
       ],
       canons,
@@ -205,7 +209,7 @@ describe('buildReport', () => {
 
   it('labels the substitute with the note the conversion actually used', () => {
     const view = buildReport(
-      [result('a.mid', { dropped: {}, fallbackUsed: { 'ride.1.bell': { standIn: 'crash.2.hit', note: 57, count: 2 } }, unmappedSource: {}, untouched: 0, converted: 10, merged: 0 })],
+      [result('a.mid', { dropped: {}, fallbackUsed: { 'ride.1.bell': { standIn: 'crash.2.hit', note: 57, count: 2 } }, unmappedSource: {}, untouched: 0, converted: 10, merged: 0, read: 10, lost: 0 })],
       canons,
       drums,
       'c1',
@@ -215,7 +219,7 @@ describe('buildReport', () => {
 
   it('falls back to the canon id when the catalog lacks it', () => {
     const view = buildReport(
-      [result('a.mid', { dropped: { 'tom.floor9.hit': 1 }, fallbackUsed: {}, unmappedSource: {}, untouched: 0, converted: 10, merged: 0 })],
+      [result('a.mid', { dropped: { 'tom.floor9.hit': 1 }, fallbackUsed: {}, unmappedSource: {}, untouched: 0, converted: 10, merged: 0, read: 11, lost: 1 })],
       canons,
       drums,
       'c1',
@@ -225,68 +229,11 @@ describe('buildReport', () => {
 
   it('names the substitute note when it is not a known target drum', () => {
     const view = buildReport(
-      [result('a.mid', { dropped: {}, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.cup', note: 60, count: 1 } }, unmappedSource: {}, untouched: 0, converted: 10, merged: 0 })],
+      [result('a.mid', { dropped: {}, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.cup', note: 60, count: 1 } }, unmappedSource: {}, untouched: 0, converted: 10, merged: 0, read: 10, lost: 0 })],
       canons,
       drums,
       'c1',
     );
     expect(view.groups.approximated).toEqual([{ label: 'Ride Bell', sub: 'C4', count: 1, canon: 'ride.1.bell' }]);
-  });
-});
-
-describe('lossProps', () => {
-  const lossy = result('a.mid', { dropped: { 'china.1.hit': 4 }, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.cup', note: 60, count: 1 } }, unmappedSource: { 51: { hits: 2, fate: 'removed' } }, untouched: 0, converted: 10, merged: 0 });
-
-  it('counts and lists the entries of each group of one file', () => {
-    expect(lossProps([lossy.report])).toEqual({
-      dropped: 1,
-      approximated: 1,
-      unrecognized: 1,
-      unrecognizedNotes: '51',
-      droppedDrums: 'china.1.hit',
-      approximatedDrums: 'ride.1.bell>ride.1.cup',
-    });
-  });
-
-  it('lists the unrecognized notes of all files once each, lowest first', () => {
-    const a = result('a.mid', { ...empty, unmappedSource: { 51: { hits: 1, fate: 'removed' }, 7: { hits: 1, fate: 'removed' } } });
-    const b = result('b.mid', { ...empty, unmappedSource: { 7: { hits: 1, fate: 'removed' }, 100: { hits: 1, fate: 'removed' } } });
-    expect(lossProps([a.report, b.report]).unrecognizedNotes).toBe('7,51,100');
-  });
-
-  it('lists the dropped drums most hit first', () => {
-    const a = result('a.mid', { ...empty, dropped: { 'china.1.hit': 1, 'crash.1.hit': 9 } });
-    expect(lossProps([a.report]).droppedDrums).toBe('crash.1.hit,china.1.hit');
-  });
-
-  it('orders the dropped drums by their hits across all files', () => {
-    const a = result('a.mid', { ...empty, dropped: { 'crash.1.hit': 3, 'china.1.hit': 4 } });
-    const b = result('b.mid', { ...empty, dropped: { 'crash.1.hit': 3 } });
-    expect(lossProps([a.report, b.report]).droppedDrums).toBe('crash.1.hit,china.1.hit');
-  });
-
-  it('counts a drum dropped in two files once', () => {
-    expect(lossProps([lossy.report, lossy.report]).dropped).toBe(1);
-  });
-
-  it('counts a drum approximated by two different stand-ins twice', () => {
-    const other = result('b.mid', { ...empty, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.bowtip', note: 60, count: 1 } } });
-    expect(lossProps([lossy.report, other.report]).approximated).toBe(2);
-  });
-
-  it('counts a drum approximated by one stand-in once, whatever note it landed on', () => {
-    const other = result('b.mid', { ...empty, fallbackUsed: { 'ride.1.bell': { standIn: 'ride.1.cup', note: 61, count: 1 } } });
-    expect(lossProps([lossy.report, other.report]).approximated).toBe(1);
-  });
-
-  it('counts nothing for a clean conversion', () => {
-    expect(lossProps([result('a.mid', empty).report])).toEqual({
-      dropped: 0,
-      approximated: 0,
-      unrecognized: 0,
-      unrecognizedNotes: '',
-      droppedDrums: '',
-      approximatedDrums: '',
-    });
   });
 });

@@ -150,7 +150,7 @@ async function chooseRack(preset: string): Promise<void> {
   await userEvent.click(screen.getByRole('menuitem', { name: 'Ableton rack' }));
 }
 
-const summaryText = () => screen.getByText(/drums? remapped/).closest('div')?.parentElement?.textContent;
+const summaryText = () => screen.getByText(/drums? ha(?:s|ve) a/).closest('div')?.parentElement?.textContent;
 
 describe('a saved preset rack', () => {
   const umami = fakeUmami();

@@ -21,3 +21,9 @@ export function reveal(list: HTMLElement, row: HTMLElement): void {
   const next = revealScrollTop({ top, height: box.height }, { scrollTop: list.scrollTop, height: list.clientHeight });
   if (next !== null) list.scrollTop = next;
 }
+
+/** Brings `block` to the middle of the window and puts focus on `target` without scrolling again. */
+export function centerAndFocus(block: HTMLElement, target: HTMLElement | null | undefined): void {
+  block.scrollIntoView({ block: 'center' });
+  target?.focus({ preventScroll: true });
+}

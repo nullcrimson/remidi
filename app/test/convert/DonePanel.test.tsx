@@ -9,13 +9,30 @@ import type { Converted } from '../../src/convert/useConverter';
 import type { FileResult } from '../../src/core/files';
 import type { Unrecognized } from '../../src/core/midiremap';
 import type { ReportGroups, ReportView } from '../../src/report/report';
-import { enginePair, type Loose, typed } from '../typed';
+import { reportLink, type ReportContext } from '../../src/report/reportLink';
+import { engineId, enginePair, type Loose, typed } from '../typed';
 import { storedName } from '../../src/core/storage';
 
 const TIP_KEY = storedName('tip');
 
-const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0 };
+const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0, read: 1, lost: 0 };
 const NONE: ReportGroups = { dropped: [], approximated: [], unrecognized: [] };
+const REPORT_CONTEXT: ReportContext = {
+  from: engineId('ggd_invasion'),
+  to: engineId('ezdrummer'),
+  lang: 'en',
+  build: null,
+  files: 1,
+  read: 45,
+  lost: 0,
+  unrecognizedNotes: [],
+  droppedDrums: [],
+  approximatedDrums: [],
+  suggested: null,
+  missing: 'nearest',
+  keep: 'remove',
+  channel: 'auto',
+};
 
 const result = (name: string, url: string): FileResult => ({
   name,
@@ -29,7 +46,7 @@ const result = (name: string, url: string): FileResult => ({
 });
 
 function view(overrides: Partial<ReportView['totals']> = {}, files: ReportView['files'] = []): ReportView {
-  const totals = { dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 45, ...overrides };
+  const totals = { dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 45, read: 45, lost: 0, ...overrides };
   return {
     clean: totals.converted > 0 && !totals.dropped && !totals.approximated && !totals.unrecognized,
     totals,
@@ -44,27 +61,32 @@ function renderPanel({
   report = view(),
   onViewReport = vi.fn(),
   onPickSource = vi.fn(),
+  onAssignNotes = vi.fn(),
   onConvertMore = vi.fn(),
   onDropMissing = undefined as (() => void) | undefined,
   editedDrums = 0,
   unrecognized = 'remove' as Unrecognized,
+  heavy = false,
 } = {}) {
   render(
     <DonePanel
       results={results}
       failures={failures}
+      heavy={heavy}
       view={report}
       pair={enginePair('ggd_invasion', 'ezdrummer')}
+      report={REPORT_CONTEXT}
       names={{ source: 'GGD Invasion', target: 'Toontrack EZdrummer 3' }}
       unrecognized={unrecognized}
       onViewReport={onViewReport}
       onPickSource={onPickSource}
+      onAssignNotes={onAssignNotes}
       onConvertMore={onConvertMore}
       onDropMissing={onDropMissing}
       editedDrums={editedDrums}
     />,
   );
-  return { onViewReport, onPickSource, onConvertMore };
+  return { onViewReport, onPickSource, onAssignNotes, onConvertMore };
 }
 
 describe('DonePanel', () => {
@@ -114,6 +136,52 @@ describe('DonePanel', () => {
     expect(screen.getByText('168 on other channels unchanged')).toBeInTheDocument();
   });
 
+  it('a heavy loss shows the warning tone and says how many notes were left out', () => {
+    renderPanel({ report: view({ unrecognized: 15, read: 60, lost: 15 }), heavy: true });
+    expect(screen.getByRole('img', { name: 'Warning' })).toBeInTheDocument();
+    expect(screen.getByText('15 of 60 notes were left out of the file.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Download \.mid/ })).toBeInTheDocument();
+  });
+
+  it('shows the warning tone when nothing was converted, and still offers the download', () => {
+    renderPanel({ report: view({ converted: 0, read: 0, untouched: 12 }) });
+    expect(screen.getByRole('img', { name: 'Warning' })).toBeInTheDocument();
+    expect(screen.queryByText(/were left out of the file/)).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Download \.mid/ })).toBeInTheDocument();
+  });
+
+  it('names each file left waiting for its drum parts, with a way to its question', async () => {
+    const onShowWaiting = vi.fn();
+    render(
+      <DonePanel
+        results={[result('groove-ezd.mid', 'blob:x')] as Converted['results']}
+        failures={[]}
+        heavy={false}
+        view={view()}
+        pair={enginePair('ggd_invasion', 'ezdrummer')}
+        report={REPORT_CONTEXT}
+        names={{ source: 'GGD Invasion', target: 'Toontrack EZdrummer 3' }}
+        unrecognized="remove"
+        onViewReport={vi.fn()}
+        onPickSource={vi.fn()}
+        onAssignNotes={vi.fn()}
+        onConvertMore={vi.fn()}
+        waiting={['split.mid', 'band.mid']}
+        onShowWaiting={onShowWaiting}
+      />,
+    );
+    expect(screen.getByText('split.mid was left out: its drum parts are not picked.')).toBeInTheDocument();
+    expect(screen.getByText('band.mid was left out: its drum parts are not picked.')).toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole('button', { name: 'Pick its drum parts' })[1]);
+    expect(onShowWaiting).toHaveBeenCalledExactlyOnceWith('band.mid');
+  });
+
+  it('keeps the accent tone below a quarter lost', () => {
+    renderPanel({ report: view({ unrecognized: 14, read: 60, lost: 14 }) });
+    expect(screen.getByRole('img', { name: 'Done' })).toBeInTheDocument();
+    expect(screen.queryByText(/were left out of the file/)).not.toBeInTheDocument();
+  });
+
   it('shows only the tags that apply', () => {
     renderPanel();
     expect(screen.getByText('45 notes converted')).toBeInTheDocument();
@@ -131,11 +199,11 @@ describe('DonePanel', () => {
       results: [result('a-ezd.mid', 'blob:a'), result('b-ezd.mid', 'blob:b')],
       failures: [{ name: 'c.mid', error: { kind: 'badMidi', detail: 'invalid midi' } }],
       report: view({ approximated: 2 }, typed<ReportView['files']>([
-        { name: 'a-ezd.mid', groups: NONE, totals: { dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 10 } },
+        { name: 'a-ezd.mid', groups: NONE, totals: { dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 10, read: 10, lost: 0 } },
         {
           name: 'b-ezd.mid',
           groups: { ...NONE, approximated: [{ label: 'Ride Bell', sub: 'Ride', count: 2, canon: 'ride.1.bell' }] },
-          totals: { dropped: 0, approximated: 2, unrecognized: 0, untouched: 0, converted: 10 },
+          totals: { dropped: 0, approximated: 2, unrecognized: 0, untouched: 0, converted: 10, read: 10, lost: 0 },
         },
       ])),
     });
@@ -281,10 +349,10 @@ describe('DonePanel', () => {
     });
   });
 
-  it('links a wrong mapping to the no-account form, naming both engines and the language', () => {
+  it('links a wrong mapping to the no-account form, told what the conversion was', () => {
     renderPanel();
     const link = screen.getByRole('link', { name: 'Wrong mapping? Report it' });
-    expect(link).toHaveAttribute('href', 'https://tally.so/r/J95eYd?from=ggd_invasion&to=ezdrummer&lang=en');
+    expect(link).toHaveAttribute('href', reportLink(REPORT_CONTEXT));
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener');
   });
@@ -362,10 +430,22 @@ describe('DonePanel', () => {
       expect(onPickSource).toHaveBeenCalledOnce();
     });
 
-    it('offers to assign the notes in the report', async () => {
-      const { onViewReport } = renderPanel({ report: view({ unrecognized: 7 }) });
+    it('offers to assign the notes, handing over each unrecognized note', async () => {
+      const { onAssignNotes, onViewReport } = renderPanel({
+        report: {
+          ...view({ unrecognized: 3 }),
+          groups: {
+            ...NONE,
+            unrecognized: typed<ReportGroups['unrecognized']>([
+              { label: 'C#-1', count: 2, note: 1, kept: null },
+              { label: 'C#3', count: 1, note: 49, kept: null },
+            ]),
+          },
+        },
+      });
       await userEvent.click(screen.getByRole('button', { name: 'Assign the notes' }));
-      expect(onViewReport).toHaveBeenCalledOnce();
+      expect(onAssignNotes).toHaveBeenCalledExactlyOnceWith([1, 49]);
+      expect(onViewReport).not.toHaveBeenCalled();
     });
   });
 
@@ -405,7 +485,7 @@ describe('DonePanel', () => {
 
     it('names the one target drum a single kept note now plays', () => {
       onto([{ label: 'C0', count: 1, note: 24, kept: { drum: 'Kick' } }]);
-      expect(screen.getByText('1 of them now plays a Toontrack EZdrummer 3 drum: C0 Kick.')).toBeInTheDocument();
+      expect(screen.getByText('1 of them now plays this Toontrack EZdrummer 3 drum: C0 Kick.')).toBeInTheDocument();
     });
 
     it('says nothing of target drums when every kept note is on a free number', () => {
@@ -429,10 +509,10 @@ describe('DonePanel', () => {
       expect(onPickSource).toHaveBeenCalledOnce();
     });
 
-    it('still offers to assign the notes in the report', async () => {
-      const { onViewReport } = kept(7);
+    it('still offers to assign the notes', async () => {
+      const { onAssignNotes } = kept(7);
       await userEvent.click(screen.getByRole('button', { name: 'Assign the notes' }));
-      expect(onViewReport).toHaveBeenCalledOnce();
+      expect(onAssignNotes).toHaveBeenCalledOnce();
     });
   });
 });
@@ -440,7 +520,17 @@ describe('DonePanel', () => {
 describe('DonePanel damaged files', () => {
   beforeEach(cleanup);
 
-  it('says which file was damaged and where each track stops', () => {
+  it('names the damaged file as it was added, not as it was saved', () => {
+    const damaged: FileResult = {
+      ...result('cut-ezd.mid', 'blob:y'),
+      input: { name: 'cut.mid', bytes: new Uint8Array([1]) },
+      damage: [{ kind: 'tracksMissing', declared: 3, read: 2 }],
+    };
+    renderPanel({ results: [damaged] as Converted['results'] });
+    expect(screen.getByText(/^cut\.mid was damaged/)).toBeTruthy();
+  });
+
+  it('says where each track of a damaged file stops', () => {
     const damaged: FileResult = {
       ...result('cut-ezd.mid', 'blob:y'),
       damage: [
@@ -449,7 +539,6 @@ describe('DonePanel damaged files', () => {
       ],
     };
     renderPanel({ results: [damaged] as Converted['results'] });
-    expect(screen.getByText(/cut-ezd\.mid was damaged/)).toBeTruthy();
     expect(screen.getByText(/Track 2 stops at bar 17/)).toBeTruthy();
     expect(screen.getByText(/says it has 3 tracks; only 2 could be read/)).toBeTruthy();
   });

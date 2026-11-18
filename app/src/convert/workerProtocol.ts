@@ -1,7 +1,7 @@
 import { toAppError, type AppError } from '../core/errors';
 import type { EnginePair } from '../core/enginePair';
 import type { LoadedFile } from '../core/files';
-import type { ChannelScope, LoadMidiremap, MissingDrums, Overrides, SourceFits, Unrecognized } from '../core/midiremap';
+import type { Advised, ChannelScope, EngineId, LoadMidiremap, MissingDrums, Overrides, Unrecognized } from '../core/midiremap';
 import { selectionOf } from '../core/part';
 import { runBatch, type BatchResult } from './batch';
 
@@ -17,19 +17,21 @@ export interface BatchRequest {
   unrecognized: Unrecognized;
 }
 
-/** Files whose hits the worker fits to every engine's layout. */
-export interface FitRequest {
-  kind: 'fit';
+/** Files whose hits the worker advises on, for the conversion from `source` to `target` when one is chosen. */
+export interface AdviceRequest {
+  kind: 'advice';
   id: number;
   files: LoadedFile[];
   channel: ChannelScope;
+  source: EngineId;
+  target: EngineId | null;
 }
 
 /** Everything the converter hands its worker. */
-export type WorkerRequest = BatchRequest | FitRequest;
+export type WorkerRequest = BatchRequest | AdviceRequest;
 
 /** What a request comes to, of the same kind as the request. */
-export type Answer = { kind: 'convert'; result: BatchResult } | { kind: 'fit'; fits: SourceFits };
+export type Answer = { kind: 'convert'; result: BatchResult } | { kind: 'advice'; advised: Advised };
 
 /** An answered request, or why the worker could not answer it. */
 export type WorkerReply = { id: number; answer: Answer } | { id: number; error: AppError };
@@ -42,10 +44,14 @@ export async function answerHere(load: LoadMidiremap, request: WorkerRequest): P
       const { files, pair, ov, channel, missing, unrecognized } = request;
       return { kind: 'convert', result: runBatch(files, pair, ov, channel, missing, unrecognized, core) };
     }
-    case 'fit':
+    case 'advice':
       return {
-        kind: 'fit',
-        fits: core.sourceFits(request.files.map((f) => ({ bytes: f.bytes, selection: selectionOf(f.parts, request.channel) }))),
+        kind: 'advice',
+        advised: core.sourceAdvice(
+          request.files.map((f) => ({ bytes: f.bytes, selection: selectionOf(f.parts, request.channel) })),
+          request.source,
+          request.target,
+        ),
       };
   }
 }

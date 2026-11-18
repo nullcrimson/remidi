@@ -12,7 +12,7 @@ const edited = typed<EditorState>({
 
 describe('editorReducer and selection events', () => {
   it('drops every edit when the FROM engine is chosen (chooseSrc)', () => {
-    const event: SelectionEvent = { type: 'chooseSrc', id: engineId('ezdrummer') };
+    const event: SelectionEvent = { type: 'chooseSrc', id: engineId('ezdrummer'), via: 'picked' };
     expect(editorReducer(edited, event)).toEqual(EDITOR_START);
   });
 
@@ -22,12 +22,12 @@ describe('editorReducer and selection events', () => {
   });
 
   it('drops every edit when the engines are swapped (swap)', () => {
-    const event: SelectionEvent = { type: 'swap' };
+    const event: SelectionEvent = { type: 'swap', via: 'picked' };
     expect(editorReducer(edited, event)).toEqual(EDITOR_START);
   });
 
   it('drops every edit when a pair is preselected (preselect)', () => {
-    const event: SelectionEvent = { type: 'preselect', src: engineId('a'), tgt: engineId('b') };
+    const event: SelectionEvent = { type: 'preselect', src: { id: engineId('a'), via: 'link' }, tgt: engineId('b') };
     expect(editorReducer(edited, event)).toEqual(EDITOR_START);
   });
 

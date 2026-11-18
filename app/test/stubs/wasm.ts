@@ -88,6 +88,8 @@ export const remap = vi.fn<typeof Wasm.remap>(() => ({
     untouched: 5,
     converted: 40,
     merged: 0,
+    read: 41,
+    lost: 1,
   }),
 }));
 
@@ -101,9 +103,15 @@ export const remap_rack = vi.fn<typeof Wasm.remap_rack>((src, tgt, _overrides, _
   return { fileName: `${presetName ?? 'GGD Invasion to EZdrummer'}.adg`, xml: RACK_XML, packing: 'gzip', dropped: 0 };
 });
 
-export const source_fits = vi.fn<typeof Wasm.source_fits>(() => ({ hits: 0, ranked: [] }));
+export const source_advice = vi.fn<typeof Wasm.source_advice>((_files, src, tgt) =>
+  typed<Wasm.Advised>({ source: src, target: tgt ?? null, advice: { kind: 'fits' } }));
 
 export const SAMPLE_BYTES = new Uint8Array([77, 84, 104, 100, 0, 0, 0, 6]);
+
+export const loss_is_heavy = vi.fn<typeof Wasm.loss_is_heavy>((losses) => {
+  const [lost, read] = losses.reduce(([l, r], loss) => [l + loss.lost, r + loss.read], [0, 0]);
+  return read > 0 && 4 * lost >= read;
+});
 
 export const sample_file = vi.fn<typeof Wasm.sample_file>((engine) => {
   if (engine === 'nope') throw unknownEngine('source', engine);

@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WasmCallError } from '../src/core/errors';
 import * as stub from './stubs/wasm';
 import type { Conversion } from '../src/core/midiremap';
@@ -21,6 +21,8 @@ const remapWithNotes = () => typed<Conversion>({ kind: 'done', picked: [], offer
     untouched: 0,
     converted: 4,
     merged: 0,
+    read: 9,
+    lost: 5,
   },
 });
 
@@ -99,6 +101,46 @@ describe('the events of converting', () => {
       droppedDrums: 'china.1.hit,crash.1.hit,hat.cc',
       approximatedDrums: 'hat.open3>hat.open1',
       closer: '',
+      missed: 'under25',
+      lost: 'over50',
+      via: 'picked',
+      asked: 'none',
+    });
+  });
+
+  describe('how the source came to be', () => {
+    afterEach(() => window.history.replaceState({}, '', '/'));
+
+    const convertedVia = async () => {
+      await addMidi('groove.mid');
+      await convert();
+      return umami.mock.calls.find(([name]) => name === 'converted')?.[1];
+    };
+
+    it('sends via restored for the source of the last session', async () => {
+      store('session', { version: 1, src: 'ggd_invasion', tgt: 'ezdrummer', edits: {}, srcEdits: {} });
+      await startApp();
+      expect(await convertedVia()).toMatchObject({ via: 'restored' });
+    });
+
+    it('sends via link for a source the link names', async () => {
+      window.history.replaceState({}, '', '/?from=ggd_invasion&to=ezdrummer');
+      await startApp();
+      expect(await convertedVia()).toMatchObject({ via: 'link' });
+    });
+
+    it('sends via link for a source the link names even when the session already had that pair', async () => {
+      store('session', { version: 1, src: 'ggd_invasion', tgt: 'ezdrummer', edits: {}, srcEdits: {} });
+      window.history.replaceState({}, '', '/?from=ggd_invasion&to=ezdrummer');
+      await startApp();
+      expect(await convertedVia()).toMatchObject({ via: 'link' });
+    });
+
+    it('sends via restored when a link names only the target', async () => {
+      store('session', { version: 1, src: 'ggd_invasion', tgt: 'ezdrummer', edits: {}, srcEdits: {} });
+      window.history.replaceState({}, '', '/?to=ezdrummer');
+      await startApp();
+      expect(await convertedVia()).toMatchObject({ via: 'restored' });
     });
   });
 

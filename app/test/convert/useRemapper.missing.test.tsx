@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useRemapper } from '../../src/convert/useRemapper';
+import { actionsOf } from './actions';
 import { RUNTIME } from '../runtime';
 import type { Report } from '../../src/core/midiremap';
 import { loadSession } from '../../src/convert/session';
@@ -10,7 +11,7 @@ import { storedName } from '../../src/core/storage';
 
 const MISSING_KEY = storedName('missing');
 
-const REPORT = typed<Report>({ unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0 });
+const REPORT = typed<Report>({ unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0, read: 1, lost: 0 });
 
 async function ready() {
   const hook = renderHook(() => useRemapper(RUNTIME));
@@ -56,31 +57,31 @@ describe('useRemapper missing drums', () => {
 
   it('clears a finished conversion after a change', async () => {
     const result = await ready();
-    await act(() => result.current.convert());
-    expect(result.current.conv.kind).toBe('done');
+    await act(() => actionsOf(result.current).convert());
+    expect(result.current.conversion.conv.kind).toBe('done');
 
     act(() => result.current.setMissing('drop'));
-    expect(result.current.conv.kind).toBe('idle');
+    expect(result.current.conversion.conv.kind).toBe('idle');
   });
 
   it('converts with the changed choice', async () => {
     const result = await ready();
-    await act(() => result.current.convert());
+    await act(() => actionsOf(result.current).convert());
     expect(vi.mocked(stub.remap).mock.lastCall?.[5]).toBe('nearest');
 
     act(() => result.current.setMissing('drop'));
-    await act(() => result.current.convert());
+    await act(() => actionsOf(result.current).convert());
     expect(vi.mocked(stub.remap).mock.lastCall?.[5]).toBe('drop');
   });
 
   it('drops missing drums and converts again in one step', async () => {
     const result = await ready();
-    await act(() => result.current.convert());
-    expect(result.current.conv.kind).toBe('done');
+    await act(() => actionsOf(result.current).convert());
+    expect(result.current.conversion.conv.kind).toBe('done');
 
-    await act(() => result.current.dropMissingAndConvert());
+    await act(() => actionsOf(result.current).dropMissingAndConvert());
     expect(result.current.missing).toBe('drop');
     expect(vi.mocked(stub.remap).mock.lastCall?.[5]).toBe('drop');
-    expect(result.current.conv.kind).toBe('done');
+    expect(result.current.conversion.conv.kind).toBe('done');
   });
 });

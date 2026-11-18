@@ -19,6 +19,7 @@ export function SummaryRow({
   edited,
   breakdown,
   names,
+  muted = false,
 }: {
   remapped: number;
   total: number;
@@ -28,13 +29,21 @@ export function SummaryRow({
   edited?: EditedState;
   breakdown?: PlanBreakdown;
   names: EngineNames;
+  muted?: boolean;
 }) {
   const t = useT();
   const summary = (
     <Rich
       id="summary-remapped"
-      args={{ total }}
-      slots={{ remapped: <span className="font-semibold text-accent">{remapped}</span> }}
+      args={{ total, source: names.source, target: names.target }}
+      slots={{ remapped: (
+        <span className={`
+          font-semibold
+          ${muted ? 'text-t4' : 'text-accent'}
+        `}
+        >{remapped}
+        </span>
+      ) }}
     />
   );
   return (

@@ -1,5 +1,5 @@
 import type { EnginePair } from '../src/core/enginePair';
-import type { Canon, EngineId, Note, PresetName } from '../src/core/midiremap';
+import type { Advised, Canon, EngineId, Note, PresetName, SourceAdvice } from '../src/core/midiremap';
 import { parsePresetName } from '../src/presets/mappings';
 
 /** `T` with every `Note` written as a plain number, and every `Canon` and `EngineId` as a plain string. */
@@ -16,6 +16,11 @@ export type Loose<T> = T extends Note ? number
 /** A test fixture written with plain numbers and strings, typed as the real thing. */
 export function typed<T>(fixture: Loose<T>): T {
   return fixture as T;
+}
+
+/** The advice for converting from `source` to `target`, written whole: a fixture cannot leave out the pair it is for. */
+export function advisedOf(source: string, target: string | null, advice: Loose<SourceAdvice>): Advised {
+  return typed<Advised>({ source, target, advice });
 }
 
 export const note = (n: number): Note => typed<Note>(n);

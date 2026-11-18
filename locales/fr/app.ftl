@@ -149,6 +149,7 @@ engine-to = CIBLE
 engine-swap = Inverser source et cible
 engine-choose = Choisir un plugin de batterie…
 engine-picker-heading = Choisir le plugin { $side }
+engine-taken = { $engine } est déjà le plugin { $side }.
 filter-clear = Effacer le filtre
 note-picker-label = Note cible pour { $drum }
 note-picker-heading = CIBLE · { $drum }
@@ -169,7 +170,11 @@ saved-heading = PRESETS
 edit-back = ← Retour
 edit-heading = Modifier les notes
 edit-advanced = Avancé — réattribuer les notes sources
-summary-remapped = Éléments remappés : { $remapped } sur { $total }
+summary-remapped =
+    { $total ->
+        [one] { $remapped } élément { $source } sur { $total } a un équivalent dans { $target }
+       *[other] { $remapped } éléments { $source } sur { $total } ont un équivalent dans { $target }
+    }
 summary-edit-tip-title = Réglez chaque élément
 summary-edit-tip = Vous pouvez donner une autre note cible à n’importe quel élément, depuis la liste ou le clavier. Vos modifications sont prises en compte à la conversion et peuvent être enregistrées comme preset.
 summary-edit = Modifier note par note →
@@ -264,6 +269,17 @@ library-favourites = Favoris
 library-all = Tous les plugins
 library-none = aucun résultat
 files-skipped = Impossible d’ajouter { $names } : seuls les fichiers .mid et les presets exportés (.json) sont acceptés
+files-failed-reason =
+    { $reason ->
+        [unreadable] illisible
+        [parts] parties non choisies
+       *[other] échec
+    }
+files-replaced =
+    { $count ->
+        [one] { $names } a été remplacé par le fichier que vous venez d’ajouter.
+       *[other] { $names } ont été remplacés par les fichiers que vous venez d’ajouter.
+    }
 files-drop = Déposez un ou plusieurs fichiers .mid n’importe où
 files-choose = Choisir des fichiers
 files-presets = Les presets que vous avez exportés (.json) se déposent ou se choisissent de la même façon.
@@ -329,6 +345,11 @@ done-file-approximated = { $count } rempl.
 done-file-dropped = { $count } suppr.
 done-file-unrecognized = { $count } non rec.
 done-file-clean = sans perte
+done-badge =
+    { $tone ->
+        [danger] Avertissement
+       *[accent] Terminé
+    }
 done-heading =
     { $count ->
         [one] { $count } fichier converti
@@ -351,6 +372,11 @@ done-view-report = Voir le rapport →
 done-convert-more = Nouvelle conversion
 done-convert-more-hint = Un autre fichier ? Les plugins et les réglages restent tels quels.
 done-report-mapping = Mapping erroné ? Signalez-le
+done-lost-many =
+    { $lost ->
+        [one] { $lost } note sur { $read } n’a pas été écrite dans le fichier.
+       *[other] { $lost } notes sur { $read } n’ont pas été écrites dans le fichier.
+    }
 done-removed =
     { $count ->
         [one] { $count } note de votre fichier est absente du mapping { $source } : elle a donc été supprimée. Mauvais plugin source ?
@@ -368,6 +394,11 @@ done-kept-plays =
     }
 done-pick-source = Choisir une autre source
 done-assign-notes = Attribuer les notes
+done-convert-from = Reconvertir depuis { $engine }
+done-read-as = Lu avec le mapping { $source }.
+done-back-to = Revenir à { $previous }
+done-left-out = { $file } a été laissé de côté : ses parties de batterie ne sont pas choisies.
+done-left-out-pick = Choisir ses parties de batterie
 done-damaged-file = { $file } était endommagé : une partie manquait, et tout ce qui restait a été converti.
 done-damage-track-cut-bar = La piste { $track } s’arrête à la mesure { $bar } ; la suite n’était pas dans le fichier.
 done-damage-track-cut-tick = La piste { $track } s’arrête au tick { $tick } ; la suite n’était pas dans le fichier.
@@ -404,16 +435,37 @@ done-offer =
     }
 done-offer-convert = Les convertir aussi
 source-fit-missing =
-    { $missing ->
-        [one] { $missing } note sur { $hits } de votre fichier est absente du mapping { $source }.
-       *[other] { $missing } notes sur { $hits } de votre fichier sont absentes du mapping { $source }.
-    } Plus proches : { $engines }
-source-fit-all = { $engine } (toutes les notes)
-source-fit-some =
-    { $engine } ({ $count ->
-        [one] { $count } note
-       *[other] { $count } notes
-    })
+    { $missed ->
+        [all]
+            { $hits ->
+                [one] { $source } ne connaît pas la seule note de votre fichier.
+               *[other] { $source } ne connaît aucune des { $hits } notes de votre fichier.
+            }
+       *[some] { $source } ne connaît pas { $missing } des { $hits } notes de votre fichier.
+    }
+source-fit-all = { $engine } connaît toutes les notes.
+source-fit-some = { $engine } en connaît { $count }.
+source-use = Utiliser { $engine }
+source-fit-target =
+    { $known ->
+        [all] { $target } connaît toutes les notes : votre fichier est peut-être déjà à son mapping.
+       *[some] { $target } en connaît { $count } : votre fichier est peut-être déjà à son mapping.
+    }
+source-target-fits =
+    { $known ->
+        [all] { $target } connaît toutes les notes : votre fichier est peut-être déjà à son mapping. { $swap }
+       *[some] { $target } en connaît { $count } : votre fichier est peut-être déjà à son mapping. { $swap }
+    }
+source-swap = Convertir dans l’autre sens : { $target } → { $source }
+source-ask =
+    { $lacks ->
+        [kick] { $source } ne trouve pas de Kick dans votre fichier et ne connaît pas { $missing } de ses { $hits } notes.
+        [snare] { $source } ne trouve pas de Snare dans votre fichier et ne connaît pas { $missing } de ses { $hits } notes.
+       *[kickAndSnare] { $source } ne trouve ni Kick ni Snare dans votre fichier et ne connaît pas { $missing } de ses { $hits } notes.
+    }
+source-ask-switch = Convertir comme { $engine }
+source-ask-pick = Choisir une autre source
+source-ask-anyway = Convertir quand même
 drop-missing = Supprimer les éléments manquants et reconvertir
 report-dropped = Supprimés
 report-approximated = Remplacés

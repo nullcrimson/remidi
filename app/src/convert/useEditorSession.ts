@@ -1,7 +1,7 @@
 import type { Remapper } from './useRemapper';
-import type { Note } from '../core/midiremap';
 import { track } from '../core/stats';
 import type { StatEvents } from '../core/umami';
+import type { Assigning } from '../editor/assigning';
 import type { EditFilter } from '../editor/editFilter';
 import type { CloseHow } from '../editor/editorTally';
 import { useEditorHistory } from '../editor/useEditorHistory';
@@ -15,10 +15,10 @@ type EditorSource = StatEvents['editor-opened']['from'];
  */
 export function useEditorSession(remapper: Remapper, request: (target: FocusTarget) => void) {
   const { editor, view, pair } = remapper;
-  const open = (from: EditorSource, show: EditFilter = 'all', note: Note | null = null) => {
+  const open = (from: EditorSource, show: EditFilter = 'all', assigning: Assigning | null = null) => {
     track('editor-opened', { show, from });
     editor.beginSession();
-    remapper.openEditor(show, note);
+    remapper.openEditor(show, assigning);
   };
   const close = (how: CloseHow) => {
     editor.endSession(how);

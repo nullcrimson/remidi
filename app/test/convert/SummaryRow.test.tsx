@@ -100,7 +100,7 @@ describe('SummaryRow breakdown', () => {
   }
 
   async function open() {
-    await userEvent.hover(screen.getByRole('button', { name: '18 of 22 drums remapped' }));
+    await userEvent.hover(screen.getByRole('button', { name: '18 of 22 GetGood Drums drums have a match in EZdrummer 3' }));
     return screen.findByRole('dialog');
   }
 

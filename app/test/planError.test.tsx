@@ -87,7 +87,7 @@ describe('plan errors', () => {
     await userEvent.click((await screen.findAllByRole('button', { name: /Old preset/ }))[0]);
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('The note editor could not load: Something went wrong Details: unknown canon bogus.canon');
-    expect(screen.queryByText(/of 1 drum remapped/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/of 1 .+ drum has a /)).not.toBeInTheDocument();
   });
 
   it('clears the notice with Reset edits', async () => {
@@ -97,6 +97,6 @@ describe('plan errors', () => {
     await screen.findByRole('alert');
     await userEvent.click(screen.getByRole('button', { name: 'Reset edits' }));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(screen.getByText(/of 1 drum remapped/)).toBeInTheDocument();
+    expect(screen.getByText(/of 1 .+ drum has a /)).toBeInTheDocument();
   });
 });

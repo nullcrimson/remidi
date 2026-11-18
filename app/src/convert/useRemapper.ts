@@ -1,23 +1,25 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { vocabularyOf } from '../core/canon';
-import type { ChannelScope, Engine, EngineId, Midiremap, MissingDrums, Note, Unrecognized } from '../core/midiremap';
+import type { ChannelScope, Engine, EngineId, Midiremap, MissingDrums, Unrecognized } from '../core/midiremap';
 import type { OctaveBase } from '../core/notes';
 import { pairOf } from '../core/enginePair';
-import { kindCounts } from '../core/errors';
 import { track } from '../core/stats';
-import { convertedProps } from '../report/report';
-import { editCount, knownEdits, type StoredEdits } from '../core/overrides';
+import { knownEdits, type StoredEdits } from '../core/overrides';
 import { preselection } from './preselect';
 import type { Runtime } from './runtime';
-import type { SelectionEvent } from '../core/selection';
+import { sourceOf, suggestedFrom, type SelectionEvent } from '../core/selection';
 import { loadSession, saveSession } from './session';
-import { selectionOf, selectionReducer } from './selectionState';
-import { useConverter, withPicks } from './useConverter';
+import { chosenOf, selectionOf, selectionReducer } from './selectionState';
+import { IDLE, useConverter, withPicks, type Conv } from './useConverter';
+import { keyFor, leftBy, setupOf } from './convertSetup';
+import { convertActions, type ConvertActions } from './convertActions';
 import { usePartQuestions, type Offer } from './partQuestions';
-import { useSourceFits } from './useSourceFits';
-import { offeredSources } from './closerSources';
+import { useSourceAdvice } from './useSourceAdvice';
+import { useSourceQuestion } from './useSourceQuestion';
+import { useTrackedRun } from './useTrackedRun';
+import { offeredAdvice } from './sourceOffer';
+import type { Assigning } from '../editor/assigning';
 import type { EditFilter } from '../editor/editFilter';
-import type { LoadedFile } from '../core/files';
 import { useEditor } from '../editor/useEditor';
 import { useEngineCatalog } from '../engines/useEngineCatalog';
 
@@ -25,9 +27,13 @@ export type { Conv } from './useConverter';
 
 const NO_ENGINES: Engine[] = [];
 
-function channelKind(channel: ChannelScope): 'auto' | 'all' | 'one' {
-  return channel === 'auto' || channel === 'all' ? channel : 'one';
-}
+/**
+ * The conversion step: unready until both engines are chosen, with no run on show; then the
+ * ways to convert the setup on show, and what its last run came to.
+ */
+type ConvertRun = { kind: 'unready'; conv: typeof IDLE } | { kind: 'ready'; actions: ConvertActions; conv: Conv };
+
+const UNREADY: ConvertRun = { kind: 'unready', conv: IDLE };
 
 /**
  * Screen state for the converter. The last setup (engines, settings, unsaved edits) is
@@ -39,11 +45,9 @@ function channelKind(channel: ChannelScope): 'auto' | 'all' | 'one' {
  */
 export function useRemapper({ load, converter: batches }: Runtime) {
   const [session] = useState(loadSession);
-  const [{ src, tgt, oct, channel, missing, unrecognized, view, presetId }, dispatch] = useReducer(
-    selectionReducer,
-    session,
-    selectionOf,
-  );
+  const [selection, dispatch] = useReducer(selectionReducer, session, selectionOf);
+  const { src: source, tgt, oct, channel, missing, unrecognized, view, presetId } = selection;
+  const src = source?.id ?? null;
   const restore = useRef<(list: Engine[], core: Midiremap) => void>(() => {});
   const onCatalogReady = useCallback((list: Engine[], core: Midiremap) => restore.current(list, core), []);
   const catalog = useEngineCatalog(load, onCatalogReady);
@@ -51,15 +55,16 @@ export function useRemapper({ load, converter: batches }: Runtime) {
   const editor = useEditor(catalog.status === 'ready' ? catalog.core : null, pair, missing);
   const { edits, srcEdits, vocabulary, load: loadEditor, onSelection: editorSees } = editor;
   const overrides = useMemo(() => ({ edits, srcEdits }), [edits, srcEdits]);
-  const keyFor = useCallback(
-    (m: MissingDrums) => JSON.stringify({ pair, channel, missing: m, unrecognized, overrides }),
-    [pair, channel, unrecognized, overrides],
-  );
-  const settingsKey = useMemo(() => keyFor(missing), [keyFor, missing]);
-  const converter = useConverter(batches, pair, settingsKey);
+  const shown = useMemo(() => {
+    const chosen = chosenOf(selection);
+    return chosen === null ? null : { selection: chosen, setup: setupOf(chosen, overrides, 'none') };
+  }, [selection, overrides]);
+  const current = shown?.setup ?? null;
+  const settingsKey = current === null ? '' : keyFor(current);
+  const converter = useConverter(batches, settingsKey);
   const { onSelection: converterSees, convert: runConvert } = converter;
   const picked = useMemo(() => withPicks(converter.files, converter.picks, channel), [converter.files, converter.picks, channel]);
-  const fits = useSourceFits(batches, picked, channel);
+  const advised = useSourceAdvice(batches, picked, channel, src, tgt);
   const core = catalog.status === 'ready' ? catalog.core : null;
   const questionSetup = useMemo(
     () => ({ src, tgt, overrides, missing, unrecognized }),
@@ -74,7 +79,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
       track('parts-asked', { parts: q.parts.length });
     }
   }, [questions.asked]);
-  const offered = useMemo(() => offeredSources(fits, src, tgt, srcEdits), [fits, src, tgt, srcEdits]);
+  const offered = useMemo(() => offeredAdvice(advised, src, tgt, srcEdits), [advised, src, tgt, srcEdits]);
 
   const emit = useCallback(
     (event: SelectionEvent) => {
@@ -85,15 +90,15 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     [editorSees, converterSees],
   );
 
-  const chooseSrc = useCallback((id: EngineId) => emit({ type: 'chooseSrc', id }), [emit]);
+  const chooseSrc = useCallback((id: EngineId) => emit({ type: 'chooseSrc', id, via: 'picked' }), [emit]);
   const chooseTgt = useCallback((id: EngineId) => emit({ type: 'chooseTgt', id }), [emit]);
-  const swap = useCallback(() => emit({ type: 'swap' }), [emit]);
+  const swap = useCallback(() => emit({ type: 'swap', via: 'picked' }), [emit]);
   const setChannel = useCallback((c: ChannelScope) => emit({ type: 'setChannel', channel: c }), [emit]);
   const setMissing = useCallback((m: MissingDrums) => emit({ type: 'setMissing', missing: m }), [emit]);
   const setUnrecognized = useCallback((u: Unrecognized) => emit({ type: 'setUnrecognized', unrecognized: u }), [emit]);
   const setOct = useCallback((o: OctaveBase) => dispatch({ type: 'SET_OCT', oct: o }), []);
   const openEditor = useCallback(
-    (show: EditFilter, assignNote: Note | null) => dispatch({ type: 'OPEN_EDITOR', show, assignNote }),
+    (show: EditFilter, assigning: Assigning | null) => dispatch({ type: 'OPEN_EDITOR', show, assigning }),
     [],
   );
   const closeEditor = useCallback(() => dispatch({ type: 'CLOSE_EDITOR' }), []);
@@ -114,9 +119,10 @@ export function useRemapper({ load, converter: batches }: Runtime) {
         else nextSrc = null;
       }
       if (nextSrc !== session.src || nextTgt !== session.tgt) {
-        emit({ type: 'preselect', src: nextSrc, tgt: nextTgt });
+        emit({ type: 'preselect', src: sourceOf(nextSrc, picked?.src ? 'link' : 'restored'), tgt: nextTgt });
         return;
       }
+      if (picked?.src) dispatch({ type: 'SRC_FROM_LINK' });
       const kept = knownEdits(session, vocabularyOf(loaded.canonCatalog()));
       loadEditor(kept);
     };
@@ -142,45 +148,26 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     [vocabulary, emit],
   );
 
-  const run = useCallback(
-    async (m: MissingDrums, files?: LoadedFile[]) => {
-      const outcome = await runConvert(overrides, channel, m, unrecognized, keyFor(m), files);
-      if (outcome === null || pair === null) return;
-      if (outcome.kind === 'failed') {
-        track('convert-failed', { from: pair.src, to: pair.tgt, kind: outcome.error.kind });
-        return;
-      }
-      for (const [kind, files] of kindCounts(outcome.failed.map((file) => file.error))) track('file-failed', { kind, files });
-      track('converted', convertedProps(pair, outcome.ok.map((file) => file.report), outcome.failed.length, {
-        damaged: outcome.ok.filter((file) => file.damage.length > 0).length,
-        channel: outcome.ok.some((file) => file.input.parts !== undefined) ? 'parts' : channelKind(channel),
-        offered: outcome.ok.reduce((sum, file) => sum + file.offers.length, 0),
-        untouched: outcome.ok.reduce((sum, file) => sum + file.report.untouched, 0),
-        missing: m,
-        edited: editCount({ edits, srcEdits }) > 0,
-        preset: presetId !== null,
-        closer: files === undefined ? offered?.better[0].engine ?? '' : '',
-      }));
-    },
-    [runConvert, overrides, channel, unrecognized, keyFor, pair, edits, srcEdits, presetId, offered],
+  const run = useTrackedRun(runConvert, batches, picked);
+  const sourceQuestion = useSourceQuestion({ offered, files: converter.files, picks: converter.picks, channel, src, tgt });
+  const { markAsked, answered } = sourceQuestion;
+  const left = useMemo(() => (current === null ? null : leftBy(current)), [current]);
+  const chooseSuggested = useCallback(
+    (id: EngineId) => emit({ type: 'chooseSrc', id, via: { kind: 'suggested', from: left } }),
+    [emit, left],
   );
-  const convert = useCallback((files?: LoadedFile[]) => run(missing, files), [run, missing]);
-  const convertReady = useCallback(
-    () => run(missing, picked.filter((f) => !questions.waiting.has(f.name))),
-    [run, missing, picked, questions.waiting],
-  );
-  const alsoConvert = useCallback(
-    (offer: Offer) => {
-      track('parts-offer-taken', { parts: offer.parts.length });
-      converter.setParts(offer.file, offer.withOffers);
-      return run(missing, withPicks(converter.files, { ...converter.picks, [offer.file]: offer.withOffers }, channel));
-    },
-    [converter, run, missing, channel],
-  );
-  const dropMissingAndConvert = useCallback(() => {
-    emit({ type: 'setMissing', missing: 'drop' });
-    return run('drop');
-  }, [emit, run]);
+  const readAs = suggestedFrom(source);
+  const ready = useMemo(() => picked.filter((f) => !questions.waiting.has(f.name)), [picked, questions.waiting]);
+  const { files: queued, picks, setParts } = converter;
+  const actions = useMemo(() => {
+    if (shown === null) return null;
+    const alsoPick = (offer: Offer) => {
+      setParts(offer.file, offer.withOffers);
+      return withPicks(queued, { ...picks, [offer.file]: offer.withOffers }, channel);
+    };
+    return convertActions({ ...shown, run, ready, emit, answered, markAsked, vocabulary, alsoPick });
+  }, [shown, run, ready, emit, answered, markAsked, vocabulary, setParts, queued, picks, channel]);
+  const conversion: ConvertRun = actions === null ? UNREADY : { kind: 'ready', actions, conv: converter.conv };
 
   return {
     catalog,
@@ -197,16 +184,18 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     picks: converter.picks,
     setParts: converter.setParts,
     questions,
-    convertReady,
-    alsoConvert,
+    conversion,
+    sourceQuestion,
+    readAs,
     offered,
     skipped: converter.skipped,
+    replaced: converter.replaced,
     view,
-    conv: converter.conv,
     results: converter.results,
     failures: converter.failures,
     editor,
     chooseSrc,
+    chooseSuggested,
     chooseTgt,
     swap,
     setOct,
@@ -218,8 +207,6 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     clearFiles: converter.clearFiles,
     openEditor,
     closeEditor,
-    convert,
-    dropMissingAndConvert,
     loadMapping,
     setPreset,
   };

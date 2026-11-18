@@ -10,6 +10,7 @@ import { NotePicker } from './NotePicker';
 import { SourceNotePicker } from './SourceNotePicker';
 import { ROW_GRID } from './rowGrid';
 import { pickOf } from './editorState';
+import { focusRowTarget } from './rowJump';
 import { VoiceRow, type RowResult } from './VoiceRow';
 import { isPlayed, leadNote, playedNote, playingDrum, playingText } from '../core/outcome';
 
@@ -134,7 +135,12 @@ export function FamilyRows({
                   onSrcToggle={() => (here?.kind === 'src' ? actions.closePick() : actions.openSrcPick(row.canon))}
                   onToggle={() => (here?.kind === 'tgt' ? actions.closePick() : actions.openPick(row.canon))}
                   result={playsOf(row, rowChanged, { labels, oct, target: tgtName, onReveal, t })}
-                  onReset={rowChanged ? () => actions.resetRow(row.canon) : undefined}
+                  onReset={rowChanged
+                    ? () => {
+                        actions.resetRow(row.canon);
+                        focusRowTarget(row.canon);
+                      }
+                    : undefined}
                 >
                   {here?.kind === 'src' && (
                     <SourceNotePicker

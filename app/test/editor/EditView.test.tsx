@@ -51,7 +51,7 @@ const props = {
   existingPreset: undefined,
   presetsAtCap: false,
   presetsUnsaved: false,
-  assignNote: null,
+  assigning: null,
   initialShow: 'all' as const,
   onClose: vi.fn(),
   onSavePreset: vi.fn(),
@@ -409,6 +409,7 @@ describe('EditView', () => {
     expect(screen.queryByRole('button', { name: 'Reset Kick' })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Reset Snare' }));
     expect(resetRow).toHaveBeenCalledWith('snare.main');
+    expect(rowOfDrum('Snare').querySelector('button[aria-describedby]')).toHaveFocus();
   });
 
   it('keeps the change count in a sticky footer', () => {
@@ -425,6 +426,7 @@ describe('EditView', () => {
     const footer = screen.getByRole('region', { name: 'Edit actions' });
     await userEvent.click(within(footer).getByRole('button', { name: 'Reset all' }));
     expect(reset).toHaveBeenCalledOnce();
+    expect(screen.getByRole('heading', { name: 'Edit notes' })).toHaveFocus();
   });
 
   it('closes from Done in the footer', async () => {

@@ -155,6 +155,7 @@ engine-to = В
 engine-swap = Поменять местами
 engine-choose = Выберите плагин…
 engine-picker-heading = Выберите плагин: { $side }
+engine-taken = { $engine } уже выбран как плагин: { $side }.
 filter-clear = Очистить фильтр
 note-picker-label = Целевая нота для { $drum }
 note-picker-heading = ЦЕЛЬ · { $drum }
@@ -177,10 +178,10 @@ edit-heading = Редактор нот
 edit-advanced = Дополнительно — маппинг исходных нот
 summary-remapped =
     { $total ->
-        [one] Сконвертировано { $remapped } из { $total } инструмента
-        [few] Сконвертировано { $remapped } из { $total } инструментов
-        [many] Сконвертировано { $remapped } из { $total } инструментов
-       *[other] Сконвертировано { $remapped } из { $total } инструмента
+        [one] { $remapped } из { $total } инструмента { $source } есть в { $target }
+        [few] { $remapped } из { $total } инструментов { $source } есть в { $target }
+        [many] { $remapped } из { $total } инструментов { $source } есть в { $target }
+       *[other] { $remapped } из { $total } инструмента { $source } есть в { $target }
     }
 summary-edit-tip-title = Настройте любой инструмент
 summary-edit-tip = Любому инструменту можно назначить другую ноту — выберите её в списке или на клавишах пианино. Изменения применятся при конвертации, и их можно сохранить как пресет.
@@ -287,6 +288,19 @@ library-favourites = Избранное
 library-all = Все плагины
 library-none = ничего не найдено
 files-skipped = Пропущено: { $names }. Подходят только файлы .mid и экспортированные пресеты (.json)
+files-failed-reason =
+    { $reason ->
+        [unreadable] не читается
+        [parts] партии не выбраны
+       *[other] ошибка
+    }
+files-replaced =
+    { $count ->
+        [one] { $names } заменён только что добавленным файлом.
+        [few] { $names } заменены только что добавленными файлами.
+        [many] { $names } заменены только что добавленными файлами.
+       *[other] { $names } заменены только что добавленными файлами.
+    }
 files-drop = Перетащите один или несколько файлов .mid в любое место
 files-choose = Выбрать файлы
 files-presets = Экспортированные пресеты (.json) добавляются так же.
@@ -330,6 +344,11 @@ done-file-approximated = заменено: { $count }
 done-file-dropped = убрано: { $count }
 done-file-unrecognized = не распозн.: { $count }
 done-file-clean = без потерь
+done-badge =
+    { $tone ->
+        [danger] Предупреждение
+       *[accent] Готово
+    }
 done-heading =
     { $count ->
         [one] { $count } файл конвертирован
@@ -362,6 +381,7 @@ done-view-report = Посмотреть отчёт →
 done-convert-more = Конвертировать ещё
 done-convert-more-hint = Следующий файл? Плагины и настройки останутся прежними.
 done-report-mapping = Неправильная нота? Сообщить
+done-lost-many = Не попало в файл: { $lost } из { $read } нот.
 done-removed =
     { $count ->
         [one] { $count } нота из вашего файла отсутствует в маппинге { $source }, поэтому она удалена. Не тот источник?
@@ -385,6 +405,11 @@ done-kept-plays =
     }
 done-pick-source = Выбрать другой источник
 done-assign-notes = Назначить ноты
+done-convert-from = Конвертировать заново из { $engine }
+done-read-as = Прочитано по маппингу { $source }.
+done-back-to = Назад: { $previous }
+done-left-out = { $file } пропущен: его партии ударных не выбраны.
+done-left-out-pick = Выбрать партии ударных
 done-damaged-file = Файл { $file } повреждён: части не хватало, всё оставшееся сконвертировано.
 done-damage-track-cut-bar = Дорожка { $track } обрывается на такте { $bar }; остальной её части в файле не было.
 done-damage-track-cut-tick = Дорожка { $track } обрывается на тике { $tick }; остальной её части в файле не было.
@@ -428,15 +453,38 @@ done-offer =
        *[other] Ноты на { $part } в { $file } ({ $count }) остались как были, рядом с ударными на канале 10.
     }
 done-offer-convert = Сконвертировать и их
-source-fit-missing = Нет в маппинге { $source }: { $missing } из { $hits } нот вашего файла. Подходят лучше: { $engines }
-source-fit-all = { $engine } (все ноты)
-source-fit-some =
-    { $engine } ({ $count ->
-        [one] { $count } нота
-        [few] { $count } ноты
-        [many] { $count } нот
-       *[other] { $count } ноты
-    })
+source-fit-missing =
+    { $missed ->
+        [all]
+            { $hits ->
+                [one] Плагин { $source } не знает единственную ноту вашего файла.
+               *[other] Плагин { $source } не знает ни одной из { $hits } нот вашего файла.
+            }
+       *[some] Плагин { $source } не знает { $missing } из { $hits } нот вашего файла.
+    }
+source-fit-all = Плагин { $engine } знает все ноты.
+source-fit-some = Плагин { $engine } знает { $count } из них.
+source-use = Использовать { $engine }
+source-fit-target =
+    { $known ->
+        [all] Плагин { $target } знает все ноты: возможно, файл уже в его маппинге.
+       *[some] Плагин { $target } знает { $count } из них: возможно, файл уже в его маппинге.
+    }
+source-target-fits =
+    { $known ->
+        [all] Плагин { $target } знает все ноты: возможно, файл уже в его маппинге. { $swap }
+       *[some] Плагин { $target } знает { $count } из них: возможно, файл уже в его маппинге. { $swap }
+    }
+source-swap = Конвертировать наоборот: { $target } → { $source }
+source-ask =
+    { $lacks ->
+        [kick] Плагин { $source } не находит в вашем файле Kick и не знает { $missing } из { $hits } нот.
+        [snare] Плагин { $source } не находит в вашем файле Snare и не знает { $missing } из { $hits } нот.
+       *[kickAndSnare] Плагин { $source } не находит в вашем файле ни Kick, ни Snare и не знает { $missing } из { $hits } нот.
+    }
+source-ask-switch = Конвертировать как { $engine }
+source-ask-pick = Выбрать другой источник
+source-ask-anyway = Всё равно конвертировать
 drop-missing = Убрать недостающие инструменты и конвертировать заново
 report-dropped = Убрано
 report-approximated = Заменено

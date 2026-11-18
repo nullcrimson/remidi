@@ -1,15 +1,17 @@
 import type { Locale, RouteName, SectionKey } from '../generated/i18n';
 import type { AppError } from './errors';
-import type { MissingDrums, Unrecognized } from './midiremap';
+import type { EngineId, MissingDrums, Unrecognized } from './midiremap';
+import type { SrcViaKind } from './selection';
+import type { ShareBucket } from './share';
 
 /** The kinds of error the events name: the app's own. */
 export type ErrorKind = AppError['kind'];
 
-/** The places of the engines the converter suggests as the source, best first. */
-export const SUGGESTION_RANKS = [1, 2, 3] as const;
+/** The engine the advice suggested, as the events send it: its id, empty for none, or `advice-failed` when the advice failed. */
+export type SuggestedProp = EngineId | '' | 'advice-failed';
 
-/** One suggestion's place. */
-export type SuggestionRank = (typeof SUGGESTION_RANKS)[number];
+/** Where a suggested source is taken: under the engine pickers, or on the done card. */
+type SuggestionPlace = 'engines' | 'done';
 
 /** What each event carries, by name: the one list of what the app and the static pages send. */
 export interface StatEvents {
@@ -21,7 +23,7 @@ export interface StatEvents {
   'language-offered': { to: Locale };
   'language-offer-answered': { to: Locale; answer: 'accepted' | 'dismissed' | 'ignored' };
   'engine-picked': { side: 'from' | 'to'; id: string; via: 'list' | 'filter' | 'favorite' };
-  'engines-swapped': undefined;
+  'engines-swapped': { where: 'button' | 'done' };
   'engine-starred': { id: string; on: boolean };
   'file-removed': { all: boolean };
   'setting-changed':
@@ -53,13 +55,17 @@ export interface StatEvents {
     unrecognizedNotes: string;
     droppedDrums: string;
     approximatedDrums: string;
-    closer: string;
+    closer: SuggestedProp;
+    missed: ShareBucket;
+    lost: ShareBucket;
+    via: SrcViaKind;
+    asked: 'none' | 'anyway' | 'switched';
   };
   'convert-failed': { from: string; to: string; kind: ErrorKind };
   downloaded: { files: number; how: 'single' | 'file' | 'zip' };
   'editor-opened': {
     show: 'all' | 'changed' | 'issues';
-    from: 'summary' | 'missing' | 'report' | 'preset' | 'history';
+    from: 'summary' | 'missing' | 'report' | 'done' | 'preset' | 'history';
   };
   'file-failed': { kind: ErrorKind; files: number };
   'convert-again': undefined;
@@ -68,8 +74,11 @@ export interface StatEvents {
   'missing-dropped': { where: 'done' | 'report' };
   'done-wrong-source': undefined;
   'done-assign-unrecognized': undefined;
-  'source-suggestion-used': { rank: SuggestionRank; engine: string };
-  'mapping-reported': undefined;
+  'source-suggestion-used': { engine: string; where: SuggestionPlace };
+  'source-reverted': undefined;
+  'source-asked': { missed: ShareBucket; engine: string; via: SrcViaKind };
+  'source-answered': { answer: 'switched' | 'picked' | 'anyway' | 'dismissed' };
+  'mapping-reported': { from: string; to: string; missed: ShareBucket; lost: ShareBucket; closer: SuggestedProp };
   'editor-closed': {
     how: 'done' | 'back' | 'history';
     targets: number;

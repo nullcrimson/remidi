@@ -9,7 +9,7 @@ import { planBreakdown } from './planBreakdown';
 import { PlanErrorNotice } from '../editor/PlanErrorNotice';
 import { SummaryRow } from './SummaryRow';
 
-/** Once both engines are picked, what the plan does to every drum. */
+/** Once both engines are picked, what the plan does to every drum, its count `muted` while the notice under the pickers speaks about the source. */
 export function PlanSummary({
   remapper,
   editor,
@@ -17,6 +17,7 @@ export function PlanSummary({
   editRef,
   onOpenEditor,
   onRack,
+  muted,
 }: {
   remapper: Remapper;
   editor: Editor;
@@ -24,6 +25,7 @@ export function PlanSummary({
   editRef: FocusRef;
   onOpenEditor: (from: Extract<StatEvents['editor-opened']['from'], 'summary'>, show?: EditFilter) => void;
   onRack: () => void;
+  muted: boolean;
 }) {
   const { pair } = remapper;
   if (pair === null) return null;
@@ -36,6 +38,7 @@ export function PlanSummary({
       onRack={onRack}
       breakdown={planBreakdown(editor.rows, editor.targetDrums, remapper.oct)}
       names={namesOf(remapper.engines, pair)}
+      muted={muted}
       editRef={editRef}
       edited={edited.count > 0 ? { ...edited, onReview: () => onOpenEditor('summary', 'changed') } : undefined}
     />

@@ -23,9 +23,14 @@ export interface BatchResult {
   failed: FailedFile[];
   /** The files that converted nothing: `auto` asks which parts are the drums, and none were picked. */
   asked: string[];
+  /** Whether the converted files together left out a heavy share of the hits they read, as the module judges it. */
+  heavy: boolean;
 }
 
-/** Converts every file independently, a file with picked parts through only those; one bad file never stops the batch. */
+/**
+ * Converts every file independently, a file with picked parts through only those; one bad file
+ * never stops the batch. Whether the batch's loss is heavy is judged over every converted file.
+ */
 export function runBatch(
   files: LoadedFile[],
   pair: EnginePair,
@@ -33,9 +38,9 @@ export function runBatch(
   channel: ChannelScope,
   missing: MissingDrums,
   unrecognized: Unrecognized,
-  core: Pick<Midiremap, 'remap'>,
+  core: Pick<Midiremap, 'remap' | 'lossIsHeavy'>,
 ): BatchResult {
-  const result: BatchResult = { ok: [], failed: [], asked: [] };
+  const result: Omit<BatchResult, 'heavy'> = { ok: [], failed: [], asked: [] };
   for (const f of files) {
     try {
       const conversion = core.remap(f.bytes, pair, ov, selectionOf(f.parts, channel), missing, unrecognized);
@@ -49,5 +54,5 @@ export function runBatch(
       result.failed.push({ name: f.name, error: toAppError(e) });
     }
   }
-  return result;
+  return { ...result, heavy: core.lossIsHeavy(result.ok.map((file) => file.report)) };
 }

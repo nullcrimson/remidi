@@ -2,9 +2,10 @@ import type { Translate } from '../locale/i18n';
 import type { ReportFile, ReportView } from '../report/report';
 import type { TagTone } from '../ui/styles';
 
-/** The counts the done card shows as tags, each in the tone of what happened to those notes. */
-export function outcomeTags(view: ReportView, failed: number, t: Translate): { text: string; tone: TagTone }[] {
+/** The counts the done card shows as tags, each in the tone of what happened to those notes: unrecognized notes in the danger tone when the loss is `heavy`. */
+export function outcomeTags(view: ReportView, failed: number, heavy: boolean, t: Translate): { text: string; tone: TagTone }[] {
   const { converted, approximated, dropped, unrecognized, untouched } = view.totals;
+  const unrecognizedTone: TagTone = heavy ? 'danger' : 'neutral';
   const tags: { text: string; tone: TagTone }[] = [
     converted > 0
       ? { text: t({ id: 'done-tag-converted', args: { count: converted } }), tone: 'neutral' }
@@ -12,7 +13,7 @@ export function outcomeTags(view: ReportView, failed: number, t: Translate): { t
   ];
   if (approximated > 0) tags.push({ text: t({ id: 'done-tag-approximated', args: { count: approximated } }), tone: 'bright' });
   if (dropped > 0) tags.push({ text: t({ id: 'done-tag-dropped', args: { count: dropped } }), tone: 'danger' });
-  if (unrecognized > 0) tags.push({ text: t({ id: 'done-tag-unrecognized', args: { count: unrecognized } }), tone: 'neutral' });
+  if (unrecognized > 0) tags.push({ text: t({ id: 'done-tag-unrecognized', args: { count: unrecognized } }), tone: unrecognizedTone });
   if (untouched > 0) tags.push({ text: t({ id: 'done-tag-untouched', args: { count: untouched } }), tone: 'neutral' });
   if (failed > 0) tags.push({ text: t({ id: 'done-tag-failed', args: { count: failed } }), tone: 'danger' });
   return tags;

@@ -1,5 +1,5 @@
-import type { EnginePair } from '../core/enginePair';
 import type { Message } from '../generated/i18n';
+import type { ConvertActions } from './convertActions';
 
 /** Why Convert is unavailable. */
 export interface Blocker<R = Message> {
@@ -8,16 +8,20 @@ export interface Blocker<R = Message> {
   quiet: boolean;
 }
 
-/** Whether Convert can run: what keeps it from running, or the files and the pair it converts. */
+/** Whether Convert can run: what keeps it from running, or the files and the ways to convert them. */
 export type Readiness
   = | ({ kind: 'blocked' } & Blocker)
-    | { kind: 'ready'; files: number; pair: EnginePair; waiting: number };
+    | { kind: 'ready'; files: number; actions: ConvertActions; waiting: number };
 
-/** Whether Convert can run with `files` files, `waiting` of them still waiting for their drum parts to be picked, and the engines picked. */
-export function convertReadiness({ files, waiting, pair }: { files: number; waiting: number; pair: EnginePair | null }): Readiness {
-  if (files === 0 && pair === null) return { kind: 'blocked', reason: { id: 'blocker-files-and-engines' }, quiet: false };
+/**
+ * Whether Convert can run with `files` files, `waiting` of them still waiting for their drum
+ * parts to be picked, and `actions`, the ways to convert the setup on show, `null` until both
+ * engines are picked.
+ */
+export function convertReadiness({ files, waiting, actions }: { files: number; waiting: number; actions: ConvertActions | null }): Readiness {
+  if (files === 0 && actions === null) return { kind: 'blocked', reason: { id: 'blocker-files-and-engines' }, quiet: false };
   if (files === 0) return { kind: 'blocked', reason: { id: 'blocker-files' }, quiet: true };
-  if (pair === null) return { kind: 'blocked', reason: { id: 'blocker-engines' }, quiet: false };
+  if (actions === null) return { kind: 'blocked', reason: { id: 'blocker-engines' }, quiet: false };
   if (waiting >= files) return { kind: 'blocked', reason: { id: 'blocker-parts' }, quiet: false };
-  return { kind: 'ready', files: files - waiting, pair, waiting };
+  return { kind: 'ready', files: files - waiting, actions, waiting };
 }

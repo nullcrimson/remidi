@@ -1,16 +1,24 @@
 import { send, type AppEvent, type StatArgs } from './umami';
 
-export { SUGGESTION_RANKS, type SuggestionRank } from './umami';
+/** The build the page is, as the stats script's tag names it (its short commit), or null when the script carries none. */
+export function buildTag(): string | null {
+  return document.querySelector<HTMLScriptElement>('script[data-website-id]')?.dataset.tag ?? null;
+}
 
 /** The longest string Umami keeps in a property; it cuts longer ones. */
 const STRING_PROP_CHARS = 500;
 
-/** `items` joined by `separator`, stopping before the first item that would take it past `limit`. */
-export function wholeItems(items: readonly string[], separator: string, limit: number): string {
+/** `items` joined by `separator`, stopping before the first item that would take it past `limit`, measured by `size`. */
+export function wholeItems(
+  items: readonly string[],
+  separator: string,
+  limit: number,
+  size: (text: string) => number = (text) => text.length,
+): string {
   let kept = '';
   for (const item of items) {
     const next = kept === '' ? item : `${kept}${separator}${item}`;
-    if (next.length > limit) break;
+    if (size(next) > limit) break;
     kept = next;
   }
   return kept;
@@ -46,6 +54,9 @@ const TIER_OF = {
   'done-wrong-source': 2,
   'done-assign-unrecognized': 2,
   'source-suggestion-used': 2,
+  'source-reverted': 2,
+  'source-asked': 1,
+  'source-answered': 1,
   'mapping-reported': 2,
   'editor-opened': 2,
   'editor-closed': 2,

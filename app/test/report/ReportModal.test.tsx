@@ -8,18 +8,18 @@ import { typed } from '../typed';
 
 const clean: ReportView = {
   clean: true,
-  totals: { dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 12 },
+  totals: { dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 12, read: 12, lost: 0 },
   groups: { dropped: [], approximated: [], unrecognized: [] },
   files: [{
     name: 'a.mid',
     groups: { dropped: [], approximated: [], unrecognized: [] },
-    totals: { dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 12 },
+    totals: { dropped: 0, approximated: 0, unrecognized: 0, untouched: 0, converted: 12, read: 12, lost: 0 },
   }],
 };
 
 const lossy = typed<ReportView>({
   clean: false,
-  totals: { dropped: 4, approximated: 3, unrecognized: 51, untouched: 0, converted: 12 },
+  totals: { dropped: 4, approximated: 3, unrecognized: 51, untouched: 0, converted: 12, read: 67, lost: 55 },
   groups: {
     dropped: [{ label: 'China 1', count: 4, canon: 'china.1.hit' }],
     approximated: [{ label: 'Ride Bell', sub: 'Ride', count: 3, canon: 'ride.1.bell' }],
@@ -29,7 +29,7 @@ const lossy = typed<ReportView>({
     {
       name: 'a.mid',
       groups: { dropped: [{ label: 'China 1', count: 4, canon: 'china.1.hit' }], approximated: [], unrecognized: [] },
-      totals: { dropped: 4, approximated: 0, unrecognized: 0, untouched: 0, converted: 6 },
+      totals: { dropped: 4, approximated: 0, unrecognized: 0, untouched: 0, converted: 6, read: 10, lost: 4 },
     },
     {
       name: 'b.mid',
@@ -38,7 +38,7 @@ const lossy = typed<ReportView>({
         approximated: [{ label: 'Ride Bell', sub: 'Ride', count: 3, canon: 'ride.1.bell' }],
         unrecognized: [],
       },
-      totals: { dropped: 0, approximated: 3, unrecognized: 0, untouched: 0, converted: 6 },
+      totals: { dropped: 0, approximated: 3, unrecognized: 0, untouched: 0, converted: 6, read: 6, lost: 0 },
     },
   ],
 });

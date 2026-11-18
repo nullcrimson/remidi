@@ -124,6 +124,7 @@ engine-to = 変換先
 engine-swap = 変換元と変換先を入れ替え
 engine-choose = ドラム音源を選ぶ…
 engine-picker-heading = { $side }のドラム音源を選ぶ
+engine-taken = { $engine }はすでに{ $side }のドラム音源です。
 filter-clear = 検索をクリア
 note-picker-label = { $drum }の変換先ノート
 note-picker-heading = 変換先 · { $drum }
@@ -146,7 +147,7 @@ edit-heading = ノートを編集
 edit-advanced = 詳細 — 変換元ノートを割り当て直す
 summary-remapped =
     { $total ->
-       *[other] { $total }個中{ $remapped }個のパーツをリマップ
+       *[other] { $total }個中{ $remapped }個の{ $source }のパーツに{ $target }のパーツがあります
     }
 summary-edit-tip-title = パーツごとに微調整
 summary-edit-tip = どのパーツも、別の変換先ノートに割り当て直せます。パーツ一覧か鍵盤から選んでください。変更は変換に反映され、プリセットとして保存することもできます。
@@ -238,6 +239,16 @@ library-favourites = お気に入り
 library-all = すべてのドラム音源
 library-none = 該当なし
 files-skipped = { $names }はスキップしました。追加できるのは.midファイルと、エクスポートしたプリセット（.json）だけです
+files-failed-reason =
+    { $reason ->
+        [unreadable] 読み込めません
+        [parts] パート未選択
+       *[other] 失敗
+    }
+files-replaced =
+    { $count ->
+       *[other] { $names }を、いま追加したファイルに置き換えました。
+    }
 files-drop = { "." }midファイル（複数可）をページのどこかにドロップ
 files-choose = ファイルを選択
 files-presets = エクスポートしたプリセット（.json）も、同じようにドロップまたは選択できます。
@@ -281,6 +292,11 @@ done-file-approximated = 置き換え { $count }
 done-file-dropped = 削除 { $count }
 done-file-unrecognized = 不明 { $count }
 done-file-clean = 問題なし
+done-badge =
+    { $tone ->
+        [danger] 警告
+       *[accent] 完了
+    }
 done-heading =
     { $count ->
        *[other] { $count }ファイル
@@ -301,11 +317,17 @@ done-view-report = レポートを表示 →
 done-convert-more = 続けて変換
 done-convert-more-hint = 次のファイルも変換できます。ドラム音源と設定はそのままです。
 done-report-mapping = 割り当ての間違いを報告
+done-lost-many = { $read }個のノートのうち{ $lost }個はファイルに入りませんでした。
 done-removed = ファイル内の{ $count }個のノートは{ $source }のノート配置にないため、削除しました。変換元が違いますか？
 done-kept = ファイル内の{ $count }個のノートは{ $source }のノート配置にないため、同じノート番号のまま残しました。変換元が違いますか？
 done-kept-plays = そのうち{ $count }個は、{ $target }のパーツを鳴らします：{ $list }。
 done-pick-source = 別の変換元を選ぶ
 done-assign-notes = ノートを割り当てる
+done-convert-from = { $engine }を変換元にして再変換
+done-read-as = { $source }のノート配置で読み込みました。
+done-back-to = { $previous }に戻す
+done-left-out = { $file } は変換していません：ドラムのパートが選ばれていません。
+done-left-out-pick = ドラムのパートを選ぶ
 done-damaged-file = { $file } は破損していました。一部が欠けていたため、残っていた部分をすべて変換しました。
 done-damage-track-cut-bar = トラック { $track } は { $bar } 小節目で途切れています。それ以降はファイルにありませんでした。
 done-damage-track-cut-tick = トラック { $track } はティック { $tick } で途切れています。それ以降はファイルにありませんでした。
@@ -337,9 +359,34 @@ done-offer =
        *[other] { $file } の { $part } にある { $count } ノートは、チャンネル10のドラムの隣でそのまま残りました。
     }
 done-offer-convert = これも変換する
-source-fit-missing = ファイル内の{ $hits }個のノートのうち{ $missing }個が{ $source }のノート配置にありません。より合う変換元：{ $engines }
-source-fit-all = { $engine }（全ノート）
-source-fit-some = { $engine }（{ $count }個）
+source-fit-missing =
+    { $missed ->
+        [all] { $source }はファイル内の{ $hits }個のノートをどれも認識できません。
+       *[some] { $source }はファイル内の{ $hits }個のノートのうち{ $missing }個を認識できません。
+    }
+source-fit-all = { $engine }はすべてのノートを認識できます。
+source-fit-some = { $engine }はそのうち{ $count }個を認識できます。
+source-use = { $engine }を使う
+source-fit-target =
+    { $known ->
+        [all] { $target }はすべてのノートを認識できます。ファイルはすでにそのノート配置かもしれません。
+       *[some] { $target }はそのうち{ $count }個を認識できます。ファイルはすでにそのノート配置かもしれません。
+    }
+source-target-fits =
+    { $known ->
+        [all] { $target }はすべてのノートを認識できます。ファイルはすでにそのノート配置かもしれません。 { $swap }
+       *[some] { $target }はそのうち{ $count }個を認識できます。ファイルはすでにそのノート配置かもしれません。 { $swap }
+    }
+source-swap = 逆向きに変換：{ $target } → { $source }
+source-ask =
+    { $lacks ->
+        [kick] { $source }ではファイル内にKickが見つからず、{ $hits }個のノートのうち{ $missing }個を認識できません。
+        [snare] { $source }ではファイル内にSnareが見つからず、{ $hits }個のノートのうち{ $missing }個を認識できません。
+       *[kickAndSnare] { $source }ではファイル内にKickもSnareも見つからず、{ $hits }個のノートのうち{ $missing }個を認識できません。
+    }
+source-ask-switch = { $engine }として変換
+source-ask-pick = 別の変換元を選ぶ
+source-ask-anyway = このまま変換
 drop-missing = 足りないパーツを削除して再変換
 report-dropped = 削除
 report-approximated = 置き換え

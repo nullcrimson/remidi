@@ -6,10 +6,10 @@ describe('Rich', () => {
   it('renders a whole-sentence message with an element in its slot', () => {
     const { container } = render(
       <p>
-        <Rich id="summary-remapped" args={{ total: 12 }} slots={{ remapped: <b>9</b> }} />
+        <Rich id="summary-remapped" args={{ total: 12, source: 'GGD Invasion', target: 'EZdrummer' }} slots={{ remapped: <b>9</b> }} />
       </p>,
     );
-    expect(container).toHaveTextContent('9 of 12 drums remapped');
+    expect(container).toHaveTextContent('9 of 12 GGD Invasion drums have a match in EZdrummer');
     expect(container.querySelector('b')).toHaveTextContent('9');
   });
 

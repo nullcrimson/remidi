@@ -1,7 +1,9 @@
 import type {
+  Advised,
   AutoQuestion,
   Drum,
   Engine,
+  EngineId,
   Family,
   MissingDrums,
   Overrides,
@@ -9,9 +11,9 @@ import type {
   LoadedPreset,
   RackFile,
   Conversion,
-  FitFile,
+  AdviceFile,
+  Loss,
   Selection,
-  SourceFits,
   Unrecognized,
   CanonEntry,
   VoicePlan,
@@ -22,6 +24,7 @@ import { isWasmError, WasmCallError } from './errors';
 type WasmModule = typeof import('@wasm');
 
 export type {
+  Advised,
   AutoQuestion,
   Canon,
   ChannelScope,
@@ -42,15 +45,16 @@ export type {
   Conversion,
   Converted,
   Damage,
-  FitFile,
+  AdviceFile,
+  Loss,
   Part,
   PartSummary,
   Plays,
+  Lacks,
   QuestionReason,
   Report,
   Selection,
-  SourceFit,
-  SourceFits,
+  SourceAdvice,
   Unrecognized,
   UnmappedFate,
   CanonEntry,
@@ -91,10 +95,12 @@ export interface Midiremap {
     unrecognized?: Unrecognized,
     presetName?: PresetName,
   ): RackFile;
-  /** Every engine fitted to the hits of `files` converting each with its selection reads, best first; a file that does not parse, or lacks a picked part, is left out. */
-  sourceFits(files: FitFile[]): SourceFits;
+  /** What to tell a visitor converting the hits of `files` converting each with its selection reads, from `source` to `target`, with the ids it was computed for; a file that does not parse, or lacks a picked part, is left out. */
+  sourceAdvice(files: AdviceFile[], source: EngineId, target: EngineId | null): Advised;
   /** A two-bar groove of kick, snare, closed hi-hat and crash on the notes `engine` plays them on. */
   sampleFile(engine: string): Uint8Array;
+  /** Whether `loss` is heavy, the share of the hits read that makes the done card warn; a loss of more than was read throws. */
+  lossIsHeavy(losses: Loss[]): boolean;
 }
 
 /** Loads the converter module, or rejects with why it could not. */
@@ -123,8 +129,9 @@ function calls(m: WasmModule): Midiremap {
       call(() => m.auto_question(mid, src, tgt, ov, missing, unrecognized)),
     remapRack: ({ src, tgt }, ov, missing, unrecognized, presetName) =>
       call(() => m.remap_rack(src, tgt, ov, missing, unrecognized, presetName)),
-    sourceFits: (files) => call(() => m.source_fits(files)),
+    sourceAdvice: (files, source, target) => call(() => m.source_advice(files, source, target)),
     sampleFile: (engine) => call(() => m.sample_file(engine)),
+    lossIsHeavy: (losses) => call(() => m.loss_is_heavy(losses)),
   };
 }
 

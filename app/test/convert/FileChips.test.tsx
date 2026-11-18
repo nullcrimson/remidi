@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { FileChips } from '../../src/convert/FileChips';
+import type { AppError } from '../../src/core/errors';
 
 describe('FileChips', () => {
   it('shows the prompt when empty', () => {
@@ -71,6 +72,20 @@ describe('FileChips', () => {
     );
   });
 
+  it('names the files a file added under their name replaced', () => {
+    render(
+      <FileChips
+        files={[{ bytes: new Uint8Array(1), name: 'kick.mid' }]}
+        failures={[]}
+        replaced={['kick.mid']}
+        onFiles={() => {}}
+        onRemove={() => {}}
+        onClear={() => {}}
+      />,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('Replaced kick.mid with the file you just added.');
+  });
+
   const renderTwoFiles = (onRemove: (name: string) => void = () => {}) =>
     render(
       <FileChips
@@ -126,6 +141,31 @@ describe('FileChips', () => {
     const chip = screen.getByText('bad.mid').closest('[data-state]');
     expect(chip).toHaveAttribute('data-state', 'failed');
     expect(chip).toHaveAttribute('title', 'Not a MIDI file this converter can read Details: parse failed');
+  });
+
+  const failedChip = (error: AppError) => {
+    render(
+      <FileChips
+        files={[{ bytes: new Uint8Array(1), name: 'bad.mid' }]}
+        failures={[{ name: 'bad.mid', error }]}
+        onFiles={() => {}}
+        onRemove={() => {}}
+        onClear={() => {}}
+      />,
+    );
+    return screen.getByText('bad.mid').closest('[data-state]');
+  };
+
+  it('says on its chip that a file it could not read is unreadable', () => {
+    expect(failedChip({ kind: 'badMidi', detail: 'parse failed' })).toHaveTextContent(/bad\.midunreadable/);
+  });
+
+  it('says on its chip that a file converted before its drum parts were picked has parts not picked', () => {
+    expect(failedChip({ kind: 'needsParts' })).toHaveTextContent(/bad\.midparts not picked/);
+  });
+
+  it('says on its chip that a file that failed for any other reason failed', () => {
+    expect(failedChip({ kind: 'internal', detail: 'boom' })).toHaveTextContent(/bad\.midfailed/);
   });
 
   it('marks a file waiting for its drum parts and says why', () => {

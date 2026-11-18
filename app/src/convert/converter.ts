@@ -2,9 +2,9 @@ import type { BatchResult } from './batch';
 import { answerHere, type Answer, type WorkerReply, type WorkerRequest } from './workerProtocol';
 import type { EnginePair } from '../core/enginePair';
 import type { LoadedFile } from '../core/files';
-import type { ChannelScope, LoadMidiremap, MissingDrums, Overrides, SourceFits, Unrecognized } from '../core/midiremap';
+import type { Advised, ChannelScope, EngineId, LoadMidiremap, MissingDrums, Overrides, Unrecognized } from '../core/midiremap';
 
-/** Converts a batch of files, and fits files to every engine's layout, off the main thread where it can. */
+/** Converts a batch of files, and advises on their source, off the main thread where it can. */
 export interface Converter {
   /** Rejects with `signal.reason` when `signal` aborts before the batch is delivered. */
   convert(
@@ -16,8 +16,8 @@ export interface Converter {
     unrecognized: Unrecognized,
     signal?: AbortSignal,
   ): Promise<BatchResult>;
-  /** Every engine fitted to the hits of `files` a conversion with `channel` reads, best first. */
-  fits(files: LoadedFile[], channel: ChannelScope): Promise<SourceFits>;
+  /** The advice for the hits of `files` a conversion with `channel` reads, converted from `source` to `target`. */
+  advice(files: LoadedFile[], channel: ChannelScope, source: EngineId, target: EngineId | null): Promise<Advised>;
 }
 
 type MakeWorker = () => Worker;
@@ -41,7 +41,7 @@ function moduleWorker(): Worker {
 
 /**
  * Converts batches in a Web Worker so the page stays responsive, on the module `load`
- * yields when it has to use the main thread. Fits go the same way, as batches that are
+ * yields when it has to use the main thread. Advice goes the same way, as batches that are
  * never stopped.
  *
  * A worker that dies after it has answered a batch is replaced, and the batches it left
@@ -124,7 +124,7 @@ export function createConverter(load: LoadMidiremap, makeWorker: MakeWorker = mo
       );
       const answered = (answer: Answer) => {
         if (answer.kind === request.kind) resolve(answer as AnswerTo<K>);
-        else reject(new Error(`a ${request.kind} request was answered as ${answer.kind}`));
+        else reject(new Error(`request ${request.kind} was answered as ${answer.kind}`));
       };
       submit({ request, resolve: answered, reject });
     });
@@ -135,9 +135,9 @@ export function createConverter(load: LoadMidiremap, makeWorker: MakeWorker = mo
       const answer = await ask({ kind: 'convert', id: nextId++, files, pair, ov, channel, missing, unrecognized }, signal);
       return answer.result;
     },
-    async fits(files, channel) {
-      const answer = await ask({ kind: 'fit', id: nextId++, files, channel });
-      return answer.fits;
+    async advice(files, channel, source, target) {
+      const answer = await ask({ kind: 'advice', id: nextId++, files, channel, source, target });
+      return answer.advised;
     },
   };
 }

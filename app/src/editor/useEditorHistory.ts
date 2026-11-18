@@ -9,7 +9,8 @@ const inEditorEntry = () => (history.state as Record<string, unknown> | null)?.[
  * address, so Back closes the editor instead of leaving the converter and Forward opens it
  * again; closing it in the app steps back over that entry. When Forward lands on the
  * editor's entry while it cannot open (`canOpen` is false), history steps back so the
- * entry and the screen agree.
+ * entry and the screen agree. The browser restores no scroll position on these steps, so
+ * focus handed back on closing (to the edit link) keeps its control in view.
  */
 export function useEditorHistory(
   editing: boolean,
@@ -22,6 +23,7 @@ export function useEditorHistory(
 
   useEffect(() => {
     if (editing && !inEditorEntry()) {
+      history.scrollRestoration = 'manual';
       history.pushState({ ...(history.state as Record<string, unknown> | null), [MARK]: true }, '');
     }
     if (!editing && inEditorEntry()) history.back();

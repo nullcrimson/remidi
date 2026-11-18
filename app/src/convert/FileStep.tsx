@@ -23,6 +23,7 @@ export function FileStep({
         failures={[...remapper.failures, ...remapper.questions.unreadable.filter((u) => !remapper.failures.some((f) => f.name === u.name))]}
         waiting={remapper.questions.waiting}
         skipped={remapper.skipped}
+        replaced={remapper.replaced}
         onFiles={onFiles}
         onTrySample={onTrySample}
         onRemove={remapper.removeFile}

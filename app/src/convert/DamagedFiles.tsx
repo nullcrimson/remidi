@@ -23,7 +23,7 @@ export function DamagedFiles({ results }: { results: FileResult[] }) {
     <div className="flex flex-col gap-3 text-ui text-t3" role="status">
       {damaged.map((r) => (
         <div key={r.name} className="flex flex-col gap-1">
-          <p className="text-t2">{t({ id: 'done-damaged-file', args: { file: r.name } })}</p>
+          <p className="text-t2">{t({ id: 'done-damaged-file', args: { file: r.input.name } })}</p>
           <ul className="flex flex-col gap-0.5">
             {r.damage.map((d) => (
               <li key={damageLine(d, t)}>{damageLine(d, t)}</li>

@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useRemapper } from '../../src/convert/useRemapper';
+import { actionsOf } from './actions';
 import { RUNTIME } from '../runtime';
 import type { Conversion, PartSummary, VoicePlan } from '../../src/core/midiremap';
 import * as stub from '../stubs/wasm';
@@ -23,7 +24,7 @@ const converted = (offers: PartSummary[] = []) =>
     offers,
     bytes: new Uint8Array([1]),
     damage: [],
-    report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0 },
+    report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0, read: 1, lost: 0 },
   });
 
 async function ready() {
@@ -38,7 +39,7 @@ async function convertedBesideDrums() {
   vi.mocked(stub.remap).mockReturnValue(converted([BESIDE]));
   const result = await ready();
   act(() => result.current.addFiles([{ name: 'mjod.mid', bytes: new Uint8Array([1]) }]));
-  await act(() => result.current.convert());
+  await act(() => actionsOf(result.current).convert());
   return result;
 }
 
@@ -96,15 +97,15 @@ describe('useRemapper drum parts', () => {
     const result = await ready();
     act(() => result.current.addFiles([{ name: 'song.mid', bytes: new Uint8Array([7]) }]));
     act(() => result.current.setParts('song.mid', [PARTS[0].part]));
-    await act(() => result.current.convert());
+    await act(() => actionsOf(result.current).convert());
     expect(vi.mocked(stub.remap).mock.calls[0][4]).toEqual({ parts: [PARTS[0].part] });
   });
 
-  it('fits a picked file by its picked parts', async () => {
+  it('advises on a picked file by its picked parts', async () => {
     const result = await ready();
     act(() => result.current.addFiles([{ name: 'song.mid', bytes: new Uint8Array([7]) }]));
     act(() => result.current.setParts('song.mid', [PARTS[0].part]));
-    await waitFor(() => expect(vi.mocked(stub.source_fits).mock.lastCall?.[0]).toEqual([
+    await waitFor(() => expect(vi.mocked(stub.source_advice).mock.lastCall?.[0]).toEqual([
       { bytes: new Uint8Array([7]), selection: { parts: [PARTS[0].part] } },
     ]));
   });
@@ -115,7 +116,7 @@ describe('useRemapper drum parts', () => {
       { name: 'song.mid', bytes: new Uint8Array([7]) },
       { name: 'drums.mid', bytes: new Uint8Array([1]) },
     ]));
-    await act(() => result.current.convertReady());
+    await act(() => actionsOf(result.current).convertReady());
     expect(stub.remap).toHaveBeenCalledOnce();
     expect(result.current.results.map((r) => r.input.name)).toEqual(['drums.mid']);
   });
@@ -134,7 +135,7 @@ describe('useRemapper drum parts', () => {
 
   it('converts an offer with the parts picked before', async () => {
     const result = await convertedBesideDrums();
-    await act(() => result.current.alsoConvert(result.current.questions.offers[0]));
+    await act(() => actionsOf(result.current).alsoConvert(result.current.questions.offers[0]));
     expect(vi.mocked(stub.remap).mock.lastCall?.[4]).toEqual({ parts: [BESIDE.part, DRUMS] });
   });
 });
@@ -164,7 +165,7 @@ describe('the events of picking drum parts', () => {
 
   it('sends parts-offer-taken with how many offered parts are taken', async () => {
     const result = await convertedBesideDrums();
-    await act(() => result.current.alsoConvert(result.current.questions.offers[0]));
+    await act(() => actionsOf(result.current).alsoConvert(result.current.questions.offers[0]));
     expect(umami).toHaveBeenCalledWith('parts-offer-taken', { parts: 1 });
   });
 });

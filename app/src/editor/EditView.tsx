@@ -4,10 +4,10 @@ import { flushSync } from 'react-dom';
 import type { Editor } from './useEditor';
 import { useFilter } from '../ui/useFilter';
 import { groupByFamily } from './families';
-import type { EnginePair } from '../core/enginePair';
+import { pairName, type EnginePair } from '../core/enginePair';
 import type { Canon, PresetName } from '../core/midiremap';
 import type { SavedMapping } from '../presets/mappings';
-import type { Note } from '../core/midiremap';
+import type { Assigning } from './assigning';
 import type { OctaveBase } from '../core/notes';
 import { isIssue, type EditFilter } from './editFilter';
 import { EditFilters } from './EditFilters';
@@ -30,7 +30,7 @@ interface EditViewProps {
   existingPreset: SavedMapping | undefined;
   presetsAtCap: boolean;
   presetsUnsaved: boolean;
-  assignNote: Note | null;
+  assigning: Assigning | null;
   initialShow: EditFilter;
   onClose: (how: Exclude<CloseHow, 'history'>) => void;
   onSavePreset: (name: PresetName) => void;
@@ -47,7 +47,7 @@ export function EditView({
   existingPreset,
   presetsAtCap,
   presetsUnsaved,
-  assignNote,
+  assigning,
   initialShow,
   onClose,
   onSavePreset,
@@ -55,9 +55,9 @@ export function EditView({
 }: EditViewProps) {
   const t = useT();
   const { rows, planError, changed, canonOptions, families, reset } = editor;
-  const [advanced, setAdvanced] = useState(assignNote !== null);
+  const [advanced, setAdvanced] = useState(assigning !== null);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const [focusHeading] = useState(pickOf(editor.overlay) === null && assignNote === null);
+  const [focusHeading] = useState(pickOf(editor.overlay) === null && assigning === null);
   useEffect(() => {
     if (focusHeading) headingRef.current?.focus();
   }, [focusHeading]);
@@ -96,7 +96,7 @@ export function EditView({
             </h2>
           </div>
           <span className="truncate text-label text-t4">
-            {`${srcName} → ${tgtName}`}
+            {pairName({ source: srcName, target: tgtName })}
           </span>
         </div>
 
@@ -161,7 +161,7 @@ export function EditView({
               options={canonOptions}
               families={families}
               base={oct}
-              initialNote={assignNote}
+              assigning={assigning}
               onSet={editor.setSrcCanon}
               onClear={editor.clearSrcCanon}
             />
@@ -174,6 +174,7 @@ export function EditView({
         onResetAll={() => {
           track('editor-reset');
           reset();
+          headingRef.current?.focus();
         }}
         pair={pair}
         existingPreset={existingPreset}

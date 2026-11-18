@@ -58,15 +58,17 @@ describe('App convert flow', () => {
         untouched: 5,
         converted: 10,
         merged: 0,
+        read: 15,
+        lost: 5,
       },
     }));
   });
 
   it('shows the edit summary only once both engines are chosen', async () => {
     await start();
-    expect(screen.queryByText(/drums remapped/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/drums have a/)).not.toBeInTheDocument();
     await pickEngines();
-    expect(screen.getByText(/drums remapped/)).toBeInTheDocument();
+    expect(screen.getByText(/drums have a/)).toBeInTheDocument();
   });
 
   it('keeps both engine columns inside the card', async () => {

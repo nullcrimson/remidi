@@ -114,13 +114,16 @@ and exits with 4: pick the drum parts with `--parts track:channel,…`, both cou
 Other channels of a track with channel-10 drums are left as they are and printed with the
 `--parts` value that converts them too. The
 loss report is printed to stderr as JSON (`unmappedSource`, `fallbackUsed`, `dropped`,
-`untouched`, `converted`, `merged`; each `unmappedSource` entry gives its `hits` and `fate`, each `fallbackUsed` entry names the `standIn` drum, its `note` and the `count`); the exit code is 0 whenever the file was written whole and 3 when the
+`untouched`, `converted`, `merged`, `read`, `lost`; each `unmappedSource` entry gives its `hits` and `fate`, each `fallbackUsed` entry names the `standIn` drum, its `note` and the `count`); the exit code is 0 whenever the file was written whole and 3 when the
 input was damaged (what could be read is converted), so read the report to see what was lost.
 
 ## Adding an engine
 
 Drop a `.toml` note map into `engines/` (see any existing file for the format) and run
-the tests; the catalog tests check it, and it ships with the next build.
+the tests; the catalog tests check it, and it ships with the next build. A new engine moves
+the source-advice golden (`midiremap-core/tests/golden/suggestions.txt`): review its diff and
+accept it with `UPDATE_EXPECT=1 cargo test -p midiremap-core --test suggestions`. An engine
+whose file declares a `hub` is a hub of the site and ranks first among equal fits.
 
 ## Licence
 

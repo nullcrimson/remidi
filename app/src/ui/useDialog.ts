@@ -7,6 +7,7 @@ import { useCallback, useRef, useState } from 'react';
  * element that had it) and `panel` on the dialog's element. `onClose` runs on Escape and on
  * a press outside, which `outsidePressEvent` picks the event of and `outsidePress` may veto;
  * `reference` is the element the dialog belongs to, a press inside which does not close it.
+ * `element` is the dialog's element once it is on the page.
  */
 export function useDialog({
   onClose,
@@ -35,6 +36,7 @@ export function useDialog({
   });
   const { getFloatingProps } = useInteractions([useDismiss(context, { outsidePressEvent, outsidePress })]);
   return {
+    element: panel,
     focus: { context, initialFocus: panelRef, returnFocus: opener },
     panel: { ref: attachPanel, role: 'dialog', tabIndex: -1, ...getFloatingProps() },
   };

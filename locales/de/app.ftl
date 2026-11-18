@@ -137,6 +137,7 @@ engine-to = NACH
 engine-swap = VON und NACH tauschen
 engine-choose = Drum-Plugin wählen…
 engine-picker-heading = Plugin für { $side } wählen
+engine-taken = { $engine } ist schon das Plugin für { $side }.
 filter-clear = Filter löschen
 note-picker-label = Zielnote für { $drum }
 note-picker-heading = ZIEL · { $drum }
@@ -159,8 +160,8 @@ edit-heading = Noten bearbeiten
 edit-advanced = Erweitert – Quellnoten neu zuweisen
 summary-remapped =
     { $total ->
-        [one] { $remapped } von { $total } Instrument umbelegt
-       *[other] { $remapped } von { $total } Instrumenten umbelegt
+        [one] { $remapped } von { $total } Instrument aus { $source } hat ein Instrument in { $target }
+       *[other] { $remapped } von { $total } Instrumenten aus { $source } haben ein Instrument in { $target }
     }
 summary-edit-tip-title = Instrumente einzeln anpassen
 summary-edit-tip = Sie können jedem Instrument eine andere Zielnote geben – in der Instrumentenliste oder auf der Klaviatur. Die Änderungen gelten für die Konvertierung und lassen sich als Preset speichern.
@@ -256,6 +257,17 @@ library-favourites = Favoriten
 library-all = Alle Plugins
 library-none = keine Treffer
 files-skipped = { $names } übersprungen – nur .mid-Dateien und exportierte Presets (.json) sind möglich
+files-failed-reason =
+    { $reason ->
+        [unreadable] nicht lesbar
+        [parts] Parts nicht gewählt
+       *[other] fehlgeschlagen
+    }
+files-replaced =
+    { $count ->
+        [one] { $names } wurde durch die eben hinzugefügte Datei ersetzt.
+       *[other] { $names } wurden durch die eben hinzugefügten Dateien ersetzt.
+    }
 files-drop = Eine oder mehrere .mid-Dateien irgendwo ablegen
 files-choose = Dateien auswählen
 files-presets = Exportierte Presets (.json) können Sie genauso ablegen oder auswählen.
@@ -301,6 +313,11 @@ done-file-approximated = { $count } ersetzt
 done-file-dropped = { $count } entfernt
 done-file-unrecognized = { $count } unbek.
 done-file-clean = verlustfrei
+done-badge =
+    { $tone ->
+        [danger] Warnung
+       *[accent] Fertig
+    }
 done-heading =
     { $count ->
         [one] { $count } Datei
@@ -323,6 +340,11 @@ done-view-report = Bericht anzeigen →
 done-convert-more = Weitere konvertieren
 done-convert-more-hint = Nächste Datei? Plugins und Einstellungen bleiben, wie sie sind.
 done-report-mapping = Falsche Zuordnung? Melden
+done-lost-many =
+    { $lost ->
+        [one] { $lost } von { $read } Noten wurde nicht in die Datei übernommen.
+       *[other] { $lost } von { $read } Noten wurden nicht in die Datei übernommen.
+    }
 done-removed =
     { $count ->
         [one] { $count } Note Ihrer Datei ist nicht in der Notenbelegung von { $source } und wurde deshalb entfernt. Falsche Quelle?
@@ -340,6 +362,11 @@ done-kept-plays =
     }
 done-pick-source = Andere Quelle wählen
 done-assign-notes = Noten zuweisen
+done-convert-from = Erneut von { $engine } konvertieren
+done-read-as = Mit der Notenbelegung von { $source } gelesen.
+done-back-to = Zurück zu { $previous }
+done-left-out = { $file } wurde ausgelassen: Seine Drum-Parts sind nicht gewählt.
+done-left-out-pick = Drum-Parts wählen
 done-damaged-file = { $file } war beschädigt: Ein Teil fehlte, alles Übrige wurde konvertiert.
 done-damage-track-cut-bar = Spur { $track } endet in Takt { $bar }; der Rest fehlte in der Datei.
 done-damage-track-cut-tick = Spur { $track } endet bei Tick { $tick }; der Rest fehlte in der Datei.
@@ -376,16 +403,37 @@ done-offer =
     }
 done-offer-convert = Auch diese konvertieren
 source-fit-missing =
-    { $missing ->
-        [one] { $missing } von { $hits } Noten Ihrer Datei ist nicht in der Notenbelegung von { $source }.
-       *[other] { $missing } von { $hits } Noten Ihrer Datei sind nicht in der Notenbelegung von { $source }.
-    } Passen besser: { $engines }
-source-fit-all = { $engine } (alle Noten)
-source-fit-some =
-    { $engine } ({ $count ->
-        [one] { $count } Note
-       *[other] { $count } Noten
-    })
+    { $missed ->
+        [all]
+            { $hits ->
+                [one] { $source } kennt die eine Note Ihrer Datei nicht.
+               *[other] { $source } kennt keine der { $hits } Noten Ihrer Datei.
+            }
+       *[some] { $source } kennt { $missing } der { $hits } Noten Ihrer Datei nicht.
+    }
+source-fit-all = { $engine } kennt jede Note.
+source-fit-some = { $engine } kennt { $count } davon.
+source-use = { $engine } verwenden
+source-fit-target =
+    { $known ->
+        [all] { $target } kennt jede Note: Ihre Datei hat vielleicht schon diese Notenbelegung.
+       *[some] { $target } kennt { $count } davon: Ihre Datei hat vielleicht schon diese Notenbelegung.
+    }
+source-target-fits =
+    { $known ->
+        [all] { $target } kennt jede Note: Ihre Datei hat vielleicht schon diese Notenbelegung. { $swap }
+       *[some] { $target } kennt { $count } davon: Ihre Datei hat vielleicht schon diese Notenbelegung. { $swap }
+    }
+source-swap = Andersherum konvertieren: { $target } → { $source }
+source-ask =
+    { $lacks ->
+        [kick] { $source } findet in Ihrer Datei keine Kick und kennt { $missing } der { $hits } Noten nicht.
+        [snare] { $source } findet in Ihrer Datei keine Snare und kennt { $missing } der { $hits } Noten nicht.
+       *[kickAndSnare] { $source } findet in Ihrer Datei weder Kick noch Snare und kennt { $missing } der { $hits } Noten nicht.
+    }
+source-ask-switch = Als { $engine } konvertieren
+source-ask-pick = Andere Quelle wählen
+source-ask-anyway = Trotzdem konvertieren
 drop-missing = Fehlende entfernen & neu konvertieren
 report-dropped = Entfernt
 report-approximated = Ersetzt

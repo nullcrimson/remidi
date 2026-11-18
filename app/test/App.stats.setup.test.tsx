@@ -1,9 +1,10 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { Engine, SourceFits } from '../src/core/midiremap';
+import type { Engine } from '../src/core/midiremap';
 import * as stub from './stubs/wasm';
 import { addMidi, convert, openPicker, openSettings, pickEngines, pickFrom, pickTo, startApp } from './eventSteps';
+import { advises } from './sourceAdviceSteps';
 import { typed } from './typed';
 import { fakeUmami } from './umami';
 
@@ -41,7 +42,7 @@ describe('the events of setting up a conversion', () => {
     await startApp();
     await pickEngines();
     await userEvent.click(screen.getByRole('button', { name: 'Swap FROM and TO' }));
-    expect(umami).toHaveBeenCalledWith('engines-swapped');
+    expect(umami).toHaveBeenCalledWith('engines-swapped', { where: 'button' });
   });
 
   it('sends engine-starred with on true when a star is set', async () => {
@@ -154,34 +155,52 @@ describe('the events of setting up a conversion', () => {
     expect(umami).toHaveBeenCalledWith('converted', expect.objectContaining({ from: 'ggd_invasion', to: 'ezdrummer', files: 1 }));
   });
 
-  const ROCK_SUGGESTION = 'GGD Rock Fundamentals (9 notes)';
+  const ROCK_SUGGESTION = 'Use GGD Rock Fundamentals';
 
-  async function offerCloserSources(): Promise<void> {
+  async function offerAdvice(): Promise<void> {
     vi.mocked(stub.engine_catalog).mockReturnValue(typed<Engine[]>([
       { id: 'ggd_invasion', name: 'GGD Invasion', fullName: 'GetGood Drums Invasion' },
       { id: 'ezdrummer', name: 'EZdrummer', fullName: 'Toontrack EZdrummer 3' },
       { id: 'ggd_mm', name: 'GGD Modern & Massive', fullName: 'GetGood Drums Modern & Massive' },
       { id: 'ggd_rock', name: 'GGD Rock Fundamentals', fullName: 'GetGood Drums Rock Fundamentals' },
     ]));
-    vi.mocked(stub.source_fits).mockReturnValue(typed<SourceFits>({
-      hits: 10,
-      ranked: [{ engine: 'ggd_mm', recognized: 10 }, { engine: 'ggd_rock', recognized: 9 }, { engine: 'ggd_invasion', recognized: 5 }],
-    }));
+    advises(10, {
+      ggd_invasion: { own: 5, engine: 'ggd_rock', recognized: 9 },
+      ggd_rock: { own: 9, engine: 'ggd_mm', recognized: 10 },
+    });
     await startApp();
     await pickEngines();
     await addMidi('groove.mid');
   }
 
   it('sends source-suggestion-used with the place and the engine of the suggestion chosen', async () => {
-    await offerCloserSources();
+    await offerAdvice();
     await userEvent.click(await screen.findByRole('button', { name: ROCK_SUGGESTION }));
-    expect(umami).toHaveBeenCalledWith('source-suggestion-used', { rank: 2, engine: 'ggd_rock' });
+    expect(umami).toHaveBeenCalledWith('source-suggestion-used', { engine: 'ggd_rock', where: 'engines' });
+  });
+
+  it('sends converted with via suggested after a suggestion is taken as the source', async () => {
+    await offerAdvice();
+    await userEvent.click(await screen.findByRole('button', { name: ROCK_SUGGESTION }));
+    await convert();
+    expect(umami).toHaveBeenCalledWith('converted', expect.objectContaining({ from: 'ggd_rock', via: 'suggested' }));
   });
 
   it('sends converted with the best source the notice offered', async () => {
-    await offerCloserSources();
+    await offerAdvice();
     await screen.findByRole('button', { name: ROCK_SUGGESTION });
     await convert();
-    expect(umami).toHaveBeenCalledWith('converted', expect.objectContaining({ closer: 'ggd_mm' }));
+    expect(umami).toHaveBeenCalledWith('converted', expect.objectContaining({ closer: 'ggd_rock' }));
+  });
+
+  it('sends converted with a failed advice told apart from no suggestion', async () => {
+    await startApp();
+    await pickEngines();
+    await addMidi('groove.mid');
+    vi.mocked(stub.source_advice).mockImplementation(() => {
+      throw new Error('advice failed');
+    });
+    await convert();
+    expect(umami).toHaveBeenCalledWith('converted', expect.objectContaining({ closer: 'advice-failed' }));
   });
 });

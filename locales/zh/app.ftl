@@ -125,6 +125,7 @@ engine-to = 目标
 engine-swap = 交换来源和目标
 engine-choose = 选择鼓音源…
 engine-picker-heading = 选择{ $side }鼓音源
+engine-taken = { $engine } 已经是{ $side }鼓音源。
 filter-clear = 清除筛选
 note-picker-label = { $drum } 的目标音符
 note-picker-heading = 目标 · { $drum }
@@ -147,7 +148,7 @@ edit-heading = 编辑音符
 edit-advanced = 高级：重新分配来源音符
 summary-remapped =
     { $total ->
-       *[other] { $total } 个鼓件中已重新映射 { $remapped } 个
+       *[other] { $source } 的 { $total } 个鼓件中有 { $remapped } 个在 { $target } 中有对应鼓件
     }
 summary-edit-tip-title = 逐个微调鼓件
 summary-edit-tip = 每个鼓件都可以改用其他目标音符，在鼓件列表或琴键上选择即可。修改会用于本次转换，也可以保存为预设。
@@ -239,6 +240,16 @@ library-favourites = 收藏
 library-all = 全部鼓音源
 library-none = 无匹配项
 files-skipped = 已跳过 { $names }：只能添加 .mid 文件和导出的预设（.json）
+files-failed-reason =
+    { $reason ->
+        [unreadable] 无法读取
+        [parts] 未选分轨
+       *[other] 失败
+    }
+files-replaced =
+    { $count ->
+       *[other] 已用刚添加的文件替换 { $names }。
+    }
 files-drop = 将一个或多个 .mid 文件拖放到任意位置
 files-choose = 选择文件
 files-presets = 导出的预设文件（.json）也可以用同样的方式拖放或选择。
@@ -282,6 +293,11 @@ done-file-approximated = 替换 { $count }
 done-file-dropped = 删除 { $count }
 done-file-unrecognized = 未识别 { $count }
 done-file-clean = 全部对应
+done-badge =
+    { $tone ->
+        [danger] 警告
+       *[accent] 完成
+    }
 done-heading =
     { $count ->
        *[other] 已转换 { $count } 个文件
@@ -302,11 +318,17 @@ done-view-report = 查看报告 →
 done-convert-more = 继续转换
 done-convert-more-hint = 还有下一个文件？鼓音源和设置保持不变。
 done-report-mapping = 映射有误？反馈问题
+done-lost-many = { $read } 个音符中有 { $lost } 个没有写入文件。
 done-removed = 文件中有 { $count } 个音符不在 { $source } 映射表中，已被删除。来源选错了？
 done-kept = 文件中有 { $count } 个音符不在 { $source } 映射表中，已留在原来的音符编号上。来源选错了？
 done-kept-plays = 其中 { $count } 个现在会播放 { $target } 的鼓件：{ $list }。
 done-pick-source = 选择其他来源
 done-assign-notes = 分配这些音符
+done-convert-from = 改用 { $engine } 重新转换
+done-read-as = 已按 { $source } 映射表读取。
+done-back-to = 返回 { $previous }
+done-left-out = { $file } 未转换：还没有选择它的鼓分轨。
+done-left-out-pick = 选择鼓分轨
 done-damaged-file = { $file } 已损坏：缺少一部分，剩余内容已全部转换。
 done-damage-track-cut-bar = 音轨 { $track } 在第 { $bar } 小节中断；之后的部分不在文件中。
 done-damage-track-cut-tick = 音轨 { $track } 在 tick { $tick } 处中断；之后的部分不在文件中。
@@ -338,9 +360,34 @@ done-offer =
        *[other] { $file } 中 { $part } 上的 { $count } 个音符保持原样，位于第 10 通道的鼓旁边。
     }
 done-offer-convert = 也转换它们
-source-fit-missing = 文件的 { $hits } 个音符中有 { $missing } 个不在 { $source } 映射表中。更匹配的来源：{ $engines }
-source-fit-all = { $engine }（全部音符）
-source-fit-some = { $engine }（{ $count } 个）
+source-fit-missing =
+    { $missed ->
+        [all] { $source } 不认识文件中 { $hits } 个音符中的任何一个。
+       *[some] { $source } 不认识文件中 { $hits } 个音符中的 { $missing } 个。
+    }
+source-fit-all = { $engine } 认识全部音符。
+source-fit-some = { $engine } 认识其中 { $count } 个。
+source-use = 使用 { $engine }
+source-fit-target =
+    { $known ->
+        [all] { $target } 认识全部音符：文件可能本来就是它的映射表。
+       *[some] { $target } 认识其中 { $count } 个：文件可能本来就是它的映射表。
+    }
+source-target-fits =
+    { $known ->
+        [all] { $target } 认识全部音符：文件可能本来就是它的映射表。 { $swap }
+       *[some] { $target } 认识其中 { $count } 个：文件可能本来就是它的映射表。 { $swap }
+    }
+source-swap = 反向转换：{ $target } → { $source }
+source-ask =
+    { $lacks ->
+        [kick] { $source } 在文件中找不到 Kick，且 { $hits } 个音符中有 { $missing } 个无法识别。
+        [snare] { $source } 在文件中找不到 Snare，且 { $hits } 个音符中有 { $missing } 个无法识别。
+       *[kickAndSnare] { $source } 在文件中既找不到 Kick 也找不到 Snare，且 { $hits } 个音符中有 { $missing } 个无法识别。
+    }
+source-ask-switch = 按 { $engine } 转换
+source-ask-pick = 选择其他来源
+source-ask-anyway = 仍然转换
 drop-missing = 删除缺少的鼓件并重新转换
 report-dropped = 已删除
 report-approximated = 已替换

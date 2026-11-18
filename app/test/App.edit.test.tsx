@@ -127,7 +127,7 @@ describe('App edit view', () => {
     await waitFor(() => expect(screen.getByText('FROM')).toBeInTheDocument());
     await pickFrom('GGD Invasion');
     await pickTo('EZdrummer');
-    expect(screen.getByText(/drums remapped/)).toBeInTheDocument();
+    expect(screen.getByText(/drums have a/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /edited — review changes/ })).not.toBeInTheDocument();
   });
 

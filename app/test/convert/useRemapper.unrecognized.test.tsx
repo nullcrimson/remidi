@@ -1,13 +1,14 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useRemapper } from '../../src/convert/useRemapper';
+import { actionsOf } from './actions';
 import { RUNTIME } from '../runtime';
 import type { Report } from '../../src/core/midiremap';
 import { loadSession } from '../../src/convert/session';
 import * as stub from '../stubs/wasm';
 import { engineId, typed } from '../typed';
 
-const REPORT = typed<Report>({ unmappedSource: { 99: { hits: 1, fate: 'removed' } }, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0 });
+const REPORT = typed<Report>({ unmappedSource: { 99: { hits: 1, fate: 'removed' } }, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0, read: 2, lost: 1 });
 
 async function ready() {
   const hook = renderHook(() => useRemapper(RUNTIME));
@@ -39,20 +40,20 @@ describe('useRemapper unrecognized notes', () => {
 
   it('clears a finished conversion after a change', async () => {
     const result = await ready();
-    await act(() => result.current.convert());
-    expect(result.current.conv.kind).toBe('done');
+    await act(() => actionsOf(result.current).convert());
+    expect(result.current.conversion.conv.kind).toBe('done');
 
     act(() => result.current.setUnrecognized('keep'));
-    expect(result.current.conv.kind).toBe('idle');
+    expect(result.current.conversion.conv.kind).toBe('idle');
   });
 
   it('converts with the changed choice', async () => {
     const result = await ready();
-    await act(() => result.current.convert());
+    await act(() => actionsOf(result.current).convert());
     expect(vi.mocked(stub.remap).mock.lastCall?.[6]).toBe('remove');
 
     act(() => result.current.setUnrecognized('keep'));
-    await act(() => result.current.convert());
+    await act(() => actionsOf(result.current).convert());
     expect(vi.mocked(stub.remap).mock.lastCall?.[6]).toBe('keep');
   });
 

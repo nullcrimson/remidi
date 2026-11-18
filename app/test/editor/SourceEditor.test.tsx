@@ -2,7 +2,8 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { SourceEditor } from '../../src/editor/SourceEditor';
-import type { Drum, CanonEntry } from '../../src/core/midiremap';
+import type { Assigning } from '../../src/editor/assigning';
+import type { Drum, CanonEntry, Note } from '../../src/core/midiremap';
 import type { SrcEdits } from '../../src/core/overrides';
 import { family_order } from '../stubs/wasm';
 import { typed } from '../typed';
@@ -14,7 +15,7 @@ const options = typed<CanonEntry[]>([
   { canon: 'china.1.hit', label: 'China 1', family: 'Cymbals' as const },
 ]);
 
-function setup(srcEdits: SrcEdits = {}) {
+function setup(srcEdits: SrcEdits = {}, assigning: Assigning | null = null) {
   const onSet = vi.fn();
   const onClear = vi.fn();
   render(
@@ -24,6 +25,7 @@ function setup(srcEdits: SrcEdits = {}) {
       options={options}
       families={family_order()}
       base="c1"
+      assigning={assigning}
       onSet={onSet}
       onClear={onClear}
     />,
@@ -44,6 +46,12 @@ describe('SourceEditor', () => {
     const { onClear } = setup(typed<SrcEdits>({ 24: 'china.1.hit' }));
     await userEvent.click(screen.getByRole('button', { name: /Clear source note/i }));
     expect(onClear).toHaveBeenCalledWith(24);
+  });
+
+  it('leaves focus on the row of the note it cleared', async () => {
+    setup(typed<SrcEdits>({ 24: 'china.1.hit' }));
+    await userEvent.click(screen.getByRole('button', { name: /Clear source note/i }));
+    expect(screen.getByRole('button', { name: /^C1/ })).toHaveFocus();
   });
 
   it('shows an unassigned default note as unassigned', () => {
@@ -90,6 +98,20 @@ describe('SourceEditor', () => {
     await userEvent.clear(input);
     await userEvent.type(input, '60{Enter}');
     expect(screen.getByRole('dialog', { name: /Canon for/i })).toBeInTheDocument();
+  });
+
+  it('opened on one note, lists it and opens its picker', () => {
+    setup({}, { kind: 'note', note: typed<Note>(49) });
+    expect(screen.getByRole('button', { name: /^C#3/ })).toHaveTextContent('unmapped');
+    expect(screen.getByRole('dialog', { name: 'Canon for C#3' })).toBeInTheDocument();
+  });
+
+  it('opened on a list of notes, lists each with no picker and focuses the lowest', () => {
+    setup({}, { kind: 'notes', notes: typed<Note[]>([49, 1]) });
+    expect(screen.getByRole('button', { name: /^C#3/ })).toHaveTextContent('unmapped');
+    expect(screen.getByRole('button', { name: /^C#-1/ })).toHaveTextContent('unmapped');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^C#-1/ })).toHaveFocus();
   });
 
   it('rejects text that is not a whole number', async () => {

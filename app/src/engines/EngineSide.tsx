@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useT } from '../locale/localeContext';
 import { track } from '../core/stats';
 import type { StatEvents } from '../core/umami';
@@ -10,23 +10,30 @@ import { EngineCard } from './EngineCard';
 import { LibraryList } from './LibraryList';
 import { useFavorites } from './useFavorites';
 
+/** Which side of the conversion an engine is chosen for. */
+export type EngineSideName = StatEvents['engine-picked']['side'];
+
 /**
  * One side of the conversion: its card, its favourites to pick in one press,
- * and the picker the card opens with every engine.
+ * and the picker the card opens with every engine. Whether the picker is open is the
+ * caller's, so other controls can open it too. A favourite chosen on the other side stays
+ * shown, dimmed, and a press on it is handed to `onTaken`.
  */
-export function EngineSide({ side, label, value, disabledId, engines, next, onChange, cardRef }: {
-  side: StatEvents['engine-picked']['side'];
+export function EngineSide({ side, label, value, disabledId, engines, next, onChange, onTaken, cardRef, open, onOpenChange }: {
+  side: EngineSideName;
   label: string;
   value: EngineId | null;
   disabledId: EngineId | null;
   engines: Engine[];
   next: boolean;
   onChange: (id: EngineId) => void;
+  onTaken: (engine: Engine) => void;
   cardRef: FocusRef;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
   const t = useT();
   const { favorites, toggleFavorite } = useFavorites(side);
-  const [open, setOpen] = useState(false);
   const filter = useRef<HTMLElement | null>(null);
   const chosen = engines.find((e) => e.id === value)?.name ?? null;
   const quick = engines.filter((e) => favorites.has(e.id));
@@ -38,7 +45,7 @@ export function EngineSide({ side, label, value, disabledId, engines, next, onCh
       aria-label={t({ id: 'library-group', args: { side: label } })}
       className="flex min-w-0 flex-col gap-2"
     >
-      <EngineCard ref={cardRef} label={label} chosen={chosen} next={next} onOpen={() => setOpen(true)} />
+      <EngineCard ref={cardRef} label={label} chosen={chosen} next={next} onOpen={() => onOpenChange(true)} />
       {quick.length > 0 && (
         <ul
           aria-label={t({ id: 'library-favourites' })}
@@ -53,6 +60,7 @@ export function EngineSide({ side, label, value, disabledId, engines, next, onCh
                   aria-pressed={state === 'selected'}
                   aria-disabled={state === 'disabled' || undefined}
                   onClick={() => {
+                    if (state === 'disabled') onTaken(e);
                     if (state !== 'idle') return;
                     track('engine-picked', { side, id: e.id, via: 'favorite' });
                     onChange(e.id);
@@ -78,7 +86,7 @@ export function EngineSide({ side, label, value, disabledId, engines, next, onCh
           layout="sheet"
           heading={t({ id: 'engine-picker-heading', args: { side: label } })}
           initialFocus={filter}
-          onClose={() => setOpen(false)}
+          onClose={() => onOpenChange(false)}
         >
           <LibraryList
             side={side}
@@ -88,7 +96,7 @@ export function EngineSide({ side, label, value, disabledId, engines, next, onCh
             engines={engines}
             onChange={(id) => {
               onChange(id);
-              setOpen(false);
+              onOpenChange(false);
             }}
             favorites={favorites}
             onToggleFavorite={toggleFavorite}

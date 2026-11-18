@@ -146,6 +146,7 @@ engine-to = CEL
 engine-swap = Zamień źródło i cel
 engine-choose = Wybierz wtyczkę perkusyjną…
 engine-picker-heading = Wybierz wtyczkę: { $side }
+engine-taken = { $engine } to już wtyczka: { $side }.
 filter-clear = Wyczyść filtr
 note-picker-label = Nuta docelowa dla { $drum }
 note-picker-heading = CEL · { $drum }
@@ -168,8 +169,8 @@ edit-heading = Edycja nut
 edit-advanced = Zaawansowane — przypisz nuty źródłowe
 summary-remapped =
     { $total ->
-        [one] Przemapowano { $remapped } z { $total } instrumentu
-       *[other] Przemapowano { $remapped } z { $total } instrumentów
+        [one] { $remapped } z { $total } instrumentu { $source } ma instrument w { $target }
+       *[other] { $remapped } z { $total } instrumentów { $source } ma instrument w { $target }
     }
 summary-edit-tip-title = Dopracuj każdy instrument
 summary-edit-tip = Przypisz dowolny instrument do innej nuty docelowej — wybierz go z listy instrumentów albo z pianina. Zmiany obowiązują w konwersji i można je zapisać jako preset.
@@ -271,6 +272,18 @@ library-favourites = Ulubione
 library-all = Wszystkie wtyczki
 library-none = brak wyników
 files-skipped = Pominięto { $names } — można dodać tylko pliki .mid i wyeksportowane presety (.json)
+files-failed-reason =
+    { $reason ->
+        [unreadable] nieczytelny
+        [parts] nie wybrano partii
+       *[other] błąd
+    }
+files-replaced =
+    { $count ->
+        [one] Zastąpiono { $names } plikiem, który właśnie dodano.
+        [few] Zastąpiono { $names } plikami, które właśnie dodano.
+       *[other] Zastąpiono { $names } plikami, które właśnie dodano.
+    }
 files-drop = Upuść jeden lub kilka plików .mid w dowolnym miejscu
 files-choose = Wybierz pliki
 files-presets = Wyeksportowane pliki presetów (.json) można upuścić lub wybrać tak samo.
@@ -318,6 +331,11 @@ done-file-approximated = zast.: { $count }
 done-file-dropped = usun.: { $count }
 done-file-unrecognized = nierozp.: { $count }
 done-file-clean = bez strat
+done-badge =
+    { $tone ->
+        [danger] Ostrzeżenie
+       *[accent] Gotowe
+    }
 done-heading =
     { $count ->
         [one] { $count } plik przekonwertowany
@@ -342,6 +360,12 @@ done-view-report = Zobacz raport →
 done-convert-more = Nowa konwersja
 done-convert-more-hint = Kolejny plik? Wtyczki i ustawienia zostają bez zmian.
 done-report-mapping = Błędne mapowanie? Zgłoś
+done-lost-many =
+    { $lost ->
+        [one] Do pliku nie trafiła { $lost } z { $read } nut.
+        [few] Do pliku nie trafiły { $lost } z { $read } nut.
+       *[many] Do pliku nie trafiło { $lost } z { $read } nut.
+    }
 done-removed =
     { $count ->
         [one] W mapie { $source } brakuje { $count } nuty z pliku, więc ją usunięto. Złe źródło?
@@ -360,6 +384,11 @@ done-kept-plays =
     }
 done-pick-source = Wybierz inne źródło
 done-assign-notes = Przypisz nuty
+done-convert-from = Konwertuj ponownie, źródło: { $engine }
+done-read-as = Odczytano według mapy { $source }.
+done-back-to = Wróć: { $previous }
+done-left-out = Pominięto { $file }: nie wybrano jego partii perkusji.
+done-left-out-pick = Wybierz partie perkusji
 done-damaged-file = Plik { $file } był uszkodzony: brakowało jego części, a wszystko, co w nim zostało, przekonwertowano.
 done-damage-track-cut-bar = Ścieżka { $track } urywa się w takcie { $bar }; reszty nie było w pliku.
 done-damage-track-cut-tick = Ścieżka { $track } urywa się na ticku { $tick }; reszty nie było w pliku.
@@ -402,14 +431,38 @@ done-offer =
        *[other] Nuty na { $part } w { $file } ({ $count }) zostały bez zmian, obok perkusji na kanale 10.
     }
 done-offer-convert = Konwertuj też je
-source-fit-missing = W mapie { $source } brakuje { $missing } z { $hits } nut z pliku. Lepiej pasują: { $engines }
-source-fit-all = { $engine } (wszystkie nuty)
-source-fit-some =
-    { $engine } ({ $count ->
-        [one] { $count } nuta
-        [few] { $count } nuty
-       *[many] { $count } nut
-    })
+source-fit-missing =
+    { $missed ->
+        [all]
+            { $hits ->
+                [one] Wtyczka { $source } nie zna jedynej nuty z pliku.
+               *[other] Wtyczka { $source } nie zna żadnej z { $hits } nut z pliku.
+            }
+       *[some] Wtyczka { $source } nie zna { $missing } z { $hits } nut z pliku.
+    }
+source-fit-all = Wtyczka { $engine } zna wszystkie nuty.
+source-fit-some = Wtyczka { $engine } zna { $count } z nich.
+source-use = Użyj { $engine }
+source-fit-target =
+    { $known ->
+        [all] Wtyczka { $target } zna wszystkie nuty: plik może już być w jej mapie.
+       *[some] Wtyczka { $target } zna { $count } z nich: plik może już być w jej mapie.
+    }
+source-target-fits =
+    { $known ->
+        [all] Wtyczka { $target } zna wszystkie nuty: plik może już być w jej mapie. { $swap }
+       *[some] Wtyczka { $target } zna { $count } z nich: plik może już być w jej mapie. { $swap }
+    }
+source-swap = Konwertuj odwrotnie: { $target } → { $source }
+source-ask =
+    { $lacks ->
+        [kick] Wtyczka { $source } nie znajduje w pliku Kick i nie zna { $missing } z { $hits } nut.
+        [snare] Wtyczka { $source } nie znajduje w pliku Snare i nie zna { $missing } z { $hits } nut.
+       *[kickAndSnare] Wtyczka { $source } nie znajduje w pliku ani Kick, ani Snare i nie zna { $missing } z { $hits } nut.
+    }
+source-ask-switch = Konwertuj jako { $engine }
+source-ask-pick = Wybierz inne źródło
+source-ask-anyway = Konwertuj mimo to
 drop-missing = Usuń brakujące instrumenty i konwertuj ponownie
 report-dropped = Usunięte
 report-approximated = Zastąpione

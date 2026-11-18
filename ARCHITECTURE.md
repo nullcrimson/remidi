@@ -167,12 +167,14 @@ midiremap-core/src/
    lib.rs          ── the facade: re-exports only, the public API; the folders' order in its rustdoc
    xml.rs          ── the one XML writer (quick-xml), public: the site writes its sitemap with it
    inspect/        ── what a file plays, without converting it
-      ├── hits.rs        ── NoteHits, note_hits
+      ├── hits.rs        ── NoteHits (and its played notes), note_hits
       ├── summary.rs     ── PartSummary, Plays, part_summaries, auto_question (Known → AutoQuestion, QuestionReason)
-      └── fit.rs         ── SourceFit, SourceFits, source_fits
+      ├── fit.rs         ── SourceFit, Lacks, first_above (the ranking key, one home; crate-private but Lacks)
+      └── advice.rs      ── source_advice → Advised { source, target, advice: SourceAdvice }, Lacks
+   share.rs        ── Share, Fraction (crate-private): a part of a non-empty whole, compared without division
    convert/        ── convert(bytes, &Mapping, Selection) → Conversion (Done | Ask)
       ├── rewrite.rs     ── rewrite(): one pure step per event, Voicing (voice table, merge, retrigger), DeltaFold
-      └── report.rs      ── Report, FallbackTally, Unmapped: what a conversion did with each hit
+      └── report.rs      ── Report, FallbackTally, Unmapped: what a conversion did with each hit; Loss (read, lost, is_heavy)
    files/          ── files for other programs
       ├── preset.rs      ── parse_preset: the preset file the app exports and the CLI reads
       ├── sample.rs      ── sample_file: a two-bar groove on the notes one engine plays
@@ -349,9 +351,9 @@ allow.
   `from_maps(maps)` builds a catalog from any maps (tests, generators).
 - `tests/engine_facts.rs` pins what the built-in engines play on the notes worth checking
   (each names its vendor, UJAM's mute keys, BFD3's tom slots, …). It shares the drum-key
-  helper `k` and the note helper `n` in `tests/support/mod.rs` with four other
+  helper `k` and the note helper `n` in `tests/support/mod.rs` with five other
   integration tests; the module re-exports kit's and note's own, behind their `testing`
-  features.
+  features, and holds the proofs' groove generators (`support/grooves.rs`).
 - `tests/stable_ids.rs` guards saved data: every drum key and engine id ever released is
   recorded in `tests/golden/`, must still parse or resolve (through an alias after a
   rename), and every new one must be appended.
@@ -359,6 +361,17 @@ allow.
   and compares the output keys and the report with `tests/golden/walkthrough.txt`, one
   recorded line per target. A line changes only when a preset or the fallback order
   does; the change is then reviewed in the diff of that file.
+- `tests/suggestions.rs` proves the source advice over the whole catalog: three corpora
+  (`tests/support/grooves.rs`: each engine's core-kit groove, its full layout, and the
+  product's sample), each true source's groove read under every engine that is neither it
+  nor the target, for Superior Drummer 3 and General MIDI (25,281 pairs a run). It asserts
+  what holds by construction (a file read by its own source fits; a named engine recognizes
+  more than the source; a kit groove converted from its own source is not a heavy loss) and
+  writes what can only be measured, whether converting as the advice says gives the true
+  source's MIDI events, to `tests/golden/suggestions.txt`: counts per corpus and target, and
+  every kit pair's verdict grouped per true source. A new engine file moves it; the diff is
+  reviewed (`UPDATE_EXPECT=1 cargo test -p midiremap-core --test suggestions`). About 8 s in
+  a debug build.
 
 ### `mapping` — one engine pair, compiled in stages
 
@@ -502,8 +515,8 @@ whether those notes are written.
   what the caller knows of each note, `HitFate { Played, Dropped, Unknown }`: `convert`
   judges by its mapping (`Unknown` for a note the source does not know, `Dropped` for a
   drum the target has none of), `auto_question` the same when it is given the mapping, and
-  `hit_notes` (so `note_hits` and `source_fits`) judges every note played, since no mapping
-  exists while a source is fitted. `TrackFilters` is
+  `hit_notes` (so `note_hits` and the source advice) judges every note played, since no mapping
+  exists while a source is fitted (the target only breaks ties). `TrackFilters` is
   one `ChannelFilter` per track of that file, built only there. `Auto` (the default) picks
   parts and never guesses: a file with channel-10 hits converts its channel-10 parts and
   offers each other part of the tracks those are in (Mjód: 168 drum hits on channel 1
@@ -525,8 +538,30 @@ whether those notes are written.
 
 - `note_hits(midi, selection) → NoteHits` (`inspect/hits.rs`): the hits on each note a
   conversion with that selection would rewrite; none when it would ask.
-- `source_fits(&catalog, &hits) → SourceFits` (`inspect/fit.rs`): every engine fitted to the
-  same hits, best first (the most hits its map decodes, ties in catalog order).
+- The ranking (`inspect/fit.rs`, crate-private): `first_above(&catalog, &hits, recognized,
+  target?)` is the best engine for the target among those that recognize more of the hits
+  than `recognized`, by one total key (`Fitted::rank`): the most hits its map decodes
+  (`recognized`), then the better `Standing` (the standard, then a major, then any other),
+  then the most it decodes as a kick, a snare or a hi-hat (`Family::is_core`; a ranking key
+  only, not on the fit), then the engines of the target's vendor (no preference without a
+  target or a vendor), then the target itself, then by id. The target is ranked like any
+  engine, and the source, recognizing no more than itself, never comes first. Each
+  `SourceFit` holds what of the kick and the snare it reads none of (`Option<Lacks>`), and
+  `missed()`, the share of the hits its map does not decode (`Option<Share>`, `None` without
+  hits), counted in the same pass as `recognized`.
+- `source_advice(&catalog, &hits, src, tgt?) → Advised` (`inspect/advice.rs`): one call ranks
+  for the target and advises, so the two cannot differ, and `Advised` carries the source and
+  target ids it was computed for. `SourceAdvice` is `Fits` (the source recognizes every hit),
+  `Suggest { engine, named }` (the best engine that recognizes more, `fit::first_above`),
+  `LooksLikeTarget(named)` when that engine is the target `Advised` holds, or `Unknown` when
+  there is none; `Named { missing, hits, recognized, ask }` is what both say, flattened into
+  the variant on the wire, and `SourceAdvice::named()` is the one reader of either.
+  `ask: Option<Lacks>` comes only from the private `asks`: 16 or more hits read, a third or more
+  missed (`Share::reaches(ASK_MISSED)`), the source reads no kick or no snare, the engine named
+  reads both; it holds in the target case too. `tests/engine_facts.rs` pins the incident (a
+  Toontrack file read as GGD Invasion (Halpern) names the target for Superior Drummer 3, and
+  asks, and for EZdrummer 3, and suggests EZdrummer 3 for EZdrummer 2, General MIDI and
+  Addictive Drums 2), and `tests/suggestions.rs` proves the advice over the whole catalog (see Tests).
 - `part_summaries(midi, source?)` (`inspect/summary.rs`) lists a file's parts (track name,
   hits, and what they `Plays` as a source), and `auto_question(midi, known)` gives
   `AutoQuestion { parts, why }` only when `Auto` would ask. `known` is what the caller has,
@@ -595,9 +630,15 @@ whether those notes are written.
   target key converts as each event would alone. A source note that overlaps itself is
   written as it comes (not this table's business).
 - `Report` (`convert/report.rs`) keeps its counters private and hands them out as
-  iterators and totals (`hits()` is every note-on seen); only the converter tallies
+  iterators and totals (`loss()` is a `Loss`: `read()` every hit the scope selected, `lost()`
+  every one of them dropped or removed, a kept unrecognized hit not lost, never more than
+  read: it holds the lost share of the read, `Option<Share>`, `None` when nothing was read,
+  and goes on the wire as `{ read, lost }`; `is_heavy()` a quarter or more lost, and losses
+  `Sum`); `hits()` is `read + untouched`, every note-on
+  seen); only the converter tallies
   them, in a `Tally` (`record`, `record_unmapped`, `record_untouched`, `record_merged`),
-  which `closed` turns into the `Report`. `rewrite`'s `step` says on each hit in scope how
+  which `closed` turns into the `Report`, setting the `Loss` once from the final
+  counts. `rewrite`'s `step` says on each hit in scope how
   the source hears it (`Heard::Recognized(outcome)` or `Unrecognized`), which the tally
   reads without asking the mapping again. `record` keeps the counting
   policy in one place: it tallies fallbacks used (each a `FallbackTally`: the stand-in drum
@@ -611,7 +652,7 @@ whether those notes are written.
   alone, which are not loss; `merged` counts hits, converted or kept, that sound inside
   another's note-on of their tick, so the output holds `converted + kept unrecognized +
   untouched - merged` note-ons. It serializes in camelCase (`unmappedSource`, `fallbackUsed`,
-  `dropped`, `untouched`, `converted`, `merged`) with its `BTreeMap`s in a stable order and note
+  `dropped`, `untouched`, `converted`, `merged`, `read`, `lost`) with its `BTreeMap`s in a stable order and note
   keys as strings, so the CLI and WASM print the same JSON. An `unmappedSource` entry is
   `{ hits, fate }`, the fate `"removed"`, `"keptFree"` or `{ "keptOnto": canon }`. A `fallbackUsed` entry is
   `{ standIn, note, count }`; the app names the report line after `standIn`, and when a
@@ -702,6 +743,13 @@ notes = [
   canon. Multiple notes may decode to the same canon; at most one may be primary, and
   with none the first one listed encodes it.
 - `aliases` — optional; former ids that still resolve to this engine (see `engine`).
+- `hub` — optional; `{ standing = "standard" | "major", column = "SD3", order = 4 }`
+  makes the engine a hub (`EngineMap::hub`, `engine/standing.rs`): `standing` is its
+  `Standing` (`standing()`; a file declares only `HubStanding`'s two, `Other` is an engine without a hub), which ranks
+  source suggestions;
+  `column` labels its column in the site's index matrix and `order` places it among the
+  hubs. All three are required together. General MIDI is the standard; GGD Invasion,
+  EZdrummer 3, Superior Drummer 3, Addictive Drums 2, SSD5, BFD3 and Guitar Pro are majors.
 
 Built-in presets: dozens of engines spanning GetGood Drums, Toontrack EZdrummer /
 Superior Drummer, Addictive Drums 2, BFD3, Steven Slate SSD5, Native Instruments,
@@ -763,10 +811,15 @@ error and 2 on a usage error. Parts left beside channel-10 drums are printed wit
   `status`); the app reads it through `core/outcome.ts` (`playedNote`, `movesToOtherDrum`, `isPlayed`, `leadNote`).
 - `engine_catalog() → [{ id, name, fullName }]` — `name` is the display name,
   `fullName` the catalog name.
-- `source_fits(files: { bytes, selection }[]) → { hits, ranked: [{ engine, recognized }] }` — every engine fitted to
-  the hits of all `files` that converting each with its selection reads (core `note_hits`, summed,
-  then `source_fits`: a hit is recognized when the engine's map decodes its note), best
-  first, ties in catalog order; a file that does not parse, or lacks a picked part, is left out.
+- `source_advice(files: { bytes, selection }[], src_id, tgt_id?) → { source, target, advice }` —
+  core `source_advice` over the hits of all `files` that converting each with its selection
+  reads (core `note_hits`, summed); `advice` is tagged by `kind` (`fits`, `unknown`,
+  `looksLikeTarget`, `suggest`). A file that does not parse, or lacks a picked part, is left
+  out; an unknown source or target is `unknownEngine` with its role.
+- `loss_is_heavy(losses) → boolean` — core `Loss::is_heavy` of the `Loss` summed over
+  `losses` (`{ lost, read }[]`): a quarter or more of the hits read left out; a loss of more
+  than was read throws `internal`. The worker's batch hands it every converted file's report
+  (`BatchResult.heavy`).
 - `sample_file(engine) → Uint8Array` — a two-bar 4/4 groove at 120 bpm on channel 10 (core
   `sample_file`): eighth notes on the closed hi-hat (the ride where an engine has none) over
   kick and snare, a crash on the first beat, each drum on the engine's own note or its
@@ -852,10 +905,42 @@ test in that file fails on any import outside it.
   `answerRequest` in `workerProtocol.ts`, which holds the request and reply types and answers
   with the shared `runBatch` of `batch.ts`, so the reply logic is tested without a worker; converted bytes come back
   as transferred buffers, so the
-  page and the spinner stay responsive. The same worker fits the added files to every engine's
-  layout (`Converter.fits`, a `FitRequest`; `useSourceFits` asks again when the files or the
-  channel change and ignores a stale answer), which `CloserSourcesNotice` under the engine
-  pickers reads to suggest a source that recognizes more of the file's notes. The worker loads its own copy of the WASM; the
+  page and the spinner stay responsive. The same worker advises on the added files' source
+  (`Converter.advice`, an `AdviceRequest` naming the source and the target; `useSourceAdvice`
+  asks again when the files, the channel or the pair change and ignores a stale answer); the
+  rules live in core (`source_advice`), and the app only shows them. `offeredAdvice`
+  (`convert/sourceOffer.ts`) offers the advice when it is for the pair on show (the
+  stale-pair rule) and no source notes are edited: an `Offered`, a `suggest` or a
+  `looksLikeTarget` with the source it is for and, for `looksLikeTarget`, the target from
+  `Advised`. `useTrackedRun` asks the converter for the advice of the setup it ran and sends
+  the engine it suggests as `converted.closer` (a `SuggestedProp` of `core/umami.ts`: the
+  engine id, empty for none, or `advice-failed` when the advice fails). One surface speaks about the source at a time:
+  `sourceSurface(sourceStage(conv, offer, unrecognized))` (`convert/sourceSurface.ts`) gives
+  `notice` or `question`, each with the `Offered`, `done` or `none`, and a converted file is
+  always `done`. `SourceAdviceNotice` under the engine pickers says what the source
+  misses (the live region) and what the named engine knows, with "Use {engine}" for a
+  suggestion; the words come from `convert/sourceWords.ts`. Shares on the app side are only
+  the events' buckets (`core/share.ts`: `share`, `shareBucket`); the thresholds are
+  core's. `useRemapper` gives `conversion`: `unready`, with no run on show, until
+  both engines are chosen, then `ready` with the `actions` (`convert/convertActions.ts`, made
+  from the `ChosenSelection` and the `ConvertSetup` on show) and the run's `conv`: every way
+  to start a conversion, among them `convertFrom`, `swapAndConvert` and `goBack(left)`, each
+  building the next setup with `setupAfter` (`convert/convertSetup.ts`), which runs the
+  selection's `switchedSelection` (a chosen selection stays chosen) and the editor's
+  `overridesAfter` on the event, so a switch's run converts the setup the next screen shows. On the done card `UnrecognizedNotes` converts again from the suggestion
+  ("Convert again from {engine}", secondary: Download stays the only primary), or, when the
+  target is named, the other way through `TargetLine`, the only place the swap line shows;
+  `ReadAs` (`convert/ReadAs.tsx`), under the heading, names the layout the file was read as
+  with a way back, there only when the suggestion left a pair, that restores the pair, its
+  edits and its preset whole (`Left`, carried by the source's `via`). Before converting,
+  `ConvertStepEnd` shows `SourceQuestion`, a warning panel, in the Convert button's place
+  while the surface is the question: `useSourceQuestion` gives the `QuestionState`: `none`,
+  `offered`, `due` (an `ask`, and the files, picks, channel and source not answered for yet;
+  the sample conversion never asks) or `open` (`ask()`, `close()`), each but `none` with the
+  `Offered`. It offers "Convert as {engine}" or, when the target is
+  named, "Pick another source", and "Convert anyway", and sends every `source-answered`
+  itself. The done card turns to the danger tone with `WarnIcon` when the batch's loss is
+  heavy (`BatchResult.heavy`, judged in the worker by core's `loss_is_heavy`). The worker loads its own copy of the WASM; the
   main thread's copy serves the catalog, `plan` and preset import. The worker's state
   is one value (`unstarted`, `running`, `unavailable`). A worker that dies after it has
   answered a batch is replaced and the batches it left go to the new one; a worker that
@@ -880,10 +965,14 @@ test in that file fails on any import outside it.
   and `useEditor` (per-note edits, the live `plan` preview, and derived
   counts) behind a stable return contract, plus a small selection reducer
   (`convert/selectionState.ts`) for
-  source/target/octave/channel/missing drums/unrecognized notes/view/open preset. An engine not chosen is `null`, and `useRemapper` derives
+  source/target/octave/channel/missing drums/unrecognized notes/view/open preset. The source is
+  `{ id, via } | null`, so one cannot be held without the other: `via` says how it came to be
+  (`link`, `restored`, `picked`, or `suggested` with the `Left` it left behind), set from the event
+  that chose it, and a link that names the session's own source marks it `link` through a
+  selection-only action. An engine not chosen is `null`, and `useRemapper` derives
   the one `EnginePair` (`core/enginePair.ts`) once both are chosen; `plan`, `remap`, the converter and the
   editor take that pair, so they cannot be called without both. The `View` is `convert` or `edit` carrying the
-  pair, the filter and the source note the editor opens on, so entering the editor states them and leaving drops them;
+  pair, the filter and `assigning` (`editor/assigning.ts`: one source note with its picker open, or a list of notes given rows, or `null`), so entering the editor states them and leaving drops them;
   the selection reducer opens the editor only with both engines chosen and keeps its pair current, so the editor is never
   on show without one, and `useEditorHistory` steps back off the editor's entry when Forward lands on it without a pair.
   `Conv`'s `done` arm carries the pair it converted with. `useEditor`'s result is exposed as one nested
@@ -972,7 +1061,8 @@ not as loss.
 ### Static site (`midiremap-site`)
 
 `npm run build:site` builds the app, then generates `/engines/`, one page per engine,
-one per pair of the eight popular engines, and one per content section into `dist/`.
+one per pair of the eight popular engines (the hubs: `Catalog::hubs`, the engines whose file
+declares a `hub`, in its `order`), and one per content section into `dist/`.
 The pages link the app's own built stylesheet (named in `dist/site.json`); Tailwind
 scans the askama templates through `@source`, so both surfaces share one set of tokens
 and utilities. Octave naming and "Changes only" on pair pages are CSS-only radios; the
@@ -1207,8 +1297,12 @@ Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props;
   (`editor-closed`: `targets` and `sources` count the notes whose edit differs from what
   it was when the editor opened, `keyboard` and `list` the target picks by how they were
   made; its tally is kept by `editor/editorTally.ts`); `presets-unsaved` is sent once per
-  page load. `converted`, `file-failed` and `convert-failed` are sent by `run` in
-  `convert/useRemapper.ts` from the outcome `useConverter` returns; `load-failed` is sent
+  page load. `converted`, `file-failed` and `convert-failed` are sent by the run of
+  `convert/useTrackedRun.ts` from the outcome `useConverter` returns, every prop read from the
+  `ConvertSetup` the run was handed (`convert/convertSetup.ts`: the pair, edits, settings,
+  preset, `via` and what the question led to, `asked`) and never from the screen's state when
+  it ends, so a run started in the same event as a change of source reports the new pair;
+  `load-failed` is sent
   by the engine catalog (the module failed to load) and by `main.tsx` (kind `locale`: the
   page's language failed to load). The static pages load only `core/umami.ts`
   (`StaticOnlyEvent` names the four events only they send; `language-picked` from a static

@@ -81,20 +81,20 @@ describe('useRemapper editor view', () => {
     return result;
   }
 
-  it('opens the editor on the pair, the filter and the source note it is given', async () => {
+  it('opens the editor on the pair, the filter and the source notes it is given', async () => {
     const result = await withBothEngines();
-    act(() => result.current.openEditor('issues', note(26)));
+    act(() => result.current.openEditor('issues', { kind: 'notes', notes: [note(26), note(1)] }));
     expect(result.current.view).toEqual({
       kind: 'edit',
       pair: enginePair('ggd_invasion', 'ezdrummer'),
       show: 'issues',
-      assignNote: note(26),
+      assigning: { kind: 'notes', notes: [note(26), note(1)] },
     });
   });
 
   it('drops the filter and the source note on leaving the editor', async () => {
     const result = await withBothEngines();
-    act(() => result.current.openEditor('issues', note(26)));
+    act(() => result.current.openEditor('issues', { kind: 'note', note: note(26) }));
     act(() => result.current.closeEditor());
     expect(result.current.view).toEqual({ kind: 'convert' });
   });

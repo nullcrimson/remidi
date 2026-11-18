@@ -34,6 +34,15 @@ const UNKNOWN_MIDI = new Uint8Array([
   0x00, 0xff, 0x2f, 0x00,
 ]);
 
+const drumFile = (keys: number[]) => new Uint8Array([
+  0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 0, 0x60,
+  0x4d, 0x54, 0x72, 0x6b, 0, 0, 0, keys.length * 8 + 4,
+  ...keys.flatMap((key) => [0x00, 0x99, key, 0x64, 0x30, 0x89, key, 0x00]),
+  0x00, 0xff, 0x2f, 0x00,
+]);
+
+const times = (n: number, keys: number[]) => Array.from({ length: n }, () => keys).flat();
+
 let real: Wasm;
 
 beforeAll(async () => {
@@ -124,8 +133,9 @@ describe('real WASM module', () => {
 
   it('reports a conversion with a camelCase report', () => {
     const out = done(real.remap(MIDI, 'ggd_invasion', 'ezdrummer'));
-    expect(keys(out.report)).toEqual(['converted', 'dropped', 'fallbackUsed', 'merged', 'unmappedSource', 'untouched']);
+    expect(keys(out.report)).toEqual(['converted', 'dropped', 'fallbackUsed', 'lost', 'merged', 'read', 'unmappedSource', 'untouched']);
     expect(out.report.converted).toBe(2);
+    expect([out.report.read, out.report.lost]).toEqual([2, 0]);
   });
 
   it('keeps a note the source layout does not recognize when told to', () => {
@@ -159,21 +169,39 @@ describe('real WASM module', () => {
     });
   });
 
-  it('fits every engine to the hits of the files, best first', () => {
-    const { hits, ranked } = real.source_fits([auto(MIDI), auto(CHINA_MIDI)]);
-    expect(ranked).toHaveLength(real.engine_catalog().length);
-    expect([hits, ranked.find((f) => f.engine === 'ggd_invasion')]).toEqual([3, { engine: 'ggd_invasion', recognized: 3 }]);
-    expect(ranked.map((f) => f.recognized)).toEqual(ranked.map((f) => f.recognized).sort((a, b) => b - a));
+  it('advises on the hits of the files, naming the pair it is for', () => {
+    const advised = real.source_advice([auto(drumFile(times(6, [24, 26]))), auto(drumFile(times(6, [65])))], 'general_midi', 'hertz');
+    expect([advised.source, advised.target]).toEqual(['general_midi', 'hertz']);
+    const { advice } = advised;
+    if (advice.kind !== 'suggest') throw new Error(`advised ${advice.kind}`);
+    expect(keys(advice)).toEqual(['ask', 'engine', 'hits', 'kind', 'missing', 'recognized']);
+    expect([advice.hits, advice.recognized]).toEqual([18, 18]);
+    expect(advice.missing).toBeGreaterThan(0);
   });
 
-  it('leaves a file that does not parse out of a fit', () => {
-    expect(real.source_fits([auto(MIDI), auto(new Uint8Array([1, 2]))]).hits).toBe(2);
+  it('says a source that recognizes every hit fits', () => {
+    expect(real.source_advice([auto(MIDI), auto(CHINA_MIDI)], 'ggd_invasion', 'ezdrummer').advice).toEqual({ kind: 'fits' });
+  });
+
+  it('throws a typed error for advice on an unknown source or target', () => {
+    expect(thrown(() => real.source_advice([auto(MIDI)], 'nope', null))).toEqual({ kind: 'unknownEngine', role: 'source', id: 'nope' });
+    expect(thrown(() => real.source_advice([auto(MIDI)], 'ggd_invasion', 'nope'))).toEqual({ kind: 'unknownEngine', role: 'target', id: 'nope' });
   });
 
   it('builds a sample groove whose every hit the engine it was built for recognizes', () => {
-    const { hits, ranked } = real.source_fits([auto(real.sample_file('ggd_invasion'))]);
-    expect(hits).toBeGreaterThan(0);
-    expect(ranked.find((f) => f.engine === 'ggd_invasion')?.recognized).toBe(hits);
+    expect(real.source_advice([auto(real.sample_file('ggd_invasion'))], 'ggd_invasion', null).advice).toEqual({ kind: 'fits' });
+  });
+
+  it('judges a batch that lost a quarter of the hits it read heavy', () => {
+    expect(real.loss_is_heavy([{ lost: 12, read: 48 }])).toBe(true);
+  });
+
+  it('judges the losses of a batch over the hits its files read together', () => {
+    expect(real.loss_is_heavy([{ lost: 3, read: 4 }, { lost: 0, read: 96 }])).toBe(false);
+  });
+
+  it('throws for a loss of more hits than were read', () => {
+    expect(thrown(() => real.loss_is_heavy([{ lost: 2, read: 1 }]))).toMatchObject({ kind: 'internal' });
   });
 
   it('throws a typed error for a sample of an unknown engine', () => {

@@ -10,7 +10,7 @@ import { fakeUmami } from './umami';
 const reportOf = (report: Partial<Loose<Converted['report']>>) => typed<Conversion>({ kind: 'done', picked: [], offers: [],
   bytes: new Uint8Array([1]),
   damage: [],
-  report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 10, merged: 0, ...report },
+  report: { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 10, merged: 0, read: 10, lost: 0, ...report },
 });
 
 const swappedChina = () => {
@@ -101,7 +101,31 @@ describe('the events of the report', () => {
     await addMidi('groove.mid');
     await convert();
     await userEvent.click(screen.getByRole('link', { name: 'Wrong mapping? Report it' }));
-    expect(umami).toHaveBeenCalledWith('mapping-reported');
+    expect(umami).toHaveBeenCalledWith('mapping-reported', { from: 'ggd_invasion', to: 'ezdrummer', missed: 'none', lost: 'under10', closer: '' });
+  });
+
+  it('tells the problem form what the conversion read, lost and was set to', async () => {
+    await startApp();
+    await pickEngines();
+    await addMidi('groove.mid');
+    await convert();
+    const link = new URL(screen.getByRole('link', { name: 'Wrong mapping? Report it' }).getAttribute('href')!);
+    expect(Object.fromEntries(link.searchParams)).toEqual({
+      from: 'ggd_invasion',
+      to: 'ezdrummer',
+      lang: 'en',
+      build: '',
+      files: '1',
+      read: '41',
+      lost: '1',
+      unrecognized: '',
+      dropped: 'china.1.hit',
+      approximated: 'hat.open3>hat.open1',
+      closer: '',
+      missing: 'nearest',
+      keep: 'remove',
+      channel: 'auto',
+    });
   });
 
   it('sends contact-used with link issues for the GitHub issue link in the report', async () => {

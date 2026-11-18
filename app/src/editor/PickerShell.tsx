@@ -1,12 +1,13 @@
 import { FloatingFocusManager } from '@floating-ui/react';
-import { useContext, useRef, type ReactNode } from 'react';
+import { useContext, useEffect, useRef, type ReactNode } from 'react';
 import { useDialog } from '../ui/useDialog';
 import { OverlayAnchor } from './overlayAnchor';
 
 /**
- * A note picker's frame: a bottom sheet on phones, an inline panel from `sm` up. It takes
- * focus when it opens, gives it back when it closes, and closes on Escape or a press
- * outside the row it belongs to ({@link OverlayAnchor}).
+ * A note picker's frame: a bottom sheet on phones, an inline panel from `sm` up, which scrolls
+ * itself wholly into the window when it opens, wherever it was opened from. It takes focus
+ * when it opens, gives it back when it closes, and closes on Escape or a press outside the
+ * row it belongs to ({@link OverlayAnchor}).
  */
 export function PickerShell({
   label,
@@ -21,12 +22,15 @@ export function PickerShell({
 }) {
   const anchor = useContext(OverlayAnchor);
   const backdropRef = useRef<HTMLDivElement>(null);
-  const { focus, panel } = useDialog({
+  const { element, focus, panel } = useDialog({
     onClose,
     reference: anchor,
     outsidePressEvent: 'mousedown',
     outsidePress: (event) => event.target !== backdropRef.current,
   });
+  useEffect(() => {
+    if (element !== null && getComputedStyle(element).position !== 'fixed') element.scrollIntoView({ block: 'nearest' });
+  }, [element]);
   return (
     <>
       <div

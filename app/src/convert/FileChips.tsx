@@ -1,6 +1,7 @@
 import { listed } from '../locale/list';
 import { useLocale } from '../locale/localeContext';
 import type { FailedFile } from './batch';
+import { errorReason } from '../core/errors';
 import type { LoadedFile, OnFiles } from '../core/files';
 import { track } from '../core/stats';
 import { errorTitle } from '../ui/errorTitle';
@@ -29,6 +30,7 @@ export function FileChips({
   failures,
   waiting = new Set(),
   skipped = [],
+  replaced = [],
   onFiles,
   onRemove,
   onClear,
@@ -41,15 +43,17 @@ export function FileChips({
   failures: FailedFile[];
   waiting?: ReadonlySet<string>;
   skipped?: string[];
+  replaced?: string[];
   onFiles: OnFiles;
   onRemove: (name: string) => void;
   onClear: () => void;
 }) {
   const { t, locale } = useLocale().translator;
-  const skippedLine = skipped.length > 0 && (
-    <p role="status" className="w-full text-label text-t4">
-      {t({ id: 'files-skipped', args: { names: listed(locale, skipped) } })}
-    </p>
+  const skippedLine = (skipped.length > 0 || replaced.length > 0) && (
+    <div role="status" className="flex w-full flex-col gap-1 text-label text-t4">
+      {replaced.length > 0 && <p>{t({ id: 'files-replaced', args: { count: replaced.length, names: listed(locale, replaced) } })}</p>}
+      {skipped.length > 0 && <p>{t({ id: 'files-skipped', args: { names: listed(locale, skipped) } })}</p>}
+    </div>
   );
   if (files.length === 0) {
     return (
@@ -109,12 +113,13 @@ export function FileChips({
       </div>
     );
   }
-  const failed = new Map(failures.map((f) => [f.name, errorTitle(f.error, t)]));
+  const failed = new Map(failures.map((f) => [f.name, f.error]));
   return (
     <div className="flex flex-wrap items-center gap-2">
       {files.map((f) => {
-        const error = failed.get(f.name);
-        const state = chipState(error !== undefined, waiting.has(f.name));
+        const failure = failed.get(f.name);
+        const error = failure === undefined ? undefined : errorTitle(failure, t);
+        const state = chipState(failure !== undefined, waiting.has(f.name));
         const needsParts = state === 'waiting' ? t({ id: 'error-needs-parts' }) : undefined;
         return (
           <div
@@ -130,6 +135,9 @@ export function FileChips({
             <MidBadge />
             <span className="h-3.5 w-px shrink-0 bg-white/12" />
             <span className="min-w-0 truncate text-ui text-t1">{f.name}</span>
+            {failure !== undefined && (
+              <span className="shrink-0 text-label text-danger">{t({ id: 'files-failed-reason', args: { reason: errorReason(failure) } })}</span>
+            )}
             {needsParts !== undefined && <span className="sr-only">{needsParts}</span>}
             <IconButton
               label={t({ id: 'files-remove', args: { name: f.name } })}

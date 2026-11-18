@@ -2,10 +2,13 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { Converter } from '../../src/convert/converter';
 import { useRemapper } from '../../src/convert/useRemapper';
+import { actionsOf } from './actions';
 import { WasmCallError } from '../../src/core/errors';
 import { RUNTIME } from '../runtime';
 import { fakeUmami } from '../umami';
-import { engineId } from '../typed';
+import { advisedOf, engineId } from '../typed';
+
+const NO_ADVICE: Converter['advice'] = async (_files, _channel, source, target) => advisedOf(source, target, { kind: 'fits' });
 
 const FILE = { name: 'a.mid', bytes: new Uint8Array([1]) };
 
@@ -13,13 +16,13 @@ describe('useRemapper events', () => {
   const umami = fakeUmami();
 
   const convertRejecting = async (reason: unknown) => {
-    const converter: Converter = { convert: vi.fn().mockRejectedValue(reason), fits: async () => ({ hits: 0, ranked: [] }) };
+    const converter: Converter = { convert: vi.fn().mockRejectedValue(reason), advice: NO_ADVICE };
     const { result } = renderHook(() => useRemapper({ ...RUNTIME, converter }));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
     act(() => result.current.chooseSrc(engineId('ggd_invasion')));
     act(() => result.current.chooseTgt(engineId('ezdrummer')));
     act(() => result.current.addFiles([FILE]));
-    await act(() => result.current.convert());
+    await act(() => actionsOf(result.current).convert());
   };
 
   it('sends convert-failed with the kind of error the module gave', async () => {
@@ -35,7 +38,7 @@ describe('useRemapper events', () => {
   it('sends nothing about a conversion for a run that was stopped', async () => {
     const converter: Converter = {
       convert: (_files, _pair, _ov, _channel, _missing, _unrecognized, signal) => new Promise((_resolve, reject) => signal?.addEventListener('abort', () => reject(signal.reason))),
-      fits: async () => ({ hits: 0, ranked: [] }),
+      advice: NO_ADVICE,
     };
     const { result } = renderHook(() => useRemapper({ ...RUNTIME, converter }));
     await waitFor(() => expect(result.current.catalog.status).toBe('ready'));
@@ -44,7 +47,7 @@ describe('useRemapper events', () => {
     act(() => result.current.addFiles([FILE]));
     let run: Promise<void> = Promise.resolve();
     act(() => {
-      run = result.current.convert();
+      run = actionsOf(result.current).convert();
     });
     act(() => result.current.removeFile('a.mid'));
     await act(() => run);

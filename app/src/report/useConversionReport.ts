@@ -17,7 +17,7 @@ export function useConversionReport({
   rows,
   oct,
   missing,
-  dropMissingAndConvert,
+  actions,
 }: {
   results: FileResult[];
   canonOptions: CanonEntry[];
@@ -25,7 +25,7 @@ export function useConversionReport({
   rows: VoicePlan[];
   oct: OctaveBase;
   missing: MissingDrums;
-  dropMissingAndConvert: () => Promise<void>;
+  actions: { dropMissingAndConvert: () => Promise<void> } | null;
 }) {
   const view = useMemo(
     () => buildReport(results, canonOptions, targetDrums, oct),
@@ -35,5 +35,5 @@ export function useConversionReport({
   const canDrop
     = missing === 'nearest'
       && view.groups.approximated.some((e) => swapped.has(e.canon));
-  return { view, dropMissing: canDrop ? () => void dropMissingAndConvert() : undefined };
+  return { view, dropMissing: canDrop && actions !== null ? () => void actions.dropMissingAndConvert() : undefined };
 }

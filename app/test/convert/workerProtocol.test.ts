@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { answerRequest, transferred, type BatchRequest, type FitRequest } from '../../src/convert/workerProtocol';
-import { moduleLoader, type Part, type SourceFits } from '../../src/core/midiremap';
+import { answerRequest, transferred, type AdviceRequest, type BatchRequest } from '../../src/convert/workerProtocol';
+import { moduleLoader, type Part } from '../../src/core/midiremap';
 import * as stub from '../stubs/wasm';
-import { enginePair, typed } from '../typed';
+import { advisedOf, engineId, enginePair } from '../typed';
 
 const REQUEST: BatchRequest = {
   kind: 'convert',
@@ -25,26 +25,33 @@ describe('answerRequest', () => {
     expect(transferred(reply)).toHaveLength(1);
   });
 
-  const FIT: FitRequest = { kind: 'fit', id: 8, files: [{ name: 'a.mid', bytes: new Uint8Array([1]) }], channel: '10' };
-  const FITS = typed<SourceFits>({ hits: 4, ranked: [{ engine: 'ezdrummer', recognized: 3 }] });
+  const ADVICE: AdviceRequest = {
+    kind: 'advice',
+    id: 8,
+    files: [{ name: 'a.mid', bytes: new Uint8Array([1]) }],
+    channel: '10',
+    source: engineId('ggd_invasion'),
+    target: engineId('ezdrummer'),
+  };
+  const ADVISED = advisedOf('ggd_invasion', 'ezdrummer', { kind: 'fits' });
 
-  it('replies to a fit request with every engine fitted to the files under its channel', async () => {
-    vi.mocked(stub.source_fits).mockReturnValue(FITS);
-    const reply = await answerRequest(moduleLoader(), FIT);
-    expect(reply).toEqual({ id: 8, answer: { kind: 'fit', fits: FITS } });
-    expect(vi.mocked(stub.source_fits).mock.calls[0]).toEqual([[{ bytes: FIT.files[0].bytes, selection: { scope: '10' } }]]);
+  it('replies to an advice request with the advice for the files under its channel, for its source and target', async () => {
+    vi.mocked(stub.source_advice).mockReturnValue(ADVISED);
+    const reply = await answerRequest(moduleLoader(), ADVICE);
+    expect(reply).toEqual({ id: 8, answer: { kind: 'advice', advised: ADVISED } });
+    expect(vi.mocked(stub.source_advice).mock.calls[0]).toEqual([[{ bytes: ADVICE.files[0].bytes, selection: { scope: '10' } }], 'ggd_invasion', 'ezdrummer']);
   });
 
-  it('fits a file with picked parts by those parts', async () => {
-    vi.mocked(stub.source_fits).mockReturnValue(FITS);
+  it('advises on a file with picked parts by those parts', async () => {
+    vi.mocked(stub.source_advice).mockReturnValue(ADVISED);
     const parts: [Part] = [{ track: 1, channel: 2 }];
-    await answerRequest(moduleLoader(), { ...FIT, channel: 'auto', files: [{ name: 'a.mid', bytes: new Uint8Array([1]), parts }] });
-    expect(vi.mocked(stub.source_fits).mock.calls[0]).toEqual([[{ bytes: new Uint8Array([1]), selection: { parts } }]]);
+    await answerRequest(moduleLoader(), { ...ADVICE, channel: 'auto', files: [{ name: 'a.mid', bytes: new Uint8Array([1]), parts }] });
+    expect(vi.mocked(stub.source_advice).mock.calls[0]).toEqual([[{ bytes: new Uint8Array([1]), selection: { parts } }], 'ggd_invasion', 'ezdrummer']);
   });
 
-  it('hands nothing over for a fit', async () => {
-    vi.mocked(stub.source_fits).mockReturnValue(FITS);
-    expect(transferred(await answerRequest(moduleLoader(), FIT))).toEqual([]);
+  it('hands nothing over for an advice', async () => {
+    vi.mocked(stub.source_advice).mockReturnValue(ADVISED);
+    expect(transferred(await answerRequest(moduleLoader(), ADVICE))).toEqual([]);
   });
 
   it('replies with the error when the converter cannot load', async () => {

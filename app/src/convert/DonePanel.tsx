@@ -1,60 +1,78 @@
-import { useLocale } from '../locale/localeContext';
+import { useT } from '../locale/localeContext';
 import { useEffect, useRef, useState } from 'react';
 import { saveBlob } from '../core/download';
 import { engineCode } from '../core/engineCode';
 import type { EngineNames, EnginePair } from '../core/enginePair';
-import type { Unrecognized } from '../core/midiremap';
-import { reportLink } from '../report/reportLink';
+import type { Note, Unrecognized } from '../core/midiremap';
+import { reportLink, type ReportContext } from '../report/reportLink';
 import type { FailedFile } from './batch';
 import { ErrorText } from '../ui/ErrorText';
 import type { ReportView } from '../report/report';
+import { lossShares } from '../report/lossProps';
 import type { Converted } from './useConverter';
 import { zipFiles } from './zip';
 import { Button } from '../ui/Button';
 import { askAfterDownload } from '../tip/tipAsk';
 import { tag } from '../ui/styles';
-import { CheckIcon } from '../ui/CheckIcon';
+import { DoneBadge, type DoneTone } from './DoneBadge';
 import { fileStatus, outcomeTags } from './doneSummary';
-import { UnrecognizedNotes } from './UnrecognizedNotes';
+import { UnrecognizedNotes, type SourceFixes } from './UnrecognizedNotes';
+import { ReadAs, type WayBack } from './ReadAs';
 import { DamagedFiles } from './DamagedFiles';
 import { PartOffers } from './PartOffers';
+import { WaitingFiles } from './WaitingFiles';
 import type { Offer } from './partQuestions';
 import { TextButton } from '../ui/TextButton';
 import { TipToast } from '../tip/TipToast';
 import { track } from '../core/stats';
 import type { StatEvents } from '../core/umami';
 
+const CARD_TONE: Record<DoneTone, string> = { accent: 'border-accent/20 bg-accent/6', danger: 'border-danger/30 bg-danger/6' };
+
 export function DonePanel({
   results,
   failures,
+  heavy,
   view,
   pair,
+  report,
   names,
   unrecognized,
   onViewReport,
   onPickSource,
+  onAssignNotes,
   onConvertMore,
   onDropMissing,
   editedDrums = 0,
   offers = [],
   onAlsoConvert = () => {},
+  fixes = null,
+  readAs = null,
+  waiting = [],
+  onShowWaiting = () => {},
 }: {
   results: Converted['results'];
   failures: FailedFile[];
+  heavy: boolean;
   view: ReportView;
   pair: EnginePair;
+  report: ReportContext;
   names: EngineNames;
   unrecognized: Unrecognized;
   onViewReport: () => void;
   onPickSource: () => void;
+  onAssignNotes: (notes: Note[]) => void;
   onConvertMore: () => void;
   onDropMissing?: () => void;
   editedDrums?: number;
   offers?: Offer[];
   onAlsoConvert?: (offer: Offer) => void;
+  fixes?: SourceFixes | null;
+  readAs?: { back: WayBack | null } | null;
+  waiting?: string[];
+  onShowWaiting?: (file: string) => void;
 }) {
-  const { translator } = useLocale();
-  const { t, locale } = translator;
+  const t = useT();
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => headingRef.current?.focus(), []);
   const [asking, setAsking] = useState(false);
@@ -70,24 +88,20 @@ export function DonePanel({
 
   const reportByName = new Map(view.files.map((f) => [f.name, f]));
   const showFiles = results.length + failures.length > 1;
+  const tone: DoneTone = heavy || view.totals.converted === 0 ? 'danger' : 'accent';
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="
-        flex flex-col items-center gap-4 rounded-card border border-accent/20
-        bg-accent/6 px-5 py-6 text-center
-        sm:p-8
-      "
+      <div
+        data-tone={tone}
+        className={`
+          flex flex-col items-center gap-4 rounded-card border px-5 py-6
+          text-center
+          sm:p-8
+          ${CARD_TONE[tone]}
+        `}
       >
-        <span
-          aria-hidden="true"
-          className="
-            flex size-12 items-center justify-center rounded-full bg-accent/16
-            text-accent
-          "
-        >
-          <CheckIcon size={22} />
-        </span>
+        <DoneBadge tone={tone} />
         <div className="flex flex-col items-center gap-2.5">
           <h3
             ref={headingRef}
@@ -103,11 +117,13 @@ export function DonePanel({
               </span>
             )}
           </h3>
+          {readAs && <ReadAs back={readAs.back} source={names.source} />}
           <ul className="flex flex-wrap justify-center gap-1.5">
-            {outcomeTags(view, failures.length, t).map((item) => (
+            {outcomeTags(view, failures.length, heavy, t).map((item) => (
               <li key={item.text} {...tag(item.tone)}>{item.text}</li>
             ))}
           </ul>
+          {heavy && <p className="text-ui text-danger">{t({ id: 'done-lost-many', args: { lost: view.totals.lost, read: view.totals.read } })}</p>}
           {view.totals.unrecognized > 0 && (
             <UnrecognizedNotes
               count={view.totals.unrecognized}
@@ -115,12 +131,14 @@ export function DonePanel({
               source={names.source}
               target={names.target}
               unrecognized={unrecognized}
+              fixes={fixes}
               onPickSource={onPickSource}
-              onAssign={onViewReport}
+              onAssign={onAssignNotes}
             />
           )}
           <DamagedFiles results={results} />
           <PartOffers offers={offers} onAlsoConvert={onAlsoConvert} />
+          <WaitingFiles files={waiting} onShow={onShowWaiting} />
         </div>
 
         <div className="flex w-full flex-col items-center gap-1.5">
@@ -196,17 +214,16 @@ export function DonePanel({
             </TextButton>
           )}
           <a
-            href={reportLink({ from: pair.src, to: pair.tgt, lang: locale })}
+            href={reportLink(report)}
             target="_blank"
             rel="noopener"
-            onClick={() => track('mapping-reported')}
+            onClick={() => track('mapping-reported', { from: report.from, to: report.to, closer: report.suggested ?? '', ...lossShares(view.totals) })}
             className="prose-link text-ui"
           >
             {t({ id: 'done-report-mapping' })}
           </a>
         </div>
       </div>
-
       {asking && <TipToast onClose={() => setAsking(false)} />}
 
       <div className="

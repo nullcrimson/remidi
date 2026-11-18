@@ -137,6 +137,7 @@ engine-to = TO
 engine-swap = Swap FROM and TO
 engine-choose = Choose a drum plugin…
 engine-picker-heading = Choose the { $side } engine
+engine-taken = { $engine } is already the { $side } engine.
 filter-clear = Clear filter
 note-picker-label = Target note for { $drum }
 note-picker-heading = TARGET · { $drum }
@@ -159,8 +160,8 @@ edit-heading = Edit notes
 edit-advanced = Advanced — reassign source notes
 summary-remapped =
     { $total ->
-        [one] { $remapped } of { $total } drum remapped
-       *[other] { $remapped } of { $total } drums remapped
+        [one] { $remapped } of { $total } { $source } drum has a match in { $target }
+       *[other] { $remapped } of { $total } { $source } drums have a match in { $target }
     }
 summary-edit-tip-title = Fine-tune each drum
 summary-edit-tip = Reassign any drum to a different target note — pick from the drum list or the piano. Your changes apply to the conversion and can be saved as a preset.
@@ -256,6 +257,17 @@ library-favourites = Favourites
 library-all = All engines
 library-none = no matches
 files-skipped = Skipped { $names } — only .mid files and exported presets (.json) can be added
+files-failed-reason =
+    { $reason ->
+        [unreadable] unreadable
+        [parts] parts not picked
+       *[other] failed
+    }
+files-replaced =
+    { $count ->
+        [one] Replaced { $names } with the file you just added.
+       *[other] Replaced { $names } with the files you just added.
+    }
 files-drop = Drop one or more .mid files anywhere
 files-choose = Choose files
 files-presets = Preset files you exported (.json) can be dropped or chosen the same way.
@@ -301,6 +313,11 @@ done-file-approximated = { $count } approx
 done-file-dropped = { $count } dropped
 done-file-unrecognized = { $count } unrec.
 done-file-clean = clean
+done-badge =
+    { $tone ->
+        [danger] Warning
+       *[accent] Done
+    }
 done-heading =
     { $count ->
         [one] { $count } file
@@ -323,6 +340,11 @@ done-view-report = View report →
 done-convert-more = Convert more
 done-convert-more-hint = Next file? The engines and settings stay as they are.
 done-report-mapping = Wrong mapping? Report it
+done-lost-many =
+    { $lost ->
+        [one] { $lost } of { $read } notes was left out of the file.
+       *[other] { $lost } of { $read } notes were left out of the file.
+    }
 done-removed =
     { $count ->
         [one] { $count } note in your file isn't in the { $source } layout, so it was removed. Wrong source?
@@ -335,11 +357,16 @@ done-kept =
     }
 done-kept-plays =
     { $count ->
-        [one] { $count } of them now plays a { $target } drum: { $list }.
+        [one] { $count } of them now plays this { $target } drum: { $list }.
        *[other] { $count } of them now play { $target } drums: { $list }.
     }
 done-pick-source = Pick another source
 done-assign-notes = Assign the notes
+done-convert-from = Convert again from { $engine }
+done-read-as = Read as { $source }.
+done-back-to = Back to { $previous }
+done-left-out = { $file } was left out: its drum parts are not picked.
+done-left-out-pick = Pick its drum parts
 done-damaged-file = { $file } was damaged: part of it was missing, and everything it still held was converted.
 done-damage-track-cut-bar = Track { $track } stops at bar { $bar }; the rest of it was not in the file.
 done-damage-track-cut-tick = Track { $track } stops at tick { $tick }; the rest of it was not in the file.
@@ -376,16 +403,37 @@ done-offer =
     }
 done-offer-convert = Also convert them
 source-fit-missing =
-    { $missing ->
-        [one] { $missing } of { $hits } notes in your file isn't in the { $source } layout.
-       *[other] { $missing } of { $hits } notes in your file aren't in the { $source } layout.
-    } Closer fits: { $engines }
-source-fit-all = { $engine } (all notes)
-source-fit-some =
-    { $engine } ({ $count ->
-        [one] { $count } note
-       *[other] { $count } notes
-    })
+    { $missed ->
+        [all]
+            { $hits ->
+                [one] { $source } doesn't know the one note in your file.
+               *[other] { $source } doesn't know any of the { $hits } notes in your file.
+            }
+       *[some] { $source } doesn't know { $missing } of the { $hits } notes in your file.
+    }
+source-fit-all = { $engine } knows every note.
+source-fit-some = { $engine } knows { $count } of them.
+source-use = Use { $engine }
+source-fit-target =
+    { $known ->
+        [all] { $target } knows every note: your file may already be in its layout.
+       *[some] { $target } knows { $count } of them: your file may already be in its layout.
+    }
+source-target-fits =
+    { $known ->
+        [all] { $target } knows every note: your file may already be in its layout. { $swap }
+       *[some] { $target } knows { $count } of them: your file may already be in its layout. { $swap }
+    }
+source-swap = Convert the other way: { $target } → { $source }
+source-ask =
+    { $lacks ->
+        [kick] { $source } finds no kick in your file and doesn't know { $missing } of its { $hits } notes.
+        [snare] { $source } finds no snare in your file and doesn't know { $missing } of its { $hits } notes.
+       *[kickAndSnare] { $source } finds no kick and no snare in your file and doesn't know { $missing } of its { $hits } notes.
+    }
+source-ask-switch = Convert as { $engine }
+source-ask-pick = Pick another source
+source-ask-anyway = Convert anyway
 drop-missing = Drop missing drums & convert again
 report-dropped = Dropped
 report-approximated = Approximated

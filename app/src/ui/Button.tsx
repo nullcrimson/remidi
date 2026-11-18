@@ -13,6 +13,7 @@ const SIZE = {
   sm: 'rounded-chip px-3 py-1.5',
   md: 'rounded-panel px-4 py-2',
   lg: 'w-full rounded-panel py-3.5',
+  stack: 'w-full rounded-chip px-3 py-1.5 sm:w-auto',
 };
 
 type Props = {
@@ -22,7 +23,7 @@ type Props = {
   children: ReactNode;
 } & (
   | { href: string; download?: string; onClick?: () => void; disabled?: never; reason?: never }
-  | { href?: never; download?: never; onClick: () => void; disabled?: boolean; reason?: string; quietReason?: boolean }
+  | { href?: never; download?: never; onClick: () => void; disabled?: boolean; reason?: string; quietReason?: boolean; describedBy?: string }
 );
 
 export function Button({ ref, variant, size, children, ...rest }: Props) {
@@ -49,7 +50,7 @@ export function Button({ ref, variant, size, children, ...rest }: Props) {
       ref={ref}
       type="button"
       disabled={disabled}
-      aria-describedby={explained ? reasonId : undefined}
+      aria-describedby={explained ? reasonId : rest.describedBy}
       onClick={rest.onClick}
       className={className}
     >

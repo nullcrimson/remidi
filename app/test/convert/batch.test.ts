@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { runBatch } from '../../src/convert/batch';
 import { WasmCallError } from '../../src/core/errors';
-import type { Conversion, Midiremap, Overrides } from '../../src/core/midiremap';
+import type { Conversion, Loss, Midiremap, Overrides } from '../../src/core/midiremap';
+import { loss_is_heavy as lossIsHeavy } from '../stubs/wasm';
 import { enginePair, typed } from '../typed';
 
-const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0 };
+const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0, read: 1, lost: 0 };
 
 const done = (bytes: Uint8Array<ArrayBuffer>): Conversion => ({ kind: 'done', bytes, report: REPORT, damage: [], picked: [], offers: [] });
 
@@ -25,7 +26,7 @@ describe('runBatch', () => {
       'auto',
       'nearest',
       'remove',
-      { remap },
+      { remap, lossIsHeavy },
     );
     expect(result.ok.map((c) => [c.input.name, Array.from(c.bytes)])).toEqual([
       ['a.mid', [2]],
@@ -41,7 +42,7 @@ describe('runBatch', () => {
       calls.push(args.slice(1));
       return done(new Uint8Array());
     };
-    runBatch([{ name: 'a.mid', bytes: new Uint8Array([1]) }], enginePair('s', 't'), ov, '10', 'drop', 'keep', { remap });
+    runBatch([{ name: 'a.mid', bytes: new Uint8Array([1]) }], enginePair('s', 't'), ov, '10', 'drop', 'keep', { remap, lossIsHeavy });
     expect(calls).toEqual([[enginePair('s', 't'), ov, { scope: '10' }, 'drop', 'keep']]);
   });
 
@@ -58,7 +59,7 @@ describe('runBatch', () => {
       'auto',
       'nearest',
       'remove',
-      { remap },
+      { remap, lossIsHeavy },
     );
     expect(calls).toEqual([{ parts: [{ track: 1, channel: 1 }] }]);
   });
@@ -71,8 +72,29 @@ describe('runBatch', () => {
       'auto',
       'nearest',
       'remove',
-      { remap: () => ({ kind: 'ask', parts: [{ track: 1, channel: 1 }, { track: 2, channel: 1 }], why: { kind: 'noChannelTen' }, damage: [] }) },
+      { remap: () => ({ kind: 'ask', parts: [{ track: 1, channel: 1 }, { track: 2, channel: 1 }], why: { kind: 'noChannelTen' }, damage: [] }), lossIsHeavy },
     );
-    expect(result).toEqual({ ok: [], failed: [], asked: ['a.mid'] });
+    expect(result).toEqual({ ok: [], failed: [], asked: ['a.mid'], heavy: false });
+  });
+
+  it('judges the loss over every converted file together', () => {
+    const lost = (bytes: Uint8Array) => ({ ...done(new Uint8Array()), report: { ...REPORT, read: 4, lost: bytes[0] } });
+    const judged: Loss[][] = [];
+    const result = runBatch(
+      [{ name: 'a.mid', bytes: new Uint8Array([1]) }, { name: 'b.mid', bytes: new Uint8Array([2]) }],
+      enginePair('s', 't'),
+      undefined,
+      'auto',
+      'nearest',
+      'remove',
+      {
+        remap: lost,
+        lossIsHeavy: (losses) => {
+          judged.push(losses);
+          return true;
+        },
+      },
+    );
+    expect([result.heavy, judged]).toEqual([true, [[expect.objectContaining({ read: 4, lost: 1 }), expect.objectContaining({ read: 4, lost: 2 })]]]);
   });
 });

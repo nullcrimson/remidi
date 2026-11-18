@@ -1,4 +1,5 @@
 import type { Message } from '../generated/i18n';
+import type { FileResult } from './files';
 import type { ChannelScope } from './midiremap';
 import type { Option } from './options';
 
@@ -25,6 +26,16 @@ export function channelLabel(channel: ChannelScope): Message {
 /** Every channel scope the converter accepts, with its label, in the order the picker lists them. */
 export const CHANNELS: Option<ChannelScope>[] = ([...Object.keys(NAMED), ...Object.keys(NUMBERED)] as ChannelScope[])
   .map((value) => ({ value, label: channelLabel(value) }));
+
+/** A channel scope as the events name it: auto, all, or one channel. */
+function channelKind(channel: ChannelScope): 'auto' | 'all' | 'one' {
+  return channel === 'auto' || channel === 'all' ? channel : 'one';
+}
+
+/** The channel a batch's events name: `parts` when any file of `results` converted picked parts, otherwise `channel`'s kind. */
+export function eventChannel(results: FileResult[], channel: ChannelScope): 'parts' | ReturnType<typeof channelKind> {
+  return results.some((file) => file.input.parts !== undefined) ? 'parts' : channelKind(channel);
+}
 
 export function channelHint(channel: ChannelScope): Message {
   switch (channel) {

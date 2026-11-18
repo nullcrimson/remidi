@@ -8,7 +8,7 @@ import { useFileIntake, type IntakeSetup } from './useFileIntake';
 /**
  * The action that adds the sample groove the empty converter offers, undefined while the FROM
  * engine is not chosen: the groove is built for that engine, taken in as a picked file is, and
- * converted at once when the TO engine is chosen too.
+ * converted at once through `convert`, there once the TO engine is chosen too.
  */
 export function useSampleFile({
   core,
@@ -16,18 +16,17 @@ export function useSampleFile({
   ...setup
 }: IntakeSetup & {
   core: Midiremap | null;
-  convert: (files: LoadedFile[]) => Promise<void>;
+  convert: ((files: LoadedFile[]) => Promise<void>) | null;
 }): (() => void) | undefined {
   const intake = useFileIntake({ ...setup, via: 'sample' });
-  const { src, tgt } = setup;
+  const { src } = setup;
   return useMemo(() => {
     if (core === null || src === null) return undefined;
     return () => {
       const sample: LoadedFile = { bytes: core.sampleFile(src), name: `sample-${engineCode(src)}.mid` };
-      const converted = tgt !== null;
-      track('sample-used', { converted });
+      track('sample-used', { converted: convert !== null });
       intake([sample], []);
-      if (converted) void convert([sample]);
+      if (convert !== null) void convert([sample]);
     };
-  }, [core, src, tgt, intake, convert]);
+  }, [core, src, intake, convert]);
 }

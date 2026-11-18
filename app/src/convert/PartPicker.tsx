@@ -93,10 +93,12 @@ function Question({
       return carried === undefined ? [] : [{ from: o.file, parts: carried }];
     })[0];
   return (
-    <fieldset className="
-      flex flex-col gap-3.5 rounded-card border border-star/30 bg-star/3 p-4
-      sm:px-5.5 sm:pt-5
-    "
+    <fieldset
+      data-part-question={question.file}
+      className="
+        flex flex-col gap-3.5 rounded-card border border-star/30 bg-star/3 p-4
+        sm:px-5.5 sm:pt-5
+      "
     >
       <legend className="px-2 font-display text-body font-semibold text-t1">
         {t({ id: 'parts-question', args: { file: question.file } })}

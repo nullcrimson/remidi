@@ -145,6 +145,7 @@ engine-to = PARA
 engine-swap = Inverter origem e destino
 engine-choose = Escolha um plugin de bateria…
 engine-picker-heading = Escolha o plugin de { $side }
+engine-taken = { $engine } já é o plugin de { $side }.
 filter-clear = Limpar filtro
 note-picker-label = Nota de destino para { $drum }
 note-picker-heading = DESTINO · { $drum }
@@ -167,9 +168,9 @@ edit-heading = Editar notas
 edit-advanced = Avançado — reatribuir notas de origem
 summary-remapped =
     { $total ->
-        [0] { $remapped } de { $total } peças remapeadas
-        [one] { $remapped } de { $total } peça remapeada
-       *[other] { $remapped } de { $total } peças remapeadas
+        [0] { $remapped } de { $total } peças de { $source } têm uma peça em { $target }
+        [one] { $remapped } de { $total } peça de { $source } tem uma peça em { $target }
+       *[other] { $remapped } de { $total } peças de { $source } têm uma peça em { $target }
     }
 summary-edit-tip-title = Ajuste cada peça
 summary-edit-tip = Atribua qualquer peça a outra nota de destino — escolha na lista de peças ou no piano. Suas alterações valem para a conversão e podem ser salvas como preset.
@@ -265,6 +266,17 @@ library-favourites = Favoritos
 library-all = Todos os plugins
 library-none = nenhum resultado
 files-skipped = Ignorados: { $names } — só é possível adicionar arquivos .mid e presets exportados (.json)
+files-failed-reason =
+    { $reason ->
+        [unreadable] ilegível
+        [parts] partes não escolhidas
+       *[other] falhou
+    }
+files-replaced =
+    { $count ->
+        [one] { $names } foi substituído pelo arquivo que você acabou de adicionar.
+       *[other] { $names } foram substituídos pelos arquivos que você acabou de adicionar.
+    }
 files-drop = Solte um ou mais .mid em qualquer lugar
 files-choose = Escolher arquivos
 files-presets = Arquivos de preset que você exportou (.json) podem ser soltos ou escolhidos do mesmo jeito.
@@ -331,6 +343,11 @@ done-file-dropped =
     }
 done-file-unrecognized = { $count } não rec.
 done-file-clean = sem perdas
+done-badge =
+    { $tone ->
+        [danger] Aviso
+       *[accent] Concluído
+    }
 done-heading =
     { $count ->
         [one] { $count } arquivo convertido
@@ -353,6 +370,11 @@ done-view-report = Ver relatório →
 done-convert-more = Nova conversão
 done-convert-more-hint = Outro arquivo? Os plugins e as configurações continuam iguais.
 done-report-mapping = Mapeamento errado? Me avise
+done-lost-many =
+    { $lost ->
+        [one] { $lost } de { $read } notas ficou de fora do arquivo.
+       *[other] { $lost } de { $read } notas ficaram de fora do arquivo.
+    }
 done-removed =
     { $count ->
         [one] { $count } nota do seu arquivo não está no mapa de { $source }, então foi removida. Origem errada?
@@ -365,11 +387,16 @@ done-kept =
     }
 done-kept-plays =
     { $count ->
-        [one] { $count } delas agora toca uma peça do { $target }: { $list }.
-       *[other] { $count } delas agora tocam peças do { $target }: { $list }.
+        [one] { $count } delas agora toca uma peça de { $target }: { $list }.
+       *[other] { $count } delas agora tocam peças de { $target }: { $list }.
     }
 done-pick-source = Escolher outra origem
 done-assign-notes = Atribuir as notas
+done-convert-from = Converter de novo a partir de { $engine }
+done-read-as = Lido com o mapa de { $source }.
+done-back-to = Voltar para { $previous }
+done-left-out = { $file } ficou de fora: as partes de bateria dele não foram escolhidas.
+done-left-out-pick = Escolher as partes de bateria
 done-damaged-file = { $file } estava danificado: faltava uma parte, e tudo o que restava foi convertido.
 done-damage-track-cut-bar = A faixa { $track } para no compasso { $bar }; o resto não estava no arquivo.
 done-damage-track-cut-tick = A faixa { $track } para no tick { $tick }; o resto não estava no arquivo.
@@ -406,16 +433,37 @@ done-offer =
     }
 done-offer-convert = Converter estas também
 source-fit-missing =
-    { $missing ->
-        [one] { $missing } de { $hits } notas do seu arquivo não está no mapa de { $source }.
-       *[other] { $missing } de { $hits } notas do seu arquivo não estão no mapa de { $source }.
-    } Combinam melhor: { $engines }
-source-fit-all = { $engine } (todas as notas)
-source-fit-some =
-    { $engine } ({ $count ->
-        [one] { $count } nota
-       *[other] { $count } notas
-    })
+    { $missed ->
+        [all]
+            { $hits ->
+                [one] { $source } não reconhece a única nota do seu arquivo.
+               *[other] { $source } não reconhece nenhuma das { $hits } notas do seu arquivo.
+            }
+       *[some] { $source } não reconhece { $missing } das { $hits } notas do seu arquivo.
+    }
+source-fit-all = { $engine } reconhece todas as notas.
+source-fit-some = { $engine } reconhece { $count } delas.
+source-use = Usar { $engine }
+source-fit-target =
+    { $known ->
+        [all] { $target } reconhece todas as notas: talvez seu arquivo já esteja no mapa dele.
+       *[some] { $target } reconhece { $count } delas: talvez seu arquivo já esteja no mapa dele.
+    }
+source-target-fits =
+    { $known ->
+        [all] { $target } reconhece todas as notas: talvez seu arquivo já esteja no mapa dele. { $swap }
+       *[some] { $target } reconhece { $count } delas: talvez seu arquivo já esteja no mapa dele. { $swap }
+    }
+source-swap = Converter no sentido inverso: { $target } → { $source }
+source-ask =
+    { $lacks ->
+        [kick] { $source } não encontra Kick no seu arquivo e não reconhece { $missing } das { $hits } notas dele.
+        [snare] { $source } não encontra Snare no seu arquivo e não reconhece { $missing } das { $hits } notas dele.
+       *[kickAndSnare] { $source } não encontra nem Kick nem Snare no seu arquivo e não reconhece { $missing } das { $hits } notas dele.
+    }
+source-ask-switch = Converter como { $engine }
+source-ask-pick = Escolher outra origem
+source-ask-anyway = Converter mesmo assim
 drop-missing = Remover as peças que faltam e converter de novo
 report-dropped = Removidas
 report-approximated = Substituídas

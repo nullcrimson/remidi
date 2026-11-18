@@ -1,5 +1,7 @@
 import { useT } from '../locale/localeContext';
-import { useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
+import { assignedNotes, firstListed, type Assigning } from './assigning';
 import type { Canon, Drum, Family, Note, CanonEntry } from '../core/midiremap';
 import type { SrcEdits } from '../core/overrides';
 import { canonLabels } from '../core/canon';
@@ -9,6 +11,7 @@ import { CanonPicker } from './CanonPicker';
 import { IconButton } from '../ui/IconButton';
 import { OverlayAnchor } from './overlayAnchor';
 import { TextField } from '../ui/TextField';
+import { centerAndFocus } from '../ui/reveal';
 
 function SourceEditorRow({
   note,
@@ -40,12 +43,11 @@ function SourceEditorRow({
   const t = useT();
   const [rowEl, setRowEl] = useState<HTMLDivElement | null>(null);
   return (
-    <div ref={setRowEl}>
+    <div ref={setRowEl} data-source-note={note}>
       <div
         className="
-          flex items-center justify-between gap-2 rounded-chip px-2.5 py-1.5
+          flex items-center justify-between gap-2 rounded-chip pr-2.5
           hover:bg-white/2
-          pointer-coarse:py-3
         "
       >
         <button
@@ -53,7 +55,11 @@ function SourceEditorRow({
           onClick={onToggle}
           aria-haspopup="dialog"
           aria-expanded={open}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left text-ui"
+          className="
+            flex min-w-0 flex-1 items-center gap-3 py-1.5 pl-2.5 text-left
+            text-ui
+            pointer-coarse:min-h-11 pointer-coarse:py-3
+          "
         >
           <span className="w-10 shrink-0 font-mono text-label text-t4">
             {noteName(note, base)}
@@ -100,13 +106,19 @@ function SourceEditorRow({
   );
 }
 
+/**
+ * Advanced: the source's notes and those `assigning` names, each with the drum it reads as
+ * and a picker to change it, and a field to add another note. Opened on a list of notes, the
+ * first of them is scrolled to the middle of the window and focused. Clearing a note's edit
+ * leaves focus on its row, or on the field when the row goes with the edit.
+ */
 export function SourceEditor({
   notes,
   srcEdits,
   options,
   families,
   base,
-  initialNote = null,
+  assigning = null,
   onSet,
   onClear,
 }: {
@@ -115,13 +127,24 @@ export function SourceEditor({
   options: CanonEntry[];
   families: readonly Family[];
   base: OctaveBase;
-  initialNote?: Note | null;
+  assigning?: Assigning | null;
   onSet: (note: Note, canon: Canon) => void;
   onClear: (note: Note) => void;
 }) {
   const t = useT();
-  const [openNote, setOpenNote] = useState<Note | null>(initialNote);
-  const [extra, setExtra] = useState<Note[]>(initialNote === null ? [] : [initialNote]);
+  const [openNote, setOpenNote] = useState<Note | null>(assigning?.kind === 'note' ? assigning.note : null);
+  const [extra, setExtra] = useState<Note[]>(() => assignedNotes(assigning));
+  const [first] = useState(() => firstListed(assigning));
+  const listRef = useRef<HTMLDivElement>(null);
+  const noteButton = (note: Note) => listRef.current?.querySelector<HTMLElement>(`[data-source-note="${note}"] button`) ?? null;
+  useEffect(() => {
+    const row = first === null ? null : noteButton(first);
+    if (row !== null) centerAndFocus(row, row);
+  }, [first]);
+  const clear = (note: Note) => {
+    flushSync(() => onClear(note));
+    (noteButton(note) ?? listRef.current?.querySelector<HTMLElement>('input') ?? null)?.focus();
+  };
   const [addValue, setAddValue] = useState('');
   const [invalid, setInvalid] = useState(false);
   const errorId = useId();
@@ -153,7 +176,7 @@ export function SourceEditor({
   };
 
   return (
-    <div className="flex flex-col gap-1">
+    <div ref={listRef} className="flex flex-col gap-1">
       {rowNotes.map((note) => {
         const override = srcEdits[note];
         const current = override === undefined ? (baseCanon.get(note) ?? null) : override;
@@ -171,7 +194,7 @@ export function SourceEditor({
             onToggle={() => setOpenNote(openNote === note ? null : note)}
             onClose={() => setOpenNote(null)}
             onSet={onSet}
-            onClear={onClear}
+            onClear={clear}
           />
         );
       })}

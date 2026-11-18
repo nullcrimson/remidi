@@ -20,6 +20,8 @@ function remapFor(missing: MissingDrums | null | undefined) {
       untouched: 0,
       converted: 10,
       merged: 0,
+      read: missing === 'drop' ? 13 : 10,
+      lost: missing === 'drop' ? 3 : 0,
     },
   });
 }

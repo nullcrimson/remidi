@@ -1,27 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Answer, BatchRequest, FitRequest, WorkerRequest } from '../../src/convert/workerProtocol';
+import type { AdviceRequest, Answer, BatchRequest, WorkerRequest } from '../../src/convert/workerProtocol';
 import { createConverter } from '../../src/convert/converter';
 import type { AppError } from '../../src/core/errors';
-import { moduleLoader, type LoadMidiremap, type Report, type SourceFits } from '../../src/core/midiremap';
+import { moduleLoader, type LoadMidiremap, type Report } from '../../src/core/midiremap';
 import * as stub from '../stubs/wasm';
-import { enginePair, typed } from '../typed';
+import { advisedOf, engineId, enginePair, typed } from '../typed';
 
-const REPORT = typed<Report>({ unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0 });
+const REPORT = typed<Report>({ unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0, read: 1, lost: 0 });
 const noWasm: LoadMidiremap = () => Promise.reject(new Error('no wasm'));
 const remapMock = vi.mocked(stub.remap);
 const FILES = [{ name: 'a.mid', bytes: new Uint8Array([1]) }];
 
 class FakeWorker {
   sent: BatchRequest[] = [];
-  fitsSent: FitRequest[] = [];
+  adviceSent: AdviceRequest[] = [];
   onmessage: ((e: MessageEvent) => void) | null = null;
   onerror: ((e: Event) => void) | null = null;
   onmessageerror: ((e: MessageEvent) => void) | null = null;
   terminated = false;
   postMessage(msg: WorkerRequest) {
     if (msg.kind === 'convert') this.sent.push(msg);
-    else this.fitsSent.push(msg);
+    else this.adviceSent.push(msg);
   }
 
   terminate() {
@@ -33,7 +33,7 @@ class FakeWorker {
   }
 
   reply(id: number, name: string) {
-    this.answer(id, { kind: 'convert', result: { ok: [{ input: { name, bytes: new Uint8Array([1]) }, bytes: new Uint8Array([9]), report: REPORT, damage: [], picked: [], offers: [] }], failed: [], asked: [] } });
+    this.answer(id, { kind: 'convert', result: { ok: [{ input: { name, bytes: new Uint8Array([1]) }, bytes: new Uint8Array([9]), report: REPORT, damage: [], picked: [], offers: [] }], failed: [], asked: [], heavy: false } });
   }
 
   answer(id: number, answer: Answer) {
@@ -311,43 +311,45 @@ describe('a batch whose signal aborts', () => {
   });
 });
 
-const FITS = typed<SourceFits>({ hits: 2, ranked: [{ engine: 'ezdrummer', recognized: 2 }] });
+const SD3 = engineId('superior_drummer3');
+const INVASION = engineId('ggd_invasion');
+const ADVISED = advisedOf('ggd_invasion', 'superior_drummer3', { kind: 'fits' });
 
-describe('a fit', () => {
-  it('goes to the worker with its files and channel', async () => {
+describe('an advice', () => {
+  it('goes to the worker with its files, channel, source and target', async () => {
     const { made, make } = workers();
-    const { fits } = createConverter(moduleLoader(), make);
-    const fitted = fits(FILES, '10');
-    expect(made[0].fitsSent.map((m) => [m.files, m.channel])).toEqual([[FILES, '10']]);
-    made[0].answer(made[0].fitsSent[0].id, { kind: 'fit', fits: FITS });
-    expect(await fitted).toEqual(FITS);
+    const { advice } = createConverter(moduleLoader(), make);
+    const advised = advice(FILES, '10', INVASION, SD3);
+    expect(made[0].adviceSent.map((m) => [m.files, m.channel, m.source, m.target])).toEqual([[FILES, '10', INVASION, SD3]]);
+    made[0].answer(made[0].adviceSent[0].id, { kind: 'advice', advised: ADVISED });
+    expect(await advised).toEqual(ADVISED);
   });
 
   it('runs on the main thread when no worker can be created', async () => {
-    vi.mocked(stub.source_fits).mockReturnValue(FITS);
-    const { fits } = createConverter(moduleLoader(), () => {
+    vi.mocked(stub.source_advice).mockReturnValue(ADVISED);
+    const { advice } = createConverter(moduleLoader(), () => {
       throw new ReferenceError('Worker is not defined');
     });
-    expect(await fits(FILES, 'auto')).toEqual(FITS);
+    expect(await advice(FILES, 'auto', INVASION, SD3)).toEqual(ADVISED);
   });
 
   it('is rejected when the worker answers it as another kind of request', async () => {
     const { made, make } = workers();
-    const { fits } = createConverter(moduleLoader(), make);
-    const fitted = fits(FILES, 'auto');
-    made[0].reply(made[0].fitsSent[0].id, 'a.mid');
-    await expect(fitted).rejects.toThrow('a fit request was answered as convert');
+    const { advice } = createConverter(moduleLoader(), make);
+    const advised = advice(FILES, 'auto', INVASION, null);
+    made[0].reply(made[0].adviceSent[0].id, 'a.mid');
+    await expect(advised).rejects.toThrow('request advice was answered as convert');
   });
 
   it('shares the worker with conversions, each reply going to its own request', async () => {
     const { made, make } = workers();
-    const { convert, fits } = createConverter(moduleLoader(), make);
-    const fitted = fits(FILES, 'auto');
+    const { convert, advice } = createConverter(moduleLoader(), make);
+    const advised = advice(FILES, 'auto', INVASION, SD3);
     const converted = convert(FILES, enginePair('ggd_invasion', 'ezdrummer'), undefined, 'auto', 'nearest', 'remove');
     made[0].reply(made[0].sent[0].id, 'done');
-    made[0].answer(made[0].fitsSent[0].id, { kind: 'fit', fits: FITS });
+    made[0].answer(made[0].adviceSent[0].id, { kind: 'advice', advised: ADVISED });
     expect(made).toHaveLength(1);
     expect((await converted).ok[0].input.name).toBe('done');
-    expect(await fitted).toEqual(FITS);
+    expect(await advised).toEqual(ADVISED);
   });
 });

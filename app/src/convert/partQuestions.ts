@@ -91,6 +91,11 @@ export function usePartQuestions(
   return { asked, unreadable, waiting, offers };
 }
 
+/** The names of `files` that wait for a pick, in file order, less those that `failed` to convert. */
+export function waitingFiles(files: LoadedFile[], waiting: ReadonlySet<string>, failed: FailedFile[]): string[] {
+  return files.map((f) => f.name).filter((name) => waiting.has(name) && !failed.some((f) => f.name === name));
+}
+
 /** The part of `among` with this track name on this channel, when exactly one has it. */
 function onlyNamed(among: PartSummary[], name: string, channel: number): PartSummary | undefined {
   const named = among.filter((s) => s.trackName === name && s.part.channel === channel);

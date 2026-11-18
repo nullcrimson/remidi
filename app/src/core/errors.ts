@@ -53,6 +53,23 @@ export function errorMessage(e: AppError): Message {
   }
 }
 
+const REASONS = {
+  badMidi: 'unreadable',
+  needsParts: 'parts',
+  noSuchPart: 'parts',
+  unknownEngine: 'other',
+  badPreset: 'other',
+  badOverrides: 'other',
+  badMissing: 'other',
+  internal: 'other',
+  wasmUnavailable: 'other',
+} as const satisfies Record<AppError['kind'], 'unreadable' | 'parts' | 'other'>;
+
+/** The word a failed file's chip shows for why `e` failed it: a file not read, drum parts not picked, or anything else. */
+export function errorReason(e: AppError): (typeof REASONS)[AppError['kind']] {
+  return REASONS[e.kind];
+}
+
 /** How many of `errors` there are of each kind an event names, in the order the kinds first appear. */
 export function kindCounts(errors: AppError[]): [AppError['kind'], number][] {
   const counts = new Map<AppError['kind'], number>();

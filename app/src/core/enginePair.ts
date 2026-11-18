@@ -35,6 +35,11 @@ export function engineName(engines: { id: EngineId; name: string }[], id: Engine
   return engines.find((e) => e.id === id)?.name ?? id;
 }
 
+/** A pair as one name: the source's, an arrow, and the target's. */
+export function pairName({ source, target }: EngineNames): string {
+  return `${source} → ${target}`;
+}
+
 /** The display names of a pair's engines; an engine the list lacks is named by its id. */
 export function namesOf(engines: { id: EngineId; name: string }[], { src, tgt }: EnginePair): EngineNames {
   return { source: engineName(engines, src), target: engineName(engines, tgt) };

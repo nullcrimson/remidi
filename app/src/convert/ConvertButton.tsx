@@ -5,21 +5,19 @@ import type { Blocker } from './blocker';
 import { Button } from '../ui/Button';
 import { FollowTip } from './FollowTip';
 
-/** What Convert offers: why it cannot run, or how many files it converts to which engine. */
+/** What Convert offers: why it cannot run, or how many files it converts to which engine, and converting them. */
 export type ConvertState
   = | ({ kind: 'blocked' } & Blocker<string>)
-    | { kind: 'ready'; files: number; target: string; partial: boolean };
+    | { kind: 'ready'; files: number; target: string; partial: boolean; onConvert: () => void };
 
 export function ConvertButton({
   ref,
   conv,
   state,
-  onConvert,
 }: {
   ref?: FocusRef;
   conv: Conv;
   state: ConvertState;
-  onConvert: () => void;
 }) {
   const t = useT();
   if (conv.kind === 'running') {
@@ -48,7 +46,7 @@ export function ConvertButton({
         disabled={blocker !== null}
         reason={blocker?.reason}
         quietReason={blocker?.quiet}
-        onClick={onConvert}
+        onClick={state.kind === 'ready' ? state.onConvert : () => {}}
       >
         {state.kind !== 'ready'
           ? t({ id: 'convert-button' })
