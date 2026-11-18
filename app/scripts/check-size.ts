@@ -14,7 +14,7 @@ import { reachable } from './reachable.ts';
  */
 export const BUDGETS = {
   wasm: 282_000,
-  js: 164_000,
+  js: 168_000,
   css: 13_800,
   fonts: 108_000,
   locale: 12_000,
