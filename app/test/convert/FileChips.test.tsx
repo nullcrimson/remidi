@@ -1,158 +1,63 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import type { FailedFile } from '../../src/convert/batch';
 import { FileChips } from '../../src/convert/FileChips';
 import type { AppError } from '../../src/core/errors';
+import type { LoadedFile } from '../../src/core/files';
+
+const file = (name: string): LoadedFile => ({ bytes: new Uint8Array(1), name });
+
+function chips({ files, failures = [], waiting = new Set(), onRemove = () => {}, onClear = () => {}, onPick = () => {} }: {
+  files: LoadedFile[];
+  failures?: FailedFile[];
+  waiting?: ReadonlySet<string>;
+  onRemove?: (name: string) => void;
+  onClear?: () => void;
+  onPick?: () => void;
+}) {
+  return render(
+    <FileChips files={files} failures={failures} waiting={waiting} onPick={onPick} onRemove={onRemove} onClear={onClear} skippedLine={false} />,
+  );
+}
 
 describe('FileChips', () => {
-  it('shows the prompt when empty', () => {
-    render(
-      <FileChips files={[]} failures={[]} onFiles={() => {}} onRemove={() => {}} onClear={() => {}} />,
-    );
-    expect(screen.getByText(/drop one or more .mid files/i)).toBeInTheDocument();
-    expect(
-      screen.getByText('Preset files you exported (.json) can be dropped or chosen the same way.'),
-    ).toBeInTheDocument();
-  });
-
-  it('shows a choose-files button that opens the file picker', async () => {
-    const click = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
-    render(
-      <FileChips files={[]} failures={[]} onFiles={() => {}} onRemove={() => {}} onClear={() => {}} />,
-    );
-    const picker = screen.getByRole('button', { name: /Drop one or more \.mid files anywhere Choose files$/ });
-    expect(screen.getByText('Choose files')).toHaveClass('border-accent/45');
-    await userEvent.click(picker);
-    expect(click).toHaveBeenCalledOnce();
-    click.mockRestore();
-  });
-
-  it('offers the sample groove, disabled with a hint saying to pick a FROM engine first', () => {
-    render(<FileChips files={[]} failures={[]} onFiles={() => {}} onRemove={() => {}} onClear={() => {}} />);
-    const sample = screen.getByRole('button', { name: 'Try it with a sample groove' });
-    expect(sample).toBeDisabled();
-    expect(sample).toHaveAccessibleDescription('Pick a FROM engine first');
-  });
-
-  it('adds the sample groove when it is offered and pressed', async () => {
-    const trySample = vi.fn();
-    render(<FileChips files={[]} failures={[]} onFiles={() => {}} onRemove={() => {}} onClear={() => {}} onTrySample={trySample} />);
-    const sample = screen.getByRole('button', { name: 'Try it with a sample groove' });
-    expect(sample).not.toHaveAccessibleDescription();
-    await userEvent.click(sample);
-    expect(trySample).toHaveBeenCalledOnce();
-  });
-
-  it('keeps the preset line out of the way once files are added', () => {
-    render(
-      <FileChips
-        files={[{ bytes: new Uint8Array(1), name: 'a.mid' }]}
-        failures={[]}
-        onFiles={() => {}}
-        onRemove={() => {}}
-        onClear={() => {}}
-      />,
-    );
-    expect(screen.queryByText(/Preset files you exported/)).not.toBeInTheDocument();
-  });
-
-  it('names files that were skipped for not being MIDI', () => {
-    render(
-      <FileChips
-        files={[{ bytes: new Uint8Array(1), name: 'a.mid' }]}
-        failures={[]}
-        skipped={['notes.txt', 'cover.png']}
-        onFiles={() => {}}
-        onRemove={() => {}}
-        onClear={() => {}}
-      />,
-    );
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Skipped notes.txt, cover.png — only .mid files and exported presets (.json) can be added',
-    );
-  });
-
-  it('names the files a file added under their name replaced', () => {
-    render(
-      <FileChips
-        files={[{ bytes: new Uint8Array(1), name: 'kick.mid' }]}
-        failures={[]}
-        replaced={['kick.mid']}
-        onFiles={() => {}}
-        onRemove={() => {}}
-        onClear={() => {}}
-      />,
-    );
-    expect(screen.getByRole('status')).toHaveTextContent('Replaced kick.mid with the file you just added.');
-  });
-
-  const renderTwoFiles = (onRemove: (name: string) => void = () => {}) =>
-    render(
-      <FileChips
-        files={[
-          { bytes: new Uint8Array(1), name: 'a.mid' },
-          { bytes: new Uint8Array(1), name: 'b.mid' },
-        ]}
-        failures={[]}
-        onFiles={() => {}}
-        onRemove={onRemove}
-        onClear={() => {}}
-      />,
-    );
-
   it('renders a rectangle per file', () => {
-    renderTwoFiles();
+    chips({ files: [file('a.mid'), file('b.mid')] });
     expect(screen.getByText('a.mid')).toBeInTheDocument();
     expect(screen.getByText('b.mid')).toBeInTheDocument();
   });
 
   it('removes one file', async () => {
     const onRemove = vi.fn();
-    renderTwoFiles(onRemove);
+    chips({ files: [file('a.mid'), file('b.mid')], onRemove });
     await userEvent.click(screen.getByRole('button', { name: /Remove a.mid/i }));
     expect(onRemove).toHaveBeenCalledWith('a.mid');
   });
 
   it('clears all files via the clear-all button', async () => {
     const onClear = vi.fn();
-    render(
-      <FileChips
-        files={[{ bytes: new Uint8Array(1), name: 'a.mid' }]}
-        failures={[]}
-        onFiles={() => {}}
-        onRemove={() => {}}
-        onClear={onClear}
-      />,
-    );
+    chips({ files: [file('a.mid')], onClear });
     await userEvent.click(screen.getByRole('button', { name: /clear all/i }));
     expect(onClear).toHaveBeenCalledOnce();
   });
 
+  it('asks for the file input from + add more', async () => {
+    const onPick = vi.fn();
+    chips({ files: [file('a.mid')], onPick });
+    await userEvent.click(screen.getByRole('button', { name: '+ add more' }));
+    expect(onPick).toHaveBeenCalledOnce();
+  });
+
   it('marks a failed file with danger state', () => {
-    render(
-      <FileChips
-        files={[{ bytes: new Uint8Array(1), name: 'bad.mid' }]}
-        failures={[{ name: 'bad.mid', error: { kind: 'badMidi', detail: 'parse failed' } }]}
-        onFiles={() => {}}
-        onRemove={() => {}}
-        onClear={() => {}}
-      />,
-    );
+    chips({ files: [file('bad.mid')], failures: [{ name: 'bad.mid', error: { kind: 'badMidi', detail: 'parse failed' } }] });
     const chip = screen.getByText('bad.mid').closest('[data-state]');
     expect(chip).toHaveAttribute('data-state', 'failed');
     expect(chip).toHaveAttribute('title', 'Not a MIDI file this converter can read Details: parse failed');
   });
 
   const failedChip = (error: AppError) => {
-    render(
-      <FileChips
-        files={[{ bytes: new Uint8Array(1), name: 'bad.mid' }]}
-        failures={[{ name: 'bad.mid', error }]}
-        onFiles={() => {}}
-        onRemove={() => {}}
-        onClear={() => {}}
-      />,
-    );
+    chips({ files: [file('bad.mid')], failures: [{ name: 'bad.mid', error }] });
     return screen.getByText('bad.mid').closest('[data-state]');
   };
 
@@ -169,16 +74,7 @@ describe('FileChips', () => {
   });
 
   it('marks a file waiting for its drum parts and says why', () => {
-    render(
-      <FileChips
-        files={[{ bytes: new Uint8Array(1), name: 'song.mid' }, { bytes: new Uint8Array(1), name: 'drums.mid' }]}
-        failures={[]}
-        waiting={new Set(['song.mid'])}
-        onFiles={() => {}}
-        onRemove={() => {}}
-        onClear={() => {}}
-      />,
-    );
+    chips({ files: [file('song.mid'), file('drums.mid')], waiting: new Set(['song.mid']) });
     const waiting = screen.getByText('song.mid').closest('[data-state]');
     expect(waiting).toHaveAttribute('data-state', 'waiting');
     expect(waiting).toHaveTextContent(/pick this file's drum parts first/i);
@@ -186,16 +82,11 @@ describe('FileChips', () => {
   });
 
   it('marks a file that failed as failed even while it waits for its drum parts', () => {
-    render(
-      <FileChips
-        files={[{ bytes: new Uint8Array(1), name: 'bad.mid' }]}
-        failures={[{ name: 'bad.mid', error: { kind: 'badMidi', detail: 'parse failed' } }]}
-        waiting={new Set(['bad.mid'])}
-        onFiles={() => {}}
-        onRemove={() => {}}
-        onClear={() => {}}
-      />,
-    );
+    chips({
+      files: [file('bad.mid')],
+      failures: [{ name: 'bad.mid', error: { kind: 'badMidi', detail: 'parse failed' } }],
+      waiting: new Set(['bad.mid']),
+    });
     expect(screen.getByText('bad.mid').closest('[data-state]')).toHaveAttribute('data-state', 'failed');
   });
 });

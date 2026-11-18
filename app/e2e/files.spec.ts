@@ -21,6 +21,17 @@ test('Choose files lists the picked files and enables Convert', async ({ page })
   await expect(convert).toBeEnabled();
 });
 
+test('a file set on the input found before the first file arrived is listed', async ({ page }) => {
+  await openPair(page);
+  const found = await page.getByTestId('file-input').elementHandle();
+  await addFiles(page, kick('one.mid'));
+  await expect(page.getByText('one.mid', { exact: true })).toBeVisible();
+
+  await found.setInputFiles(kick('two.mid'));
+  await expect(page.getByText('two.mid', { exact: true })).toBeVisible();
+  await expect(page.getByText('one.mid', { exact: true })).toBeVisible();
+});
+
 test('a picked file is removed on its own', async ({ page }) => {
   await openPair(page);
   const convert = convertButton(page);

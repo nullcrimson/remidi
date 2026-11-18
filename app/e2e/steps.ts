@@ -46,6 +46,15 @@ export async function openHalpernTo(page: Page, to: string, file: ReturnType<typ
   await expect(page.getByRole('status').filter({ hasText: /doesn't know any of the \d+ notes in your file\./ })).toBeVisible();
 }
 
+/** Presses Tab, at most `most` times, until `target` has focus. */
+export async function tabTo(page: Page, target: Locator, most = 10) {
+  for (let i = 0; i < most; i += 1) {
+    if (await target.evaluate((el) => el === document.activeElement)) return;
+    await page.keyboard.press('Tab');
+  }
+  await expect(target).toBeFocused();
+}
+
 /** Taps on a touch screen and clicks elsewhere, as a person on that device would. */
 export async function press(target: Locator) {
   await (test.info().project.use.hasTouch ? target.tap() : target.click());

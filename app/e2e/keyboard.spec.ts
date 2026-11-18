@@ -9,18 +9,11 @@ import {
   presetChip,
   retarget,
   saveKickPreset,
+  tabTo,
   targetNote,
 } from './steps';
 
 const groove = () => midFile('groove.mid', [{ channel: DRUMS, key: 24 }]);
-
-async function tabTo(page: Page, target: Locator, most = 10) {
-  for (let i = 0; i < most; i += 1) {
-    if (await target.evaluate((el) => el === document.activeElement)) return;
-    await page.keyboard.press('Tab');
-  }
-  await expect(target).toBeFocused();
-}
 
 test('walks from page load to a converted file by keyboard', async ({ page }) => {
   await page.goto('/');
@@ -53,7 +46,7 @@ test('walks from page load to a converted file by keyboard', async ({ page }) =>
 
   await tabTo(page, page.getByRole('button', { name: 'Convert more' }));
   await page.keyboard.press('Enter');
-  await expect(page.locator('button:has(+ [data-testid=file-input])')).toBeFocused();
+  await expect(page.getByRole('button', { name: /Choose files$/ })).toBeFocused();
 });
 
 test('focus moves to the TO engine card when files arrive and TO is missing', async ({ page }) => {
@@ -215,7 +208,7 @@ test('a control reached with Tab shows a focus ring, one focused after a mouse p
 
   await convertButton.click();
   await page.getByRole('button', { name: 'Convert more' }).click();
-  const filePicker = page.locator('button:has(+ [data-testid=file-input])');
+  const filePicker = page.getByRole('button', { name: /Choose files$/ });
   await expect(filePicker).toBeFocused();
   expect(await outline(filePicker)).toMatch(/^none /);
 });

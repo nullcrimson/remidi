@@ -1,38 +1,25 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { FilePicker } from '../../src/convert/FilePicker';
 
 describe('FilePicker', () => {
-  it('offers the MIDI and preset extensions in its file dialog', () => {
-    render(<FilePicker onFiles={vi.fn()}>choose</FilePicker>);
-    expect(screen.getByTestId('file-input')).toHaveAttribute('accept', '.mid,.midi,.json');
+  it('is a button named by what it shows', () => {
+    render(<FilePicker onPick={vi.fn()}>choose</FilePicker>);
+    expect(screen.getByRole('button', { name: 'choose' })).toHaveAttribute('type', 'button');
   });
 
-  it('reads multiple chosen files into byte arrays', async () => {
-    const onFiles = vi.fn();
-    render(<FilePicker onFiles={onFiles}>choose</FilePicker>);
-    const input = screen.getByTestId('file-input') as HTMLInputElement;
-    await userEvent.upload(input, [
-      new File([new Uint8Array([1, 2])], 'a.mid', { type: 'audio/midi' }),
-      new File([new Uint8Array([3])], 'b.mid', { type: 'audio/midi' }),
-    ]);
-    await waitFor(() => expect(onFiles).toHaveBeenCalledTimes(1));
-    const arg = onFiles.mock.calls[0][0];
-    expect(arg.map((f: { name: string }) => f.name)).toEqual(['a.mid', 'b.mid']);
-    expect(Array.from(arg[0].bytes)).toEqual([1, 2]);
+  it('asks for the file input when pressed', async () => {
+    const onPick = vi.fn();
+    render(<FilePicker onPick={onPick}>choose</FilePicker>);
+    await userEvent.click(screen.getByRole('button', { name: 'choose' }));
+    expect(onPick).toHaveBeenCalledOnce();
   });
 
-  it('passes only .mid/.midi files and names the skipped ones', async () => {
-    const onFiles = vi.fn();
-    const user = userEvent.setup({ applyAccept: false });
-    render(<FilePicker onFiles={onFiles}>choose</FilePicker>);
-    await user.upload(screen.getByTestId('file-input'), [
-      new File([new Uint8Array([1])], 'a.MIDI'),
-      new File([new Uint8Array([2])], 'notes.txt'),
-    ]);
-    await waitFor(() => expect(onFiles).toHaveBeenCalledTimes(1));
-    expect(onFiles.mock.calls[0][0].map((f: { name: string }) => f.name)).toEqual(['a.MIDI']);
-    expect(onFiles.mock.calls[0][1]).toEqual(['notes.txt']);
+  it('spans its row unless told not to', () => {
+    const { rerender } = render(<FilePicker onPick={vi.fn()}>choose</FilePicker>);
+    expect(screen.getByRole('button')).toHaveClass('w-full');
+    rerender(<FilePicker onPick={vi.fn()} fullWidth={false}>choose</FilePicker>);
+    expect(screen.getByRole('button')).not.toHaveClass('w-full');
   });
 });

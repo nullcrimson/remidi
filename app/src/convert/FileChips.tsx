@@ -1,16 +1,13 @@
-import { listed } from '../locale/list';
-import { useLocale } from '../locale/localeContext';
+import type { ReactElement } from 'react';
+import { useT } from '../locale/localeContext';
 import type { FailedFile } from './batch';
 import { errorReason } from '../core/errors';
-import type { LoadedFile, OnFiles } from '../core/files';
+import type { LoadedFile } from '../core/files';
 import { track } from '../core/stats';
 import { errorTitle } from '../ui/errorTitle';
-import type { FocusRef } from '../ui/useFocusIntent';
 import { FilePicker } from './FilePicker';
 import { IconButton } from '../ui/IconButton';
 import { MidBadge } from './MidBadge';
-import { PlayIcon } from './PlayIcon';
-import { UploadIcon } from './UploadIcon';
 import { TextButton } from '../ui/TextButton';
 
 const CHIP_TONE = {
@@ -25,94 +22,25 @@ function chipState(failed: boolean, waiting: boolean): keyof typeof CHIP_TONE {
   return waiting ? 'waiting' : 'ok';
 }
 
+/** The files added: a chip per file, a button to add more and one to clear them all. */
 export function FileChips({
   files,
   failures,
-  waiting = new Set(),
-  skipped = [],
-  replaced = [],
-  onFiles,
+  waiting,
+  onPick,
   onRemove,
   onClear,
-  onTrySample,
-  pickerRef,
+  skippedLine,
 }: {
-  pickerRef?: FocusRef;
-  onTrySample?: () => void;
   files: LoadedFile[];
   failures: FailedFile[];
-  waiting?: ReadonlySet<string>;
-  skipped?: string[];
-  replaced?: string[];
-  onFiles: OnFiles;
+  waiting: ReadonlySet<string>;
+  onPick: () => void;
   onRemove: (name: string) => void;
   onClear: () => void;
+  skippedLine: ReactElement | false;
 }) {
-  const { t, locale } = useLocale().translator;
-  const skippedLine = (skipped.length > 0 || replaced.length > 0) && (
-    <div role="status" className="flex w-full flex-col gap-1 text-label text-t4">
-      {replaced.length > 0 && <p>{t({ id: 'files-replaced', args: { count: replaced.length, names: listed(locale, replaced) } })}</p>}
-      {skipped.length > 0 && <p>{t({ id: 'files-skipped', args: { names: listed(locale, skipped) } })}</p>}
-    </div>
-  );
-  if (files.length === 0) {
-    return (
-      <div className="flex flex-col gap-2">
-        <div className="
-          flex flex-col rounded-card border-[1.5px] border-dashed
-          border-accent/25 bg-inset transition-colors
-          has-[button:first-child:focus-visible]:border-accent/60
-          has-[button:first-child:hover]:border-accent/60
-        "
-        >
-          <FilePicker ref={pickerRef} onFiles={onFiles}>
-            <div className="
-              group flex flex-col items-center gap-3 px-5 pt-6 pb-4 text-center
-            "
-            >
-              <UploadIcon />
-              <span className="
-                flex flex-wrap items-center justify-center gap-x-3 gap-y-2
-                text-body text-t2
-              "
-              >
-                <span>{t({ id: 'files-drop' })}</span>
-                <span className="
-                  inline-flex items-center justify-center rounded-full border
-                  border-accent/45 px-4 py-1.5 font-display text-ui
-                  font-semibold text-accent transition
-                  group-hover:border-accent group-hover:bg-accent/8
-                  pointer-coarse:min-h-11
-                "
-                >
-                  {t({ id: 'files-choose' })}
-                </span>
-              </span>
-            </div>
-          </FilePicker>
-          <div className="
-            mx-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1
-            border-t border-hairline py-3 text-ui text-t4
-          "
-          >
-            <span>{t({ id: 'files-sample-lead' })}</span>
-            <TextButton
-              onClick={() => onTrySample?.()}
-              disabled={onTrySample === undefined}
-              reason={t({ id: 'files-sample-needs-from' })}
-            >
-              <PlayIcon />
-              <span>{t({ id: 'files-sample' })}</span>
-            </TextButton>
-          </div>
-        </div>
-        <p className="text-label text-t5">
-          {t({ id: 'files-presets' })}
-        </p>
-        {skippedLine}
-      </div>
-    );
-  }
+  const t = useT();
   const failed = new Map(failures.map((f) => [f.name, f.error]));
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -153,7 +81,7 @@ export function FileChips({
           </div>
         );
       })}
-      <FilePicker onFiles={onFiles} fullWidth={false}>
+      <FilePicker onPick={onPick} fullWidth={false}>
         <span className="
           inline-flex items-center rounded-full border border-dashed
           border-accent/35 px-3.5 py-1 text-ui text-star/85 transition-colors
