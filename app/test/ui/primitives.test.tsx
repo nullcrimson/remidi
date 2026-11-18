@@ -158,7 +158,8 @@ describe('TextButton', () => {
     render(<TextButton onClick={onClick}>View report →</TextButton>);
     await userEvent.click(screen.getByRole('button', { name: 'View report →' }));
     expect(onClick).toHaveBeenCalledOnce();
-    expect(screen.getByRole('button', { name: 'View report →' })).toHaveClass('text-star/85', 'hover:underline');
+    expect(screen.getByRole('button', { name: 'View report →' })).toHaveClass('text-action-gold');
+    expect(utility('text-action-gold')).toMatch(/@apply text-star\/85 .*hover:underline/);
   });
 
   it('is a link when given href', () => {
@@ -227,7 +228,8 @@ describe('touch targets', () => {
 
   it('grows the hit area of text buttons on coarse pointers', () => {
     render(<TextButton onClick={() => {}}>View report →</TextButton>);
-    expect(screen.getByRole('button', { name: 'View report →' })).toHaveClass('tap');
+    expect(screen.getByRole('button', { name: 'View report →' })).toHaveClass('text-action');
+    expect(utility('text-action')).toMatch(/@apply tap /);
   });
 
   it('grows the hit area of prose links on coarse pointers', () => {

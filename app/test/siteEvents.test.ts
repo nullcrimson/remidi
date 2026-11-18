@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import type * as TypeScript from 'typescript';
 import { describe, expect, it } from 'vitest';
+import { HANDOFF_PAGES } from '../src/core/sharePage';
 
 const ts: typeof TypeScript = createRequire(import.meta.url)('typescript');
 
@@ -83,6 +84,14 @@ describe('the events the static pages send', () => {
 
   it('tracks only events of the map from the static scripts', () => {
     expect(trackCalls.filter(({ event }) => !EVENTS.has(event)).map(({ name, event }) => `${name}: ${event}`)).toEqual([]);
+  });
+
+  it('names on every handoff line of the templates a page page-shared knows', () => {
+    const named = TEMPLATES.flatMap(({ name, text }) =>
+      [...text.matchAll(/macros::phone_handoff\("([^"]*)"\)/g)].map((m) => ({ name, page: m[1] })),
+    );
+    expect(named).not.toEqual([]);
+    expect(named.filter(({ page }) => !(HANDOFF_PAGES as readonly string[]).includes(page)).map(({ name, page }) => `${name}: ${page}`)).toEqual([]);
   });
 
   it('sends only parameters of its event from the static scripts', () => {

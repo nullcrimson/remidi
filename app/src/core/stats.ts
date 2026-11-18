@@ -47,6 +47,7 @@ const TIER_OF = {
   'file-failed': 1,
   downloaded: 1,
   'rack-downloaded': 2,
+  'page-shared': 2,
   'convert-again': 1,
   'report-opened': 2,
   'report-fix-used': 2,

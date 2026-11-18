@@ -3,6 +3,7 @@ import type { AppError } from './errors';
 import type { EngineId, MissingDrums, Unrecognized } from './midiremap';
 import type { SrcViaKind } from './selection';
 import type { ShareBucket } from './share';
+import type { HandoffPage, SharedHow } from './sharePage';
 
 /** The kinds of error the events name: the app's own. */
 export type ErrorKind = AppError['kind'];
@@ -20,6 +21,7 @@ export interface StatEvents {
   'drum-map-downloaded': { engine: string; daw: 'reaper' | 'cubase' | 'studio-one' | 'ableton' | 'logic'; page: 'engine' | 'drum-maps' };
   'note-map-downloaded': { engine: string; page: 'engine' | 'drum-maps' };
   'rack-downloaded': { where: 'summary' | 'preset'; edited: boolean } | { where: 'pair' };
+  'page-shared': { page: HandoffPage; how: SharedHow };
   'language-offered': { to: Locale };
   'language-offer-answered': { to: Locale; answer: 'accepted' | 'dismissed' | 'ignored' };
   'engine-picked': { side: 'from' | 'to'; id: string; via: 'list' | 'filter' | 'favorite' };

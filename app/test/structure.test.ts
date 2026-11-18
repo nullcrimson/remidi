@@ -95,8 +95,10 @@ function loadedBy(entry: string): string[] {
 }
 
 describe('app structure', () => {
-  it('loads on a static page only its language script, the stored choice and offer, and the event sender', () => {
+  it('loads on a static page only its language script, the stored choice and offer, the page sharer and the event sender', () => {
     expect(loadedBy(`${SRC_PREFIX}locale/staticPagesEntry`)).toEqual([
+      'core/pageHandoff.ts',
+      'core/sharePage.ts',
       'core/storage.ts',
       'core/umami.ts',
       'generated/localeCodes',
@@ -158,12 +160,12 @@ describe('app structure', () => {
     expect(direct).toEqual([]);
   });
 
-  it('takes the event sender only into core/stats and the static page script', () => {
+  it('takes the event sender only into core/stats and the static page scripts', () => {
     const senders = Object.entries(SOURCES)
       .filter(([file, text]) => codeImports(file, text).includes(`${SRC_PREFIX}core/umami`))
       .map(([file]) => file.slice(SRC_PREFIX.length))
       .sort();
-    expect(senders).toEqual(['core/stats.ts', 'locale/staticPages.ts']);
+    expect(senders).toEqual(['core/pageHandoff.ts', 'core/stats.ts', 'locale/staticPages.ts']);
   });
 
   it('imports generated/ from the folders of the table and wasm/ only from core', () => {

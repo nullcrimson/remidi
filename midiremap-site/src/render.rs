@@ -1734,6 +1734,50 @@ mod tests {
         assert!(wrapper.contains(r#"data-umami-event-where="pair""#));
     }
 
+    fn assert_offers_handoff(html: &str, kind: &str) {
+        assert_eq!(attrs(html, "[data-handoff]", "data-handoff"), [kind]);
+        assert_eq!(
+            texts(html, "[data-handoff] [data-share]"),
+            ["Send this page"]
+        );
+        assert_eq!(
+            attrs(html, "[data-handoff] [data-shared][hidden]", "data-shared"),
+            ["copied", "failed"]
+        );
+        assert!(html.contains("Working on a computer? Send yourself this page."));
+    }
+
+    #[test]
+    fn an_engine_page_offers_a_phone_a_button_that_sends_the_page_on() {
+        assert_offers_handoff(page("engines/ggd-invasion/index.html"), "engine");
+    }
+
+    #[test]
+    fn the_drum_maps_page_offers_a_phone_a_button_that_sends_the_page_on() {
+        assert_offers_handoff(page("drum-maps/index.html"), "drum-maps");
+    }
+
+    #[test]
+    fn a_pair_page_offers_a_phone_a_button_that_sends_the_page_on() {
+        assert_offers_handoff(page(INVASION_TO_EZDRUMMER), "pair");
+    }
+
+    #[test]
+    fn the_button_that_sends_the_page_on_speaks_the_language_of_the_page() {
+        assert_eq!(
+            texts(
+                page("pl/engines/ggd-invasion/index.html"),
+                "[data-handoff] [data-share]"
+            ),
+            ["Wyślij tę stronę"]
+        );
+    }
+
+    #[test]
+    fn a_page_without_downloads_offers_nothing_to_send_on() {
+        assert!(attrs(page("faq/index.html"), "[data-handoff]", "data-handoff").is_empty());
+    }
+
     #[test]
     fn a_pair_page_says_dropped_drums_stay_silent_only_when_it_drops_some() {
         let silent = "stay silent; their rows show only a note name.";
