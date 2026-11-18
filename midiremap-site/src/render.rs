@@ -440,7 +440,6 @@ mod tests {
     use super::*;
     use crate::{
         meta::{fit, DESCRIPTION_MAX},
-        pages::MAJORS,
         routes::pair_href,
     };
 
@@ -1322,7 +1321,7 @@ mod tests {
             .nth(1)
             .and_then(|rest| rest.split("</ul>").next())
             .unwrap();
-        for m in &crate::fixtures::site().index.majors {
+        for m in &crate::fixtures::site().index.hubs {
             assert!(
                 quick.contains(&format!(
                     r#"href="{}">{}<span class="font-mono text-caption text-t5">{} notes</span>"#,
@@ -1838,7 +1837,7 @@ mod tests {
         assert_eq!(
             html.matches(r#"data-umami-event="drum-map-downloaded""#)
                 .count(),
-            site.drum_map_files.len() + site.index.majors.len() * Daw::ALL.len()
+            site.drum_map_files.len() + site.index.hubs.len() * Daw::ALL.len()
         );
         assert!(download_wrapper(html, "/drum-maps/files/ssd5.drm")
             .contains(r#"data-umami-event-page="drum-maps""#));
@@ -1963,8 +1962,12 @@ mod tests {
             .filter_map(|row| row.split(r#"href="/engines/"#).nth(1))
             .filter_map(|rest| rest.split('/').next())
             .collect();
-        let majors: Vec<String> = MAJORS.iter().map(|(id, _)| id.replace('_', "-")).collect();
-        assert_eq!(first, majors);
+        let hub_ids: Vec<String> = Catalog::builtin()
+            .hubs()
+            .iter()
+            .map(|(engine, _)| engine.id().replace('_', "-"))
+            .collect();
+        assert_eq!(first, hub_ids);
     }
 
     #[test]

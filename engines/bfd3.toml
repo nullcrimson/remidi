@@ -2,6 +2,7 @@ id = "bfd3"
 name = "BFD3 Drums"
 short_name = "BFD3"
 vendor = "BFD"
+hub = { standing = "major", column = "BFD3", order = 7 }
 notes = [
   { note = 18, canon = "hat.cc.tip", primary = true },
   { note = 20, canon = "hat.cc.edge", primary = true },

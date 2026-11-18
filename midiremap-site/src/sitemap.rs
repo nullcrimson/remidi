@@ -58,7 +58,7 @@ mod tests {
     use super::*;
     use crate::{
         i18n::{Locale, SectionKey},
-        pages::{EXCLUDED_IDS, MAJORS, TARGETS},
+        pages::{EXCLUDED_IDS, TARGETS},
         routes::{pair_href, Page, DRUM_MAPS},
     };
 
@@ -95,7 +95,8 @@ mod tests {
         let doc = roxmltree::Document::parse(xml).unwrap();
         let locs: Vec<&str> = locations(&doc);
         let engines = catalog.ids().count() - EXCLUDED_IDS.len();
-        let pairs = MAJORS.len() * (MAJORS.len() - 1) + (engines - MAJORS.len()) * TARGETS.len();
+        let hubs = catalog.hubs().len();
+        let pairs = hubs * (hubs - 1) + (engines - hubs) * TARGETS.len();
         let docs = crate::fixtures::docs();
         let sections: usize = Locale::ALL
             .iter()

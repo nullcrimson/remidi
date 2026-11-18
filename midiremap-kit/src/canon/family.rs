@@ -27,6 +27,12 @@ impl Family {
     pub fn label(self) -> &'static str {
         self.into()
     }
+
+    /// Whether the family is one of the core three a groove keeps time on: the kick, the snare
+    /// and the hi-hat.
+    pub fn is_core(self) -> bool {
+        matches!(self, Self::Kick | Self::Snare | Self::HiHat)
+    }
 }
 
 impl fmt::Display for Family {

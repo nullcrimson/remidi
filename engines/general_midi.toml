@@ -2,6 +2,7 @@ id = "general_midi"
 name = "GM (General Midi Standard)"
 short_name = "General MIDI"
 vendor = "Standards"
+hub = { standing = "standard", column = "GM", order = 1 }
 notes = [
   # Source: https://midi.org/general-midi-level-1
   { note = 31, canon = "perc.sticks", primary = true },

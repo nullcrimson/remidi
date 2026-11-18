@@ -27,18 +27,6 @@ pub enum BuildError {
     NoPairPage(String),
 }
 
-/// The popular engines that get pair pages, with their column label in the index matrix.
-pub const MAJORS: [(&str, &str); 8] = [
-    ("general_midi", "GM"),
-    ("ggd_invasion", "Invasion"),
-    ("ezdrummer", "EZD3"),
-    ("superior_drummer3", "SD3"),
-    ("addictive_drums2", "AD2"),
-    ("ssd5", "SSD5"),
-    ("bfd3", "BFD3"),
-    ("guitar_pro", "GP"),
-];
-
 /// The engines every other engine gets a pair page to.
 pub const TARGETS: [&str; 5] = [
     "ezdrummer",
@@ -498,9 +486,9 @@ pub struct VendorGroup {
 }
 
 pub struct IndexPage {
-    /// The popular engines, in `MAJORS` order.
-    pub majors: Vec<EngineCount>,
-    pub columns: Vec<&'static str>,
+    /// The hubs, in [`hubs`] order.
+    pub hubs: Vec<EngineCount>,
+    pub columns: Vec<String>,
     pub matrix: Vec<MatrixRow>,
     pub vendors: Vec<VendorGroup>,
     /// The engines without a vendor group: no vendor, or a vendor that makes no other engine.
@@ -511,9 +499,9 @@ pub struct IndexPage {
 }
 
 impl IndexPage {
-    /// The popular engines' links, in `MAJORS` order.
-    pub fn major_links(&self) -> Vec<&EngineLink> {
-        self.majors.iter().map(|m| &m.link).collect()
+    /// The hubs' links, in [`hubs`] order.
+    pub fn hub_links(&self) -> Vec<&EngineLink> {
+        self.hubs.iter().map(|m| &m.link).collect()
     }
 }
 
@@ -568,13 +556,12 @@ fn summaries(pairs: &[PairPage], wanted: &[(&str, &str)]) -> Result<Vec<PairSumm
         .collect()
 }
 
-fn matrix(majors: &[&EngineMap], pairs: &[PairPage]) -> Result<Vec<MatrixRow>, BuildError> {
-    majors
-        .iter()
+fn matrix(hubs: &[&EngineMap], pairs: &[PairPage]) -> Result<Vec<MatrixRow>, BuildError> {
+    hubs.iter()
         .map(|s| {
             Ok(MatrixRow {
                 engine: EngineLink::of(s),
-                cells: majors
+                cells: hubs
                     .iter()
                     .map(|t| {
                         (t.id() != s.id())
@@ -598,24 +585,23 @@ fn unique_slugs(maps: &[&EngineMap]) -> Result<(), BuildError> {
         })
 }
 
-/// The pairs with a page: every major to every other major, and every other engine to each
+/// The pairs with a page: every hub to every other hub, and every other engine to each
 /// target.
 fn routes<'a>(
-    majors: &[&'a EngineMap],
+    hubs: &[&'a EngineMap],
     targets: &[&'a EngineMap],
     maps: &[&'a EngineMap],
 ) -> Vec<Route<'a>> {
-    let hub = majors.iter().flat_map(|&s| {
-        majors
-            .iter()
+    let among_hubs = hubs.iter().flat_map(|&s| {
+        hubs.iter()
             .filter(move |t| t.id() != s.id())
             .map(move |&t| (s, t))
     });
     let wide = maps
         .iter()
-        .filter(|m| majors.iter().all(|h| h.id() != m.id()))
+        .filter(|m| hubs.iter().all(|h| h.id() != m.id()))
         .flat_map(|&s| targets.iter().map(move |&t| (s, t)));
-    hub.chain(wide).collect()
+    among_hubs.chain(wide).collect()
 }
 
 fn lookup<'a>(catalog: &'a Catalog, id: &str) -> Result<&'a EngineMap, BuildError> {
@@ -765,10 +751,8 @@ fn vendor_groups(listed: Vec<ListedEngine>) -> (Vec<VendorGroup>, Vec<ListedEngi
 
 impl Site {
     pub fn build(catalog: &Catalog) -> Result<Site, BuildError> {
-        let majors = MAJORS
-            .iter()
-            .map(|(id, _)| lookup(catalog, id))
-            .collect::<Result<Vec<_>, _>>()?;
+        let declared = catalog.hubs();
+        let hubs: Vec<&EngineMap> = declared.iter().map(|&(engine, _)| engine).collect();
         let targets = TARGETS
             .iter()
             .map(|id| lookup(catalog, id))
@@ -783,7 +767,7 @@ impl Site {
         sort_by_name(&mut maps);
 
         unique_slugs(&maps)?;
-        let routes = routes(&majors, &targets, &maps);
+        let routes = routes(&hubs, &targets, &maps);
 
         let engines = maps.iter().map(|m| engine_page(m, &routes)).collect();
         let drum_map_files = maps
@@ -803,15 +787,18 @@ impl Site {
             .unzip();
         let (vendors, more) = vendor_groups(listed(catalog, &maps));
         let index = IndexPage {
-            majors: majors
+            hubs: hubs
                 .iter()
                 .map(|m| EngineCount {
                     link: EngineLink::of(m),
                     notes: m.source_notes().len(),
                 })
                 .collect(),
-            columns: MAJORS.iter().map(|(_, abbr)| *abbr).collect(),
-            matrix: matrix(&majors, &pairs)?,
+            columns: declared
+                .iter()
+                .map(|(_, hub)| hub.column().to_owned())
+                .collect(),
+            matrix: matrix(&hubs, &pairs)?,
             vendors,
             more,
             listed: listed(catalog, &maps),
@@ -847,7 +834,7 @@ mod tests {
     use crate::fixtures::site;
 
     fn hub_engines() -> usize {
-        MAJORS.len()
+        Catalog::builtin().hubs().len()
     }
 
     fn other_engines() -> usize {
@@ -1041,7 +1028,11 @@ mod tests {
 
     #[test]
     fn every_target_is_a_hub_engine() {
-        assert!(TARGETS.iter().all(|t| MAJORS.iter().any(|(id, _)| id == t)));
+        let catalog = Catalog::builtin();
+        let hubs = catalog.hubs();
+        assert!(TARGETS
+            .iter()
+            .all(|t| hubs.iter().any(|(engine, _)| engine.id() == *t)));
     }
 
     #[test]
@@ -1070,7 +1061,7 @@ mod tests {
     }
 
     #[test]
-    fn major_engine_pages_link_seven_pairs_from_the_engine() {
+    fn hub_engine_pages_link_seven_pairs_from_the_engine() {
         let s = site();
         let ezd = s
             .engines
@@ -1377,7 +1368,7 @@ mod tests {
     }
 
     #[test]
-    fn index_matrix_links_every_major_pair() {
+    fn index_matrix_links_every_hub_pair() {
         let s = site();
         let mut slugs = HashSet::new();
         for row in s.index.matrix.iter() {
@@ -1430,20 +1421,34 @@ mod tests {
     }
 
     #[test]
-    fn index_majors_keep_the_majors_order() {
-        let ids: Vec<&str> = site()
+    fn index_hubs_follow_the_order_their_files_give() {
+        let catalog = Catalog::builtin();
+        let orders: Vec<u8> = site()
             .index
-            .majors
+            .hubs
             .iter()
-            .map(|m| m.link.id.as_str())
+            .map(|m| catalog.get(&m.link.id).unwrap().hub().unwrap().order())
             .collect();
-        assert_eq!(ids, MAJORS.map(|(id, _)| id));
+        assert!(orders.windows(2).all(|w| w[0] < w[1]), "{orders:?}");
     }
 
     #[test]
-    fn index_majors_count_their_engines_notes() {
+    fn the_index_matrix_labels_each_column_as_its_hubs_file_does() {
+        let catalog = Catalog::builtin();
+        let s = site();
+        let columns: Vec<&str> = s
+            .index
+            .hubs
+            .iter()
+            .map(|m| catalog.get(&m.link.id).unwrap().hub().unwrap().column())
+            .collect();
+        assert_eq!(s.index.columns, columns);
+    }
+
+    #[test]
+    fn index_hubs_count_their_engines_notes() {
         let maps = Catalog::builtin();
-        for m in &site().index.majors {
+        for m in &site().index.hubs {
             assert_eq!(m.notes, maps.get(&m.link.id).unwrap().source_notes().len());
         }
     }
@@ -1810,10 +1815,10 @@ mod tests {
     }
 
     #[test]
-    fn missing_major_engine_is_an_error() {
+    fn a_missing_target_is_an_error() {
         let empty = Catalog::from_maps([]).unwrap();
         assert!(
-            matches!(Site::build(&empty), Err(BuildError::UnknownEngine(id)) if id == "general_midi")
+            matches!(Site::build(&empty), Err(BuildError::UnknownEngine(id)) if id == TARGETS[0])
         );
     }
 }

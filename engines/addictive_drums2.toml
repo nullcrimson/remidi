@@ -2,6 +2,7 @@ id = "addictive_drums2"
 name = "Addictive Drums 2"
 short_name = "Addictive Drums 2"
 vendor = "XLN Audio"
+hub = { standing = "major", column = "AD2", order = 5 }
 open_hat_level = 1
 notes = [
   { note = 3, canon = "ride.2" },

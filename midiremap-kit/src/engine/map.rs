@@ -6,7 +6,10 @@ use std::{
 use midiremap_note::Note;
 use serde::{Deserialize, Serialize};
 
-use super::ladder::HatLadder;
+use super::{
+    ladder::HatLadder,
+    standing::{Hub, Standing},
+};
 use crate::{
     canon::{Canon, CanonEntry, OpenLevel},
     non_blank::NonBlank,
@@ -41,6 +44,8 @@ struct RawMap {
     grooves_from: Option<Note>,
     #[serde(default)]
     open_hat_level: Option<OpenLevel>,
+    #[serde(default)]
+    hub: Option<Hub>,
     notes: Vec<RawEntry>,
 }
 
@@ -106,6 +111,7 @@ pub struct EngineMap {
     aliases: Vec<String>,
     variant: Option<Variant>,
     grooves_from: Option<Note>,
+    hub: Option<Hub>,
     hat_ladder: Option<HatLadder>,
     kit: Kit,
     to_canon: HashMap<Note, Canon>,
@@ -148,6 +154,7 @@ impl EngineMap {
                 aliases: Vec::new(),
                 variant: None,
                 grooves_from: None,
+                hub: None,
                 open_hat_level: Canon::CORE_KIT.iter().find_map(|c| c.rung()?.0.level()),
                 notes: notes
                     .map(|(note, canon)| RawEntry {
@@ -210,6 +217,16 @@ impl EngineMap {
     /// such keys.
     pub fn grooves_from(&self) -> Option<Note> {
         self.grooves_from
+    }
+
+    /// What makes the engine one of the site's hubs, when its file declares one.
+    pub fn hub(&self) -> Option<&Hub> {
+        self.hub.as_ref()
+    }
+
+    /// How widely the engine's layout is known: [`Standing::Other`] without a hub.
+    pub fn standing(&self) -> Standing {
+        self.hub.as_ref().map_or(Standing::Other, Hub::standing)
     }
 
     /// Former ids that still find this engine.
@@ -336,6 +353,7 @@ fn build(raw: RawMap) -> Result<EngineMap, MapError> {
         aliases: raw.aliases,
         variant,
         grooves_from: raw.grooves_from,
+        hub: raw.hub,
         hat_ladder,
         kit,
         to_canon,
@@ -493,6 +511,66 @@ mod tests {
             notes = [ { note = 36, canon = "kick.main", primary = true } ]
         "#;
         assert!(matches!(from_toml(bad), Err(MapError::Parse(_))));
+    }
+
+    fn with_hub(hub: &str) -> Result<EngineMap, MapError> {
+        from_toml(&format!(
+            r#"
+            id = "x"
+            name = "X"
+            hub = {{ {hub} }}
+            notes = [ {{ note = 36, canon = "kick.main", primary = true }} ]
+        "#
+        ))
+    }
+
+    fn rejected(hub: &str) -> bool {
+        matches!(with_hub(hub), Err(MapError::Parse(_)))
+    }
+
+    #[test]
+    fn an_engine_without_a_hub_has_no_standing() {
+        let m = from_toml(SAMPLE).unwrap();
+        assert!(m.hub().is_none());
+        assert_eq!(m.standing(), Standing::Other);
+    }
+
+    #[test]
+    fn a_hub_names_its_standing_column_and_order() {
+        let m = with_hub(r#"standing = "major", column = "SD3", order = 4"#).unwrap();
+        let hub = m.hub().unwrap();
+        assert_eq!(
+            (m.standing(), hub.column(), hub.order()),
+            (Standing::Major, "SD3", 4)
+        );
+    }
+
+    #[test]
+    fn a_hub_needs_a_standing() {
+        assert!(rejected(r#"column = "SD3", order = 4"#));
+    }
+
+    #[test]
+    fn a_hub_needs_a_column() {
+        assert!(rejected(r#"standing = "major", order = 4"#));
+    }
+
+    #[test]
+    fn a_hub_needs_an_order() {
+        assert!(rejected(r#"standing = "major", column = "SD3""#));
+    }
+
+    #[test]
+    fn a_hub_column_is_not_blank() {
+        assert!(rejected(r#"standing = "major", column = " ", order = 4"#));
+    }
+
+    #[test]
+    fn a_hub_declares_only_the_standard_or_a_major() {
+        assert!(rejected(
+            r#"standing = "famous", column = "SD3", order = 4"#
+        ));
+        assert!(rejected(r#"standing = "other", column = "SD3", order = 4"#));
     }
 
     #[test]

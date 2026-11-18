@@ -3,7 +3,10 @@ use std::{
     sync::LazyLock,
 };
 
-use super::map::{many_from_json, EngineMap, MapError, Variant};
+use super::{
+    map::{many_from_json, EngineMap, MapError, Variant},
+    standing::Hub,
+};
 
 const EMBEDDED: &str = include_str!(concat!(env!("OUT_DIR"), "/engines.json"));
 
@@ -99,6 +102,17 @@ impl Catalog {
     /// Every engine, sorted by id.
     pub fn engines(&self) -> impl Iterator<Item = &EngineMap> {
         self.maps.values()
+    }
+
+    /// The hubs, the popular engines that get pair pages to each other: the engines whose file
+    /// declares a hub, in the order their hubs give, then by id.
+    pub fn hubs(&self) -> Vec<(&EngineMap, &Hub)> {
+        let mut hubs: Vec<_> = self
+            .engines()
+            .filter_map(|engine| engine.hub().map(|hub| (engine, hub)))
+            .collect();
+        hubs.sort_by_key(|(_, hub)| hub.order());
+        hubs
     }
 }
 
