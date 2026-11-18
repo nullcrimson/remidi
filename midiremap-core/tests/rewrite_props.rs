@@ -553,6 +553,9 @@ proptest! {
         let Some(out) = converted(&midi, &pair.mapping(), scope) else { return Ok(()) };
         let report = out.report;
         prop_assert_eq!(report.hits(), hits(&midi));
+        let dropped = report.dropped().map(|(_, count)| count).sum::<u32>();
+        let unmapped = report.unmapped_source().map(|(_, u)| u.hits).sum::<u32>();
+        prop_assert_eq!(report.loss().read(), report.converted() + dropped + unmapped);
     }
 
     #[test]

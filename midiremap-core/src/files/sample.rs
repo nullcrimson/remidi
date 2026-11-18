@@ -109,10 +109,10 @@ mod tests {
 
     use midiremap_kit::engine::Catalog;
     use midiremap_smf::parts::ChannelScope;
-    use midiremap_testkit::{engine_json, events, hit_keys, DRUMS};
+    use midiremap_testkit::{engine_json, events, hit_keys, hits, DRUMS};
 
     use super::*;
-    use crate::inspect::{note_hits, source_fits};
+    use crate::inspect::{note_hits, source_advice, SourceAdvice};
 
     const HITS_PER_GROOVE: u32 = 1 + 6 + 4 + 15;
 
@@ -126,21 +126,12 @@ mod tests {
         let unrecognized: Vec<String> = catalog
             .engines()
             .filter_map(|engine| {
-                let hits = note_hits(&sample_file(engine), ChannelScope::Auto).unwrap();
-                let fits = source_fits(&catalog, &hits);
-                let fit = fits
-                    .ranked()
-                    .iter()
-                    .find(|fit| fit.engine().as_str() == engine.id())
-                    .expect("every engine of the catalog is fitted");
-                (fits.hits() != HITS_PER_GROOVE || fit.recognized() != fits.hits()).then(|| {
-                    format!(
-                        "{}: {} of {} hits",
-                        engine.id(),
-                        fit.recognized(),
-                        fits.hits()
-                    )
-                })
+                let sample = sample_file(engine);
+                let read = note_hits(&sample, ChannelScope::Auto).unwrap();
+                let advised = source_advice(&catalog, &read, engine, None);
+                let played = hits(&sample);
+                (played != HITS_PER_GROOVE || advised.advice() != &SourceAdvice::Fits)
+                    .then(|| format!("{}: {:?} of {played} hits", engine.id(), advised.advice()))
             })
             .collect();
         assert!(unrecognized.is_empty(), "{unrecognized:?}");

@@ -1,4 +1,8 @@
-use midiremap_core::{Canon, Catalog, EngineMap};
+use midiremap_core::{
+    note_hits, source_advice, Canon, Catalog, ChannelScope, EngineMap, Lacks, Named, NoteHits,
+    SourceAdvice,
+};
+use midiremap_testkit::played;
 use support::{k, n};
 
 pub mod support;
@@ -9,6 +13,94 @@ fn every_builtin_names_its_vendor() {
     for id in b.ids() {
         assert!(b.get(id).and_then(EngineMap::vendor).is_some(), "{id}");
     }
+}
+
+fn hits_of(keys: &[(u8, usize)]) -> NoteHits {
+    note_hits(&played(keys), ChannelScope::Auto).unwrap()
+}
+
+/// The advice for `hits` read as `src` and converted to `tgt`, over the built-in engines.
+fn advice(hits: &NoteHits, src: &str, tgt: &str) -> SourceAdvice {
+    let catalog = Catalog::builtin();
+    let source = catalog.get(src).unwrap();
+    source_advice(&catalog, hits, source, catalog.get(tgt))
+        .advice()
+        .clone()
+}
+
+/// The notes of the file a visitor converted from GGD Invasion (Halpern) though it was written
+/// in the Toontrack layout: hat pedal, closed edge, open hats, kicks, snare, tight tip and a
+/// crash.
+fn toontrack_file() -> NoteHits {
+    hits_of(&[
+        (21, 4),
+        (22, 8),
+        (25, 2),
+        (34, 1),
+        (36, 6),
+        (38, 4),
+        (46, 2),
+        (63, 2),
+        (86, 1),
+    ])
+}
+
+fn suggested(advice: &SourceAdvice) -> Option<&str> {
+    match advice {
+        SourceAdvice::Suggest { engine, .. } => Some(engine.as_str()),
+        SourceAdvice::Fits | SourceAdvice::Unknown | SourceAdvice::LooksLikeTarget(_) => None,
+    }
+}
+
+#[test]
+fn a_toontrack_file_read_as_ggd_invasion_halpern_for_superior_drummer3_names_the_target_and_asks() {
+    let advice = advice(
+        &toontrack_file(),
+        "ggd_invasion_halpern",
+        "superior_drummer3",
+    );
+    assert!(matches!(
+        advice,
+        SourceAdvice::LooksLikeTarget(Named {
+            ask: Some(Lacks::KickAndSnare),
+            ..
+        })
+    ));
+}
+
+#[test]
+fn a_toontrack_file_read_as_ggd_invasion_halpern_for_ezdrummer_names_the_target() {
+    let advice = advice(&toontrack_file(), "ggd_invasion_halpern", "ezdrummer");
+    assert!(matches!(advice, SourceAdvice::LooksLikeTarget(_)));
+}
+
+#[test]
+fn a_toontrack_file_read_as_ggd_invasion_halpern_for_ezdrummer2_suggests_ezdrummer() {
+    let advice = advice(&toontrack_file(), "ggd_invasion_halpern", "ezdrummer2");
+    assert_eq!(suggested(&advice), Some("ezdrummer"));
+}
+
+#[test]
+fn a_toontrack_file_read_as_ggd_invasion_halpern_for_general_midi_suggests_ezdrummer() {
+    let advice = advice(&toontrack_file(), "ggd_invasion_halpern", "general_midi");
+    assert_eq!(suggested(&advice), Some("ezdrummer"));
+}
+
+#[test]
+fn a_toontrack_file_read_as_ggd_invasion_halpern_for_addictive_drums2_suggests_ezdrummer() {
+    let advice = advice(
+        &toontrack_file(),
+        "ggd_invasion_halpern",
+        "addictive_drums2",
+    );
+    assert_eq!(suggested(&advice), Some("ezdrummer"));
+}
+
+#[test]
+fn a_general_midi_groove_read_as_another_layout_suggests_general_midi() {
+    let groove = hits_of(&[(36, 16), (38, 8), (42, 16), (46, 4), (49, 2)]);
+    let advice = advice(&groove, "ggd_invasion_halpern", "superior_drummer3");
+    assert_eq!(suggested(&advice), Some("general_midi"));
 }
 
 fn decoded(engine: &str, note: u8) -> Option<Canon> {

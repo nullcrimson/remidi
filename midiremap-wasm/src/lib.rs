@@ -2,10 +2,10 @@ use std::{collections::BTreeMap, error::Error};
 
 use midiremap_core::{
     auto_question as core_auto_question, convert, note_hits, parse_preset, rack_file,
-    sample_file as core_sample_file, source_fits as core_source_fits, AutoQuestion, Canon,
-    CanonEntry, Catalog, Conversion, ConvertError, Drum, EngineId, EngineMap, Family, Known,
-    LoadedPreset, Mapping, MissingDrums, Note, NoteHits, OctaveBase, Overrides, PresetError,
-    PresetName, RackFile, Selection, SourceFits, Unrecognized, VoicePlan,
+    sample_file as core_sample_file, source_advice as core_source_advice, Advised, AutoQuestion,
+    Canon, CanonEntry, Catalog, Conversion, ConvertError, Drum, EngineId, EngineMap, Family, Known,
+    LoadedPreset, Loss, Mapping, MissingDrums, Note, NoteHits, OctaveBase, Overrides, PresetError,
+    PresetName, RackFile, Selection, Unrecognized, VoicePlan,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -385,34 +385,60 @@ pub fn engine_catalog() -> Result<Vec<Ts<Engine>>, WasmError> {
     to_js_all(&engines(Catalog::shared()))
 }
 
-/// A file a fit is computed over, and what converting it would rewrite.
+/// A file the source advice reads, and what converting it would rewrite.
 #[derive(Deserialize, Tsify)]
-pub struct FitFile {
+pub struct AdviceFile {
     #[tsify(type = "Uint8Array")]
     bytes: ByteBuf,
     selection: Selection,
 }
 
-/// The files a fit is computed over.
+/// The files the source advice reads.
 #[derive(Deserialize, Tsify)]
 #[serde(transparent)]
-pub struct FitFiles(Vec<FitFile>);
+pub struct AdviceFiles(Vec<AdviceFile>);
 
-fn fits_of(catalog: &Catalog, files: &[FitFile]) -> SourceFits {
+fn advice_of(
+    catalog: &Catalog,
+    files: &[AdviceFile],
+    src_id: &str,
+    tgt_id: Option<&str>,
+) -> Result<Advised, WasmError> {
+    let source = engine(catalog, src_id, Role::Source)?;
+    let target = tgt_id
+        .map(|id| engine(catalog, id, Role::Target))
+        .transpose()?;
     let hits: NoteHits = files
         .iter()
         .filter_map(|file| note_hits(&file.bytes, file.selection.clone()).ok())
         .sum();
-    core_source_fits(catalog, &hits)
+    Ok(core_source_advice(catalog, &hits, source, target))
 }
 
-/// Every engine fitted to the hits of all `files` that converting each with its selection
-/// reads, best first. A file that does not parse, or lacks a picked part, is left out:
-/// converting it says why.
+/// What to tell a visitor converting the hits of all `files` that converting each with its
+/// selection reads, from `src_id` to `tgt_id`, with the ids it was computed for. A file that
+/// does not parse, or lacks a picked part, is left out: converting it says why.
 #[wasm_bindgen]
-pub fn source_fits(files: Ts<FitFiles>) -> Result<Ts<SourceFits>, WasmError> {
-    let FitFiles(files) = files.to_rust()?;
-    Ok(fits_of(Catalog::shared(), &files).into_ts()?)
+pub fn source_advice(
+    files: Ts<AdviceFiles>,
+    src_id: &str,
+    tgt_id: Option<String>,
+) -> Result<Ts<Advised>, WasmError> {
+    let AdviceFiles(files) = files.to_rust()?;
+    Ok(advice_of(Catalog::shared(), &files, src_id, tgt_id.as_deref())?.into_ts()?)
+}
+
+/// The losses of the files of one batch.
+#[derive(Deserialize, Tsify)]
+#[serde(transparent)]
+pub struct Losses(Vec<Loss>);
+
+/// Whether `losses` together are heavy, the share of the hits read that makes the done card
+/// warn; a loss that lost more than it read is an error.
+#[wasm_bindgen]
+pub fn loss_is_heavy(losses: Ts<Losses>) -> Result<bool, WasmError> {
+    let Losses(losses) = losses.to_rust()?;
+    Ok(losses.into_iter().sum::<Loss>().is_heavy())
 }
 
 fn sample_of(catalog: &Catalog, engine_id: &str) -> Result<Vec<u8>, WasmError> {
@@ -429,7 +455,7 @@ pub fn sample_file(engine: &str) -> Result<Vec<u8>, WasmError> {
 #[cfg(test)]
 mod tests {
     use midiremap_core::{ChannelScope, Converted};
-    use midiremap_testkit::{drums, on};
+    use midiremap_testkit::{drums, on, played};
 
     use super::*;
 
@@ -649,41 +675,63 @@ mod tests {
         );
     }
 
-    fn ggd_fit(mids: &[&[u8]]) -> (u32, u32) {
-        let files: Vec<FitFile> = mids
+    fn ggd_advice(mids: &[&[u8]]) -> Advised {
+        let files: Vec<AdviceFile> = mids
             .iter()
-            .map(|mid| FitFile {
+            .map(|mid| AdviceFile {
                 bytes: ByteBuf::from(*mid),
                 selection: Selection::default(),
             })
             .collect();
-        let fits = fits_of(&Catalog::builtin(), &files);
-        let ggd = fits
-            .ranked()
-            .iter()
-            .find(|fit| fit.engine().as_str() == "ggd_invasion")
-            .unwrap();
-        (ggd.recognized(), fits.hits())
+        advice_of(
+            &Catalog::builtin(),
+            &files,
+            "ggd_invasion",
+            Some("ezdrummer"),
+        )
+        .unwrap()
+    }
+
+    fn missed(advised: &Advised) -> Option<(u32, u32)> {
+        advised
+            .advice()
+            .named()
+            .map(|named| (named.missing, named.hits))
     }
 
     #[test]
-    fn source_fits_sum_the_hits_of_every_file() {
-        let one = drums(&[(0, on(24)), (0, on(99))]);
-        let two = drums(&[(0, on(26))]);
-        assert_eq!(ggd_fit(&[&one, &two]), (2, 3));
+    fn source_advice_for_an_unknown_target_names_it_as_the_target() {
+        assert_eq!(
+            advice_of(&Catalog::builtin(), &[], "ggd_invasion", Some("gone")).unwrap_err(),
+            WasmError::UnknownEngine {
+                role: Role::Target,
+                id: "gone".to_owned(),
+            }
+        );
     }
 
     #[test]
-    fn source_fits_leave_out_a_file_that_does_not_parse() {
-        let good = drums(&[(0, on(24))]);
-        assert_eq!(ggd_fit(&[&good, b"garbage"]).1, 1);
+    fn source_advice_for_an_unknown_source_names_it_as_the_source() {
+        assert_eq!(
+            advice_of(&Catalog::builtin(), &[], "gone", None).unwrap_err(),
+            WasmError::UnknownEngine {
+                role: Role::Source,
+                id: "gone".to_owned(),
+            }
+        );
     }
 
     #[test]
-    fn a_sample_is_recognized_whole_by_the_engine_it_was_made_for() {
-        let sample = sample_of(&Catalog::builtin(), "ggd_invasion").unwrap();
-        let (recognized, hits) = ggd_fit(&[&sample]);
-        assert!(hits > 0 && recognized == hits, "{recognized} of {hits}");
+    fn source_advice_sums_the_hits_of_every_file() {
+        let one = played(&[(24, 8), (99, 4)]);
+        let two = played(&[(26, 4)]);
+        assert_eq!(missed(&ggd_advice(&[&one, &two])), Some((4, 16)));
+    }
+
+    #[test]
+    fn source_advice_leaves_out_a_file_that_does_not_parse() {
+        let good = played(&[(24, 12), (99, 4)]);
+        assert_eq!(missed(&ggd_advice(&[&good, b"garbage"])), Some((4, 16)));
     }
 
     #[test]

@@ -1,9 +1,11 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, iter::Sum, ops::Add};
 
 use midiremap_kit::canon::Canon;
 use midiremap_mapping::{Kept, Outcome};
 use midiremap_note::Note;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+
+use crate::share::{Fraction, Share};
 
 /// How a drum the target lacks was played: on which stand-in drum, on which note, how often.
 #[derive(Serialize, Debug, PartialEq, Eq)]
@@ -69,6 +71,8 @@ pub struct Report {
     untouched: u32,
     converted: u32,
     merged: u32,
+    #[serde(flatten)]
+    loss: Loss,
 }
 
 impl Report {
@@ -110,12 +114,106 @@ impl Report {
         self.merged
     }
 
-    /// Every note hit the conversion saw: converted, dropped, unmapped or untouched.
+    /// The hits the channel scope selected, and those of them the output does not play.
+    pub fn loss(&self) -> Loss {
+        self.loss
+    }
+
+    /// Every note hit the conversion saw: read or untouched.
     pub fn hits(&self) -> u32 {
-        self.converted
-            + self.dropped.values().sum::<u32>()
-            + self.unmapped_source.values().map(|u| u.hits).sum::<u32>()
-            + self.untouched
+        self.loss.read() + self.untouched
+    }
+}
+
+/// The share of the hits read that, left out of the file, makes a heavy loss.
+const HEAVY_LOSS: Fraction = Fraction::new(1, 4).expect("four is not zero");
+
+/// The note hits one or more conversions read, and the share of them they lost: none when
+/// nothing was read.
+#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(into = "Counts", try_from = "Counts")]
+#[cfg_attr(
+    feature = "ts",
+    derive(tsify::Tsify),
+    tsify(type = "{ read: number; lost: number }")
+)]
+pub struct Loss(Option<Share>);
+
+/// A [`Loss`] as it is handed in and out: the hits read and lost.
+#[derive(Serialize, Deserialize)]
+struct Counts {
+    read: u32,
+    lost: u32,
+}
+
+impl From<Loss> for Counts {
+    fn from(loss: Loss) -> Self {
+        Self {
+            read: loss.read(),
+            lost: loss.lost(),
+        }
+    }
+}
+
+/// Why handed-in counts are no [`Loss`].
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
+#[error("{lost} hits lost of {read} read")]
+struct LostMoreThanRead {
+    lost: u32,
+    read: u32,
+}
+
+impl TryFrom<Counts> for Loss {
+    type Error = LostMoreThanRead;
+
+    fn try_from(Counts { read, lost }: Counts) -> Result<Self, Self::Error> {
+        match Share::of(lost, read) {
+            Some(share) => Ok(Self(Some(share))),
+            None if read == 0 && lost == 0 => Ok(Self(None)),
+            None => Err(LostMoreThanRead { lost, read }),
+        }
+    }
+}
+
+impl Loss {
+    /// The loss of `lost` hits beside `kept` hits, read together.
+    fn of(lost: u32, kept: u32) -> Self {
+        Self(Share::split(lost, kept))
+    }
+
+    /// Note hits the channel scope selected: converted, dropped or unmapped.
+    pub fn read(self) -> u32 {
+        self.0.map_or(0, Share::whole)
+    }
+
+    /// Note hits the output does not play: dropped, or unmapped and removed. A kept
+    /// unrecognized hit is not lost.
+    pub fn lost(self) -> u32 {
+        self.0.map_or(0, Share::part)
+    }
+
+    /// Whether the loss is heavy: a quarter of the hits read or more. Nothing read loses
+    /// nothing.
+    pub fn is_heavy(self) -> bool {
+        self.0.is_some_and(|share| share.reaches(HEAVY_LOSS))
+    }
+}
+
+impl Add for Loss {
+    type Output = Self;
+
+    /// The hits both losses read, and those both lost.
+    fn add(self, other: Self) -> Self {
+        Self(match (self.0, other.0) {
+            (Some(mine), Some(theirs)) => Some(mine + theirs),
+            (mine, theirs) => mine.or(theirs),
+        })
+    }
+}
+
+impl Sum for Loss {
+    fn sum<I: Iterator<Item = Self>>(losses: I) -> Self {
+        losses.fold(Self::default(), Add::add)
     }
 }
 
@@ -163,9 +261,11 @@ impl Tally {
         }
     }
 
-    /// The report, each unrecognized note with its hits given its `fate`.
+    /// The report, each unrecognized note with its hits given its `fate`: the hits read are
+    /// the converted, the dropped and the unrecognized; the hits lost are the dropped and the
+    /// removed.
     pub(crate) fn closed(self, fate: impl Fn(Note) -> UnmappedFate) -> Report {
-        let unmapped_source = self
+        let unmapped_source: BTreeMap<Note, Unmapped> = self
             .unmapped
             .into_iter()
             .map(|(note, hits)| {
@@ -173,8 +273,15 @@ impl Tally {
                 (note, Unmapped { hits, fate })
             })
             .collect();
+        let dropped = self.report.dropped.values().sum::<u32>();
+        let (removed, kept): (Vec<Unmapped>, Vec<Unmapped>) = unmapped_source
+            .values()
+            .copied()
+            .partition(|unmapped| unmapped.fate == UnmappedFate::Removed);
+        let hits = |unmapped: Vec<Unmapped>| unmapped.iter().map(|u| u.hits).sum::<u32>();
         Report {
             unmapped_source,
+            loss: Loss::of(dropped + hits(removed), self.report.converted + hits(kept)),
             ..self.report
         }
     }
@@ -296,6 +403,65 @@ mod tests {
     }
 
     #[test]
+    fn read_is_every_hit_but_the_untouched() {
+        let mut r = tally();
+        r.record_untouched();
+        let r = r.closed(removed);
+        assert_eq!((r.loss().read(), r.hits() - r.untouched()), (4, 4));
+    }
+
+    #[test]
+    fn lost_is_the_dropped_and_the_removed() {
+        assert_eq!(tallied_report().loss().lost(), 2);
+    }
+
+    fn loss(lost: u32, read: u32) -> Loss {
+        Loss::try_from(Counts { read, lost }).unwrap()
+    }
+
+    #[test]
+    fn a_loss_of_a_quarter_of_the_hits_read_is_heavy() {
+        assert!(loss(12, 48).is_heavy());
+    }
+
+    #[test]
+    fn a_loss_of_less_than_a_quarter_is_not_heavy() {
+        assert!(!loss(11, 48).is_heavy());
+    }
+
+    #[test]
+    fn nothing_read_is_no_heavy_loss() {
+        assert!(!loss(0, 0).is_heavy());
+    }
+
+    #[test]
+    fn a_loss_is_handed_in_as_its_counts() {
+        assert_eq!(
+            serde_json::from_str::<Loss>(r#"{"read":4,"lost":1}"#).unwrap(),
+            loss(1, 4)
+        );
+    }
+
+    #[test]
+    fn a_loss_that_lost_more_than_it_read_is_refused() {
+        assert!(serde_json::from_str::<Loss>(r#"{"read":1,"lost":4}"#).is_err());
+    }
+
+    #[test]
+    fn losses_sum_the_hits_they_read_and_lost() {
+        let sum: Loss = [loss(1, 4), loss(0, 0), loss(2, 3)].into_iter().sum();
+        assert_eq!(sum, loss(3, 7));
+    }
+
+    #[test]
+    fn a_kept_note_is_read_and_not_lost() {
+        let mut r = Tally::default();
+        r.record_unmapped(n(99));
+        let r = r.closed(|_| UnmappedFate::KeptFree);
+        assert_eq!(r.loss(), loss(0, 1));
+    }
+
+    #[test]
     fn report_serializes_sorted_with_string_note_keys() {
         let mut r = Tally::default();
         for note in [99, 5, 12, 5] {
@@ -314,7 +480,7 @@ mod tests {
         });
         assert_eq!(
             serde_json::to_string(&r).unwrap(),
-            r#"{"unmappedSource":{"5":{"hits":2,"fate":{"keptOnto":"kick.main"}},"12":{"hits":1,"fate":"keptFree"},"99":{"hits":1,"fate":"removed"}},"fallbackUsed":{},"dropped":{"china.1.hit":1,"splash.1.hit":1},"untouched":0,"converted":0,"merged":0}"#
+            r#"{"unmappedSource":{"5":{"hits":2,"fate":{"keptOnto":"kick.main"}},"12":{"hits":1,"fate":"keptFree"},"99":{"hits":1,"fate":"removed"}},"fallbackUsed":{},"dropped":{"china.1.hit":1,"splash.1.hit":1},"untouched":0,"converted":0,"merged":0,"read":6,"lost":3}"#
         );
     }
 }

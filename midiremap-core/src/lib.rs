@@ -6,9 +6,9 @@
 //! The folders use each other in one order, lowest first. Cargo holds only the edges between
 //! crates, so this order is held by review:
 //!
-//! - `xml` uses no other folder;
-//! - `inspect` uses no other folder;
-//! - `convert` uses `inspect`;
+//! - `xml` and `share` use no other folder;
+//! - `inspect` uses `share`;
+//! - `convert` uses `inspect` and `share`;
 //! - `files` uses `xml`, and outside its tests neither `inspect` nor `convert`.
 
 #![warn(unreachable_pub)]
@@ -16,20 +16,23 @@
 mod convert;
 mod files;
 mod inspect;
+mod share;
 pub mod xml;
 
-pub use convert::{convert, Conversion, Converted, FallbackTally, Report, Unmapped, UnmappedFate};
+pub use convert::{
+    convert, Conversion, Converted, FallbackTally, Loss, Report, Unmapped, UnmappedFate,
+};
 pub use files::{
     parse_preset, rack_file, sample_file, Daw, FileStem, LoadedPreset, Packing, PresetError,
     PresetName, RackFile, SavedPreset, SkippedEdit,
 };
 pub use inspect::{
-    auto_question, note_hits, part_summaries, source_fits, AutoQuestion, Known, NoteHits,
-    PartSummary, PlayedDrum, Plays, QuestionReason, SourceFit, SourceFits,
+    auto_question, note_hits, part_summaries, source_advice, Advised, AutoQuestion, Known, Lacks,
+    Named, NoteHits, PartSummary, PlayedDrum, Plays, QuestionReason, SourceAdvice,
 };
 pub use midiremap_kit::{
     canon::{Canon, CanonEntry, CanonParseError, Family},
-    engine::{Catalog, Drum, EngineId, EngineMap, MapError},
+    engine::{Catalog, Drum, EngineId, EngineMap, Hub, MapError},
 };
 pub use midiremap_mapping::{
     resolve_on, Landing, Mapping, MissingDrums, MissingDrumsParseError, Outcome, Overrides,

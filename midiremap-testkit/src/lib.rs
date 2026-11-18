@@ -132,6 +132,16 @@ pub fn drums(events: &[(u32, MidiMessage)]) -> Vec<u8> {
         .collect()])
 }
 
+/// A one-track file on the drum channel that plays each key its count of times, all at tick 0,
+/// in the order listed.
+pub fn played(keys: &[(u8, usize)]) -> Vec<u8> {
+    let events: Vec<_> = keys
+        .iter()
+        .flat_map(|&(key, times)| std::iter::repeat_n((0, on(key)), times))
+        .collect();
+    drums(&events)
+}
+
 /// The MIDI events of track `index`, with channels numbered `1..=16`.
 pub fn events(bytes: &[u8], index: usize) -> Vec<Ev> {
     parse(bytes).tracks[index]

@@ -8,7 +8,7 @@ use midiremap_smf::{
 };
 use serde::Serialize;
 
-pub use self::report::{FallbackTally, Report, Unmapped, UnmappedFate};
+pub use self::report::{FallbackTally, Loss, Report, Unmapped, UnmappedFate};
 use self::rewrite::rewrite;
 use crate::inspect::{hit_fate, summaries, PartSummary};
 

@@ -28,17 +28,22 @@ impl NoteHits {
         self.0.iter().sum()
     }
 
-    pub(super) fn recognized_by(&self, engine: &EngineMap) -> u32 {
-        engine.decodings().map(|(note, _)| self.get(note)).sum()
+    /// Each played note with its hits, in note order.
+    pub(super) fn played(&self) -> Vec<(Note, u32)> {
+        Note::ALL
+            .into_iter()
+            .map(|note| (note, self.get(note)))
+            .filter(|&(_, hits)| hits > 0)
+            .collect()
     }
 
     pub(super) fn played_on(&self, engine: &EngineMap) -> Plays {
         let mut by_drum: BTreeMap<Canon, u32> = BTreeMap::new();
         let mut unknown = 0;
-        let decoded = Note::ALL
+        let decoded = self
+            .played()
             .into_iter()
-            .filter(|&note| self.get(note) > 0)
-            .map(|note| (engine.decode(note), self.get(note)));
+            .map(|(note, hits)| (engine.decode(note), hits));
         for (canon, hits) in decoded {
             match canon {
                 Some(canon) => *by_drum.entry(canon).or_default() += hits,
