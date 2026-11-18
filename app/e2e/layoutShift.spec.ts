@@ -1,6 +1,6 @@
-import type { Page } from '@playwright/test';
-import { addFiles, DRUMS, expect, midFile, openPair, test } from './fixtures';
-import { delayed, DESKTOP, lateShift, PHONE, settledShift, watchShifts } from './shift';
+import type { Locator, Page } from '@playwright/test';
+import { addFiles, DRUMS, expect, kick, midFile, openPair, test, toontrackGroove } from './fixtures';
+import { delayed, DESKTOP, lateShift, PHONE, settledShift, SMALL_PHONE, watchShifts } from './shift';
 import { seen } from './steps';
 
 type Viewport = typeof DESKTOP;
@@ -8,6 +8,8 @@ type Viewport = typeof DESKTOP;
 const WASM = '**/midiremap_wasm_bg-*.wasm';
 const WASM_HOLD_MS = 2000;
 const CATALOG_WAIT_MS = 15000;
+const PAGE_SETTLE_MS = 1500;
+const ADVICE_SETTLE_MS = 800;
 const FROM_AN_ENGINE_PAGE = '/#from=ggd_invasion&to=ezdrummer2';
 
 async function catalogLoads(page: Page, viewport: Viewport, address: string) {
@@ -39,6 +41,8 @@ async function wholeConversion(page: Page, viewport: Viewport) {
   await page.setViewportSize(viewport);
   await watchShifts(page);
   await openPair(page);
+  await expect(page.getByRole('button', { name: /Choose files/ })).toBeVisible({ timeout: CATALOG_WAIT_MS });
+  await page.waitForTimeout(PAGE_SETTLE_MS);
   await addFiles(page, midFile('kick.mid', [{ channel: DRUMS, key: 24 }]));
   await page.getByRole('button', { name: /^Convert/ }).click();
   await page.getByRole('heading', { name: /1 file converted → EZdrummer/ }).waitFor();
@@ -53,55 +57,108 @@ async function languageOffer(page: Page, viewport: Viewport) {
   expect(shift).toBeLessThan(0.01);
 }
 
-test('the converter does not shift while its catalog loads on a desktop', async ({ page }) => {
-  await catalogLoads(page, DESKTOP, '/');
+/** The layout shift adding `file` on `address` causes, once `shown` is on screen and the source advice has come back. */
+async function shiftOfAnAdd(page: Page, viewport: Viewport, address: string, file: ReturnType<typeof midFile>, shown: (page: Page) => Locator) {
+  await page.setViewportSize(viewport);
+  await watchShifts(page);
+  await page.goto(address);
+  await expect(page.getByRole('button', { name: /Choose files/ })).toBeVisible({ timeout: CATALOG_WAIT_MS });
+  await page.waitForTimeout(PAGE_SETTLE_MS);
+  const before = await settledShift(page);
+  await addFiles(page, file);
+  await expect(page.getByText(file.name, { exact: true })).toBeVisible();
+  await expect(shown(page)).toBeVisible();
+  await page.waitForTimeout(ADVICE_SETTLE_MS);
+  return (await settledShift(page)) - before;
+}
+
+const convertEnabled = (page: Page) => page.getByRole('button', { name: /^Convert 1 file to / });
+const noticeShown = (page: Page) => page.getByRole('status').filter({ hasText: /in your file\./ });
+const clearAll = (page: Page) => page.getByRole('button', { name: 'clear all' });
+const FITTING_PAIR = '/?from=ggd_invasion&to=ezdrummer';
+const UNKNOWN_SOURCE_PAIR = '/?from=ggd_invasion_halpern&to=general_midi';
+
+test.describe('on a desktop', () => {
+  test.skip(({ isMobile }) => isMobile, 'measured with a mouse at a desktop width');
+
+  test('the converter does not shift while its catalog loads on a desktop', async ({ page }) => {
+    await catalogLoads(page, DESKTOP, '/');
+  });
+
+  test('the converter opened from an engine page does not shift while its catalog loads on a desktop', async ({ page }) => {
+    await catalogLoads(page, DESKTOP, FROM_AN_ENGINE_PAGE);
+  });
+
+  test('the converter says it is loading while its module is held', async ({ page }) => {
+    await delayed(page, WASM, WASM_HOLD_MS);
+    await page.goto('/');
+    await seen(page.getByText('Loading converter…', { exact: true }));
+    await expect(page.getByText('Your drum file', { exact: true }).first()).toBeVisible({ timeout: CATALOG_WAIT_MS });
+    await expect(page.getByText('Loading converter…', { exact: true })).toHaveCount(0);
+  });
+
+  test('the converter does not shift when its catalog fails on a desktop', async ({ page, pageErrors }) => {
+    await catalogFails(page, DESKTOP, pageErrors);
+  });
+
+  test('a whole conversion stays within good layout shift on a desktop', async ({ page }) => {
+    await wholeConversion(page, DESKTOP);
+  });
 });
 
-test('the converter does not shift while its catalog loads on a phone', async ({ page }) => {
-  await catalogLoads(page, PHONE, '/');
-});
+test.describe('on a phone', { tag: '@phone' }, () => {
+  test('the converter does not shift while its catalog loads on a phone', async ({ page }) => {
+    await catalogLoads(page, PHONE, '/');
+  });
 
-test('the converter opened from an engine page does not shift while its catalog loads on a desktop', async ({ page }) => {
-  await catalogLoads(page, DESKTOP, FROM_AN_ENGINE_PAGE);
-});
+  test('the converter opened from an engine page does not shift while its catalog loads on a phone', async ({ page }) => {
+    await catalogLoads(page, PHONE, FROM_AN_ENGINE_PAGE);
+  });
 
-test('the converter opened from an engine page does not shift while its catalog loads on a phone', async ({ page }) => {
-  await catalogLoads(page, PHONE, FROM_AN_ENGINE_PAGE);
-});
+  test('the converter does not shift when its catalog fails on a phone', async ({ page, pageErrors }) => {
+    await catalogFails(page, PHONE, pageErrors);
+  });
 
-test('the converter says it is loading while its module is held', async ({ page }) => {
-  await delayed(page, WASM, WASM_HOLD_MS);
-  await page.goto('/');
-  await seen(page.getByText('Loading converter…', { exact: true }));
-  await expect(page.getByText('Your drum file', { exact: true }).first()).toBeVisible({ timeout: CATALOG_WAIT_MS });
-  await expect(page.getByText('Loading converter…', { exact: true })).toHaveCount(0);
-});
+  test('a whole conversion stays within good layout shift on a phone', async ({ page }) => {
+    await wholeConversion(page, PHONE);
+  });
 
-test('the converter does not shift when its catalog fails on a desktop', async ({ page, pageErrors }) => {
-  await catalogFails(page, DESKTOP, pageErrors);
-});
+  test('adding a file does not move the steps below it at 412×823', async ({ page }) => {
+    expect(await shiftOfAnAdd(page, PHONE, FITTING_PAIR, kick('kick.mid'), convertEnabled)).toBeLessThan(0.01);
+    await expect(noticeShown(page)).toHaveCount(0);
+  });
 
-test('the converter does not shift when its catalog fails on a phone', async ({ page, pageErrors }) => {
-  await catalogFails(page, PHONE, pageErrors);
-});
+  test('adding a file does not move the steps below it at 360×640', async ({ page }) => {
+    expect(await shiftOfAnAdd(page, SMALL_PHONE, FITTING_PAIR, kick('kick.mid'), convertEnabled)).toBeLessThan(0.01);
+    await expect(noticeShown(page)).toHaveCount(0);
+  });
 
-test('a whole conversion stays within good layout shift on a desktop', async ({ page }) => {
-  await wholeConversion(page, DESKTOP);
-});
+  test('adding a file before the engines are chosen does not move the steps below it at 412×823', async ({ page }) => {
+    expect(await shiftOfAnAdd(page, PHONE, '/', kick('kick.mid'), clearAll)).toBeLessThan(0.01);
+  });
 
-test('a whole conversion stays within good layout shift on a phone', async ({ page }) => {
-  test.fixme(true, 'N32: adding a file on a phone shifts the steps by about 0.19');
-  await wholeConversion(page, PHONE);
+  test('adding a file before the engines are chosen does not move the steps below it at 360×640', async ({ page }) => {
+    expect(await shiftOfAnAdd(page, SMALL_PHONE, '/', kick('kick.mid'), clearAll)).toBeLessThan(0.01);
+  });
+
+  test('a file its source does not know does not move them either at 412×823', async ({ page }) => {
+    expect(await shiftOfAnAdd(page, PHONE, UNKNOWN_SOURCE_PAIR, toontrackGroove(2), noticeShown)).toBeLessThan(0.01);
+  });
+
+  test('a file its source does not know does not move them either at 360×640', async ({ page }) => {
+    expect(await shiftOfAnAdd(page, SMALL_PHONE, UNKNOWN_SOURCE_PAIR, toontrackGroove(2), noticeShown)).toBeLessThan(0.01);
+  });
 });
 
 test.describe('a visitor whose browser speaks another language', () => {
   test.use({ locale: 'pl-PL' });
 
-  test('the language offer does not shift a static page on a desktop', async ({ page }) => {
+  test('the language offer does not shift a static page on a desktop', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'measured with a mouse at a desktop width');
     await languageOffer(page, DESKTOP);
   });
 
-  test('the language offer does not shift a static page on a phone', async ({ page }) => {
+  test('the language offer does not shift a static page on a phone', { tag: '@phone' }, async ({ page }) => {
     await languageOffer(page, PHONE);
   });
 });

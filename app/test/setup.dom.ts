@@ -17,3 +17,7 @@ closedPopovers.textContent = `
   details:not([open]) > :not(summary) { display: none; }
 `;
 document.head.append(closedPopovers);
+
+const inertOutOfReach = document.createElement('style');
+inertOutOfReach.textContent = '[inert] { visibility: hidden; }';
+document.head.append(inertOutOfReach);

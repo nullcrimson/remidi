@@ -1,8 +1,8 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import * as stub from './stubs/wasm';
-import { addMidi, convertButton, pickEngines, pickFrom, pickTo, startApp } from './eventSteps';
+import { addMidi, convertButton, engineCard, pickEngines, pickFrom, pickTo, startApp } from './eventSteps';
 import {
   ask,
   ASK_SENTENCE,
@@ -94,6 +94,69 @@ describe('the source advice notice', () => {
     await addMidi('groove.mid');
     await userEvent.click(await screen.findByRole('button', { name: 'Use GGD Modern & Massive' }));
     expect(notice()).not.toBeInTheDocument();
+  });
+
+  const step = (title: string) => screen.getByRole('region', { name: new RegExp(`^${title}`) });
+
+  it('shows under the engine pickers from the sm width up', async () => {
+    fitsWithInvasionAt(300);
+    await startApp();
+    await pickEngines();
+    await addMidi('groove.mid');
+    await screen.findByText(/ notes in your file\.$/);
+    expect(within(step('From one drum layout to another')).getByRole('status')).toHaveTextContent('notes in your file');
+    expect(within(step('Your drum file')).queryByText(/ notes in your file\.$/)).not.toBeInTheDocument();
+  });
+
+  const onAPhone = () => {
+    const phone = (media: string) => ({ media, matches: false, addEventListener: () => {}, removeEventListener: () => {} }) as unknown as MediaQueryList;
+    const narrow = vi.spyOn(window, 'matchMedia').mockImplementation(phone);
+    onTestFinished(() => narrow.mockRestore());
+  };
+
+  const addedWithBothEngines = async (invasion: number) => {
+    fitsWithInvasionAt(invasion);
+    await startApp();
+    await pickEngines();
+    await addMidi('groove.mid');
+    await vi.waitFor(() => expect(stub.source_advice).toHaveBeenCalled());
+  };
+
+  it('moves focus to Convert after a file is added on a desktop, though the notice shows', async () => {
+    await addedWithBothEngines(300);
+    await screen.findByText(/ notes in your file\.$/);
+    await vi.waitFor(() => expect(convertButton()).toHaveFocus());
+  });
+
+  it('moves focus on a phone to the notice once the advice shows it, instead of to Convert', async () => {
+    onAPhone();
+    await addedWithBothEngines(300);
+    const sentence = await screen.findByText(/ notes in your file\.$/);
+    await vi.waitFor(() => expect(sentence).toHaveFocus());
+    expect(sentence).toHaveRole('status');
+    expect(convertButton()).not.toHaveFocus();
+  });
+
+  it('moves focus on a phone to Convert once the advice shows no notice', async () => {
+    onAPhone();
+    await addedWithBothEngines(412);
+    await vi.waitFor(() => expect(convertButton()).toHaveFocus());
+    expect(screen.queryByText(/ notes in your file\.$/)).not.toBeInTheDocument();
+  });
+
+  it('shows on a phone in the file step, under the chips', async () => {
+    onAPhone();
+    await addedWithBothEngines(300);
+    await screen.findByText(/ notes in your file\.$/);
+    expect(within(step('Your drum file')).getByRole('status')).toHaveTextContent('notes in your file');
+    expect(within(step('From one drum layout to another')).queryByText(/ notes in your file\.$/)).not.toBeInTheDocument();
+  });
+
+  it('moves focus to FROM on a phone when its Use button is pressed', async () => {
+    onAPhone();
+    await addedWithBothEngines(300);
+    await userEvent.click(await screen.findByRole('button', { name: 'Use GGD Modern & Massive' }));
+    await vi.waitFor(() => expect(engineCard('FROM')).toHaveFocus());
   });
 
   it('shows nothing when the source recognizes every note', async () => {

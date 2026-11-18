@@ -1,7 +1,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 
 /** The controls focus moves to after an action finishes. */
-export type FocusTarget = 'main' | 'from' | 'to' | 'convert' | 'editLink' | 'filePicker' | 'channel';
+export type FocusTarget = 'main' | 'from' | 'to' | 'convert' | 'editLink' | 'filePicker' | 'channel' | 'sourceNotice';
 
 /** A callback ref that registers an element as a focus target. */
 export type FocusRef = (el: HTMLElement | null) => void;

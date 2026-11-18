@@ -1,6 +1,7 @@
 import { useCallback, useState, type ReactElement } from 'react';
 import { CardDropzone } from './convert/CardDropzone';
 import { SourceAdviceNotice } from './convert/SourceAdviceNotice';
+import { useNoticePlace } from './convert/noticePlace';
 import { EditView } from './editor/EditView';
 import { EngineColumns } from './engines/EngineColumns';
 import { usePickingSide } from './engines/usePickingSide';
@@ -24,6 +25,7 @@ import { useDropGuard } from './convert/useDropGuard';
 import { useConversionReport } from './report/useConversionReport';
 import { useEditedSummary } from './editor/useEditedSummary';
 import { useEditorSession } from './convert/useEditorSession';
+import { useAddedFocus } from './convert/useAddedFocus';
 import { useFileIntake } from './convert/useFileIntake';
 import { useFocusIntent } from './ui/useFocusIntent';
 import { usePresetActions } from './presets/usePresetActions';
@@ -63,6 +65,11 @@ export default function App({ runtime }: { runtime: Runtime }) {
   const edited = useEditedSummary(editor, remapper.oct, openPreset);
   const { request } = focus;
   const picker = usePickingSide(request);
+  const core = remapper.catalog.status === 'ready' ? remapper.catalog.core : null;
+  const actions = remapper.conversion.kind === 'ready' ? remapper.conversion.actions : null;
+  const { view: reportView, dropMissing } = useConversionReport({ ...editor, ...remapper, actions });
+  const surface = sourceSurface(sourceStage(conv, remapper.sourceQuestion.offer, reportView.totals.unrecognized));
+  const noticePlace = useNoticePlace();
   const intake = {
     load: runtime.load,
     storeFiles: remapper.addFiles,
@@ -70,15 +77,11 @@ export default function App({ runtime }: { runtime: Runtime }) {
     tgt: remapper.tgt,
     saved,
     notify,
-    focus: request,
+    focus: useAddedFocus(request, surface, remapper.adviceSettled, noticePlace),
   };
   const pickFiles = useFileIntake({ ...intake, via: 'picker' });
   const dropFiles = useFileIntake({ ...intake, via: 'drop' });
-  const core = remapper.catalog.status === 'ready' ? remapper.catalog.core : null;
-  const actions = remapper.conversion.kind === 'ready' ? remapper.conversion.actions : null;
-  const trySample = useSampleFile({ ...intake, core, convert: actions?.convert ?? null });
-  const { view: reportView, dropMissing } = useConversionReport({ ...editor, ...remapper, actions });
-  const surface = sourceSurface(sourceStage(conv, remapper.sourceQuestion.offer, reportView.totals.unrecognized));
+  const trySample = useSampleFile({ ...intake, focus: request, core, convert: actions?.convert ?? null });
   const names = pair && namesOf(remapper.engines, pair);
   const steps = stepStates({ file: remapper.files.length > 0, engines: pair !== null, convert: isConverted(conv) });
   const { open: openEditor, close: closeEditor } = useEditorSession(remapper, request);
@@ -87,7 +90,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
     request('main');
   };
   const racks = rackDownloads(remapper, openPreset, setNotice);
-
+  const sourceNotice = <SourceAdviceNotice remapper={remapper} surface={surface} sentenceRef={focus.ref('sourceNotice')} onUsed={() => request('from')} />;
   const dropping = (page: ReactElement) => <CardDropzone onFiles={dropFiles}>{page}</CardDropzone>;
 
   if (view.kind === 'edit') {
@@ -116,9 +119,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
   }
 
   const stepBodies = {
-    file: (
-      <FileStep remapper={remapper} onFiles={pickFiles} onTrySample={trySample} pickerRef={focus.ref('filePicker')} />
-    ),
+    file: <FileStep remapper={remapper} onFiles={pickFiles} onTrySample={trySample} pickerRef={focus.ref('filePicker')} notice={noticePlace === 'files' ? sourceNotice : undefined} />,
     engines: (
       <>
         <EngineColumns
@@ -135,8 +136,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
           onTaken={(why) => notify([{ message: why }])}
         />
 
-        <SourceAdviceNotice remapper={remapper} surface={surface} onUsed={() => request('from')} />
-
+        {noticePlace === 'engines' && sourceNotice}
         {notice?.at === 'engines' && <StatusNotice lines={notice.lines} onDismiss={dismissNotice} />}
 
         {saved.unsaved && <UnsavedNotice />}

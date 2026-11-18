@@ -64,7 +64,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
   const converter = useConverter(batches, settingsKey);
   const { onSelection: converterSees, convert: runConvert } = converter;
   const picked = useMemo(() => withPicks(converter.files, converter.picks, channel), [converter.files, converter.picks, channel]);
-  const advised = useSourceAdvice(batches, picked, channel, src, tgt);
+  const { advised, settled: adviceSettled } = useSourceAdvice(batches, picked, channel, src, tgt);
   const core = catalog.status === 'ready' ? catalog.core : null;
   const questionSetup = useMemo(
     () => ({ src, tgt, overrides, missing, unrecognized }),
@@ -188,6 +188,7 @@ export function useRemapper({ load, converter: batches }: Runtime) {
     sourceQuestion,
     readAs,
     offered,
+    adviceSettled,
     skipped: converter.skipped,
     replaced: converter.replaced,
     view,

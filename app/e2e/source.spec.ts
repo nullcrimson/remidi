@@ -6,6 +6,7 @@ import {
   convertButton,
   doneCard,
   download,
+  engineCard,
   enginePicker,
   leaveEditor,
   openEditor,
@@ -16,6 +17,7 @@ import {
   retarget,
   seen,
   sourceQuestion,
+  tabTo,
 } from './steps';
 
 const STRAY = 49;
@@ -211,14 +213,51 @@ async function askForSuggested(page: Page) {
   return sourceQuestion(page, GM_SENTENCE);
 }
 
-test('Use E makes E the source and converts nothing', async ({ page }) => {
+/** Opens GGD Invasion (Halpern) to General MIDI with the Toontrack groove and presses "Use E". */
+async function useSuggested(page: Page) {
   await openHalpernTo(page, 'general_midi', toontrackGroove(2));
   await expect(page.getByText(`${SUGGESTED} knows every note.`)).toBeVisible();
   await press(page.getByRole('button', { name: `Use ${SUGGESTED}` }));
+}
+
+const convertToGm = (page: Page) => page.getByRole('button', { name: 'Convert 1 file to General MIDI' });
+
+test('Use E makes E the source and converts nothing', async ({ page }) => {
+  await useSuggested(page);
   await expect(chosenEngine(page, 'FROM')).toHaveText(SUGGESTED);
   await expect(page.getByRole('status').filter({ hasText: /in your file\./ })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: /files? converted/ })).toHaveCount(0);
-  await seen(page.getByRole('button', { name: 'Convert 1 file to General MIDI' }));
+});
+
+test('on a phone Use E leaves focus on FROM, in view', { tag: '@phone' }, async ({ page }) => {
+  await useSuggested(page);
+  await expect(engineCard(page, 'FROM')).toBeFocused();
+  await seen(engineCard(page, 'FROM'));
+});
+
+test('after Use E, Convert is reached from FROM by Tab and comes into view', async ({ page }) => {
+  await useSuggested(page);
+  await expect(convertToGm(page)).toBeEnabled();
+  await tabTo(page, convertToGm(page));
+  await seen(convertToGm(page));
+});
+
+const noticeSentence = (page: Page) => page.getByRole('status').filter({ hasText: /in your file\./ });
+
+test('on a phone the notice of a file its source does not know comes wholly into view and takes focus, not Convert', { tag: '@phone' }, async ({ page }) => {
+  await openHalpernTo(page, 'general_midi', toontrackGroove(2));
+  await expect(noticeSentence(page)).toBeFocused();
+  await seen(noticeSentence(page).locator('..'));
+  await expect(page.getByRole('button', { name: `Use ${SUGGESTED}` })).toBeInViewport({ ratio: 0.99 });
+  await expect(convertButton(page)).not.toBeFocused();
+});
+
+test('on a phone a file its source knows leaves focus on Convert, in view', { tag: '@phone' }, async ({ page }) => {
+  await openPair(page);
+  await addFiles(page, midFile('kick.mid', [{ channel: DRUMS, key: 24 }]));
+  await expect(convertButton(page)).toBeFocused();
+  await seen(convertButton(page));
+  await expect(noticeSentence(page)).toHaveCount(0);
 });
 
 test('the question for a suggested engine converts as it', async ({ page }) => {

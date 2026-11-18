@@ -7,6 +7,9 @@ export const DESKTOP = { width: 1350, height: 940 };
 /** A common phone, as layout shift is measured at. */
 export const PHONE = { width: 412, height: 823 };
 
+/** A small phone, as layout shift is measured at. */
+export const SMALL_PHONE = { width: 360, height: 640 };
+
 const LATE_MS = 1000;
 
 /** Adds up the page's layout shifts that no input caused, from its first paint on. */

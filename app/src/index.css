@@ -8,6 +8,7 @@
 @source not inline('container');
 
 @theme {
+  --breakpoint-sm: 40rem;
   --color-page: #0c0e11;
   --color-card: #100f0d;
   --color-inset: rgba(255, 255, 255, 0.018);
@@ -91,6 +92,18 @@
 
 @utility prose-link {
   @apply tap text-star/85 underline decoration-star/30 decoration-1 underline-offset-4 transition [text-shadow:0_0_10px_rgba(224,196,106,0.35)] hover:text-star hover:decoration-star/60 hover:[text-shadow:0_0_15px_rgba(224,196,106,0.6)];
+}
+
+@utility text-action {
+  @apply tap inline-flex items-center gap-1.5 text-ui transition-colors disabled:cursor-default disabled:opacity-40;
+}
+
+@utility text-action-gold {
+  @apply text-star/85 decoration-star/40 underline-offset-4 hover:text-star hover:underline disabled:hover:text-star/85 disabled:hover:no-underline;
+}
+
+@utility phone-handoff {
+  @apply hidden flex-col gap-1 text-ui text-t4 pointer-coarse:max-sm:flex;
 }
 
 @utility tip-link {
