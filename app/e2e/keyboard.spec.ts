@@ -1,6 +1,16 @@
 import type { Locator, Page } from '@playwright/test';
-import { addFiles, DRUMS, expect, midFile, openPair, test } from './fixtures';
-import { chosenEngine, engineCard } from './steps';
+import { addFiles, DRUMS, expect, midFile, openPair, SUGGESTED, test, toontrackGroove } from './fixtures';
+import {
+  chosenEngine,
+  engineCard,
+  focusHeld,
+  openEditor,
+  openHalpernTo,
+  presetChip,
+  retarget,
+  saveKickPreset,
+  targetNote,
+} from './steps';
 
 const groove = () => midFile('groove.mid', [{ channel: DRUMS, key: 24 }]);
 
@@ -101,4 +111,111 @@ test('Back from the note editor gives focus back to the Edit link', async ({ pag
 
   await page.getByRole('button', { name: /Back/ }).click();
   await expect(editLink).toBeFocused();
+});
+
+/** Saves the preset Keys, opens its menu by keyboard and moves the highlight down one: its menu's items, and its menu button. */
+async function chipMenuOnSecondItem(page: Page) {
+  await saveKickPreset(page, 'Keys');
+  const more = page.getByRole('button', { name: 'More actions for Keys', exact: true });
+  await more.focus();
+  await page.keyboard.press('Enter');
+  const items = page.getByRole('menuitem');
+  await expect(items.first()).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  return { items, more };
+}
+
+test('the chip menu by keyboard: the arrows move the highlight', async ({ page }) => {
+  const { items } = await chipMenuOnSecondItem(page);
+  await expect(items.nth(1)).toBeFocused();
+  await expect(items.nth(1)).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(items.nth(1)).toHaveText(/^Duplicate/);
+});
+
+test('the chip menu by keyboard: Escape closes it', async ({ page }) => {
+  const { items, more } = await chipMenuOnSecondItem(page);
+  await page.keyboard.press('Escape');
+  await expect(items).toHaveCount(0);
+  await expect(more).toBeFocused();
+});
+
+test('the chip menu by keyboard: Enter runs the item', async ({ page }) => {
+  await chipMenuOnSecondItem(page);
+  await page.keyboard.press('Enter');
+  await expect(presetChip(page, 'Keys copy')).toBeVisible();
+});
+
+test('focus goes to the FROM card after Use E', async ({ page }) => {
+  await openHalpernTo(page, 'general_midi', toontrackGroove(2));
+  await page.getByRole('button', { name: `Use ${SUGGESTED}` }).click();
+  await expect(chosenEngine(page, 'FROM')).toHaveText(SUGGESTED);
+  await focusHeld(page);
+  await expect(engineCard(page, 'FROM')).toBeFocused();
+});
+
+test('focus goes to the card after Dismiss', async ({ page }) => {
+  await openPair(page);
+  await page.getByRole('button', { name: /^Download an Ableton rack/ }).click();
+  const notice = page.getByRole('status').filter({ hasText: /^Rack saved/ });
+  await notice.getByRole('button', { name: 'Dismiss' }).click();
+  await expect(notice).toHaveCount(0);
+  await focusHeld(page);
+  await expect(page.getByRole('main')).toBeFocused();
+});
+
+test('focus goes to the row\'s target note after Reset {drum}', async ({ page }) => {
+  await openPair(page);
+  await openEditor(page);
+  await retarget(page, 'Kick', 'E2');
+  await page.getByRole('button', { name: 'Reset Kick' }).click();
+  await expect(targetNote(page, 'Kick')).toHaveText('C2');
+  await focusHeld(page);
+  await expect(targetNote(page, 'Kick')).toBeFocused();
+});
+
+test('focus goes to the heading after Reset all', async ({ page }) => {
+  await openPair(page);
+  await openEditor(page);
+  await retarget(page, 'Kick', 'E2');
+  await page.getByRole('button', { name: 'Reset all' }).click();
+  await expect(targetNote(page, 'Kick')).toHaveText('C2');
+  await focusHeld(page);
+  await expect(page.getByRole('heading', { name: 'Edit notes' })).toBeFocused();
+});
+
+test('focus goes to the row after Clear source note', async ({ page }) => {
+  await openPair(page);
+  await openEditor(page);
+  await page.getByRole('button', { name: 'Advanced — reassign source notes' }).click();
+  await page.getByRole('textbox', { name: 'Add source note' }).fill('49');
+  await page.getByRole('button', { name: 'add', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Canon for C#3' }).getByRole('button', { name: /^Kick\s*kick\.main$/ }).click();
+  await page.getByRole('button', { name: 'Clear source note C#3' }).click();
+  const row = page.locator('[data-source-note="49"]').getByRole('button').first();
+  await expect(row).toContainText('unmapped');
+  await focusHeld(page);
+  await expect(row).toBeFocused();
+});
+
+const outline = (target: Locator) => target.evaluate((el) => {
+  const style = getComputedStyle(el);
+  return `${style.outlineStyle} ${style.outlineWidth} ${style.outlineColor}`;
+});
+
+test('a control reached with Tab shows a focus ring, one focused after a mouse press does not', async ({ page }) => {
+  await openPair(page);
+  await addFiles(page, groove());
+  const convertButton = page.getByRole('button', { name: 'Convert 1 file to EZdrummer 3' });
+  await expect(convertButton).toBeEnabled();
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  const unfocused = await outline(convertButton);
+  await page.getByRole('button', { name: /Edit individual notes/ }).focus();
+  await tabTo(page, convertButton);
+  expect(await outline(convertButton)).not.toBe(unfocused);
+
+  await convertButton.click();
+  await page.getByRole('button', { name: 'Convert more' }).click();
+  const filePicker = page.locator('button:has(+ [data-testid=file-input])');
+  await expect(filePicker).toBeFocused();
+  expect(await outline(filePicker)).toMatch(/^none /);
 });

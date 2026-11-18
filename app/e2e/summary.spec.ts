@@ -1,11 +1,9 @@
 import { expect, test } from './fixtures';
-import { press } from './steps';
-
-const remapped = /^\d+ of \d+ drums remapped$/;
+import { press, REMAPPED } from './steps';
 
 test('the summary names the drums played on a close variant', async ({ page }) => {
   await page.goto('/?from=ggd_invasion&to=ezdrummer');
-  await press(page.getByRole('button', { name: remapped }));
+  await press(page.getByRole('button', { name: REMAPPED }));
   const detail = page.getByRole('dialog');
   const variant = detail.getByRole('listitem').filter({ hasText: 'played on a close variant' });
   await expect(variant).toBeVisible();
@@ -16,7 +14,7 @@ test('the summary names the drums played on a close variant', async ({ page }) =
 
 test('the summary keeps the drums of a group folded until the group is opened', async ({ page }) => {
   await page.goto('/?from=ggd_invasion&to=ezdrummer');
-  await press(page.getByRole('button', { name: remapped }));
+  await press(page.getByRole('button', { name: REMAPPED }));
   const detail = page.getByRole('dialog');
   await expect(detail.getByText(/^\d+ drums in this mapping$/)).toBeVisible();
   await expect(detail.getByText('Kick (Alt) → Kick', { exact: true })).toBeHidden();
@@ -25,7 +23,7 @@ test('the summary keeps the drums of a group folded until the group is opened', 
 test('a detail opened by hover stays open after a group in it is opened and the mouse leaves', async ({ page, isMobile }) => {
   test.skip(isMobile, 'no hover on touch');
   await page.goto('/?from=ggd_invasion&to=ezdrummer');
-  const summary = page.getByRole('button', { name: remapped });
+  const summary = page.getByRole('button', { name: REMAPPED });
   const detail = page.getByRole('dialog');
   await summary.hover();
   await detail.waitFor();
@@ -47,7 +45,7 @@ test('a detail opened by hover stays open after a group in it is opened and the 
 
 test('a pair that plays every drum as written lists no changed drums', async ({ page }) => {
   await page.goto('/?from=ggd_metal&to=ggd_invasion');
-  await press(page.getByRole('button', { name: remapped }));
+  await press(page.getByRole('button', { name: REMAPPED }));
   const detail = page.getByRole('dialog');
   await expect(detail.getByText(/^\d+ drums in this mapping$/)).toBeVisible();
   await expect(detail.getByText('played on a close variant', { exact: true })).toHaveCount(0);
@@ -57,7 +55,7 @@ test('a pair that plays every drum as written lists no changed drums', async ({ 
 
 test('a pair that plays every drum as written opens the editor on all drums', async ({ page }) => {
   await page.goto('/?from=ggd_metal&to=ggd_invasion');
-  await press(page.getByRole('button', { name: remapped }));
+  await press(page.getByRole('button', { name: REMAPPED }));
   const detail = page.getByRole('dialog');
   await detail.waitFor();
 

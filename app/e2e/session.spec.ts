@@ -42,3 +42,14 @@ test('a link with engines keeps the remembered settings', async ({ page }) => {
   await openSettings(page);
   await expect(page.getByRole('radio', { name: 'C-2' })).toBeChecked();
 });
+
+test('a damaged saved session still opens the converter', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'a rule about the store, not the layout');
+  await page.addInitScript(() => {
+    localStorage.setItem('midiremap:session', '{"src": broken');
+    localStorage.setItem('midiremap:mappings', 'not json at all');
+  });
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Choose files' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^FROM/ })).toBeVisible();
+});

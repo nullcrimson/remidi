@@ -1,5 +1,5 @@
 import { LOCALE_CODES } from '../src/generated/localeCodes';
-import { addFiles, expect, kickAndChina, test } from './fixtures';
+import { addFiles, expect, kickAndChina, SUGGESTED, test, toontrackGroove } from './fixtures';
 import { clipped, EVERY_VIEWPORT_PAGE, fits, LOCALES, PHONE_PAGES } from './layout';
 import { messages, PSEUDO, pseudoFtl } from './messages';
 import { openLanguageMenu } from './steps';
@@ -62,6 +62,18 @@ for (const code of LOCALES) {
         await fits(page, id);
         await page.keyboard.press('Escape');
       }
+
+      await page.goto(`/${prefix(code)}/?from=ggd_invasion_halpern&to=general_midi`);
+      await addFiles(page, toontrackGroove(2));
+      await expect(page.getByRole('button', { name: m('source-use', { engine: SUGGESTED }) })).toBeVisible();
+      await fits(page, 'source advice');
+      await page.getByRole('button', { name: m('convert-button-ready', { count: 1, target: 'General MIDI' }), exact: true }).click();
+      const anyway = page.getByRole('button', { name: m('source-ask-anyway') });
+      await expect(anyway).toBeVisible();
+      await fits(page, 'source question');
+      await anyway.click();
+      await expect(page.getByRole('button', { name: m('done-convert-from', { engine: SUGGESTED }) })).toBeVisible();
+      await fits(page, 'done with the source block');
     });
 
     test.describe('360 px', () => {

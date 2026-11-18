@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { gunzipSync } from 'node:zlib';
 import type { Page } from '@playwright/test';
-import { expect, test } from './fixtures';
+import { expect, openPair, test } from './fixtures';
 import { chipMenu, leaveEditor, openEditor, presetChip, press, retarget, saved, saveKickPreset, targetNote } from './steps';
 
 const NAME = 'Heavy Kick';
@@ -149,4 +149,55 @@ test("a saved preset's menu downloads its rack", async ({ page }) => {
   expect(xml).toContain('<Name Value="Kick → 40"/>');
   expect(xml).toContain('<UserName Value="GetGood Drums Invasion → EZdrummer 3"/>');
   await expect(page.getByRole('status')).toContainText('Rack saved: My kick.adg.');
+});
+
+test.describe('the preset name field', () => {
+  const field = (page: Page) => page.getByRole('textbox', { name: 'Preset name' });
+
+  test.beforeEach(async ({ page, isMobile }) => {
+    test.skip(isMobile, 'a keyboard rule');
+    await openPair(page);
+    await openEditor(page);
+    await retarget(page, 'Kick', 'E2');
+    await press(page.getByRole('button', { name: 'Save as preset' }));
+  });
+
+  test('a blank name cannot be saved', async ({ page }) => {
+    await field(page).fill('   ');
+    await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+  });
+
+  test('Escape closes it', async ({ page }) => {
+    await field(page).press('Escape');
+    await expect(field(page)).toHaveCount(0);
+  });
+
+  test('Enter saves', async ({ page }) => {
+    await field(page).fill('Entered kit');
+    await field(page).press('Enter');
+    await expect(page.getByRole('button', { name: 'Update preset' })).toBeVisible();
+    await leaveEditor(page);
+    await expect(presetChip(page, 'Entered kit')).toBeVisible();
+  });
+});
+
+test('Save new from an open preset adds a second chip', async ({ page }) => {
+  await saveKickPreset(page, NAME);
+  await openEditor(page);
+  await press(page.getByRole('button', { name: 'Update preset' }));
+  await page.getByRole('textbox', { name: 'Preset name' }).fill('Second kick');
+  await press(page.getByRole('button', { name: 'Save new' }));
+  await leaveEditor(page);
+  await expect(chips(page)).toHaveCount(2);
+  await expect(presetChip(page, NAME)).toBeVisible();
+  await expect(presetChip(page, 'Second kick')).toBeVisible();
+});
+
+test('the pencil on a chip opens the editor on the preset\'s pair with its edit', async ({ page }) => {
+  await saveKickPreset(page, NAME);
+  await page.goto('/?from=superior_drummer3&to=general_midi');
+  await press(page.getByRole('button', { name: `Edit notes for ${NAME}` }));
+  await expect(page.getByRole('heading', { name: 'Edit notes' })).toBeVisible();
+  await expect(page.getByText('GetGood Drums Invasion → EZdrummer 3', { exact: true })).toBeVisible();
+  await expect(targetNote(page, 'Kick')).toHaveText('E2');
 });

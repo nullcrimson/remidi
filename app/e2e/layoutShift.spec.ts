@@ -1,18 +1,21 @@
 import type { Page } from '@playwright/test';
 import { addFiles, DRUMS, expect, midFile, openPair, test } from './fixtures';
 import { delayed, DESKTOP, lateShift, PHONE, settledShift, watchShifts } from './shift';
+import { seen } from './steps';
 
 type Viewport = typeof DESKTOP;
 
 const WASM = '**/midiremap_wasm_bg-*.wasm';
+const WASM_HOLD_MS = 2000;
+const CATALOG_WAIT_MS = 15000;
 const FROM_AN_ENGINE_PAGE = '/#from=ggd_invasion&to=ezdrummer2';
 
 async function catalogLoads(page: Page, viewport: Viewport, address: string) {
   await page.setViewportSize(viewport);
   await watchShifts(page);
-  await delayed(page, WASM, 2000);
+  await delayed(page, WASM, WASM_HOLD_MS);
   await page.goto(address);
-  await expect(page.getByText('Your drum file', { exact: true }).first()).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText('Your drum file', { exact: true }).first()).toBeVisible({ timeout: CATALOG_WAIT_MS });
   await expect(page.locator('footer')).toBeVisible();
   expect(await settledShift(page)).toBeLessThan(0.01);
 }
@@ -22,7 +25,8 @@ async function catalogFails(page: Page, viewport: Viewport, pageErrors: string[]
   await watchShifts(page);
   await delayed(page, WASM, 1000, (route) => route.abort());
   await page.goto('/');
-  await expect(page.locator('main .text-danger')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('main .text-danger')).toBeVisible({ timeout: CATALOG_WAIT_MS });
+  await expect(page.locator('main .text-danger')).toContainText('Failed to load converter');
   await expect(page.locator('footer')).toBeVisible();
   expect(await settledShift(page)).toBeLessThan(0.01);
   const expected = (e: string) => /wasm|WebAssembly|Failed to fetch|ERR_FAILED/i.test(e);
@@ -63,6 +67,14 @@ test('the converter opened from an engine page does not shift while its catalog 
 
 test('the converter opened from an engine page does not shift while its catalog loads on a phone', async ({ page }) => {
   await catalogLoads(page, PHONE, FROM_AN_ENGINE_PAGE);
+});
+
+test('the converter says it is loading while its module is held', async ({ page }) => {
+  await delayed(page, WASM, WASM_HOLD_MS);
+  await page.goto('/');
+  await seen(page.getByText('Loading converter…', { exact: true }));
+  await expect(page.getByText('Your drum file', { exact: true }).first()).toBeVisible({ timeout: CATALOG_WAIT_MS });
+  await expect(page.getByText('Loading converter…', { exact: true })).toHaveCount(0);
 });
 
 test('the converter does not shift when its catalog fails on a desktop', async ({ page, pageErrors }) => {

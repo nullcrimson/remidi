@@ -103,6 +103,17 @@ test.describe('a Polish browser', () => {
     await expect(page.locator('[data-offer="pl"]')).toBeVisible();
   });
 
+  test('× on the language offer removes it for good', async ({ page }) => {
+    await page.goto('/faq/');
+    const offer = page.locator('#lang-offer');
+    await expect(offer.locator('[data-offer="pl"]')).toBeVisible();
+    await offer.locator('[data-dismiss]').click();
+    await expect(offer).toBeHidden();
+    await page.reload();
+    await expect(page.locator('#lang-offer')).toBeHidden();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  });
+
   test('offers nothing on the next page once the offer was left unanswered', async ({ page }) => {
     await page.goto('/faq/');
     await page.goto('/drum-maps/');
@@ -147,6 +158,18 @@ test('/pl/ marks the converter current and links the Polish FAQ', async ({ page 
   const nav = page.locator('header nav');
   await expect(nav.locator('a[aria-current="page"]')).toHaveAttribute('href', '/pl/');
   await expect(page.locator('a[href="/pl/faq/"]')).not.toHaveCount(0);
+});
+
+test('a language that cannot load from the menu says so and keeps the page', async ({ page, pageErrors }) => {
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Choose files' })).toBeVisible();
+  await page.route(/locale-[\w-]+\.js$/, (r) => r.abort());
+  await pickLanguage(page, 'Polski');
+  await expect(page.getByText(/^Couldn't load Polski\. Check your connection and try again\.$/)).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.getByRole('button', { name: 'Choose files' })).toBeVisible();
+  expect(pageErrors.every((e) => /locale-[\w-]+\.js|Failed to load resource|Failed to fetch|dynamically imported/.test(e))).toBe(true);
+  pageErrors.length = 0;
 });
 
 test('a blocked language file on /pl/ shows the Polish load-failure notice and no app', async ({ page, pageErrors }) => {

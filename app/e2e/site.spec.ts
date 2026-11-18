@@ -213,6 +213,24 @@ test('a matrix cell shows the share of exact notes in the table it opens', async
   expect(share).toBe(`${Math.round((100 * exact) / all)}%`);
 });
 
+test('an engine page filters its drums', async ({ page }) => {
+  await page.goto('/engines/ezdrummer/');
+  const drums = page.locator('#drums');
+  const kick = drums.locator('tr[data-q="36 c2 c1 kick"]');
+  await expect(kick).toBeVisible();
+  await page.getByRole('searchbox', { name: 'Filter drums' }).fill('snare');
+  await expect(kick).toBeHidden();
+  await expect(drums.getByRole('row').filter({ hasText: /Snare/ }).first()).toBeVisible();
+});
+
+test('/thanks/ thanks and leads back to the converter', async ({ page }) => {
+  await page.goto('/thanks/');
+  await expect(page.getByRole('heading', { name: 'Thank you!' })).toBeVisible();
+  await expect(page.getByText('Your coffee keeps Drumverter free and ad-free.', { exact: false })).toBeVisible();
+  await press(page.getByRole('main').getByRole('link', { name: /converter/i }));
+  await expect(page.getByRole('button', { name: 'Choose files' })).toBeVisible();
+});
+
 test('the guide walks through the converter’s own three steps', async ({ page }) => {
   await page.goto('/how-it-works/');
   const steps = page.getByRole('main').getByRole('listitem').filter({ has: page.getByRole('heading', { level: 2 }) });

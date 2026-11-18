@@ -52,16 +52,21 @@ export interface Hit {
   gap?: number;
 }
 
-function trackOf(hits: Hit[]): MidiEvent[] {
+/** A track's hits, or its hits under a track name. */
+type Track = Hit[] | { name: string; hits: Hit[] };
+
+function trackOf(track: Track): MidiEvent[] {
+  const { name, hits } = Array.isArray(track) ? { name: null, hits: track } : track;
+  const named: MidiEvent[] = name === null ? [] : [{ deltaTime: 0, meta: true, type: 'trackName', text: name }];
   const events: MidiEvent[] = hits.flatMap(({ channel, key, length = 48, gap = 0 }) => [
     { deltaTime: gap, type: 'noteOn', channel: channel - 1, noteNumber: key, velocity: 100 },
     { deltaTime: length, type: 'noteOff', channel: channel - 1, noteNumber: key, velocity: 0 },
   ]);
-  return [...events, { deltaTime: 0, meta: true, type: 'endOfTrack' }];
+  return [...named, ...events, { deltaTime: 0, meta: true, type: 'endOfTrack' }];
 }
 
 /** A Standard MIDI File with one track per list of hits. */
-export function midi(...tracks: Hit[][]): Buffer {
+export function midi(...tracks: Track[]): Buffer {
   return Buffer.from(
     writeMidi({
       header: { format: tracks.length > 1 ? 1 : 0, numTracks: tracks.length, ticksPerBeat: 480 },
@@ -71,8 +76,13 @@ export function midi(...tracks: Hit[][]): Buffer {
 }
 
 /** A `.mid` file for `setInputFiles`. */
-export function midFile(name: string, ...tracks: Hit[][]) {
+export function midFile(name: string, ...tracks: Track[]) {
   return { name, mimeType: 'audio/midi', buffer: midi(...tracks) };
+}
+
+/** `file` without its last `n` bytes, as a download that broke off leaves it. */
+export function cut(file: ReturnType<typeof midFile>, n: number) {
+  return { ...file, buffer: file.buffer.subarray(0, file.buffer.length - n) };
 }
 
 /** Every note-on with a velocity, across tracks, in order: its channel (1..=16) and key. */
@@ -97,6 +107,18 @@ export const kickAndChina = () => midFile('groove.mid', [
   { channel: DRUMS, key: 24 },
   { channel: DRUMS, key: 65, gap: 48 },
 ]);
+
+export const HALPERN = "GGD Invasion (Mapping 'Halpern')";
+
+/** The engine the advice suggests for the Toontrack groove read as anything but a Toontrack layout. */
+export const SUGGESTED = 'EZdrummer 3';
+
+/** The notes of the Toontrack layout the groove plays: hat pedal, closed edge, open hats, kicks, snare, tight tip and a crash. */
+export const TOONTRACK_NOTES = [21, 22, 25, 34, 36, 38, 46, 63, 86];
+
+/** A groove in the Toontrack layout, `times` hits on each of its notes. */
+export const toontrackGroove = (times: number) => midFile('toontrack.mid', TOONTRACK_NOTES
+  .flatMap((key) => Array.from({ length: times }, () => ({ channel: DRUMS, key, gap: 48 }))));
 
 /** Opens the converter with GetGood Drums Invasion → EZdrummer chosen. */
 export async function openPair(page: Page) {

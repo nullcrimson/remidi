@@ -1,13 +1,50 @@
 import { readFile } from 'node:fs/promises';
-import type { Locator, Page } from '@playwright/test';
+import type { Download, Locator, Page } from '@playwright/test';
 import { addFiles, DRUMS, expect, midFile, openPair, test } from './fixtures';
-import { messages } from './messages';
+import { englishPattern, messages } from './messages';
 
 type Messages = ReturnType<typeof messages>;
 
 const english = messages('en');
 
+/** The plan summary's count of the source's drums the target has, for any pair and counts. */
+export const REMAPPED = englishPattern('summary-remapped', { remapped: 'number', total: 'number', source: 'text', target: 'text' });
+
 const sideName = (side: 'FROM' | 'TO', m: Messages) => m(side === 'FROM' ? 'engine-from' : 'engine-to');
+
+/**
+ * Whether the user sees `target`: shown, and inside the window but for a fraction of a pixel,
+ * which Chromium's intersection rounding can leave at an edge. For things smaller than the window.
+ */
+export async function seen(target: Locator) {
+  await expect(target).toBeVisible();
+  await expect(target).toBeInViewport({ ratio: 0.99 });
+}
+
+/** Whether focus stayed on the page's content: inside `main`, and not thrown to the body. */
+export async function focusHeld(page: Page) {
+  await expect.poll(() => page.evaluate(() => {
+    const active = document.activeElement;
+    return active !== null && active !== document.body && active.closest('main') !== null;
+  })).toBe(true);
+}
+
+/** The done card, by its heading. */
+export const doneCard = (page: Page) =>
+  page.locator('[data-tone]').filter({ has: page.getByRole('heading', { name: /converted/ }) });
+
+/** The badge atop the done card, named for its tone. */
+export const doneBadge = (page: Page, name: 'Warning' | 'Done') => doneCard(page).getByRole('img', { name, exact: true });
+
+/** The question Convert asks about the source, named by its sentence. */
+export const sourceQuestion = (page: Page, sentence: RegExp = /in your file\./) => page.getByRole('group', { name: sentence });
+
+/** Opens GGD Invasion (Halpern) to `to` with `file`, and waits for the notice. */
+export async function openHalpernTo(page: Page, to: string, file: ReturnType<typeof midFile>) {
+  await page.goto(`/?from=ggd_invasion_halpern&to=${to}`);
+  await addFiles(page, file);
+  await expect(page.getByRole('status').filter({ hasText: /doesn't know any of the \d+ notes in your file\./ })).toBeVisible();
+}
 
 /** Taps on a touch screen and clicks elsewhere, as a person on that device would. */
 export async function press(target: Locator) {
@@ -67,7 +104,7 @@ export async function pickLanguage(page: Page, name: string) {
 }
 
 /** Picks `action` from the menu of the saved preset called `name`. */
-export async function chipMenu(page: Page, name: string, action: 'Rename' | 'Duplicate' | 'Ableton rack' | 'Delete') {
+export async function chipMenu(page: Page, name: string, action: 'Rename' | 'Duplicate' | 'Export' | 'Ableton rack' | 'Delete') {
   await press(page.getByRole('button', { name: `More actions for ${name}`, exact: true }));
   await press(page.getByRole('menuitem', { name: action }));
 }
@@ -88,17 +125,20 @@ export async function leaveEditor(page: Page) {
   await expect(page.getByRole('heading', { name: 'Edit notes' })).toBeHidden();
 }
 
-/** Picks `note` as the drum's target in the note picker. */
-export async function retarget(page: Page, drum: string, note: string) {
+/** Picks `note` as the drum's target in the note picker, by its button there: the note, or the drum the target plays on it and the note. */
+export async function retarget(page: Page, drum: string, note: string, button = note) {
   await press(targetNote(page, drum));
   const picker = page.getByRole('dialog', { name: `Target note for ${drum}` });
-  await press(picker.getByRole('button', { name: note, exact: true }));
+  await press(picker.getByRole('button', { name: button, exact: true }));
   await expect(picker).toBeHidden();
   await expect(targetNote(page, drum)).toHaveText(note);
 }
 
+/** The Convert button, by any of the names it takes. */
+export const convertButton = (page: Page) => page.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ });
+
 export async function convert(page: Page, files = 1) {
-  await press(page.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ }));
+  await press(convertButton(page));
   await expect(page.getByRole('heading', { name: new RegExp(`^${files} files? converted`) })).toBeVisible();
 }
 
@@ -120,6 +160,36 @@ export async function saveKickPreset(page: Page, name: string) {
   await expect(page.getByRole('button', { name: 'Update preset' })).toBeVisible();
   await leaveEditor(page);
   await expect(presetChip(page, name)).toBeVisible();
+}
+
+/** Exports the saved preset called `name` through its menu: the download it starts. */
+export async function exportPreset(page: Page, name: string): Promise<Download> {
+  const download = page.waitForEvent('download');
+  await chipMenu(page, name, 'Export');
+  return download;
+}
+
+/** The file the export of the saved preset called `name` saves. */
+export async function exportedPreset(page: Page, name: string): Promise<Buffer> {
+  return readFile(await (await exportPreset(page, name)).path());
+}
+
+/** Chooses `files` as preset files, all in one choice of files. */
+export async function importPresets(page: Page, ...files: { name: string; text: string | Buffer }[]) {
+  await page.getByTestId('file-input').setInputFiles(
+    files.map(({ name, text }) => ({ name, mimeType: 'application/json', buffer: Buffer.from(text) })),
+  );
+}
+
+/**
+ * Fills the saved presets up to `count`: saves the Kick → E2 preset `name` through the screen,
+ * exports it and imports the exported file `count - 1` times in one choice of files, so the
+ * imports land as "`name` copy", "`name` copy 2" and on.
+ */
+export async function fillPresets(page: Page, name: string, count: number) {
+  await saveKickPreset(page, name);
+  const text = await exportedPreset(page, name);
+  await importPresets(page, ...Array.from({ length: count - 1 }, () => ({ name: `${name}.json`, text })));
 }
 
 const drumsAndBass = () => midFile(

@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { addFiles, expect, hitKeys, kickAndChina, openPair, test } from './fixtures';
-import { convert, download as downloadFile, openSettings, press } from './steps';
+import { convert, download as downloadFile, openSettings, press, REMAPPED, seen } from './steps';
 
 const moved = /^\d+ drums? played on another drum$/;
 
@@ -39,6 +39,10 @@ test('the report drops missing drums and converts again', async ({ page }) => {
 
   await page.getByRole('button', { name: /View report/ }).click();
   const report = page.getByRole('dialog', { name: 'Conversion report' });
+  await expect(report.getByText('Approximated', { exact: true })).toBeVisible();
+  await expect(report.getByText('· played on the nearest drum', { exact: true })).toBeVisible();
+  await expect(report.getByText(/^China 1 → /)).toBeVisible();
+  await expect(report.getByRole('button', { name: 'Pick a target →' })).toHaveCount(0);
   await report.getByRole('button', { name: 'Drop missing drums & convert again' }).click();
   await expect(report).toBeHidden();
   await openSettings(page);
@@ -48,7 +52,7 @@ test('the report drops missing drums and converts again', async ({ page }) => {
   expect(await download(page)).toEqual([36]);
 });
 
-const remapped = (page: Page) => page.getByRole('button', { name: /^\d+ of \d+ drums remapped$/ });
+const remapped = (page: Page) => page.getByRole('button', { name: REMAPPED });
 const movedHint = (page: Page) => page.getByRole('button', { name: moved });
 
 test('the remapped count explains each drum', async ({ page }) => {
@@ -68,6 +72,29 @@ test('Escape closes the remapped count detail', async ({ page }) => {
 
   await page.keyboard.press('Escape');
   await expect(detail).toBeHidden();
+  await expect(remapped(page)).toBeFocused();
+});
+
+/** Opens the settings and presses the Missing drums label: its tip. */
+async function missingDrumsTip(page: Page) {
+  await openPair(page);
+  await openSettings(page);
+  await press(page.getByTestId('settings-fold').locator('.cursor-help').filter({ hasText: /^Missing drums$/ }));
+  return page.getByRole('tooltip');
+}
+
+test('a setting\'s tip opens on a press', async ({ page }) => {
+  const tip = await missingDrumsTip(page);
+  await seen(tip);
+  await expect(tip).toContainText('When the target lacks a drum');
+  await expect(tip).toContainText('Nearest plays it on the closest drum the target has');
+});
+
+test('a setting\'s tip closes on Escape', async ({ page }) => {
+  const tip = await missingDrumsTip(page);
+  await seen(tip);
+  await page.keyboard.press('Escape');
+  await expect(tip).toHaveCount(0);
 });
 
 test('the remapped count opens the editor on the issues', async ({ page }) => {

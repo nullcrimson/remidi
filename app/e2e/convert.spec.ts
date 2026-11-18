@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { unzipSync } from 'fflate';
 import type { Page } from '@playwright/test';
 import { addFiles, expect, hitKeys, kick, openPair, test } from './fixtures';
+import { convertButton, seen } from './steps';
 
 test('converts a kick through the real engine and downloads the file', async ({ page }) => {
   await openPair(page);
@@ -26,7 +27,7 @@ test('focus moves to the converted heading after Convert', async ({ page }) => {
 async function hoverDisabledConvert(page: Page) {
   await openPair(page);
   await expect(page.getByRole('button', { name: /Edit individual notes/ })).toBeVisible();
-  const convert = page.getByRole('button', { name: /^Convert( \d+ files? to .+)?$/ });
+  const convert = convertButton(page);
   await convert.evaluate((el) => el.scrollIntoView({ block: 'center' }));
   const box = (await convert.boundingBox())!;
   await page.mouse.move(box.x + 40, box.y + box.height / 2);
@@ -46,6 +47,19 @@ test('the Convert tooltip follows the mouse', async ({ page, isMobile }) => {
   await page.mouse.move(box.x + 80, box.y + box.height / 2);
   await expect.poll(async () => parseFloat(await page.getByRole('tooltip').evaluate((el) => getComputedStyle(el).left)))
     .toBeCloseTo(box.x + 80 + 14, 0);
+});
+
+test('a disabled Convert says why on a phone', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'the reason under the button is for touch');
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Choose files' })).toBeVisible();
+  const convert = convertButton(page);
+  await expect(convert).toBeDisabled();
+  const reason = page.getByText('Add a .mid file and pick both engines', { exact: true });
+  await reason.scrollIntoViewIfNeeded();
+  await seen(reason);
+  const [button, words] = [(await convert.boundingBox())!, (await reason.boundingBox())!];
+  expect(words.y).toBeGreaterThanOrEqual(button.y + button.height);
 });
 
 test('the Convert tooltip goes when the mouse leaves the button', async ({ page, isMobile }) => {

@@ -1,5 +1,6 @@
+import type { Page } from '@playwright/test';
 import { addFiles, DRUMS, expect, hitKeys, midFile, openPair, test } from './fixtures';
-import { convert, download, drumRow, noteButtons, openEditor, openSettings, press, retarget, targetNote } from './steps';
+import { convert, download, drumRow, leaveEditor, noteButtons, openEditor, openSettings, press, retarget, seen, targetNote } from './steps';
 
 const kickFile = () => midFile('kick.mid', [{ channel: DRUMS, key: 24 }]);
 
@@ -164,4 +165,86 @@ test('octave naming does not change the notes in the file', async ({ page }) => 
   await page.getByText('Ableton Live · Logic Pro · Cubase · Studio One').waitFor();
 
   expect(await convertAndDownload(page)).toEqual([36]);
+});
+
+const kickPicker = (page: Page) => page.getByRole('dialog', { name: 'Target note for Kick' });
+
+test('a target note picked from the drum list is written to the file', async ({ page }) => {
+  await openPair(page);
+  await addFiles(page, kickFile());
+  await openEditor(page);
+  await press(targetNote(page, 'Kick'));
+  await press(kickPicker(page).getByRole('button', { name: 'Crash 2 C#3', exact: true }));
+  await expect(kickPicker(page)).toBeHidden();
+  await expect(targetNote(page, 'Kick')).toHaveText('C#3');
+  await expect(page.getByText('1 change', { exact: true })).toBeVisible();
+  await leaveEditor(page);
+  expect(await convertAndDownload(page)).toEqual([49]);
+});
+
+test('an octave tab shows that octave\'s keys', async ({ page }) => {
+  await openPair(page);
+  await openEditor(page);
+  await press(targetNote(page, 'Kick'));
+  await expect(kickPicker(page).getByRole('button', { name: 'D3', exact: true })).toHaveCount(0);
+  await press(kickPicker(page).getByRole('button', { name: '3', exact: true }));
+  await press(kickPicker(page).getByRole('button', { name: 'D3', exact: true }));
+  await expect(kickPicker(page)).toBeHidden();
+  await expect(targetNote(page, 'Kick')).toHaveText('D3');
+  await press(targetNote(page, 'Kick'));
+  await expect(kickPicker(page).getByRole('button', { name: 'D3', exact: true })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('a source note picked for a drum says which drum it came from', async ({ page }) => {
+  await openPair(page);
+  await openEditor(page);
+  await press(noteButtons(page, 'Kick').first());
+  const picker = page.getByRole('dialog', { name: 'Source note for Kick' });
+  await press(picker.getByRole('button', { name: 'D1', exact: true }));
+  await expect(picker).toBeHidden();
+  await expect(noteButtons(page, 'Kick').first()).toHaveText('D1');
+  await expect(page.getByRole('status').filter({ hasText: /^D1 was Snare — now plays Kick$/ })).toBeVisible();
+});
+
+test('Done leaves the editor as Back does', async ({ page }) => {
+  await openPair(page);
+  await openEditor(page);
+  await retarget(page, 'Kick', 'E2');
+  await press(page.getByRole('button', { name: 'Done', exact: true }));
+  await expect(page.getByRole('heading', { name: 'Edit notes' })).toBeHidden();
+  const editLink = page.getByRole('button', { name: /Edit individual notes/ });
+  await seen(editLink);
+  await expect(editLink).toBeFocused();
+  await expect(page.getByRole('button', { name: /^1 drum edited/ })).toBeVisible();
+});
+
+test('Reset all brings every default back', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'a rule about the edits, not the layout');
+  await openPair(page);
+  await openEditor(page);
+  const snare = await targetNote(page, 'Snare').innerText();
+  await retarget(page, 'Kick', 'F2');
+  await retarget(page, 'Snare', 'F2');
+  await expect(page.getByText('2 changes', { exact: true })).toBeVisible();
+  const reset = page.getByRole('button', { name: 'Reset all' });
+  await press(reset);
+  await expect(targetNote(page, 'Kick')).toHaveText('C2');
+  await expect(targetNote(page, 'Snare')).toHaveText(snare);
+  await expect(page.getByText('No changes', { exact: true })).toBeVisible();
+  await expect(reset).toBeDisabled();
+});
+
+test('clearing an assigned source note takes the edit back', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'a rule about the edits, not the layout');
+  await openPair(page);
+  await openEditor(page);
+  await press(page.getByRole('button', { name: 'Advanced — reassign source notes' }));
+  await page.getByRole('textbox', { name: 'Add source note' }).fill('49');
+  await press(page.getByRole('button', { name: 'add', exact: true }));
+  const picker = page.getByRole('dialog', { name: 'Canon for C#3' });
+  await press(picker.getByRole('button', { name: /^Kick\s*kick\.main$/ }));
+  await expect(page.getByText('1 change', { exact: true })).toBeVisible();
+  await press(page.getByRole('button', { name: 'Clear source note C#3' }));
+  await expect(page.locator('[data-source-note="49"]')).toContainText('unmapped');
+  await expect(page.getByText('No changes', { exact: true })).toBeVisible();
 });

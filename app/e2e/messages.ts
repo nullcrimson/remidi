@@ -27,3 +27,21 @@ export function messages(code: string) {
   bundle.addResource(new FluentResource(code === PSEUDO ? pseudoFtl() : ftl(code)));
   return (id: string, args?: Record<string, FluentVariable>) => bundle.formatPattern(bundle.getMessage(id)!.value!, args);
 }
+
+/** What an argument of a message pattern stands for: any number, or any text. */
+type Wildcard = 'number' | 'text';
+
+const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const WILDCARD: Record<Wildcard, string> = { number: '\\d+', text: '.+' };
+
+/**
+ * The whole English text of message `id` as a pattern, each argument of `args` standing for
+ * what it is given as; a selector on such an argument takes the message's default variant.
+ */
+export function englishPattern(id: string, args: Record<string, Wildcard>): RegExp {
+  const token = (name: string) => `@${name}@`;
+  const text = messages('en')(id, Object.fromEntries(Object.keys(args).map((name) => [name, token(name)])));
+  const pattern = Object.entries(args).reduce((source, [name, wildcard]) => source.replaceAll(token(name), WILDCARD[wildcard]), escaped(text));
+  return new RegExp(`^${pattern}$`);
+}
