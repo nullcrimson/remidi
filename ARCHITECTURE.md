@@ -917,9 +917,17 @@ test in that file fails on any import outside it.
   engine id, empty for none, or `advice-failed` when the advice fails). One surface speaks about the source at a time:
   `sourceSurface(sourceStage(conv, offer, unrecognized))` (`convert/sourceSurface.ts`) gives
   `notice` or `question`, each with the `Offered`, `done` or `none`, and a converted file is
-  always `done`. `SourceAdviceNotice` under the engine pickers says what the source
+  always `done`. `SourceAdviceNotice` says what the source
   misses (the live region) and what the named engine knows, with "Use {engine}" for a
-  suggestion; the words come from `convert/sourceWords.ts`. Shares on the app side are only
+  suggestion; the words come from `convert/sourceWords.ts`. `App` reads its place once
+  (`convert/noticePlace.ts`, `useNoticePlace` over `ui/useNarrowScreen.ts`, whose width a
+  test pins to `--breakpoint-sm` of `index.css`) and renders it there: under the engine
+  pickers from `sm` up, and on a phone in the file step under the chips, inside the height
+  the empty card keeps (`convert/FileIntake.tsx` lays the drop card and the chips,
+  `convert/FileChips.tsx`, in one grid cell below `sm` and keeps the card's frame with its
+  content `invisible` and `inert`), so adding a file shifts nothing below the step.
+  `FileIntake` holds the step's one file input, mounted as long as the step is, so a file
+  chosen in it is never lost to the change from the empty card to the chips. Shares on the app side are only
   the events' buckets (`core/share.ts`: `share`, `shareBucket`); the thresholds are
   core's. `useRemapper` gives `conversion`: `unready`, with no run on show, until
   both engines are chosen, then `ready` with the `actions` (`convert/convertActions.ts`, made
@@ -1001,7 +1009,12 @@ test in that file fails on any import outside it.
   - Focus after an action goes through `useFocusIntent`: a component registers a
     target with `ref(target)`, the action calls `request(target)`, and focus moves once
     the render is on screen and any closing dialog has handed focus back. There are no
-    global element ids for focus.
+    global element ids for focus. After files are picked or dropped with both engines
+    chosen, focus goes to Convert, except while the notice's place is the file step (a
+    phone): there `convert/useAddedFocus.ts` waits for the advice (`useSourceAdvice`'s
+    `settled`, the remapper's `adviceSettled`) and focuses the notice's first sentence (the
+    target `sourceNotice`, whose focus scrolls the whole notice into view) when the notice
+    shows, Convert when it does not. The sample groove converts at once and focuses at once.
   Persistence lives in focused hooks
   (`useSavedMappings`, `useFavorites`) and `convert/session.ts`:
   - Presets are stored as `{ version: 1, items }` (a legacy bare array reads as version
@@ -1191,8 +1204,17 @@ engine and pair pages (`/pl/engines/…`, `/pl/convert/…`) and the translated 
 (`/pl/faq/`), each with `<html lang>` and `hreflang` alternates for exactly its versions
 plus `x-default`. Engine and drum names stay as the engines name them. Every static page carries the same language menu as the app
 (plain links: `page_in` gives the same page in a locale, or that locale's converter). The
-sitemap lists every URL with `xhtml:link` alternates. `src/locale/staticPagesEntry.ts` (a two-line entry over
-`staticPages.ts`) stores the
+sitemap lists every URL with `xhtml:link` alternates. On a phone (a coarse pointer below
+`sm`, the `phone-handoff` utility of `index.css`) the engine, drum-maps and pair pages, like
+the converter's empty file step (`convert/PhoneHandoff.tsx`), offer "Send this page":
+`core/sharePage.ts` opens the share sheet with the address, copies it where there is none or
+the sheet fails other than by the visitor closing it, and else the page shows the address to
+copy by hand; the converter's address is built from the engines chosen
+(`converterAddress` in `convert/preselect.ts`, beside the reader of the same fragment). The
+templates' `phone_handoff(page)` boxes are wired by `core/pageHandoff.ts`, which throws on a
+page `HANDOFF_PAGES` does not know (`test/siteEvents.test.ts` pins the templates' names to
+it). `src/locale/staticPagesEntry.ts` (an entry over `staticPages.ts` and
+`core/pageHandoff.ts`) stores the
 choice when a language link is clicked. With a stored choice, a page that exists in that
 language replaces itself with that version (`location.replace`); with none, it shows a
 dismissible offer of the same page in the browser's language, matched by the same
@@ -1304,9 +1326,11 @@ Lint: `i18next/no-literal-string` rejects literal text in JSX and in text props;
   it ends, so a run started in the same event as a change of source reports the new pair;
   `load-failed` is sent
   by the engine catalog (the module failed to load) and by `main.tsx` (kind `locale`: the
-  page's language failed to load). The static pages load only `core/umami.ts`
-  (`StaticOnlyEvent` names the four events only they send; `language-picked` from a static
-  page also goes through `send`), so those sends are outside the tier switches and their
+  page's language failed to load). The static pages load only `core/umami.ts` of the
+  analytics (`StaticOnlyEvent` names the four events only they send; `language-picked` from a static
+  page also goes through `send`, and `page-shared`, tier 2 in the app through `track`, is
+  sent from them by `core/pageHandoff.ts`, its `page` one of `HANDOFF_PAGES` and its `how`
+  from `SHARED_HOW`, nothing for a closed share sheet), so those sends are outside the tier switches and their
   script carries no table: `converter-opened` is markup alone
   (`data-umami-event` and `data-umami-event-page`, `-from`, `-to` on every link into the
   converter, written by the templates; the page kind comes from `PageKind` in
