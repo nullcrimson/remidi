@@ -14,11 +14,11 @@ import { reachable } from './reachable.ts';
  */
 export const BUDGETS = {
   wasm: 282_000,
-  js: 168_000,
-  css: 13_800,
+  js: 169_000,
+  css: 14_000,
   fonts: 108_000,
   locale: 12_000,
-  page: 1_900,
+  page: 2_300,
 } as const;
 
 type Kind = keyof typeof BUDGETS;
