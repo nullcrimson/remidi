@@ -5,6 +5,7 @@ import {
   FloatingPortal,
   offset,
   shift,
+  useClick,
   useDismiss,
   useFloating,
   useFocus,
@@ -30,6 +31,7 @@ export function Tooltip({
   });
   const { getReferenceProps, getFloatingProps } = useInteractions([
     useHover(context, { move: false }),
+    useClick(context, { ignoreMouse: true }),
     useFocus(context),
     useDismiss(context),
     useRole(context, { role: 'tooltip' }),
