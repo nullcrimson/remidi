@@ -1,7 +1,8 @@
 # Drumverter
 
 Convert drum MIDI between sample-engine note layouts — GetGood Drums, EZdrummer,
-Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro and 80+ others.
+Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro and 120+ other drum
+engines (160 note layouts in all).
 
 **Use it at [drumverter.com](https://drumverter.com).** It runs in your browser; files
 are never uploaded.
@@ -13,7 +14,12 @@ are never uploaded.
 - Every note goes through a shared drum vocabulary, so any engine converts to any other.
 - A drum the target lacks is played on the nearest one it has (a China on a crash), or
   left out if you choose **Drop**; a rimshot or flam still falls back to a plain hit on
-  the same drum.
+  the same drum. Toms and cymbals spread over the ones the target has, in order, so fills
+  keep their pitches.
+- The converter checks your file against the source you picked. If that engine doesn't
+  know its notes, or finds no kick or snare in it, it names the engine that knows them
+  best and asks before converting; a file already in the target's layout gets an offer to
+  convert the other way.
 - A note the source layout does not know is removed, or kept as it is if you choose
   **Keep as they are** (for files partly written for another kit).
 - Once both engines are picked, a summary row says how many drums move; hover the dotted
@@ -31,7 +37,7 @@ are never uploaded.
 - **Drum maps**: every engine's note names for Reaper, Cubase, Studio One and Ableton Live,
   on [drumverter.com/drum-maps/](https://drumverter.com/drum-maps/) and each engine's page.
 - Batch conversion, drum-channel selection, 11 languages, and a command-line tool for
-  offline use.
+  offline use. On a phone, one button sends the page on to your computer.
 
 ## Translations
 
