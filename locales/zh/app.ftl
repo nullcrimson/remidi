@@ -72,7 +72,7 @@ import-done-skipped =
     }）。
 edit-line = { $drum }：{ $now }（默认 { $byDefault }）
 edit-more = 另有 { $count } 项
-app-intro = 把鼓 MIDI 转换到 GetGood Drums、EZdrummer、Superior Drummer 3、Addictive Drums 2、General MIDI、Guitar Pro 等 80 多款鼓音源的音符布局。全程在浏览器里完成，文件不会上传。
+app-intro = 把鼓 MIDI 转换到 GetGood Drums、EZdrummer、Superior Drummer 3、Addictive Drums 2、General MIDI、Guitar Pro 等 120 多款鼓音源的音符布局。全程在浏览器里完成，文件不会上传。
 app-loading = 正在加载转换器…
 convert-error = 错误：{ $error }
 notice-dismiss = 关闭

@@ -1,5 +1,5 @@
 section-guide-title = So konvertieren Sie Drum-MIDI zwischen Plugins
-section-guide-description = Konvertieren Sie Drum-MIDI zwischen GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums und über 80 Plugins – in drei Schritten, kostenlos und im Browser.
+section-guide-description = Konvertieren Sie Drum-MIDI zwischen GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums und über 120 Plugins – in drei Schritten, kostenlos und im Browser.
 section-faq-title = FAQ zum Drum-MIDI-Konverter
 section-faq-description = Antworten zu Drumverter: Kosten, Datenschutz, C-1 oder C-2, mehrere Dateien auf einmal und was passiert, wenn ein Plugin ein Instrument nicht hat.
 section-issue-title = Problem melden
@@ -16,7 +16,7 @@ thanks-description = Danke, dass Sie Drumverter unterstützen, den kostenlosen D
 thanks-heading = Danke!
 thanks-body = Dank Ihres Kaffees bleibt Drumverter kostenlos und werbefrei. Die Quittung schickt Ihnen Stripe per E-Mail.
 converter-description = Kostenloser Drum-MIDI-Konverter im Browser: Drum-MIDI zwischen GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums, General MIDI und Guitar Pro umbelegen.
-converter-og-description = Konvertieren Sie Drum-MIDI zwischen GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums und über 80 weiteren Plugins. Kostenlos, im Browser.
+converter-og-description = Konvertieren Sie Drum-MIDI zwischen GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums und über 120 weiteren Plugins. Kostenlos, im Browser.
 converter-image-alt = Drumverter – Drum-MIDI konvertieren und umbelegen
 converter-twitter-description = Kostenlos im Browser: Drum-MIDI von der Notenbelegung eines Drum-Plugins auf die eines anderen umbelegen.
 converter-app-description = Kostenloses Browser-Tool, das Drum-MIDI von der Notenbelegung eines Drum-Plugins auf die eines anderen umbelegt.

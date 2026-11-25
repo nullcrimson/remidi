@@ -80,7 +80,7 @@ edit-more =
         [one] +{ $count } altra
        *[other] +{ $count } altre
     }
-app-intro = Converti il MIDI di batteria tra GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro e oltre 80 altri plugin. Funziona tutto nel browser: i tuoi file non vengono caricati da nessuna parte.
+app-intro = Converti il MIDI di batteria tra GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro e oltre 120 altri plugin. Funziona tutto nel browser: i tuoi file non vengono caricati da nessuna parte.
 app-loading = Stiamo caricando il convertitore…
 convert-error = Errore: { $error }
 notice-dismiss = Ignora

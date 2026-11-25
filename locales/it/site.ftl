@@ -1,5 +1,5 @@
 section-guide-title = Come convertire il MIDI di batteria tra plugin
-section-guide-description = Converti il MIDI di batteria tra GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums e oltre 80 plugin in tre passaggi, gratis e nel browser.
+section-guide-description = Converti il MIDI di batteria tra GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums e oltre 120 plugin in tre passaggi, gratis e nel browser.
 section-faq-title = Convertitore MIDI per batteria: FAQ
 section-faq-description = Risposte su Drumverter: costi, privacy, C-1 o C-2, più file insieme e cosa succede se nel plugin di destinazione manca uno strumento.
 section-issue-title = Segnala un problema
@@ -16,7 +16,7 @@ thanks-description = Grazie per il supporto a Drumverter, il convertitore MIDI p
 thanks-heading = Grazie!
 thanks-body = Grazie al tuo caffè, Drumverter resta gratuito e senza pubblicità. Stripe ti invierà la ricevuta via email.
 converter-description = Convertitore MIDI per batteria gratuito: rimappa il MIDI di batteria tra GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums, General MIDI e Guitar Pro nel browser.
-converter-og-description = Converti il MIDI di batteria tra GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums e oltre 80 altri plugin. Gratis, nel browser.
+converter-og-description = Converti il MIDI di batteria tra GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums e oltre 120 altri plugin. Gratis, nel browser.
 converter-image-alt = Drumverter — converti e rimappa il MIDI di batteria
 converter-twitter-description = Rimappa gratis il MIDI di batteria nel browser, dalla mappatura delle note di un plugin a quella di un altro.
 converter-app-description = App gratuita nel browser che adatta il MIDI di batteria dalla mappatura delle note di un plugin a quella di un altro.

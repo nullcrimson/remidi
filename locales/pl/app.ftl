@@ -80,7 +80,7 @@ import-done-skipped =
     }).
 edit-line = { $drum }: { $now } (domyślnie { $byDefault })
 edit-more = +{ $count } więcej
-app-intro = Konwertuj MIDI perkusji między GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro i ponad 80 innymi wtyczkami. Wszystko dzieje się w przeglądarce — pliki nigdzie nie są wysyłane.
+app-intro = Konwertuj MIDI perkusji między GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro i ponad 120 innymi wtyczkami. Wszystko dzieje się w przeglądarce — pliki nigdzie nie są wysyłane.
 app-loading = Wczytywanie konwertera…
 convert-error = Błąd: { $error }
 notice-dismiss = Zamknij

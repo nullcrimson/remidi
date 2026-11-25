@@ -76,7 +76,7 @@ import-done-skipped =
     }).
 edit-line = { $drum }: { $now } (padrão: { $byDefault })
 edit-more = +{ $count } outras
-app-intro = Converta MIDI de bateria entre GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro e mais de 80 plugins. Tudo roda no seu navegador: seus arquivos não são enviados para lugar nenhum.
+app-intro = Converta MIDI de bateria entre GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro e mais de 120 plugins. Tudo roda no seu navegador: seus arquivos não são enviados para lugar nenhum.
 app-loading = Carregando o conversor…
 convert-error = Erro: { $error }
 notice-dismiss = Dispensar

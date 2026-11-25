@@ -76,7 +76,7 @@ import-done-skipped =
     } übersprungen).
 edit-line = { $drum }: { $now } (Standard: { $byDefault })
 edit-more = +{ $count } weitere
-app-intro = Konvertieren Sie Drum-MIDI zwischen GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro und über 80 weiteren Drum-Plugins. Alles läuft in Ihrem Browser – Ihre Dateien werden nirgendwohin hochgeladen.
+app-intro = Konvertieren Sie Drum-MIDI zwischen GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro und über 120 weiteren Drum-Plugins. Alles läuft in Ihrem Browser – Ihre Dateien werden nirgendwohin hochgeladen.
 app-loading = Konverter wird geladen…
 convert-error = Fehler: { $error }
 notice-dismiss = Schließen

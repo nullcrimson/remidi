@@ -1,5 +1,5 @@
 section-guide-title = Jak konwertować MIDI perkusji między wtyczkami
-section-guide-description = Konwertuj MIDI perkusji między GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums i 80+ wtyczkami w trzech krokach, za darmo, w przeglądarce.
+section-guide-description = Konwertuj MIDI perkusji między GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums i 120+ wtyczkami w trzech krokach, za darmo, w przeglądarce.
 section-faq-title = FAQ konwertera MIDI perkusji
 section-faq-description = Drumverter w pytaniach: koszt, prywatność, oktawy (C-1 czy C-2), konwersja wielu plików i co się dzieje z instrumentami bez odpowiednika.
 section-issue-title = Zgłoś problem
@@ -16,7 +16,7 @@ thanks-description = Dziękuję za wsparcie aplikacji Drumverter — darmowego k
 thanks-heading = Dziękuję!
 thanks-body = Dzięki kawie aplikacja Drumverter pozostaje darmowa i bez reklam. Potwierdzenie płatności Stripe wyśle e-mailem.
 converter-description = Darmowy konwerter MIDI perkusji: mapuj MIDI między GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums, General MIDI i Guitar Pro w przeglądarce.
-converter-og-description = Konwertuj MIDI perkusji między GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums i ponad 80 innymi wtyczkami. Za darmo, w przeglądarce.
+converter-og-description = Konwertuj MIDI perkusji między GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums i ponad 120 innymi wtyczkami. Za darmo, w przeglądarce.
 converter-image-alt = Drumverter — konwerter i remapper MIDI perkusji
 converter-twitter-description = Darmowy remapper MIDI perkusji w przeglądarce — przenosi MIDI perkusji między układami nut wtyczek perkusyjnych.
 converter-app-description = Darmowe narzędzie w przeglądarce, które przenosi MIDI perkusji między układami nut wtyczek perkusyjnych.

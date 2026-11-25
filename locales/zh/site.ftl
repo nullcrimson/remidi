@@ -1,5 +1,5 @@
 section-guide-title = 如何在鼓音源之间转换鼓 MIDI
-section-guide-description = 只需三步，就能在 GetGood Drums、EZdrummer、Superior Drummer、Addictive Drums 等 80 多款鼓音源之间转换鼓 MIDI。免费，直接在浏览器里完成。
+section-guide-description = 只需三步，就能在 GetGood Drums、EZdrummer、Superior Drummer、Addictive Drums 等 120 多款鼓音源之间转换鼓 MIDI。免费，直接在浏览器里完成。
 section-faq-title = 鼓 MIDI 转换器常见问题
 section-faq-description = 关于 Drumverter 的常见问题：费用、隐私、八度标记（C-1 还是 C-2）、批量转换，以及目标鼓音源里没有对应鼓件时会怎样。
 section-issue-title = 反馈问题
@@ -16,7 +16,7 @@ thanks-description = 感谢支持免费的鼓 MIDI 转换器 Drumverter。
 thanks-heading = 谢谢！
 thanks-body = 有了这杯咖啡，Drumverter 可以继续免费、无广告。Stripe 会把收据发到您的邮箱。
 converter-description = 免费的鼓 MIDI 转换器：直接在浏览器里把鼓 MIDI 在 GetGood Drums、EZdrummer、Superior Drummer、Addictive Drums、General MIDI 和 Guitar Pro 之间重新映射。
-converter-og-description = 在 GetGood Drums、EZdrummer、Superior Drummer、Addictive Drums 等 80 多款鼓音源之间转换鼓 MIDI。免费，在浏览器里运行。
+converter-og-description = 在 GetGood Drums、EZdrummer、Superior Drummer、Addictive Drums 等 120 多款鼓音源之间转换鼓 MIDI。免费，在浏览器里运行。
 converter-image-alt = Drumverter：鼓 MIDI 转换与重映射工具
 converter-twitter-description = 免费的浏览器端鼓 MIDI 重映射工具，在不同鼓音源的音符布局之间重新映射鼓 MIDI。
 converter-app-description = 在不同鼓音源的音符布局之间重新映射鼓 MIDI 的免费浏览器端工具。

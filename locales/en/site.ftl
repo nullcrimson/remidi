@@ -1,5 +1,5 @@
 section-guide-title = How to Convert Drum MIDI Between Engines
-section-guide-description = Convert drum MIDI between GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums and 80+ engines in three steps, free and in your browser.
+section-guide-description = Convert drum MIDI between GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums and 120+ engines in three steps, free and in your browser.
 section-faq-title = Drum MIDI Converter FAQ
 section-faq-description = Answers about Drumverter: cost, privacy, octave conventions (C-1 vs C-2), batch conversion and what happens to drums with no equivalent.
 section-issue-title = Report an Issue
@@ -16,7 +16,7 @@ thanks-description = Thank you for supporting Drumverter, the free drum MIDI con
 thanks-heading = Thank you!
 thanks-body = Your coffee keeps Drumverter free and ad-free. Stripe emails you the receipt.
 converter-description = Free drum MIDI converter: remap drum MIDI between GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums, General MIDI and Guitar Pro in-browser.
-converter-og-description = Convert drum MIDI between GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums and 80+ more engines. Free, in-browser.
+converter-og-description = Convert drum MIDI between GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums and 120+ more engines. Free, in-browser.
 converter-image-alt = Drumverter — drum MIDI converter and remapper
 converter-twitter-description = Free in-browser drum MIDI remapper — remap drum MIDI between sample-engine note layouts.
 converter-app-description = Free in-browser tool that remaps drum MIDI between sample-engine note layouts.

@@ -1,5 +1,5 @@
 section-guide-title = Как конвертировать MIDI ударных между плагинами
-section-guide-description = Конвертируйте MIDI ударных между GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums и ещё более чем 80 плагинами в три шага — бесплатно, прямо в браузере.
+section-guide-description = Конвертируйте MIDI ударных между GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums и ещё более чем 120 плагинами в три шага — бесплатно, прямо в браузере.
 section-faq-title = Вопросы о конвертере MIDI плагинов для барабанов
 section-faq-description = Ответы на частые вопросы: сколько стоит Drumverter, загружаются ли куда-то файлы, C-1 или C-2, можно ли конвертировать несколько файлов сразу и что будет, если в плагине нет нужного барабана.
 section-issue-title = Сообщить о проблеме
@@ -16,7 +16,7 @@ thanks-description = Спасибо за поддержку Drumverter — бе�
 thanks-heading = Спасибо!
 thanks-body = Ваш кофе помогает Drumverter оставаться бесплатным и без рекламы. Чек придёт на почту от Stripe.
 converter-description = Бесплатный конвертер MIDI плагинов для барабанов: переносите MIDI-партии между GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums, General MIDI и Guitar Pro прямо в браузере.
-converter-og-description = Конвертируйте MIDI ударных между GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums и ещё более чем 80 плагинами. Бесплатно, в браузере.
+converter-og-description = Конвертируйте MIDI ударных между GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums и ещё более чем 120 плагинами. Бесплатно, в браузере.
 converter-image-alt = Drumverter — конвертация и маппинг MIDI ударных
 converter-twitter-description = Бесплатный конвертер MIDI плагинов для барабанов в браузере: переносит MIDI ударных с маппинга нот одного плагина на маппинг другого.
 converter-app-description = Бесплатный сервис в браузере: переносит MIDI ударных с маппинга нот одного плагина на маппинг другого.

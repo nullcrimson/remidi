@@ -71,7 +71,7 @@ import-done-skipped =
     }はスキップ）。
 edit-line = { $drum }：{ $now }（デフォルト：{ $byDefault }）
 edit-more = ほか{ $count }件
-app-intro = GetGood Drums、EZdrummer、Superior Drummer 3、Addictive Drums 2、General MIDI、Guitar Proなど、80種類以上のドラム音源のノート配置に合わせてドラムMIDIを変換します。ブラウザだけで動き、ファイルはアップロードされません。
+app-intro = GetGood Drums、EZdrummer、Superior Drummer 3、Addictive Drums 2、General MIDI、Guitar Proなど、120種類以上のドラム音源のノート配置に合わせてドラムMIDIを変換します。ブラウザだけで動き、ファイルはアップロードされません。
 app-loading = コンバーターを読み込み中…
 convert-error = エラー：{ $error }
 notice-dismiss = 閉じる

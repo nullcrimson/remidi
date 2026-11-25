@@ -84,7 +84,7 @@ import-done-skipped =
     }.
 edit-line = { $drum }: { $now } (по умолчанию { $byDefault })
 edit-more = + ещё { $count }
-app-intro = Конвертируйте MIDI для GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro и ещё более чем 80 плагинов. Всё работает прямо в браузере — файлы никуда не загружаются.
+app-intro = Конвертируйте MIDI для GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro и ещё более чем 120 плагинов. Всё работает прямо в браузере — файлы никуда не загружаются.
 app-loading = Загружаем конвертер…
 convert-error = Ошибка: { $error }
 notice-dismiss = Закрыть

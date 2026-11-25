@@ -1,5 +1,5 @@
 section-guide-title = 드럼 MIDI를 다른 드럼 음원용으로 변환하는 방법
-section-guide-description = GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums 등 80개 이상의 드럼 음원에 맞게 드럼 MIDI를 세 단계로 변환하세요. 무료이고 브라우저에서 바로 됩니다.
+section-guide-description = GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums 등 120개 이상의 드럼 음원에 맞게 드럼 MIDI를 세 단계로 변환하세요. 무료이고 브라우저에서 바로 됩니다.
 section-faq-title = 드럼 MIDI 변환기 자주 묻는 질문
 section-faq-description = Drumverter에 관한 질문과 답변: 비용, 개인정보, 옥타브 표기(C-1 또는 C-2), 여러 파일 한 번에 변환하기, 대상 음원에 없는 악기는 어떻게 되는지.
 section-issue-title = 문제 신고
@@ -16,7 +16,7 @@ thanks-description = 무료 드럼 MIDI 변환기 Drumverter를 후원해 주셔
 thanks-heading = 감사합니다!
 thanks-body = 보내 주신 커피 덕분에 Drumverter를 계속 무료로, 광고 없이 운영할 수 있습니다. 영수증은 Stripe에서 이메일로 보내 드립니다.
 converter-description = 무료 드럼 MIDI 변환기: GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums, General MIDI, Guitar Pro 사이에서 드럼 MIDI를 브라우저로 바로 리매핑하세요.
-converter-og-description = GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums 등 80개 이상의 드럼 음원에 맞게 드럼 MIDI를 변환하세요. 무료이고 브라우저에서 바로 됩니다.
+converter-og-description = GetGood Drums, EZdrummer, Superior Drummer, Addictive Drums 등 120개 이상의 드럼 음원에 맞게 드럼 MIDI를 변환하세요. 무료이고 브라우저에서 바로 됩니다.
 converter-image-alt = Drumverter — 드럼 MIDI 변환·리매핑 도구
 converter-twitter-description = 브라우저에서 쓰는 무료 드럼 MIDI 리매핑 도구 — 드럼 음원마다 다른 노트 배치에 맞게 드럼 MIDI를 리매핑합니다.
 converter-app-description = 드럼 음원마다 다른 노트 배치에 맞게 드럼 MIDI를 리매핑하는 무료 브라우저 도구.

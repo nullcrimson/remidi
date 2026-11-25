@@ -1,5 +1,5 @@
 section-guide-title = ドラムMIDIを別のドラム音源用に変換する方法
-section-guide-description = GetGood Drums、EZdrummer、Superior Drummer、Addictive Drumsなど80種類以上のドラム音源のあいだで、ドラムMIDIを3ステップで変換。無料で、ブラウザだけで使えます。
+section-guide-description = GetGood Drums、EZdrummer、Superior Drummer、Addictive Drumsなど120種類以上のドラム音源のあいだで、ドラムMIDIを3ステップで変換。無料で、ブラウザだけで使えます。
 section-faq-title = ドラムMIDIコンバーターのよくある質問
 section-faq-description = Drumverterのよくある質問：料金、プライバシー、オクターブ表記（C-1とC-2）、まとめて変換、変換先にないパーツがどうなるか。
 section-issue-title = 問題を報告
@@ -16,7 +16,7 @@ thanks-description = 無料のドラムMIDIコンバーター、Drumverterへの
 thanks-heading = ありがとうございます！
 thanks-body = いただいたコーヒーのおかげで、Drumverterを無料・広告なしで続けられます。領収書はStripeからメールで届きます。
 converter-description = 無料のドラムMIDIコンバーター：GetGood Drums、EZdrummer、Superior Drummer、Addictive Drums、General MIDI、Guitar Proのあいだで、ドラムMIDIをブラウザ上でリマップ。
-converter-og-description = GetGood Drums、EZdrummer、Superior Drummer、Addictive Drumsなど80種類以上のドラム音源のあいだでドラムMIDIを変換。無料、ブラウザで動作。
+converter-og-description = GetGood Drums、EZdrummer、Superior Drummer、Addictive Drumsなど120種類以上のドラム音源のあいだでドラムMIDIを変換。無料、ブラウザで動作。
 converter-image-alt = Drumverter — ドラムMIDI変換・リマップツール
 converter-twitter-description = ブラウザで使える無料のドラムMIDIリマップツール — ドラム音源ごとのノート配置に合わせてドラムMIDIをリマップ。
 converter-app-description = ドラム音源ごとのノート配置に合わせてドラムMIDIをリマップする、ブラウザで使える無料ツール。

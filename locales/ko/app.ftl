@@ -71,7 +71,7 @@ import-done-skipped =
     } 건너뜀).
 edit-line = { $drum }: { $now } (기본값 { $byDefault })
 edit-more = +{ $count }개 더
-app-intro = GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro 등 80개 이상의 드럼 음원에 맞게 드럼 MIDI의 노트 배치를 바꿔 줍니다. 브라우저에서 바로 실행되고, 파일은 업로드되지 않습니다.
+app-intro = GetGood Drums, EZdrummer, Superior Drummer 3, Addictive Drums 2, General MIDI, Guitar Pro 등 120개 이상의 드럼 음원에 맞게 드럼 MIDI의 노트 배치를 바꿔 줍니다. 브라우저에서 바로 실행되고, 파일은 업로드되지 않습니다.
 app-loading = 변환기 불러오는 중…
 convert-error = 오류: { $error }
 notice-dismiss = 닫기
