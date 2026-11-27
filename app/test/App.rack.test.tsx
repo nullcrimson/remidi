@@ -135,7 +135,7 @@ describe('the summary row rack', () => {
     await pickEngines();
     await userEvent.click(rackButton());
     expect(screen.getByRole('group', { name: 'Leave a tip' })).toBeVisible();
-    expect(umami).toHaveBeenCalledWith('tip-asked', { after: 'rack', page: 'converter' });
+    expect(umami).toHaveBeenCalledWith('tip-asked', { after: 'rack', site: 'converter' });
   });
 
   it('a failed rack does not count toward the tip ask', async () => {

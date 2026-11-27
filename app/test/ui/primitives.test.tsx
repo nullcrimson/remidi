@@ -223,7 +223,8 @@ describe('TextField', () => {
 describe('touch targets', () => {
   it('grows the hit area of icon buttons on coarse pointers', () => {
     render(<IconButton label="Close" onClick={() => {}}>×</IconButton>);
-    expect(screen.getByRole('button', { name: 'Close' })).toHaveClass('tap');
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveClass('icon-button');
+    expect(utility('icon-button')).toMatch(/@apply tap /);
   });
 
   it('grows the hit area of text buttons on coarse pointers', () => {

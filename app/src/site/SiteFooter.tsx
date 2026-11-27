@@ -47,7 +47,7 @@ export function SiteFooter() {
                 href={tip.other}
                 target="_blank"
                 rel="noopener"
-                onClick={() => track('tip-answered', { answer: 'other', where: 'footer', page: 'converter' })}
+                onClick={() => track('tip-answered', { answer: 'other', where: 'footer', site: 'converter' })}
                 className="prose-link tip-link"
               >
                 {t({ id: 'tip-link' })}

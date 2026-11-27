@@ -4,6 +4,7 @@ import { useLocale } from '../locale/localeContext';
 import { useRef } from 'react';
 import { track } from '../core/stats';
 import { amountAnswer, answerTip, tipEuros, type TipAnswer } from './tipAsk';
+import { IconButton } from '../ui/IconButton';
 
 /**
  * The ask for a tip, pinned to the top of the screen: a short note and Stripe links, each
@@ -16,11 +17,10 @@ export function TipToast({ onClose }: { onClose: (hadFocus: boolean) => void }) 
   const euros = tipEuros(LOCALES[locale].langTag);
   const ref = useRef<HTMLDivElement>(null);
   const answer = (given: TipAnswer) => {
-    track('tip-answered', answerTip(given, 'toast', 'converter'));
+    track('tip-answered', answerTip(given, 'converter'));
     onClose(ref.current?.contains(document.activeElement) ?? false);
   };
   const close = () => answer('closed');
-  const tipped = answer;
 
   return (
     <div
@@ -37,13 +37,7 @@ export function TipToast({ onClose }: { onClose: (hadFocus: boolean) => void }) 
           <span aria-hidden="true" className="text-star">☕ </span>
           <span>{t({ id: 'tip-ask' })}</span>
         </p>
-        <button
-          type="button"
-          aria-label={t({ id: 'close' })}
-          onClick={close}
-          className="tip-toast-close"
-        >×
-        </button>
+        <IconButton label={t({ id: 'close' })} onClick={close}>×</IconButton>
       </div>
       <ul className="flex flex-wrap items-center gap-2">
         {tip.amounts.map((a) => (
@@ -53,7 +47,7 @@ export function TipToast({ onClose }: { onClose: (hadFocus: boolean) => void }) 
               target="_blank"
               rel="noopener"
               data-euros={a.euros}
-              onClick={() => tipped(amountAnswer(a.euros))}
+              onClick={() => answer(amountAnswer(a.euros))}
               className={'featured' in a && a.featured
                 ? `tip-amount tip-amount-featured`
                 : `tip-amount`}
@@ -67,7 +61,7 @@ export function TipToast({ onClose }: { onClose: (hadFocus: boolean) => void }) 
             href={tip.other}
             target="_blank"
             rel="noopener"
-            onClick={() => tipped('other')}
+            onClick={() => answer('other')}
             className="prose-link text-ui"
           >
             {t({ id: 'tip-other' })}

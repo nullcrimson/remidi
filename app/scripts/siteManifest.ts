@@ -18,7 +18,7 @@ export function statsAttrs(sha: string | undefined): Record<string, string> {
 }
 
 /** The script the static pages load: its address and the chunks it imports, to preload. */
-export interface LocaleScript {
+export interface PageScript {
   src: string;
   preload: readonly string[];
 }
@@ -28,7 +28,7 @@ export interface SiteManifest {
   stylesheet: string;
   contentSecurityPolicy: string;
   analytics: readonly AnalyticsScript[];
-  localeScript: LocaleScript;
+  pageScript: PageScript;
   fontPreloads: readonly string[];
 }
 
@@ -57,7 +57,7 @@ function fontPreloadsOf(files: readonly string[]): string[] {
 }
 
 /** The entry named `entry` and every chunk it imports statically, directly or through another chunk. */
-export function localeScriptOf(chunks: readonly EmittedChunk[], entry: string): LocaleScript {
+export function pageScriptOf(chunks: readonly EmittedChunk[], entry: string): PageScript {
   const byFile = new Map(chunks.map((chunk) => [chunk.fileName, chunk]));
   const script = chunks.find((chunk) => chunk.isEntry && chunk.name === entry);
   if (script === undefined) throw new Error(`expected an entry chunk named ${entry} in the bundle`);
@@ -77,7 +77,7 @@ export function localeScriptOf(chunks: readonly EmittedChunk[], entry: string): 
 export function siteManifest(
   files: readonly string[],
   chunks: readonly EmittedChunk[],
-  localeEntry: string,
+  pagesEntry: string,
   contentSecurityPolicy: string,
   analytics: readonly AnalyticsScript[],
 ): SiteManifest {
@@ -85,7 +85,7 @@ export function siteManifest(
     stylesheet: stylesheetOf(files),
     contentSecurityPolicy,
     analytics,
-    localeScript: localeScriptOf(chunks, localeEntry),
+    pageScript: pageScriptOf(chunks, pagesEntry),
     fontPreloads: fontPreloadsOf(files),
   };
 }

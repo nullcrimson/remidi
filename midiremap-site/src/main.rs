@@ -17,6 +17,7 @@ mod schema;
 mod shell;
 mod sitemap;
 mod texts;
+mod tip;
 
 use std::{
     fs,

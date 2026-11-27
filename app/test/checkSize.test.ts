@@ -66,7 +66,7 @@ describe('asset size budgets', () => {
 describe('what a static page loads', () => {
   const text = (source: string) => new TextEncoder().encode(source);
   const chunks: Record<string, string> = {
-    'site-locale-a.js': 'import{a}from"./language-b.js";a()',
+    'site-pages-a.js': 'import{a}from"./language-b.js";a()',
     'language-b.js': 'import"./deep-c.js";export const a=()=>{}',
     'deep-c.js': 'export{}',
     'index-d.js': 'import"./language-b.js"',
@@ -75,7 +75,7 @@ describe('what a static page loads', () => {
   const size = (name: string) => gzipSync(read(name), { level: 9 }).length;
 
   it('follows a chunk to the chunks it imports', () => {
-    expect(chunksLoadedBy('site-locale-a.js', (name) => chunks[name])).toEqual(['site-locale-a.js', 'language-b.js', 'deep-c.js']);
+    expect(chunksLoadedBy('site-pages-a.js', (name) => chunks[name])).toEqual(['site-pages-a.js', 'language-b.js', 'deep-c.js']);
   });
 
   it('lists a chunk two others import once', () => {
@@ -86,7 +86,7 @@ describe('what a static page loads', () => {
   it('counts the language script, its chunks and the list filter, gzipped', () => {
     const filter = text('filter();');
     expect(pageBytes(Object.keys(chunks), read, filter)).toBe(
-      size('site-locale-a.js') + size('language-b.js') + size('deep-c.js') + gzipSync(filter, { level: 9 }).length,
+      size('site-pages-a.js') + size('language-b.js') + size('deep-c.js') + gzipSync(filter, { level: 9 }).length,
     );
   });
 

@@ -98,6 +98,7 @@ describe('app structure', () => {
   it('loads on a static page only its language script, the stored choice and offer, the page sharer, the tip ask and the event sender', () => {
     expect(loadedBy(`${SRC_PREFIX}staticPagesEntry`)).toEqual([
       'core/pageHandoff.ts',
+      'core/pageMark.ts',
       'core/sharePage.ts',
       'core/storage.ts',
       'core/umami.ts',

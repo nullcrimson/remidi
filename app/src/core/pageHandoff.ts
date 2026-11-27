@@ -1,12 +1,9 @@
+import { knownMark } from './pageMark';
 import { HANDOFF_PAGES, SHARED_HOW, sharePage, type HandoffPage, type Shared } from './sharePage';
 import { send } from './umami';
 
-/** The page a `[data-handoff]` box names; a name `page-shared` does not know is a fault of the page, thrown so it is seen. */
-function handoffPage(kind: string | undefined): HandoffPage {
-  const page = HANDOFF_PAGES.find((known) => known === kind);
-  if (page === undefined) throw new Error(`data-handoff="${kind}" names no page page-shared knows`);
-  return page;
-}
+/** The page a `[data-handoff]` box names, one `page-shared` knows. */
+const handoffPage = (kind: string | undefined): HandoffPage => knownMark(HANDOFF_PAGES, 'data-handoff', kind, 'page page-shared knows');
 
 /**
  * Wires the phone line of each `[data-handoff]` box of a static page: its `[data-share]`

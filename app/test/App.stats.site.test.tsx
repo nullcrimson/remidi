@@ -70,7 +70,7 @@ describe('the events of language, navigation, tips and failures', () => {
   it('sends tip-answered from the footer tip link', async () => {
     await startApp();
     await userEvent.click(footer().getByRole('link', { name: 'Buy me a coffee' }));
-    expect(umami).toHaveBeenCalledWith('tip-answered', { answer: 'other', where: 'footer', page: 'converter' });
+    expect(umami).toHaveBeenCalledWith('tip-answered', { answer: 'other', where: 'footer', site: 'converter' });
   });
 
   describe('the tip toast', () => {
@@ -86,25 +86,25 @@ describe('the events of language, navigation, tips and failures', () => {
 
     it('sends tip-asked once for one toast, naming the download and the converter', async () => {
       await askForTip();
-      expect(umami.mock.calls.filter(([name]) => name === 'tip-asked')).toEqual([['tip-asked', { after: 'converted', page: 'converter' }]]);
+      expect(umami.mock.calls.filter(([name]) => name === 'tip-asked')).toEqual([['tip-asked', { after: 'converted', site: 'converter' }]]);
     });
 
     it('sends tip-answered with the amount chosen', async () => {
       const toast = await askForTip();
       await userEvent.click(within(toast).getByRole('link', { name: '€5' }));
-      expect(umami).toHaveBeenCalledWith('tip-answered', { answer: '5', where: 'toast', page: 'converter' });
+      expect(umami).toHaveBeenCalledWith('tip-answered', { answer: '5', where: 'toast', site: 'converter' });
     });
 
     it('sends tip-answered with other for the other amount', async () => {
       const toast = await askForTip();
       await userEvent.click(within(toast).getByRole('link', { name: 'Other amount' }));
-      expect(umami).toHaveBeenCalledWith('tip-answered', { answer: 'other', where: 'toast', page: 'converter' });
+      expect(umami).toHaveBeenCalledWith('tip-answered', { answer: 'other', where: 'toast', site: 'converter' });
     });
 
     it('sends tip-answered with closed when the toast is closed', async () => {
       const toast = await askForTip();
       await userEvent.click(within(toast).getByRole('button', { name: 'Close' }));
-      expect(umami).toHaveBeenCalledWith('tip-answered', { answer: 'closed', where: 'toast', page: 'converter' });
+      expect(umami).toHaveBeenCalledWith('tip-answered', { answer: 'closed', where: 'toast', site: 'converter' });
     });
   });
 

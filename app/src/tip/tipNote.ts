@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { track } from '../core/stats';
-import type { TipAfter } from '../core/umami';
+import type { ConverterDownload } from '../core/umami';
 import { askAfterDownload } from './tipAsk';
 
 /** A tip ask on screen: the element that had focus when the download raised it, to take focus back on close. */
@@ -25,9 +25,9 @@ function subscribe(listener: () => void): () => void {
  * Counts a download the visitor keeps from the converter and, when `askAfterDownload` says so,
  * puts the tip ask on screen and counts it once, naming the download that raised it.
  */
-export function noteDownload(after: TipAfter): void {
+export function noteDownload(after: ConverterDownload): void {
   if (!askAfterDownload()) return;
-  track('tip-asked', { after, page: 'converter' });
+  track('tip-asked', { site: 'converter', after });
   publish({ opener: document.activeElement instanceof HTMLElement ? document.activeElement : null });
 }
 

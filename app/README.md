@@ -67,7 +67,7 @@ debug build; CI builds it in release.
 the dev server is up. The folder is not committed.
 
 `npm run build` also writes `dist/site.json` (the stylesheet, the content security policy, the
-analytics scripts and the static pages' locale script, `src/staticPagesEntry.ts`, built as a second
+analytics scripts and the static pages' script, `src/staticPagesEntry.ts`, built as a second
 entry beside `index.html`); the site generator reads it, so run the app build before the
 generator.
 
@@ -175,8 +175,10 @@ on a phone and click elsewhere.
   `useSavedMappings.ts` (its `unsaved` flag is drawn by `UnsavedNotice` in the convert view and the editor footer), `usePresetActions.ts`, SavedMappingChip(s).
 - `src/report/` — ReportModal, ContactFooter, `report.ts` (one entry type per group: `DroppedEntry`, `ApproximatedEntry`, `UnrecognizedEntry`; `entryText`, a line as shown and the key that merges files), `useConversionReport.ts`,
   `reportLink.ts` (the "Wrong mapping? Report it" form link, told the engines and language).
-- `src/tip/` — TipToast (pinned to the top) and `tipAsk.ts` (from the third saved file, at
-  most once a day, paused 90 days after a tip).
+- `src/tip/` — `tipAsk.ts` (the one rule: from the third kept download of any kind, at most
+  once a day, paused 90 days after a tip; the amount format and the answers), TipToast
+  (pinned to the top), ConverterTip with `tipNote.ts` (`noteDownload`, the converter's ask),
+  and `pageTip.ts` (`runTipScript`, the static pages' ask and the thanks page's tip).
 - `src/locale/` — `i18n.ts` (`Translator`), `docs.ts` (the documents of a locale, `EN_DOCS`,
   `sectionBlocks`), `locale.ts` (the page's locale: read from the address, stored, put on
   `<html lang>`; `localePath`, `converterPath`), `localeContext.ts` (`useT()`),

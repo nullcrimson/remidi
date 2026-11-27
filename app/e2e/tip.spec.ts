@@ -50,7 +50,7 @@ test('the tip ask comes at most once a day', async ({ page }) => {
   await save(page);
   await expect(tip(page)).toHaveCount(0);
 
-  await page.clock.setSystemTime(new Date(start.getTime() + DAY + 10 * 60_000));
+  await page.clock.setSystemTime(new Date(start.getTime() + DAY + 60_000));
   await save(page);
   await expect(tip(page)).toBeVisible();
 });
@@ -68,7 +68,7 @@ test('pressing an amount closes the tip ask, and it stays away', async ({ page, 
   await payment.close();
   await expect(tip(page)).toHaveCount(0);
 
-  await page.clock.setSystemTime(new Date(start.getTime() + DAY + 10 * 60_000));
+  await page.clock.setSystemTime(new Date(start.getTime() + DAY + 60_000));
   await save(page);
   await expect(tip(page)).toHaveCount(0);
 });

@@ -1,5 +1,5 @@
 import { readStored, writeStored } from '../core/storage';
-import type { StatEvents, TipPage } from '../core/umami';
+import type { StatEvents, TipSite } from '../core/umami';
 
 /** A tip ask's answer as the events name it: an amount, or `closed`. */
 export type TipAnswer = StatEvents['tip-answered']['answer'];
@@ -11,10 +11,10 @@ export type TipAmount = Exclude<TipAnswer, 'closed'>;
 export const tipEuros = (langTag: string) =>
   new Intl.NumberFormat(langTag, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 
-/** Takes a tip ask's answer, remembering a tip when it is an amount, and returns the `tip-answered` event's properties. */
-export function answerTip(answer: TipAnswer, where: StatEvents['tip-answered']['where'], page: TipPage): StatEvents['tip-answered'] {
+/** Takes the tip ask's answer on `site`, remembering a tip when it is an amount, and returns the `tip-answered` event's properties. */
+export function answerTip(answer: TipAnswer, site: TipSite): StatEvents['tip-answered'] {
   if (answer !== 'closed') rememberTip();
-  return { answer, where, page };
+  return { answer, where: 'toast', site };
 }
 
 /** What a tip amount is called in the events: the euros, or `other` for any amount not listed. */

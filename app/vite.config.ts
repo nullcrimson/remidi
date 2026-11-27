@@ -29,7 +29,7 @@ const CONTENT_SECURITY_POLICY = [
   `form-action 'none'`,
 ].join('; ');
 
-const LOCALE_ENTRY = 'site-locale';
+const PAGES_ENTRY = 'site-pages';
 
 const ANALYTICS: readonly AnalyticsScript[] = [
   { src: `${BEACON}/beacon.min.js`, attrs: { 'data-cf-beacon': '{"token": "070603e1f4af4cf3a16a08fd5255e6bc"}' } },
@@ -53,7 +53,7 @@ function siteData(): Plugin {
     apply: 'build',
     generateBundle(_options, bundle) {
       const chunks = Object.values(bundle).filter((file) => file.type === 'chunk');
-      const manifest = siteManifest(Object.keys(bundle), chunks, LOCALE_ENTRY, CONTENT_SECURITY_POLICY, ANALYTICS);
+      const manifest = siteManifest(Object.keys(bundle), chunks, PAGES_ENTRY, CONTENT_SECURITY_POLICY, ANALYTICS);
       this.emitFile({ type: 'asset', fileName: 'site.json', source: JSON.stringify(manifest, null, 2) });
     },
   };
@@ -106,7 +106,7 @@ export default defineConfig({
   build: {
     sourcemap: 'hidden',
     rollupOptions: {
-      input: { index: 'index.html', [LOCALE_ENTRY]: 'src/staticPagesEntry.ts' },
+      input: { index: 'index.html', [PAGES_ENTRY]: 'src/staticPagesEntry.ts' },
       output: {
         chunkFileNames: (chunk) => localeChunkName(chunk.facadeModuleId) ?? 'assets/[name]-[hash].js',
       },

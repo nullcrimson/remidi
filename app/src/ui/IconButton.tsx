@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 const SIZE = {
   sm: 'size-5 rounded-full text-ui text-t5 hover:bg-white/8',
-  md: 'size-7 rounded-chip bg-white/5 text-body text-t4 hover:bg-white/10',
+  md: 'icon-button-md',
 };
 
 const TONE = {
@@ -35,9 +35,7 @@ export function IconButton({
       tabIndex={tabbable ? undefined : -1}
       onClick={onClick}
       className={`
-        tap flex shrink-0 items-center justify-center leading-none
-        transition-colors
-        disabled:cursor-default disabled:opacity-40
+        icon-button
         ${SIZE[size]}
         ${TONE[tone]}
       `}

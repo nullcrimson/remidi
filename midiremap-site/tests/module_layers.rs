@@ -26,6 +26,7 @@ const ALLOWED_USES: &Table = &[
             "routes",
             "schema",
             "texts",
+            "tip",
         ],
     ),
     ("routes", &["i18n"]),
@@ -36,6 +37,7 @@ const ALLOWED_USES: &Table = &[
     ("shell", &["i18n", "pages", "routes", "schema", "texts"]),
     ("sitemap", &["i18n", "pages", "routes"]),
     ("texts", &["converter_step", "i18n", "routes"]),
+    ("tip", &[]),
 ];
 
 #[test]

@@ -15,8 +15,6 @@ import { engineId, enginePair, type Loose, typed } from '../typed';
 import { storedName } from '../../src/core/storage';
 
 const TIP_KEY = storedName('tip');
-const T0 = Date.UTC(2026, 9, 1, 12);
-const MINUTE = 60 * 1000;
 
 const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0, read: 1, lost: 0 };
 const NONE: ReportGroups = { dropped: [], approximated: [], unrecognized: [] };
@@ -279,16 +277,13 @@ describe('DonePanel', () => {
     });
 
     it('does not ask again the same day, closed or not', async () => {
-      const now = vi.spyOn(Date, 'now').mockReturnValue(T0);
       renderPanel();
       await download();
       expect(tip()).toBeVisible();
       cleanup();
-      now.mockReturnValue(T0 + MINUTE);
       renderPanel();
       await download();
       expect(tip()).not.toBeInTheDocument();
-      now.mockRestore();
     });
 
     it('closes once a tip is chosen', async () => {

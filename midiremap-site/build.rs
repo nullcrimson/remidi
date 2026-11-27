@@ -444,11 +444,11 @@ fn main() {
     let i18n = [
         locale_code(&inputs.locales),
         section_code(&inputs.structure.sections, &plain),
-        tip_code(&inputs.tip),
         message_code(&messages, &plain),
     ]
     .concat();
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     fs::write(out_dir.join("i18n.rs"), i18n).unwrap();
     fs::write(out_dir.join("routes.rs"), routes_code(&inputs.structure)).unwrap();
+    fs::write(out_dir.join("tip.rs"), tip_code(&inputs.tip)).unwrap();
 }

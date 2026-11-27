@@ -24,7 +24,7 @@ export const BUDGETS = {
 type Kind = keyof typeof BUDGETS;
 type FileKind = Exclude<Kind, 'page'>;
 
-const PAGE_ENTRY = /^site-locale-.+\.js$/;
+const PAGE_ENTRY = /^site-pages-.+\.js$/;
 const CHUNK_IMPORT = /(?:from|import)\s*\(?\s*["'`]\.\/([^"'`]+)["'`]/g;
 
 const gzipped = (bytes: Uint8Array): number => gzipSync(bytes, { level: 9 }).length;

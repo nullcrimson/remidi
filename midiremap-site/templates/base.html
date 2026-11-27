@@ -23,8 +23,8 @@
     <link rel="stylesheet" href="{{ frame.css }}" />
 {% for href in frame.font_preloads %}    <link rel="preload" href="{{ href }}" as="font" type="font/woff2" crossorigin />
 {% endfor %}    {% if let Some(ld) = frame.json_ld %}<script type="application/ld+json">{{ ld|safe }}</script>{% endif %}
-{% for href in frame.locale_script.preload %}    <link rel="modulepreload" href="{{ href }}" />
-{% endfor %}    <script type="module" src="{{ frame.locale_script.src }}" blocking="render"></script>
+{% for href in frame.page_script.preload %}    <link rel="modulepreload" href="{{ href }}" />
+{% endfor %}    <script type="module" src="{{ frame.page_script.src }}" blocking="render"></script>
   </head>
   <body class="text-t3">
     <div class="flex min-h-screen flex-col items-center px-5 pt-[6vh] pb-16">
@@ -63,7 +63,7 @@
               {% for l in frame.footer %}
               <li><a href="{{ l.href }}" class="prose-link">{{ l.label }}</a></li>
               {% endfor %}
-              <li><a href="{{ frame.tip_href }}" target="_blank" rel="noopener" class="prose-link tip-link" data-umami-event="tip-answered" data-umami-event-answer="other" data-umami-event-where="footer" data-umami-event-page="page">{{ frame.tip }}</a></li>
+              <li><a href="{{ frame.tip_href }}" target="_blank" rel="noopener" class="prose-link tip-link" data-umami-event="tip-answered" data-umami-event-answer="other" data-umami-event-where="footer" data-umami-event-site="static">{{ frame.tip }}</a></li>
             </ul>
           </nav>
           </div>

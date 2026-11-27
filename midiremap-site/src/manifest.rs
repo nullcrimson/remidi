@@ -31,21 +31,21 @@ pub struct AnalyticsScript {
 
 /// The script the static pages load, and the chunks it imports, which they preload.
 #[derive(Debug, Deserialize, PartialEq, Eq)]
-pub struct LocaleScript {
+pub struct PageScript {
     pub src: String,
     pub preload: Vec<String>,
 }
 
 /// What the static pages take from the app's build, which writes it to `site.json`: the
 /// stylesheet's address, the content security policy text, the analytics scripts, the
-/// locale script and the latin font files a page in the web fonts preloads.
+/// page script and the latin font files a page in the web fonts preloads.
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SiteManifest {
     pub stylesheet: String,
     pub content_security_policy: String,
     pub analytics: Vec<AnalyticsScript>,
-    pub locale_script: LocaleScript,
+    pub page_script: PageScript,
     pub font_preloads: Vec<String>,
 }
 
@@ -96,7 +96,7 @@ mod tests {
     { "src": "https://static.cloudflareinsights.com/beacon.min.js", "attrs": { "data-cf-beacon": "{\"token\": \"t\"}" } },
     { "src": "https://cloud.umami.is/script.js", "attrs": { "data-website-id": "w", "data-domains": "example.com" } }
   ],
-  "localeScript": { "src": "/assets/site-locale-x1.js", "preload": ["/assets/storage-y2.js", "/assets/language-z3.js"] },
+  "pageScript": { "src": "/assets/site-pages-x1.js", "preload": ["/assets/storage-y2.js", "/assets/language-z3.js"] },
   "fontPreloads": ["/assets/plex-a1.woff2"]
 }"#;
 
@@ -133,11 +133,11 @@ mod tests {
     }
 
     #[test]
-    fn parses_the_locale_script_and_the_chunks_it_preloads() {
+    fn parses_the_page_script_and_the_chunks_it_preloads() {
         let manifest = parsed();
-        assert_eq!(manifest.locale_script.src, "/assets/site-locale-x1.js");
+        assert_eq!(manifest.page_script.src, "/assets/site-pages-x1.js");
         assert_eq!(
-            manifest.locale_script.preload,
+            manifest.page_script.preload,
             ["/assets/storage-y2.js", "/assets/language-z3.js"]
         );
     }

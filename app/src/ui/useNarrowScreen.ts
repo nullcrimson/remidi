@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { WIDE_QUERY } from './breakpoint';
+import { isNarrowScreen, WIDE_QUERY } from './breakpoint';
 
 function subscribe(change: () => void): () => void {
   const wide = window.matchMedia(WIDE_QUERY);
@@ -9,5 +9,5 @@ function subscribe(change: () => void): () => void {
 
 /** Whether the window is narrower than `sm:`, read before the first paint and again whenever it crosses. */
 export function useNarrowScreen(): boolean {
-  return useSyncExternalStore(subscribe, () => !window.matchMedia(WIDE_QUERY).matches);
+  return useSyncExternalStore(subscribe, isNarrowScreen);
 }

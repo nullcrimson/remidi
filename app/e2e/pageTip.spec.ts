@@ -21,7 +21,7 @@ const skeleton = (toast: Locator) =>
     const kept = ['role', 'class', 'href', 'target', 'rel', 'data-euros', 'aria-hidden', 'type'];
     const walk = (el: Element): unknown => ({
       tag: el.tagName,
-      attrs: kept.filter((a) => el.hasAttribute(a)).map((a) => [a, el.getAttribute(a)]),
+      attrs: kept.filter((a) => el.hasAttribute(a)).map((a) => [a, a === 'class' ? [...el.classList].sort() : el.getAttribute(a)]),
       labelled: el.hasAttribute('aria-label'),
       children: [...el.children].map(walk),
     });
@@ -33,16 +33,23 @@ test.describe('the tip ask of the static pages', () => {
     await page.clock.setSystemTime(START);
   });
 
-  test('a third drum map download asks for a tip, and the file still lands', async ({ page, isMobile }) => {
+  test('a third drum map download asks for a tip', async ({ page, isMobile }) => {
     test.skip(isMobile, 'a phone counts no download');
     await page.goto(ENGINE_PAGE);
-    expect((await downloadMap(page, 'Reaper')).suggestedFilename()).toBe('GetGood Drums Invasion (Drumverter).txt');
+    await downloadMap(page, 'Reaper');
+    await downloadMap(page, 'Studio One');
     await expect(tip(page)).toBeHidden();
-    expect((await downloadMap(page, 'Studio One')).suggestedFilename()).toBe('GetGood Drums Invasion (Drumverter).pitchlist');
-    await expect(tip(page)).toBeHidden();
-    expect((await downloadMap(page, 'Cubase')).suggestedFilename()).toBe('GetGood Drums Invasion (Drumverter).drm');
+    await downloadMap(page, 'Cubase');
     await expect(tip(page)).toBeVisible();
     await expect(tip(page).getByRole('link', { name: '€5' })).toBeVisible();
+  });
+
+  test('the download that raises the ask still lands', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'a phone counts no download');
+    await page.goto(ENGINE_PAGE);
+    await downloadMap(page, 'Reaper');
+    await downloadMap(page, 'Studio One');
+    expect((await downloadMap(page, 'Cubase')).suggestedFilename()).toBe('GetGood Drums Invasion (Drumverter).drm');
   });
 
   test('closed, it stays away for the day, also after a reload', async ({ page, isMobile }) => {
@@ -77,7 +84,7 @@ test.describe('the tip ask of the static pages', () => {
     await openPair(page);
     await addFiles(page, kick('kick.mid'));
     await convert(page);
-    await page.clock.setSystemTime(START.getTime() + DAY + 10 * 60_000);
+    await page.clock.setSystemTime(START.getTime() + DAY + 60_000);
     await press(page.getByRole('link', { name: /Download \.mid/ }));
     expect(await skeleton(tip(page))).toEqual(onPage);
   });

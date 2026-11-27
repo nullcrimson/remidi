@@ -1097,7 +1097,7 @@ missing `index.html` or `site.json`, or a malformed one, stops it with "run the 
 security policy (defined once in `vite.config.ts`, injected into the build only), the
 Cloudflare Web Analytics beacon and the Umami script (data in `vite.config.ts`, injected
 into the converter's `index.html` by a plugin and written by the templates on the static
-pages), and the locale script with the chunks it imports, so every page states the same policy
+pages), and the static pages' script with the chunks it imports, so every page states the same policy
 and counts visits the same way. `site.json` is build data, not a page: no sitemap lists it. The filter script is `/filter.js`, not inline, so the policy needs no
 `'unsafe-inline'`. Links and chrome
 that both surfaces draw are `@utility` classes in `index.css` (`prose-link`,
@@ -1117,10 +1117,11 @@ DAW's files at a time through a CSS-only picker, and each engine page offers all
 under Convert, outside the sticky bar, and says when the target leaves drums silent.
 
 Tips go through Stripe Payment Links, listed once in `content/tip.json` (the
-app imports it; `build.rs` turns its amounts into `TIP_AMOUNTS` and its `other` link into
-`TIP_HREF`). Every footer ends with a `tip-link` to the any-amount page, counted as
-`tip-answered` from the footer. The tip ask, pinned to the top of the screen, offers the
-fixed amounts; it is built twice from the same `tip-*` utilities, by `TipToast` in the
+app imports it; `build.rs` writes its amounts as `TIP_AMOUNTS` and its `other` link as
+`TIP_HREF` into `OUT_DIR/tip.rs`, which the site's `tip` module includes). Every footer
+ends with a `tip-link` to the any-amount page, counted as `tip-answered` from the footer.
+The tip ask, pinned to the top of the screen, offers the fixed amounts; it is built twice
+from the same `tip-*` and `icon-button` utilities, by `TipToast` in the
 converter and by the `tip_toast` macro on the pages with downloads (engine, drum-maps and
 pair pages carry it hidden), and an e2e test holds the two builds equal.
 

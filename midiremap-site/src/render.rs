@@ -4,8 +4,8 @@ use midiremap_core::Daw;
 use crate::{
     content::{Block, Closing, ContentPage},
     converter_step::{converter_steps, shown_steps, ConverterStep, ShownStep},
-    i18n::{Docs, Locale, Messages, Phrase, Plain, SectionKey, TipAmount, TIP_AMOUNTS, TIP_HREF},
-    manifest::{AnalyticsScript, LocaleScript, SiteManifest},
+    i18n::{Docs, Locale, Messages, Phrase, Plain, SectionKey},
+    manifest::{AnalyticsScript, PageScript, SiteManifest},
     meta::{
         content_meta, drum_maps_meta, engine_meta, index_meta, pair_meta, section_meta, with_midi,
         Meta,
@@ -18,6 +18,7 @@ use crate::{
     },
     schema::{breadcrumb_schema, section_schema},
     texts::{NavItem, Texts},
+    tip::{TipAmount, TIP_AMOUNTS, TIP_HREF},
 };
 
 /// What stops the static pages from being rendered.
@@ -112,7 +113,7 @@ impl PageKind {
 /// A file a page offers to download, as its `data-download` names it for the page script,
 /// which counts it toward the tip ask.
 #[derive(Clone, Copy)]
-pub enum DownloadKind {
+enum DownloadKind {
     DrumMap,
     NoteMap,
     Rack,
@@ -179,7 +180,7 @@ struct Frame<'a> {
     css: &'a str,
     csp: &'a str,
     analytics: &'a [AnalyticsScript],
-    locale_script: &'a LocaleScript,
+    page_script: &'a PageScript,
     font_preloads: &'a [String],
     skip: &'a str,
     nav_main: &'a str,
@@ -238,7 +239,7 @@ impl<'a> Frame<'a> {
             css: &manifest.stylesheet,
             csp: &manifest.content_security_policy,
             analytics: &manifest.analytics,
-            locale_script: &manifest.locale_script,
+            page_script: &manifest.page_script,
             font_preloads: if here.draws_text_with_web_fonts() {
                 &manifest.font_preloads
             } else {
@@ -512,7 +513,7 @@ mod tests {
     const STATS_TAG: &str = r#"<script defer src="https://cloud.umami.is/script.js" data-domains="example.com" data-website-id="w"></script>"#;
 
     const LOCALE_TAG: &str =
-        r#"<script type="module" src="/assets/site-locale-test.js" blocking="render"></script>"#;
+        r#"<script type="module" src="/assets/site-pages-test.js" blocking="render"></script>"#;
     const PRELOAD_TAG: &str = r#"<link rel="modulepreload" href="/assets/storage-test.js" />"#;
     const FILTER_TAG: &str = r#"<script src="/filter.js" defer></script>"#;
     const FONT_TAG: &str = r#"<link rel="preload" href="/assets/plex-test.woff2" as="font" type="font/woff2" crossorigin />"#;
@@ -537,8 +538,8 @@ mod tests {
                     attrs: attrs(&[("data-website-id", "w"), ("data-domains", "example.com")]),
                 },
             ],
-            locale_script: LocaleScript {
-                src: "/assets/site-locale-test.js".to_owned(),
+            page_script: PageScript {
+                src: "/assets/site-pages-test.js".to_owned(),
                 preload: vec!["/assets/storage-test.js".to_owned()],
             },
             font_preloads: vec!["/assets/plex-test.woff2".to_owned()],
@@ -603,14 +604,14 @@ mod tests {
     }
 
     #[test]
-    fn every_static_page_loads_the_locale_script() {
+    fn every_static_page_loads_the_page_script() {
         for (path, html) in rendered() {
             assert_eq!(html.matches(LOCALE_TAG).count(), 1, "{path}");
         }
     }
 
     #[test]
-    fn the_locale_script_decides_the_language_offer_before_the_first_paint() {
+    fn the_page_script_decides_the_language_offer_before_the_first_paint() {
         for (path, html) in rendered() {
             let head = head_of(html);
             assert!(head.contains(LOCALE_TAG), "{path}");
@@ -865,13 +866,28 @@ mod tests {
 
     #[test]
     fn every_footer_ends_with_a_tip_link_opening_in_a_new_tab() {
-        let tip = format!(
-            r#"<a href="{TIP_HREF}" target="_blank" rel="noopener" class="prose-link tip-link" data-umami-event="tip-answered" data-umami-event-answer="other" data-umami-event-where="footer" data-umami-event-page="page">"#
-        );
+        let tip = format!(r#"<a href="{TIP_HREF}" target="_blank" rel="noopener" "#);
         for (path, html) in rendered() {
             let footer = html.split("<footer").nth(1).unwrap();
             let last = footer.split("<li>").last().unwrap();
             assert!(last.contains(&tip), "{path}");
+        }
+    }
+
+    #[test]
+    fn every_footer_tip_link_counts_as_a_tip_answered_from_the_footer_of_a_static_page() {
+        let counted = [
+            r#"data-umami-event="tip-answered""#,
+            r#"data-umami-event-answer="other""#,
+            r#"data-umami-event-where="footer""#,
+            r#"data-umami-event-site="static""#,
+        ];
+        for (path, html) in rendered() {
+            let footer = html.split("<footer").nth(1).unwrap();
+            let last = footer.split("<li>").last().unwrap();
+            for attribute in counted {
+                assert!(last.contains(attribute), "{path}: {attribute}");
+            }
         }
     }
 
@@ -895,9 +911,20 @@ mod tests {
     fn the_tip_ask_is_carried_hidden_once_by_every_page_with_downloads_and_no_other() {
         for (path, html) in rendered() {
             let downloads = html.contains(r#" download=""#);
-            assert_eq!(
-                html.matches("<div data-tip-toast hidden ").count(),
-                usize::from(downloads),
+            let toasts: Vec<&str> = html
+                .split('<')
+                .filter(|tag| {
+                    tag.split('>')
+                        .next()
+                        .unwrap_or("")
+                        .contains(" data-tip-toast")
+                })
+                .collect();
+            assert_eq!(toasts.len(), usize::from(downloads), "{path}");
+            assert!(
+                toasts
+                    .iter()
+                    .all(|tag| tag.split('>').next().unwrap_or("").contains(" hidden")),
                 "{path}"
             );
         }
@@ -907,7 +934,7 @@ mod tests {
     fn the_tip_ask_offers_every_amount_and_any_other_each_in_a_new_tab() {
         let html = page("engines/ggd-invasion/index.html");
         let toast = html
-            .split("<div data-tip-toast")
+            .split(" data-tip-toast")
             .nth(1)
             .and_then(|rest| rest.split("</ul>").next())
             .unwrap();
@@ -933,7 +960,7 @@ mod tests {
         let pages = rendered();
         for &l in Locale::ALL {
             let (file, html) = thanks_page(pages, l);
-            assert!(html.contains("<h1 data-tipped "), "{file}");
+            assert!(html.contains(" data-tipped"), "{file}");
         }
     }
 
@@ -1546,7 +1573,7 @@ mod tests {
         let mut known: HashSet<String> = pages.iter().map(|(p, _)| url_of(p)).collect();
         known.extend(Locale::ALL.iter().map(|&l| home(l).to_string()));
         known.insert(manifest().stylesheet);
-        known.extend(manifest().locale_script.preload);
+        known.extend(manifest().page_script.preload);
         known.extend(manifest().font_preloads);
         known.extend(STATIC_ASSETS.iter().map(|s| s.to_string()));
         known.extend(
