@@ -120,24 +120,8 @@
   @apply fixed inset-x-4 top-[max(0.75rem,env(safe-area-inset-top))] z-30 mx-auto flex max-w-140 flex-col gap-3 rounded-panel border border-star/30 bg-ink p-4 shadow-popover motion-safe:animate-[tip-in_240ms_ease-out];
 }
 
-@utility tip-toast-head {
-  @apply flex items-start justify-between gap-3;
-}
-
-@utility tip-toast-text {
-  @apply text-ui/relaxed text-t3;
-}
-
 @utility tip-toast-close {
   @apply tap flex size-7 shrink-0 items-center justify-center rounded-chip bg-white/5 text-body leading-none text-t4 transition-colors hover:bg-white/10 hover:text-t1;
-}
-
-@utility tip-amounts {
-  @apply flex flex-wrap items-center gap-2;
-}
-
-@utility tip-other {
-  @apply ml-1;
 }
 
 @utility tip-amount {

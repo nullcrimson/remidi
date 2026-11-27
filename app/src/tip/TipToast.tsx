@@ -32,8 +32,8 @@ export function TipToast({ onClose }: { onClose: (hadFocus: boolean) => void }) 
       }}
       className="tip-toast"
     >
-      <div className="tip-toast-head">
-        <p className="tip-toast-text">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-ui/relaxed text-t3">
           <span aria-hidden="true" className="text-star">☕ </span>
           <span>{t({ id: 'tip-ask' })}</span>
         </p>
@@ -45,7 +45,7 @@ export function TipToast({ onClose }: { onClose: (hadFocus: boolean) => void }) 
         >×
         </button>
       </div>
-      <ul className="tip-amounts">
+      <ul className="flex flex-wrap items-center gap-2">
         {tip.amounts.map((a) => (
           <li key={a.href}>
             <a
@@ -62,7 +62,7 @@ export function TipToast({ onClose }: { onClose: (hadFocus: boolean) => void }) 
             </a>
           </li>
         ))}
-        <li className="tip-other">
+        <li className="ml-1">
           <a
             href={tip.other}
             target="_blank"
