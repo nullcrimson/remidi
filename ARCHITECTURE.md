@@ -1126,8 +1126,8 @@ pair pages carry it hidden), and an e2e test holds the two builds equal.
 
 `src/tip/tipAsk.ts` is the one rule, over one `localStorage` record shared by every tab
 and every page: every download of a file the visitor keeps counts (a converted file, a rack,
-a drum map, a note-map PDF; a preset export does not), files saved within `SAME_TASK` of
-each other count once, and the ask comes from the `FIRST_ASK`th, at most once per `GAP`,
+a drum map, a note-map PDF; a preset export does not), and the ask comes from the
+`FIRST_ASK`th, at most once per `GAP`,
 not within `AFTER_TIP` of a tip, and never when the count cannot be saved. It also owns the
 amount format (`tipEuros`) and the answers (`answerTip`). The converter raises the ask
 through `tipNote.ts` (`noteDownload`, read by the one `ConverterTip` in `App`); the static

@@ -248,16 +248,14 @@ describe('DonePanel', () => {
 
     beforeEach(() => localStorage.setItem(TIP_KEY, JSON.stringify({ downloads: 2 })));
 
-    it('asks nothing on a visitor\'s first saved file', async () => {
+    it('asks nothing on a visitor\'s first two saved files', async () => {
       localStorage.clear();
-      const now = vi.spyOn(Date, 'now').mockReturnValue(T0);
       renderPanel();
       await download();
+      await download();
       expect(tip()).not.toBeInTheDocument();
-      now.mockReturnValue(T0 + MINUTE);
       await download();
       expect(tip()).toBeVisible();
-      now.mockRestore();
     });
 
     it('gives focus back to the download it asked after when closed', async () => {

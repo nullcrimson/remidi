@@ -45,7 +45,7 @@ function download(name = 'Reaper', at = T0 + MINUTE) {
 describe('the tip ask of the static pages', () => {
   beforeEach(() => {
     document.body.innerHTML = PAGE;
-    localStorage.setItem(TIP_KEY, JSON.stringify({ downloads: 1, lastAt: T0 }));
+    localStorage.setItem(TIP_KEY, JSON.stringify({ downloads: 2 }));
   });
 
   afterEach(() => {
@@ -66,10 +66,11 @@ describe('the tip ask of the static pages', () => {
     expect(umami).toHaveBeenCalledWith('tip-asked', { after: 'note-map', page: 'page' });
   });
 
-  it('asks nothing on the first download', () => {
+  it('asks nothing on the first two downloads', () => {
     localStorage.clear();
     start();
     download();
+    download('PDF');
     expect(toast().hidden).toBe(true);
   });
 
@@ -77,14 +78,14 @@ describe('the tip ask of the static pages', () => {
     start();
     download('All engines');
     expect(toast().hidden).toBe(true);
-    expect(JSON.parse(localStorage.getItem(TIP_KEY)!)).toMatchObject({ downloads: 1 });
+    expect(JSON.parse(localStorage.getItem(TIP_KEY)!)).toMatchObject({ downloads: 2 });
   });
 
   it('counts no download on a phone', () => {
     start({ phone: true });
     download();
     expect(toast().hidden).toBe(true);
-    expect(JSON.parse(localStorage.getItem(TIP_KEY)!)).toMatchObject({ downloads: 1 });
+    expect(JSON.parse(localStorage.getItem(TIP_KEY)!)).toMatchObject({ downloads: 2 });
   });
 
   it('writes the amounts in the page\'s language', () => {

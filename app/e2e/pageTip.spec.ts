@@ -4,14 +4,12 @@ import { convert, press } from './steps';
 
 const ENGINE_PAGE = '/engines/ggd-invasion/';
 const START = new Date('2026-10-01T12:00:00Z');
-const NEXT_TASK = 60_000;
 const DAY = 24 * 60 * 60 * 1000;
 
 const tip = (page: Page) => page.getByRole('group', { name: 'Leave a tip' });
 
-/** Downloads a drum map a minute after the page's clock, so each download is its own task. */
+/** Downloads the engine's drum map for `daw`. */
 async function downloadMap(page: Page, daw: string): Promise<Download> {
-  await page.clock.setSystemTime((await page.evaluate(() => Date.now())) + NEXT_TASK);
   const download = page.waitForEvent('download');
   await press(page.getByRole('link', { name: `GetGood Drums Invasion drum map for ${daw}`, exact: true }).first());
   return download;
@@ -35,12 +33,14 @@ test.describe('the tip ask of the static pages', () => {
     await page.clock.setSystemTime(START);
   });
 
-  test('a second drum map download asks for a tip, and the file still lands', async ({ page, isMobile }) => {
+  test('a third drum map download asks for a tip, and the file still lands', async ({ page, isMobile }) => {
     test.skip(isMobile, 'a phone counts no download');
     await page.goto(ENGINE_PAGE);
     expect((await downloadMap(page, 'Reaper')).suggestedFilename()).toBe('GetGood Drums Invasion (Drumverter).txt');
     await expect(tip(page)).toBeHidden();
     expect((await downloadMap(page, 'Studio One')).suggestedFilename()).toBe('GetGood Drums Invasion (Drumverter).pitchlist');
+    await expect(tip(page)).toBeHidden();
+    expect((await downloadMap(page, 'Cubase')).suggestedFilename()).toBe('GetGood Drums Invasion (Drumverter).drm');
     await expect(tip(page)).toBeVisible();
     await expect(tip(page).getByRole('link', { name: '€5' })).toBeVisible();
   });
@@ -50,6 +50,7 @@ test.describe('the tip ask of the static pages', () => {
     await page.goto(ENGINE_PAGE);
     await downloadMap(page, 'Reaper');
     await downloadMap(page, 'Studio One');
+    await downloadMap(page, 'Cubase');
     await press(tip(page).getByRole('button', { name: 'Close' }));
     await expect(tip(page)).toBeHidden();
     await page.reload();
@@ -61,6 +62,7 @@ test.describe('the tip ask of the static pages', () => {
     await page.goto(ENGINE_PAGE);
     await downloadMap(page, 'Reaper');
     await downloadMap(page, 'Studio One');
+    await downloadMap(page, 'Cubase');
     await expect(tip(page)).toBeHidden();
   });
 
@@ -69,12 +71,13 @@ test.describe('the tip ask of the static pages', () => {
     await page.goto(ENGINE_PAGE);
     await downloadMap(page, 'Reaper');
     await downloadMap(page, 'Studio One');
+    await downloadMap(page, 'Cubase');
     const onPage = await skeleton(tip(page));
 
     await openPair(page);
     await addFiles(page, kick('kick.mid'));
     await convert(page);
-    await page.clock.setSystemTime(START.getTime() + DAY + 10 * NEXT_TASK);
+    await page.clock.setSystemTime(START.getTime() + DAY + 10 * 60_000);
     await press(page.getByRole('link', { name: /Download \.mid/ }));
     expect(await skeleton(tip(page))).toEqual(onPage);
   });

@@ -130,7 +130,7 @@ describe('the summary row rack', () => {
   });
 
   it('a saved rack counts toward the tip ask, naming the rack', async () => {
-    store('tip', { downloads: 1 });
+    store('tip', { downloads: 2 });
     await startApp();
     await pickEngines();
     await userEvent.click(rackButton());
@@ -142,12 +142,12 @@ describe('the summary row rack', () => {
     vi.mocked(stub.remap_rack).mockImplementation(() => {
       throw { kind: 'internal', detail: 'boom' };
     });
-    store('tip', { downloads: 1 });
+    store('tip', { downloads: 2 });
     await startApp();
     await pickEngines();
     await userEvent.click(rackButton());
     expect(screen.queryByRole('group', { name: 'Leave a tip' })).not.toBeInTheDocument();
-    expect(JSON.parse(localStorage.getItem('midiremap:tip')!)).toMatchObject({ downloads: 1 });
+    expect(JSON.parse(localStorage.getItem('midiremap:tip')!)).toMatchObject({ downloads: 2 });
   });
 
   it('the rack tooltip opens on focus', async () => {

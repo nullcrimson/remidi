@@ -8,14 +8,8 @@ const tipFile = JSON.parse(readFileSync(new URL('../../content/tip.json', import
 const tip = (page: Page) => page.getByRole('group', { name: 'Leave a tip' });
 const DAY = 24 * 60 * 60 * 1000;
 
-const NEXT_TASK = 60_000;
-
-/**
- * Saves the converted file once, a minute after the page's clock, so each save is its own task:
- * the ask counts the press, so the saved bytes are left unread.
- */
+/** Saves the converted file once: the ask counts the press, so the saved bytes are left unread. */
 async function save(page: Page) {
-  await page.clock.setSystemTime((await page.evaluate(() => Date.now())) + NEXT_TASK);
   const file = page.waitForEvent('download');
   await press(page.getByRole('link', { name: /Download \.mid/ }));
   await file;
@@ -28,15 +22,15 @@ async function convertAndSave(page: Page, times: number) {
   for (let i = 0; i < times; i += 1) await save(page);
 }
 
-test('the tip ask waits for a second saved file', async ({ page }) => {
-  await convertAndSave(page, 1);
+test('the tip ask waits for a third saved file', async ({ page }) => {
+  await convertAndSave(page, 2);
   await expect(tip(page)).toHaveCount(0);
   await save(page);
   await expect(tip(page)).toBeVisible();
 });
 
 test('the tip ask stays pinned to the top while the page scrolls', async ({ page }) => {
-  await convertAndSave(page, 2);
+  await convertAndSave(page, 3);
   await tip(page).waitFor();
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
@@ -49,7 +43,7 @@ test('the tip ask stays pinned to the top while the page scrolls', async ({ page
 test('the tip ask comes at most once a day', async ({ page }) => {
   const start = new Date('2026-10-01T12:00:00Z');
   await page.clock.setSystemTime(start);
-  await convertAndSave(page, 2);
+  await convertAndSave(page, 3);
   await press(tip(page).getByRole('button', { name: 'Close' }));
   await expect(tip(page)).toHaveCount(0);
 
@@ -66,7 +60,7 @@ test('pressing an amount closes the tip ask, and it stays away', async ({ page, 
   await context.route('https://buy.stripe.com/**', (route) => route.fulfill({ contentType: 'text/html', body: '<title>pay</title>' }));
   const start = new Date('2026-10-01T12:00:00Z');
   await page.clock.setSystemTime(start);
-  await convertAndSave(page, 2);
+  await convertAndSave(page, 3);
   const popup = page.waitForEvent('popup');
   await press(tip(page).getByRole('link', { name: '€3' }));
   const payment = await popup;
