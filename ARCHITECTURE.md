@@ -1080,7 +1080,7 @@ The pages link the app's own built stylesheet (named in `dist/site.json`); Tailw
 scans the askama templates through `@source`, so both surfaces share one set of tokens
 and utilities. Octave naming and "Changes only" on pair pages are CSS-only radios; the
 scripts are the filters on the engine and index pages (`/filter.js`) and the language
-choice on every page (the app's `src/locale/staticPagesEntry.ts`, built as its own small entry). FAQ, How to use, Report an
+choice on every page (the app's `src/staticPagesEntry.ts`, built as its own small entry). FAQ, How to use, Report an
 issue, Contact and Terms are the documents in `locales/<code>/docs.json`, which
 also feed the app's modals; their FAQPage / HowTo schema is written on `/faq/` and
 `/how-it-works/`. The generator also writes the converter shell: the marked regions of
@@ -1213,7 +1213,7 @@ copy by hand; the converter's address is built from the engines chosen
 (`converterAddress` in `convert/preselect.ts`, beside the reader of the same fragment). The
 templates' `phone_handoff(page)` boxes are wired by `core/pageHandoff.ts`, which throws on a
 page `HANDOFF_PAGES` does not know (`test/siteEvents.test.ts` pins the templates' names to
-it). `src/locale/staticPagesEntry.ts` (an entry over `staticPages.ts` and
+it). `src/staticPagesEntry.ts` (an entry over `staticPages.ts` and
 `core/pageHandoff.ts`) stores the
 choice when a language link is clicked. With a stored choice, a page that exists in that
 language replaces itself with that version (`location.replace`); with none, it shows a

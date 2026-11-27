@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import css from '../../src/index.css?raw';
-import { SM_WIDTH } from '../../src/ui/useNarrowScreen';
+import { SM_WIDTH } from '../../src/ui/breakpoint';
 
-describe('useNarrowScreen', () => {
+describe('the phone breakpoint', () => {
   it('turns at the width the theme gives sm:', () => {
     expect(css.match(/--breakpoint-sm:\s*([^;]+);/)?.[1]).toBe(SM_WIDTH);
   });

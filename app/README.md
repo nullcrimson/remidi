@@ -67,7 +67,7 @@ debug build; CI builds it in release.
 the dev server is up. The folder is not committed.
 
 `npm run build` also writes `dist/site.json` (the stylesheet, the content security policy, the
-analytics scripts and the static pages' locale script, `src/locale/staticPagesEntry.ts`, built as a second
+analytics scripts and the static pages' locale script, `src/staticPagesEntry.ts`, built as a second
 entry beside `index.html`); the site generator reads it, so run the app build before the
 generator.
 
@@ -180,8 +180,8 @@ on a phone and click elsewhere.
 - `src/locale/` — `i18n.ts` (`Translator`), `docs.ts` (the documents of a locale, `EN_DOCS`,
   `sectionBlocks`), `locale.ts` (the page's locale: read from the address, stored, put on
   `<html lang>`; `localePath`, `converterPath`), `localeContext.ts` (`useT()`),
-  LocaleProvider, `languageChoice.ts`, `language.ts`, `detect.ts`, `startLocale.ts`, and the static pages' script, `staticPages.ts` with its entry
-  `staticPagesEntry.ts`. Every text
+  LocaleProvider, `languageChoice.ts`, `language.ts`, `detect.ts`, `startLocale.ts`, and the static pages' language script, `staticPages.ts`, which the entry at the root,
+  `src/staticPagesEntry.ts`, runs beside the page sharer and the tip ask. Every text
   comes from `../locales/<code>/app.ftl` through `useT()`; the static pages' own messages sit
   in `site.ftl`, which the app never loads.
 - `src/site/` — page chrome and addresses: `site.ts` (`href`, `localHref`, `targetLabel`), PageFrame (Page, Card), SiteHeader (brand + Converter · How

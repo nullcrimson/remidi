@@ -106,7 +106,7 @@ export default defineConfig({
   build: {
     sourcemap: 'hidden',
     rollupOptions: {
-      input: { index: 'index.html', [LOCALE_ENTRY]: 'src/locale/staticPagesEntry.ts' },
+      input: { index: 'index.html', [LOCALE_ENTRY]: 'src/staticPagesEntry.ts' },
       output: {
         chunkFileNames: (chunk) => localeChunkName(chunk.facadeModuleId) ?? 'assets/[name]-[hash].js',
       },

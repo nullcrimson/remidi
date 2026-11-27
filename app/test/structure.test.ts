@@ -96,7 +96,7 @@ function loadedBy(entry: string): string[] {
 
 describe('app structure', () => {
   it('loads on a static page only its language script, the stored choice and offer, the page sharer and the event sender', () => {
-    expect(loadedBy(`${SRC_PREFIX}locale/staticPagesEntry`)).toEqual([
+    expect(loadedBy(`${SRC_PREFIX}staticPagesEntry`)).toEqual([
       'core/pageHandoff.ts',
       'core/sharePage.ts',
       'core/storage.ts',
@@ -107,7 +107,7 @@ describe('app structure', () => {
       'locale/localeCode.ts',
       'locale/localeOffer.ts',
       'locale/staticPages.ts',
-      'locale/staticPagesEntry.ts',
+      'staticPagesEntry.ts',
     ]);
   });
 
