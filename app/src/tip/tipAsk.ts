@@ -14,7 +14,7 @@ export function amountAnswer(euros: number): TipAmount {
   }
 }
 
-const FIRST_ASK = 3;
+const FIRST_ASK = 2;
 const DAY = 24 * 60 * 60 * 1000;
 const GAP = DAY;
 const AFTER_TIP = 90 * DAY;

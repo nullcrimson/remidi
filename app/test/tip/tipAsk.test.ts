@@ -14,8 +14,8 @@ const downloads = (count: number, now = T0) => Array.from({ length: count }, () 
 describe('askAfterDownload', () => {
   beforeEach(() => localStorage.clear());
 
-  it('never asks on the first two files ever saved, and asks on the third', () => {
-    expect(downloads(3)).toEqual([false, false, true]);
+  it('never asks on the first file ever saved, and asks on the second', () => {
+    expect(downloads(2)).toEqual([false, true]);
   });
 
   it('stores the count of saved files', () => {
@@ -24,43 +24,43 @@ describe('askAfterDownload', () => {
   });
 
   it('counts files across visits', () => {
-    downloads(2);
+    downloads(1);
     expect(askAfterDownload(T0 + 3 * DAY)).toBe(true);
   });
 
   it('does not ask again within a day', () => {
-    downloads(3);
+    downloads(2);
     expect(askAfterDownload(T0 + HOUR)).toBe(false);
     expect(askAfterDownload(T0 + 23 * HOUR)).toBe(false);
   });
 
   it('asks again after a day', () => {
-    downloads(3);
+    downloads(2);
     expect(askAfterDownload(T0 + DAY)).toBe(true);
   });
 
   it('waits another day after asking again', () => {
-    downloads(3);
+    downloads(2);
     askAfterDownload(T0 + DAY);
     expect(askAfterDownload(T0 + DAY + HOUR)).toBe(false);
   });
 
   it('pauses for 90 days after a tip', () => {
-    downloads(3);
+    downloads(2);
     rememberTip(T0 + HOUR);
     expect(askAfterDownload(T0 + 2 * DAY)).toBe(false);
     expect(askAfterDownload(T0 + HOUR + 89 * DAY)).toBe(false);
   });
 
   it('asks again once 90 days after a tip have passed', () => {
-    downloads(3);
+    downloads(2);
     rememberTip(T0 + HOUR);
     expect(askAfterDownload(T0 + HOUR + 90 * DAY)).toBe(true);
   });
 
   it('starts over from a damaged record', () => {
     localStorage.setItem(TIP_KEY, '{not json');
-    expect(downloads(3)).toEqual([false, false, true]);
+    expect(downloads(2)).toEqual([false, true]);
   });
 
   it('never asks when storage is blocked', () => {
