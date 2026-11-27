@@ -14,6 +14,12 @@ export type SuggestedProp = EngineId | '' | 'advice-failed';
 /** Where a suggested source is taken: under the engine pickers, or on the done card. */
 type SuggestionPlace = 'engines' | 'done';
 
+/** Where a tip is asked or answered: in the converter, or on a static page. */
+export type TipPage = 'converter' | 'page';
+
+/** The download that raised a tip ask. */
+export type TipAfter = 'converted' | 'rack' | 'drum-map' | 'note-map';
+
 /** What each event carries, by name: the one list of what the app and the static pages send. */
 export interface StatEvents {
   'converter-opened': { page: 'index' | 'engine' | 'pair' | 'doc'; from?: string; to?: string };
@@ -100,8 +106,8 @@ export interface StatEvents {
   'section-opened': { section: SectionKey };
   'nav-used': { target: RouteName | SectionKey; where: 'header' | 'footer' };
   'contact-used': { link: 'issues' | 'email' };
-  'tip-asked': undefined;
-  'tip-answered': { answer: '3' | '5' | '10' | 'other' | 'closed'; where: 'toast' | 'footer' };
+  'tip-asked': { after: TipAfter; page: TipPage };
+  'tip-answered': { answer: '3' | '5' | '10' | 'other' | 'closed'; where: 'toast' | 'footer'; page: TipPage };
   'load-failed': { kind: ErrorKind | 'locale'; detail: string };
   crashed: { error: string; thrown: string; components: string };
   'storage-cleared': undefined;

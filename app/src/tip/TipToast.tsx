@@ -3,7 +3,7 @@ import { LOCALES } from '../generated/i18n';
 import { useLocale } from '../locale/localeContext';
 import { useEffect } from 'react';
 import { track } from '../core/stats';
-import { amountAnswer, rememberTip, type TipAmount } from './tipAsk';
+import { amountAnswer, answerTip, tipEuros, type TipAnswer } from './tipAsk';
 import { IconButton } from '../ui/IconButton';
 
 /**
@@ -13,17 +13,14 @@ import { IconButton } from '../ui/IconButton';
 export function TipToast({ onClose }: { onClose: () => void }) {
   const { translator } = useLocale();
   const { t, locale } = translator;
-  const euros = new Intl.NumberFormat(LOCALES[locale].langTag, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
-  useEffect(() => track('tip-asked'), []);
-  const close = () => {
-    track('tip-answered', { answer: 'closed', where: 'toast' });
+  const euros = tipEuros(LOCALES[locale].langTag);
+  useEffect(() => track('tip-asked', { after: 'converted', page: 'converter' }), []);
+  const answer = (given: TipAnswer) => {
+    track('tip-answered', answerTip(given, 'toast', 'converter'));
     onClose();
   };
-  const tipped = (answer: TipAmount) => {
-    track('tip-answered', { answer, where: 'toast' });
-    rememberTip();
-    onClose();
-  };
+  const close = () => answer('closed');
+  const tipped = answer;
 
   return (
     <div
