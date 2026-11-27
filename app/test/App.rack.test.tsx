@@ -129,6 +129,27 @@ describe('the summary row rack', () => {
     expect(umami).not.toHaveBeenCalledWith('rack-downloaded', expect.anything());
   });
 
+  it('a saved rack counts toward the tip ask, naming the rack', async () => {
+    store('tip', { downloads: 1 });
+    await startApp();
+    await pickEngines();
+    await userEvent.click(rackButton());
+    expect(screen.getByRole('group', { name: 'Leave a tip' })).toBeVisible();
+    expect(umami).toHaveBeenCalledWith('tip-asked', { after: 'rack', page: 'converter' });
+  });
+
+  it('a failed rack does not count toward the tip ask', async () => {
+    vi.mocked(stub.remap_rack).mockImplementation(() => {
+      throw { kind: 'internal', detail: 'boom' };
+    });
+    store('tip', { downloads: 1 });
+    await startApp();
+    await pickEngines();
+    await userEvent.click(rackButton());
+    expect(screen.queryByRole('group', { name: 'Leave a tip' })).not.toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('midiremap:tip')!)).toMatchObject({ downloads: 1 });
+  });
+
   it('the rack tooltip opens on focus', async () => {
     await startApp();
     await pickEngines();

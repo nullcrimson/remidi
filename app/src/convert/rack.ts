@@ -9,6 +9,7 @@ import { toAppError } from '../core/errors';
 import { packed } from '../core/packing';
 import { track } from '../core/stats';
 import { skippedNotice } from '../presets/presetImport';
+import { noteDownload } from '../tip/tipNote';
 
 interface RackSettings {
   pair: EnginePair;
@@ -47,6 +48,7 @@ export function saveRack(core: Midiremap, rack: RackRequest): NoticeLine[] {
   }
   saveBlob(packed(file.packing, file.xml), file.fileName);
   track('rack-downloaded', { where: rack.where, edited: editCount(edits) > 0 });
+  noteDownload('rack');
   return [savedLine(file, rack.targetName), ...skippedLines(rack)];
 }
 
