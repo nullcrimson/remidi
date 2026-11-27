@@ -1117,13 +1117,27 @@ DAW's files at a time through a CSS-only picker, and each engine page offers all
 under Convert, outside the sticky bar, and says when the target leaves drums silent.
 
 Tips go through Stripe Payment Links, listed once in `content/tip.json` (the
-app imports it; `build.rs` turns its `other` link into `TIP_HREF`). Every footer ends
-with a `tip-link` to the any-amount page; the app's tip toast (`TipToast`), pinned to the top of the
-screen, offers the fixed amounts. `src/tip/tipAsk.ts` decides when, from one
-`localStorage` record shared by every tab: never on a visitor's first two saved files, then
-at most once a day, and not for 90 days after a tip link is chosen. All are plain links in a new tab, so no
-Stripe code loads here. Stripe returns the visitor to `/thanks/`, rendered in every
-locale, marked `noindex` and left out of the sitemap.
+app imports it; `build.rs` turns its amounts into `TIP_AMOUNTS` and its `other` link into
+`TIP_HREF`). Every footer ends with a `tip-link` to the any-amount page, counted as
+`tip-answered` from the footer. The tip ask, pinned to the top of the screen, offers the
+fixed amounts; it is built twice from the same `tip-*` utilities, by `TipToast` in the
+converter and by the `tip_toast` macro on the pages with downloads (engine, drum-maps and
+pair pages carry it hidden), and an e2e test holds the two builds equal.
+
+`src/tip/tipAsk.ts` is the one rule, over one `localStorage` record shared by every tab
+and every page: every download of a file the visitor keeps counts (a converted file, a rack,
+a drum map, a note-map PDF; a preset export does not), files saved within `SAME_TASK` of
+each other count once, and the ask comes from the `FIRST_ASK`th, at most once per `GAP`,
+not within `AFTER_TIP` of a tip, and never when the count cannot be saved. It also owns the
+amount format (`tipEuros`) and the answers (`answerTip`). The converter raises the ask
+through `tipNote.ts` (`noteDownload`, read by the one `ConverterTip` in `App`); the static
+pages through `pageTip.ts`, run by `src/staticPagesEntry.ts`, which counts clicks on links
+inside `[data-download]` (the site's `DownloadKind`) and none on a phone, which cannot use
+the files. `tip-asked` names the download (`after`) and both events the surface (`page`).
+The ask never takes focus, closes on Escape only from inside, and gives focus back to the
+download it followed. All are plain links in a new tab, so no Stripe code loads here.
+Stripe returns the visitor to `/thanks/`, rendered in every locale, marked `noindex`, left
+out of the sitemap, and marked `data-tipped`, which pauses the ask as a chosen amount does.
 
 ## Translations
 
