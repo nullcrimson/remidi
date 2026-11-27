@@ -40,18 +40,20 @@ function load(): TipRecord {
 const since = (then: number | null, now: number, wait: number) => then === null || now - then >= wait;
 
 /**
- * Counts a saved file and says whether to ask for a tip now: never on a visitor's first
- * two files, then at most once a day, and not for 90 days after a tip. Asking marks the time.
+ * Counts a saved file and says whether to ask for a tip now: from the visitor's
+ * `FIRST_ASK`th file, at most once per `GAP`, and not within `AFTER_TIP` of a tip. Asking
+ * marks the time; a count that cannot be saved never asks, so a storage that reads but does
+ * not write cannot ask on every file.
  */
 export function askAfterDownload(now = Date.now()): boolean {
   const r = load();
   const downloads = r.downloads + 1;
   const ask = downloads >= FIRST_ASK && since(r.shownAt, now, GAP) && since(r.tippedAt, now, AFTER_TIP);
-  writeStored('tip', JSON.stringify({ ...r, downloads, shownAt: ask ? now : r.shownAt }));
-  return ask;
+  const saved = writeStored('tip', JSON.stringify({ ...r, downloads, shownAt: ask ? now : r.shownAt }));
+  return ask && saved;
 }
 
-/** Remembers a tip, pausing the ask for 90 days. */
+/** Remembers a tip, pausing the ask for `AFTER_TIP`. */
 export function rememberTip(now = Date.now()): void {
   writeStored('tip', JSON.stringify({ ...load(), tippedAt: now }));
 }

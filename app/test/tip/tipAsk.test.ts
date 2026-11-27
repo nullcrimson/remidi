@@ -74,6 +74,15 @@ describe('askAfterDownload', () => {
     get.mockRestore();
     set.mockRestore();
   });
+
+  it('never asks when storage reads but does not save', () => {
+    localStorage.setItem(TIP_KEY, JSON.stringify({ downloads: 9, shownAt: T0 - 2 * DAY, tippedAt: null }));
+    const set = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('full');
+    });
+    expect(downloads(3)).toEqual([false, false, false]);
+    set.mockRestore();
+  });
 });
 
 describe('amountAnswer', () => {
