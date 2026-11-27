@@ -60,8 +60,37 @@ enum Target {
 }
 
 #[derive(Deserialize)]
+struct TipAmount {
+    euros: u32,
+    href: String,
+    #[serde(default)]
+    featured: bool,
+}
+
+#[derive(Deserialize)]
 struct Tip {
+    amounts: Vec<TipAmount>,
     other: String,
+}
+
+fn tip_code(tip: &Tip) -> String {
+    let amounts: String = tip
+        .amounts
+        .iter()
+        .map(|a| {
+            format!(
+                "    TipAmount {{ euros: {}, href: {:?}, featured: {} }},\n",
+                a.euros, a.href, a.featured
+            )
+        })
+        .collect();
+    format!(
+        "/// A tip amount the tip ask offers: whole euros, its Stripe link, and whether it is the suggested one.\n\
+         pub struct TipAmount {{\n    pub euros: u32,\n    pub href: &'static str,\n    pub featured: bool,\n}}\n\
+         pub const TIP_AMOUNTS: &[TipAmount] = &[\n{amounts}];\n\
+         pub const TIP_HREF: &str = {:?};\n",
+        tip.other
+    )
 }
 
 #[derive(Deserialize)]
@@ -415,7 +444,7 @@ fn main() {
     let i18n = [
         locale_code(&inputs.locales),
         section_code(&inputs.structure.sections, &plain),
-        format!("pub const TIP_HREF: &str = {:?};\n", inputs.tip.other),
+        tip_code(&inputs.tip),
         message_code(&messages, &plain),
     ]
     .concat();

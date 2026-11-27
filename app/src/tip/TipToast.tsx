@@ -4,7 +4,6 @@ import { useLocale } from '../locale/localeContext';
 import { useRef } from 'react';
 import { track } from '../core/stats';
 import { amountAnswer, answerTip, tipEuros, type TipAnswer } from './tipAsk';
-import { IconButton } from '../ui/IconButton';
 
 /**
  * The ask for a tip, pinned to the top of the screen: a short note and Stripe links, each
@@ -33,20 +32,27 @@ export function TipToast({ onClose }: { onClose: (hadFocus: boolean) => void }) 
       }}
       className="tip-toast"
     >
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-ui/relaxed text-t3">
+      <div className="tip-toast-head">
+        <p className="tip-toast-text">
           <span aria-hidden="true" className="text-star">☕ </span>
           <span>{t({ id: 'tip-ask' })}</span>
         </p>
-        <IconButton label={t({ id: 'close' })} onClick={close}>×</IconButton>
+        <button
+          type="button"
+          aria-label={t({ id: 'close' })}
+          onClick={close}
+          className="tip-toast-close"
+        >×
+        </button>
       </div>
-      <ul className="flex flex-wrap items-center gap-2">
+      <ul className="tip-amounts">
         {tip.amounts.map((a) => (
           <li key={a.href}>
             <a
               href={a.href}
               target="_blank"
               rel="noopener"
+              data-euros={a.euros}
               onClick={() => tipped(amountAnswer(a.euros))}
               className={'featured' in a && a.featured
                 ? `tip-amount tip-amount-featured`
@@ -56,7 +62,7 @@ export function TipToast({ onClose }: { onClose: (hadFocus: boolean) => void }) 
             </a>
           </li>
         ))}
-        <li className="ml-1">
+        <li className="tip-other">
           <a
             href={tip.other}
             target="_blank"

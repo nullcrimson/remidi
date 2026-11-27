@@ -4,7 +4,7 @@ use midiremap_core::Daw;
 use crate::{
     content::{Block, Closing, ContentPage},
     converter_step::{converter_steps, shown_steps, ConverterStep, ShownStep},
-    i18n::{Docs, Locale, Messages, Phrase, Plain, SectionKey, TIP_HREF},
+    i18n::{Docs, Locale, Messages, Phrase, Plain, SectionKey, TipAmount, TIP_AMOUNTS, TIP_HREF},
     manifest::{AnalyticsScript, LocaleScript, SiteManifest},
     meta::{
         content_meta, drum_maps_meta, engine_meta, index_meta, pair_meta, section_meta, with_midi,
@@ -99,6 +99,58 @@ impl std::fmt::Display for PageKind {
     }
 }
 
+impl PageKind {
+    /// Whether the page offers files to download, and so carries the tip ask its downloads raise.
+    fn asks_tip(self) -> bool {
+        match self {
+            Self::Engine | Self::Pair | Self::DrumMaps => true,
+            Self::Index | Self::Doc => false,
+        }
+    }
+}
+
+/// A file a page offers to download, as its `data-download` names it for the page script,
+/// which counts it toward the tip ask.
+#[derive(Clone, Copy)]
+pub enum DownloadKind {
+    DrumMap,
+    NoteMap,
+    Rack,
+}
+
+impl std::fmt::Display for DownloadKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::DrumMap => "drum-map",
+            Self::NoteMap => "note-map",
+            Self::Rack => "rack",
+        })
+    }
+}
+
+/// The tip ask a page with downloads carries, hidden until the page script shows it.
+struct TipToast<'a> {
+    label: &'a str,
+    ask: &'a str,
+    close: &'a str,
+    other: &'a str,
+    amounts: &'static [TipAmount],
+    other_href: &'static str,
+}
+
+impl<'a> TipToast<'a> {
+    fn of(texts: &Texts<'a>) -> Self {
+        Self {
+            label: texts.get(Plain::TipAmounts),
+            ask: texts.get(Plain::TipAsk),
+            close: texts.get(Plain::Close),
+            other: texts.get(Plain::TipOther),
+            amounts: TIP_AMOUNTS,
+            other_href: TIP_HREF,
+        }
+    }
+}
+
 struct LangItem {
     name: &'static str,
     tag: &'static str,
@@ -136,6 +188,7 @@ struct Frame<'a> {
     footer: Vec<NavItem<'a>>,
     tip: &'a str,
     tip_href: &'static str,
+    tip_toast: Option<TipToast<'a>>,
     home: LocalPath,
     open_converter: &'a str,
     kind: PageKind,
@@ -198,6 +251,7 @@ impl<'a> Frame<'a> {
             footer: texts.links(FOOTER, None),
             tip: texts.get(Plain::TipLink),
             tip_href: TIP_HREF,
+            tip_toast: kind.asks_tip().then(|| TipToast::of(texts)),
             home: home(texts.locale),
             open_converter: texts.get(Plain::OpenConverter),
             kind,
@@ -812,7 +866,7 @@ mod tests {
     #[test]
     fn every_footer_ends_with_a_tip_link_opening_in_a_new_tab() {
         let tip = format!(
-            r#"<a href="{TIP_HREF}" target="_blank" rel="noopener" class="prose-link tip-link">"#
+            r#"<a href="{TIP_HREF}" target="_blank" rel="noopener" class="prose-link tip-link" data-umami-event="tip-answered" data-umami-event-answer="other" data-umami-event-where="footer" data-umami-event-page="page">"#
         );
         for (path, html) in rendered() {
             let footer = html.split("<footer").nth(1).unwrap();
@@ -824,6 +878,63 @@ mod tests {
     #[test]
     fn the_polish_tip_link_is_in_polish() {
         assert!(page("pl/faq/index.html").contains("Postaw mi kawę"));
+    }
+
+    #[test]
+    fn every_download_link_is_marked_with_its_kind() {
+        for (path, html) in rendered() {
+            assert_eq!(
+                html.matches(r#" download=""#).count(),
+                html.matches(r#"data-download=""#).count(),
+                "{path}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_tip_ask_is_carried_hidden_once_by_every_page_with_downloads_and_no_other() {
+        for (path, html) in rendered() {
+            let downloads = html.contains(r#" download=""#);
+            assert_eq!(
+                html.matches("<div data-tip-toast hidden ").count(),
+                usize::from(downloads),
+                "{path}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_tip_ask_offers_every_amount_and_any_other_each_in_a_new_tab() {
+        let html = page("engines/ggd-invasion/index.html");
+        let toast = html
+            .split("<div data-tip-toast")
+            .nth(1)
+            .and_then(|rest| rest.split("</ul>").next())
+            .unwrap();
+        let hrefs: Vec<&str> = toast
+            .split(r#"<a href=""#)
+            .skip(1)
+            .filter_map(|a| a.split('"').next())
+            .collect();
+        let expected: Vec<&str> = TIP_AMOUNTS
+            .iter()
+            .map(|a| a.href)
+            .chain([TIP_HREF])
+            .collect();
+        assert_eq!(hrefs, expected);
+        assert_eq!(
+            toast.matches(r#"target="_blank" rel="noopener""#).count(),
+            expected.len()
+        );
+    }
+
+    #[test]
+    fn the_thanks_page_marks_a_tip_in_every_locale() {
+        let pages = rendered();
+        for &l in Locale::ALL {
+            let (file, html) = thanks_page(pages, l);
+            assert!(html.contains("<h1 data-tipped "), "{file}");
+        }
     }
 
     fn thanks_page(pages: &[(String, String)], l: Locale) -> (String, &str) {

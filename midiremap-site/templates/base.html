@@ -53,6 +53,7 @@
           tabindex="-1"
           class="w-full overflow-clip rounded-card border border-hairline bg-card shadow-card outline-none"
         >
+          {% if let Some(toast) = frame.tip_toast %}{% call macros::tip_toast(toast) %}{% endcall %}{% endif %}
           <div class="flex flex-col gap-6 p-5 sm:p-8.5">{% block content %}{% endblock %}</div>
         </main>
         <footer class="flex flex-col gap-2 px-1">
@@ -62,7 +63,7 @@
               {% for l in frame.footer %}
               <li><a href="{{ l.href }}" class="prose-link">{{ l.label }}</a></li>
               {% endfor %}
-              <li><a href="{{ frame.tip_href }}" target="_blank" rel="noopener" class="prose-link tip-link">{{ frame.tip }}</a></li>
+              <li><a href="{{ frame.tip_href }}" target="_blank" rel="noopener" class="prose-link tip-link" data-umami-event="tip-answered" data-umami-event-answer="other" data-umami-event-where="footer" data-umami-event-page="page">{{ frame.tip }}</a></li>
             </ul>
           </nav>
           </div>
