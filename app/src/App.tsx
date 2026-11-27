@@ -38,6 +38,7 @@ import { CatalogStatus } from './convert/CatalogStatus';
 import { useT } from './locale/localeContext';
 import type { Notice, NoticeLine } from './core/notice';
 import { rackDownloads } from './convert/rack';
+import { ConverterTip } from './tip/ConverterTip';
 import type { Runtime } from './convert/runtime';
 
 export default function App({ runtime }: { runtime: Runtime }) {
@@ -138,9 +139,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
 
         {noticePlace === 'engines' && sourceNotice}
         {notice?.at === 'engines' && <StatusNotice lines={notice.lines} onDismiss={dismissNotice} />}
-
         {saved.unsaved && <UnsavedNotice />}
-
         <SavedMappingChips
           onFocusFallback={() => request('from')}
           mappings={saved.mappings}
@@ -209,6 +208,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
       after={<PopularConversions engines={remapper.engines} />}
     >
       <Card mainRef={focus.ref('main')}>
+        <ConverterTip />
         <div className="
           flex flex-col gap-7 p-5
           sm:p-[34px_34px_30px]

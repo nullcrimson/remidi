@@ -1,29 +1,31 @@
 import tip from '../../../content/tip.json';
 import { LOCALES } from '../generated/i18n';
 import { useLocale } from '../locale/localeContext';
-import { useEffect } from 'react';
+import { useRef } from 'react';
 import { track } from '../core/stats';
 import { amountAnswer, answerTip, tipEuros, type TipAnswer } from './tipAsk';
 import { IconButton } from '../ui/IconButton';
 
 /**
  * The ask for a tip, pinned to the top of the screen: a short note and Stripe links, each
- * in a new tab. Choosing one is remembered so the ask pauses; `onClose` hides it.
+ * in a new tab. Choosing one is remembered so the ask pauses; `onClose` hides it and says
+ * whether focus was inside it.
  */
-export function TipToast({ onClose }: { onClose: () => void }) {
+export function TipToast({ onClose }: { onClose: (hadFocus: boolean) => void }) {
   const { translator } = useLocale();
   const { t, locale } = translator;
   const euros = tipEuros(LOCALES[locale].langTag);
-  useEffect(() => track('tip-asked', { after: 'converted', page: 'converter' }), []);
+  const ref = useRef<HTMLDivElement>(null);
   const answer = (given: TipAnswer) => {
     track('tip-answered', answerTip(given, 'toast', 'converter'));
-    onClose();
+    onClose(ref.current?.contains(document.activeElement) ?? false);
   };
   const close = () => answer('closed');
   const tipped = answer;
 
   return (
     <div
+      ref={ref}
       role="group"
       aria-label={t({ id: 'tip-amounts' })}
       onKeyDown={(e) => {

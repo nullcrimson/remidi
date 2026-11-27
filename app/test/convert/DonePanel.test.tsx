@@ -2,6 +2,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DonePanel } from '../../src/convert/DonePanel';
+import { ConverterTip } from '../../src/tip/ConverterTip';
 
 import { recordDownloads } from '../downloads';
 import type { FailedFile } from '../../src/convert/batch';
@@ -14,6 +15,8 @@ import { engineId, enginePair, type Loose, typed } from '../typed';
 import { storedName } from '../../src/core/storage';
 
 const TIP_KEY = storedName('tip');
+const T0 = Date.UTC(2026, 9, 1, 12);
+const MINUTE = 60 * 1000;
 
 const REPORT = { unmappedSource: {}, fallbackUsed: {}, dropped: {}, untouched: 0, converted: 1, merged: 0, read: 1, lost: 0 };
 const NONE: ReportGroups = { dropped: [], approximated: [], unrecognized: [] };
@@ -69,22 +72,25 @@ function renderPanel({
   heavy = false,
 } = {}) {
   render(
-    <DonePanel
-      results={results}
-      failures={failures}
-      heavy={heavy}
-      view={report}
-      pair={enginePair('ggd_invasion', 'ezdrummer')}
-      report={REPORT_CONTEXT}
-      names={{ source: 'GGD Invasion', target: 'Toontrack EZdrummer 3' }}
-      unrecognized={unrecognized}
-      onViewReport={onViewReport}
-      onPickSource={onPickSource}
-      onAssignNotes={onAssignNotes}
-      onConvertMore={onConvertMore}
-      onDropMissing={onDropMissing}
-      editedDrums={editedDrums}
-    />,
+    <>
+      <ConverterTip />
+      <DonePanel
+        results={results}
+        failures={failures}
+        heavy={heavy}
+        view={report}
+        pair={enginePair('ggd_invasion', 'ezdrummer')}
+        report={REPORT_CONTEXT}
+        names={{ source: 'GGD Invasion', target: 'Toontrack EZdrummer 3' }}
+        unrecognized={unrecognized}
+        onViewReport={onViewReport}
+        onPickSource={onPickSource}
+        onAssignNotes={onAssignNotes}
+        onConvertMore={onConvertMore}
+        onDropMissing={onDropMissing}
+        editedDrums={editedDrums}
+      />
+    </>,
   );
   return { onViewReport, onPickSource, onAssignNotes, onConvertMore };
 }
@@ -242,14 +248,23 @@ describe('DonePanel', () => {
 
     beforeEach(() => localStorage.setItem(TIP_KEY, JSON.stringify({ downloads: 2 })));
 
-    it('asks nothing on a visitor\'s first two saved files', async () => {
+    it('asks nothing on a visitor\'s first saved file', async () => {
       localStorage.clear();
+      const now = vi.spyOn(Date, 'now').mockReturnValue(T0);
       renderPanel();
       await download();
-      await download();
       expect(tip()).not.toBeInTheDocument();
+      now.mockReturnValue(T0 + MINUTE);
       await download();
       expect(tip()).toBeVisible();
+      now.mockRestore();
+    });
+
+    it('gives focus back to the download it asked after when closed', async () => {
+      renderPanel();
+      await download();
+      await userEvent.click(within(tip()!).getByRole('button', { name: 'Close' }));
+      expect(screen.getByRole('link', { name: '↓ Download .mid' })).toHaveFocus();
     });
 
     it('floats at the top of the screen', async () => {
@@ -266,13 +281,16 @@ describe('DonePanel', () => {
     });
 
     it('does not ask again the same day, closed or not', async () => {
+      const now = vi.spyOn(Date, 'now').mockReturnValue(T0);
       renderPanel();
       await download();
       expect(tip()).toBeVisible();
       cleanup();
+      now.mockReturnValue(T0 + MINUTE);
       renderPanel();
       await download();
       expect(tip()).not.toBeInTheDocument();
+      now.mockRestore();
     });
 
     it('closes once a tip is chosen', async () => {

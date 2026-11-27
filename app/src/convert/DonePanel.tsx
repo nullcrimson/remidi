@@ -1,5 +1,5 @@
 import { useT } from '../locale/localeContext';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { saveBlob } from '../core/download';
 import { engineCode } from '../core/engineCode';
 import type { EngineNames, EnginePair } from '../core/enginePair';
@@ -12,7 +12,7 @@ import { lossShares } from '../report/lossProps';
 import type { Converted } from './useConverter';
 import { zipFiles } from './zip';
 import { Button } from '../ui/Button';
-import { askAfterDownload } from '../tip/tipAsk';
+import { noteDownload } from '../tip/tipNote';
 import { tag } from '../ui/styles';
 import { DoneBadge, type DoneTone } from './DoneBadge';
 import { fileStatus, outcomeTags } from './doneSummary';
@@ -23,7 +23,6 @@ import { PartOffers } from './PartOffers';
 import { WaitingFiles } from './WaitingFiles';
 import type { Offer } from './partQuestions';
 import { TextButton } from '../ui/TextButton';
-import { TipToast } from '../tip/TipToast';
 import { track } from '../core/stats';
 import type { StatEvents } from '../core/umami';
 
@@ -75,10 +74,9 @@ export function DonePanel({
   const t = useT();
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => headingRef.current?.focus(), []);
-  const [asking, setAsking] = useState(false);
   const markSaved = (how: StatEvents['downloaded']['how']) => {
     track('downloaded', { files: how === 'zip' ? results.length : 1, how });
-    if (askAfterDownload()) setAsking(true);
+    noteDownload('converted');
   };
   const single = results.length === 1;
   const downloadZip = () => {
@@ -224,7 +222,6 @@ export function DonePanel({
           </a>
         </div>
       </div>
-      {asking && <TipToast onClose={() => setAsking(false)} />}
 
       <div className="
         flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5
