@@ -8,8 +8,14 @@ const tipFile = JSON.parse(readFileSync(new URL('../../content/tip.json', import
 const tip = (page: Page) => page.getByRole('group', { name: 'Leave a tip' });
 const DAY = 24 * 60 * 60 * 1000;
 
-/** Saves the converted file once: the ask counts the press, so the saved bytes are left unread. */
+const NEXT_TASK = 60_000;
+
+/**
+ * Saves the converted file once, a minute after the page's clock, so each save is its own task:
+ * the ask counts the press, so the saved bytes are left unread.
+ */
 async function save(page: Page) {
+  await page.clock.setSystemTime((await page.evaluate(() => Date.now())) + NEXT_TASK);
   const file = page.waitForEvent('download');
   await press(page.getByRole('link', { name: /Download \.mid/ }));
   await file;
@@ -50,7 +56,7 @@ test('the tip ask comes at most once a day', async ({ page }) => {
   await save(page);
   await expect(tip(page)).toHaveCount(0);
 
-  await page.clock.setSystemTime(new Date(start.getTime() + DAY + 60_000));
+  await page.clock.setSystemTime(new Date(start.getTime() + DAY + 10 * 60_000));
   await save(page);
   await expect(tip(page)).toBeVisible();
 });
@@ -68,7 +74,7 @@ test('pressing an amount closes the tip ask, and it stays away', async ({ page, 
   await payment.close();
   await expect(tip(page)).toHaveCount(0);
 
-  await page.clock.setSystemTime(new Date(start.getTime() + DAY + 60_000));
+  await page.clock.setSystemTime(new Date(start.getTime() + DAY + 10 * 60_000));
   await save(page);
   await expect(tip(page)).toHaveCount(0);
 });

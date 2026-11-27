@@ -15,12 +15,15 @@ export function amountAnswer(euros: number): TipAmount {
 }
 
 const FIRST_ASK = 2;
-const DAY = 24 * 60 * 60 * 1000;
+const SECOND = 1000;
+const DAY = 24 * 60 * 60 * SECOND;
+const SAME_TASK = 10 * SECOND;
 const GAP = DAY;
 const AFTER_TIP = 90 * DAY;
 
 interface TipRecord {
   downloads: number;
+  lastAt: number | null;
   shownAt: number | null;
   tippedAt: number | null;
 }
@@ -31,9 +34,9 @@ function load(): TipRecord {
   try {
     const v = JSON.parse(readStored('tip') ?? '{}') as Record<string, unknown>;
     const downloads = typeof v.downloads === 'number' && v.downloads >= 0 ? Math.floor(v.downloads) : 0;
-    return { downloads, shownAt: time(v.shownAt), tippedAt: time(v.tippedAt) };
+    return { downloads, lastAt: time(v.lastAt), shownAt: time(v.shownAt), tippedAt: time(v.tippedAt) };
   } catch {
-    return { downloads: 0, shownAt: null, tippedAt: null };
+    return { downloads: 0, lastAt: null, shownAt: null, tippedAt: null };
   }
 }
 
@@ -41,15 +44,18 @@ const since = (then: number | null, now: number, wait: number) => then === null 
 
 /**
  * Counts a saved file and says whether to ask for a tip now: from the visitor's
- * `FIRST_ASK`th file, at most once per `GAP`, and not within `AFTER_TIP` of a tip. Asking
- * marks the time; a count that cannot be saved never asks, so a storage that reads but does
- * not write cannot ask on every file.
+ * `FIRST_ASK`th file, at most once per `GAP`, and not within `AFTER_TIP` of a tip. A file
+ * saved within `SAME_TASK` of the previous one belongs to the same task: it is not counted and
+ * never asks, so a visitor grabbing several files at once is not interrupted. Asking marks the
+ * time; a count that cannot be saved never asks, so a storage that reads but does not write
+ * cannot ask on every file.
  */
 export function askAfterDownload(now = Date.now()): boolean {
   const r = load();
-  const downloads = r.downloads + 1;
-  const ask = downloads >= FIRST_ASK && since(r.shownAt, now, GAP) && since(r.tippedAt, now, AFTER_TIP);
-  const saved = writeStored('tip', JSON.stringify({ ...r, downloads, shownAt: ask ? now : r.shownAt }));
+  const newTask = r.lastAt === null || now < r.lastAt || now - r.lastAt >= SAME_TASK;
+  const downloads = newTask ? r.downloads + 1 : r.downloads;
+  const ask = newTask && downloads >= FIRST_ASK && since(r.shownAt, now, GAP) && since(r.tippedAt, now, AFTER_TIP);
+  const saved = writeStored('tip', JSON.stringify({ ...r, downloads, lastAt: now, shownAt: ask ? now : r.shownAt }));
   return ask && saved;
 }
 
