@@ -33,10 +33,7 @@ export function TipToast({ onClose }: { onClose: (hadFocus: boolean) => void }) 
       className="tip-toast"
     >
       <div className="flex items-start justify-between gap-3">
-        <p className="text-ui/relaxed text-t3">
-          <span aria-hidden="true" className="text-star">☕ </span>
-          <span>{t({ id: 'tip-ask' })}</span>
-        </p>
+        <p className="tip-cup text-ui/relaxed text-t3">{t({ id: 'tip-ask' })}</p>
         <IconButton label={t({ id: 'close' })} onClick={close}>×</IconButton>
       </div>
       <ul className="flex flex-wrap items-center gap-2">
