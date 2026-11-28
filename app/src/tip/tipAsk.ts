@@ -11,9 +11,12 @@ export type TipAmount = Exclude<TipAnswer, 'closed'>;
 export const tipEuros = (langTag: string) =>
   new Intl.NumberFormat(langTag, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 
-/** Takes the tip ask's answer on `site`, remembering a tip when it is an amount, and returns the `tip-answered` event's properties. */
-export function answerTip(answer: TipAnswer, site: TipSite): StatEvents['tip-answered'] {
-  if (answer !== 'closed') rememberTip();
+/**
+ * Takes the tip ask's answer on `site`, remembering a tip when it is an amount (which marks
+ * `root`), and returns the `tip-answered` event's properties.
+ */
+export function answerTip(answer: TipAnswer, site: TipSite, root: HTMLElement): StatEvents['tip-answered'] {
+  if (answer !== 'closed') rememberTip(root);
   return { answer, where: 'toast', site };
 }
 
@@ -52,6 +55,24 @@ function load(): TipRecord {
 
 const since = (then: number | null, now: number, wait: number) => then === null || now - then >= wait;
 
+/** Whether a tip remembered within `AFTER_TIP` of `now` pauses every tip ask. */
+const tipPaused = (now = Date.now()): boolean => !since(load().tippedAt, now, AFTER_TIP);
+
+/** Marks `root` with `data-tip-paused` while the tip asks are `paused`, so the side link hides. */
+function markTipPaused(root: HTMLElement, paused: boolean): void {
+  root.toggleAttribute('data-tip-paused', paused);
+}
+
+/**
+ * Marks the page's root from `tipPaused` now and again whenever another tab changes the
+ * stored record, so a tip made on the thanks page in a new tab hides the side link here.
+ */
+export function showTipPause(window: Window): void {
+  const mark = () => markTipPaused(window.document.documentElement, tipPaused());
+  mark();
+  window.addEventListener('storage', mark);
+}
+
 /**
  * Counts a saved file and says whether to ask for a tip now: from the visitor's
  * `FIRST_ASK`th file, at most once per `GAP`, and not within `AFTER_TIP` of a tip. Asking
@@ -61,12 +82,13 @@ const since = (then: number | null, now: number, wait: number) => then === null 
 export function askAfterDownload(now = Date.now()): boolean {
   const r = load();
   const downloads = r.downloads + 1;
-  const ask = downloads >= FIRST_ASK && since(r.shownAt, now, GAP) && since(r.tippedAt, now, AFTER_TIP);
+  const ask = downloads >= FIRST_ASK && since(r.shownAt, now, GAP) && !tipPaused(now);
   const saved = writeStored('tip', JSON.stringify({ ...r, downloads, shownAt: ask ? now : r.shownAt }));
   return ask && saved;
 }
 
-/** Remembers a tip, pausing the ask for `AFTER_TIP`. */
-export function rememberTip(now = Date.now()): void {
+/** Remembers a tip, pausing every tip ask for `AFTER_TIP`, and marks the page's `root` so. */
+export function rememberTip(root: HTMLElement, now = Date.now()): void {
   writeStored('tip', JSON.stringify({ ...load(), tippedAt: now }));
+  markTipPaused(root, true);
 }
