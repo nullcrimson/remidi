@@ -110,7 +110,7 @@ export interface StatEvents {
   'nav-used': { target: RouteName | SectionKey; where: 'header' | 'footer' };
   'contact-used': { link: 'issues' | 'email' };
   'tip-asked': { site: 'converter'; after: ConverterDownload } | { site: 'static'; after: PageDownload };
-  'tip-answered': { answer: '3' | '5' | '10' | 'other' | 'closed'; where: 'toast' | 'footer'; site: TipSite };
+  'tip-answered': { answer: '3' | '5' | '10' | 'other' | 'closed'; where: 'toast' | 'footer' | 'side'; site: TipSite };
   'load-failed': { kind: ErrorKind | 'locale'; detail: string };
   crashed: { error: string; thrown: string; components: string };
   'storage-cleared': undefined;
