@@ -131,6 +131,21 @@
   @apply tip-cup text-star;
 }
 
+@utility tip-side-rail {
+  @apply absolute inset-y-0 start-full ms-6 print:hidden;
+
+  :root:is([data-tip-paused], :has(.tip-toast:not([hidden]))) & {
+    display: none;
+  }
+}
+
+@utility tip-side {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: var(--tip-side-tracking, 0.03em);
+  @apply tap tip-cup flex items-center border-l border-hairline pt-3 pr-1 pb-3 pl-2.5 text-ui leading-[1.4] whitespace-nowrap text-t4 transition-colors duration-150 hover:border-star/50 hover:text-star motion-reduce:transition-none;
+}
+
 @utility tip-toast {
   @apply fixed inset-x-4 top-[max(0.75rem,env(safe-area-inset-top))] z-30 mx-auto flex max-w-140 flex-col gap-3 rounded-panel border border-star/30 bg-ink p-4 shadow-popover motion-safe:animate-[tip-in_240ms_ease-out];
 }

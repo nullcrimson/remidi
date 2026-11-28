@@ -1,32 +1,8 @@
-import type { Download, Locator, Page } from '@playwright/test';
 import { addFiles, expect, kick, openPair, test } from './fixtures';
-import { convert, press } from './steps';
+import { convert, downloadMap, ENGINE_PAGE, press, skeleton, TIP_START as START, tipAsk as tip } from './steps';
 
-const ENGINE_PAGE = '/engines/ggd-invasion/';
-const START = new Date('2026-10-01T12:00:00Z');
 const DAY = 24 * 60 * 60 * 1000;
-
-const tip = (page: Page) => page.getByRole('group', { name: 'Leave a tip' });
-
-/** Downloads the engine's drum map for `daw`. */
-async function downloadMap(page: Page, daw: string): Promise<Download> {
-  const download = page.waitForEvent('download');
-  await press(page.getByRole('link', { name: `GetGood Drums Invasion drum map for ${daw}`, exact: true }).first());
-  return download;
-}
-
-/** The tip ask's build without its words: each element's tag, role, classes and link attributes. */
-const skeleton = (toast: Locator) =>
-  toast.evaluate((root) => {
-    const kept = ['role', 'class', 'href', 'target', 'rel', 'data-euros', 'aria-hidden', 'type'];
-    const walk = (el: Element): unknown => ({
-      tag: el.tagName,
-      attrs: kept.filter((a) => el.hasAttribute(a)).map((a) => [a, a === 'class' ? [...el.classList].sort() : el.getAttribute(a)]),
-      labelled: el.hasAttribute('aria-label'),
-      children: [...el.children].map(walk),
-    });
-    return walk(root);
-  });
+const TOAST_ATTRS = ['role', 'class', 'href', 'target', 'rel', 'data-euros', 'aria-hidden', 'type'];
 
 test.describe('the tip ask of the static pages', () => {
   test.beforeEach(async ({ page }) => {
@@ -79,13 +55,13 @@ test.describe('the tip ask of the static pages', () => {
     await downloadMap(page, 'Reaper');
     await downloadMap(page, 'Studio One');
     await downloadMap(page, 'Cubase');
-    const onPage = await skeleton(tip(page));
+    const onPage = await skeleton(tip(page), TOAST_ATTRS);
 
     await openPair(page);
     await addFiles(page, kick('kick.mid'));
     await convert(page);
     await page.clock.setSystemTime(START.getTime() + DAY + 60_000);
     await press(page.getByRole('link', { name: /Download \.mid/ }));
-    expect(await skeleton(tip(page))).toEqual(onPage);
+    expect(await skeleton(tip(page), TOAST_ATTRS)).toEqual(onPage);
   });
 });

@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { sectionBlocks } from '../locale/docs';
 import { href, targetLabel, targetName } from './site';
 import { track } from '../core/stats';
-import tip from '../../../content/tip.json';
 import { FOOTER, SECTION_KEYS, SECTION_MESSAGES, type SectionKey } from '../generated/i18n';
 import { useLocale } from '../locale/localeContext';
 import { plainClick } from './plainClick';
 import { ContentBlocks } from './ContentBlocks';
 import { Modal } from '../ui/Modal';
+import { TipLink } from './TipLink';
 
 export function SiteFooter() {
   const { translator } = useLocale();
@@ -43,15 +43,7 @@ export function SiteFooter() {
               );
             })}
             <li>
-              <a
-                href={tip.other}
-                target="_blank"
-                rel="noopener"
-                onClick={() => track('tip-answered', { answer: 'other', where: 'footer', site: 'converter' })}
-                className="prose-link tip-link"
-              >
-                {t({ id: 'tip-link' })}
-              </a>
+              <TipLink where="footer" className="prose-link tip-link" />
             </li>
           </ul>
         </nav>

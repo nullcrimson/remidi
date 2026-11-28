@@ -964,6 +964,84 @@ mod tests {
         }
     }
 
+    fn thanks_pages() -> Vec<String> {
+        Locale::ALL
+            .iter()
+            .map(|&l| THANKS.in_locale(l).file())
+            .collect()
+    }
+
+    fn side_tip_link(html: &str) -> Option<&str> {
+        html.split("tip-side-rail")
+            .nth(1)
+            .and_then(|rest| rest.split("</a>").next())
+    }
+
+    fn other_pages() -> impl Iterator<Item = &'static (String, String)> {
+        let thanks = thanks_pages();
+        rendered()
+            .iter()
+            .filter(move |(path, _)| !thanks.contains(path))
+    }
+
+    #[test]
+    fn the_thanks_pages_carry_no_side_tip_link() {
+        let pages = rendered();
+        for &l in Locale::ALL {
+            let (file, html) = thanks_page(pages, l);
+            assert!(!html.contains("tip-side-rail"), "{file}");
+        }
+    }
+
+    #[test]
+    fn every_other_page_carries_one_side_tip_link_kept_out_of_snippets() {
+        for (path, html) in other_pages() {
+            assert_eq!(html.matches("tip-side-rail").count(), 1, "{path}");
+            let rail_tag = html
+                .split("tip-side-rail")
+                .next()
+                .and_then(|before| before.rsplit('<').next());
+            assert!(
+                rail_tag.is_some_and(|tag| tag.contains("data-nosnippet")),
+                "{path}"
+            );
+        }
+    }
+
+    #[test]
+    fn every_side_tip_link_opens_the_tip_page_in_a_new_tab_counted_from_the_side() {
+        let facets = [
+            format!(r#"href="{TIP_HREF}""#),
+            r#"target="_blank""#.to_owned(),
+            r#"rel="noopener""#.to_owned(),
+            r#"data-umami-event="tip-answered""#.to_owned(),
+            r#"data-umami-event-answer="other""#.to_owned(),
+            r#"data-umami-event-where="side""#.to_owned(),
+            r#"data-umami-event-site="static""#.to_owned(),
+        ];
+        for (path, html) in other_pages() {
+            let link = side_tip_link(html).unwrap_or_default();
+            for facet in &facets {
+                assert!(link.contains(facet.as_str()), "{path}: {facet}");
+            }
+        }
+    }
+
+    #[test]
+    fn every_side_tip_link_is_worded_as_its_footer_tip_link() {
+        let words = |link: &str| link.rsplit('>').next().map(str::to_owned);
+        for (path, html) in other_pages() {
+            let footer = html
+                .split("<footer")
+                .nth(1)
+                .and_then(|f| f.split("<li>").last());
+            let footer_link = footer.and_then(|li| li.split("</a>").next());
+            let side = side_tip_link(html).and_then(words);
+            assert!(side.as_deref().is_some_and(|w| !w.is_empty()), "{path}");
+            assert_eq!(side, footer_link.and_then(words), "{path}");
+        }
+    }
+
     fn thanks_page(pages: &[(String, String)], l: Locale) -> (String, &str) {
         let file = THANKS.in_locale(l).file();
         let html = pages

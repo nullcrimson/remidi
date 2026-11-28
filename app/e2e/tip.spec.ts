@@ -1,11 +1,10 @@
 import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import { addFiles, expect, kick, openPair, test } from './fixtures';
-import { convert, press } from './steps';
+import { convert, press, tipAsk as tip } from './steps';
 
 const tipFile = JSON.parse(readFileSync(new URL('../../content/tip.json', import.meta.url), 'utf8')) as { amounts: { href: string }[] };
 
-const tip = (page: Page) => page.getByRole('group', { name: 'Leave a tip' });
 const DAY = 24 * 60 * 60 * 1000;
 
 /** Saves the converted file once: the ask counts the press, so the saved bytes are left unread. */

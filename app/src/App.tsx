@@ -97,7 +97,7 @@ export default function App({ runtime }: { runtime: Runtime }) {
   if (view.kind === 'edit') {
     const shown = namesOf(remapper.engines, view.pair);
     return dropping(
-      <Page onSkip={() => request('main')}>
+      <Page asksTip={false} onSkip={() => request('main')}>
         <Card mainRef={focus.ref('main')}>
           <EditView
             editor={editor}

@@ -53,7 +53,7 @@ describe('gen-i18n', () => {
   it('writes :lang rules only for locales with fonts', () => {
     const withFonts = [...locales, { code: 'ja', prefix: 'ja', langTag: 'ja', nativeName: '日本語', fonts: '"Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif' }];
     const { css } = generate(parseSources({ locales: withFonts, structure, ftl }));
-    expect(css).toBe(':lang(ja) {\n  --font-sans: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;\n  --font-display: var(--font-sans);\n  --font-mono: \'IBM Plex Mono\', "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;\n}\n');
+    expect(css).toBe(':lang(ja) {\n  --font-sans: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;\n  --font-display: var(--font-sans);\n  --font-mono: \'IBM Plex Mono\', "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;\n  --tip-side-tracking: 0.12em;\n}\n');
   });
 
   const withDocs = () => generate(parseSources({

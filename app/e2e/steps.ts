@@ -213,3 +213,34 @@ export async function convertBand(page: Page) {
   await addFiles(page, drumsAndBass());
   await convert(page);
 }
+
+/** The engine page the tip tests download drum maps from. */
+export const ENGINE_PAGE = '/engines/ggd-invasion/';
+
+/** The clock the tip tests start from. */
+export const TIP_START = new Date('2026-10-01T12:00:00Z');
+
+/** The tip ask, by its label. */
+export const tipAsk = (page: Page) => page.getByRole('group', { name: 'Leave a tip' });
+
+/** Downloads the engine page's drum map for `daw`. */
+export async function downloadMap(page: Page, daw: string): Promise<Download> {
+  const download = page.waitForEvent('download');
+  await press(page.getByRole('link', { name: `GetGood Drums Invasion drum map for ${daw}`, exact: true }).first());
+  return download;
+}
+
+/**
+ * The build of `root` without its words: each element's tag, the attributes `keep` names
+ * (classes sorted), whether it is labelled, and its children. Two builds of one piece compare equal.
+ */
+export const skeleton = (root: Locator, keep: readonly string[]) =>
+  root.evaluate((top, kept) => {
+    const walk = (el: Element): unknown => ({
+      tag: el.tagName,
+      attrs: kept.filter((a) => el.hasAttribute(a)).map((a) => [a, a === 'class' ? [...el.classList].sort() : el.getAttribute(a)]),
+      labelled: el.hasAttribute('aria-label'),
+      children: [...el.children].map(walk),
+    });
+    return walk(top);
+  }, keep);

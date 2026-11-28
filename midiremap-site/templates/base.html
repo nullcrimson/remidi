@@ -28,7 +28,7 @@
   </head>
   <body class="text-t3">
     <div class="flex min-h-screen flex-col items-center px-5 pt-[6vh] pb-16">
-      <div class="flex w-200 max-w-full flex-col gap-5">
+      <div class="relative flex w-200 max-w-full flex-col gap-5">
         <div data-nosnippet>
         <a
           href="#main"
@@ -56,6 +56,7 @@
           {% if let Some(toast) = frame.tip_toast %}{% call macros::tip_toast(toast) %}{% endcall %}{% endif %}
           <div class="flex flex-col gap-6 p-5 sm:p-8.5">{% block content %}{% endblock %}</div>
         </main>
+        {% block tip_side %}<div data-nosnippet class="tip-side-rail max-lg:hidden"><div class="sticky top-1/2 -translate-y-1/2">{% call macros::tip_link("side", "tip-side") %}{% endcall %}</div></div>{% endblock %}
         <footer class="flex flex-col gap-2 px-1">
           <div data-nosnippet>
           <nav aria-label="{{ frame.nav_site }}">
@@ -63,7 +64,7 @@
               {% for l in frame.footer %}
               <li><a href="{{ l.href }}" class="prose-link">{{ l.label }}</a></li>
               {% endfor %}
-              <li><a href="{{ frame.tip_href }}" target="_blank" rel="noopener" class="prose-link tip-link" data-umami-event="tip-answered" data-umami-event-answer="other" data-umami-event-where="footer" data-umami-event-site="static">{{ frame.tip }}</a></li>
+              <li>{% call macros::tip_link("footer", "prose-link tip-link") %}{% endcall %}</li>
             </ul>
           </nav>
           </div>
