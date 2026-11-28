@@ -8,10 +8,8 @@ import { track } from './core/stats';
 import { errorLine } from './core/crash';
 import { browserRuntime } from './convert/runtime';
 import { applyDocument, pathLocale, storedLocale } from './locale/locale';
-import { showTipPause } from './tip/tipAsk';
 import './index.css';
 
-showTipPause(window);
 const runtime = browserRuntime();
 const path = pathLocale();
 const start = startLocale(path, storedLocale(), navigator.languages);

@@ -4,27 +4,23 @@ import type { ElementChildren } from '../ui/elementChildren';
 import type { FocusRef } from '../ui/useFocusIntent';
 import { SiteFooter } from './SiteFooter';
 import { SiteHeader } from './SiteHeader';
-import { TipSide } from './TipSide';
 
 const MAIN_ID = 'main';
 
 /**
- * The page column with the skip link, the site header, the footer and what comes `after` it,
- * and, when the page `asksTip`, the tip link in the margin beside header, content and footer.
- * While the page is `loading` the footer, the tip link and `after` wait, so nothing below the
- * content moves when it grows.
+ * The page column with the skip link, the site header, the footer and what comes `after` it.
+ * While the page is `loading` the footer and `after` wait, so nothing below the content moves
+ * when it grows.
  */
 export function Page({
   wide = false,
   loading = false,
-  asksTip = true,
   onSkip,
   after,
   children,
 }: {
   wide?: boolean;
   loading?: boolean;
-  asksTip?: boolean;
   onSkip: () => void;
   after?: ElementChildren;
   children: ElementChildren;
@@ -46,29 +42,26 @@ export function Page({
       : ''}
         `}
       >
-        <div className="relative flex flex-col gap-5">
-          <div data-nosnippet>
-            <a
-              href={`#${MAIN_ID}`}
-              onClick={(e) => {
-                e.preventDefault();
-                onSkip();
-              }}
-              className="skip-link"
-            >
-              {t({ id: 'skip-to-content' })}
-            </a>
-            <SiteHeader />
-          </div>
-          {children}
-          {!loading && (
-            <>
-              {asksTip && <TipSide wide={wide} />}
-              <SiteFooter />
-            </>
-          )}
+        <div data-nosnippet>
+          <a
+            href={`#${MAIN_ID}`}
+            onClick={(e) => {
+              e.preventDefault();
+              onSkip();
+            }}
+            className="skip-link"
+          >
+            {t({ id: 'skip-to-content' })}
+          </a>
+          <SiteHeader />
         </div>
-        {!loading && after}
+        {children}
+        {!loading && (
+          <>
+            <SiteFooter />
+            {after}
+          </>
+        )}
       </div>
     </div>
   );

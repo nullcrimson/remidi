@@ -29,7 +29,7 @@ const umami = fakeUmami();
 
 function start({ phone = false, lang = 'en' } = {}) {
   document.documentElement.lang = lang;
-  runTipScript(window, () => phone);
+  runTipScript(document, () => phone);
 }
 
 function click(target: Element) {
@@ -48,7 +48,6 @@ describe('the tip ask of the static pages', () => {
 
   afterEach(() => {
     document.body.innerHTML = '';
-    document.documentElement.removeAttribute('data-tip-paused');
   });
 
   it('shows on a download that the rule asks after, and counts the ask with its kind of download', () => {
@@ -167,20 +166,6 @@ describe('the tip ask of the static pages', () => {
     click(reaper());
     click(link('Other amount'));
     expect(umami).toHaveBeenCalledWith('tip-answered', { answer: 'other', where: 'toast', site: 'static' });
-  });
-
-  it('marks the root while a tip pauses the asks, also on a page without a tip ask', () => {
-    document.body.innerHTML = '<main><h1>FAQ</h1></main>';
-    localStorage.setItem(TIP_KEY, JSON.stringify({ tippedAt: Date.now() }));
-    start();
-    expect(document.documentElement.hasAttribute('data-tip-paused')).toBe(true);
-  });
-
-  it('marks the root once an amount is chosen', () => {
-    start();
-    click(reaper());
-    click(link('€5'));
-    expect(document.documentElement.hasAttribute('data-tip-paused')).toBe(true);
   });
 
   it('remembers a tip on the thanks page', () => {

@@ -5,4 +5,4 @@ import { runLocaleScript } from './locale/staticPages';
 
 runLocaleScript(document, navigator.languages, location);
 runHandoffScript(document, navigator);
-runTipScript(window, isNarrowScreen);
+runTipScript(document, isNarrowScreen);

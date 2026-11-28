@@ -1,6 +1,6 @@
 import { knownMark } from '../core/pageMark';
 import { send, type PageDownload } from '../core/umami';
-import { amountAnswer, answerTip, askAfterDownload, rememberTip, showTipPause, tipEuros, type TipAnswer } from './tipAsk';
+import { amountAnswer, answerTip, askAfterDownload, rememberTip, tipEuros, type TipAnswer } from './tipAsk';
 
 const PAGE_DOWNLOADS: readonly PageDownload[] = ['drum-map', 'note-map', 'rack'];
 
@@ -19,8 +19,7 @@ function euros(link: HTMLElement): number {
 }
 
 /**
- * Wires the tip ask of a static page. Every page marks its root while a tip pauses the asks
- * (`showTipPause`), so the side link hides. The thanks page (`[data-tipped]`) remembers a tip. On a
+ * Wires the tip ask of a static page. The thanks page (`[data-tipped]`) remembers a tip. On a
  * page with downloads, a click on a link inside a `[data-download]` counts toward the ask,
  * unless `onPhone()` says the page is laid out for a phone, which cannot use the file; when
  * `askAfterDownload` says so the hidden `[data-tip-toast]` shows, with its amounts in the
@@ -28,10 +27,8 @@ function euros(link: HTMLElement): number {
  * and hides it, giving focus back to the download when focus was inside. The download itself
  * is never held up.
  */
-export function runTipScript(window: Window, onPhone: () => boolean): void {
-  const { document } = window;
-  showTipPause(window);
-  if (document.querySelector('[data-tipped]')) rememberTip(document.documentElement);
+export function runTipScript(document: Document, onPhone: () => boolean): void {
+  if (document.querySelector('[data-tipped]')) rememberTip();
   const toast = document.querySelector<HTMLElement>('[data-tip-toast]');
   if (toast === null) return;
   const format = tipEuros(document.documentElement.lang);
@@ -39,7 +36,7 @@ export function runTipScript(window: Window, onPhone: () => boolean): void {
   let opener: HTMLElement | null = null;
   const answer = (given: TipAnswer) => {
     const hadFocus = toast.contains(document.activeElement);
-    send('tip-answered', answerTip(given, 'static', document.documentElement));
+    send('tip-answered', answerTip(given, 'static'));
     toast.hidden = true;
     if (hadFocus && opener?.isConnected) opener.focus();
   };

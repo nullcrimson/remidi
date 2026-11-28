@@ -80,7 +80,7 @@ export const SECTION_MESSAGES = {
 ${keys.map((k) => `  ${k}: { label: 'section-${k}-label', heading: 'section-${k}-heading' },`).join('\n')}
 } as const satisfies Record<SectionKey, { label: MessageId; heading: MessageId }>;
 `;
-  const css = s.locales.filter((l) => l.fonts).map((l) => `:lang(${l.langTag}) {\n  --font-sans: ${l.fonts};\n  --font-display: var(--font-sans);\n  --font-mono: 'IBM Plex Mono', ${l.fonts};\n  --tip-side-tracking: 0.12em;\n}\n`).join('');
+  const css = s.locales.filter((l) => l.fonts).map((l) => `:lang(${l.langTag}) {\n  --font-sans: ${l.fonts};\n  --font-display: var(--font-sans);\n  --font-mono: 'IBM Plex Mono', ${l.fonts};\n}\n`).join('');
   return { ts, codes, css };
 }
 

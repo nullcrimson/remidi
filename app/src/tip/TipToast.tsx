@@ -17,7 +17,7 @@ export function TipToast({ onClose }: { onClose: (hadFocus: boolean) => void }) 
   const euros = tipEuros(LOCALES[locale].langTag);
   const ref = useRef<HTMLDivElement>(null);
   const answer = (given: TipAnswer) => {
-    track('tip-answered', answerTip(given, 'converter', document.documentElement));
+    track('tip-answered', answerTip(given, 'converter'));
     onClose(ref.current?.contains(document.activeElement) ?? false);
   };
   const close = () => answer('closed');

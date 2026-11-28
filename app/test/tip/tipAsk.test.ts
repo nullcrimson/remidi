@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { amountAnswer, askAfterDownload, rememberTip, showTipPause } from '../../src/tip/tipAsk';
+import { amountAnswer, askAfterDownload, rememberTip } from '../../src/tip/tipAsk';
 import { storedName } from '../../src/core/storage';
 import tip from '../../../content/tip.json';
 
@@ -47,14 +47,14 @@ describe('askAfterDownload', () => {
 
   it('pauses for 90 days after a tip', () => {
     downloads(3);
-    rememberTip(document.documentElement, T0 + HOUR);
+    rememberTip(T0 + HOUR);
     expect(askAfterDownload(T0 + 2 * DAY)).toBe(false);
     expect(askAfterDownload(T0 + HOUR + 89 * DAY)).toBe(false);
   });
 
   it('asks again once 90 days after a tip have passed', () => {
     downloads(3);
-    rememberTip(document.documentElement, T0 + HOUR);
+    rememberTip(T0 + HOUR);
     expect(askAfterDownload(T0 + HOUR + 90 * DAY)).toBe(true);
   });
 
@@ -96,42 +96,5 @@ describe('amountAnswer', () => {
 
   it('names an amount that is not listed as other', () => {
     expect(amountAnswer(7)).toBe('other');
-  });
-});
-
-describe('the tip pause on the page root', () => {
-  const root = document.documentElement;
-  const paused = () => root.hasAttribute('data-tip-paused');
-
-  beforeEach(() => {
-    localStorage.clear();
-    root.removeAttribute('data-tip-paused');
-  });
-
-  it('is marked by remembering a tip', () => {
-    rememberTip(root);
-    expect(paused()).toBe(true);
-  });
-
-  it('is marked from the stored tip when shown', () => {
-    localStorage.setItem(TIP_KEY, JSON.stringify({ tippedAt: Date.now() }));
-    showTipPause(window);
-    expect(paused()).toBe(true);
-  });
-
-  it('follows a tip remembered in another tab', () => {
-    showTipPause(window);
-    expect(paused()).toBe(false);
-    localStorage.setItem(TIP_KEY, JSON.stringify({ tippedAt: Date.now() }));
-    window.dispatchEvent(new StorageEvent('storage', { key: TIP_KEY }));
-    expect(paused()).toBe(true);
-  });
-
-  it('is cleared once the stored tip no longer pauses the asks', () => {
-    localStorage.setItem(TIP_KEY, JSON.stringify({ tippedAt: Date.now() }));
-    showTipPause(window);
-    localStorage.setItem(TIP_KEY, JSON.stringify({ tippedAt: Date.now() - 90 * DAY }));
-    window.dispatchEvent(new StorageEvent('storage', { key: TIP_KEY }));
-    expect(paused()).toBe(false);
   });
 });

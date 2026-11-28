@@ -176,8 +176,7 @@ on a phone and click elsewhere.
 - `src/report/` — ReportModal, ContactFooter, `report.ts` (one entry type per group: `DroppedEntry`, `ApproximatedEntry`, `UnrecognizedEntry`; `entryText`, a line as shown and the key that merges files), `useConversionReport.ts`,
   `reportLink.ts` (the "Wrong mapping? Report it" form link, told the engines and language).
 - `src/tip/` — `tipAsk.ts` (the one rule: from the third kept download of any kind, at most
-  once a day, paused 90 days after a tip; the amount format, the answers and the
-  `data-tip-paused` mark, `showTipPause`), TipToast
+  once a day, paused 90 days after a tip; the amount format and the answers), TipToast
   (pinned to the top), ConverterTip with `tipNote.ts` (`noteDownload`, the converter's ask),
   and `pageTip.ts` (`runTipScript`, the static pages' ask and the thanks page's tip).
 - `src/locale/` — `i18n.ts` (`Translator`), `docs.ts` (the documents of a locale, `EN_DOCS`,
@@ -188,7 +187,7 @@ on a phone and click elsewhere.
   comes from `../locales/<code>/app.ftl` through `useT()`; the static pages' own messages sit
   in `site.ftl`, which the app never loads.
 - `src/site/` — page chrome and addresses: `site.ts` (`href`, `localHref`, `targetLabel`), PageFrame (Page, Card), SiteHeader (brand + Converter · How
-  to use · Note maps · FAQ), TipSide (the tip link in the right margin), SiteFooter (section links that open modals, rendered by
+  to use · Note maps · FAQ), TipLink (the footer's tip link), SiteFooter (section links that open modals, rendered by
   ContentBlocks from `../locales/<code>/docs.json`, the same source the static site pages
   use), LanguageMenu, GlobeIcon, ErrorBoundary, and `plainClick.ts`.
 - `src/ui/` — shared presentational pieces: `styles.ts` (with `LabelTone`, `TagTone`, `TextTone`, `rowState`: the look of a pickable list row, its left rule included; `tip()` and `TIP_MAX_WIDTH_CLASS`: the small dark tip of FollowTip and the truncation tooltip), `useDialog.ts` (the open-dialog plumbing of Modal and PickerShell: it returns the `focus` and `panel` prop groups to spread), Button, TextButton, IconButton,
