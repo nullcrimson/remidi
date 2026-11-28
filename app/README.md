@@ -187,7 +187,7 @@ on a phone and click elsewhere.
   comes from `../locales/<code>/app.ftl` through `useT()`; the static pages' own messages sit
   in `site.ftl`, which the app never loads.
 - `src/site/` — page chrome and addresses: `site.ts` (`href`, `localHref`, `targetLabel`), PageFrame (Page, Card), SiteHeader (brand + Converter · How
-  to use · Note maps · FAQ), TipLink (the footer's tip link), SiteFooter (section links that open modals, rendered by
+  to use · Note maps · FAQ), TipLink (the tip link: the footer's words, the top bar's cup), SiteFooter (section links that open modals, rendered by
   ContentBlocks from `../locales/<code>/docs.json`, the same source the static site pages
   use), LanguageMenu, GlobeIcon, ErrorBoundary, and `plainClick.ts`.
 - `src/ui/` — shared presentational pieces: `styles.ts` (with `LabelTone`, `TagTone`, `TextTone`, `rowState`: the look of a pickable list row, its left rule included; `tip()` and `TIP_MAX_WIDTH_CLASS`: the small dark tip of FollowTip and the truncation tooltip), `useDialog.ts` (the open-dialog plumbing of Modal and PickerShell: it returns the `focus` and `panel` prop groups to spread), Button, TextButton, IconButton,

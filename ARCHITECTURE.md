@@ -1121,6 +1121,10 @@ app imports it; `build.rs` writes its amounts as `TIP_AMOUNTS` and its `other` l
 `TIP_HREF` into `OUT_DIR/tip.rs`, which the site's `tip` module includes). Every footer
 ends with a `tip-link` to the any-amount page, counted as `tip-answered` from the footer.
 Every tip surface draws its cup with the one `tip-cup` utility (an SVG mask, no emoji).
+The top bar's nav ends with the same link as a gold cup (`tip-head`) beside the language
+menu, named and titled by its words, counted from the `header`; it is left out on `/thanks/`
+(the `tip_head` block) and in the note editor (`Page`'s `asksTip`). Each place has one form:
+`TipLink`'s `where` in the converter, the site's `TipPlace` in `tip_link`.
 The tip ask, pinned to the top of the screen, offers the fixed amounts; it is built twice
 from the same `tip-*` and `icon-button` utilities, by `TipToast` in the
 converter and by the `tip_toast` macro on the pages with downloads (engine, drum-maps and
