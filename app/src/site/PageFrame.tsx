@@ -8,19 +8,22 @@ import { SiteHeader } from './SiteHeader';
 const MAIN_ID = 'main';
 
 /**
- * The page column with the skip link, the site header, the footer and what comes `after` it.
+ * The page column with the skip link, the site header (with the tip cup when the page
+ * `asksTip`), the footer and what comes `after` it.
  * While the page is `loading` the footer and `after` wait, so nothing below the content moves
  * when it grows.
  */
 export function Page({
   wide = false,
   loading = false,
+  asksTip = true,
   onSkip,
   after,
   children,
 }: {
   wide?: boolean;
   loading?: boolean;
+  asksTip?: boolean;
   onSkip: () => void;
   after?: ElementChildren;
   children: ElementChildren;
@@ -53,7 +56,7 @@ export function Page({
           >
             {t({ id: 'skip-to-content' })}
           </a>
-          <SiteHeader />
+          <SiteHeader asksTip={asksTip} />
         </div>
         {children}
         {!loading && (

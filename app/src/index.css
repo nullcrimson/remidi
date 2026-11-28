@@ -131,6 +131,31 @@
   @apply tip-cup text-star;
 }
 
+@utility tip-head {
+  --tip-head-size: 1.25em;
+  @apply tap tip-cup inline-flex size-(--tip-head-size) items-center justify-center transition-[filter] duration-150 motion-reduce:transition-none;
+
+  &::before {
+    width: var(--tip-head-size);
+    height: var(--tip-head-size);
+    margin-inline-end: 0;
+    vertical-align: 0;
+  }
+
+  &:hover,
+  &:focus-visible {
+    filter: drop-shadow(var(--text-shadow-star));
+  }
+
+  @media (forced-colors: active) {
+    filter: none;
+
+    &::before {
+      background-color: LinkText;
+    }
+  }
+}
+
 @utility tip-toast {
   @apply fixed inset-x-4 top-[max(0.75rem,env(safe-area-inset-top))] z-30 mx-auto flex max-w-140 flex-col gap-3 rounded-panel border border-star/30 bg-ink p-4 shadow-popover motion-safe:animate-[tip-in_240ms_ease-out];
 }

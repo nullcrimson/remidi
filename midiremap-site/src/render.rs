@@ -129,6 +129,37 @@ impl std::fmt::Display for DownloadKind {
     }
 }
 
+/// Where a page links to the any-amount tip page: the footer's words, or the top bar's cup,
+/// named by its words; each counted as `tip-answered` from its place.
+#[derive(Clone, Copy)]
+enum TipPlace {
+    Footer,
+    Header,
+}
+
+impl TipPlace {
+    /// The place as the `where` of `tip-answered` names it.
+    fn key(self) -> &'static str {
+        match self {
+            Self::Footer => "footer",
+            Self::Header => "header",
+        }
+    }
+
+    /// The link's look.
+    fn class(self) -> &'static str {
+        match self {
+            Self::Footer => "prose-link tip-link",
+            Self::Header => "tip-head",
+        }
+    }
+
+    /// Whether the link is the cup alone, its words only its name and tooltip.
+    fn is_icon(self) -> bool {
+        matches!(self, Self::Header)
+    }
+}
+
 /// The tip ask a page with downloads carries, hidden until the page script shows it.
 struct TipToast<'a> {
     label: &'a str,
@@ -864,36 +895,130 @@ mod tests {
         );
     }
 
+    fn footer_tip_link(html: &str) -> Option<&str> {
+        html.split("<footer")
+            .nth(1)
+            .and_then(|footer| footer.split("<li>").last())
+            .and_then(|li| li.split("</a>").next())
+    }
+
     #[test]
     fn every_footer_ends_with_a_tip_link_opening_in_a_new_tab() {
         let tip = format!(r#"<a href="{TIP_HREF}" target="_blank" rel="noopener" "#);
         for (path, html) in rendered() {
-            let footer = html.split("<footer").nth(1).unwrap();
-            let last = footer.split("<li>").last().unwrap();
-            assert!(last.contains(&tip), "{path}");
+            assert!(
+                footer_tip_link(html).is_some_and(|link| link.contains(&tip)),
+                "{path}"
+            );
         }
     }
 
     #[test]
     fn every_footer_tip_link_counts_as_a_tip_answered_from_the_footer_of_a_static_page() {
-        let counted = [
-            r#"data-umami-event="tip-answered""#,
-            r#"data-umami-event-answer="other""#,
-            r#"data-umami-event-where="footer""#,
-            r#"data-umami-event-site="static""#,
-        ];
         for (path, html) in rendered() {
-            let footer = html.split("<footer").nth(1).unwrap();
-            let last = footer.split("<li>").last().unwrap();
-            for attribute in counted {
-                assert!(last.contains(attribute), "{path}: {attribute}");
-            }
+            let link = footer_tip_link(html).unwrap_or_default();
+            assert!(
+                link.contains(r#"data-umami-event="tip-answered""#),
+                "{path}"
+            );
+            assert!(
+                link.contains(r#"data-umami-event-answer="other""#),
+                "{path}"
+            );
+            assert!(
+                link.contains(r#"data-umami-event-where="footer""#),
+                "{path}"
+            );
+            assert!(link.contains(r#"data-umami-event-site="static""#), "{path}");
         }
     }
 
     #[test]
     fn the_polish_tip_link_is_in_polish() {
-        assert!(page("pl/faq/index.html").contains("Postaw mi kawę"));
+        let html = page("pl/faq/index.html");
+        assert!(footer_tip_link(html).is_some_and(|link| link.contains("Postaw mi kawę")));
+    }
+
+    fn thanks_pages() -> Vec<String> {
+        Locale::ALL
+            .iter()
+            .map(|&l| THANKS.in_locale(l).file())
+            .collect()
+    }
+
+    fn other_pages() -> impl Iterator<Item = &'static (String, String)> {
+        let thanks = thanks_pages();
+        rendered()
+            .iter()
+            .filter(move |(path, _)| !thanks.contains(path))
+    }
+
+    fn header(html: &str) -> &str {
+        html.split("<header")
+            .nth(1)
+            .and_then(|rest| rest.split("</header>").next())
+            .unwrap_or_default()
+    }
+
+    fn header_tip_cup(html: &str) -> Option<&str> {
+        let header = header(html);
+        let at = header.find(r#"class="tip-head""#)?;
+        let start = header[..at].rfind("<a ")?;
+        header[start..].split("</a>").next()
+    }
+
+    #[test]
+    fn the_thanks_pages_carry_no_tip_cup_in_the_top_bar() {
+        for file in thanks_pages() {
+            assert!(!page(&file).contains("tip-head"), "{file}");
+        }
+    }
+
+    #[test]
+    fn every_other_top_bar_ends_its_nav_with_one_tip_cup_after_the_language_menu() {
+        for (path, html) in other_pages() {
+            let header = header(html);
+            assert_eq!(header.matches("tip-head").count(), 1, "{path}");
+            let language = header.find(r#"id="language-trigger""#);
+            let cup = header.find("tip-head");
+            assert!(language.is_some() && cup > language, "{path}");
+            let after_cup = header[cup.unwrap_or_default()..]
+                .split_once("</a>")
+                .and_then(|(_, rest)| rest.trim_start().strip_prefix("</li>"))
+                .map(str::trim_start);
+            assert!(
+                after_cup.is_some_and(|rest| rest.starts_with("</ul>")),
+                "{path}"
+            );
+        }
+    }
+
+    #[test]
+    fn every_tip_cup_opens_the_tip_page_in_a_new_tab_counted_from_the_header() {
+        let href = format!(r#"href="{TIP_HREF}""#);
+        for (path, html) in other_pages() {
+            let cup = header_tip_cup(html).unwrap_or_default();
+            assert!(cup.contains(&href), "{path}");
+            assert!(cup.contains(r#"target="_blank""#), "{path}");
+            assert!(cup.contains(r#"rel="noopener""#), "{path}");
+            assert!(cup.contains(r#"data-umami-event="tip-answered""#), "{path}");
+            assert!(cup.contains(r#"data-umami-event-answer="other""#), "{path}");
+            assert!(cup.contains(r#"data-umami-event-where="header""#), "{path}");
+            assert!(cup.contains(r#"data-umami-event-site="static""#), "{path}");
+        }
+    }
+
+    #[test]
+    fn every_tip_cup_is_named_and_titled_with_the_footer_tip_link_words() {
+        for (path, html) in other_pages() {
+            let words = footer_tip_link(html)
+                .and_then(|link| link.rsplit('>').next())
+                .unwrap_or_default();
+            assert!(!words.is_empty(), "{path}");
+            let cup = header_tip_cup(html).unwrap_or_default();
+            assert!(cup.contains(&format!(r#"aria-label="{words}""#)), "{path}");
+            assert!(cup.contains(&format!(r#"title="{words}""#)), "{path}");
+        }
     }
 
     #[test]

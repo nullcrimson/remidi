@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% import "macros.html" as macros %}
 {% block robots %}<meta name="robots" content="noindex" />{% endblock %}
+{% block tip_head %}{% endblock %}
 {% block content %}
 <h1 data-tipped class="font-display text-display/tight font-bold text-t1">{{ texts.get(Plain::ThanksHeading) }}</h1>
 <p class="tip-cup text-body/relaxed text-t3">{{ texts.get(Plain::ThanksBody) }}</p>

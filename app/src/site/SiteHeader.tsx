@@ -3,8 +3,10 @@ import { track } from '../core/stats';
 import { LOCALES, NAV } from '../generated/i18n';
 import { useLocale } from '../locale/localeContext';
 import { LanguageMenu } from './LanguageMenu';
+import { TipLink } from './TipLink';
 
-export function SiteHeader() {
+/** The site's top bar: the brand, the main nav, the language menu and, when the page `asksTip`, the tip cup beside it. */
+export function SiteHeader({ asksTip }: { asksTip: boolean }) {
   const { translator: { t, locale }, failed } = useLocale();
   return (
     <header className="
@@ -40,7 +42,10 @@ export function SiteHeader() {
               </li>
             );
           })}
-          <li><LanguageMenu /></li>
+          <li className="flex items-center gap-x-4">
+            <LanguageMenu />
+            {asksTip && <TipLink where="header" />}
+          </li>
         </ul>
       </nav>
       {failed && (

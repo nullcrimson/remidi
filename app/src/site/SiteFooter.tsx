@@ -43,7 +43,7 @@ export function SiteFooter() {
               );
             })}
             <li>
-              <TipLink where="footer" className="prose-link tip-link" />
+              <TipLink where="footer" />
             </li>
           </ul>
         </nav>

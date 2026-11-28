@@ -42,7 +42,7 @@ it('stays in its language when a locale fails to load', async () => {
 
 it('tells the visitor in the header which language failed to load', async () => {
   vi.spyOn(console, 'error').mockImplementation(() => {});
-  render(<Offline><SiteHeader /><Probe /></Offline>);
+  render(<Offline><SiteHeader asksTip /><Probe /></Offline>);
   await userEvent.click(screen.getByText('pl'));
   expect(await screen.findByRole('alert')).toHaveTextContent('Couldn\'t load Polski.');
 });

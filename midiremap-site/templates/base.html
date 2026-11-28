@@ -42,7 +42,7 @@
               {% for n in frame.nav %}{% if !n.converter %}
               <li><a href="{{ n.href }}"{% if n.current %} aria-current="page"{% endif %} class="nav-link whitespace-nowrap">{{ n.label }}</a></li>
               {% endif %}{% endfor %}
-              <li>{% include "lang_menu.html" %}</li>
+              <li class="flex items-center gap-x-4">{% include "lang_menu.html" %}{% block tip_head %}{% call macros::tip_link(crate::render::TipPlace::Header) %}{% endcall %}{% endblock %}</li>
             </ul>
           </nav>
         </header>
@@ -63,7 +63,7 @@
               {% for l in frame.footer %}
               <li><a href="{{ l.href }}" class="prose-link">{{ l.label }}</a></li>
               {% endfor %}
-              <li>{% call macros::tip_link("footer", "prose-link tip-link") %}{% endcall %}</li>
+              <li>{% call macros::tip_link(crate::render::TipPlace::Footer) %}{% endcall %}</li>
             </ul>
           </nav>
           </div>
